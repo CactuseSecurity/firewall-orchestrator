@@ -22,15 +22,15 @@ namespace FWO.Test
         static readonly string ip12 = ":a:/128";
         static readonly string ip13 = ":a:/111";
 
-        static readonly NetworkService serv1 = new(){ Name = "Serv1", DestinationPort = 1000, Protocol = new(){ Id = 6, Name = "TCP" }};
-        static readonly NetworkService serv2 = new(){ Name = "Serv2", DestinationPort = 1000, DestinationPortEnd = 2000, Protocol = new(){ Id = 17, Name = "UDP" }};
-        static readonly NetworkService serv3 = new(){ Name = "Serv3", Protocol = new(){ Name="ESP" }};
+        static readonly NetworkService serv1 = new() { Name = "Serv1", DestinationPort = 1000, Protocol = new() { Id = 6, Name = "TCP" } };
+        static readonly NetworkService serv2 = new() { Name = "Serv2", DestinationPort = 1000, DestinationPortEnd = 2000, Protocol = new() { Id = 17, Name = "UDP" } };
+        static readonly NetworkService serv3 = new() { Name = "Serv3", Protocol = new() { Name = "ESP" } };
         static readonly NetworkService serv4 = new() { Name = "Any", Protocol = new() { Id = 0 } };
         static readonly NetworkService serv5 = new() { Name = "ALL", Protocol = new() { Id = 0 } };
 
         [SetUp]
         public void Initialize()
-        {}
+        { }
 
         [Test]
         public void TestGetNetmask()
@@ -68,7 +68,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("NewName (1000/TCP)", DisplayBase.DisplayService(serv1, false, "NewName").ToString());
             ClassicAssert.AreEqual("1000-2000/UDP", DisplayBase.DisplayService(serv2, true).ToString());
             ClassicAssert.AreEqual("ESP", DisplayBase.DisplayService(serv3, true).ToString());
-            ClassicAssert.AreEqual("Any", DisplayBase.DisplayService(serv4,false).ToString());
+            ClassicAssert.AreEqual("Any", DisplayBase.DisplayService(serv4, false).ToString());
             ClassicAssert.AreEqual("ALL", DisplayBase.DisplayService(serv5, true).ToString());
         }
     }

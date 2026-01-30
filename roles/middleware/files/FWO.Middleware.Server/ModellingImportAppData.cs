@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using FWO.Data.Modelling;
 using Newtonsoft.Json;
 
@@ -88,7 +88,7 @@ namespace FWO.Middleware.Server
         [JsonProperty("app_servers"), JsonPropertyName("app_servers")]
         public List<ModellingImportAppServer> AppServers { get; set; } = [];
     }
-    
+
     /// <summary>
     /// Structure for imported app server 
     /// </summary>

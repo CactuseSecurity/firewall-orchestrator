@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -21,7 +21,7 @@ namespace FWO.Data
         public string Uid { get; set; } = "";
 
         [JsonProperty("zone"), JsonPropertyName("zone")]
-        public NetworkZone Zone { get; set; } = new ();
+        public NetworkZone? Zone { get; set; }
 
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
@@ -30,13 +30,16 @@ namespace FWO.Data
         public int Create { get; set; }
 
         [JsonProperty("obj_create_time"), JsonPropertyName("obj_create_time")]
-        public TimeWrapper CreateTime { get; set; } = new ();
+        public TimeWrapper CreateTime { get; set; } = new();
 
         [JsonProperty("obj_last_seen"), JsonPropertyName("obj_last_seen")]
         public int LastSeen { get; set; }
 
         [JsonProperty("type"), JsonPropertyName("type")]
-        public NetworkObjectType Type { get; set; } = new ();
+        public NetworkObjectType Type { get; set; } = new();
+
+        [JsonProperty("obj_color"), JsonPropertyName("obj_color")]
+        public Color? Color { get; set; }
 
         [JsonProperty("obj_comment"), JsonPropertyName("obj_comment")]
         public string Comment { get; set; } = "";
@@ -69,18 +72,6 @@ namespace FWO.Data
         public override int GetHashCode()
         {
             return Id.GetHashCode();
-        }
-
-        public string MemberNamesAsHtml()
-        {
-            if (MemberNames != null && MemberNames.Contains('|'))
-            {
-                return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
-            }
-            else
-            {
-                return $"<td>{MemberNames}</td>";
-            }
         }
 
         public bool IsAnyObject()

@@ -1,0 +1,14 @@
+query getViolationsByRuleID($ruleUid: String, $mgmtUid: String) {
+  compliance_violation(where: {rule_uid: {_eq: $ruleUid} mgmt_uid: {_eq: $mgmtUid}}) {
+    id
+    criterion_id
+    details
+    found_date
+    policy_id
+    removed_date
+    risk_score
+    rule_id
+    rule_uid
+    mgmt_uid
+  }
+}

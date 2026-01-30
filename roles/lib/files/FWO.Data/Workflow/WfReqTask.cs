@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -54,7 +54,7 @@ namespace FWO.Data.Workflow
         public string OwnerList()
         {
             List<string> ownerNames = [];
-            foreach(var owner in Owners)
+            foreach (var owner in Owners)
             {
                 ownerNames.Add(owner.Owner.Name);
             }
@@ -64,7 +64,7 @@ namespace FWO.Data.Workflow
         public int HighestImplTaskNumber()
         {
             int highestNumber = 0;
-            foreach(var implTask in ImplementationTasks)
+            foreach (var implTask in ImplementationTasks)
             {
                 if (implTask.TaskNumber > highestNumber)
                 {
@@ -77,11 +77,11 @@ namespace FWO.Data.Workflow
         public List<NwObjectElement> GetNwObjectElements(ElemFieldType field)
         {
             List<NwObjectElement> elements = [];
-            foreach(var reqElem in Elements)
+            foreach (var reqElem in Elements)
             {
                 if (reqElem.Field == field.ToString())
                 {
-                    elements.Add( new NwObjectElement()
+                    elements.Add(new NwObjectElement()
                     {
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
@@ -101,11 +101,11 @@ namespace FWO.Data.Workflow
         public List<NwServiceElement> GetServiceElements()
         {
             List<NwServiceElement> elements = [];
-            foreach(var reqElem in Elements)
+            foreach (var reqElem in Elements)
             {
                 if (reqElem.Field == ElemFieldType.service.ToString())
                 {
-                    elements.Add( new NwServiceElement()
+                    elements.Add(new NwServiceElement()
                     {
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
@@ -124,11 +124,11 @@ namespace FWO.Data.Workflow
         public List<NwRuleElement> GetRuleElements()
         {
             List<NwRuleElement> elements = [];
-            foreach(var reqElem in Elements)
+            foreach (var reqElem in Elements)
             {
                 if (reqElem.Field == ElemFieldType.rule.ToString())
                 {
-                    elements.Add( new NwRuleElement()
+                    elements.Add(new NwRuleElement()
                     {
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
@@ -142,7 +142,7 @@ namespace FWO.Data.Workflow
 
         public string GetFirstCommentText()
         {
-            if(Comments.Count > 0)
+            if (Comments.Count > 0)
             {
                 return Comments[0].Comment.CommentText;
             }
@@ -151,7 +151,7 @@ namespace FWO.Data.Workflow
 
         public int GetRuleDeviceId()
         {
-            foreach(var reqElem in Elements)
+            foreach (var reqElem in Elements)
             {
                 if (reqElem.Field == ElemFieldType.rule.ToString() && reqElem.DeviceId != null)
                 {

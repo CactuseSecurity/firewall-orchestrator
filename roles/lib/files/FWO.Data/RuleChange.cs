@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -17,6 +17,6 @@ namespace FWO.Data
         [JsonProperty("new"), JsonPropertyName("new")]
         public Rule NewRule { get; set; } = new Rule();
 
-        public string DeviceName { get; set; } = "";
+        public string RulebaseName { get; set; } = "";
     }
 }

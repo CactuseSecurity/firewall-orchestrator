@@ -1,0 +1,10 @@
+query getPolicyIdsForCrit ($critId: Int!){
+  compliance_policy_criterion(where: {
+    removed: {_is_null: true}
+    criterion_id: { _eq: $critId }
+  }) {
+    criterion_id
+    policy_id
+  }
+}
+ 

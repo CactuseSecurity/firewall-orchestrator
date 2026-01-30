@@ -1,5 +1,5 @@
 using FWO.Basics;
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Modelling
@@ -115,7 +115,7 @@ namespace FWO.Data.Modelling
         [JsonProperty("removal_date"), JsonPropertyName("removal_date")]
         public DateTime? RemovalDate { get; set; }
 
-        
+
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
         public bool InterfaceIsRequested { get; set; } = false;
@@ -125,11 +125,11 @@ namespace FWO.Data.Modelling
         public int OrderNumber { get; set; } = 0;
         public Dictionary<string, string>? Props { get; set; }
         public List<ModellingExtraConfig> ExtraConfigs
-        {  
+        {
             get => ExtraParams != null && ExtraParams != "" ? System.Text.Json.JsonSerializer.Deserialize<List<ModellingExtraConfig>>(ExtraParams) ?? throw new JsonException("ExtraParams could not be parsed.") : [];
             set
             {
-                if(value != null)
+                if (value != null)
                 {
                     ExtraParams = System.Text.Json.JsonSerializer.Serialize(value) ?? throw new JsonException("value could not be parsed.");
                 }
@@ -140,7 +140,7 @@ namespace FWO.Data.Modelling
 
 
         public ModellingConnection()
-        {}
+        { }
 
         public ModellingConnection(ModellingConnection conn)
         {
@@ -216,10 +216,10 @@ namespace FWO.Data.Modelling
         {
             return Name + " (" + owner.ExtAppId + ":" + owner.Name + ")";
         }
-        
+
         public bool SourceFilled()
         {
-            return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0  || SourceAreas.Count > 0 || SourceOtherGroups.Count > 0;
+            return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0 || SourceAreas.Count > 0 || SourceOtherGroups.Count > 0;
         }
 
         public bool DestinationFilled()
@@ -248,7 +248,7 @@ namespace FWO.Data.Modelling
         public void RemoveProperty(string key)
         {
             InitProps();
-            if(Props != null && Props.Count > 0 && Props.ContainsKey(key))
+            if (Props != null && Props.Count > 0 && Props.ContainsKey(key))
             {
                 Props.Remove(key);
             }
@@ -286,11 +286,11 @@ namespace FWO.Data.Modelling
 
         public void SyncState(long dummyAppRoleId)
         {
-            if(IsInterface)
+            if (IsInterface)
             {
                 SyncInterface();
             }
-            else if(UsedInterfaceId != null)
+            else if (UsedInterfaceId != null)
             {
                 SyncInterfaceUser();
             }
@@ -341,7 +341,7 @@ namespace FWO.Data.Modelling
                 DestinationAppRoles.Any(a => a.Content.Id != dummyAppRoleId && a.Content.AppServers.Count == 0);
         }
 
-        public bool EmptyServiceGroupsFound() 
+        public bool EmptyServiceGroupsFound()
             => ServiceGroups.Any(_ => _.Content.Services.Count == 0);
 
         public bool IsDocumentationOnly()
@@ -422,11 +422,11 @@ namespace FWO.Data.Modelling
             List<ServiceWrapper> services = [];
             foreach (var svcGrp in ServiceGroups)
             {
-                services.Add(new(){ Content = svcGrp.Content.ToNetworkServiceGroup() });
+                services.Add(new() { Content = svcGrp.Content.ToNetworkServiceGroup() });
             }
             foreach (var svc in Services)
             {
-                services.Add(new(){ Content = ModellingService.ToNetworkService(svc.Content) });
+                services.Add(new() { Content = ModellingService.ToNetworkService(svc.Content) });
             }
 
             return new Rule()
@@ -452,7 +452,7 @@ namespace FWO.Data.Modelling
         private void InitProps()
         {
             Props ??= [];
-            if(Properties != null && Properties != "")
+            if (Properties != null && Properties != "")
             {
                 Props = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Properties) ?? [];
             }
@@ -460,11 +460,11 @@ namespace FWO.Data.Modelling
 
         private static int Compare(bool first, bool second)
         {
-            if(first && !second)
+            if (first && !second)
             {
                 return -1;
             }
-            if(!first && second)
+            if (!first && second)
             {
                 return 1;
             }

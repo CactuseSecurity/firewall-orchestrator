@@ -72,13 +72,13 @@ namespace FWO.Report.Filter
             List<Token> tokens = [];
 
             // Token begin position
-            int tokenBeginPosition = position;          
-            
+            int tokenBeginPosition = position;
+
             // Token text
             StringBuilder tokenText = new();
 
             while (!IsWhitespaceOrEnd(position))
-            {             
+            {
                 switch (input[position])
                 {
                     case '\\':
@@ -120,7 +120,7 @@ namespace FWO.Report.Filter
             }
 
             List<Token> tokens = [];
-           
+
             if (surroundedByWhitespace && whitespaceTokens.TryGetValue(text.ToLower(), out TokenKind whiteSpaceTokenKind))
             {
                 tokens.Add(new Token(beginPosition..(beginPosition + text.Length), text, whiteSpaceTokenKind));
@@ -215,7 +215,7 @@ namespace FWO.Report.Filter
                 // tab
                 't' => '\t',
                 // new line
-                'n' => '\n',                 
+                'n' => '\n',
                 // carriage return
                 'r' => '\r',
                 // default case

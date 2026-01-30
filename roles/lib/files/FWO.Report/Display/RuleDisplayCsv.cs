@@ -1,8 +1,9 @@
-﻿using FWO.Basics;
-using FWO.Data;
+using FWO.Basics;
 using FWO.Config.Api;
-using System.Text;
+using FWO.Data;
+using FWO.Report;
 using FWO.Report.Filter;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace FWO.Ui.Display
@@ -14,7 +15,7 @@ namespace FWO.Ui.Display
 
         public string OutputCsv(string? input)
         {
-            return  $"\"{input ?? ""}\",";
+            return $"\"{input ?? ""}\",";
         }
 
         public string DisplayNumberCsv(Rule rule)
@@ -29,7 +30,7 @@ namespace FWO.Ui.Display
 
         public string DisplaySourceZoneCsv(Rule rule)
         {
-            return OutputCsv(DisplaySourceZone(rule));
+            return OutputCsv(ListNetworkZones(rule.RuleFromZones.Select(z => z.Content).ToArray()));
         }
 
         public string DisplaySourceCsv(Rule rule, ReportType reportType)
@@ -39,7 +40,7 @@ namespace FWO.Ui.Display
 
         public string DisplayDestinationZoneCsv(Rule rule)
         {
-            return OutputCsv(DisplayDestinationZone(rule));
+            return OutputCsv(ListNetworkZones(rule.RuleToZones.Select(z => z.Content).ToArray()));
         }
 
         public string DisplayDestinationCsv(Rule rule, ReportType reportType)
@@ -76,21 +77,39 @@ namespace FWO.Ui.Display
         {
             return OutputCsv(DisplayComment(rule));
         }
-       
+
+        public string DisplayLastModifiedCsv(Rule rule)
+        {
+            return OutputCsv(DisplayLastModified(rule));
+        }
+
 
         public new string DisplayName(Rule rule)
         {
-            return (rule.Name != null ? SanitizeComment(rule.Name) : "");
+            return rule.Name != null ? SanitizeComment(rule.Name) : "";
         }
 
         public new string DisplayComment(Rule rule)
         {
-            return (rule.Comment != null ? SanitizeComment(rule.Comment) : "");
+            return rule.Comment != null ? SanitizeComment(rule.Comment) : "";
         }
-        
+
+        public string DisplayComment(NetworkObject nwo)
+        {
+            return nwo.Comment != null ? SanitizeComment(nwo.Comment) : "";
+        }
+        public string DisplayComment(NetworkService nws)
+        {
+            return nws.Comment != null ? SanitizeComment(nws.Comment) : "";
+        }
+        public string DisplayComment(NetworkUser nwu)
+        {
+            return nwu.Comment != null ? SanitizeComment(nwu.Comment) : "";
+        }
+
         public string DisplayEnabled(Rule rule)
         {
-            return (rule.Disabled) ? "disabled" : "enabled";
+            return rule.Disabled ? "disabled" : "enabled";
         }
 
         public string DisplaySource(Rule rule, ReportType reportType)
@@ -114,12 +133,12 @@ namespace FWO.Ui.Display
                     displayedServices.Add(DisplayService(service, reportType).ToString());
                 }
 
-                if(rule.ServiceNegated)
+                if (rule.ServiceNegated)
                 {
                     result.Append($"{userConfig.GetText("negated")}(");
                 }
                 result.Append(string.Join(",", displayedServices));
-                if(rule.ServiceNegated)
+                if (rule.ServiceNegated)
                 {
                     result.Append(")");
                 }
@@ -134,14 +153,14 @@ namespace FWO.Ui.Display
             return output;
         }
 
-        private string DisplaySourceOrDestination(Rule rule, ReportType reportType , bool isSource)
+        private string DisplaySourceOrDestination(Rule rule, ReportType reportType, bool isSource)
         {
             StringBuilder result = new StringBuilder("");
 
             if (reportType.IsResolvedReport())
             {
                 List<string> displayedLocations = new List<string>();
-                foreach (NetworkLocation networkLocation in GetNetworkLocations(isSource ? rule.Froms : rule.Tos))
+                foreach (NetworkLocation networkLocation in GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos))
                 {
                     displayedLocations.Add(DisplayNetworkLocation(networkLocation, reportType).ToString());
                 }
@@ -158,6 +177,24 @@ namespace FWO.Ui.Display
             }
 
             return result.ToString();
+        }
+
+        public static string DisplayEnforcingGateways(Rule rule)
+        {
+            return string.Join(",",
+                rule.EnforcingGateways?
+                    .Select(g => g.Content?.Name ?? "")
+                ?? Enumerable.Empty<string>());
+        }
+
+        protected string ListNetworkZones(NetworkZone[] networkZones)
+        {
+            List<string> displayedZones = new List<string>();
+            foreach (NetworkZone networkZone in networkZones)
+            {
+                displayedZones.Add(Quote(networkZone.Name));
+            }
+            return string.Join(",", displayedZones);
         }
     }
 }

@@ -116,3 +116,29 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 5. push new branch to fork
 
         git push -u origin auth_frontend
+
+
+## Update submodules
+
+### initial update
+Update submodules to the commits recorded in the superproject (safe, reproducible). Initializes them if necessary.
+```shell
+git submodule update --init --recursive
+```
+
+## following updates
+Pull the superproject and update submodules to the recorded commits.
+```shell
+git pull --recurse-submodules
+```
+
+Update submodules to the latest commit on their configured remote tracking branch.
+```shell
+git submodule update --remote --recursive
+```
+
+## always pull recursively
+Permanent configuration change for convenience : make `git pull` recurse into submodules without needing `--recurse-submodules`.
+```shell
+git config submodule.recurse true
+```

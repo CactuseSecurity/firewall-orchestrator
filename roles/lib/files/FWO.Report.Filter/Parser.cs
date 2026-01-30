@@ -144,17 +144,17 @@ namespace FWO.Report.Filter
                 TokenKind.Disabled or TokenKind.SourceNegated or TokenKind.DestinationNegated or TokenKind.ServiceNegated or TokenKind.Remove
                 => new AstNodeFilterBool() { Name = Name, Operator = Operator, Value = Value },
 
-                TokenKind.Time or TokenKind.LastHit 
+                TokenKind.Time or TokenKind.LastHit
                 => new AstNodeFilterDateTimeRange() { Name = Name, Operator = Operator, Value = Value },
 
-                TokenKind.ReportType 
+                TokenKind.ReportType
                 => new AstNodeFilterReportType() { Name = Name, Operator = Operator, Value = Value },
 
                 TokenKind.DestinationPort or TokenKind.RecertDisplay or TokenKind.Unused
                 => new AstNodeFilterInt() { Name = Name, Operator = Operator, Value = Value },
 
                 TokenKind.Source or TokenKind.Destination
-                => new AstNodeFilterNetwork() { Name = Name, Operator = Operator, Value = Value},
+                => new AstNodeFilterNetwork() { Name = Name, Operator = Operator, Value = Value },
 
                 _ => throw new NotSupportedException($"No type found for filter with token kind: {Name.Kind}"),
             };

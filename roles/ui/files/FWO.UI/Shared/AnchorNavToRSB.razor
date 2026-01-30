@@ -21,7 +21,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-            await ScrollToFragment();
+            await NavigateAndScrollToFragment();
     }
 
     public void Dispose()
@@ -31,7 +31,7 @@
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        await ScrollToFragment();
+        await NavigateAndScrollToFragment();
     }
 
     /// <returns>The html element id to an object in the right side bar.</returns>
@@ -60,7 +60,7 @@
         //      cannot remove fragment in URI with NavigationManager since it will result in a scroll to top
     }
 
-    public async Task ScrollToFragment()
+    public async Task NavigateAndScrollToFragment()
     {
         if (CollapseState == null || !CollapseState.HasExpandSubscribers)
             return; // collapses not fully rendered yet
@@ -83,11 +83,19 @@
             else
                 return;
 
-            // remove chapternum from #goto-report-{reportId}-{type}{chapterNumber}x{id} in report html export
-            elementId = Regex.Replace(elementId, @"(nwobj|svc|user)\d+x(\d+)", "$1$2");
-
             CollapseState.Expand(elementId);
 
+            await ScrollToFragment(elementId);
+        }
+    }
+
+    public async Task ScrollToFragment(string? elementId = null)
+    {
+        if (elementId == null)
+            elementId = await GetIdFromURI();
+        
+        if (!string.IsNullOrEmpty(elementId))
+        {
             bool foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId);
 
             if (foundObj)

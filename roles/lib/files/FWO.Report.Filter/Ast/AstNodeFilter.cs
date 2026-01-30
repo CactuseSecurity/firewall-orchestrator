@@ -47,7 +47,7 @@ namespace FWO.Report.Filter.Ast
                     queryVarType = "Boolean";
                     queryVarValue = boolValue ? "true" : "false";
                     break;
-                    
+
                 case string stringValue:
                     queryVarType = "String";
                     queryVarValue = stringValue;

@@ -1,4 +1,4 @@
-﻿using FWO.Config.File;
+using FWO.Config.File;
 using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;

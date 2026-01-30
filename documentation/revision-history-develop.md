@@ -260,7 +260,7 @@ bugfix release:
 
 # 8.7.1 - 05.03.2025 DEVELOP
 - ldap writepath for groups
-
+ demo data (major versions only)
 # 8.7.2 - 20.03.2025 DEVELOP
 - new config values
 - external request: attempt counter
@@ -283,7 +283,7 @@ bugfix release:
 
 # 8.8.8 - 21.08.2025 DEVELOP
 - add read-only db user fwo_ro
-- also reducing db listener to localhost
+- also reducing db listener to localhost and other hardening changes
 
 # 8.8.9 - 27.08.2025 DEVELOP
 - prepare tables + settings for owner recert + first throw recert popup
@@ -292,17 +292,18 @@ bugfix release:
 - iconification of modelling and related modules
 - fix overwrite of objects with interface
 
-# 8.8.10 - 07.09.2025 DEVELOP
+## 8.8.10 - 07.09.2025 DEVELOP
 - new report type owner-recertification
 
-# 8.9.1 - 02.10.2025 DEVELOP
+## 8.9.1 - 02.10.2025 DEVELOP
 - owner-recertification
 
-# 8.9.2 - 17.10.2025 DEVELOP
+## 8.9.2 - 17.10.2025 DEVELOP
 - add ownerLifeCycleState 
 - add manageable ownerLifeCycleState menu
+- fix two modelling ui glitches
 
-# 8.9.3 - 05.11.2025 DEVELOP
+## 8.9.3 - 05.11.2025 DEVELOP
 - hotfix missing permissions for app data import in certain constellations
 
 ## 8.9.4 - 09.12.2025 DEVELOP
@@ -314,3 +315,21 @@ bugfix release:
 
 ## 8.9.6 - 05.01.2026 DEVELOP
 - new parameters for notifications
+
+# 9.0 - 24.01.2026 DEVELOP
+A complete 80K lines rework of FWO, including
+- database changes to deduplicate rules (rule to gateway mapping now 1:n by introducing rulebase and rulebase_link tables)
+- migrating import module from mixed python/pgsql to pure python
+
+**Breaking changes**
+- Due to introduction of venv for all imports, the following steps have to be taken to manually import a config:
+
+```shell
+  sudo -u fworch -i
+  cd importer
+  source importer-venv/bin/activate
+  python3 ./import_mgm.py -m xy -fs -d1 
+```
+  As we now need support for pip, in installations behind url filter, make sure that all sub-domains of "pythonhosted.org" are also allowed.
+
+- Limiting database listener to localhost for security reasons

@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -20,7 +20,7 @@ namespace FWO.Data
             Id = i.Id;
             Name = i.Name;
         }
-        
+
         public bool HasPorts()
         {
             return Id == 6 || Id == 17;

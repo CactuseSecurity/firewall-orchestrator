@@ -1,6 +1,6 @@
 using FWO.Basics;
 using Newtonsoft.Json;
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 
 namespace FWO.Data
 {
@@ -50,7 +50,7 @@ namespace FWO.Data
 
         public bool RecertOverdue { get; set; } = false;
         public bool RecertUpcoming { get; set; } = false;
-        public long LastRecertId { get; set; } = 0;
+        public long? LastRecertId { get; set; }
 
         public FwoOwner()
         { }
@@ -81,7 +81,7 @@ namespace FWO.Data
 
             return $"{Name}{appIdPart}";
         }
-        
+
         public string DisplayWithoutAppId(string comSvcTxt)
         {
             if (CommSvcPossible)
@@ -103,7 +103,7 @@ namespace FWO.Data
 
         public int CompareTo(FwoOwner secondOwner)
         {
-            if(Id <= 0 || secondOwner.Id <= 0)
+            if (Id <= 0 || secondOwner.Id <= 0)
             {
                 return Id.CompareTo(secondOwner.Id);
             }

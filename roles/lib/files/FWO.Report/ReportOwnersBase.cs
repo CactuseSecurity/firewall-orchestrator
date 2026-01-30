@@ -9,7 +9,7 @@ namespace FWO.Report
     public abstract class ReportOwnersBase : ReportBase
     {
         protected ReportOwnersBase(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
-        {}
+        { }
 
         public override string ExportToJson()
         {

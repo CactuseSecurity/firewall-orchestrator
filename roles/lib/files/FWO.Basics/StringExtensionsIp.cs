@@ -9,8 +9,47 @@ namespace FWO.Basics
 {
     public static partial class StringExtensions
     {
-        private const string HtmlTagPattern = "<.*?>";
-        private static readonly string[] AllowedTags = ["br?", "i", "hr"];
+
+        public static int Compare(this string left, string right)
+        {
+            if (!IPAddress.TryParse(left?.Trim(), out var a))
+                throw new ArgumentException("Invalid IP address: " + left, nameof(left));
+            if (!IPAddress.TryParse(right?.Trim(), out var b))
+                throw new ArgumentException("Invalid IP address: " + right, nameof(right));
+
+            var a16 = ToComparableBytes(a);
+            var b16 = ToComparableBytes(b);
+
+            // Lexicographic compare, most-significant byte first (network byte order).
+            for (int i = 0; i < 16; i++)
+            {
+                int diff = a16[i].CompareTo(b16[i]);
+                if (diff != 0) return diff;
+            }
+            return 0;
+        }
+
+        public static bool IsGreater(this string left, string right) => Compare(left, right) > 0;
+
+        private static byte[] ToComparableBytes(IPAddress ip)
+        {
+            // Ensure a 16-byte representation:
+            // - IPv4 -> IPv6-mapped (::ffff:a.b.c.d)
+            // - IPv6 -> as-is
+            IPAddress v6 = ip.AddressFamily == AddressFamily.InterNetwork
+                ? ip.MapToIPv6()
+                : ip;
+
+            var bytes = v6.GetAddressBytes(); // always 16 for IPv6
+            if (bytes.Length != 16)
+                throw new InvalidOperationException("Expected a 16-byte IPv6 address after mapping.");
+            return bytes;
+        }
+
+        public static bool GenerousCompare(this string? string1, string? string2)
+        {
+            return string.IsNullOrEmpty(string1) && string.IsNullOrEmpty(string2) || string1 == string2;
+        }
 
         [GeneratedRegex(@"(\/[\d\.\:]+)\D?")]
         private static partial Regex NetmaskRegex();
@@ -99,23 +138,6 @@ namespace FWO.Basics
             return ip;
         }
 
-        private static string BuildDangerousHtmlTagPattern()
-        {
-            string allowedTags = string.Join('|', AllowedTags);
-            return $"<(?!:{allowedTags}).*?(?<!{allowedTags})>";
-        }
-
-        public static string StripHtmlTags(this string text, RegexOptions options = RegexOptions.None)
-        {
-            return Regex.Replace(text, HtmlTagPattern, string.Empty, options);
-        }
-
-        public static string StripDangerousHtmlTags(this string text, RegexOptions options = RegexOptions.None)
-        {
-            string pattern = BuildDangerousHtmlTagPattern();
-            return Regex.Replace(text, pattern, string.Empty, options);
-        }
-
         public static bool IsIPv4(this string ipAddress)
         {
             if (IPAddress.TryParse(ipAddress, out IPAddress? addr))
@@ -143,9 +165,14 @@ namespace FWO.Basics
         }
 
         public static string IpAsCidr(this string ip)
-		{
-			return IPAddressRange.Parse(ip).ToCidrString();
-		}
+        {
+            return IPAddressRange.Parse(ip).ToCidrString();
+        }
+
+        public static string ToComparableIpString(this string ip)
+        {
+            return ip.IpAsCidr().PadLeft(43, '0'); // max length of an IPv6 CIDR string is 43 chars
+        }
 
         public static (string start, string end) CidrToRangeString(this string cidr)
         {
@@ -188,8 +215,14 @@ namespace FWO.Basics
 
         private static (IPAddress start, IPAddress end) IPv4CidrToRange(byte[] addressBytes, int prefixLength)
         {
+            if (prefixLength is < 0 or > 32)
+                throw new ArgumentOutOfRangeException(nameof(prefixLength));
+
             uint ipAddress = BitConverter.ToUInt32([.. addressBytes.Reverse()], 0);
-            uint mask = (uint.MaxValue << (32 - prefixLength)) & uint.MaxValue;
+
+            uint mask = prefixLength == 0
+                ? 0u
+                : uint.MaxValue << (32 - prefixLength);
 
             uint startIp = ipAddress & mask;
             uint endIp = startIp | ~mask;
@@ -197,6 +230,7 @@ namespace FWO.Basics
             return (new IPAddress([.. BitConverter.GetBytes(startIp).Reverse()]),
                     new IPAddress([.. BitConverter.GetBytes(endIp).Reverse()]));
         }
+
 
         private static (IPAddress start, IPAddress end) IPv6CidrToRange(byte[] addressBytes, int prefixLength)
         {

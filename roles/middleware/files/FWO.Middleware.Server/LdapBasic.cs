@@ -47,9 +47,9 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                LdapConnectionOptions ldapOptions = new ();
+                LdapConnectionOptions ldapOptions = new();
                 if (Tls) ldapOptions.ConfigureRemoteCertificateValidationCallback((object sen, X509Certificate? cer, X509Chain? cha, SslPolicyErrors err) => true); // todo: allow real cert validation     
-                LdapConnection connection = new (ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
+                LdapConnection connection = new(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
                 await connection.ConnectAsync(Address, Port);
 
                 return connection;
@@ -304,7 +304,7 @@ namespace FWO.Middleware.Server
         {
             return user.GetAttributeSet().ContainsKey("givenName") ? user.Get("givenName").StringValue : "";
         }
-        
+
         /// <summary>
         /// Get the last name for the given user
         /// </summary>
@@ -333,17 +333,17 @@ namespace FWO.Middleware.Server
             }
             return "";
         }
-        
+
         /// <summary>
         /// Get the tenant name for the given user
         /// </summary>
         /// <returns>tenant name of the given user</returns>
         public string GetTenantName(LdapEntry user)
         {
-            DistName dn = new (user.Dn);
-            return dn.GetTenantNameViaLdapTenantLevel (TenantLevel);
+            DistName dn = new(user.Dn);
+            return dn.GetTenantNameViaLdapTenantLevel(TenantLevel);
         }
-        
+
         /// <summary>
         /// Get the groups for the given user
         /// </summary>
@@ -359,7 +359,9 @@ namespace FWO.Middleware.Server
             {
                 if (attribute.Name.ToLower() == MemberOfLowerCase)
                 {
-                    groups.AddRange(attribute.StringValueArray.Where(membership => GroupSearchPath != null && membership.EndsWith(GroupSearchPath)));
+                    groups.AddRange(attribute.StringValueArray.Where(membership =>
+                        (!string.IsNullOrWhiteSpace(GroupSearchPath) && membership.EndsWith(GroupSearchPath))
+                        || (!string.IsNullOrWhiteSpace(GroupWritePath) && membership.EndsWith(GroupWritePath))));
                 }
             }
             return groups;
@@ -408,7 +410,7 @@ namespace FWO.Middleware.Server
                 if (await TryBind(connection, WriteUser, WriteUserPwd))
                 {
                     // authentication was successful: set new password
-                    LdapAttribute attribute = new ("userPassword", newPassword);
+                    LdapAttribute attribute = new("userPassword", newPassword);
                     LdapModification[] mods = [new LdapModification(LdapModification.Replace, attribute)];
 
                     await connection.ModifyAsync(userDn, mods);
@@ -483,7 +485,7 @@ namespace FWO.Middleware.Server
                 await TryBind(connection, WriteUser, WriteUserPwd);
 
                 string userName = new DistName(userDn).UserName;
-                LdapAttributeSet attributeSet = new ()
+                LdapAttributeSet attributeSet = new()
                 {
                     new LdapAttribute("objectclass", "inetOrgPerson"),
                     new LdapAttribute("sn", userName),
@@ -493,7 +495,7 @@ namespace FWO.Middleware.Server
                     new LdapAttribute("mail", email)
                 };
 
-                LdapEntry newEntry = new (userDn, attributeSet);
+                LdapEntry newEntry = new(userDn, attributeSet);
 
                 try
                 {
@@ -527,8 +529,8 @@ namespace FWO.Middleware.Server
                 using LdapConnection connection = await Connect();
                 // Authenticate as write user
                 await TryBind(connection, WriteUser, WriteUserPwd);
-                LdapAttribute attribute = new ("mail", email);
-                LdapModification[] mods = [new (LdapModification.Replace, attribute)];
+                LdapAttribute attribute = new("mail", email);
+                LdapModification[] mods = [new(LdapModification.Replace, attribute)];
 
                 try
                 {
@@ -629,6 +631,19 @@ namespace FWO.Middleware.Server
             return allRemoved;
         }
 
+        /// <summary>
+        /// Decide if a membership change should be applied based on current state.
+        /// </summary>
+        public static bool ShouldModifyMembership(bool memberExists, int ldapModification)
+        {
+            return ldapModification switch
+            {
+                LdapModification.Add => !memberExists,
+                LdapModification.Delete => memberExists,
+                _ => true
+            };
+        }
+
         private async Task<bool> ModifyUserInEntry(string userDn, string entry, int ldapModification)
         {
             bool userModified = false;
@@ -638,25 +653,50 @@ namespace FWO.Middleware.Server
                 // Authenticate as write user
                 await TryBind(connection, WriteUser, WriteUserPwd);
 
-                // Add a new value to the description attribute
+                LdapEntry? entryData;
+                try
+                {
+                    entryData = await connection.ReadAsync(entry);
+                    if (entryData == null)
+                    {
+                        Log.WriteDebug("Modify Entry", $"Entry not found: {entry}");
+                        return false;
+                    }
+                }
+                catch (LdapException ex) when (ex.ResultCode == LdapException.NoSuchObject)
+                {
+                    Log.WriteDebug("Modify Entry", $"Entry not found: {entry}");
+                    return false;
+                }
+
+                bool memberExists = entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
+                    && entryData.Get(UniqueMemberLowerCase)
+                             .StringValueArray
+                             .Any(m => m.Equals(userDn, StringComparison.OrdinalIgnoreCase));
+                if (!ShouldModifyMembership(memberExists, ldapModification))
+                {
+                    if (ldapModification == LdapModification.Add)
+                    {
+                        Log.WriteDebug("Modify Entry", $"User {userDn} already member of {entry}");
+                    }
+                    else if (ldapModification == LdapModification.Delete)
+                    {
+                        Log.WriteDebug("Modify Entry", $"User {userDn} not member of {entry}");
+                    }
+                    return false;
+                }
+
                 LdapAttribute attribute = new(UniqueMemberLowerCase, userDn);
                 LdapModification[] mods = [new(ldapModification, attribute)];
 
-                try
-                {
-                    //Modify the entry in the directory
-                    await connection.ModifyAsync(entry, mods);
-                    userModified = true;
-                    Log.WriteDebug("Modify Entry", $"Entry {entry} modified in {Address}:{Port}");
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteInfo("Modify Entry", $"maybe entry doesn't exist in this LDAP {Address}:{Port}: {exception}");
-                }
+                await connection.ModifyAsync(entry, mods);
+                userModified = true;
+
+                Log.WriteDebug("Modify Entry", $"User {userDn} modified in {entry}");
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to modify user", exception);
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while modifying user {userDn}", ex);
             }
             return userModified;
         }

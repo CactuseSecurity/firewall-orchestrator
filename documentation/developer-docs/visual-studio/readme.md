@@ -18,9 +18,6 @@ recommended:
 - GitHub Pull Requests and Issues, see <https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-pull-request-github>
 - GitLens
 - GraphQL for VSCode
-- Perl
-- Simple Perl
-- Prettier-Code formatter
 - Python
 
 Testing:
@@ -107,7 +104,7 @@ or alternatively add the following to csproj file:
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>

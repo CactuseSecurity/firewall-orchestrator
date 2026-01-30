@@ -1,0 +1,9 @@
+query getCriteria {
+  compliance_criterion (where: { removed: {_is_null: true} }){
+    id
+    name
+    criterion_type
+    content
+	comment
+  }
+}

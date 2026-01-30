@@ -45,40 +45,58 @@ namespace FWO.Report
         {
             List<IPAddressRange> ownerIps = await GetAppServers(apiConnection, ownerId);
             List<ManagementReport> relevantData = [];
-            foreach(var mgt in managementData)
+            foreach (var mgt in managementData)
             {
-                ManagementReport relevantMgt = new(){ Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
-                foreach(var dev in mgt.Devices)
+                ManagementReport relevantMgt = new() { Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
+                foreach (var rulebase in mgt.Rulebases)
                 {
-                    PrepareDevice(dev, modellingFilter, relevantMgt, ownerIps);
+                    PrepareRulebase(rulebase, modellingFilter, relevantMgt, ownerIps);
                 }
-                if(relevantMgt.Devices.Length > 0)
+                if (relevantMgt.Rulebases.Length > 0)
                 {
                     relevantMgt.ReportedRuleIds = [.. relevantMgt.ReportedRuleIds.Distinct()];
+                    relevantMgt.Devices = [.. PrepareDevices(mgt.Devices)];
                     relevantData.Add(relevantMgt);
                 }
             }
             return relevantData;
         }
 
-        private static void PrepareDevice(DeviceReport dev, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
+        private static List<DeviceReport> PrepareDevices(DeviceReport[] deviceReports)
         {
-            DeviceReport relevantDevice = new(){ Name = dev.Name, Id = dev.Id };
-            if(dev.Rules != null)
+            List<DeviceReport> selectedDeviceReports = [];
+            foreach (var devReport in deviceReports)
             {
-                relevantDevice.Rules = [];
-                foreach(var rule in dev.Rules)
+                DeviceReport selectedDevReport = new(devReport);
+                foreach (var rule in devReport.GetRuleList())
                 {
-                    PrepareRule(rule, modellingFilter, relevantMgt, relevantDevice, ownerIps);
+                    if (selectedDevReport.IsLinked(rule))
+                    {
+                        selectedDevReport.AddRule(rule);
+                    }
                 }
-                if(relevantDevice.Rules.Length > 0)
+                if (selectedDevReport.ContainsRules())
                 {
-                    relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
+                    selectedDeviceReports.Add(selectedDevReport);
                 }
+            }
+            return selectedDeviceReports;
+        }
+
+        private static void PrepareRulebase(RulebaseReport rulebase, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
+        {
+            RulebaseReport relevantRulebase = new() { Name = rulebase.Name, Id = rulebase.Id };
+            foreach (var rule in rulebase.Rules)
+            {
+                PrepareRule(rule, modellingFilter, relevantMgt, relevantRulebase, ownerIps);
+            }
+            if (relevantRulebase.Rules.Length > 0)
+            {
+                relevantMgt.Rulebases = [.. relevantMgt.Rulebases, relevantRulebase];
             }
         }
 
-        private static void PrepareRule(Rule rule, ModellingFilter modellingFilter, ManagementReport relevantMgt, DeviceReport relevantDevice, List<IPAddressRange> ownerIps)
+        private static void PrepareRule(Rule rule, ModellingFilter modellingFilter, ManagementReport relevantMgt, RulebaseReport relevantRulebase, List<IPAddressRange> ownerIps)
         {
             if (modellingFilter.ShowDropRules || !rule.IsDropRule())
             {
@@ -102,7 +120,7 @@ namespace FWO.Report
                     rule.DisregardedFroms = [.. disregardedFroms];
                     rule.DisregardedTos = [.. disregardedTos];
                     rule.ShowDisregarded = modellingFilter.ShowFullRules;
-                    relevantDevice.Rules = [.. relevantDevice.Rules!, rule];
+                    relevantRulebase.Rules = [.. relevantRulebase.Rules, rule];
                     relevantMgt.ReportedRuleIds.Add(rule.Id);
                 }
             }
@@ -120,11 +138,11 @@ namespace FWO.Report
         {
             List<NetworkLocation> relevantObjects = [];
             List<NetworkLocation> disregardedObjects = [];
-            foreach(var obj in objList)
+            foreach (var obj in objList)
             {
-                if(obj.Object.IsAnyObject())
+                if (obj.Object.IsAnyObject())
                 {
-                    if(modellingFilter.ShowAnyMatch)
+                    if (modellingFilter.ShowAnyMatch)
                     {
                         relevantObjects.Add(obj);
                     }
@@ -144,11 +162,11 @@ namespace FWO.Report
         private static void CheckSpecificObj(NetworkLocation obj, bool negated, List<IPAddressRange> ownerIps, List<NetworkLocation> relevantObjects, List<NetworkLocation> disregardedObjects)
         {
             bool found = false;
-            if(obj.Object.Type.Name == ObjectType.Group)
+            if (obj.Object.Type.Name == ObjectType.Group)
             {
-                foreach(var grpobj in obj.Object.ObjectGroupFlats.Select(o => o.Object))
+                foreach (var grpobj in obj.Object.ObjectGroupFlats.Select(o => o.Object))
                 {
-                    if(grpobj != null && CheckObj(grpobj, negated, ownerIps))
+                    if (grpobj != null && CheckObj(grpobj, negated, ownerIps))
                     {
                         relevantObjects.Add(obj);
                         found = true;
@@ -156,12 +174,12 @@ namespace FWO.Report
                     }
                 }
             }
-            else if(CheckObj(obj.Object, negated, ownerIps))
+            else if (CheckObj(obj.Object, negated, ownerIps))
             {
                 relevantObjects.Add(obj);
                 found = true;
             }
-            if(!found)
+            if (!found)
             {
                 disregardedObjects.Add(obj);
             }
@@ -169,9 +187,9 @@ namespace FWO.Report
 
         private static bool CheckObj(NetworkObject obj, bool negated, List<IPAddressRange> ownerIps)
         {
-            foreach(var ownerIpRange in ownerIps)
+            foreach (var ownerIpRange in ownerIps)
             {
-                if(obj.IP == null)
+                if (obj.IP == null)
                 {
                     continue;
                 }
@@ -179,7 +197,7 @@ namespace FWO.Report
                 IPAddressRange objRange = new(IPAddress.Parse(obj.IP.StripOffNetmask()),
                     IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask()));
 
-                if(negated)
+                if (negated)
                 {
                     if (IpOperations.IpToUint(ownerIpRange.Begin) < IpOperations.IpToUint(objRange.Begin) ||
                             (IpOperations.IpToUint(ownerIpRange.End) > IpOperations.IpToUint(objRange.End)))
@@ -187,7 +205,7 @@ namespace FWO.Report
                         return true;
                     }
                 }
-                else if(IpOperations.RangeOverlapExists(objRange, ownerIpRange))
+                else if (IpOperations.RangeOverlapExists(objRange, ownerIpRange))
                 {
                     return true;
                 }
@@ -199,9 +217,9 @@ namespace FWO.Report
         {
             mgt.RelevantObjectIds = [];
             mgt.HighlightedObjectIds = [];
-            foreach(var dev in mgt.Devices.Where(d => d.Rules != null))
+            foreach (var rb in mgt.Rulebases)
             {
-                foreach(var rule in dev.Rules!)
+                foreach (var rule in rb.Rules)
                 {
                     PrepareObjects(rule.Froms, rule.SourceNegated, rule.DisregardedFroms, mgt, ownerIps);
                     PrepareObjects(rule.Tos, rule.DestinationNegated, rule.DisregardedTos, mgt, ownerIps);
@@ -213,21 +231,21 @@ namespace FWO.Report
 
         private static void PrepareObjects(NetworkLocation[] networkLocations, bool negated, NetworkLocation[] disregardedLocations, ManagementReport mgt, List<IPAddressRange> ownerIps)
         {
-            foreach(var from in networkLocations.Select(f => f.Object))
+            foreach (var from in networkLocations.Select(f => f.Object))
             {
                 mgt.RelevantObjectIds.Add(from.Id);
                 mgt.HighlightedObjectIds.Add(from.Id);
-                if(from.Type.Name == ObjectType.Group)
+                if (from.Type.Name == ObjectType.Group)
                 {
-                    foreach(var grpobj in from.ObjectGroupFlats.Select(g => g.Object).Where(gr => gr != null && CheckObj(gr, negated, ownerIps)))
+                    foreach (var grpobj in from.ObjectGroupFlats.Select(g => g.Object).Where(gr => gr != null && CheckObj(gr, negated, ownerIps)))
                     {
                         mgt.HighlightedObjectIds.Add(grpobj!.Id);
                     }
                 }
             }
-            if(networkLocations.Length == 0)
+            if (networkLocations.Length == 0)
             {
-                foreach(var from in disregardedLocations)
+                foreach (var from in disregardedLocations)
                 {
                     mgt.RelevantObjectIds.Add(from.Object.Id);
                 }
@@ -236,16 +254,16 @@ namespace FWO.Report
 
         private static void PrepareRsbOutput(ManagementReport mgt)
         {
-            foreach(var obj in mgt.ReportObjects)
+            foreach (var obj in mgt.ReportObjects)
             {
                 obj.Highlighted = mgt.HighlightedObjectIds.Contains(obj.Id) || obj.IsAnyObject();
-                if(obj.Type.Name == ObjectType.Group)
+                if (obj.Type.Name == ObjectType.Group)
                 {
-                    foreach(var grpobj in obj.ObjectGroupFlats.Select(g => g.Object).Where(g => g != null))
+                    foreach (var grpobj in obj.ObjectGroupFlats.Select(g => g.Object).Where(g => g != null))
                     {
                         grpobj!.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Id) || grpobj.IsAnyObject();
                     }
-                    foreach(var grpobj in obj.ObjectGroups.Select(g => g.Object).Where(g => g != null))
+                    foreach (var grpobj in obj.ObjectGroups.Select(g => g.Object).Where(g => g != null))
                     {
                         grpobj!.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Id) || grpobj.IsAnyObject();
                     }

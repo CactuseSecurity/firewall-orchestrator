@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -72,7 +72,7 @@ namespace FWO.Config.File
                 Log.WriteError("Key extraction", "Error while trying to read key from file.", exception);
                 throw;
             }
-          
+
             Log.WriteDebug("Key extraction", "Key was succesfully extracted.");
             return (keyText, isRsaKey);
         }

@@ -22,7 +22,6 @@ sample_config_user_home: "/home/{{ sample_config_user }}"
 
   - creating {{ fworch_parent_dir }}/fworch
   - creating user fworch
-  - adding file iso.conf to {{ fworch_parent_dir }}/fworch/etc
   - creating logs
   
 ## hosts: backends

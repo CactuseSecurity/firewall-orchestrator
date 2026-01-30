@@ -1,0 +1,13 @@
+query getMapOfName2Id($names: [String!], $mgmId: Int!) {
+  zone(where: {
+    zone_name: {_in: $names}, 
+    _or: [
+      {mgm_id: {_eq: $mgmId}},
+      {management: {multi_device_manager_id: {_eq: $mgmId}}}
+    ],
+    removed: {_is_null: true}
+    }) {
+    zone_id
+    zone_name
+  }
+}

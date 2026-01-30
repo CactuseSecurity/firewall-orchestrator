@@ -11,10 +11,10 @@ namespace FWO.Test
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
-            if(responseType == typeof(List<ManagementReport>))
+            if (responseType == typeof(List<ManagementReport>))
             {
                 List<ManagementReport> reports = SimulatedReport.DetailedReport().ReportData.ManagementData;
-                GraphQLResponse<dynamic> response = new(){ Data = reports };
+                GraphQLResponse<dynamic> response = new() { Data = reports };
                 return response.Data;
             }
             else

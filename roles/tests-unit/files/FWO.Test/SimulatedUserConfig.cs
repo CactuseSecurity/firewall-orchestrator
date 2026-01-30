@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Config.Api.Data;
 
 namespace FWO.Test
@@ -14,7 +14,7 @@ namespace FWO.Test
 
         public SimulatedGlobalConfig() : base()
         {
-            LangDict = new(){ { "English", DummyTranslate } };
+            LangDict = new() { { "English", DummyTranslate } };
         }
     }
 
@@ -146,6 +146,18 @@ namespace FWO.Test
             {"English", "English"},
             {"last_successful", "Last successful"},
             {"common_service", "Common Service"},
+            {"managements", "Managements"},
+            {"enforcing_devices", "enforcing_devices" },
+            {"no_changes_found", "no_changes_found" },
+            {"network_object_added", "network_object_added" },
+            {"network_object_deleted", "network_object_deleted" },
+            {"network_object_modified", "network_object_modified" },
+            {"service_added", "service_added" },
+            {"service_deleted", "service_deleted" },
+            {"service_modified", "service_modified" },
+            {"user_added","user_added" },
+            {"user_deleted","user_deleted" },
+            {"user_modified","user_modified" }
         };
 
         public override string GetText(string key)
@@ -155,10 +167,10 @@ namespace FWO.Test
 
         public static ConfigItem[] GetAsConfigs()
         {
-            List <ConfigItem> configs = [];
+            List<ConfigItem> configs = [];
             foreach (var dictValuePair in DummyTranslate)
             {
-                configs.Add(new(){ Key = dictValuePair.Key, Value = dictValuePair.Value, User = 0});
+                configs.Add(new() { Key = dictValuePair.Key, Value = dictValuePair.Value, User = 0 });
             }
             return [.. configs];
         }

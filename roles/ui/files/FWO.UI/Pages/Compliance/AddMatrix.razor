@@ -1,0 +1,86 @@
+﻿@using System.Text.Json
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<PopUp Title="@(userConfig.GetText("add_matrix"))" Size=PopupSize.Small Show="@Display" OnClose="Cancel">
+    <Body>
+        @if(Display)
+        {
+            <div class="col-sm-11">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                <input type="text" class="col-sm-8" @bind="MatrixName" />
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("add"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("add"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public Func<ComplianceCriterion, Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
+    private string MatrixName { get; set; } = "";
+
+    private void Cancel()
+    {
+        Close();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            bool shortened = false;
+            MatrixName = Sanitizer.SanitizeMand(MatrixName, ref shortened);
+            if (shortened)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("save"), userConfig.GetText("U0001"), true);
+            }
+            else if(MatrixName != "")
+            {
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion, new { name = MatrixName, criterionType = CriterionType.Matrix.ToString() })).ReturnIds;
+                if(returnIds != null && returnIds.Length > 0)
+                {
+                    _ = RefreshParent(new(){ Id = returnIds[0].InsertedId, Name = MatrixName, CriterionType = CriterionType.Matrix.ToString() });
+                }
+                Close();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("add_matrix"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        MatrixName = "";
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

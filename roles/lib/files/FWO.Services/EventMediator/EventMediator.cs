@@ -14,12 +14,12 @@ public class EventMediator : IEventMediator
     /// <param name="handler"></param>
     public void Subscribe<TEvent>(string name, Action<TEvent> handler) where TEvent : class, IEvent
     {
-        if(!_handlers.ContainsKey(typeof(TEvent)))
+        if (!_handlers.ContainsKey(typeof(TEvent)))
         {
             _handlers[typeof(TEvent)] = [];
         }
 
-        if(!_handlers[typeof(TEvent)].TryGetValue(name, out List<Action<IEvent>>? value))
+        if (!_handlers[typeof(TEvent)].TryGetValue(name, out List<Action<IEvent>>? value))
         {
             value = [];
             _handlers[typeof(TEvent)][name] = value;
@@ -36,10 +36,10 @@ public class EventMediator : IEventMediator
     /// <param name="event"></param>
     public void Publish<TEvent>(string name, TEvent @event) where TEvent : class, IEvent
     {
-        if(_handlers.TryGetValue(typeof(TEvent), out Dictionary<string, List<Action<IEvent>>>? actions) 
+        if (_handlers.TryGetValue(typeof(TEvent), out Dictionary<string, List<Action<IEvent>>>? actions)
             && actions.TryGetValue(name, out List<Action<IEvent>>? handlers))
         {
-            foreach(Action<IEvent> handler in handlers)
+            foreach (Action<IEvent> handler in handlers)
             {
                 handler(@event);
             }
@@ -54,9 +54,9 @@ public class EventMediator : IEventMediator
     /// <returns>True/False if remove was successfull</returns>
     public bool Unsubscribe<TEvent>(string name) where TEvent : class, IEvent
     {
-        if(_handlers.ContainsKey(typeof(TEvent)) && _handlers[typeof(TEvent)].ContainsKey(name))
+        if (_handlers.ContainsKey(typeof(TEvent)) && _handlers[typeof(TEvent)].ContainsKey(name))
         {
-           return _handlers[typeof(TEvent)].Remove(name);
+            return _handlers[typeof(TEvent)].Remove(name);
         }
 
         return false;

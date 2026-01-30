@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client.Queries;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -24,7 +24,7 @@ namespace FWO.Services
                 foreach (Management mgt in managements)
                 {
                     ExtMgtData extMgtData = JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData ?? "");
-                    if(!string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName))
+                    if (!string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName))
                     {
                         RelevantManagements.Add(mgt);
                         if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
@@ -76,11 +76,10 @@ namespace FWO.Services
             foreach (var rule in rulesByMgt)
             {
                 rule.ManagementName = mgt.Name;
-                rule.DeviceName = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
                 string? connRef = FindModelledMarker(rule);
-                if(connRef != null)
+                if (connRef != null)
                 {
-                    if(long.TryParse(connRef, out long connId))
+                    if (long.TryParse(connRef, out long connId))
                     {
                         rule.ConnId = connId;
                     }
@@ -101,7 +100,7 @@ namespace FWO.Services
                 MarkerLocation.Comment => !string.IsNullOrEmpty(rule.Comment) && rule.Comment.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Comment) : null,
                 MarkerLocation.Customfields => !string.IsNullOrEmpty(rule.CustomFields) ? GetFromCustomField(rule) : null,
                 _ => null,
-            }; 
+            };
         }
 
         [GeneratedRegex("[^0-9]")]
@@ -110,10 +109,10 @@ namespace FWO.Services
         private string? ParseFromString(string FieldString)
         {
             int idx = FieldString.IndexOf(userConfig.ModModelledMarker) + userConfig.ModModelledMarker.Length;
-            if(idx >= 0 && idx < FieldString.Length)
+            if (idx >= 0 && idx < FieldString.Length)
             {
                 int? contentLength = NonNumericRegex().Match(FieldString[idx..]).Captures.FirstOrDefault()?.Index;
-                return contentLength!= null && contentLength > 0 ? FieldString.Substring(idx, (int)contentLength) : FieldString.Substring(idx);
+                return contentLength != null && contentLength > 0 ? FieldString.Substring(idx, (int)contentLength) : FieldString.Substring(idx);
             }
             return null;
         }
@@ -140,13 +139,14 @@ namespace FWO.Services
         private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)
         {
             long? relImpId = await GetRelevantImportId(mgtId);
-            if(modellingFilter.AnalyseRemainingRules)
+            await GetRuleDevices(mgtId, modellingFilter);
+            if (modellingFilter.AnalyseRemainingRules)
             {
                 var RuleVariables = new
                 {
                     mgmId = mgtId,
                     import_id_start = relImpId,
-                    import_id_end   = relImpId
+                    import_id_end = relImpId
                 };
                 return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByManagement, RuleVariables);
             }
@@ -167,6 +167,14 @@ namespace FWO.Services
                     _ => throw new NotSupportedException("invalid or undefined Marker Location")
                 };
                 return await apiConnection.SendQueryAsync<List<Rule>>(query, RuleVariables);
+            }
+        }
+
+        private async Task GetRuleDevices(int mgtId, ModellingFilter modellingFilter)
+        {
+            if (modellingFilter.AnalyseRemainingRules || modellingFilter.RulesForDeletedConns)
+            {
+                DeviceRules[mgtId] = await apiConnection.SendQueryAsync<List<DeviceReport>>(DeviceQueries.getDevicesWithRulebaseLinks, new { mgmId = mgtId });
             }
         }
 
@@ -263,8 +271,14 @@ namespace FWO.Services
                     time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     mgmIds = mgtId
                 };
-                return (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime,
-                    Variables))?[0].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                List<Management> managements = (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables))!;
+                if (managements.Count == 0)
+                {
+                    Log.WriteError("GetRelevantImportId", $"No management data found for management ID {mgtId}.");
+                    return null;
+                }
+                // we may get multiple results if this management is a submanagement of a multi device manager
+                return managements.Select(m => m.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1).Max();
             }
             catch (Exception exception)
             {

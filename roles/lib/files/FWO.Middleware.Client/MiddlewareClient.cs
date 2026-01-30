@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Data.Middleware;
 using RestSharp;
 
@@ -83,6 +83,20 @@ namespace FWO.Middleware.Client
         public async Task<RestResponse<List<string>>> GetGroupMembers(GroupMemberGetParameters parameters)
         {
             RestRequest request = new("Group/Members", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<List<string>>(request);
+        }
+
+        public async Task<RestResponse<List<string>>> ResolveGroupMembers(GroupResolveParameters parameters)
+        {
+            RestRequest request = new("Group/Resolve", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<List<string>>(request);
+        }
+
+        public async Task<RestResponse<List<string>>> GetGroupMemberships(GroupMembershipGetParameters parameters)
+        {
+            RestRequest request = new("Group/Memberships", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<List<string>>(request);
         }
@@ -240,6 +254,19 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<string>(request);
         }
 
+        public async Task<RestResponse<string>> GetComplianceReport(ComplianceReportParameters parameters)
+        {
+            RestRequest request = new("Compliance/Report", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<string>(request);
+        }
+
+        public async Task<RestResponse<string>> ImportCompianceMatrix(ComplianceImportMatrixParameters parameters)
+        {
+            RestRequest request = new("Compliance/ImportMatrix", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<string>(request);
+        }
         public async Task<RestResponse<List<SchedulerJobInfo>>> GetSchedulerJobs()
         {
             RestRequest request = new("Scheduler", Method.Get);
@@ -250,6 +277,12 @@ namespace FWO.Middleware.Client
         {
             RestRequest request = new("Scheduler/Run", Method.Post);
             request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<bool>(request);
+        }
+
+        public async Task<RestResponse<bool>> RunComplianceCheck()
+        {
+            RestRequest request = new("Compliance/ComplianceCheck");
             return await restClient.ExecuteAsync<bool>(request);
         }
 

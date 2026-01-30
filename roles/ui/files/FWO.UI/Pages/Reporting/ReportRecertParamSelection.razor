@@ -9,7 +9,7 @@
     @if(ReportType != ReportType.OwnerRecertification)
     {
         <h7 class="text-left text-white">@(userConfig.GetText("owner"))</h7>
-        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true" SelectedElement="selectedOwner" 
+        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="false" SelectedElement="selectedOwner" 
                 SelectedElementChanged="SelectedOwnerChanged" Elements="ownerList">
             <ElementTemplate Context="owner">
                 @owner.Name
@@ -67,15 +67,28 @@
     public ReportType ReportType { get; set; } = ReportType.Recertification;
 
     private List<FwoOwner> ownerList = [];
-    private FwoOwner? selectedOwner = null;
+    private FwoOwner? selectedOwner;
+    private bool ownerSet = false;
+    private const int AllId = -1;
+    private const int UnselectedId = -2;
 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            if(ownerList.Count > 0)
+            {
+                ownerList.Add(new(){ Id = AllId, Name = userConfig.GetText("all")});
+                ownerList = [.. ownerList.OrderBy(o => o.Id)];
+            }
+            else
+            {
+                DisplayMessageInUi(null, userConfig.GetText("no_owners"), "", true);
+            }
             RecertFilter.RecertificationDisplayPeriod = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
+            selectedOwner = new(){ Id = UnselectedId };
         }
         catch (Exception exception)
         {
@@ -85,19 +98,49 @@
 
     protected override void OnParametersSet()
     {
-        if(RecertFilter.RecertOwnerList.Count > 0)
+        if(!ownerSet)
         {
-            selectedOwner = ownerList.FirstOrDefault(o => o.Id == RecertFilter.RecertOwnerList.First());
+            ownerSet = true;
+            InitOwner();
         }
+    }
+
+    private void InitOwner()
+    {
+        if(RecertFilter.RecertOwnerList.Count > 0 && !CheckForAll())
+        {
+            FwoOwner? preselectedOwner = ownerList.FirstOrDefault(o => o.Id == RecertFilter.RecertOwnerList[0]);
+            if (preselectedOwner != null)
+            {
+                selectedOwner = preselectedOwner;
+                return;
+            }
+        }
+        if (ownerList.Count > 0)
+        {
+            selectedOwner = ownerList[0];
+        }
+    }
+
+    private bool CheckForAll()
+    {
+        return !ownerList.Select(o => o.Id).Where(id => id >= 0).Any(x => !RecertFilter.RecertOwnerList.Contains(x));
     }
 
     private void SelectedOwnerChanged(FwoOwner newOwner)
     {
         selectedOwner = newOwner;
-        RecertFilter.RecertOwnerList = new();
-        if(newOwner != null)
+        if(newOwner.Id == AllId)
         {
-            RecertFilter.RecertOwnerList.Add(newOwner.Id);
+            RecertFilter.RecertOwnerList = [.. ownerList.Select(o => o.Id).Where(id => id >= 0)];
+        }
+        else if(newOwner.Id == UnselectedId)
+        {
+            RecertFilter.RecertOwnerList = [];
+        }
+        else
+        {
+            RecertFilter.RecertOwnerList = [newOwner.Id];
         }
     }
 }

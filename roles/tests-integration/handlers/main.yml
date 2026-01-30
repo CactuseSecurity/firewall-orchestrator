@@ -11,9 +11,23 @@
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
-        DO $do$ BEGIN 
+        DO $do$ BEGIN
+        WITH target_mgm AS (
+          SELECT m.mgm_id
+          FROM management m
+          JOIN import_credential ic ON ic.id = m.import_credential_id
+          WHERE ic.credential_name='{{ test_credential_name }}'
+        ),
+        target_imports AS (
+          SELECT ic.control_id
+          FROM import_control ic
+          WHERE ic.mgm_id IN (SELECT mgm_id FROM target_mgm)
+        )
+        DELETE FROM rule_metadata
+        WHERE mgm_id IN (SELECT mgm_id FROM target_mgm)
+           OR rule_created IN (SELECT control_id FROM target_imports);
         DELETE FROM import_credential WHERE credential_name='{{ test_credential_name }}'; 
-        END $do$ 
+        END $do$
     listen: "test importer handler"
 
   - name: delete tenants tenant1_test and tenant2_test

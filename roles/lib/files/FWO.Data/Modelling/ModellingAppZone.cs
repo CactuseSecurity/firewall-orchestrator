@@ -16,7 +16,7 @@ namespace FWO.Data.Modelling
         }
 
         public ModellingAppZone(ModellingAppZone appZone) : base(appZone)
-        { 
+        {
             AlreadyExistsInDb = appZone.AlreadyExistsInDb;
         }
 

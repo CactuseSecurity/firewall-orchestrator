@@ -1,0 +1,3 @@
+mutation deleteImportConfig($importId: bigint!) {
+    delete_import_config(where: {import_id: {_eq: $importId}}) { affected_rows }
+}

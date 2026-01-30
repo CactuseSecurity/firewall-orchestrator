@@ -1,0 +1,46 @@
+{
+   "owners": [
+      {
+         "name": "owner-1",
+         "app_id_external": "APP-4711",
+         "main_user": "CN=tiso4711,OU=Benutzer,DC=company,DC=DE",
+         "modellers": ["CN=app-4711-eigner,OU=Gruppen,DC=company,DC=DE"],
+         "recert_interval": 180,
+         "import_source": "cmdb-export",
+         "app_servers": [
+            {
+               "ip": "10.12.16.88",
+               "ip_end": "10.12.16.88",
+               "type": "host",
+               "name": "host_10.12.16.88"
+            },
+            {
+               "ip": "10.14.0.128",
+               "ip_end": "10.14.0.255",
+               "type": "network"
+            }            
+         ]
+      },
+    {
+         "name": "owner-2",
+         "app_id_external": "APP-4712",
+         "main_user": "CN=tiso4712,OU=Benutzer,DC=company,DC=DE",
+         "modellers": ["CN=app-4712-eigner,OU=Gruppen,DC=company,DC=DE"],
+         "recert_interval": 365,
+         "import_source": "cmdb-export",
+         "app_servers": [
+            {
+               "ip": "10.112.16.88",
+               "ip_end": "10.112.16.88",
+               "type": "host",
+               "name": "host_10.112.16.88"
+            },
+            {
+               "ip": "10.112.5.88",
+               "ip_end": "10.112.5.99",
+               "type": "range"
+            }
+         ]
+      }
+   ]
+}

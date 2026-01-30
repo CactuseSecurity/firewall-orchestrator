@@ -1,6 +1,6 @@
 from typing import Any
 
-from fwconfig_base import ConfFormat
+from fwo_enums import ConfFormat
 from models.fwconfigmanager import FwConfigManager
 from pydantic import BaseModel
 

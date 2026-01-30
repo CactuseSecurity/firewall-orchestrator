@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -8,6 +8,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getManagementNames;
         public static readonly string getManagementsDetails;
         public static readonly string getManagementDetailsWithoutSecrets;
+        public static readonly string getManagementsWithRulebases;
         public static readonly string getDeviceTypeDetails;
         public static readonly string newManagement;
         public static readonly string updateManagement;
@@ -45,6 +46,7 @@ namespace FWO.Api.Client.Queries
                                         + GetQueryText("device/fragments/managementDetailsWithoutSecrets.graphql")
                                         + GetQueryText("device/fragments/deviceTypeDetails.graphql")
                                         + GetQueryText("device/fragments/importCredentialsWithoutSecrets.graphql");
+                getManagementsWithRulebases = GetQueryText("device/getManagementsWithRulebases.graphql");
                 getDeviceTypeDetails = GetQueryText("device/getDeviceTypeDetails.graphql")
                                         + GetQueryText("device/fragments/deviceTypeDetails.graphql");
                 newManagement = GetQueryText("device/newManagement.graphql");

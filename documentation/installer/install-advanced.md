@@ -77,35 +77,32 @@ If you use authentication:
 
 Note that the following domains (and their sub-domains) must be reachable through the proxy:
 
-    cactus.de (only for downloading test data, not needed if run with "--skip-tags test")
+    cactus.de (and sub-Domains, only for downloading test data, not needed if run with "--skip-tags test")
     ubuntu.com
     canonical.com
-    github.com
+    github.com, api.github.com
     githubusercontent.com
-    docker.com
-    cloudflare.docker.com
-    docker.io
-    hasura.io
+    docker.com (and subdomains)
+    docker.io, auth.docker.io
+    hasura.io, releases.hasura.io
     postgresql.org
-    microsoft.com     
-    nuget.org
+    microsoft.com
+    nuget.org, api.nuget.org
     googlechromelabs.github.io
     storage.googleapis.com
     pypi.org
     pythonhosted.org (and sub-domains)
-    snapcraft.io
+    snapcraft.io, api.snapcraft.io
     snapcraftcontent.com (and sub-domains)
 
-For vscode-debugging only - most are needed for downloading extensions
-
-    visualstudio.com
+#### For vscode-debugging only - most are needed for downloading extensions
+    visualstudio.com (and subdomains)
     vsassets.io (and subdomains)
     digicert.com (and subdomains)
     dot.net (and subdomains) 
     windows.net (and subdomains)
     applicationinsights.azure.com (and subdomains)
     exp-tas.com (and subdomains)
-
 
 #### Pyhton proxy config
 
@@ -141,6 +138,14 @@ ansible-playbook -e "api_no_metadata=yes" site.yml -K
 
 ```console
 ansible-playbook -e "force_install=yes" site.yml -K
+```
+
+### Parameter "docker_network" to change the Docker bridge network
+
+Use this if the default Docker bridge network conflicts with your existing network ranges. The value is written to `/etc/docker/daemon.json` as the `bip` setting and Docker is restarted (works for `installation_mode=upgrade` as well).
+
+```console
+ansible-playbook -e "docker_network=172.26.0.1/16" site.yml -K
 ```
 
 ### Parameter "install_syslog" allows disabling of separate syslog installation
@@ -197,13 +202,6 @@ rsyslog config
             maxsize 4096k
             missingok
             copytruncate
-            sharedscripts
-                prerotate
-                        systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-                endscript
-                postrotate
-                        systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-                endscript
         }
 ```
 
@@ -330,8 +328,6 @@ isoback ansible_host=10.5.10.10
 put the hosts into the correct section (`[frontends]`, `[backends]`, `[importers]`)
 
 make sure all target hosts meet the requirements for ansible (user with pub key auth & full sudo rights)
-
-modify isohome/etc/iso.conf on frontend(s) - only needed for legacy (perl-based) importers:
 
 enter the address of the database backend server, e.g.
 

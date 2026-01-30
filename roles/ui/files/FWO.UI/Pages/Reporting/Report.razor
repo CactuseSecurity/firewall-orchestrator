@@ -44,7 +44,7 @@
                 <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="actReportFilters.UnusedDays" />
             </div>
         }
-        else if(actReportFilters.ReportType != ReportType.AppRules && !actReportFilters.ReportType.IsComplianceReport())
+        @if(actReportFilters.ReportType.HasTimeFilter())
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
@@ -61,6 +61,13 @@
                 <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" checked="@_showAnyRulesInComplianceReport" @onchange="ToggleShowAnyRule"/>
                 <label class="form-check-label text-white" for="complianceShowAnyRule">@(userConfig.GetText("show_any_match"))</label>
             </div>
+            if (actReportFilters.ReportType == ReportType.ComplianceDiffReport)
+            {
+                <div class="p-3">
+                    <input class="form-check-input" type="checkbox" id="complianceFilterOutInitialViolations" checked="@_filterInitialViolations" @onchange="ToggleFilterInitialViolations"/>
+                    <label class="form-check-label text-white" for="complianceFilterOutInitialViolations">@(userConfig.GetText("filterOutInitialViolations"))</label>
+                </div>
+            }
         }
 
         @if (actReportFilters.ReportType.IsDeviceRelatedReport() && actReportFilters.ReportType != ReportType.RecertEventReport)
@@ -69,7 +76,14 @@
             {
                 <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed" />
             }
-            @if(actReportFilters.ReportType == ReportType.Recertification)
+            @if (actReportFilters.ReportType.IsChangeReport())
+            {
+                <div class="p-3">
+                    <input class="form-check-input" type="checkbox" id="includeObjectChanges" @bind="actReportFilters.IncludeObjectsInReportChanges" />
+                    <label class="form-check-label text-white" for="includeObjectChanges"> @(userConfig.GetText("U1004"))</label>
+                </div>
+            }
+            @if(actReportFilters.ReportType.IsRulebaseReport())
             {
                 <ManagementSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" />
             }
@@ -96,14 +110,14 @@
         <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
             @if (!processing)
             {
-                <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { actReportFilters.IncludeObjectsInReportChangesUiPresesed = true; await GenerateReport(); }">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
             }
             else
             {
                 <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(DisplayService.DisplayButton(userConfig, "stop_fetching", Icons.Cancel))</button>
             }
             <ReportExport ReportToExport="currentReport" />
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(DisplayService.DisplayButton(userConfig, "save_as_template", Icons.Template))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate());}">@(DisplayService.DisplayButton(userConfig, "save_as_template", Icons.Template))</button>
             @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0
                     && (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)))
             {
@@ -127,32 +141,33 @@
             else
             {
                 <div class="card-body">
-                @if (currentReport != null)
-                {   
-                    @switch (currentReport.ReportType)
-                    {
-                        case ReportType.Rules:
-                        case ReportType.ResolvedRules:
-                        case ReportType.ResolvedRulesTech:
-                        case ReportType.Recertification:
-                        case ReportType.UnusedRules:
-                        case ReportType.NatRules:
-                        case ReportType.AppRules:
-                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                @bind-SelectedRules="selectedItemsRuleReportTable" />
-                            break;
+                    @if (currentReport != null)
+                    {   
+                        @switch (currentReport.ReportType)
+                        {
+                            case ReportType.Rules:
+                            case ReportType.ResolvedRules:
+                            case ReportType.ResolvedRulesTech:
+                            case ReportType.Recertification:
+                            case ReportType.UnusedRules:
+                            case ReportType.NatRules:
+                            case ReportType.AppRules:
+                                <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                    @bind-SelectedRules="selectedItemsRuleReportTable" />
+                                break;
 
-                        case ReportType.ComplianceReport:
-                        case ReportType.ComplianceDiffReport:
-                            <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="_showAnyRulesInComplianceReport"/>
-                            break;
+                            case ReportType.ComplianceReport:
+                            case ReportType.ComplianceDiffReport:
+                                <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="_showAnyRulesInComplianceReport"/>
+                                break;
 
-                        case ReportType.Changes:
-                        case ReportType.ResolvedChanges:
-                        case ReportType.ResolvedChangesTech:
-                            <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
-                            break;
+                            case ReportType.Changes:
+                            case ReportType.ResolvedChanges:
+                            case ReportType.ResolvedChangesTech:
+                                <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                                   @bind-IncludeObjectsInReportChanges="@actReportFilters.IncludeObjectsInReportChanges"                                               
+                                                   @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
+                                break;
 
                             case ReportType.Statistics:
                                 <StatisticsReport Managements="currentReport.ReportData.ManagementData" GlobalStats="currentReport.ReportData.GlobalStats" />
@@ -256,7 +271,7 @@
     private ReportTemplateComponent reportTemplateControl = new();
 
     private ReportBase? currentReport;
-    
+
     private Sidebar? deviceSelectionSidebar;
 
     private string filterFeedbackStart = "";
@@ -281,6 +296,8 @@
     private bool _showAnyRulesInComplianceReport = true;
 
     private bool _showRightSidebar = true;
+
+    private bool _filterInitialViolations = false;
 
     private ComplianceReport? _complianceReport;
 
@@ -445,6 +462,8 @@
         }
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);
+        actReportFilters.IncludeObjectsInReportChanges = template.IncludeObjectsInReportChanges;
+
         StateHasChanged();
     }
 
@@ -491,7 +510,9 @@
             processing = true;
             SetProperRoleForReport();
             await PrepareReportGeneration();
-            currentReport = await ReportGenerator.GenerateFromTemplate(ConstructReportTemplate(), apiConnection, userConfig, DisplayMessageInUi, token);
+            ReportTemplate temp = ConstructReportTemplate();
+            
+            currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token);
             processing = false;
             PostProcess();
         }
@@ -536,23 +557,21 @@
 
     private void PostProcess()
     {
-        if(currentReport != null)
+        if (currentReport != null)
         {
             reportTemplateControl.Collapse();
 
-            if(actReportFilters.ReportType.IsDeviceRelatedReport() && currentReport.NoRuleFound())
+            if ((currentReport is ReportRules || currentReport is ReportNatRules) && currentReport.NoRuleFound())
             {
-                if(currentReport is ReportRules || currentReport is ReportNatRules)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
-                }
-                else if(actReportFilters.ReportType.IsChangeReport())
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
-                }
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
             }
 
-            if(currentReport is ReportCompliance && _complianceReport != null)
+            if (actReportFilters.ReportType.IsChangeReport() && currentReport.NoChangesFound())
+            {
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
+            }
+
+            if (currentReport is ReportCompliance && _complianceReport != null)
             {
                 _complianceReport.UpdateRuleViewData(currentReport.ReportData);
                 _showAnyRulesInComplianceReport = ((ReportCompliance)currentReport).ShowNonImpactRules;
@@ -568,7 +587,13 @@
 
     private ReportTemplate ConstructReportTemplate(string? tempFilter = null)
     {
-        return new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams());
+        ReportTemplate template = new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams())
+        {
+                IncludeObjectsInReportChanges = actReportFilters.IncludeObjectsInReportChanges,
+                IncludeObjectsInReportChangesUiPresesed = actReportFilters.IncludeObjectsInReportChangesUiPresesed
+        };
+        template.ReportParams.ComplianceFilter.ShowNonImpactRules = _showAnyRulesInComplianceReport;
+        return template;
     }
 
     private string PlaceholderFilter()
@@ -639,5 +664,14 @@
     private void ToggleShowAnyRule(ChangeEventArgs e)
     {
         _showAnyRulesInComplianceReport = (bool)e.Value!;
+    }
+
+    private void ToggleFilterInitialViolations(ChangeEventArgs e)
+    {
+        _filterInitialViolations = (bool)e.Value!;
+        if (userConfig.GlobalConfig?.ComplianceFilterOutInitialViolations != null)
+        {
+            userConfig.GlobalConfig.ComplianceFilterOutInitialViolations = _filterInitialViolations;
+        }
     }
 }

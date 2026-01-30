@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
 using FWO.Data.Modelling;
@@ -14,15 +14,30 @@ namespace FWO.Test
 
         static readonly ModellingNamingConvention NamingConvention1 = new()
         {
-            NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 2, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR"
+            NetworkAreaRequired = true,
+            UseAppPart = false,
+            FixedPartLength = 2,
+            FreePartLength = 5,
+            NetworkAreaPattern = "NA",
+            AppRolePattern = "AR"
         };
         static readonly ModellingNamingConvention NamingConvention2 = new()
         {
-            NetworkAreaRequired = true, UseAppPart = true, FixedPartLength = 4, FreePartLength = 3, NetworkAreaPattern = "NA", AppRolePattern = "AR"
+            NetworkAreaRequired = true,
+            UseAppPart = true,
+            FixedPartLength = 4,
+            FreePartLength = 3,
+            NetworkAreaPattern = "NA",
+            AppRolePattern = "AR"
         };
         ModellingNamingConvention NamingConvention3 = new()
         {
-            NetworkAreaRequired = true, UseAppPart = true, FixedPartLength = 4, FreePartLength = 3, NetworkAreaPattern = "", AppRolePattern = "A"
+            NetworkAreaRequired = true,
+            UseAppPart = true,
+            FixedPartLength = 4,
+            FreePartLength = 3,
+            NetworkAreaPattern = "",
+            AppRolePattern = "A"
         };
 
 
@@ -34,7 +49,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("", IdString1.AppPart);
             ClassicAssert.AreEqual("", IdString1.FreePart);
             ClassicAssert.AreEqual("", IdString1.CombinedFixPart);
-            
+
             IdString1.SetAppPartFromExtId("APP-0001");
             ClassicAssert.AreEqual("", IdString1.Whole);
             ClassicAssert.AreEqual("", IdString1.FixedPart);
@@ -103,7 +118,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("123", IdString2.FreePart);
             ClassicAssert.AreEqual("AR50199999", IdString2.CombinedFixPart);
 
-            IdString2.NamingConvention =  new();
+            IdString2.NamingConvention = new();
             ClassicAssert.AreEqual("AR50199999-123", IdString2.Whole);
             ClassicAssert.AreEqual("", IdString2.FixedPart);
             ClassicAssert.AreEqual("", IdString2.AppPart);

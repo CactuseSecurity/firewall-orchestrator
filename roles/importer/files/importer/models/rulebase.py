@@ -1,4 +1,4 @@
-from models.rule import Rule, RuleNormalized
+from models.rule import RuleNormalized
 from pydantic import BaseModel
 
 
@@ -35,11 +35,19 @@ class Rulebase(BaseModel):
 
 
 class RulebaseForImport(BaseModel):
-    id: int | None = None
     name: str
     uid: str
     mgm_id: int
     is_global: bool = False
     created: int
     removed: int | None = None
-    rules: list[Rule] = []
+
+    @classmethod
+    def from_rulebase(cls, rulebase: Rulebase, mgm_id: int, created: int) -> "RulebaseForImport":
+        return cls(
+            name=rulebase.name,
+            uid=rulebase.uid,
+            mgm_id=mgm_id,
+            is_global=rulebase.is_global,
+            created=created,
+        )

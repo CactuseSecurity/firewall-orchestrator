@@ -6,7 +6,7 @@ namespace FWO.Logging
     {
         public void TryWriteInfo(string title, string text, bool condition)
         {
-            if(condition)
+            if (condition)
             {
                 Log.WriteInfo(title, text);
             }
@@ -14,7 +14,7 @@ namespace FWO.Logging
 
         public void TryWriteDebug(string title, string text, bool condition)
         {
-            if(condition)
+            if (condition)
             {
                 Log.WriteDebug(title, text);
             }

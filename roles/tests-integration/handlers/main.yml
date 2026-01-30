@@ -11,9 +11,23 @@
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
-        DO $do$ BEGIN 
+        DO $do$ BEGIN
+        WITH target_mgm AS (
+          SELECT m.mgm_id
+          FROM management m
+          JOIN import_credential ic ON ic.id = m.import_credential_id
+          WHERE ic.credential_name='{{ test_credential_name }}'
+        ),
+        target_imports AS (
+          SELECT ic.control_id
+          FROM import_control ic
+          WHERE ic.mgm_id IN (SELECT mgm_id FROM target_mgm)
+        )
+        DELETE FROM rule_metadata
+        WHERE mgm_id IN (SELECT mgm_id FROM target_mgm)
+           OR rule_created IN (SELECT control_id FROM target_imports);
         DELETE FROM import_credential WHERE credential_name='{{ test_credential_name }}'; 
-        END $do$ 
+        END $do$
     listen: "test importer handler"
 
   - name: delete tenants tenant1_test and tenant2_test
@@ -28,8 +42,22 @@
   become: true
   become_user: postgres
 
+- name: build ldap tls options
+  set_fact:
+    ldap_tls_opts: >-
+      {% if openldap_server_enable_ssl | default(false) -%}
+      -o TLS_REQCERT=never{% if openldap_server_cert is defined %} -o TLS_CACERT={{ openldap_server_cert }}{% endif %}
+      {%- endif %}
+    ldap_cmd_url: >-
+      {% if openldap_server_enable_ssl | default(false) -%}
+      ldaps://{{ openldap_server }}:{{ openldap_port | default(636) }}
+      {%- else -%}
+      ldap://{{ openldap_server }}:{{ (openldap_port | default(389) | int == 636) | ternary(389, openldap_port | default(389)) }}
+      {%- endif %}
+  listen: "test importer handler"
+
 - name: find ldap entries with test_postfix
-  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
+  command: "ldapsearch {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
   register: ldap_entries_to_delete
   listen: "test importer handler"
   become: true
@@ -43,7 +71,7 @@
   listen: "test importer handler"
 
 - name: delete ldap test data
-  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
+  command: "ldapdelete {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
   listen: "test importer handler"
   loop: "{{ delete_list2 }}"
   become: true

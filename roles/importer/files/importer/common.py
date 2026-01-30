@@ -7,6 +7,7 @@ from socket import gethostname
 from fw_modules.checkpointR8x.fwcommon import CheckpointR8xCommon
 from fw_modules.ciscoasa9.fwcommon import CiscoAsa9Common
 from fw_modules.fortiadom5ff.fwcommon import FortiAdom5ffCommon
+from fw_modules.fortiosmanagementREST.fwcommon import FortiosManagementRESTCommon
 from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
 from model_controllers.fwconfig_import_rollback import FwConfigImportRollback
@@ -33,7 +34,9 @@ from fwo_exceptions import (
 )
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfig_import import FwConfigImport
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.fwconfigmanagerlist_controller import (
+    FwConfigManagerListController,
+)
 from model_controllers.import_state_controller import ImportStateController
 from models.gateway import Gateway
 from services.enums import Services
@@ -60,6 +63,7 @@ def import_management(
     clear_management_data: bool,
     suppress_cert_warnings: bool,
     file: str | None = None,
+    suppress_consistency_check: bool = False,
 ) -> None:
     fwo_signalling.register_signalling_handlers()
     service_provider = ServiceProvider()
@@ -68,24 +72,36 @@ def import_management(
     exception: BaseException | None = None
 
     try:
-        _import_management(mgm_id, ssl_verification, file, limit, clear_management_data, suppress_cert_warnings)
+        _import_management(
+            mgm_id,
+            ssl_verification,
+            file,
+            limit,
+            clear_management_data,
+            suppress_cert_warnings,
+            suppress_consistency_check,
+        )
     except FwLoginFailedError as e:
         exception = e
         import_state.delete_import()  # delete whole import
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
-    except (ImportRecursionLimitReachedError, FwoImporterErrorInconsistenciesError) as e:
+    except (
+        ImportRecursionLimitReachedError,
+        FwoImporterErrorInconsistenciesError,
+    ) as e:
         import_state.delete_import()  # delete whole import
         exception = e
     except (KeyboardInterrupt, ImportInterruptionError, ShutdownRequestedError) as e:
         roll_back_exception_handler(
-            import_state, config_importer=config_importer, exc=e, error_text="shutdown requested"
+            import_state,
+            config_importer=config_importer,
+            exc=e,
+            error_text="shutdown requested",
         )
         raise
     except (FwoApiWriteError, FwoImporterError) as e:
         exception = e
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
-    except ValueError:
-        raise
     except Exception as e:
         exception = e
         handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
@@ -104,6 +120,7 @@ def _import_management(
     limit: int,
     clear_management_data: bool,
     suppress_cert_warnings: bool,
+    suppress_consistency_check: bool,
 ) -> None:
     config_normalized: FwConfigManagerListController
 
@@ -121,7 +138,7 @@ def _import_management(
 
     if import_state.state.mgm_details.importer_hostname != gethostname() and not import_state.state.force_import:
         FWOLogger.info(
-            f"import_management - this host ( {gethostname()}) is not responsible for importing management  {mgm_id!s}"
+            f"import_management - this host ({gethostname()}) is not responsible for importing management {mgm_id!s}"
         )
         import_state.state.responsible_for_importing = False
         return
@@ -130,7 +147,9 @@ def _import_management(
     gateways = ManagementController.build_gateway_list(import_state.state.mgm_details)
 
     import_state.state.import_id = import_state.api_call.set_import_lock(
-        import_state.state.mgm_details, import_state.state.is_full_import, import_state.state.is_initial_import
+        import_state.state.mgm_details,
+        import_state.state.is_full_import,
+        import_state.state.is_initial_import,
     )
     FWOLogger.info(
         f"starting import of management {import_state.state.mgm_details.name} ({mgm_id!s}), import_id={import_state.state.import_id!s}"
@@ -152,7 +171,8 @@ def _import_management(
 
     # check config consistency and import it
     if config_changed_since_last_import or import_state.state.force_import:
-        FwConfigImportCheckConsistency(import_state, config_normalized).check_config_consistency(config_normalized)
+        if not suppress_consistency_check:
+            FwConfigImportCheckConsistency(import_state, config_normalized).check_config_consistency(config_normalized)
         config_importer.import_management_set(service_provider, config_normalized)
 
     # delete data that has passed the retention time
@@ -169,12 +189,7 @@ def handle_unexpected_exception(
     config_importer: FwConfigImport | None = None,
     e: Exception | None = None,
 ):
-    if (
-        "importState" in locals()
-        and import_state is not None
-        and "configImporter" in locals()
-        and config_importer is not None
-    ):
+    if import_state is not None and config_importer is not None:
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e)
 
 
@@ -193,19 +208,21 @@ def roll_back_exception_handler(
             FWOLogger.error(f"Exception: {type(exc).__name__}")
         else:
             FWOLogger.error("Exception: no exception provided")
-        if "configImporter" in locals() and config_importer is not None:
+        if config_importer is not None:
             FwConfigImportRollback().rollback_current_import(
                 import_state=import_state.state, fwo_api_call=import_state.api_call
             )
         else:
-            FWOLogger.info("No configImporter found, skipping rollback.")
+            FWOLogger.info("No config_importer found, skipping rollback.")
         import_state.delete_import()  # delete whole import
     except Exception as rollbackError:
         FWOLogger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
 
 
 def get_config_top_level(
-    import_state: ImportStateController, in_file: str | None = None, gateways: list[Gateway] | None = None
+    import_state: ImportStateController,
+    in_file: str | None = None,
+    gateways: list[Gateway] | None = None,
 ) -> tuple[bool, FwConfigManagerListController]:
     config_from_file = FwConfigManagerListController.generate_empty_config()
     if gateways is None:
@@ -247,6 +264,8 @@ def get_module(import_state: ImportState) -> FwCommon:
             fw_module = FortiAdom5ffCommon()
         case "checkpointR8x":
             fw_module = CheckpointR8xCommon()
+        case "fortiosmanagementREST":
+            fw_module = FortiosManagementRESTCommon()
         case _:
             raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
 
@@ -260,7 +279,8 @@ def get_config_from_api(
         fw_module = get_module(import_state.state)
     except Exception:
         FWOLogger.exception(
-            "import_management - error while loading product specific fwcommon module", traceback.format_exc()
+            "import_management - error while loading product specific fwcommon module",
+            traceback.format_exc(),
         )
         raise
 

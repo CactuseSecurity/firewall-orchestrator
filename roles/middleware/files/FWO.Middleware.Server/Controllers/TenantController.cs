@@ -21,9 +21,9 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
 
-		/// <summary>
-		/// Constructor needing ldap list and connection
-		/// </summary>
+        /// <summary>
+        /// Constructor needing ldap list and connection
+        /// </summary>
         public TenantController(List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.ldaps = ldaps;
@@ -73,7 +73,7 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to add tenant in current Ldap
                 if (currentLdap.IsInternal() && currentLdap.IsWritable())
                 {
-                    await Task.Run(async() =>
+                    await Task.Run(async () =>
                     {
                         if (await currentLdap.AddTenant(tenantName))
                         {
@@ -84,13 +84,13 @@ namespace FWO.Middleware.Server.Controllers
                 }
             }
 
-            if (tenantAdded) 
+            if (tenantAdded)
             {
                 // Add also to local database table
                 try
                 {
-                    var Variables = new 
-                    { 
+                    var Variables = new
+                    {
                         name = tenant.Name,
                         project = tenant.Project,
                         comment = tenant.Comment,
@@ -178,9 +178,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Try to delete tenant in current Ldap
                 if (currentLdap.IsInternal() && currentLdap.IsWritable())
                 {
-                    await Task.Run(async() =>
+                    await Task.Run(async () =>
                     {
-                        if(await currentLdap.DeleteTenant(tenant.Name))
+                        if (await currentLdap.DeleteTenant(tenant.Name))
                         {
                             Log.WriteAudit("DeleteTenant", $"Tenant {tenant.Name} deleted from {currentLdap.Host()}");
                         }

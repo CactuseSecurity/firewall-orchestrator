@@ -93,6 +93,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("impChangeNotifyActive"), JsonPropertyName("impChangeNotifyActive")]
         public bool ImpChangeNotifyActive { get; set; } = false;
 
+        [JsonProperty("impChangeIncludeObjectChanges"), JsonPropertyName("impChangeIncludeObjectChanges")]
+        public bool ImpChangeIncludeObjectChanges { get; set; } = false;
+
         [JsonProperty("impChangeNotifyType"), JsonPropertyName("impChangeNotifyType")]
         public int ImpChangeNotifyType { get; set; }
 
@@ -244,7 +247,7 @@ namespace FWO.Config.Api.Data
         public bool AllowManualOwnerAdmin { get; set; } = false;
 
         [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
-        public string ReqPriorities { get; set; } = "";
+        public string ReqPriorities { get; set; } = "[]";
 
         [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
         public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
@@ -286,6 +289,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
         public string ImportAppDataPath { get; set; } = "";
 
+        [JsonProperty("importAppDataScriptArgs"), JsonPropertyName("importAppDataScriptArgs")]
+        public string ImportAppDataScriptArgs { get; set; } = "";
+
         [JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]
         public int ImportAppDataSleepTime { get; set; } = 24;
 
@@ -300,7 +306,10 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
         public string OwnerLdapGroupNames { get; set; } = GlobalConst.kLdapGroupPattern;
-        
+
+        [JsonProperty("rolesWithAppDataImport"), JsonPropertyName("rolesWithAppDataImport")]
+        public string RolesWithAppDataImport { get; set; } = "[]";
+
         [JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
         public string ImportSubnetDataPath { get; set; } = "";
 
@@ -342,6 +351,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modReqEmailBody"), JsonPropertyName("modReqEmailBody")]
         public string ModReqEmailBody { get; set; } = "";
+
+        [JsonProperty("modUnansweredReqEmailBody"), JsonPropertyName("modUnansweredReqEmailBody")]
+        public string ModUnansweredReqEmailBody { get; set; } = "";
 
         [JsonProperty("modReqTicketTitle"), JsonPropertyName("modReqTicketTitle")]
         public string ModReqTicketTitle { get; set; } = "";
@@ -444,13 +456,13 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("complianceCheckMaxPrintedViolations"), JsonPropertyName("complianceCheckMaxPrintedViolations")]
         public int ComplianceCheckMaxPrintedViolations { get; set; } = 0;
-        
+
         [JsonProperty("complianceCheckSortMatrixByID"), JsonPropertyName("complianceCheckSortMatrixByID")]
         public bool ComplianceCheckSortMatrixByID { get; set; } = false;
 
         [JsonProperty("complianceCheckRelevantManagements"), JsonPropertyName("complianceCheckRelevantManagements")]
         public string ComplianceCheckRelevantManagements { get; set; } = "";
-        
+
         [JsonProperty("reportSchedulerConfig"), JsonPropertyName("reportSchedulerConfig")]
         public string ReportSchedulerConfig { get; set; } = "";
 
@@ -528,6 +540,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("complianceCheckAvailableProcessors"), JsonPropertyName("complianceCheckAvailableProcessors")]
         public int ComplianceCheckAvailableProcessors { get; set; } = 4;
+
+        [JsonProperty("complianceFilterOutInitialViolations"), JsonPropertyName("complianceFilterOutInitialViolations")]
+        public bool ComplianceFilterOutInitialViolations { get; set; } = false;
 
 
         public ConfigData(bool editable = false)

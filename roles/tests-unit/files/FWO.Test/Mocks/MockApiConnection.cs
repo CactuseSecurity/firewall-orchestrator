@@ -19,5 +19,5 @@ namespace FWO.Test.Mocks
                 SentQueries.Add((query, vars));
             });
         }
-    }    
+    }
 }

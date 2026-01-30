@@ -29,11 +29,8 @@ ALTER TABLE request.reqelement ADD CONSTRAINT port_in_valid_range CHECK (port > 
 ALTER TABLE request.implelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 -- Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("dev_id","rule_uid","rule_create",xlate_rule);
 Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule" UNIQUE ("mgm_id", "rule_uid","rule_create","xlate_rule");
--- Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id");
--- Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id","rulebase_id");
-ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
 ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);
-Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_uid UNIQUE ("mgm_id", "uid");
+Alter table "rulebase" add CONSTRAINT rulebase_uid_mgm_id_removed_key UNIQUE ("mgm_id", "uid", "removed");
 Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
 	UNIQUE (
 	"gw_id",
@@ -45,7 +42,8 @@ Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
 Alter Table "service" add Constraint "svc_altkey" UNIQUE ("mgm_id","svc_uid","svc_create");
 Alter Table "stm_dev_typ" add Constraint "Alter_Key1" UNIQUE ("dev_typ_name","dev_typ_version");
 Alter Table "usr" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user_create");
-Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");
+
+CREATE UNIQUE INDEX if not exists "zone_mgm_id_zone_name_removed_is_null_unique" ON zone (mgm_id, zone_name) WHERE removed IS NULL;
 
 create unique index if not exists only_one_future_recert_per_owner_per_rule on recertification(owner_id,rule_metadata_id,recert_date)
     where recert_date IS NULL;

@@ -20,8 +20,8 @@ class Management(BaseModel):
     sub_manager_ids: list[int]
     current_mgm_id: int
     current_mgm_is_super_manager: bool
-    domain_name: str
-    domain_uid: str
+    domain_name: str | None
+    domain_uid: str | None
     sub_managers: list["Management"]
     cloud_client_id: str | None = None
     cloud_client_secret: str | None = None

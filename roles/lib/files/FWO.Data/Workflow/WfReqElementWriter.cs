@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -12,10 +12,10 @@ namespace FWO.Data.Workflow
         public int? DeviceId { get; set; }
 
         public WfReqElementWriter()
-        {}
+        { }
 
         public WfReqElementWriter(WfReqElement element) : base(element)
-        { 
+        {
             RequestAction = element.RequestAction;
             DeviceId = element.DeviceId;
             IpString = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null;

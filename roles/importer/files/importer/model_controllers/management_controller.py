@@ -2,11 +2,15 @@ import hashlib
 from dataclasses import dataclass
 from typing import Any
 
-from fwconfig_base import replace_none_with_empty
 from fwo_api import FwoApi
+from fwo_base import replace_none_with_empty
 from fwo_const import GRAPHQL_QUERY_PATH
 from fwo_encrypt import decrypt, read_main_key
-from fwo_exceptions import FwLoginFailedError, FwoApiFailureError, SecretDecryptionFailedError
+from fwo_exceptions import (
+    FwLoginFailedError,
+    FwoApiFailureError,
+    SecretDecryptionFailedError,
+)
 from models.gateway import Gateway
 from models.management import Management
 
@@ -41,8 +45,8 @@ class ManagerInfo:
 
 @dataclass
 class DomainInfo:
-    domain_name: str = ""
-    domain_uid: str = ""
+    domain_name: str | None = None
+    domain_uid: str | None = None
 
 
 class ManagementController(Management):
@@ -108,8 +112,7 @@ class ManagementController(Management):
             sub_manager_ids=[subManager["id"] for subManager in json_dict["subManagers"]],
             sub_managers=[cls.from_json(subManager) for subManager in json_dict["subManagers"]],
         )
-
-        domain_info = DomainInfo(domain_name=json_dict["configPath"], domain_uid=json_dict["domainUid"])
+        domain_info = DomainInfo(domain_name=json_dict.get("configPath"), domain_uid=json_dict.get("domainUid"))
 
         return cls(
             mgm_id=json_dict["id"],
@@ -151,7 +154,12 @@ class ManagementController(Management):
             # check if gateway import is enabled
             if dev.get("do_not_import"):
                 continue
-            devs.append(Gateway(Name=dev["name"], Uid=f"{dev['name']}/{mgm_details.calc_manager_uid_hash()}"))
+            devs.append(
+                Gateway(
+                    Name=dev["name"],
+                    Uid=f"{dev['name']}/{mgm_details.calc_manager_uid_hash()}",
+                )
+            )
         return devs
 
     def calc_manager_uid_hash(self):

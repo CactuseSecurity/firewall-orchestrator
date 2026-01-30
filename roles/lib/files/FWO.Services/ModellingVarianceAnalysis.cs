@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
@@ -196,21 +196,21 @@ namespace FWO.Services
         {
             List<ModellingAppZone?> MgtsWithVariance = [];
             ModellingAppZone? modelledAppZone = await AppZoneHandler.GetExistingModelledAppZone();
-            if(modelledAppZone != null)
+            if (modelledAppZone != null)
             {
                 AppZoneComparer appZoneComparer = new(namingConvention);
-                foreach(var mgt in RelevantManagements)
+                foreach (var mgt in RelevantManagements)
                 {
                     await CollectGroupObjects(mgt.Id);
                     ModellingAppRole? prodAppRole = ResolveProdAppRole(modelledAppZone, mgt);
-                    if(prodAppRole == null)
+                    if (prodAppRole == null)
                     {
-                        MgtsWithVariance.Add(new(){ ManagementName = mgt.Name });
+                        MgtsWithVariance.Add(new() { ManagementName = mgt.Name });
                     }
                     else
                     {
                         ModellingAppZone prodAppZone = new(prodAppRole);
-                        if(!appZoneComparer.Equals(prodAppZone, modelledAppZone))
+                        if (!appZoneComparer.Equals(prodAppZone, modelledAppZone))
                         {
                             prodAppZone.ManagementName = mgt.Name;
                             MgtsWithVariance.Add(prodAppZone);

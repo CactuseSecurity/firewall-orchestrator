@@ -29,10 +29,10 @@ class ImportStateController:
     api_connection: FwoApi
     api_call: FwoApiCall
 
-    def __init__(self, state: ImportState, fwo_api: FwoApi):
+    def __init__(self, state: ImportState, api_call: FwoApiCall):
         self.state = state
-        self.api_connection = fwo_api
-        self.api_call = FwoApiCall(self.api_connection)
+        self.api_call = api_call
+        self.api_connection = api_call.api
 
     def __str__(self):
         return f"{self.state.mgm_details!s}(import_id={self.state.import_id})"
@@ -47,7 +47,7 @@ class ImportStateController:
     def initialize_import(
         cls,
         mgm_id: int,
-        jwt: str,
+        api_call: FwoApiCall,
         suppress_cert_warnings: bool,
         ssl_verification: bool,
         force: bool,
@@ -57,20 +57,27 @@ class ImportStateController:
     ):
         fwo_config = FworchConfigController.from_json(read_config(FWO_CONFIG_FILENAME))
 
-        api_conn = FwoApi(api_uri=fwo_config.fwo_api_url, jwt=jwt)
-        api_call = FwoApiCall(api_conn)
         # set global https connection values
         fwo_globals.set_global_values(
-            suppress_cert_warnings_in=suppress_cert_warnings, verify_certs_in=ssl_verification
+            suppress_cert_warnings_in=suppress_cert_warnings,
+            verify_certs_in=ssl_verification,
         )
         if fwo_globals.suppress_cert_warnings:
             urllib3.disable_warnings()  # suppress ssl warnings only
 
         try:  # get mgm_details (fw-type, port, ip, user credentials):
             mgm_controller = ManagementController(
-                mgm_id, "", [], DeviceInfo(), ConnectionInfo(), "", CredentialInfo(), ManagerInfo(), DomainInfo()
+                mgm_id,
+                "",
+                [],
+                DeviceInfo(),
+                ConnectionInfo(),
+                "",
+                CredentialInfo(),
+                ManagerInfo(),
+                DomainInfo(),
             )
-            mgm_details = mgm_controller.get_mgm_details(api_conn, mgm_id)
+            mgm_details = mgm_controller.get_mgm_details(api_call.api, mgm_id)
         except Exception as _:
             FWOLogger.error(
                 f"import_management - error while getting fw management details for mgm={mgm_id}: {traceback.format_exc()!s}"
@@ -95,9 +102,7 @@ class ImportStateController:
         state.verify_certs = ssl_verification
         state.last_successful_import = last_import_date
 
-        fwo_api = FwoApi(fwo_config.fwo_api_url, jwt)
-
-        result = cls(state, fwo_api)
+        result = cls(state, api_call)
         result.get_past_import_infos()
         result.set_core_data()
 
@@ -146,10 +151,6 @@ class ImportStateController:
         self.set_gateway_map()
         self.set_management_map()
         self.set_color_ref_map()
-
-        # the following maps will be empty when starting first import of a management
-        self.set_rulebase_map()
-        self.set_rule_map()
 
     def set_action_map(self):
         query = "query getActionMap { stm_action { action_name action_id allowed } }"
@@ -203,48 +204,6 @@ class ImportStateController:
         for color in result["data"]["stm_color"]:
             color_map.update({color["color_name"]: color["color_id"]})
         self.state.color_map = color_map
-
-    # limited to the current mgm_id
-    # creates a dict with key = rulebase.uid and value = rulebase.id
-    # TODO: map update inconsistencies: import_state is global over all sub managers, so map needs to be updated for each sub manager
-    #   currently, this is done in fwconfig_import_rule. But what about other maps? - see #3646
-    # TODO: global rulebases not yet included
-    def set_rulebase_map(self) -> None:
-        # TODO: maps need to be updated directly after data changes
-        query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id uid } }"""
-        try:
-            result = self.api_call.call(query=query, query_variables={"mgmId": self.state.mgm_details.current_mgm_id})
-        except Exception:
-            FWOLogger.error("Error while getting rulebases")
-            self.state.rulebase_map = {}
-            raise
-
-        m: dict[str, int] = {}
-        for rulebase in result["data"]["rulebase"]:
-            rbid = rulebase["id"]
-            m.update({rulebase["uid"]: rbid})
-        self.state.rulebase_map = m
-
-        FWOLogger.debug(
-            f"updated rulebase map for mgm_id {self.state.mgm_details.current_mgm_id} with {len(self.state.rulebase_map)} entries"
-        )
-
-    # limited to the current mgm_id
-    # creats a dict with key = rule.uid and value = rule.id
-    # should be called sparsely, as there might be a lot of rules for a mgmt
-    def set_rule_map(self) -> None:
-        query = """query getRuleMap($mgmId: Int) { rule(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { rule_id rule_uid } }"""
-        try:
-            result = self.api_call.call(query=query, query_variables={"mgmId": self.state.mgm_details.mgm_id})
-        except Exception:
-            FWOLogger.error("Error while getting rules")
-            self.state.rule_map = {}
-            raise
-
-        m: dict[str, int] = {}
-        for rule in result["data"]["rule"]:
-            m.update({rule["rule_uid"]: rule["rule_id"]})
-        self.state.rule_map = m
 
     # getting all gateways (not limitited to the current mgm_id) to support super managements
     # creates a dict with key = gateway.uid  and value = gateway.id
@@ -311,7 +270,8 @@ class ImportStateController:
 
         try:
             result = self.api_connection.call(
-                delete_import_mutation, query_variables={"importId": self.state.import_id}
+                delete_import_mutation,
+                query_variables={"importId": self.state.import_id},
             )
             _ = result["data"]["delete_import_control"]["affected_rows"]
             FWOLogger.info(f"removed import with id {self.state.import_id!s} completely")

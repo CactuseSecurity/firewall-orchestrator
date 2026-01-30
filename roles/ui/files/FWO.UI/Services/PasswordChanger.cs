@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Data.Middleware;
 using FWO.Middleware.Client;
 using RestSharp;
@@ -22,7 +22,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                if(doChecks(oldPassword, newPassword1, newPassword2, userConfig, globalConfig))
+                if (doChecks(oldPassword, newPassword1, newPassword2, userConfig, globalConfig))
                 {
                     // Ldap call
                     UserChangePasswordParameters parameters = new UserChangePasswordParameters { LdapId = userConfig.User.LdapConnection.Id, NewPassword = newPassword1, OldPassword = oldPassword, UserId = userConfig.User.DbId };
@@ -46,27 +46,27 @@ namespace FWO.Ui.Services
 
         private bool doChecks(string oldPassword, string newPassword1, string newPassword2, UserConfig userConfig, GlobalConfig globalConfig)
         {
-            if(oldPassword == "")
+            if (oldPassword == "")
             {
                 errorMsg = userConfig.GetText("E5401");
                 return false;
             }
-            else if(newPassword1 == "")
+            else if (newPassword1 == "")
             {
                 errorMsg = userConfig.GetText("E5402");
                 return false;
             }
-            else if(newPassword1 == oldPassword)
+            else if (newPassword1 == oldPassword)
             {
                 errorMsg = userConfig.GetText("E5403");
                 return false;
             }
-            else if(newPassword1 != newPassword2)
+            else if (newPassword1 != newPassword2)
             {
                 errorMsg = userConfig.GetText("E5404");
                 return false;
             }
-            else if(!PasswordPolicy.CheckPolicy(newPassword1, globalConfig, userConfig, out errorMsg))
+            else if (!PasswordPolicy.CheckPolicy(newPassword1, globalConfig, userConfig, out errorMsg))
             {
                 return false;
             }

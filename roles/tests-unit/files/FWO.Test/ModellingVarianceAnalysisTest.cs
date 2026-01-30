@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -484,12 +484,12 @@ namespace FWO.Test
             userConfig.ModModelledMarkerLocation = MarkerLocation.Rulename;
         }
 
-        [Test] 
+        [Test]
         public async Task TestAnalyseRulesToReport()
         {
             List<ModellingConnection> Connections = [Connection1];
             ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-            ModellingFilter modellingFilter = new(){ RulesForDeletedConns = true };
+            ModellingFilter modellingFilter = new() { RulesForDeletedConns = true };
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);

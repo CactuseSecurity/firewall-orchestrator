@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Api.Client;
@@ -24,7 +24,7 @@ namespace FWO.Services
             AvailableSvcElems = availableSvcElems;
             ActServiceOrig = new ModellingService(ActService);
         }
-        
+
         public async Task<bool> Save()
         {
             try
@@ -33,9 +33,9 @@ namespace FWO.Services
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_service"), userConfig.GetText("U0001"), true);
                 }
-                if(CheckService())
+                if (CheckService())
                 {
-                    if(AddMode)
+                    if (AddMode)
                     {
                         await AddServiceToDb();
                     }
@@ -57,7 +57,7 @@ namespace FWO.Services
         public void Reset()
         {
             ActService = new(ActServiceOrig);
-            if(!AddMode)
+            if (!AddMode)
             {
                 AvailableServices[AvailableServices.FindIndex(x => x.Id == ActService.Id)] = ActService;
             }
@@ -65,32 +65,32 @@ namespace FWO.Services
 
         private bool CheckService()
         {
-            if(ActService.Protocol == null || ActService.Protocol.Id == 0)
+            if (ActService.Protocol == null || ActService.Protocol.Id == 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText(EditService), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if(ActService.PortEnd == null)
+            if (ActService.PortEnd == null)
             {
                 ActService.PortEnd = ActService.Port;
             }
-            if(!ActService.Protocol.HasPorts())
+            if (!ActService.Protocol.HasPorts())
             {
                 ActService.Port = null;
                 ActService.PortEnd = null;
             }
-            else if(ActService.Port == null)
+            else if (ActService.Port == null)
             {
                 DisplayMessageInUi(null, userConfig.GetText(EditService), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if(ActService.Port < 1 || ActService.Port > GlobalConst.kMaxPortNumber ||
-                (ActService.PortEnd != null &&  (ActService.PortEnd < 1 || ActService.PortEnd > GlobalConst.kMaxPortNumber)))
+            if (ActService.Port < 1 || ActService.Port > GlobalConst.kMaxPortNumber ||
+                (ActService.PortEnd != null && (ActService.PortEnd < 1 || ActService.PortEnd > GlobalConst.kMaxPortNumber)))
             {
                 DisplayMessageInUi(null, userConfig.GetText(EditService), userConfig.GetText("E5103"), true);
                 return false;
             }
-            if(ActService.PortEnd != null && (ActService.PortEnd < ActService.Port))
+            if (ActService.PortEnd != null && (ActService.PortEnd < ActService.Port))
             {
                 DisplayMessageInUi(null, userConfig.GetText(EditService), userConfig.GetText("E5118"), true);
                 return false;

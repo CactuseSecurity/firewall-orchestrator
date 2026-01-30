@@ -1,0 +1,7 @@
+mutation deleteAllViolations {
+    delete_compliance_violation(
+        where: { }
+    ) {
+        affected_rows
+    }
+}

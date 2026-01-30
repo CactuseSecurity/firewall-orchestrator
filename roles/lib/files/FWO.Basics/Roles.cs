@@ -26,4 +26,12 @@ namespace FWO.Basics
         public const string Importer = "importer";
         public const string DbBackup = "dbbackup";
     }
+
+    public static class RoleGroups
+    {
+        public static bool IsTechnicalOrAnonymous(string role)
+        {
+            return role == Roles.MiddlewareServer || role == Roles.Importer || role == Roles.DbBackup || role == Roles.Anonymous;
+        }
+    }
 }

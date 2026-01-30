@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using SystemTextJsonIgnore = System.Text.Json.Serialization.JsonIgnoreAttribute;
 
 namespace FWO.Data
 {
@@ -80,6 +81,17 @@ namespace FWO.Data
         [JsonProperty("rule_metadatum"), JsonPropertyName("rule_metadatum")]
         public RuleMetadata Metadata { get; set; } = new();
 
+        [SystemTextJsonIgnore]
+        [JsonProperty("rule_last_seen"), JsonPropertyName("rule_last_seen")]
+        public long? LastSeenImportId { get; set; }
+
+        [SystemTextJsonIgnore]
+        [JsonProperty("importControlByRuleLastSeen"), JsonPropertyName("importControlByRuleLastSeen")]
+        public ImportControl? LastSeenImport { get; set; }
+
+        [SystemTextJsonIgnore]
+        public DateTime? LastModified => LastSeenImport?.StartTime ?? Metadata?.Created;
+
         [JsonProperty("translate"), JsonPropertyName("translate")]
         public NatData NatData { get; set; } = new();
 
@@ -120,7 +132,7 @@ namespace FWO.Data
         public List<ComplianceViolation> Violations { get; set; } = [];
 
         [JsonProperty("rulebase"), JsonPropertyName("rulebase")]
-        public Rulebase Rulebase { get; set; } = new ();
+        public Rulebase Rulebase { get; set; } = new();
 
         [JsonProperty("uiuser"), JsonPropertyName("uiuser")]
         public UiUser? LastChangeAdmin { get; set; }

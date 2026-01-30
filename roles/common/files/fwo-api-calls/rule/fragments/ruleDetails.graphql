@@ -18,6 +18,10 @@ fragment ruleDetails on rule {
   active
   rule_create
   rule_last_seen
+  importControlByRuleLastSeen {
+    control_id
+    start_time
+  }
   rule_src_neg
   rule_dst_neg
   rule_svc_neg

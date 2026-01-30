@@ -1,4 +1,4 @@
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -56,10 +56,6 @@ namespace FWO.Report
                             SetRelevantManagements(report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
                             return Task.CompletedTask;
                         }, token);
-                    if (report.ReportType == ReportType.Recertification)
-                    {
-                        PrepareMetadata(report.ReportData.ManagementData, userConfig);
-                    }
                     if (report.ReportType == ReportType.RecertEventReport)
                     {
                         report.ReportData.OwnerData = await ReportRecertEvent.GetRecertification(reportTemplate.ReportParams.ModellingFilter.ReportId, apiConnection);
@@ -168,8 +164,6 @@ namespace FWO.Report
 
             if (_currentReport is ReportVariances reportVariances)
             {
-                // TODO: TMP-MERGE - fix this
-                // reportVariances.SetDifferenceCounters();
                 reportVariances.ReportData.ElementsCount += reportVariances.MissARCounter + reportVariances.DiffARCounter + reportVariances.MissConnCounter + reportVariances.DiffConnCounter;
             }
         }
@@ -193,25 +187,6 @@ namespace FWO.Report
                     }
                     return Task.CompletedTask;
                 }, token);
-        }
-
-        private static void PrepareMetadata(List<ManagementReport> managementReports, UserConfig userConfig)
-        {
-            foreach (var managementReport in managementReports)
-            {
-                foreach (var device in managementReport.Devices.Where(d => d.ContainsRules()))
-                {
-                    if (device.ContainsRules())
-                    {
-                        foreach (var rulebaseLink in device.RulebaseLinks)
-                        {
-                            /* NOSONAR - temporarily disabled
-                            // rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod); NOSONAR
-                            */
-                        }
-                    }
-                }
-            }
         }
 
         private static void SetRelevantManagements(List<ManagementReport> managementsReport, DeviceFilter deviceFilter)

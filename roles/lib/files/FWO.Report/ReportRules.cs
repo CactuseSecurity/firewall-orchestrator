@@ -32,7 +32,7 @@ namespace FWO.Report
 
     public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : ReportDevicesBase(query, userConfig, reportType)
     {
-        private const int ColumnCount = 12;
+        private const int ColumnCount = 14;
         protected bool UseAdditionalFilter = false;
 
         private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = [];
@@ -420,6 +420,7 @@ namespace FWO.Report
                     report.Append(ruleDisplayCsv.DisplayEnabledCsv(rule));
                     report.Append(ruleDisplayCsv.DisplayUidCsv(rule));
                     report.Append(ruleDisplayCsv.DisplayCommentCsv(rule));
+                    report.Append(ruleDisplayCsv.DisplayLastModifiedCsv(rule));
                     report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
                     report.AppendLine("");  // EO rule
                 }
@@ -443,7 +444,7 @@ namespace FWO.Report
 
             report.Append(DisplayReportHeaderCsv());
             report.AppendLine(
-                $"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
+                $"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\",\"last-modified\"");
 
             var managementReports = ReportData.ManagementData.Where(mgt => !mgt.Ignore && Array.Exists(mgt.Devices, device => device.ContainsRules()));
             foreach (var managementReport in managementReports)
@@ -550,10 +551,12 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
+                report.AppendLine("<th>LastModified</th>");
             }
             if (ReportType == ReportType.UnusedRules)
             {
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
+                report.AppendLine("<th>LastModified</th>");
             }
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
@@ -566,6 +569,10 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+            if (ReportType != ReportType.Recertification && ReportType != ReportType.UnusedRules)
+            {
+                report.AppendLine("<th>LastModified</th>");
+            }
             report.AppendLine("</tr>");
         }
 
@@ -619,10 +626,12 @@ namespace FWO.Report
                 report.AppendLine($"<td>{RuleDisplayHtml.DisplayOwner(rule.Metadata)}</td>");
                 report.AppendLine($"<td>{RuleDisplayHtml.DisplayRecertIpMatches(rule.Metadata)}</td>");
                 report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
+                report.AppendLine($"<td>{RuleDisplayBase.DisplayLastModified(rule)}</td>");
             }
             if (ReportType == ReportType.UnusedRules)
             {
                 report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
+                report.AppendLine($"<td>{RuleDisplayBase.DisplayLastModified(rule)}</td>");
             }
             report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
             report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZones(rule)}</td>");
@@ -635,6 +644,10 @@ namespace FWO.Report
             report.AppendLine($"<td>{RuleDisplayBase.DisplayEnabled(rule, OutputLocation.export)}</td>");
             report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
             report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
+            if (ReportType != ReportType.Recertification && ReportType != ReportType.UnusedRules)
+            {
+                report.AppendLine($"<td>{RuleDisplayBase.DisplayLastModified(rule)}</td>");
+            }
             report.AppendLine("</tr>");
             if (ReportType == ReportType.UnusedRules)
             {

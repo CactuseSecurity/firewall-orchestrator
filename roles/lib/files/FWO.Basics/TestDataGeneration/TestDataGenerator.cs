@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 
 namespace FWO.Basics.TestDataGeneration
 {
-    public class TestDataGenerator<T> where T : new()
+    public class TestDataGenerator<T> where T : class, new()
     {
         public TestDataGenerationResult<T> ImportInstance(string json)
         {
@@ -72,42 +72,46 @@ namespace FWO.Basics.TestDataGeneration
                         && jsonObject.TryGetPropertyValue("set", out JsonNode? setNode)
                         && setNode is JsonObject setObject)
                     {
-                        KeyValuePair<string, JsonNode?>? kvp = setObject.FirstOrDefault();
+                        KeyValuePair<string, JsonNode?> kvp = setObject.FirstOrDefault();
 
-                        if (kvp != null && kvp.Value.Value != null)
+                        if (string.IsNullOrWhiteSpace(kvp.Key) || kvp.Value is null)
                         {
-                            string propertyName = kvp.Value.Key;
-                            JsonNode valueSettingsNode = kvp.Value.Value;
-                            Dictionary<string, double> valuesWithProbabilities = new();
-
-                            foreach (var valueSetting in valueSettingsNode.AsObject())
-                            {
-                                if (valueSetting.Value != null)
-                                {
-                                    valuesWithProbabilities[valueSetting.Key] = valueSetting.Value.GetValue<double>();
-                                }
-                            }
-
-                            string randomizedValue = GetRandomValueByProbability(valuesWithProbabilities);
-
-                            // get property
-                            PropertyInfo? property = typeof(T).GetProperty(propertyName);
-                            if (property == null)
-                            {
-                                throw new ArgumentException($"Property '{propertyName}' not found on type '{typeof(T)}'.");
-                            }
-
-                            // validate that property can be set
-                            if (!property.CanWrite)
-                            {
-                                throw new InvalidOperationException($"Property '{propertyName}' is read-only and cannot be set.");
-                            }
-
-                            object convertedValue = Convert.ChangeType(randomizedValue, property.PropertyType);
-                            property.SetValue(instance, convertedValue);
-
+                            continue;
                         }
 
+                        if (kvp.Value is not JsonObject valueSettingsObject)
+                        {
+                            continue;
+                        }
+
+                        string propertyName = kvp.Key;
+                        Dictionary<string, double> valuesWithProbabilities = new();
+
+                        foreach (var valueSetting in valueSettingsObject)
+                        {
+                            if (valueSetting.Value != null)
+                            {
+                                valuesWithProbabilities[valueSetting.Key] = valueSetting.Value.GetValue<double>();
+                            }
+                        }
+
+                        string randomizedValue = GetRandomValueByProbability(valuesWithProbabilities);
+
+                        // get property
+                        PropertyInfo? property = typeof(T).GetProperty(propertyName);
+                        if (property == null)
+                        {
+                            throw new ArgumentException($"Property '{propertyName}' not found on type '{typeof(T)}'.");
+                        }
+
+                        // validate that property can be set
+                        if (!property.CanWrite)
+                        {
+                            throw new InvalidOperationException($"Property '{propertyName}' is read-only and cannot be set.");
+                        }
+
+                        object convertedValue = Convert.ChangeType(randomizedValue, property.PropertyType);
+                        property.SetValue(instance, convertedValue);
 
                     }
                 }
@@ -126,7 +130,7 @@ namespace FWO.Basics.TestDataGeneration
 
         public void SetUpInstance(T instance, string json)
         {
-            if (instance == null) throw new ArgumentNullException(nameof(instance));
+            ArgumentNullException.ThrowIfNull(instance);
 
             try
             {
@@ -137,10 +141,10 @@ namespace FWO.Basics.TestDataGeneration
                 if (configArray == null || configArray.Count == 0) return;
 
                 var setObject = configArray[0]?["set"];
-                if (setObject == null) return;
+                if (setObject is not JsonObject setObjectJson) return;
 
-                var nameObject = setObject["name"]?.AsObject();
-                if (nameObject == null) return;
+                var nameNode = setObjectJson["name"];
+                if (nameNode is not JsonObject nameObject) return;
 
                 // Zufällige Auswahl eines Namens basierend auf den Keys
                 var possibleNames = nameObject.Select(kvp => kvp.Key).ToList();
@@ -194,7 +198,7 @@ namespace FWO.Basics.TestDataGeneration
             }
         }
 
-        private string GetRandomValueByProbability(Dictionary<string, double> valuesWithProbabilities)
+        private static string GetRandomValueByProbability(Dictionary<string, double> valuesWithProbabilities)
         {
             Random random = new();
 
@@ -205,12 +209,21 @@ namespace FWO.Basics.TestDataGeneration
                 throw new InvalidOperationException("The sum of the probabilities has to be equal 1.");
             }
 
-            // TODO: Select after probability
-            List<KeyValuePair<string, double>> values = valuesWithProbabilities.AsEnumerable<KeyValuePair<string, double>>().ToList();
+            double roll = random.NextDouble();
+            double cumulative = 0;
+            string lastKey = string.Empty;
 
-            int elementIndex = random.Next(valuesWithProbabilities.Count() - 1);
+            foreach (KeyValuePair<string, double> entry in valuesWithProbabilities)
+            {
+                cumulative += entry.Value;
+                lastKey = entry.Key;
+                if (roll <= cumulative)
+                {
+                    return entry.Key;
+                }
+            }
 
-            return values.ElementAt(elementIndex).Key;
+            return lastKey;
         }
     }
 

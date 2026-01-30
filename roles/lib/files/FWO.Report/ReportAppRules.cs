@@ -45,7 +45,7 @@ namespace FWO.Report
         {
             List<IPAddressRange> ownerIps = await GetAppServers(apiConnection, ownerId);
             List<ManagementReport> relevantData = [];
-            foreach(var mgt in managementData)
+            foreach (var mgt in managementData)
             {
                 ManagementReport relevantMgt = new() { Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
                 foreach (var rulebase in mgt.Rulebases)
@@ -65,10 +65,10 @@ namespace FWO.Report
         private static List<DeviceReport> PrepareDevices(DeviceReport[] deviceReports)
         {
             List<DeviceReport> selectedDeviceReports = [];
-            foreach(var devReport in deviceReports)
+            foreach (var devReport in deviceReports)
             {
                 DeviceReport selectedDevReport = new(devReport);
-                foreach(var rule in devReport.GetRuleList())
+                foreach (var rule in devReport.GetRuleList())
                 {
                     if (selectedDevReport.IsLinked(rule))
                     {
@@ -85,7 +85,7 @@ namespace FWO.Report
 
         private static void PrepareRulebase(RulebaseReport rulebase, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
         {
-            RulebaseReport relevantRulebase = new(){ Name = rulebase.Name, Id = rulebase.Id };
+            RulebaseReport relevantRulebase = new() { Name = rulebase.Name, Id = rulebase.Id };
             foreach (var rule in rulebase.Rules)
             {
                 PrepareRule(rule, modellingFilter, relevantMgt, relevantRulebase, ownerIps);
@@ -162,11 +162,11 @@ namespace FWO.Report
         private static void CheckSpecificObj(NetworkLocation obj, bool negated, List<IPAddressRange> ownerIps, List<NetworkLocation> relevantObjects, List<NetworkLocation> disregardedObjects)
         {
             bool found = false;
-            if(obj.Object.Type.Name == ObjectType.Group)
+            if (obj.Object.Type.Name == ObjectType.Group)
             {
-                foreach(var grpobj in obj.Object.ObjectGroupFlats.Select(o => o.Object))
+                foreach (var grpobj in obj.Object.ObjectGroupFlats.Select(o => o.Object))
                 {
-                    if(grpobj != null && CheckObj(grpobj, negated, ownerIps))
+                    if (grpobj != null && CheckObj(grpobj, negated, ownerIps))
                     {
                         relevantObjects.Add(obj);
                         found = true;
@@ -174,12 +174,12 @@ namespace FWO.Report
                     }
                 }
             }
-            else if(CheckObj(obj.Object, negated, ownerIps))
+            else if (CheckObj(obj.Object, negated, ownerIps))
             {
                 relevantObjects.Add(obj);
                 found = true;
             }
-            if(!found)
+            if (!found)
             {
                 disregardedObjects.Add(obj);
             }
@@ -189,7 +189,7 @@ namespace FWO.Report
         {
             foreach (var ownerIpRange in ownerIps)
             {
-                if(obj.IP == null)
+                if (obj.IP == null)
                 {
                     continue;
                 }
@@ -197,7 +197,7 @@ namespace FWO.Report
                 IPAddressRange objRange = new(IPAddress.Parse(obj.IP.StripOffNetmask()),
                     IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask()));
 
-                if(negated)
+                if (negated)
                 {
                     if (IpOperations.IpToUint(ownerIpRange.Begin) < IpOperations.IpToUint(objRange.Begin) ||
                             (IpOperations.IpToUint(ownerIpRange.End) > IpOperations.IpToUint(objRange.End)))
@@ -205,7 +205,7 @@ namespace FWO.Report
                         return true;
                     }
                 }
-                else if(IpOperations.RangeOverlapExists(objRange, ownerIpRange))
+                else if (IpOperations.RangeOverlapExists(objRange, ownerIpRange))
                 {
                     return true;
                 }
@@ -231,21 +231,21 @@ namespace FWO.Report
 
         private static void PrepareObjects(NetworkLocation[] networkLocations, bool negated, NetworkLocation[] disregardedLocations, ManagementReport mgt, List<IPAddressRange> ownerIps)
         {
-            foreach(var from in networkLocations.Select(f => f.Object))
+            foreach (var from in networkLocations.Select(f => f.Object))
             {
                 mgt.RelevantObjectIds.Add(from.Id);
                 mgt.HighlightedObjectIds.Add(from.Id);
-                if(from.Type.Name == ObjectType.Group)
+                if (from.Type.Name == ObjectType.Group)
                 {
-                    foreach(var grpobj in from.ObjectGroupFlats.Select(g => g.Object).Where(gr => gr != null && CheckObj(gr, negated, ownerIps)))
+                    foreach (var grpobj in from.ObjectGroupFlats.Select(g => g.Object).Where(gr => gr != null && CheckObj(gr, negated, ownerIps)))
                     {
                         mgt.HighlightedObjectIds.Add(grpobj!.Id);
                     }
                 }
             }
-            if(networkLocations.Length == 0)
+            if (networkLocations.Length == 0)
             {
-                foreach(var from in disregardedLocations)
+                foreach (var from in disregardedLocations)
                 {
                     mgt.RelevantObjectIds.Add(from.Object.Id);
                 }
@@ -259,11 +259,11 @@ namespace FWO.Report
                 obj.Highlighted = mgt.HighlightedObjectIds.Contains(obj.Id) || obj.IsAnyObject();
                 if (obj.Type.Name == ObjectType.Group)
                 {
-                    foreach(var grpobj in obj.ObjectGroupFlats.Select(g => g.Object).Where(g => g != null))
+                    foreach (var grpobj in obj.ObjectGroupFlats.Select(g => g.Object).Where(g => g != null))
                     {
                         grpobj!.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Id) || grpobj.IsAnyObject();
                     }
-                    foreach(var grpobj in obj.ObjectGroups.Select(g => g.Object).Where(g => g != null))
+                    foreach (var grpobj in obj.ObjectGroups.Select(g => g.Object).Where(g => g != null))
                     {
                         grpobj!.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Id) || grpobj.IsAnyObject();
                     }

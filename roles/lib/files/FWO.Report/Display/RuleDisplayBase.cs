@@ -28,6 +28,14 @@ namespace FWO.Ui.Display
             }
         }
 
+        public static string DisplayLastModified(Rule rule)
+        {
+            DateTime? lastModified = rule.LastModified ?? rule.Metadata?.Created;
+            return lastModified.HasValue
+                ? DateOnly.FromDateTime(lastModified.Value).ToString("yyyy-MM-dd")
+                : "";
+        }
+
         public static string DisplayIsCompliant(Rule rule, OutputLocation location)
         {
             if (rule.Compliance != ComplianceViolationType.NotAssessable)
@@ -46,7 +54,7 @@ namespace FWO.Ui.Display
                 else
                 {
                     return $"<div class=\"oi {(isCompliant ? "oi-check" : "oi-x")}\"></div>";
-                }                
+                }
             }
             else
             {
@@ -176,8 +184,8 @@ namespace FWO.Ui.Display
         public static StringBuilder DisplayNetworkLocation(NetworkLocation userNetworkObject, ReportType reportType, string? userName = null, string? objName = null)
         {
             StringBuilder result = new();
-            
-            if (userNetworkObject.User != null &&  userNetworkObject.User.Id > 0)
+
+            if (userNetworkObject.User != null && userNetworkObject.User.Id > 0)
             {
                 result.Append($"{userName ?? userNetworkObject.User.Name}@");
             }
@@ -211,14 +219,14 @@ namespace FWO.Ui.Display
 
         public static StringBuilder RemoveLastChars(StringBuilder s, int count)
         {
-            string x = s.ToString(); 
+            string x = s.ToString();
             x = x.Remove(x.ToString().Length - count, count).ToString();
             return s.Remove(s.ToString().Length - count, count);
         }
 
         public static string Quote(string? input)
         {
-            return  $"\"{input ?? ""}\"";
+            return $"\"{input ?? ""}\"";
         }
 
         public static List<NetworkLocation> GetResolvedNetworkLocations(NetworkLocation[] locationArray)
@@ -292,7 +300,7 @@ namespace FWO.Ui.Display
             {
                 if (!oldAr.Contains(item))
                 {
-                    string newItem = item; 
+                    string newItem = item;
                     added.Add(newItem);
                 }
             }

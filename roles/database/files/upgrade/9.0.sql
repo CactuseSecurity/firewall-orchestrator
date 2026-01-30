@@ -1,8 +1,3 @@
--- next steps:
-   -- add rule_to, rule_service to importer
-   -- consolidate: not only first import but also subsequent imports should work
-   -- improve rollback - currently if import stops in the middle, the rollback is not automatically called
-
 -- pre 9.0 upgrade scripts
 
 --- 8.6.3
@@ -204,9 +199,6 @@ insert into config (config_key, config_value, config_user) VALUES ('modDecommEma
 insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailBody', '', 0) ON CONFLICT DO NOTHING;
 
 alter table report add column if not exists read_only Boolean default FALSE;
-
--- alter table owner_recertification drop constraint if exists owner_recertification_owner_foreign_key;
--- ALTER TABLE owner_recertification ADD CONSTRAINT owner_recertification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 DO $$
 BEGIN
@@ -473,7 +465,8 @@ Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") 
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "unique_rulebase_mgm_id_name" CASCADE;
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "unique_rulebase_mgm_id_uid" CASCADE;
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "unique_rulebase_mgm_id_uid_removed" CASCADE;
-Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_uid_removed UNIQUE ("mgm_id", "uid", "removed");
+ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "rulebase_uid_mgm_id_removed_key" CASCADE;
+Alter table "rulebase" add CONSTRAINT rulebase_uid_mgm_id_removed_key UNIQUE ("mgm_id", "uid", "removed");
 -----------------------------------------------
 
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;
@@ -565,8 +558,8 @@ RETURNS NUMERIC AS $$
   WHERE r.mgm_id = mgmId and active
     AND r.rule_num_numeric > (
       SELECT rule_num_numeric 
-      FROM rule 
-      WHERE rule_uid = current_rule_uid AND mgm_id = mgmId AND active
+      FROM rule r2
+      WHERE rule_uid = current_rule_uid AND r2.mgm_id = mgmId AND active
       LIMIT 1
     )
   ORDER BY r.rule_num_numeric ASC
@@ -581,27 +574,8 @@ ALTER table "svcgrp_flat" ALTER COLUMN "import_last_seen" TYPE BIGINT;
 ALTER TABLE "rule" DROP CONSTRAINT IF EXISTS "fk_rule_rulebase_id" CASCADE;
 ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id") REFERENCES "rulebase" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
 
--- Alter Table "rule_metadata" ADD Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid", "dev_id", "rulebase_id");
--- TODO: this needs to analysed (as dev_id will be removed from rule):
--- Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
---   foreign key ("dev_id", "rule_uid", "rulebase_id") references "rule_metadata" ("dev_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
-
--- Create table IF NOT EXISTS "rule_hit" 
--- (
---     "rule_id" BIGINT NOT NULL,
---     "rule_uid" VARCHAR NOT NULL,
---     "gw_id" INTEGER NOT NULL,
---     "metadata_id" BIGINT NOT NULL,
--- 	"rule_first_hit" Timestamp,
--- 	"rule_last_hit" Timestamp,
--- 	"rule_hit_counter" BIGINT
--- );
--- Alter table "rule_hit" DROP CONSTRAINT IF EXISTS fk_rule_hit_rule_id;
--- Alter table "rule_hit" DROP CONSTRAINT IF EXISTS fk_hit_gw_id;
--- Alter table "rule_hit" DROP CONSTRAINT IF EXISTS fk_hit_metadata_id;
--- Alter table "rule_hit" add CONSTRAINT fk_hit_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade; 
--- Alter table "rule_hit" add CONSTRAINT fk_hit_gw_id foreign key ("gw_id") references "device" ("dev_id") on update restrict on delete cascade; 
--- Alter table "rule_hit" add CONSTRAINT fk_hit_metadata_id foreign key ("metadata_id") references "rule_metadata" ("dev_id") on update restrict on delete cascade; 
+-- removed logic for rule
+ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 
 -----------------------------------------------
 -- METADATA part
@@ -611,30 +585,15 @@ ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id"
 Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_key";
 Alter Table "rule_metadata" drop Constraint IF EXISTS "rule_metadata_alt_key";
 
-    -- TODO: fix this:
-    --     ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique";
-    --     ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
-    -- causes error:
-    --     None: FEHLER:  kann Constraint rule_metadata_rule_uid_unique für Tabelle rule_metadata nicht löschen, weil andere Objekte davon abhängen\nDETAIL:  
-    --     Constraint rule_metadata_rule_uid_f_key für Tabelle rule hängt von Index rule_metadata_rule_uid_unique ab\nHINT:  Verwenden Sie DROP ... CASCADE, um die abhängigen Objekte ebenfalls zu löschen.\n"}
-
 ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique" CASCADE;
-ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
 Alter table "rule" DROP constraint IF EXISTS "rule_rule_metadata_rule_uid_f_key";
 
--- wenn es regeln mit derselben uid gibt, funktioniert der folgende constraint nicht
--- koennen wir dafuer sorgen, dass jede rule_uid nur exakt 1x in der datenbank steht?
--- brauchen wir zusaetzlich die einschraenkung auf das mgm?
--- mindestens gibt es ein Problem mit den (implicit) NAT Regeln: CP_default_Office_Mode_addresses_pool
---  rule_id | last_change_admin | rule_name | mgm_id | parent_rule_id | parent_rule_type | active | rule_num | rule_num_numeric | rule_ruleid |               rule_uid               | rule_disabled | rule_src_neg | rule_dst_neg | rule_svc_neg | action_id | track_id |               rule_src                | rule_dst | rule_svc |            rule_src_refs             |            rule_dst_refs             |            rule_svc_refs             | rule_from_zone | rule_to_zone | rule_action | rule_track | rule_installon | rule_time | rule_comment | rule_head_text | rule_implied | rule_create | rule_last_seen | dev_id | rule_custom_fields | access_rule | nat_rule | xlate_rule
------------+-------------------+-----------+--------+----------------+------------------+--------+----------+------------------+-------------+--------------------------------------+---------------+--------------+--------------+--------------+-----------+----------+---------------------------------------+----------+----------+--------------------------------------+--------------------------------------+--------------------------------------+----------------+--------------+-------------+------------+----------------+-----------+--------------+----------------+--------------+-------------+----------------+--------+--------------------+-------------+----------+------------
---     274 |                   |           |     19 |                |                  | t      |       10 |   17000.00000000 |             | dc1a7110-e431-4f56-a84a-31b17acf7ee7 | f             | f            | f            | f            |         2 |        2 | CP_default_Office_Mode_addresses_pool | Any      | Any      | e7c5a3b6-e20f-4756-bb56-f2b394baf7a9 | 97aeb369-9aea-11d5-bd16-0090272ccb30 | 97aeb369-9aea-11d5-bd16-0090272ccb30 |                |              | drop        | None       | Policy Targets | Any       |              |                | f            |          19 |             19 |     19 |                    | f           | t        |        261
+-- composite fk is added after rule_metadata.mgm_id is populated
 
-Alter table "rule" add constraint "rule_rule_metadata_rule_uid_f_key"
-  foreign key ("rule_uid") references "rule_metadata" ("rule_uid") on update restrict on delete cascade;
 
 -- rule_metadata add mgm_id + fk, drop constraint
 ALTER TABLE rule_metadata ADD COLUMN IF NOT EXISTS mgm_id Integer;
+
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -664,7 +623,8 @@ BEGIN
     INTO missing_uids
     FROM rule_metadata rm
     LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
-    WHERE r.rule_uid IS NULL;
+    WHERE r.rule_uid IS NULL
+      AND rm.mgm_id IS NULL;
 
     IF missing_uids IS NOT NULL THEN
         RAISE NOTICE 'Missing rule(s): %', missing_uids;
@@ -674,10 +634,12 @@ BEGIN
                 FROM rule_metadata rm
                 LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
                 WHERE r.rule_uid IS NULL
-        );
+                  AND rm.mgm_id IS NULL
+        )
+          AND mgm_id IS NULL;
     END IF;
 
-    -- Constraints droppen
+    -- drop constraints
     ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_metadatum;
     ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;
     ALTER TABLE rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule_uid_unique;
@@ -689,6 +651,7 @@ BEGIN
             COUNT(DISTINCT r.mgm_id) AS mgm_count
         FROM rule_metadata rm
         JOIN rule r ON rm.rule_uid = r.rule_uid
+        WHERE rm.mgm_id IS NULL
         GROUP BY rm.rule_uid
         HAVING COUNT(DISTINCT r.mgm_id) >= 1
     LOOP
@@ -751,28 +714,29 @@ BEGIN
                     too_many_mgm_ids_on_uid_and_no_resolve
                 );
 				
-            END IF;                   
+            END IF;
         END IF;
     END LOOP;
 	
-	    IF all_errors_with_no_resolve <> '' THEN
-			RAISE EXCEPTION 'Ambiguous mgm_id assignments detected:%s', all_errors_with_no_resolve;
-		END IF;
-	
-	-- redo constraints
-	    ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
-        ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_rule_uid_unique UNIQUE(rule_uid);
-        ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key 
-            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid) ON UPDATE RESTRICT ON DELETE CASCADE;
-			
-			-- set Unique constraint to (mgm_id + rule_uid)
+    IF all_errors_with_no_resolve <> '' THEN
+        RAISE EXCEPTION 'Ambiguous mgm_id assignments detected:%s', all_errors_with_no_resolve;
+    END IF;
+
+    -- redo constraints
+    ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
+        ALTER TABLE rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule_uid_unique;
         IF NOT EXISTS (
             SELECT 1
             FROM pg_constraint
             WHERE conname = 'rule_metadata_mgm_id_rule_uid_unique'
         ) THEN
-            ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);			
+            ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);
         END IF;
+        ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;
+        ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_mgm_id_rule_uid_f_key;
+        ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_mgm_id_rule_uid_f_key
+            FOREIGN KEY (mgm_id, rule_uid) REFERENCES rule_metadata (mgm_id, rule_uid)
+            ON UPDATE RESTRICT ON DELETE CASCADE;
 END$$;
 
 -- rework rule_metadata timestamps to reference import_control and drop unused columns
@@ -782,13 +746,21 @@ ALTER TABLE IF EXISTS rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule
 ALTER TABLE IF EXISTS rule_metadata ADD COLUMN IF NOT EXISTS rule_created_new BIGINT;
 ALTER TABLE IF EXISTS rule_metadata ADD COLUMN IF NOT EXISTS rule_last_modified_new BIGINT;
 
+-- delete all stale rule_metadata entries
+DELETE FROM rule_metadata
+WHERE rule_uid IN (
+    SELECT rm.rule_uid
+    FROM rule_metadata rm
+    LEFT JOIN rule r ON r.rule_uid = rm.rule_uid
+    WHERE r.rule_uid IS NULL
+);
+
 UPDATE rule_metadata m SET
     rule_created_new = r.rule_create,
     rule_last_modified_new = r.rule_last_seen
 FROM rule r
 WHERE r.rule_uid = m.rule_uid;
 
-UPDATE rule_metadata SET rule_created_new = COALESCE(rule_created_new, 0) WHERE TRUE;
 UPDATE rule_metadata SET rule_last_modified_new = COALESCE(rule_last_modified_new, rule_created_new) WHERE TRUE;
 
 ALTER TABLE IF EXISTS rule_metadata DROP COLUMN IF EXISTS rule_created;
@@ -800,7 +772,6 @@ ALTER TABLE IF EXISTS rule_metadata RENAME COLUMN rule_last_modified_new TO rule
 ALTER TABLE IF EXISTS rule_metadata
     ALTER COLUMN rule_created SET NOT NULL,
     ALTER COLUMN rule_last_modified SET NOT NULL;
-
 
 -- rebuild recertification related views/materialized view
 DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
@@ -882,14 +853,13 @@ CREATE OR REPLACE VIEW v_excluded_dst_ips AS
 	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
 	WHERE NOT o.obj_ip='0.0.0.0/0';
 
+drop VIEW if exists v_rule_with_rule_owner_1;
 CREATE OR REPLACE VIEW v_rule_with_rule_owner_1 AS
-	SELECT r.rule_id, r.rule_uid, r.rule_name, r.mgm_id, r.rulebase_id, ow.id as owner_id, met.rule_metadata_id
+    SELECT DISTINCT r.rule_id, r.rule_uid, r.rule_name, r.mgm_id, r.rulebase_id, ow.id AS owner_id, met.rule_metadata_id
 	FROM v_active_access_allow_rules r
-	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
-	LEFT JOIN rule_owner ro ON (ro.rule_metadata_id=met.rule_metadata_id)
-	LEFT JOIN owner ow ON (ro.owner_id=ow.id)
-	WHERE NOT ow.id IS NULL
-	GROUP BY r.rule_id, r.rule_uid, r.rule_name, r.mgm_id, r.rulebase_id, ow.id, met.rule_metadata_id;
+    JOIN rule_metadata met ON r.rule_uid = met.rule_uid
+    JOIN rule_owner ro ON ro.rule_metadata_id = met.rule_metadata_id
+    JOIN owner ow ON ro.owner_id = ow.id;
 
 CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
 	SELECT
@@ -969,17 +939,21 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 	r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
 	r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
 	r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule
-	FROM ( SELECT DISTINCT * FROM v_rule_with_rule_owner AS rul UNION SELECT DISTINCT * FROM v_rule_with_ip_owner AS ips) AS ar
-	LEFT JOIN rule AS r USING (rule_id)
-	GROUP BY ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified,
-		r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
-		r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
-		r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule;
+	FROM ( SELECT * FROM v_rule_with_rule_owner AS rul UNION SELECT * FROM v_rule_with_ip_owner AS ips) AS ar
+    LEFT JOIN rule AS r USING (rule_id);
 
 GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, configimporters;
 
 ALTER TABLE rule_metadata DROP COLUMN IF EXISTS "rulebase_id";
 ALTER TABLE rule_metadata DROP COLUMN IF EXISTS "dev_id";
+-- Remove rule_metadata.rule_last_modified and its constraint
+ALTER TABLE IF EXISTS rule_metadata
+    DROP CONSTRAINT IF EXISTS rule_metadata_rule_last_modified_import_control_control_id_f_key CASCADE;
+
+ALTER TABLE IF EXISTS rule_metadata
+    DROP COLUMN IF EXISTS rule_last_modified;
+
+
 
 -----------------------------------------------
 -- bulid rule-rulebase graph
@@ -1005,9 +979,6 @@ Create table IF NOT EXISTS "rulebase_link"
 	"created" BIGINT,
 	"removed" BIGINT
 );
-
-
-
 
 -- only for developers who already have on old 9.0 database:
 Alter table "rulebase_link" add column IF NOT EXISTS "is_initial" BOOLEAN;
@@ -1065,15 +1036,6 @@ insert into stm_link_type (id, name) VALUES (4, 'concatenated') ON CONFLICT DO N
 insert into stm_link_type (id, name) VALUES (5, 'domain') ON CONFLICT DO NOTHING;
 delete from stm_link_type where name in ('initial','global','local','section'); -- initial and global/local are additional flags now
 
--- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far
-    -- migration plan:
-    -- 1) create rulebases without rules (derive from device table)
-    -- 2) set rule.rulebase_id to reference the correct rulebase
-    -- 3) set not null constratint for rule.rulebase_id
-    -- 4) do we really dare to delete duplicate rules here? yes, we should.
-    -- 5) after upgrade start import
-    -- TODO: deal with global policies --> move them to the global mgm_id
-
 CREATE OR REPLACE FUNCTION deleteDuplicateRulebases() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
@@ -1084,9 +1046,7 @@ AS $function$
     END;
 $function$;
 
--- get latest import id for this management
-
--- needs to be rewritten to rulebase_link
+-- TODO: needs to be rewritten to rulebase_link
 CREATE OR REPLACE FUNCTION addRuleEnforcedOnGatewayEntries() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
@@ -1151,15 +1111,28 @@ CREATE OR REPLACE FUNCTION addMetadataRulebaseEntries() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
 AS $function$
-    DECLARE
-        r_dev RECORD;
     BEGIN
-        FOR r_dev IN 
-            -- TODO: deal with global rulebases here
-            SELECT d.dev_id, rb.id as rulebase_id FROM device d LEFT JOIN rulebase rb ON (d.local_rulebase_name=rb.name)
-        LOOP
-            UPDATE rule_metadata SET rulebase_id=r_dev.rulebase_id WHERE rule_metadata.dev_id=r_dev.dev_id;
-        END LOOP;
+        IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = 'rule_metadata'
+            AND column_name = 'rulebase_id'
+        ) THEN
+            RETURN;
+        END IF;
+
+        WITH rulebase_per_rule AS (
+            SELECT rule_uid, mgm_id, MIN(rulebase_id) AS rulebase_id
+            FROM rule
+            WHERE rulebase_id IS NOT NULL
+            GROUP BY rule_uid, mgm_id
+        )
+        UPDATE rule_metadata rm
+        SET rulebase_id = rbr.rulebase_id
+        FROM rulebase_per_rule rbr
+        WHERE rm.rule_uid = rbr.rule_uid
+            AND rm.mgm_id = rbr.mgm_id
+            AND rm.rulebase_id IS NULL;
         -- now we can add the "not null" constraint for rule_metadata.rulebase_id
         IF EXISTS (
             SELECT 1 
@@ -1174,7 +1147,6 @@ AS $function$
     END;
 $function$;
 
--- TODO: set created to current import id
 CREATE OR REPLACE FUNCTION addRulebaseLinkEntries() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
@@ -1290,13 +1262,34 @@ AS $function$
         -- danger zone: delete all rules that have no rulebase_id
         -- the deletion might take some time
         PERFORM deleteDuplicateRulebases();
-        -- PERFORM addMetadataRulebaseEntries(); -- this does not work as we just removed the dev_id column from rule_metadata
+        PERFORM addMetadataRulebaseEntries();
         -- add entries in rule_enforced_on_gateway
         PERFORM addRuleEnforcedOnGatewayEntries();
     END;
 $function$;
 
-SELECT * FROM migrateToRulebases();
+-- end of rule_metadata migration
+
+ALTER TABLE IF EXISTS rule_metadata
+    ADD COLUMN IF NOT EXISTS removed BIGINT;
+
+ALTER TABLE IF EXISTS rule_metadata
+    DROP CONSTRAINT IF EXISTS rule_metadata_removed_import_control_control_id_f_key;
+
+ALTER TABLE IF EXISTS rule_metadata
+    ADD CONSTRAINT rule_metadata_removed_import_control_control_id_f_key
+    FOREIGN KEY (removed) REFERENCES import_control (control_id)
+    ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM rulebase_link LIMIT 1
+    ) THEN
+        PERFORM migrateToRulebases();
+    END IF;
+END
+$$;
 
 -- now we can set the new constraint on rule_uid:
 Alter Table "rule" DROP Constraint IF EXISTS "rule_altkey";
@@ -1309,10 +1302,8 @@ Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate
 ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_dev_id_fkey;
 
 ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_rulebase_id_f_key" CASCADE;
--- Alter table "rule_metadata" add constraint "rule_metadata_rulebase_id_f_key"
---   foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
--- ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_alt_key" CASCADE;
--- Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id","rulebase_id");
+ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "unique_rule_metadata_rule_uid_mgm_id";
+ALTER TABLE "rule_metadata" ADD CONSTRAINT "unique_rule_metadata_rule_uid_mgm_id" UNIQUE ("rule_uid","mgm_id");
 
 -- reverse last_seen / removed logic for objects
 ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
@@ -1325,7 +1316,6 @@ ALTER TABLE "zone" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "usergrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "usergrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rule_from" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rule_to" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rule_service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
@@ -1519,34 +1509,6 @@ ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS rule_uid TEXT;
 ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS mgmt_uid TEXT;
 ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS is_initial BOOLEAN;
 
--- add assessability issue
-
--- create table if not exists compliance.assessability_issue
--- (
---     violation_id BIGINT NOT NULL,
--- 	type_id INT NOT NULL,
--- 	PRIMARY KEY(violation_id, type_id)
--- );
-
--- create table if not exists compliance.assessability_issue_type
--- (
--- 	type_id INT PRIMARY KEY,
---     type_name VARCHAR(50) NOT NULL
--- );
-
-
--- ALTER TABLE compliance.assessability_issue 
--- DROP CONSTRAINT IF EXISTS compliance_assessability_issue_type_foreign_key;
--- ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_type_foreign_key FOREIGN KEY (type_id) REFERENCES compliance.assessability_issue_type(type_id) ON UPDATE RESTRICT ON DELETE CASCADE;
--- ALTER TABLE compliance.assessability_issue 
--- DROP CONSTRAINT IF EXISTS compliance_assessability_issue_violation_foreign_key;
--- ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_violation_foreign_key FOREIGN KEY (violation_id) REFERENCES compliance.violation(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-
--- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (1, 'empty group') ON CONFLICT DO NOTHING;
--- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (2, 'broadcast address') ON CONFLICT DO NOTHING;
--- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (3, 'DHCP IP undefined address') ON CONFLICT DO NOTHING;
--- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (4, 'dynamic internet address') ON CONFLICT DO NOTHING;
-
 -- add unique constraint for report_template_name
 
 DO $$
@@ -1687,7 +1649,7 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('importedMatrixReadOnly', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
--- add config values to make parralelization in compliance check configurable
+-- add config values to make parallelization in compliance check configurable
 
 INSERT INTO config (config_key, config_value, config_user) 
 VALUES ('complianceCheckElementsPerFetch', '500', 0)
@@ -1696,242 +1658,6 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 INSERT INTO config (config_key, config_value, config_user) 
 VALUES ('complianceCheckAvailableProcessors', '4', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
-
--- adding labels (simple version without mapping tables and without foreign keys)
-
--- CREATE TABLE label (
---     id SERIAL PRIMARY KEY,
---     name TEXT NOT NULL
--- );
-
--- ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "labels" INT[];
--- ALTER TABLE "service" ADD COLUMN IF NOT EXISTS "labels" INT[];
--- ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "labels" INT[];
--- ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "labels" INT[];
-
-
--- ALTER TABLE "object" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "objgrp" DROP COLUMN IF  EXISTS "deleted" ;
--- ALTER TABLE "objgrp_flat" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "service" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "svcgrp" DROP COLUMN IF  EXISTS "deleted" ;
--- ALTER TABLE "svcgrp_flat" DROP  COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "zone" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "usr" DROP COLUMN IF EXISTS  "deleted" ;
--- ALTER TABLE "usergrp" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "usergrp_flat" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "rule" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "rule_from" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "deleted" ;
--- ALTER TABLE "rule_enforced_on_gateway" DROP COLUMN IF EXISTS "deleted";
--- ALTER TABLE "rulebase" DROP COLUMN IF EXISTS "deleted";
--- ALTER TABLE "rulebase_link" DROP COLUMN IF EXISTS "deleted";
--- TODO: fill all rulebase_id s and then add not null constraint
-
-
---   TODOs 
-
--- Rename table rulebase_on_gateways to gateway_rulebase to get correct plural gateway_rulebases in hasura
-
--- REPORTING:
---     - RulesReportRazor line 23: deal with multiple ordered rulebases (later)
---         style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
---     - ObjectGroup.Razor line 431:
---         Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rulebases[0].Rulebase.Rules ?? new Rule[0]).FirstOrDefault();
---     - Statistics Report #rules per device are 0 (device report is null)
---     - recertification: without rule.dev_id we have lost all rule information in report!!!
---       - certification information should be aimed at a rule on a gateway
---       - this might lead to a rulebase which is enforced on multiple gateways to be changed only in
---         the rule_enforced_on_gateway field
---       - how do we get the link between rule_metadata (cert) and the actual rule details?
---         --> can we add a fk from rule_metadatum to rulebase to fix this?
---             query rulesReport($limit: Int, $offset: Int, $mgmId: [Int!], $relevantImportId: bigint, $cut: timestamp, $tolerance: timestamp) {
---             management(where: {hide_in_gui: {_eq: false}, mgm_id: {_in: $mgmId}, stm_dev_typ: {dev_typ_is_multi_mgmt: {_eq: false}, is_pure_routing_device: {_eq: false}}}, order_by: {mgm_name: asc}) {
---                 id: mgm_id
---                 name: mgm_name
---                 devices(where: {hide_in_gui: {_eq: false}}) {
---                 id: dev_id
---                 rule_metadata {
---                     rule_last_hit
---                     rule_uid
---                     dev_id
---                     # here we do not have any rule details 
---                 }
---                 name: dev_name
---                 rulebase_on_gateways(order_by: {order_no: asc}) {
---                     rulebase_id
---                     order_no
---                     rulebase {
---                     id
---                     name
---                     rules {
---                         mgm_id: mgm_id
---                         rule_metadatum {
---                             # here, the rule_metadata is always empty! 
---                             rule_last_hit
---                         }
---                         ...ruleOverview
---                     }
---                     }
---                 }
---                 }
---             }
---             }
---     - need to enhance certifications (add dev_id?)
-
--- - make sure that xlate rules get unique UIDs
--- - with each major version released:
---     add fwo version to demo config files on fwodemo to ensure all versions can be served
-
--- - add install on column to the following reports:
---     - recert
---     - change (all 3)
---     - statistics (optional: only count rules per gw which are active on gw)
-
---  - adjust report tests (add column)
---  import install on information (need to find out, where it is encoded) from 
---  - fortimanger - simply add name of current gw?
---  - fortios - simply add name of current gw?
---  - others? - simply add name of current gw?
-
--- importer cp get changes:
---     {'uid': 'cf8c7582-fd95-464c-81a0-7297df3c5ad9', 'type': 'access-rule', 'domain': {'uid': '41e821a0-3720-11e3-aa6e-0800200c9fde', 'name': 'SMC User', 'domain-type': 'domain'}, 'position': 7, 'track': {'type': {...}, 'per-session': False, 'per-connection': False, 'accounting': False, 'enable-firewall-session': False, 'alert': 'none'}, 'layer': '0f45100c-e4ea-4dc1-bf22-74d9d98a4811', 'source': [{...}], 'source-negate': False, 'destination': [{...}], 'destination-negate': False, 'service': [{...}], 'service-negate': False, 'service-resource': '', 'vpn': [{...}], 'action': {'uid': '6c488338-8eec-4103-ad21-cd461ac2c472', 'name': 'Accept', 'type': 'RulebaseAction', 'domain': {...}, 'color': 'none', 'meta-info': {...}, 'tags': [...], 'icon': 'Actions/actionsAccept', 'comments': 'Accept', 'display-name': 'Accept', 'customFields': None}, 'action-settings': {'enable-identity-captive-portal': False}, 'content': [{...}], 'content-negate': False, 'content-direction': 'any', 'time': [{...}], 'custom-fields': {'field-1': '', 'field-2': '', 'field-3': ''}, 'meta-info': {'lock': 'unlocked', 'validation-state': 'ok', 'last-modify-time': {...}, 'last-modifier': 'tim-admin', 'creation-time': {...}, 'creator': 'tim-admin'}, 'comments': '', 'enabled': True, 'install-on': [{...}], 'available-actions': {'clone': 'not_supported'}, 'tags': []}
-
--- - change (cp) importer to read rulebases and mappings from rulebase to device
---   - each rule is only stored once
---   - each rulebase is only stored once
--- --- global changes ----
--- - allow conversion from new to old format (would lose information when working with rulebases)
--- - allow conversion from old to new format (only for simple setups with 1:1 gw to rulebase matches
-
--- Cleanups (after cp importer works with all config variants):
--- - re-add users (cp),check ida rules - do we have networks here?
---         #parse_users_from_rulebases(full_config, full_config['rulebases'], full_config['users'], config2import, current_import_id)
---         --> replace by api call?
--- - re-add config splits
--- - add the following functions to all modules:
---     - getNativeConfig
---     - normalizeConfig
---     - getNormalizedConfig (a combination of the two above)
--- - re-add global / domain policies
--- - update all importers:
---    - fortimanager
---    - azure
---    - cisco firepower
---    - Palo
---    - NSX
---    - Azure
---    - legacy?
---      - netscreen?!
---      - barracuda
-
--- can we get everything working with old config format? no!
-
--- optimization: add mgm_id to all tables like objgrp, ... ?
-
--- disabled in UI:
---     recertification.razor
---     in report.razor:
---     - RSB 
---     - TicketCreate Komponente
-
--- 2024-10-09 planning
--- - calculate rule_num_numeric
--- - config mapping gateway to rulebase(s)
---     - do not store/use any rulebase names in device table
---     - instead get current config with every import
---     - id for gateway needs to be fixated:
-
---     - check point: 
---         - read interface information from show-gateways-and-servers details-level=full
---         - where to get routing infos?
---         - optional: also get publish time per policy (push):
---             "publish-time" : {
---                     "posix" : 1727978692716,
---                     "iso-8601" : "2024-10-03T20:04+0200"
---                 },
---             filter out vswitches?
-
---     - goal:
---         - in device table:
---             - for CP only save policy-name per gateway (gotten from show-gateways-and-servers
---         - in config file storage: 
---             - store all policies with the management rathen than with the gateway?
---             - per gateway only store the ordered mapping gw --> policies
---                 - also allow for mapping a gateway to a policy from the manager's super-manager
-
---     - TODO: set is_super_manager flag = true for MDS 
-
--- {
---   "ConfigFormat": "NORMALIZED",
---   "ManagerSet": [ 
---     {
---       "ManagerUid": "6ae3760206b9bfbd2282b5964f6ea07869374f427533c72faa7418c28f7a77f2",
---       "ManagerName": "schting2",
---       "IsGlobal": false,
---       "DependantManagerUids": [],
---       "Configs": [
---         {
---           "ConfigFormat": "NORMALIZED_LEGACY",
---           "action": "INSERT",
---           "rules": [
---             {
---               "Uid": "FirstLayer shared with inline layer",
---               "Name": "FirstLayer shared with inline layer",
---               "Rules": {
---                 "828b0f42-4b18-4352-8bdf-c9c864d692eb": {
---             }
---           ],
---           "gateways": [
---                 Uid: str
---                 Name: str
---                 Routing: List[dict] = []
---                 Interfaces: List[dict]  = []
---                 # GlobalPolicyUid: Optional[str] = None
---                 "EnforcedPolicyUids": [
---                     "<super-manager-UID>:<super-manager-start-policy-UID>",
---                     "FirstLayer shared with inline layer",
---                     "second-layer",
---                     "<super-manager-UID>:<super-manager-final-policy-UID>",
---                 ]
---                 EnforcedNatPolicyUids: List[str] = []          
---           ]
---         }
---       ]
---     }
---   ]
--- }
-
-
--- - config mapping global start rb, local rb, global end rb
--- - import inline layers
--- - get reports working
--- - valentin: open issues for k01 UI problems
--- - decide how to implement ordered layer (all must match) vs. e.g. global policies (first match)
--- - allow for also importing native configs from file 
-
-
--- TODOs after full importer migration
--- -- ALTER table "import_config" DROP COLUMN IF EXISTS "chunk_number";
--- -- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_installon"; -- here we would need to rebuild views
--- -- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_ruleid"; -- here we would need to rebuild views
--- -- ALTER TABLE "rule" DROP COLUMN IF EXISTS "dev_id"; -- final step when the new structure works
--- -- ALTER TABLE "import_rule" DROP COLUMN IF EXISTS "rulebase_name";
-
--- ALTER TABLE "object" DROP COLUMN IF EXISTS "obj_last_seen";
--- ALTER TABLE "objgrp" DROP COLUMN IF EXISTS "objgrp_last_seen";
--- ALTER TABLE "objgrp_flat" DROP COLUMN IF EXISTS "objgrp_flat_last_seen";
--- ALTER TABLE "service" DROP COLUMN IF EXISTS "svc_last_seen";
--- ALTER TABLE "svcgrp" DROP COLUMN IF EXISTS "svcgrp_last_seen";
--- ALTER TABLE "svcgrp_flat" DROP COLUMN IF EXISTS "svcgrp_flat_last_seen";
--- ALTER TABLE "zone" DROP COLUMN IF EXISTS "zone_last_seen";
--- ALTER TABLE "usr" DROP COLUMN IF EXISTS "user_last_seen";
--- ALTER TABLE "rule" DROP COLUMN IF EXISTS "rule_last_seen";
--- ALTER TABLE "rule_from" DROP COLUMN IF EXISTS "rf_last_seen";
--- ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "rt_last_seen";
--- ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "rs_last_seen";
-
 
 -- add crosstabulations rules with zone for source and destination
 
@@ -2057,15 +1783,6 @@ BEGIN
         END IF;
 
         END IF;
-				
-		--ALTER TABLE rule
-		--DROP CONSTRAINT IF EXISTS rule_rule_from_zone_fkey,
-		--DROP CONSTRAINT IF EXISTS rule_rule_to_zone_fkey;
-		
-		--For dropping columns needed Views to be dropped/replaced where columns are included
-		--ALTER TABLE rule
-		--DROP COLUMN IF EXISTS rule_from_zone,
-		--DROP COLUMN IF EXISTS rule_to_zone;	
 END
 $$;
 
@@ -2207,3 +1924,12 @@ END$$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS owner_responsible_owner_dn_type_unique ON owner_responsible(owner_id, dn, responsible_type);
 CREATE INDEX IF NOT EXISTS owner_responsible_dn_idx ON owner_responsible(dn);
+
+-- Changing primary key of *_resolved tables to include created timestamp
+-- This is necessary to store multiple resolutions for the same object/rule over time
+ALTER TABLE "rule_nwobj_resolved" DROP CONSTRAINT IF EXISTS "rule_nwobj_resolved_pkey";
+ALTER TABLE "rule_nwobj_resolved" ADD PRIMARY KEY ("mgm_id", "rule_id", "obj_id", "created");
+ALTER TABLE "rule_svc_resolved" DROP CONSTRAINT IF EXISTS "rule_svc_resolved_pkey";
+ALTER TABLE "rule_svc_resolved" ADD PRIMARY KEY ("mgm_id", "rule_id", "svc_id", "created");
+ALTER TABLE "rule_user_resolved" DROP CONSTRAINT IF EXISTS "rule_user_resolved_pkey";
+ALTER TABLE "rule_user_resolved" ADD PRIMARY KEY ("mgm_id", "rule_id", "user_id", "created");

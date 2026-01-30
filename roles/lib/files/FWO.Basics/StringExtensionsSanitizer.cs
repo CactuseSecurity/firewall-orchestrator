@@ -1,13 +1,19 @@
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FWO.Basics
 {
     public static partial class StringExtensions
     {
-        public static string SanitizeMand(this string text)
+        public static string SanitizeMand(this string text, bool containsLdapDn = false)
         {
             bool shortened = false;
-            string output = SanitizeMand(text, ref shortened); 
+
+            string output = "";
+            if (containsLdapDn)
+                output = SanitizeLdapPathMand(text, ref shortened);
+            else
+                output = SanitizeMand(text, ref shortened);
             return output;
         }
 

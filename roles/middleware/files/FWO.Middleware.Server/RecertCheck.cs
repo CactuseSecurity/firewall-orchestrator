@@ -213,7 +213,6 @@ namespace FWO.Middleware.Server
                     {
                         foreach (var rule in rulebase.Rules)
                         {
-                            rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
                             rules.Add(rule);
                         }
                     }

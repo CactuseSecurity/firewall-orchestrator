@@ -1,4 +1,4 @@
-﻿namespace FWO.Report.Filter.Exceptions
+namespace FWO.Report.Filter.Exceptions
 {
     public class FilterException(string message, Range errorPosition) : Exception(message)
     {

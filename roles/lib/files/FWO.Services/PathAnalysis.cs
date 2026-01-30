@@ -1,10 +1,10 @@
-﻿using FWO.Data;
+using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
 using NetTools;
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 
@@ -12,7 +12,7 @@ namespace FWO.Services
 {
     public enum PathAnalysisOptions
     {
-        WriteToDeviceList, 
+        WriteToDeviceList,
         DisplayFoundDevices
     }
 
@@ -30,7 +30,7 @@ namespace FWO.Services
             List<Device> deviceList = await AnalyzeSinglePath(source, destination, apiConnection);
 
             List<string> devNames = [];
-            foreach(Device dev in deviceList)
+            foreach (Device dev in deviceList)
             {
                 devNames.Add(dev.Name ?? "");
             }
@@ -43,20 +43,20 @@ namespace FWO.Services
 
             try
             {
-                foreach(var elemPair in AnalyseElements(elements))
+                foreach (var elemPair in AnalyseElements(elements))
                 {
                     List<Device> actDevList = [];
                     actDevList = await AnalyzeSinglePath(elemPair.Key, elemPair.Value, apiConnection);
-                    foreach(var dev in actDevList)
+                    foreach (var dev in actDevList)
                     {
-                        if(DevList.FirstOrDefault(x => x.Id == dev.Id) == null)
+                        if (DevList.FirstOrDefault(x => x.Id == dev.Id) == null)
                         {
                             DevList.Add(dev);
                         }
                     }
-                }  
+                }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Log.WriteError("Path Analysis", $"error while analysing paths", e);
             }
@@ -69,7 +69,7 @@ namespace FWO.Services
             List<string> sources = [];
             List<string> destinations = [];
 
-            foreach(var elem in elements)
+            foreach (var elem in elements)
             {
                 if (elem.Field == ElemFieldType.source.ToString() && elem.Cidr?.CidrString != null)
                 {
@@ -81,9 +81,9 @@ namespace FWO.Services
                 }
             }
 
-            foreach(var src in sources)
+            foreach (var src in sources)
             {
-                foreach(var dst in destinations)
+                foreach (var dst in destinations)
                 {
                     elementPairs.Add(new KeyValuePair<string, string>(src, dst));
                 }
@@ -107,9 +107,9 @@ namespace FWO.Services
                 catch (Exception exeption)
                 {
                     Log.WriteError("Path Analysis", $"error while analysing path", exeption);
-                }       
+                }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Log.WriteError("Path Analysis", $"no valid ip address", e);
             }

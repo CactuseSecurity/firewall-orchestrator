@@ -18,7 +18,7 @@ namespace FWO.Data
         {
 
         }
-        
+
         public ComplianceViolation(int id, ComplianceViolationBase baseObj)
         {
             Id = id;
@@ -91,7 +91,7 @@ namespace FWO.Data
         [JsonProperty("is_initial"), JsonPropertyName("is_initial")]
         public bool IsInitial { get; set; }
 
-        public static ComplianceViolationBase CreateBase(ComplianceViolation violation , bool isInitial)
+        public static ComplianceViolationBase CreateBase(ComplianceViolation violation, bool isInitial)
         {
             return new()
             {
@@ -107,7 +107,7 @@ namespace FWO.Data
                 Criterion = violation.Criterion,
                 IsInitial = isInitial
             };
-            
+
         }
     }
 }

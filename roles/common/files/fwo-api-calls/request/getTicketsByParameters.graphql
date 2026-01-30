@@ -36,8 +36,6 @@ query getTicketsByParameters($cutOffDate: timestamp, $taskType: String, $fromSta
         owner: owner {
           id
           name
-          dn
-          group_dn
           app_id_external
         }
       }

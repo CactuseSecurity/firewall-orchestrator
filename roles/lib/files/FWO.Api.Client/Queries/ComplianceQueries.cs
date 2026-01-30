@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -30,11 +30,11 @@ namespace FWO.Api.Client.Queries
         public static readonly string getCriteria;
         public static readonly string getMatrices;
         public static readonly string getMatrixByName;
-        
+
         public static readonly string addCritToPolicy;
         public static readonly string removeCritFromPolicy;
         public static readonly string getPolicyIdsForCrit;
-        
+
         public static readonly string deleteAllViolations;
         public static readonly string getViolationCount;
 
@@ -73,9 +73,9 @@ namespace FWO.Api.Client.Queries
                 getViolationsChunk = GetQueryText("compliance/getViolationsChunk.graphql");
                 getViolationsByRuleID = GetQueryText("compliance/getViolationsByRuleID.graphql");
                 getViolationsByRuleUid = GetQueryText("compliance/getViolationsByRuleUid.graphql");
-                
-                deleteAllViolations =  GetQueryText("compliance/deleteAllViolations.graphql");
-                getViolationCount =  GetQueryText("compliance/getViolationCount.graphql");
+
+                deleteAllViolations = GetQueryText("compliance/deleteAllViolations.graphql");
+                getViolationCount = GetQueryText("compliance/getViolationCount.graphql");
             }
             catch (Exception exception)
             {

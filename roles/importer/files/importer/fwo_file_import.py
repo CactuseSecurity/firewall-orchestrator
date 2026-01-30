@@ -4,7 +4,7 @@ read config from file
 
 import json
 import traceback
-from typing import Any, cast
+from typing import Any
 
 import fwo_globals
 import requests
@@ -60,7 +60,6 @@ from models.import_state import ImportState
 
 def read_json_config_from_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> FwConfigManagerListController:
     config_json = read_file(fwo_api_call, import_state)
-    _normalize_rule_fields(config_json)
 
     # try to convert normalized config from file to config object
     try:
@@ -74,46 +73,6 @@ def read_json_config_from_file(fwo_api_call: FwoApiCall, import_state: ImportSta
     except Exception:  # legacy stuff from here
         FWOLogger.info(f"could not serialize config {traceback.format_exc()!s}")
         raise FwoImporterError(f"could not serialize config {import_state.import_file_name}")
-
-
-def _normalize_rule_fields(config_json: dict[str, Any]) -> None:
-    """
-    Normalize legacy/alternate rule field names before validation.
-    """
-    manager_set = config_json.get("ManagerSet")
-    if not isinstance(manager_set, list):
-        return
-    manager_items: list[Any] = cast("list[Any]", manager_set)
-    for manager_any in manager_items:
-        if not isinstance(manager_any, dict):
-            continue
-        manager = cast("dict[str, Any]", manager_any)
-        configs = manager.get("Configs")
-        if not isinstance(configs, list):
-            continue
-        config_items: list[Any] = cast("list[Any]", configs)
-        for config_any in config_items:
-            if not isinstance(config_any, dict):
-                continue
-            config = cast("dict[str, Any]", config_any)
-            rulebases = config.get("rulebases")
-            if not isinstance(rulebases, list):
-                continue
-            rulebase_items: list[Any] = cast("list[Any]", rulebases)
-            for rulebase_any in rulebase_items:
-                if not isinstance(rulebase_any, dict):
-                    continue
-                rulebase = cast("dict[str, Any]", rulebase_any)
-                rules = rulebase.get("rules")
-                if not isinstance(rules, dict):
-                    continue
-                rule_items: list[Any] = list(cast("dict[Any, Any]", rules).values())
-                for rule_any in rule_items:
-                    if not isinstance(rule_any, dict):
-                        continue
-                    rule = cast("dict[str, Any]", rule_any)
-                    if "rule_last_change_admin" in rule and "last_change_admin" not in rule:
-                        rule["last_change_admin"] = rule.pop("rule_last_change_admin")
 
 
 def read_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> dict[str, Any]:

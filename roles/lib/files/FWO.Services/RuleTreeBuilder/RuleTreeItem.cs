@@ -23,6 +23,10 @@ namespace FWO.Services.RuleTreeBuilder
 
         public bool IsConcatenationRoot { get; set; } = false;
 
+        public bool IsExpanded { get; set; } = true;
+
+        public bool IsVisible { get; set; } = true;
+
         /// <summary>
         /// A strongly typed version of the generic AddItem method.
         /// </summary>

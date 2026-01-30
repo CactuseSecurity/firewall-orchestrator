@@ -134,6 +134,11 @@ namespace FWO.Report
             return true;
         }
 
+        public virtual bool NoChangesFound()
+        {
+            return true;
+        }
+
         public abstract string ExportToCsv();
 
         public abstract string ExportToJson();
@@ -152,9 +157,9 @@ namespace FWO.Report
                 ReportType.Rules => new ReportRules(query, userConfig, repType),
                 ReportType.ResolvedRules => new ReportRules(query, userConfig, repType),
                 ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType),
-                ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
-                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
-                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter),
+                ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
+                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
+                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
                 ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
                 ReportType.Recertification => new ReportRules(query, userConfig, repType),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
@@ -187,7 +192,7 @@ namespace FWO.Report
 
         public static string ConstructLink(string symbol, string name, string style, string linkAddress)
         {
-            return $"<span class=\"{symbol}\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"{linkAddress}\" target=\"_top\" style=\"{style}\">{name}</a>";
+            return $"<span class=\"{symbol}\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"{linkAddress}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
         protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
@@ -233,7 +238,7 @@ namespace FWO.Report
                     $"{userConfig.GetText("until")}: {ToUtcString(stopTime)}";
                 HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
             }
-            else if ((ReportType.IsRuleReport() && ReportType != ReportType.RecertEventReport) || ReportType == ReportType.Statistics)
+            else if (ReportType.HasTimeFilter())
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
@@ -260,7 +265,14 @@ namespace FWO.Report
         {
             if (deviceFilter != null && ReportType != ReportType.RecertEventReport)
             {
-                HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
+                if (ReportType.IsRulebaseReport())
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("managements") + ": " + deviceFilter);
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
+                }
             }
             else
             {

@@ -11,100 +11,900 @@ we are using cycloneDx
     git pull
     dotnet-CycloneDX -j roles/FWO.sln 
 
-## list of deb packages
-    acl
-    ansible
-    apache2
-    apt-transport-https
-    ca-certificates
-    curl
-    docker-ce
-    docker-ce-cli
-    containerd.io
-    dotnet-runtime
-    dotnet-sdk
-    fonts-liberation
-    glibc-langpack-en
-    gnupg2
-    ldap-utils
-    libapache2-mod-wsgi-py3
-    libasound2
-    libldap2-dev
-    libpangoft2
-    libpq-dev    
-    libpq5
-    libpython3-dev
-    libappindicator3-1
-    libatk-bridge2.0-0
-    libatk1.0-0
-    libcups2
-    libdbus-1-3
-    libdrm2
-    libgbm1
-    libnspr4
-    libnss3
-    libssl-dev
-    libx11-xcb1
-    libxcomposite1
-    libxdamage1
-    libxrandr2
-    logrotate
-    openssh-client
-    openssh-server
-    openssl
-    perl
-    postgresql
-    postgresql-client
-    python3-cryptography
-    python3-docker
-    python3-pip
-    python3-psycopg2
-    python3-openssl
-    python3-dev
-    libldap2-dev
-    python3-pyldap
-    python3-setuptools
-    python3-venv
-    rsync
-    rsyslog
-    slapd
-    xdg-utils
-
-
-## list of perl packages
-
-    libdbi-perl
-
-    
-        
-          
-    
-
-        
-        Expand All
-    
-    @@ -31,9 +91,13 @@ we are using cycloneDx
-  
-    libdbd-pg-perl
-    libdate-calc-perl
-    psmisc
-    libnet-cidr-perl
-    libsys-syslog-perl
-    libexpect-perl
-    libcgi-pm-perl
-    python3-jsonpickle
-    python3-gnupg
-    python3-pytest
-    python3-pydantic
-
-
 ## list of python packages with venv (importer module)
+### Core runtime
     pydantic>=2.0,<3.0
     jsonpickle>=3.0
-    gnupg>=0.5
-    pytest>=7.0
-    graphql-core>=3.0
-    requests>=2.0
-    cryptography>=40.0
+    python-dateutil>=2.8
     netaddr>=1.0
+
+### Crypto (AES/CBC via cryptography.hazmat)
+    cryptography>=40.0
+
+### HTTP / GraphQL stack (Note: Requests >=2.32.0 is compatible with urllib3 2.x)
+    requests>=2.32.0
     urllib3>=2.0
+    graphql-core>=3.0
+
+### SSH
+    scrapli>=2025.01.30
+    scrapli-community>=2025.01.30
+
+### Test
+    pytest>=7.0
+
+### Linting
+    ruff>=0.14.8
+    pre-commit>=3.0
+    pyright>=1.1.407
+
+
+## list of deb packages (debian 12)
+acl
+adduser
+adwaita-icon-theme
+alsa-topology-conf
+alsa-ucm-conf
+analog
+ansible
+ansible-core
+apache2
+apache2-bin
+apache2-data
+apache2-doc
+apache2-utils
+apparmor
+appstream
+apt
+apt-listchanges
+apt-transport-https
+apt-utils
+aptitude
+aptitude-common
+aspnetcore-runtime-10.0
+aspnetcore-targeting-pack-10.0
+at-spi2-common
+at-spi2-core
+augeas-lenses
+autoconf
+automake
+autopoint
+autotools-dev
+base-files
+base-passwd
+bash
+bash-completion
+bc
+bind9-dnsutils
+bind9-host
+bind9-libs:amd64
+binutils
+binutils-common:amd64
+binutils-x86-64-linux-gnu
+bsd-mailx
+bsdextrautils
+bsdutils
+build-essential
+busybox
+bzip2
+ca-certificates
+certbot
+chrony
+console-setup
+console-setup-linux
+containerd.io
+coreutils
+cpio
+cpp
+cpp-12
+cron
+cron-daemon-common
+curl
+dash
+dbus
+dbus-bin
+dbus-daemon
+dbus-session-bus-common
+dbus-system-bus-common
+dbus-user-session
+dconf-gsettings-backend:amd64
+dconf-service
+dctrl-tools
+debconf
+debconf-i18n
+debhelper
+debian-archive-keyring
+debian-faq
+debian-goodies
+debianutils
+dh-autoreconf
+dh-strip-nondeterminism
+dictionaries-common
+diffutils
+dirmngr
+discover
+discover-data
+distro-info-data
+dmidecode
+dmsetup
+doc-debian
+docker-buildx-plugin
+docker-ce
+docker-ce-cli
+docker-ce-rootless-extras
+docker-compose-plugin
+dotnet-apphost-pack-10.0
+dotnet-host
+dotnet-hostfxr-10.0
+dotnet-runtime-10.0
+dotnet-runtime-deps-10.0
+dotnet-sdk-10.0
+dotnet-targeting-pack-10.0
+dpkg
+dpkg-dev
+dwz
+e2fsprogs
+eject
+elfutils
+emacsen-common
+equivs
+ethtool
+exim4-base
+exim4-config
+exim4-daemon-light
+fakeroot
+fdisk
+file
+findutils
+firmware-linux-free
+fontconfig
+fontconfig-config
+fonts-dejavu-core
+fonts-liberation
+fuse3
+g++
+g++-12
+gcc
+gcc-12
+gcc-12-base:amd64
+gettext
+gettext-base
+gir1.2-glib-2.0:amd64
+gir1.2-packagekitglib-1.0
+git
+git-man
+gnupg
+gnupg-l10n
+gnupg-utils
+gnupg2
+gpg
+gpg-agent
+gpg-wks-client
+gpg-wks-server
+gpgconf
+gpgsm
+gpgv
+grep
+groff-base
+grub-common
+grub-pc
+grub-pc-bin
+grub2-common
+gsettings-desktop-schemas
+gtk-update-icon-cache
+gzip
+hicolor-icon-theme
+hostname
+htop
+iamerican
+ibritish
+ieee-data
+ienglish-common
+ifupdown
+inetutils-telnet
+init
+init-system-helpers
+initramfs-tools
+initramfs-tools-core
+installation-report
+intel-microcode
+intltool-debian
+iproute2
+iptables
+iputils-ping
+isc-dhcp-client
+isc-dhcp-common
+iso-codes
+ispell
+iucode-tool
+javascript-common
+kbd
+keyboard-configuration
+klibc-utils
+kmod
+krb5-locales
+laptop-detect
+ldap-utils
+less
+libabsl20220623:amd64
+libacl1:amd64
+libalgorithm-diff-perl
+libalgorithm-diff-xs-perl:amd64
+libalgorithm-merge-perl
+libaom3:amd64
+libapache2-mod-wsgi-py3
+libapparmor1:amd64
+libappstream4:amd64
+libapr1:amd64
+libaprutil1:amd64
+libaprutil1-dbd-sqlite3:amd64
+libaprutil1-ldap:amd64
+libapt-pkg6.0:amd64
+libarchive-cpio-perl
+libarchive-zip-perl
+libargon2-1:amd64
+libasan8:amd64
+libasm1:amd64
+libasound2:amd64
+libasound2-data
+libassuan0:amd64
+libatk-bridge2.0-0:amd64
+libatk1.0-0:amd64
+libatomic1:amd64
+libatspi2.0-0:amd64
+libattr1:amd64
+libaudit-common
+libaudit1:amd64
+libaugeas0:amd64
+libauthen-sasl-perl
+libavahi-client3:amd64
+libavahi-common-data:amd64
+libavahi-common3:amd64
+libavif15:amd64
+libayatana-appindicator3-1
+libayatana-ido3-0.4-0:amd64
+libayatana-indicator3-7:amd64
+libbinutils:amd64
+libbit-vector-perl:amd64
+libblkid1:amd64
+libboost-iostreams1.74.0:amd64
+libbpf1:amd64
+libbrotli1:amd64
+libbsd0:amd64
+libbz2-1.0:amd64
+libc-bin
+libc-dev-bin
+libc-devtools
+libc-l10n
+libc6:amd64
+libc6-dev:amd64
+libc6-i386
+libcairo-gobject2:amd64
+libcairo2:amd64
+libcap-ng0:amd64
+libcap2:amd64
+libcap2-bin
+libcarp-clan-perl
+libcbor0.8:amd64
+libcc1-0:amd64
+libcgi-fast-perl
+libcgi-pm-perl
+libclone-perl:amd64
+libcolord2:amd64
+libcom-err2:amd64
+libcommon-sense-perl:amd64
+libcrypt-dev:amd64
+libcrypt1:amd64
+libcryptsetup12:amd64
+libctf-nobfd0:amd64
+libctf0:amd64
+libcups2:amd64
+libcurl3-gnutls:amd64
+libcurl4:amd64
+libcwidget4:amd64
+libdata-dump-perl
+libdate-calc-perl
+libdate-calc-xs-perl:amd64
+libdatrie1:amd64
+libdav1d6:amd64
+libdb5.3:amd64
+libdbd-pg-perl
+libdbi-perl:amd64
+libdbus-1-3:amd64
+libdbusmenu-glib4:amd64
+libdbusmenu-gtk3-4:amd64
+libdconf1:amd64
+libde265-0:amd64
+libdebconfclient0:amd64
+libdebhelper-perl
+libdeflate0:amd64
+libdevmapper1.02.1:amd64
+libdiscover2
+libdpkg-perl
+libdrm-amdgpu1:amd64
+libdrm-common
+libdrm-intel1:amd64
+libdrm-nouveau2:amd64
+libdrm-radeon1:amd64
+libdrm2:amd64
+libduktape207:amd64
+libdw1:amd64
+libedit2:amd64
+libefiboot1:amd64
+libefivar1:amd64
+libegl-mesa0:amd64
+libegl1:amd64
+libelf1:amd64
+libencode-locale-perl
+libepoxy0:amd64
+liberror-perl
+libestr0:amd64
+libevent-2.1-7:amd64
+libexif12:amd64
+libexpat1:amd64
+libexpat1-dev:amd64
+libexpect-perl
+libext2fs2:amd64
+libfakeroot:amd64
+libfastjson4:amd64
+libfcgi-bin
+libfcgi-perl
+libfcgi0ldbl:amd64
+libfdisk1:amd64
+libffi8:amd64
+libfido2-1:amd64
+libfile-basedir-perl
+libfile-desktopentry-perl
+libfile-fcntllock-perl
+libfile-listing-perl
+libfile-mimeinfo-perl
+libfile-slurper-perl
+libfile-stripnondeterminism-perl
+libfile-which-perl
+libfont-afm-perl
+libfontconfig1:amd64
+libfontenc1:amd64
+libfreetype6:amd64
+libfribidi0:amd64
+libfstrm0:amd64
+libfuse2:amd64
+libfuse3-3:amd64
+libgav1-1:amd64
+libgbm1:amd64
+libgcc-12-dev:amd64
+libgcc-s1:amd64
+libgcrypt20:amd64
+libgd3:amd64
+libgdbm-compat4:amd64
+libgdbm6:amd64
+libgdiplus
+libgdk-pixbuf-2.0-0:amd64
+libgdk-pixbuf2.0-bin
+libgdk-pixbuf2.0-common
+libgif7:amd64
+libgirepository-1.0-1:amd64
+libgl1:amd64
+libgl1-mesa-dri:amd64
+libglapi-mesa:amd64
+libgles2:amd64
+libglib2.0-0:amd64
+libglib2.0-bin
+libglib2.0-data
+libglvnd0:amd64
+libglx-mesa0:amd64
+libglx0:amd64
+libgmp10:amd64
+libgnutls-dane0:amd64
+libgnutls30:amd64
+libgomp1:amd64
+libgpg-error0:amd64
+libgprofng0:amd64
+libgraphite2-3:amd64
+libgssapi-krb5-2:amd64
+libgstreamer1.0-0:amd64
+libgtk-3-0:amd64
+libgtk-3-bin
+libgtk-3-common
+libharfbuzz0b:amd64
+libheif1:amd64
+libhogweed6:amd64
+libhtml-form-perl
+libhtml-format-perl
+libhtml-parser-perl:amd64
+libhtml-tagset-perl
+libhtml-tree-perl
+libhttp-cookies-perl
+libhttp-daemon-perl
+libhttp-date-perl
+libhttp-message-perl
+libhttp-negotiate-perl
+libice6:amd64
+libicu72:amd64
+libidn12:amd64
+libidn2-0:amd64
+libintl-perl
+libintl-xs-perl
+libio-html-perl
+libio-pty-perl
+libio-socket-ssl-perl
+libio-stringy-perl
+libio-stty-perl
+libip4tc2:amd64
+libip6tc2:amd64
+libipc-system-simple-perl
+libisl23:amd64
+libitm1:amd64
+libjansson4:amd64
+libjbig0:amd64
+libjemalloc2:amd64
+libjpeg62-turbo:amd64
+libjs-jquery
+libjs-sphinxdoc
+libjs-underscore
+libjson-c5:amd64
+libjson-perl
+libjson-xs-perl
+libk5crypto3:amd64
+libkeyutils1:amd64
+libklibc:amd64
+libkmod2:amd64
+libkrb5-3:amd64
+libkrb5support0:amd64
+libksba8:amd64
+liblcms2-2:amd64
+libldap-2.5-0:amd64
+libldap-common
+libldap-dev:amd64
+libldap2-dev
+liblerc4:amd64
+libllvm14:amd64
+libllvm15:amd64
+liblmdb0:amd64
+liblocale-gettext-perl
+liblockfile-bin
+liblockfile1:amd64
+liblognorm5:amd64
+liblsan0:amd64
+libltdl-dev:amd64
+libltdl7:amd64
+liblua5.3-0:amd64
+liblwp-mediatypes-perl
+liblwp-protocol-https-perl
+liblz4-1:amd64
+liblzma5:amd64
+libmagic-mgc
+libmagic1:amd64
+libmail-sendmail-perl
+libmailtools-perl
+libmaxminddb0:amd64
+libmd0:amd64
+libmnl0:amd64
+libmodbus5:amd64
+libmodule-find-perl
+libmount1:amd64
+libmpc3:amd64
+libmpfr6:amd64
+libmspack0:amd64
+libncursesw6:amd64
+libnet-cidr-perl
+libnet-dbus-perl
+libnet-http-perl
+libnet-smtp-ssl-perl
+libnet-ssleay-perl:amd64
+libnetfilter-conntrack3:amd64
+libnettle8:amd64
+libnewt0.52:amd64
+libnfnetlink0:amd64
+libnftables1:amd64
+libnftnl11:amd64
+libnghttp2-14:amd64
+libnl-3-200:amd64
+libnl-genl-3-200:amd64
+libnpth0:amd64
+libnsl-dev:amd64
+libnsl2:amd64
+libnspr4:amd64
+libnss-systemd:amd64
+libnss3:amd64
+libnuma1:amd64
+libodbc2:amd64
+libp11-kit0:amd64
+libpackagekit-glib2-18:amd64
+libpam-modules:amd64
+libpam-modules-bin
+libpam-runtime
+libpam-systemd:amd64
+libpam0g:amd64
+libpango-1.0-0:amd64
+libpangocairo-1.0-0:amd64
+libpangoft2-1.0-0:amd64
+libpcap0.8:amd64
+libpci3:amd64
+libpciaccess0:amd64
+libpcre2-8-0:amd64
+libperl5.36:amd64
+libperlio-utf8-strict-perl
+libpipeline1:amd64
+libpixman-1-0:amd64
+libpng16-16:amd64
+libpolkit-agent-1-0:amd64
+libpolkit-gobject-1-0:amd64
+libpopt0:amd64
+libpq-dev
+libpq5:amd64
+libproc-processtable-perl:amd64
+libproc2-0:amd64
+libprotobuf-c1:amd64
+libpsl5:amd64
+libpython3-dev:amd64
+libpython3-stdlib:amd64
+libpython3.11:amd64
+libpython3.11-dev:amd64
+libpython3.11-minimal:amd64
+libpython3.11-stdlib:amd64
+libquadmath0:amd64
+librav1e0:amd64
+libreadline8:amd64
+libregexp-ipv6-perl
+librsvg2-2:amd64
+librsvg2-common:amd64
+librtmp1:amd64
+libsasl2-2:amd64
+libsasl2-dev
+libsasl2-modules:amd64
+libsasl2-modules-db:amd64
+libseccomp2:amd64
+libselinux1:amd64
+libsemanage-common
+libsemanage2:amd64
+libsensors-config
+libsensors5:amd64
+libsepol2:amd64
+libsigc++-2.0-0v5:amd64
+libslang2:amd64
+libslirp0:amd64
+libsm6:amd64
+libsmartcols1:amd64
+libsnmp-base
+libsort-naturally-perl
+libsqlite3-0:amd64
+libss2:amd64
+libssh2-1:amd64
+libssl-dev:amd64
+libssl3:amd64
+libstdc++-12-dev:amd64
+libstdc++6:amd64
+libstemmer0d:amd64
+libsub-override-perl
+libsvtav1enc1:amd64
+libsys-hostname-long-perl
+libsystemd-shared:amd64
+libsystemd0:amd64
+libtasn1-6:amd64
+libterm-readkey-perl
+libtext-charwidth-perl:amd64
+libtext-iconv-perl:amd64
+libtext-wrapi18n-perl
+libthai-data
+libthai0:amd64
+libtie-ixhash-perl
+libtiff6:amd64
+libtimedate-perl
+libtinfo6:amd64
+libtirpc-common
+libtirpc-dev:amd64
+libtirpc3:amd64
+libtool
+libtry-tiny-perl
+libtsan2:amd64
+libtypes-serialiser-perl
+libubsan1:amd64
+libuchardet0:amd64
+libudev1:amd64
+libunbound8:amd64
+libunistring2:amd64
+libunwind8:amd64
+liburi-perl
+libusb-1.0-0:amd64
+libuuid1:amd64
+libuv1:amd64
+libwebp7:amd64
+libwrap0:amd64
+libwww-perl
+libwww-robotrules-perl
+libx265-199:amd64
+libxapian30:amd64
+libxau6:amd64
+libxaw7:amd64
+libxcb-dri2-0:amd64
+libxcb-dri3-0:amd64
+libxcb-glx0:amd64
+libxcb-present0:amd64
+libxcb-randr0:amd64
+libxcb-render0:amd64
+libxcb-shape0:amd64
+libxcb-shm0:amd64
+libxcb-sync1:amd64
+libxcb-xfixes0:amd64
+libxcb1:amd64
+libxcomposite1:amd64
+libxcursor1:amd64
+libxdamage1:amd64
+libxdmcp6:amd64
+libxext6:amd64
+libxfixes3:amd64
+libxft2:amd64
+libxi6:amd64
+libxinerama1:amd64
+libxkbcommon0:amd64
+libxkbfile1:amd64
+libxml-parser-perl
+libxml-twig-perl
+libxml-xpathengine-perl
+libxml2:amd64
+libxmlb2:amd64
+libxmlsec1:amd64
+libxmlsec1-openssl:amd64
+libxmu6:amd64
+libxmuu1:amd64
+libxpm4:amd64
+libxrandr2:amd64
+libxrender1:amd64
+libxshmfence1:amd64
+libxslt1.1:amd64
+libxt6:amd64
+libxtables12:amd64
+libxtst6:amd64
+libxv1:amd64
+libxxf86dga1:amd64
+libxxf86vm1:amd64
+libxxhash0:amd64
+libyaml-0-2:amd64
+libyuv0:amd64
+libz3-4:amd64
+libzstd1:amd64
+linux-base
+linux-image-6.1.0-42-amd64
+linux-image-amd64
+linux-libc-dev:amd64
+locales
+login
+logrotate
+logsave
+lsb-release
+lsof
+lynx
+lynx-common
+m4
+mailcap
+make
+man-db
+manpages
+manpages-dev
+mawk
+media-types
+mime-support
+mount
+nano
+ncurses-base
+ncurses-bin
+ncurses-term
+needrestart
+net-tools
+netbase
+netcat-traditional
+nftables
+open-vm-tools
+openssh-client
+openssh-server
+openssh-sftp-server
+openssl
+os-prober
+packagekit
+packagekit-tools
+packages-microsoft-prod
+passwd
+patch
+pci.ids
+pciutils
+perl
+perl-base
+perl-modules-5.36
+perl-openssl-defaults:amd64
+pigz
+pinentry-curses
+pkexec
+po-debconf
+policykit-1
+polkitd
+polkitd-pkla
+popularity-contest
+postgresql
+postgresql-15
+postgresql-client
+postgresql-client-15
+postgresql-client-common
+postgresql-common
+procps
+psmisc
+publicsuffix
+python-apt-common
+python-babel-localedata
+python3
+python3-acme
+python3-anyio
+python3-apt
+python3-argcomplete
+python3-asgiref
+python3-augeas
+python3-babel
+python3-blinker
+python3-certbot
+python3-certbot-apache
+python3-certifi
+python3-cffi-backend:amd64
+python3-chardet
+python3-charset-normalizer
+python3-click
+python3-colorama
+python3-configargparse
+python3-configobj
+python3-cryptography
+python3-dbus
+python3-debconf
+python3-debian
+python3-debianbts
+python3-dev
+python3-distlib
+python3-distro
+python3-distutils
+python3-dnspython
+python3-docker
+python3-dotenv
+python3-filelock
+python3-flask
+python3-gi
+python3-git
+python3-gitdb
+python3-gnupg
+python3-h11
+python3-h2
+python3-hpack
+python3-httpcore
+python3-httplib2
+python3-httpx
+python3-hyperframe
+python3-icu
+python3-idna
+python3-itsdangerous
+python3-jinja2
+python3-jmespath
+python3-josepy
+python3-jsonpickle
+python3-jwt
+python3-kerberos
+python3-lazr.restfulclient
+python3-lazr.uri
+python3-ldap
+python3-lib2to3
+python3-libcloud
+python3-lockfile
+python3-markdown-it
+python3-markupsafe
+python3-mdurl
+python3-minimal
+python3-netaddr
+python3-ntlm-auth
+python3-oauthlib
+python3-openssl
+python3-packaging
+python3-parsedatetime
+python3-passlib
+python3-pip
+python3-pip-whl
+python3-pkg-resources
+python3-platformdirs
+python3-psycopg2
+python3-pyasn1
+python3-pyasn1-modules
+python3-pycurl
+python3-pygments
+python3-pyinotify
+python3-pyldap
+python3-pyparsing
+python3-pysimplesoap
+python3-reportbug
+python3-requests
+python3-requests-kerberos
+python3-requests-ntlm
+python3-requests-toolbelt
+python3-resolvelib
+python3-rfc3339
+python3-rfc3986
+python3-rich
+python3-selinux
+python3-setuptools
+python3-setuptools-whl
+python3-simplejson
+python3-six
+python3-smmap
+python3-sniffio
+python3-software-properties
+python3-tz
+python3-urllib3
+python3-venv
+python3-virtualenv
+python3-wadllib
+python3-websocket
+python3-werkzeug
+python3-wheel
+python3-wheel-whl
+python3-winrm
+python3-xmltodict
+python3-yaml
+python3.11
+python3.11-dev
+python3.11-minimal
+python3.11-venv
+readline-common
+reportbug
+rpcsvc-proto
+rsync
+rsyslog
+runit-helper
+sed
+sensible-utils
+sgml-base
+shared-mime-info
+slapd
+slirp4netns
+software-properties-common
+ssl-cert
+sudo
+syslog-ng-core
+sysstat
+systemd
+systemd-sysv
+systemd-timesyncd
+sysvinit-utils
+tar
+task-english
+task-ssh-server
+task-web-server
+tasksel
+tasksel-data
+tcpdump
+traceroute
+tzdata
+ucf
+udev
+unzip
+usbutils
+usr-is-merged
+util-linux
+util-linux-extra
+util-linux-locales
+vim-common
+vim-tiny
+wamerican
+wget
+whiptail
+wkhtmltox
+x11-common
+x11-utils
+x11-xserver-utils
+xauth
+xdg-user-dirs
+xdg-utils
+xfonts-75dpi
+xfonts-base
+xfonts-encodings
+xfonts-utils
+xkb-data
+xml-core
+xz-utils
+zerofree
+zlib1g:amd64
+zlib1g-dev:amd64
+zstd
+zutty

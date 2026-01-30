@@ -37,15 +37,10 @@ class ImportState:
         self.link_types: dict[str, int] = {}
         self.gateway_map: dict[int, dict[str, int]] = {}
         self.rulebase_map: dict[str, int] = {}
-        self.rule_map: dict[str, int] = {}
         self.management_map: dict[str, int] = {}
         self.color_map: dict[str, int] = {}
         self.rulebase_to_gateway_map: dict[int, list[int]] = {}
-        self.removed_rules_map: dict[str, int] = {}
         self.data_retention_days: int = 30
-
-    def lookup_rule(self, rule_uid: str) -> int | None:
-        return self.rule_map.get(rule_uid, None)
 
     def lookup_action(self, action_str: str) -> int:
         action_id = self.actions.get(action_str.lower(), None)
@@ -61,13 +56,6 @@ class ImportState:
             raise FwoImporterError(f"Track {track_str} not found")
         return track_id
 
-    def lookup_rulebase_id(self, rulebase_uid: str) -> int:
-        rulebase_id = self.rulebase_map.get(rulebase_uid, None)
-        if rulebase_id is None:
-            FWOLogger.error(f"Rulebase {rulebase_uid} not found in {len(self.rulebase_map)} known rulebases")
-            raise FwoImporterError(f"Rulebase {rulebase_uid} not found in {len(self.rulebase_map)} known rulebases")
-        return rulebase_id
-
     def lookup_link_type(self, link_uid: str) -> int:
         link_type_id = self.link_types.get(link_uid, None)
         if not link_type_id:
@@ -75,7 +63,7 @@ class ImportState:
             raise FwoImporterError(f"Link type {link_uid} not found")
         return link_type_id
 
-    def lookup_gateway_id(self, gw_uid: str) -> int | None:
+    def lookup_gateway_id(self, gw_uid: str) -> int:
         mgm_id = self.mgm_details.current_mgm_id
         gws_for_mgm = self.gateway_map.get(mgm_id, {})
         gw_id = gws_for_mgm.get(gw_uid, None)

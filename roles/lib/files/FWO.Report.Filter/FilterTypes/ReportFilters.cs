@@ -34,6 +34,10 @@ namespace FWO.Report.Filter.FilterTypes
 
         private UserConfig? userConfig;
 
+        public bool IncludeObjectsInReportChanges { get; set; } = false;
+
+        public bool IncludeObjectsInReportChangesUiPresesed { get; set; } = false;
+
         public void Init(UserConfig userConfigIn, bool showRuleRelatedReports)
         {
             userConfig = userConfigIn;
@@ -104,19 +108,19 @@ namespace FWO.Report.Filter.FilterTypes
                         DisplayedTimeSelection = userConfig?.GetText(TimeFilter.TimeRangeShortcut) ?? TimeFilter.TimeRangeShortcut;
                         break;
                     case TimeRangeType.Interval:
-                        DisplayedTimeSelection = userConfig?.GetText("last") + " " + 
+                        DisplayedTimeSelection = userConfig?.GetText("last") + " " +
                             TimeFilter.Offset + " " + userConfig?.GetText(TimeFilter.Interval.ToString());
                         break;
                     case TimeRangeType.Fixeddates:
-                        if(TimeFilter.OpenStart && TimeFilter.OpenEnd)
+                        if (TimeFilter.OpenStart && TimeFilter.OpenEnd)
                         {
                             DisplayedTimeSelection = userConfig?.GetText("open") ?? "open";
                         }
-                        else if(TimeFilter.OpenStart)
+                        else if (TimeFilter.OpenStart)
                         {
                             DisplayedTimeSelection = userConfig?.GetText("until") + " " + TimeFilter.EndTime.ToString();
                         }
-                        else if(TimeFilter.OpenEnd)
+                        else if (TimeFilter.OpenEnd)
                         {
                             DisplayedTimeSelection = userConfig?.GetText("from") + " " + TimeFilter.StartTime.ToString();
                         }
@@ -128,7 +132,8 @@ namespace FWO.Report.Filter.FilterTypes
                     default:
                         DisplayedTimeSelection = "";
                         break;
-                };
+                }
+                ;
             }
             else
             {
@@ -164,7 +169,7 @@ namespace FWO.Report.Filter.FilterTypes
             }
             SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
         }
-        
+
         private static void MarkAllDevicesVisible(List<ManagementSelect> mgms)
         {
             foreach (ManagementSelect management in mgms)
@@ -181,7 +186,7 @@ namespace FWO.Report.Filter.FilterTypes
 
         private void SetDeviceVisibility(Tenant tenantView)
         {
-            if ((userConfig == null || userConfig.User.Tenant==null || userConfig.User.Tenant.Id==1) && tenantView.Id!=1)
+            if ((userConfig == null || userConfig.User.Tenant == null || userConfig.User.Tenant.Id == 1) && tenantView.Id != 1)
             {
                 // filtering for tenant simulation only done by a tenant0 user
                 foreach (TenantGateway gw in tenantView.TenantGateways)
@@ -216,12 +221,12 @@ namespace FWO.Report.Filter.FilterTypes
                 {
                     gw.Visible = tenantView.VisibleGatewayIds.Contains(gw.Id);
                     if (gw.Visible)
-                    {   
+                    {
                         // one gateway is visible, so the management must be visible
                         mgmVisible = true;
                     }
                     else
-                    {   
+                    {
                         gw.Selected = false; // make sure invisible devices are not selected
                         mgm.Shared = true; // if one gateway is not visible, the mgm is shared (filtered)
                     }
@@ -231,7 +236,7 @@ namespace FWO.Report.Filter.FilterTypes
                 {   // make sure invisible managements are not selected
                     mgm.Selected = false;
                 }
-            }    
+            }
         }
     }
 }

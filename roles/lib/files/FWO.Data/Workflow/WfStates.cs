@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 
@@ -16,7 +16,7 @@ namespace FWO.Data.Workflow
         public List<WfStateActionDataHelper> Actions { get; set; } = [];
 
 
-        public WfState(){}
+        public WfState() { }
 
         public WfState(WfState state)
         {
@@ -28,7 +28,7 @@ namespace FWO.Data.Workflow
         public string ActionList()
         {
             List<string> actionNames = [];
-            foreach(var action in Actions)
+            foreach (var action in Actions)
             {
                 actionNames.Add(action.Action.Name);
             }

@@ -9,7 +9,7 @@ namespace FWO.Basics.Interfaces
         long RiskScore { get; set; }
         int PolicyId { get; set; }
         int CriterionId { get; set; }
-    } 
+    }
 }
 
 

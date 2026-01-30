@@ -64,7 +64,6 @@
   tags:
     - samples
     - backend
-  # todo: add a meta dependency on role sample-data
 
 - hosts: importers
   roles:
@@ -80,7 +79,7 @@
         name: "{{ ui_service_name }}"
         state: restarted
       become: true
-      when: "not installation_mode == 'uninstall'"
+      when: "not installation_mode == 'uninstall' and (ui_deploy_changed | default(false))"
   tags:
     - frontend
     - ui

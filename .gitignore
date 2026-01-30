@@ -59,3 +59,10 @@ modules.xml
 *.ipr
 
 # End of https://www.toptal.com/developers/gitignore/api/jetbrains+iml
+
+.idea/copilot*
+.idea/vcs.xml
+.idea/inspectionProfiles
+.idea/.gitignore
+
+agents

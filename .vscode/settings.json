@@ -2,9 +2,11 @@
     "editor.formatOnPaste": false,
     "editor.formatOnSave": false,
     "[csharp]": {
+        "editor.formatOnSave": true,
         "editor.defaultFormatter": "ms-dotnettools.csharp"
     },
     "[razor]": {
+      "editor.formatOnSave": true,
       "editor.defaultFormatter": "ms-dotnettools.csharp"
     },
     "files.associations": {
@@ -27,5 +29,9 @@
         "source.organizeImports": "explicit"
       },
       "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "sonarlint.connectedMode.project": {
+        "connectionId": "cactusesecurity",
+        "projectKey": "CactuseSecurity_firewall-orchestrator"
     }
 }

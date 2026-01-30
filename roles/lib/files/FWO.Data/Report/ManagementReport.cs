@@ -1,5 +1,7 @@
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
+using System.Xml.Linq;
+using System.Linq;
 
 namespace FWO.Data.Report
 {
@@ -20,12 +22,23 @@ namespace FWO.Data.Report
         [JsonProperty("rulebases"), JsonPropertyName("rulebases")]
         public RulebaseReport[] Rulebases { get; set; } = [];
 
+        [JsonProperty("changelog_rules"), JsonPropertyName("changelog_rules")]
+        public RuleChange[]? RuleChanges { get; set; }
+
+        [JsonProperty("changelog_objects"), JsonPropertyName("changelog_objects")]
+        public ObjectChange[]? ObjectChanges { get; set; }
+
+        [JsonProperty("changelog_services"), JsonPropertyName("changelog_services")]
+        public ServiceChange[]? ServiceChanges { get; set; }
+
+        [JsonProperty("changelog_users"), JsonPropertyName("changelog_users")]
+        public UserChange[]? UserChanges { get; set; }
+
         [JsonProperty("import"), JsonPropertyName("import")]
         public Import Import { get; set; } = new();
 
         [JsonProperty("import_controls"), JsonPropertyName("import_controls")]
         public List<ImportControl> ImportControls { get; set; } = [];
-
         public long? RelevantImportId { get; set; }
 
         [JsonProperty("is_super_manager"), JsonPropertyName("is_super_manager")]
@@ -128,7 +141,19 @@ namespace FWO.Data.Report
             return Rulebases
                 .FirstOrDefault(rb => rb.Id == currentRbLink.NextRulebaseId);
         }
-        
+
+        /// <summary>
+        /// Collect all rule ids from contained rulebases.
+        /// </summary>
+        public List<long> GetAllRuleIds()
+        {
+            return Rulebases
+                .SelectMany(rulebase => rulebase.Rules)
+                .Select(rule => rule.Id)
+                .Distinct()
+                .ToList();
+        }
+
     }
     public static class ManagementUtility
     {
@@ -166,6 +191,9 @@ namespace FWO.Data.Report
                 { "NetworkUsers", 0 },
                 { "Rules", 0 },
                 { "RuleChanges", 0 },
+                { "ObjectChanges", 0 },
+                { "ServiceChanges", 0 },
+                { "UserChanges", 0 },
             };
 
             foreach (var managementReportToMerge in managementReportsToMerge)
@@ -182,6 +210,9 @@ namespace FWO.Data.Report
                         maxAddedCounts["NetworkUsers"] = Math.Max(maxAddedCounts["NetworkUsers"], addedCounts["NetworkUsers"]);
                         maxAddedCounts["Rules"] = Math.Max(maxAddedCounts["Rules"], addedCounts["Rules"]);
                         maxAddedCounts["RuleChanges"] = Math.Max(maxAddedCounts["RuleChanges"], addedCounts["RuleChanges"]);
+                        maxAddedCounts["ObjectChanges"] = Math.Max(maxAddedCounts["ObjectChanges"], addedCounts["ObjectChanges"]);
+                        maxAddedCounts["ServiceChanges"] = Math.Max(maxAddedCounts["ServiceChanges"], addedCounts["ServiceChanges"]);
+                        maxAddedCounts["UserChanges"] = Math.Max(maxAddedCounts["UserChanges"], addedCounts["UserChanges"]);
                     }
                 }
             }
@@ -198,28 +229,30 @@ namespace FWO.Data.Report
                 { "NetworkUsers", 0 },
                 { "Rules", 0 },
                 { "RuleChanges", 0 },
+                { "ObjectChanges", 0 },
+                { "ServiceChanges", 0 },
+                { "UserChanges", 0 },
             };
 
-            if (managementReport.Objects != null && managementReportToMerge.Objects != null && managementReportToMerge.Objects.Length > 0)
+            T[] MergeArray<T>(T[]? target, T[]? source, string key)
             {
-                managementReport.Objects = [.. managementReport.Objects, .. managementReportToMerge.Objects];
-                newObjects = true;
-                maxAddedCounts["NetworkObjects"] = managementReportToMerge.Objects.Length;
+                if (source != null && source.Length > 0)
+                {
+                    target ??= Array.Empty<T>(); // sicherstellen, dass target nicht null ist
+                    newObjects = true;
+                    maxAddedCounts[key] = Math.Max(maxAddedCounts[key], source.Length);
+                    return [.. target, .. source];
+                }
+                return target ?? Array.Empty<T>(); // falls target null, leeres Array zurückgeben
             }
 
-            if (managementReport.Services != null && managementReportToMerge.Services != null && managementReportToMerge.Services.Length > 0)
-            {
-                managementReport.Services = [.. managementReport.Services, .. managementReportToMerge.Services];
-                newObjects = true;
-                maxAddedCounts["NetworkServices"] = managementReportToMerge.Services.Length;
-            }
-
-            if (managementReport.Users != null && managementReportToMerge.Users != null && managementReportToMerge.Users.Length > 0)
-            {
-                managementReport.Users = [.. managementReport.Users, .. managementReportToMerge.Users];
-                newObjects = true;
-                maxAddedCounts["NetworkUsers"] = managementReportToMerge.Users.Length;
-            }
+            managementReport.Objects = MergeArray(managementReport.Objects, managementReportToMerge.Objects, "NetworkObjects");
+            managementReport.Services = MergeArray(managementReport.Services, managementReportToMerge.Services, "NetworkServices");
+            managementReport.Users = MergeArray(managementReport.Users, managementReportToMerge.Users, "NetworkUsers");
+            managementReport.RuleChanges = MergeArray(managementReport.RuleChanges, managementReportToMerge.RuleChanges, "RuleChanges");
+            managementReport.ObjectChanges = MergeArray(managementReport.ObjectChanges, managementReportToMerge.ObjectChanges, "ObjectChanges");
+            managementReport.ServiceChanges = MergeArray(managementReport.ServiceChanges, managementReportToMerge.ServiceChanges, "ServiceChanges");
+            managementReport.UserChanges = MergeArray(managementReport.UserChanges, managementReportToMerge.UserChanges, "UserChanges");
 
             MergeReportObjects(managementReport, managementReportToMerge, maxAddedCounts, ref newObjects);
 

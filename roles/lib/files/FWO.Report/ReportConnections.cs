@@ -225,7 +225,7 @@ namespace FWO.Report
                     report.AppendLine($"<td>{nwObj.Id}</td>");
                     report.AppendLine($"<td><a name={ObjCatString.NwObj}{chapterNumber}x{nwObj.Id}>{nwObj.Name}</a></td>");
                     report.AppendLine($"<td>{nwObj.IP}</td>");
-                    report.AppendLine(nwObj.MemberNamesAsHtml());
+                    report.AppendLine(DisplayBase.MemberNamesAsHtml(nwObj.MemberNames));
                 }
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
@@ -258,7 +258,7 @@ namespace FWO.Report
                     report.AppendLine($"<td><a name={ObjCatString.Svc}{chapterNumber}x{svc.Id}>{svc.Name}</a></td>");
                     report.AppendLine($"<td>{svc.Protocol?.Name}</td>");
                     report.AppendLine($"<td>{svc.DestinationPort}</td>");
-                    report.AppendLine(svc.MemberNamesAsHtml());
+                    report.AppendLine(DisplayBase.MemberNamesAsHtml(svc.MemberNames));
                 }
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");

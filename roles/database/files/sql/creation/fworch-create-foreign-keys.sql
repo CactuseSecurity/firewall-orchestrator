@@ -95,13 +95,9 @@ ALTER TABLE "rule"
     ADD CONSTRAINT rule_rule_parent_rule_id_fkey FOREIGN KEY ("parent_rule_id") REFERENCES "rule" ("rule_id") ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE "rule"
     ADD CONSTRAINT rule_parent_rule_type_id_fkey FOREIGN KEY ("parent_rule_type") REFERENCES "parent_rule_type" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
--- Alter table "rule" add constraint "rule_metadata_rule_uid_f_key"
---   foreign key ("rule_uid") references "rule_metadata" ("rule_uid") on update restrict on delete cascade;
 Alter table "rule" add constraint "fk_rule_rulebase_id" foreign key ("rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
--- Alter table "rule" add constraint "fk_rule_rule_metadata_rule_uid"
---   foreign key ("rule_uid") references "rule_metadata" ("rule_uid") on update restrict on delete cascade;
-Alter table "rule" add constraint "rule_rule_metadata_rule_uid_f_key"
-  foreign key ("rule_uid") references "rule_metadata" ("rule_uid") on update restrict on delete cascade;
+Alter table "rule" add constraint "rule_rule_metadata_mgm_id_rule_uid_f_key"
+  foreign key ("mgm_id", "rule_uid") references "rule_metadata" ("mgm_id", "rule_uid") on update restrict on delete cascade;
   
 Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "rulebase_link" add constraint "fk_rulebase_link_from_rulebase_id" foreign key ("from_rulebase_id") references "rulebase" ("id") on update restrict on delete cascade;
@@ -114,23 +110,18 @@ Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_created_import_contr
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
-ALTER TABLE "rule_to_zone"
-ADD CONSTRAINT fk_rule_to_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
-ALTER TABLE "rule_to_zone"
-ADD CONSTRAINT fk_rule_to_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+ALTER TABLE "rule_from_zone" ADD CONSTRAINT fk_rule_from_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ALTER TABLE "rule_from_zone" ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
 
-Alter table "rule_from" add  foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete cascade;
-Alter table "rule_from" add  foreign key ("rf_create") references "import_control" ("control_id") on update restrict on delete cascade;
-Alter table "rule_from" add  foreign key ("rf_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
-Alter table "rule_from" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
-Alter table "rule_from" add  foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
-
--- Alter table "rule_metadata" add constraint "rule_metadata_device_dev_id_f_key"
---     foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
-Alter table "rule_metadata" add constraint "rule_metadata_rule_last_certifier_uiuser_uiuser_id_f_key"
-  foreign key ("rule_last_certifier") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
-Alter table "rule_metadata" add constraint "rule_metadata_rule_owner_uiuser_uiuser_id_f_key"
-  foreign key ("rule_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+Alter table "rule_from" add foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete cascade;
+Alter table "rule_from" add foreign key ("rf_create") references "import_control" ("control_id") on update restrict on delete cascade;
+Alter table "rule_from" add foreign key ("rf_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
+Alter table "rule_from" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+Alter table "rule_from" add foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
+Alter table "rule_metadata" add constraint "rule_metadata_rule_created_import_control_control_id_f_key"
+  foreign key ("rule_created") references "import_control" ("control_id") on update restrict on delete restrict;
+Alter table "rule_metadata" add constraint "rule_metadata_removed_import_control_control_id_f_key"
+  foreign key ("removed") references "import_control" ("control_id") on update restrict on delete restrict;
 ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_management_id_fk FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
 ON update restrict on delete cascade;
 
@@ -150,11 +141,6 @@ Alter table "rule_service" add  foreign key ("rs_last_seen") references "import_
 Alter table "rule_service" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_service" add  foreign key ("svc_id") references "service" ("svc_id") on update restrict on delete cascade;
 
-ALTER TABLE "rule_from_zone"
-ADD CONSTRAINT fk_rule_from_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
-ALTER TABLE "rule_from_zone"
-ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
-
 Alter table "rule_svc_resolved" add foreign key ("svc_id") references "service" ("svc_id") on update restrict on delete cascade;
 Alter table "rule_svc_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_svc_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
@@ -166,6 +152,9 @@ Alter table "rule_to" add  foreign key ("rt_create") references "import_control"
 Alter table "rule_to" add  foreign key ("rt_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule_to" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_to" add constraint rule_to_user_id_usr_user_id FOREIGN KEY ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
+
+ALTER TABLE "rule_to_zone" ADD CONSTRAINT fk_rule_to_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ALTER TABLE "rule_to_zone" ADD CONSTRAINT fk_rule_to_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
 
 Alter table "rule_user_resolved" add foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
 Alter table "rule_user_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
@@ -188,9 +177,6 @@ Alter table "svcgrp_flat" add  foreign key ("import_created") references "import
 Alter table "svcgrp_flat" add  foreign key ("import_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "svcgrp_flat" add  foreign key ("svcgrp_flat_id") references "service" ("svc_id") on update restrict on delete cascade;
 Alter table "svcgrp_flat" add  foreign key ("svcgrp_flat_member_id") references "service" ("svc_id") on update restrict on delete cascade;
--- Alter table "temp_filtered_rule_ids" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
--- Alter table "temp_mgmid_importid_at_report_time" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
--- Alter table "temp_mgmid_importid_at_report_time" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "tenant_network" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
 Alter table "tenant_to_device" add  foreign key ("device_id") references "device" ("dev_id") on update restrict on delete cascade;
 Alter table "tenant_to_device" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
@@ -263,6 +249,7 @@ ALTER TABLE request.ticket ADD CONSTRAINT request_ticket_recent_handler_foreign_
 --- owner ---
 ALTER TABLE owner ADD CONSTRAINT owner_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE owner ADD CONSTRAINT owner_owner_lifecycle_state_foreign_key FOREIGN KEY (owner_lifecycle_state_id) REFERENCES owner_lifecycle_state(id) ON DELETE SET NULL;
+ALTER TABLE owner_responsible ADD CONSTRAINT owner_responsible_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 --- comment ---
 ALTER TABLE request.comment ADD CONSTRAINT request_comment_uiuser_foreign_key FOREIGN KEY (creator_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.comment ADD CONSTRAINT request_comment_request_comment_foreign_key FOREIGN KEY (ref_id) REFERENCES request.comment(id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -339,10 +326,6 @@ ALTER TABLE compliance.policy_criterion ADD CONSTRAINT compliance_criterion_poli
 ALTER TABLE compliance.violation ADD CONSTRAINT compliance_policy_violation_foreign_key FOREIGN KEY (policy_id) REFERENCES compliance.policy(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE compliance.violation ADD CONSTRAINT compliance_criterion_violation_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE compliance.violation ADD CONSTRAINT compliance_rule_violation_foreign_key FOREIGN KEY (rule_id) REFERENCES public.rule(rule_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-
--- ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_type_foreign_key FOREIGN KEY (type_id) REFERENCES compliance.assessability_issue_type(type_id) ON UPDATE RESTRICT ON DELETE CASCADE;
--- ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_violation_foreign_key FOREIGN KEY (violation_id) REFERENCES compliance.violation(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-
 
 -- modelling
 ALTER TABLE modelling.nwgroup ADD CONSTRAINT modelling_nwgroup_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;

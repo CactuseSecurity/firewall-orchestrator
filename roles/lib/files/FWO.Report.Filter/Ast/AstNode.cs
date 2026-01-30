@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 
 
 namespace FWO.Report.Filter.Ast

@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using GraphQL;
 using GraphQL.Client.Http;
 
@@ -16,26 +16,32 @@ namespace FWO.Test
             throw new NotImplementedException();
         }
 
+        public override async Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        {
+            QueryResponseType result = await SendQueryAsync<QueryResponseType>(query, variables, operationName);
+            return new ApiResponse<QueryResponseType>(result);
+        }
+
         public override void SetAuthHeader(string jwt)
-        {}
+        { }
 
         public override void SetRole(string role)
-        {}
+        { }
 
         public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
-        {}
+        { }
 
         public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
-        {}
+        { }
 
         public override void SwitchBack()
-        {}
+        { }
 
         protected override void Dispose(bool disposing)
-        {}
+        { }
 
         public override void DisposeSubscriptions<T>()
-        {}
+        { }
     }
 
     internal class SimulatedApiSubscription<SubscriptionResponseType> : GraphQlApiSubscription<SubscriptionResponseType>
@@ -43,7 +49,7 @@ namespace FWO.Test
         public SimulatedApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
          : base(apiConnection, graphQlClient, request, exceptionHandler, OnUpdate)
         { }
-        
+
         protected override void CreateSubscription()
         { }
     }

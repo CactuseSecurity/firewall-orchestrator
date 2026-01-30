@@ -1,4 +1,4 @@
-﻿using FWO.Report.Filter.Exceptions;
+using FWO.Report.Filter.Exceptions;
 using FWO.Basics;
 
 

@@ -66,21 +66,30 @@ namespace FWO.Report
                 rule.Compliance = violations.Where(violation => violation.RemovedDate == null).ToList().Count > 0 ? ComplianceViolationType.MultipleViolations : ComplianceViolationType.None;
             }
         }
-        
+
         protected override Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query)
         {
             Dictionary<string, object> queryVariables = base.CreateQueryVariables(offset, limit, query);
 
-            if (query.Contains("from_date"))
+            if (query.Contains("violations_where"))
             {
-                queryVariables["from_date"] = DateTime.Now.AddDays(-DiffReferenceInDays);
+                var violationsWhere = new Dictionary<string, object>
+                {
+                    ["found_date"] = new Dictionary<string, object?>
+                    {
+                        ["_gte"] = DateTime.Now.AddDays(-DiffReferenceInDays),
+                        ["_lt"] = DateTime.Now
+                    }
+                };
+                if (GlobalConfig.ComplianceFilterOutInitialViolations)
+                {
+                    violationsWhere["is_initial"] = new Dictionary<string, object?>
+                    {
+                        ["_eq"] = false
+                    };
+                }
+                queryVariables["violations_where"] = violationsWhere;
             }
-
-            if (query.Contains("to_date"))
-            {
-                queryVariables["to_date"] = DateTime.Now;
-            }
-
             return queryVariables;
         }
     }

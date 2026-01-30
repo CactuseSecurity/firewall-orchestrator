@@ -20,14 +20,15 @@ namespace FWO.Report
     {
 
         #region Properties
-        
+
         public List<Rule> Rules { get; set; } = [];
         public List<RuleViewData> RuleViewData = [];
         public List<ComplianceViolation> Violations { get; set; } = [];
         public bool ShowNonImpactRules { get; set; }
-        public List<Management> Managements  { get; set; } = [];
+        public List<Management> Managements { get; set; } = [];
         protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
         protected DebugConfig DebugConfig;
+        protected readonly GlobalConfig GlobalConfig;
 
         #endregion
 
@@ -43,7 +44,6 @@ namespace FWO.Report
         private int _maxCellSize;
         private readonly int _maxPrintedViolations;
         private readonly List<int> _relevanteManagementIDs = new();
-        private readonly GlobalConfig _globalConfig;
 
         #endregion
 
@@ -55,14 +55,14 @@ namespace FWO.Report
 
             if (userConfig.GlobalConfig != null)
             {
-                _globalConfig = userConfig.GlobalConfig;
+                GlobalConfig = userConfig.GlobalConfig;
             }
             else
             {
-                _globalConfig = new();
+                GlobalConfig = new();
             }
 
-            _maxDegreeOfParallelism = _globalConfig.ComplianceCheckAvailableProcessors > Environment.ProcessorCount ? Environment.ProcessorCount : _globalConfig.ComplianceCheckAvailableProcessors;
+            _maxDegreeOfParallelism = GlobalConfig.ComplianceCheckAvailableProcessors > Environment.ProcessorCount ? Environment.ProcessorCount : GlobalConfig.ComplianceCheckAvailableProcessors;
             _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
             _natRuleDisplayHtml = new NatRuleDisplayHtml(userConfig);
 
@@ -70,13 +70,13 @@ namespace FWO.Report
 
             SetUpCsvExport();
 
-            _maxPrintedViolations = _globalConfig.ComplianceCheckMaxPrintedViolations;
-            
+            _maxPrintedViolations = GlobalConfig.ComplianceCheckMaxPrintedViolations;
+
             // Apply debug config.
 
-            if (!string.IsNullOrEmpty(_globalConfig.DebugConfig))
+            if (!string.IsNullOrEmpty(GlobalConfig.DebugConfig))
             {
-                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(_globalConfig.DebugConfig) ?? new();
+                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(GlobalConfig.DebugConfig) ?? new();
             }
             else
             {
@@ -84,11 +84,11 @@ namespace FWO.Report
                 DebugConfig = new();
             }
 
-            if (!string.IsNullOrEmpty(_globalConfig.ComplianceCheckRelevantManagements))
+            if (!string.IsNullOrEmpty(GlobalConfig.ComplianceCheckRelevantManagements))
             {
                 try
                 {
-                    _relevanteManagementIDs = _globalConfig.ComplianceCheckRelevantManagements
+                    _relevanteManagementIDs = GlobalConfig.ComplianceCheckRelevantManagements
                         .Split(',', StringSplitOptions.RemoveEmptyEntries)
                         .Select(s => int.Parse(s.Trim()))
                         .ToList();
@@ -114,14 +114,12 @@ namespace FWO.Report
             // Get management and device info for resolving names.
 
             await GetManagementAndDevices(apiConnection);
-
             // Get amount of rules to fetch.
 
             AggregateCount? result = await apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countRules);
             int rulesCount = result?.Aggregate?.Count ?? 0;
 
             // Get data parallelized.
-
             List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, InternalQuery);
 
             if (chunks != null)
@@ -199,7 +197,7 @@ namespace FWO.Report
 
             return csvString;
         }
-        
+
         public override string SetDescription()
         {
             return "Compliance Report";
@@ -363,7 +361,7 @@ namespace FWO.Report
         #endregion
 
         #region Methods - Private
-        
+
         private void SetUpCsvExport()
         {
             _includeHeaderInExport = true;
@@ -377,17 +375,17 @@ namespace FWO.Report
                 "Name",
                 "Source"
             ];
-            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            if (GlobalConfig.ShowShortColumnsInComplianceReports)
             {
                 _columnsToExport.Add("SourceShort");
             }
             _columnsToExport.Add("Destination");
-            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            if (GlobalConfig.ShowShortColumnsInComplianceReports)
             {
                 _columnsToExport.Add("DestinationShort");
             }
             _columnsToExport.Add("Services");
-            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            if (GlobalConfig.ShowShortColumnsInComplianceReports)
             {
                 _columnsToExport.Add("ServicesShort");
             }
@@ -400,6 +398,7 @@ namespace FWO.Report
                 "ChangeID",
                 "AdoITID",
                 "Comment",
+                "LastModified",
                 "RulebaseId",
                 "RulebaseName",
                 "Enabled"
@@ -416,7 +415,7 @@ namespace FWO.Report
                     {
                         resolvedNetworkLocations.Add(new NetworkLocation(networkLocation.User, groupFlat.Object)); // adding user only for syntax
                     }
-                }                               
+                }
             }
 
             return Task.CompletedTask;
@@ -426,7 +425,7 @@ namespace FWO.Report
         {
             if (results == null)
             {
-                results = [];   
+                results = [];
             }
             RuleViewData.Capacity = results.Sum(r => r.viewData.Count);
             List<Rule> processedRulesFlat = new(results.Sum(r => r.processed.Count));
@@ -471,7 +470,7 @@ namespace FWO.Report
 
             return queryVariables;
         }
-        
+
         protected virtual void SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
         {
             try
@@ -494,7 +493,7 @@ namespace FWO.Report
                 }
 
                 foreach (ComplianceViolation violation in violations)
-                {   
+                {
                     // Cut violation details when printed violations limit is reached.
 
                     if (_maxPrintedViolations > 0 && addedViolationDetails == _maxPrintedViolations)
@@ -529,7 +528,7 @@ namespace FWO.Report
                     {
                         violationDetails = formatter(violation);
                     }
-                    
+
                     rule.ViolationDetails += violationDetails;
                     addedViolationDetails++;
                 }
@@ -572,7 +571,7 @@ namespace FWO.Report
 
             return string.Join(_separator, values.Select(value => $"\"{value}\""));
         }
-        
+
         private string TransformHtmlToCsv(string propertyName, string htmlInput)
         {
             if (propertyName == "Enabled")

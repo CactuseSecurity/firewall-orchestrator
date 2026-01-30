@@ -10,7 +10,7 @@ namespace FWO.Report.Filter
         {
             Scanner scanner = new(input);
             List<Token> tokens = scanner.Scan();
-            if(tokens.Count > 0)
+            if (tokens.Count > 0)
             {
                 Parser parser = new(tokens);
                 return parser.Parse();

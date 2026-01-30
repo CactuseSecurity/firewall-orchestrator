@@ -128,9 +128,9 @@ Create table "object"
 	"obj_sys_readcom" Varchar,
 	"obj_sys_writecom" Varchar,
 	"active" Boolean NOT NULL Default TRUE,
-	"removed" BIGINT,
 	"obj_create" BIGINT NOT NULL,
 	"obj_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("obj_id")
 );
 
@@ -139,10 +139,10 @@ Create table "objgrp"
 	"objgrp_id" BIGINT NOT NULL,
 	"objgrp_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
-	"removed" BIGINT,
 	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT,
  primary key ("objgrp_id","objgrp_member_id")
 );
 
@@ -155,7 +155,6 @@ Create table "rule"
 	"parent_rule_id" BIGINT,
 	"parent_rule_type" smallint,
 	"active" Boolean NOT NULL Default TRUE,
-	"removed" BIGINT,
 	"rule_num" Integer NOT NULL,
 	"rule_num_numeric" NUMERIC(16, 8),
 	"rule_ruleid" Varchar,
@@ -190,6 +189,7 @@ Create table "rule"
 	"xlate_rule" BIGINT,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"rulebase_id" Integer NOT NULL,
+	"removed" BIGINT,
 	primary key ("rule_id")
 );
 
@@ -199,20 +199,11 @@ Create table "rule_metadata"
 	"rule_metadata_id" BIGSERIAL,
 	"rule_uid" Text NOT NULL,
 	"mgm_id" Integer NOT NULL,
-	"rule_created" Timestamp NOT NULL Default now(),
-	"rule_last_modified" Timestamp NOT NULL Default now(),
+	"rule_created" BIGINT NOT NULL,
 	"rule_first_hit" Timestamp,
 	"rule_last_hit" Timestamp,
 	"rule_hit_counter" BIGINT,
-	"rule_last_certified" Timestamp,
-	"rule_last_certifier" Integer,
-	"rule_last_certifier_dn" VARCHAR,
-	"rule_owner" Integer, -- points to a uiuser (not an owner)
-	"rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
-	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
-	"last_change_admin" Integer,
-	"rule_decert_date" Timestamp,
-	"rule_recertification_comment" Varchar,
+	"removed" BIGINT,
  primary key ("rule_metadata_id") 
 );
 
@@ -224,7 +215,7 @@ Create table "rule_svc_resolved"
 	"svc_id" BIGINT NOT NULL,
 	"created" BIGINT NOT NULL,
 	"removed" BIGINT,
- primary key ("mgm_id","rule_id","svc_id")
+ primary key ("mgm_id","rule_id","svc_id","created")
 );
 
 Create table "rule_nwobj_resolved"
@@ -234,7 +225,7 @@ Create table "rule_nwobj_resolved"
 	"obj_id" BIGINT NOT NULL,
 	"created" BIGINT NOT NULL,
 	"removed" BIGINT,
- primary key ("mgm_id","rule_id","obj_id")
+ primary key ("mgm_id","rule_id","obj_id","created")
 );
 
 Create table "rule_user_resolved"
@@ -244,7 +235,7 @@ Create table "rule_user_resolved"
 	"user_id" BIGINT NOT NULL,
 	"created" BIGINT NOT NULL,
 	"removed" BIGINT,
- primary key ("mgm_id","rule_id","user_id")
+ primary key ("mgm_id","rule_id","user_id","created")
 );
 
 Create table "rule_from"
@@ -256,9 +247,9 @@ Create table "rule_from"
 	"user_id" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
-	"removed" BIGINT,
 	"rf_create" BIGINT NOT NULL,
-	"rf_last_seen" BIGINT NOT NULL
+	"rf_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT
 );
 
 Create table "rule_service"
@@ -283,8 +274,8 @@ Create table "rule_to"
 	"rt_create" BIGINT NOT NULL,
 	"rt_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
-	"removed" BIGINT,
-	"negated" Boolean NOT NULL Default FALSE
+	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT
 );
 
 Create table "service"
@@ -320,9 +311,9 @@ Create table "service"
 	"svc_sync_delay_start" Integer,
 	"active" Boolean NOT NULL Default TRUE,
 	"last_change_admin" Integer,
-	"removed" BIGINT,
 	"svc_create" BIGINT NOT NULL,
 	"svc_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("svc_id")
 );
 
@@ -332,9 +323,9 @@ Create table "svcgrp"
 	"svcgrp_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT,
  primary key ("svcgrp_id","svcgrp_member_id")
 );
 
@@ -343,10 +334,10 @@ Create table "zone"
 	"zone_id" SERIAL,
 	"zone_create" BIGINT NOT NULL,
 	"zone_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
 	"mgm_id" Integer NOT NULL,
 	"zone_name" Varchar NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
  primary key ("zone_id")
 );
 
@@ -388,13 +379,13 @@ Create table "usr"
 	"time_restrict" Text,
 	"user_create" BIGINT NOT NULL,
 	"user_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
 	"user_comment" Text,
 	"user_uid" Text,
 	"user_firstname" Varchar,
 	"user_lastname" Varchar,
 	"last_change_admin" Integer,
-	"tenant_id" Integer
+	"tenant_id" Integer,
+	"removed" BIGINT
 );
 
 Create table "usergrp"
@@ -403,8 +394,8 @@ Create table "usergrp"
 	"usergrp_member_id" BIGINT,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
  primary key ("usergrp_id","usergrp_member_id")
 );
 
@@ -426,8 +417,8 @@ Create table "objgrp_flat"
 	"active" Boolean NOT NULL Default TRUE,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
-	"negated" Boolean NOT NULL Default FALSE
+	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT
 );
 
 Create table "svcgrp_flat"
@@ -437,8 +428,8 @@ Create table "svcgrp_flat"
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
-	"removed" BIGINT,
-	"negated" Boolean NOT NULL Default FALSE
+	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT
 );
 
 -- uiuser - change metadata -------------------------------------
@@ -1058,6 +1049,7 @@ create table notification
 (
     id SERIAL PRIMARY KEY,
 	notification_client Varchar,
+	name Varchar,
 	user_id int,
 	owner_id int,
 	channel Varchar,
@@ -1071,6 +1063,7 @@ create table notification
 	interval_before_deadline int,
 	offset_before_deadline int,
 	repeat_interval_after_deadline int,
+	initial_offset_after_deadline int,
 	repeat_offset_after_deadline int,
 	repetitions_after_deadline int,
 	last_sent Timestamp
@@ -1116,8 +1109,7 @@ create table owner
 (
     id SERIAL PRIMARY KEY,
     name Varchar NOT NULL,
-    dn Varchar NOT NULL,
-    group_dn Varchar NOT NULL,
+    -- responsibles stored in owner_responsible table
     is_default boolean default false,
     tenant_id int,
     recert_interval int,
@@ -1133,7 +1125,15 @@ create table owner
 	last_recertifier int,
 	last_recertifier_dn Varchar,
 	next_recert_date Timestamp,
-	recert_active boolean default false
+    recert_active boolean default false
+);
+
+create table owner_responsible
+(
+    id SERIAL PRIMARY KEY,
+    owner_id int NOT NULL,
+    dn Varchar NOT NULL,
+    responsible_type int NOT NULL
 );
 
 CREATE TABLE owner_lifecycle_state (
@@ -1543,7 +1543,8 @@ create table compliance.violation
 	details TEXT,
 	risk_score real,
 	policy_id INT NOT NULL,
-	criterion_id INT NOT NULL
+	criterion_id INT NOT NULL,
+	is_initial BOOLEAN NOT NULL
 );
 
 -- create table compliance.assessability_issue

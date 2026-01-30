@@ -144,15 +144,16 @@ namespace FWO.Ui.Display
                 result.AppendJoin("<br>", Array.ConvertAll(userNwObjects,
                     nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
             }
-            else if (reportType == ReportType.AppRules)
-            {
-                result.Append(DisplayAppRuleSourceOrDestination(rule, chapterNumber, location, reportType, style, highlightedStyle, isSource));
-            }
             else
             {
                 result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos,
                     nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
             }
+            if (reportType == ReportType.AppRules)
+            {
+                result.Append(DisplayAppRuleSourceOrDestination(rule, chapterNumber, location, reportType, style, highlightedStyle, isSource));
+            }
+
             return result.ToString();
         }
 

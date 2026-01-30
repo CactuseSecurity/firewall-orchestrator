@@ -140,8 +140,8 @@ class FwConfigImportGateway:
         if link.from_rulebase_uid is None or link.from_rulebase_uid == "":
             from_rulebase_id = None
         else:
-            from_rulebase_id = self._uid2id_mapper.get_rulebase_id(link.from_rulebase_uid)
-        to_rulebase_id = self._uid2id_mapper.get_rulebase_id(link.to_rulebase_uid)
+            from_rulebase_id = self._uid2id_mapper.get_rulebase_id(link.from_rulebase_uid, before_update=not is_insert)
+        to_rulebase_id = self._uid2id_mapper.get_rulebase_id(link.to_rulebase_uid, before_update=not is_insert)
         link_type_id = self._global_state.import_state.state.lookup_link_type(link.link_type)
         if type(link_type_id) is not int:
             FWOLogger.warning(f"did not find a link_type_id for link_type {link.link_type}")

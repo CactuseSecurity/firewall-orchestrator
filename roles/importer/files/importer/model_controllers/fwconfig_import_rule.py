@@ -104,17 +104,17 @@ class FwConfigImportRule:
         _, _ = self.add_new_rule_metadata(new_rules_by_rulebase)
         self.update_rule_metadata_last_hit(new_hit_information)
 
-        # # now update the database with all rule diffs
+        # fetch initial rule and rulebase ids
         self.uid2id_mapper.update_rule_mapping()
+        self.uid2id_mapper.update_rulebase_mapping()
 
         new_rulebases = [
             rb
             for rb in self.normalized_config.rulebases
             if not any(rb.uid == prev_rb.uid for prev_rb in prev_config.rulebases)
         ]
-        num_added_rulebases = self.add_new_rulebases(new_rulebases)
-
-        self.uid2id_mapper.update_rulebase_mapping()
+        num_added_rulebases, new_rulebase_ids = self.add_new_rulebases(new_rulebases)
+        self.uid2id_mapper.add_rulebase_mappings(new_rulebase_ids)
 
         num_added_rules, new_rule_ids = self.add_rules_within_rulebases(new_rules_by_rulebase)
         num_changed_rules, old_rule_ids, updated_rule_ids = self.create_new_rule_version(changed_rule_uids)
@@ -760,7 +760,7 @@ class FwConfigImportRule:
         changes: int = 0
         new_rule_ids: list[dict[str, Any]] = []
 
-        upsert_rulebase_with_rules = """mutation upsertRules($rules: [rule_insert_input!]!) {
+        upsert_rules = """mutation upsertRules($rules: [rule_insert_input!]!) {
                 insert_rule(
                     objects: $rules,
                     on_conflict: { constraint: rule_unique_mgm_id_rule_uid_rule_create_xlate_rule, update_columns: [] }
@@ -773,7 +773,7 @@ class FwConfigImportRule:
                 query_variables = {"rules": [rule.model_dump() for rule in new_rules]}
                 try:
                     import_result = self.import_details.api_call.call(
-                        upsert_rulebase_with_rules, query_variables=query_variables, analyze_payload=True
+                        upsert_rules, query_variables=query_variables, analyze_payload=True
                     )
                 except Exception:
                     FWOLogger.exception(
@@ -793,7 +793,7 @@ class FwConfigImportRule:
                 new_rule_ids += import_result["data"]["insert_rule"]["returning"]
         return changes, new_rule_ids
 
-    def add_new_rulebases(self, new_rulebases: list[Rulebase]) -> int:
+    def add_new_rulebases(self, new_rulebases: list[Rulebase]) -> tuple[int, list[dict[str, Any]]]:
         """
         Adds new rulebases to the database without adding their rules.
 
@@ -801,14 +801,16 @@ class FwConfigImportRule:
             new_rulebases (list[Rulebase]): A list of Rulebase objects to be added.
 
         Returns:
-            int: The number of changes made to the database.
+            tuple[int, list[dict[str, Any]]]: A tuple containing the number of changes made and a list of dictionaries,
+                each with 'uid' and 'id' for each newly added rulebase.
 
         """
         add_rulebases_without_rules_mutation = """mutation upsertRulebaseWithoutRules($rulebases: [rulebase_insert_input!]!) {
                 insert_rulebase(
                     objects: $rulebases,
                 ) {
-                    affected_rows
+                    affected_rows,
+                    returning { uid, id }
                 }
             }
         """
@@ -826,13 +828,15 @@ class FwConfigImportRule:
                 add_rulebases_without_rules_mutation, query_variables=query_variables
             )
         except Exception:
-            FWOLogger.exception(f"fwo_api:importRules - error in addNewRules: {traceback.format_exc()!s}")
+            FWOLogger.exception(f"fwo_api:importRules - error in addNewRulebases: {traceback.format_exc()!s}")
             raise FwoApiWriteError(f"failed to write new rulebases: {traceback.format_exc()!s}")
         if "errors" in import_result:
-            FWOLogger.exception(f"fwo_api:importRules - error in addNewRules: {import_result['errors']!s}")
+            FWOLogger.exception(f"fwo_api:importRules - error in addNewRulebases: {import_result['errors']!s}")
             raise FwoApiWriteError(f"failed to write new rulebases: {import_result['errors']!s}")
 
-        return import_result["data"]["insert_rulebase"]["affected_rows"]
+        return import_result["data"]["insert_rulebase"]["affected_rows"], import_result["data"]["insert_rulebase"][
+            "returning"
+        ]
 
     def prepare_new_rule_metadata(self, new_rules_per_rb: list[Rulebase]) -> list[dict[str, Any]]:
         new_rule_metadata: list[dict[str, Any]] = []

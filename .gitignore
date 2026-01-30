@@ -19,6 +19,8 @@ ansible_venv/
 
 # Jetbrains IDE generated content
 **/.idea/
+!.idea/
+!.idea/ruff.xml
 
 # Gradle and Maven with auto-import
 # When using Gradle or Maven with auto-import, you should exclude module files,

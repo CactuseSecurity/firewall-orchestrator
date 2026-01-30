@@ -56,7 +56,7 @@ class FwConfigNormalized(FwConfig):
     zone_objects: dict[str, Any] = {}
     rulebases: list[Rulebase] = []
     gateways: list[Gateway] = []
-    ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
+    ConfigFormat: ConfFormat = ConfFormat.NORMALIZED
 
     model_config = {"arbitrary_types_allowed": True}
 

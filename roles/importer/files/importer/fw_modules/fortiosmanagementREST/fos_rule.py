@@ -8,6 +8,16 @@ from model_controllers.management_controller import ManagementController
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 
 
+def get_rule_installon(mgm_details: ManagementController) -> str:
+    if mgm_details.devices and "name" in mgm_details.devices[0]:
+        return mgm_details.devices[0]["name"]
+    if mgm_details.name:
+        return mgm_details.name
+    if mgm_details.hostname:
+        return mgm_details.hostname
+    raise FwoImporterError("Management details must contain a device name or management name/hostname.")
+
+
 def normalize_rule_addresses(rule: Rule, nw_obj_lookup_dict: dict[str, str]) -> tuple[str, str, str, str]:
     """
     Normalize rule addresses from a FortiOS rule.
@@ -116,10 +126,7 @@ def normalize_access_rules(
         RuleNormalized: The normalized access rule.
 
     """
-    if len(mgm_details.devices) == 0 or "name" not in mgm_details.devices[0]:
-        raise FwoImporterError("Management details must contain at least one device with a name.")
-
-    rule_installon = mgm_details.devices[0]["name"]
+    rule_installon = get_rule_installon(mgm_details)
 
     for rule in native_config.rules:
         rule_type = RuleType.ACCESS

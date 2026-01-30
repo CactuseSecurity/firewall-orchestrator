@@ -10,7 +10,7 @@
       "SubManagerIds": [],
       "Configs": [
         {
-          "ConfigFormat": "NORMALIZED_LEGACY",
+          "ConfigFormat": "NORMALIZED",
           "action": "INSERT",
           "network_objects": {
             "4340e634-add5-51f0-f96e-1a939e4c3326": {

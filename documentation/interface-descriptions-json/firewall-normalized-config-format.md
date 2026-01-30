@@ -40,7 +40,7 @@ There may be multiple configs per manager in the future but at the moment the on
 
 | Field           | Type    | Required | Description |
 |-----------------|---------|----------|-------------|
-| `ConfigFormat`  | string  | yes      | `NORMALIZED_LEGACY` in the sample payloads. |
+| `ConfigFormat`  | string  | yes      | `NORMALIZED` in the sample payloads. |
 | `action`        | string  | yes      | CRUD indicator (`INSERT`, `UPDATE`, ...). |
 | `network_objects` | object | yes    | Map of network objects keyed by UID. |
 | `service_objects` | object | yes    | Map of service objects keyed by UID. |

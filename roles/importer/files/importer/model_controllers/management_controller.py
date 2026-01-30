@@ -140,7 +140,7 @@ class ManagementController(Management):
             return f"https://{self.hostname}:{self.port!s}/api/v2/"
         if self.device_type_name in {"FortiAdom", "FortiManager"}:
             return f"https://{self.hostname}:{self.port!s}/jsonrpc"
-        if self.device_type_name in {"PaloAlto", "PaloAltoLegacy"}:
+        if self.device_type_name == "PaloAlto":
             return f"https://{self.hostname}:{self.port!s}/restapi/v10.0/"
         raise FwLoginFailedError(f"Unsupported device type: {self.device_type_name}")
 

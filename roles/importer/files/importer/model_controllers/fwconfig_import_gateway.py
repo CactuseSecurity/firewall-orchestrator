@@ -33,6 +33,21 @@ class FwConfigImportGateway:
         self._rb_link_controller.get_rulebase_links(
             self._global_state.import_state.state, self._global_state.import_state.api_call
         )
+        if (
+            self._global_state.import_state.state.is_clearing_import
+            and self._global_state.normalized_config is not None
+            and len(self._global_state.normalized_config.gateways) == 0
+        ):
+            removed_link_ids = [link.id for link in self._rb_link_controller.rb_links if link.id is not None]
+            self._rb_link_controller.remove_rulebase_links(
+                self._global_state.import_state.api_call,
+                self._global_state.import_state.state.stats,
+                self._global_state.import_state.state.import_id,
+                removed_link_ids,
+            )
+            self.update_interface_diffs()
+            self.update_routing_diffs()
+            return
         required_inserts, required_removes = self.update_rulebase_link_diffs()
         self._rb_link_controller.insert_rulebase_links(
             self._global_state.import_state.api_call, self._global_state.import_state.state.stats, required_inserts
@@ -46,14 +61,14 @@ class FwConfigImportGateway:
         self.update_interface_diffs()
         self.update_routing_diffs()
 
-    def update_rulebase_link_diffs(self) -> tuple[list[dict[str, Any]], list[int | None]]:
+    def update_rulebase_link_diffs(self) -> tuple[list[dict[str, Any]], list[int]]:
         if self._global_state.normalized_config is None:
             raise FwoImporterError("normalized_config is None in update_rulebase_link_diffs")
         if self._global_state.previous_config is None:
             raise FwoImporterError("previous_config is None in update_rulebase_link_diffs")
 
         required_inserts: list[dict[str, Any]] = []
-        required_removes: list[int | None] = []
+        required_removes: list[int] = []
 
         for gw in self._global_state.normalized_config.gateways:
             previous_config_gw = next(
@@ -93,7 +108,7 @@ class FwConfigImportGateway:
             self._try_add_single_link(arg_list, link, rulebase_links, gw_id, is_insert=True)
 
     def _create_remove_args(
-        self, normalized_gateway: Gateway, previous_gateway: Gateway, gw_id: int | None, arg_list: list[int | None]
+        self, normalized_gateway: Gateway, previous_gateway: Gateway, gw_id: int | None, arg_list: list[int]
     ):
         removed_rulebase_links: list[dict[str, Any]] = []
 
@@ -103,7 +118,7 @@ class FwConfigImportGateway:
             )
         for link in removed_rulebase_links:
             link_in_db = self._try_get_id_based_link(link, self._rb_link_controller.rb_links)
-            if link_in_db:
+            if link_in_db and link_in_db.id is not None:
                 arg_list.append(link_in_db.id)
 
     def _try_add_single_link(

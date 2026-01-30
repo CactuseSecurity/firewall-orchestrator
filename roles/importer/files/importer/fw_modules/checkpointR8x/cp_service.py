@@ -56,9 +56,9 @@ def _get_rpc_number(obj: dict[str, Any]) -> str | None:
     Returns RPC number or None.
     """
     if "interface-uuid" in obj:
-        return obj["interface-uuid"]
+        return str(obj["interface-uuid"])
     if "program-number" in obj:
-        return obj["program-number"]
+        return str(obj["program-number"])
     return None
 
 
@@ -100,9 +100,18 @@ def _get_protocol_number(obj: dict[str, Any]) -> int | None:
     if "type" in obj and obj["type"] in proto_map:
         proto = proto_map[obj["type"]]
     elif "ip-protocol" in obj:
-        proto = obj["ip-protocol"]
+        proto_value = obj["ip-protocol"]
+        if isinstance(proto_value, str):
+            try:
+                proto = int(proto_value)
+            except ValueError:
+                proto = None
+        else:
+            proto = proto_value
 
-    return proto if proto is None or proto >= 0 else None
+    if not isinstance(proto, int):
+        return None
+    return proto if proto >= 0 else None
 
 
 def collect_single_svc_object(obj: dict[str, Any]) -> None:

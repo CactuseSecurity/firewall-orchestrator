@@ -100,7 +100,7 @@ class FwConfigImport:
         # Reset management
         config_normalized.add_manager(
             manager=FwConfigManager(
-                manager_uid=mgm_details.calc_manager_uid_hash(),
+                manager_uid=mgm_details.uid,
                 manager_name=mgm_details.name,
                 is_super_manager=mgm_details.is_super_manager,
                 sub_manager_ids=mgm_details.sub_manager_ids,
@@ -131,7 +131,7 @@ class FwConfigImport:
                 mgm_details = ManagementController.from_json(mgm_details_raw)
                 config_normalized.add_manager(
                     manager=FwConfigManager(
-                        manager_uid=ManagementController.calc_manager_uid_hash(mgm_details_raw),  # type: ignore # TODO: check: should be mgm_details   # noqa: PGH003
+                        manager_uid=mgm_details.uid,
                         manager_name=mgm_details.name,
                         is_super_manager=mgm_details.is_super_manager,
                         sub_manager_ids=mgm_details.sub_manager_ids,

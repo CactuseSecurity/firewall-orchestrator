@@ -422,10 +422,10 @@ class FwConfigImportRule:
         """
         ref_uids: dict[RefType, list[tuple[str, str | None]] | list[str]] = {ref_type: [] for ref_type in RefType}
 
-        if rule is None:
+        if rule is None and not remove_all:
             return {}
 
-        if not remove_all:
+        if not remove_all and rule is not None:
             ref_uids = self.get_rule_refs(rule)
         prev_ref_uids = self.get_rule_refs(prev_rule, is_prev=True)
         refs_to_remove: dict[RefType, list[dict[str, Any]]] = {}
@@ -449,9 +449,8 @@ class FwConfigImportRule:
         for prev_rulebase in prev_config.rulebases:
             if self.normalized_config is None:
                 raise FwoImporterError("cannot remove outdated refs: normalized_config is None")
-            rules = next((rb.rules for rb in self.normalized_config.rulebases if rb.uid == prev_rulebase.uid), None)
-            if rules is None:
-                continue
+            rules: dict[str, RuleNormalized] = {}
+            rules = next((rb.rules for rb in self.normalized_config.rulebases if rb.uid == prev_rulebase.uid), rules)
             for prev_rule in prev_rulebase.rules.values():
                 uid = prev_rule.rule_uid
                 if uid is None:

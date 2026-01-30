@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 import fwo_const
 from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig
 from fw_modules.fortiosmanagementREST.fos_network import normalize_network_objects
-from fw_modules.fortiosmanagementREST.fos_rule import normalize_access_rules
+from fw_modules.fortiosmanagementREST.fos_rule import get_rule_installon, normalize_access_rules
 from fw_modules.fortiosmanagementREST.fos_service import normalize_service_objects
 from fw_modules.fortiosmanagementREST.fos_zone import collect_zones
 from fwo_log import FWOLogger
@@ -68,9 +68,10 @@ def normalize_config(native_config: FortiOSConfig, mgm_details: ManagementContro
         )
     ]
 
+    gateway_name = get_rule_installon(mgm_details)
     gateway = Gateway(
-        Uid=mgm_details.devices[0]["name"],
-        Name=mgm_details.devices[0]["name"],
+        Uid=gateway_name,
+        Name=gateway_name,
         Routing=[],
         RulebaseLinks=rulebase_links,
         GlobalPolicyUid=None,

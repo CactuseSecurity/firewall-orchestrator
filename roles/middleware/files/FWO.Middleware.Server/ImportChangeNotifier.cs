@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Reflection.Metadata.Ecma335;
 
 namespace FWO.Middleware.Server
 {
@@ -107,7 +108,15 @@ namespace FWO.Middleware.Server
 
         private async Task<bool> NewImportFound()
         {
-            importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
+            if (userConfig.GlobalConfig!.ImpChangeIncludeObjectChanges)
+            {
+                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotifyForAnyChanges);
+            }
+            else
+            {
+                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
+            }
+
             importedManagements = [];
             foreach (var impMgt in importsToNotify.Select(i => i.MgmtId).Where(m => !importedManagements.Contains(m)))
             {

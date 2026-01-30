@@ -12,6 +12,31 @@ namespace FWO.Logging
         private static readonly string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
         private static readonly Random random = new();
 
+        private readonly record struct LogLocation(string CallerName, string CallerFile, int CallerLineNumber);
+        private readonly record struct ErrorLogDetails(
+            string? Text = null,
+            Exception? Error = null,
+            string? User = null,
+            string? Role = null,
+            bool ContainsLdapDn = false
+        );
+        private readonly record struct AuditLogDetails(
+            string Text,
+            string? UserName = null,
+            string? UserDn = null,
+            bool WithSeparatorLine = true,
+            bool ContainsLdapDn = true
+        );
+        private readonly record struct LogEntry(
+            string LogType,
+            string Title,
+            string Text,
+            LogLocation Location,
+            ConsoleColor? ForegroundColor = null,
+            ConsoleColor? BackgroundColor = null,
+            bool ContainsLdapDn = false
+        );
+
         static Log()
         {
             Task.Factory.StartNew(async () =>
@@ -101,33 +126,38 @@ namespace FWO.Logging
         [Conditional("DEBUG")]
         public static void WriteDebug(string Title, string Text, bool containsLdapDn = false, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Debug", Title, Text, containsLdapDn, callerName, callerFile, callerLineNumber, ConsoleColor.White);
+            WriteLog(new LogEntry("Debug", Title, Text, CreateLocation(callerName, callerFile, callerLineNumber), ConsoleColor.White, null, containsLdapDn));
         }
 
         public static void WriteInfo(string Title, string Text, bool containsLdapDn = false, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Info", Title, Text, containsLdapDn, callerName, callerFile, callerLineNumber, ConsoleColor.Cyan);
+            WriteLog(new LogEntry("Info", Title, Text, CreateLocation(callerName, callerFile, callerLineNumber), ConsoleColor.Cyan, null, containsLdapDn));
         }
 
         public static void WriteWarning(string Title, string Text, bool containsLdapDn = false, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Warning", Title, Text, containsLdapDn, callerName, callerFile, callerLineNumber, ConsoleColor.DarkYellow);
+            WriteLog(new LogEntry("Warning", Title, Text, CreateLocation(callerName, callerFile, callerLineNumber), ConsoleColor.DarkYellow, null, containsLdapDn));
         }
 
-        public static void WriteError(string Title, string? Text = null, Exception? Error = null, string? User = null, string? Role = null, bool containsLdapDn = false, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        public static void WriteError(string Title, string? Text = null, Exception? Error = null, bool containsLdapDn = false, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        {
+            WriteError(Title, new ErrorLogDetails(Text, Error, null, null, containsLdapDn), callerName, callerFile, callerLineNumber);
+        }
+
+        public static void WriteError(string Title, ErrorLogDetails details, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
             string DisplayText =
-                (User != null ? $"User: {User}, " : "") +
-                (Role != null ? $"Role: {Role}, " : "") +
-                (Text != null ? $"{Text}" : "") +
-                (Error != null ?
+                (details.User != null ? $"User: {details.User}, " : "") +
+                (details.Role != null ? $"Role: {details.Role}, " : "") +
+                (details.Text != null ? $"{details.Text}" : "") +
+                (details.Error != null ?
                 "\n ---\n" +
-                $"Exception thrown: \n {Error?.GetType().Name} \n" +
-                $"Message: \n {Error?.Message.TrimStart()} \n" +
-                $"Stack Trace: \n {Error?.StackTrace?.TrimStart()}"
+                $"Exception thrown: \n {details.Error?.GetType().Name} \n" +
+                $"Message: \n {details.Error?.Message.TrimStart()} \n" +
+                $"Stack Trace: \n {details.Error?.StackTrace?.TrimStart()}"
                 : "");
 
-            WriteLog("Error", Title, DisplayText, containsLdapDn, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
+            WriteLog(new LogEntry("Error", Title, DisplayText, CreateLocation(callerName, callerFile, callerLineNumber), ConsoleColor.Red, null, details.ContainsLdapDn));
         }
 
         public static void WriteError(string Title, string Text, bool LogStackTrace, bool containsLdapDn = false, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
@@ -141,7 +171,7 @@ namespace FWO.Logging
                 $"Stack Trace: \n {Environment.StackTrace}"
                 : "");
 
-            WriteLog("Error", Title, DisplayText, containsLdapDn, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
+            WriteLog(new LogEntry("Error", Title, DisplayText, CreateLocation(callerName, callerFile, callerLineNumber), ConsoleColor.Red, null, containsLdapDn));
         }
 
         /// <summary>
@@ -157,12 +187,7 @@ namespace FWO.Logging
         /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
         public static void WriteAudit(string Title, string Text, bool WithSeparatorLine = true, bool containsLdapDn = true, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            if (WithSeparatorLine)
-            {
-                Text += $"{Environment.NewLine}----{Environment.NewLine}";
-            }
-
-            WriteLog("Audit", Title, Text, containsLdapDn, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+            WriteAudit(Title, new AuditLogDetails(Text, null, null, WithSeparatorLine, containsLdapDn), callerName, callerFile, callerLineNumber);
         }
 
         /// <summary>
@@ -178,30 +203,36 @@ namespace FWO.Logging
         /// <param name="callerName">The name of the calling method (automatically supplied).</param>
         /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
         /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
-        public static void WriteAudit(string Title, string Text, string UserName, string UserDN, bool WithSeparatorLine = true, bool containsLdapDn = false, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        public static void WriteAudit(string Title, AuditLogDetails details, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            if (!string.IsNullOrEmpty(UserName))
+            string text = details.Text;
+            if (!string.IsNullOrEmpty(details.UserName))
             {
-                Text += $" by User: {UserName}";
+                text += $" by User: {details.UserName}";
             }
 
-            if (!string.IsNullOrEmpty(UserDN))
+            if (!string.IsNullOrEmpty(details.UserDn))
             {
-                Text += $" (DN: {UserDN})";
+                text += $" (DN: {details.UserDn})";
             }
 
-            if (WithSeparatorLine)
+            if (details.WithSeparatorLine)
             {
-                Text += $"{Environment.NewLine}----{Environment.NewLine}";
+                text += $"{Environment.NewLine}----{Environment.NewLine}";
             }
 
-            WriteLog("Audit", Title, Text, containsLdapDn, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+            WriteLog(new LogEntry("Audit", Title, text, CreateLocation(callerName, callerFile, callerLineNumber), ConsoleColor.Yellow, null, details.ContainsLdapDn));
         }
 
-        private static void WriteLog(string LogType, string Title, string Text, bool containsLdapDn, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
+        private static LogLocation CreateLocation(string callerName, string callerFile, int callerLineNumber)
         {
-            string File = Path.Split('\\', '/').Last(); // do not show the full file path, just the basename
-            WriteInColor($"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz")} {LogType} - {Title} ({File} in line {Line}), {Text}", ForegroundColor, BackgroundColor, containsLdapDn);
+            return new LogLocation(callerName, callerFile, callerLineNumber);
+        }
+
+        private static void WriteLog(LogEntry entry)
+        {
+            string File = entry.Location.CallerFile.Split('\\', '/').Last(); // do not show the full file path, just the basename
+            WriteInColor($"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz")} {entry.LogType} - {entry.Title} ({File} in line {entry.Location.CallerLineNumber}), {entry.Text}", entry.ForegroundColor, entry.BackgroundColor, entry.ContainsLdapDn);
         }
 
         public static void WriteAlert(string Title, string Text)

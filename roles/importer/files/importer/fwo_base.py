@@ -28,8 +28,9 @@ def sanitize(content: Any, lower: bool = False) -> None | str:
     if content is None:
         return None
     result = str(content)
-    result = result.replace('"', "")  # remove possibly contained apostrophe
-    result = result.replace("\n", " ")  # replace possibly contained CR with space
+    # Keep LDAP DN punctuation ("," and "=") intact; only strip quotes and line breaks.
+    result = result.replace('"', "")
+    result = result.replace("\n", " ").replace("\r", " ")
     if lower:
         return result.lower()
     return result

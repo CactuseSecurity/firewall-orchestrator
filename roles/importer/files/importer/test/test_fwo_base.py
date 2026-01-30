@@ -4,7 +4,7 @@ import unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../importer"))
 
-from fwo_base import compute_min_moves
+from fwo_base import compute_min_moves, sanitize
 
 
 class TestFwoBase(unittest.TestCase):
@@ -84,3 +84,8 @@ class TestFwoBase(unittest.TestCase):
         self.assertEqual(compute_min_moves_result["insertions"], expected_result["insertions"])
         self.assertEqual(compute_min_moves_result["deletions"], expected_result["deletions"])
         self.assertEqual(compute_min_moves_result["reposition_moves"], expected_result["reposition_moves"])
+
+    def test_sanitize_preserves_ldap_dn_punctuation(self):
+        dn = 'CN=User One,OU=Users,DC=example,DC=com'
+        sanitized = sanitize(dn)
+        self.assertEqual(sanitized, dn)

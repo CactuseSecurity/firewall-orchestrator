@@ -78,6 +78,11 @@ namespace FWO.Ui.Display
             return OutputCsv(DisplayComment(rule));
         }
 
+        public string DisplayLastModifiedCsv(Rule rule)
+        {
+            return OutputCsv(DisplayLastModified(rule));
+        }
+
 
         public new string DisplayName(Rule rule)
         {

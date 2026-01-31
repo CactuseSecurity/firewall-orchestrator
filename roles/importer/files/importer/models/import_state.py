@@ -39,6 +39,10 @@ class ImportState:
         self.rulebase_map: dict[str, int] = {}
         self.management_map: dict[str, int] = {}
         self.color_map: dict[str, int] = {}
+        self.network_obj_type_map: dict[str, int] = {}
+        self.service_obj_type_map: dict[str, int] = {}
+        self.user_obj_type_map: dict[str, int] = {}
+        self.protocol_map: dict[str, int] = {}
         self.rulebase_to_gateway_map: dict[int, list[int]] = {}
         self.data_retention_days: int = 30
 
@@ -63,6 +67,37 @@ class ImportState:
             raise FwoImporterError(f"Link type {link_uid} not found")
         return link_type_id
 
+    def lookup_color_id(self, color_str: str) -> int:
+        return self.color_map.get(color_str, 1)  # 1 = foreground color black
+
+    def lookup_network_obj_type_id(self, obj_type_str: str) -> int:
+        obj_type_id = self.network_obj_type_map.get(obj_type_str, None)
+        if obj_type_id is None:
+            FWOLogger.error(f"Network object type {obj_type_str} not found")
+            raise FwoImporterError(f"Network object type {obj_type_str} not found")
+        return obj_type_id
+
+    def lookup_service_obj_type_id(self, svc_type_str: str) -> int:
+        obj_type_id = self.service_obj_type_map.get(svc_type_str, None)
+        if obj_type_id is None:
+            FWOLogger.error(f"Service object type {svc_type_str} not found")
+            raise FwoImporterError(f"Service object type {svc_type_str} not found")
+        return obj_type_id
+
+    def lookup_user_obj_type_id(self, usr_type_str: str) -> int:
+        obj_type_id = self.user_obj_type_map.get(usr_type_str, None)
+        if obj_type_id is None:
+            FWOLogger.error(f"User object type {usr_type_str} not found")
+            raise FwoImporterError(f"User object type {usr_type_str} not found")
+        return obj_type_id
+
+    def lookup_protocol_id(self, proto_str: str) -> int:
+        proto_id = self.protocol_map.get(proto_str.lower(), None)
+        if proto_id is None:
+            FWOLogger.error(f"Protocol {proto_str} not found")
+            raise FwoImporterError(f"Protocol {proto_str} not found")
+        return proto_id
+
     def lookup_gateway_id(self, gw_uid: str) -> int:
         mgm_id = self.mgm_details.current_mgm_id
         gws_for_mgm = self.gateway_map.get(mgm_id, {})
@@ -85,6 +120,3 @@ class ImportState:
         if not self.management_map.get(mgm_uid, None):
             FWOLogger.error(f"fwo_api:import_latest_config - no mgm id found for current manager uid '{mgm_uid}'")
         return self.management_map.get(mgm_uid, None)
-
-    def lookup_color_id(self, color_str: str) -> int:
-        return self.color_map.get(color_str, 1)  # 1 = forground color black

@@ -21,6 +21,8 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         public bool IsOrderedLayerHeader { get; set; } = false;
 
+        public bool IsConcatenationRoot { get; set; } = false;
+
         /// <summary>
         /// A strongly typed version of the generic AddItem method.
         /// </summary>
@@ -29,6 +31,5 @@ namespace FWO.Services.RuleTreeBuilder
             return base.AddItem(item ?? new RuleTreeItem(), position, header, isRoot, addToFlatList, addToChildren,
                 setLastAddedItem) as RuleTreeItem ?? new RuleTreeItem();
         }
-
     }
 }

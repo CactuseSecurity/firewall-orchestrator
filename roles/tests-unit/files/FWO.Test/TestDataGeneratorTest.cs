@@ -156,6 +156,42 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GenerateInstance_UsesProbabilitySelection()
+        {
+            // ARRANGE
+            TestDataGenerator<ModellingConnection> testDataGenerator = new();
+            string json = @"
+            {
+                ""config"": [
+                    {
+                        ""set"": {
+                            ""Name"": {
+                                ""always"": 1.0,
+                                ""never"": 0.0
+                            }
+                        }
+                    }
+                ]
+            }";
+            List<ModellingConnection> generatedInstances = new();
+            int iterations = 25;
+
+            // ACT
+            for (int i = 1; i <= iterations; i++)
+            {
+                ModellingConnection? generatedInstance = testDataGenerator.GenerateInstance(json).SingleInstance;
+                if (generatedInstance != null)
+                {
+                    generatedInstances.Add(generatedInstance);
+                }
+            }
+
+            // ASSERT
+            Assert.That(generatedInstances, Has.Count.EqualTo(iterations), "Die Anzahl der generierten Instanzen stimmt nicht mit iterations überein.");
+            Assert.That(generatedInstances.All(instance => instance?.Name == "always"), Is.True, "Mindestens eine generierte Instanz hat einen unerwarteten Namen.");
+        }
+
+        [Test]
         public void SetUpOneInstance()
         {
             // ARRANGE

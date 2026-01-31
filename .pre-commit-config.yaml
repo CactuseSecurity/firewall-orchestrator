@@ -12,3 +12,10 @@ repos:
   rev: v1.1.407
   hooks:
     - id: pyright
+
+-   repo: https://github.com/jvstein/pre-commit-dotnet-format
+    rev: 'v0.3'
+    hooks:
+    - id: dotnet-format
+      name: dotnet-format-proj1
+      files: 'roles/.*\.cs$'

@@ -151,7 +151,6 @@ def service_provider(
     service_provider.reset()
 
     service_provider.register(Services.GLOBAL_STATE, lambda: global_state, Lifetime.SINGLETON)
-    service_provider.register(Services.RULE_ORDER_SERVICE, RuleOrderService, Lifetime.SINGLETON)
     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: group_flats_mapper, Lifetime.IMPORT)
     service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: group_flats_mapper, Lifetime.IMPORT)
     service_provider.register(Services.UID2ID_MAPPER, Uid2IdMapper, Lifetime.IMPORT)

@@ -205,24 +205,6 @@ class Uid2IdMapper:
             raise KeyError(f"Rulebase UID '{uid}' not found in mapping.")
         return rulebase_id
 
-    def get_ids_for_rulebase_link(
-        self,
-        from_rule_uid: str | None = None,
-        from_rulebase_uid: str | None = None,
-        to_rulebase_uid: str | None = None,
-    ) -> tuple[int | None, int | None, int | None]:
-        from_rule_id = None
-        from_rulebase_id = None
-        to_rulebase_id = None
-
-        if from_rule_uid is not None and from_rule_uid != "":
-            from_rule_id = self.get_rule_id(from_rule_uid)
-        if from_rulebase_uid is not None and from_rulebase_uid != "":
-            from_rulebase_id = self.get_rulebase_id(from_rulebase_uid)
-        if to_rulebase_uid is not None and to_rulebase_uid != "":
-            to_rulebase_id = self.get_rulebase_id(to_rulebase_uid)
-        return from_rule_id, from_rulebase_id, to_rulebase_id
-
     def add_network_object_mappings(self, mappings: list[dict[str, Any]], is_global: bool = False):
         """
         Add network object mappings to the internal mapping dictionary.

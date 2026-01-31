@@ -184,9 +184,11 @@ def test_add_inline_layer(
     gateway = config.gateways[0]
     fwconfig_builder.add_inline_layer(gateway, from_rulebase.uid, from_rule.rule_uid or "", added_rulebase.uid)
     fwconfig_builder.update_rule_map_and_rulebase_map(config, import_state_controller.state.import_id)
-    from_rule_id, from_rulebase_id, to_rulebase_id = uid2id_mapper.get_ids_for_rulebase_link(
-        from_rule.rule_uid, from_rulebase.uid, added_rulebase.uid
-    )
+
+    assert from_rule.rule_uid is not None, "from_rule_id is None in test setup"
+    from_rule_id = uid2id_mapper.get_rule_id(from_rule.rule_uid)
+    from_rulebase_id = uid2id_mapper.get_rulebase_id(from_rulebase.uid)
+    to_rulebase_id = uid2id_mapper.get_rulebase_id(added_rulebase.uid)
     fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
@@ -291,11 +293,12 @@ def test_move_inline_layer(
     fwconfig_builder.update_rule_map_and_rulebase_map(
         global_state.previous_config, import_state_controller.state.import_id
     )
-    from_rule_id, from_rulebase_id, to_rulebase_id = uid2id_mapper.get_ids_for_rulebase_link(
-        from_rule_normalized.rule_uid,
-        from_rulebase_normalized.uid,
-        added_rulebase_copy.uid,
-    )
+
+    assert from_rule_normalized.rule_uid is not None, "from_rule_id is None in test setup"
+    from_rule_id = uid2id_mapper.get_rule_id(from_rule_normalized.rule_uid)
+    from_rulebase_id = uid2id_mapper.get_rulebase_id(from_rulebase_normalized.uid)
+    to_rulebase_id = uid2id_mapper.get_rulebase_id(added_rulebase_copy.uid)
+
     fwconfig_builder.update_rb_links(gateway_previous.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 

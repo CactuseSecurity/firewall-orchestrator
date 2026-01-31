@@ -91,9 +91,9 @@ namespace FWO.Services.RuleTreeBuilder
 
             for (int i = 0; i < RuleTree.ElementsFlat.Count; i++)
             {
-                RuleTreeItem treeItem = (RuleTreeItem)RuleTree.ElementsFlat[i];
+                RuleTreeItem treeItem = RuleTree.ElementsFlat[i];
 
-                if ((treeItem.IsRule || treeItem.IsSectionHeader) && treeItem.Data != null)
+                if ((treeItem.IsRule || treeItem.IsSectionHeader || treeItem.IsOrderedLayerHeader) && treeItem.Data != null)
                 {
                     allRules.Add(treeItem.Data);
                 }
@@ -198,9 +198,15 @@ namespace FWO.Services.RuleTreeBuilder
             orderedLayerItem.Header = rulebase.Name ?? "";
             orderedLayerItem.IsOrderedLayerHeader = true;
             SetParentForTreeItem(orderedLayerItem, link);
+            Rule newRule = new();
+            CreatedOrderNumbersCount++;
+            newRule.OrderNumber = CreatedOrderNumbersCount;
+            newRule.SectionHeader = rulebase.Name;
+            orderedLayerItem.Data = newRule;
             trail.Add(GetOrderLayerCount());
             orderedLayerItem.Position = trail.ToList();
             RuleTree.LastAddedItem = orderedLayerItem;
+            RuleTree.ElementsFlat.Add(orderedLayerItem);
 
             return trail;
         }

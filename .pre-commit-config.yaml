@@ -18,5 +18,4 @@ repos:
     hooks:
     -   id: dotnet-format
         name: dotnet-format-proj1
-        files: 'roles/.*'
-
+        files: 'roles/.*\.cs$'

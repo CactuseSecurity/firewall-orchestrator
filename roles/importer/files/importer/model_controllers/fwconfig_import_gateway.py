@@ -28,6 +28,12 @@ class FwConfigImportGateway:
         self._uid2id_mapper = service_provider.get_uid2id_mapper(self._global_state.import_state.state.import_id)
         self._rb_link_controller = RulebaseLinkController()
 
+    def get_rb_link_controller(self) -> RulebaseLinkController:
+        return self._rb_link_controller
+
+    def get_global_state(self) -> GlobalState:
+        return self._global_state
+
     def update_gateway_diffs(self):
         # add gateway details:
         self._rb_link_controller.get_rulebase_links(
@@ -60,9 +66,8 @@ class FwConfigImportGateway:
                 (p_gw for p_gw in self._global_state.previous_config.gateways if gw.Uid == p_gw.Uid), None
             )
 
-            if (
-                gw in self._global_state.previous_config.gateways
-            ):  # this check finds all changes in gateway (including rulebase link changes)
+            if gw in self._global_state.previous_config.gateways:
+                # this check finds all changes in gateway (including rulebase link changes)
                 # gateway found with exactly same properties in previous config
                 continue
 

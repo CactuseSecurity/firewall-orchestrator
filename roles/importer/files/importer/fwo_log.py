@@ -137,8 +137,8 @@ class ChangeLogger:
     """
 
     _instance = None
-    changed_nwobj_id_map: dict[int, int]
-    changed_svc_id_map: dict[int, int]
+    changed_object_id_map: dict[int, int]
+    changed_service_id_map: dict[int, int]
     _import_state: "ImportState | None" = None
     _uid2id_mapper: "Uid2IdMapper | None" = None
 
@@ -149,8 +149,8 @@ class ChangeLogger:
         """
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls.changed_nwobj_id_map = {}
-            cls.changed_svc_id_map = {}
+            cls.changed_object_id_map = {}
+            cls.changed_service_id_map = {}
         return cls._instance
 
     def create_change_id_maps(

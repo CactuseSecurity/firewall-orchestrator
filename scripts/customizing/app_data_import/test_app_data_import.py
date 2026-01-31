@@ -4,17 +4,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
-# Make module directory importable
-MODULE_DIR: Path = Path(__file__).resolve().parent
-sys.path.insert(0, str(MODULE_DIR))
-# Also add shared library folder for imports when running via test discovery
-sys.path.insert(0, str(MODULE_DIR.parent / "fwo_custom_lib"))
-
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
 )
+
+# Make module directory importable
+MODULE_DIR: Path = Path(__file__).resolve().parent
+sys.path.insert(0, str(MODULE_DIR))
+# Also add shared library folder for imports when running via test discovery
+sys.path.insert(0, str(MODULE_DIR.parent / "fwo_custom_lib"))
 
 
 class AppDataImportTests(unittest.TestCase):

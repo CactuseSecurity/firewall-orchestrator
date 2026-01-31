@@ -24,7 +24,7 @@ class ImportState:
     last_full_import_id: int
     last_full_import_date: str | None = None
     last_successful_import: str | None = None
-    is_full_import: bool
+    is_full_import: bool = False
     is_initial_import: bool = False
     responsible_for_importing: bool = True
     is_clearing_import: bool = False
@@ -66,9 +66,6 @@ class ImportState:
             FWOLogger.error(f"Link type {link_uid} not found")
             raise FwoImporterError(f"Link type {link_uid} not found")
         return link_type_id
-
-    def lookup_color_id(self, color_str: str) -> int:
-        return self.color_map.get(color_str, 1)  # 1 = foreground color black
 
     def lookup_network_obj_type_id(self, obj_type_str: str) -> int:
         obj_type_id = self.network_obj_type_map.get(obj_type_str, None)
@@ -120,3 +117,9 @@ class ImportState:
         if not self.management_map.get(mgm_uid, None):
             FWOLogger.error(f"fwo_api:import_latest_config - no mgm id found for current manager uid '{mgm_uid}'")
         return self.management_map.get(mgm_uid, None)
+
+    def lookup_color_id_unresolved(self, color_str: str) -> int | None:
+        return self.color_map.get(color_str, None)
+
+    def lookup_color_id(self, color_str: str) -> int:
+        return self.color_map.get(color_str, 1)  # 1 = forground color black

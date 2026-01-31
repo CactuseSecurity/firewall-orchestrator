@@ -1,5 +1,4 @@
 import pytest
-
 from fw_modules.fortiadom5ff import fmgr_getter
 from fwo_exceptions import FwoImporterError
 

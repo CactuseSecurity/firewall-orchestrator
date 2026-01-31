@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 
 # RulebaseLinkUidBased is the model for a rulebase_link (containing no DB IDs)
@@ -37,9 +37,7 @@ class RulebaseLink(BaseModel):
     is_section: bool
     created: int
     removed: int | None = None
-
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
     def to_dict(self) -> dict[str, Any]:
         return {

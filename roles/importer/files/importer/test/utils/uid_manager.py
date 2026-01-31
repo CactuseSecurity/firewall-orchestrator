@@ -3,7 +3,7 @@ import uuid
 
 class UidManager:
     def __init__(self):
-        self.used_uids = []
+        self.used_uids: list[str] = []
 
     def create_uid(self):
         need_new_uid = True

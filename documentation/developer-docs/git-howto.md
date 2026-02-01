@@ -117,28 +117,36 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
         git push -u origin auth_frontend
 
-
 ## Update submodules
 
-### initial update
+### Initial update
 Update submodules to the commits recorded in the superproject (safe, reproducible). Initializes them if necessary.
+Execute this command after the initial clone of the fwo repo in the fwo repo root directory:
 ```shell
 git submodule update --init --recursive
 ```
 
-## following updates
-Pull the superproject and update submodules to the recorded commits.
-```shell
-git pull --recurse-submodules
-```
+## Update agents repo --> might be moved to githook later
 
-Update submodules to the latest commit on their configured remote tracking branch.
+This updates the agents repo manually. Update submodules to the latest commit on their configured remote tracking branch. Execute this command to get the newest version of all submodules from their respective repositories.
 ```shell
 git submodule update --remote --recursive
 ```
+NB: This overwrites the agents repo data again with the one from the firewall-orchestrator repo! 
 
-## always pull recursively
-Permanent configuration change for convenience : make `git pull` recurse into submodules without needing `--recurse-submodules`.
+## Configure to always pull recursively
+Permanent configuration change: make `git pull` recurse into submodules
 ```shell
 git config submodule.recurse true
 ```
+## Check correct file state
+```shell
+tim@acantha24:~/dev/tim/fwo$ git ls-tree HEAD agents
+160000 commit 73cfbb4efad58dd569c0c0ab4d7ecebc63d23ddd  agents
+tim@acantha24:~/dev/tim/fwo$ git ls-tree HEAD AGENTS.md
+120000 blob 95e38a6a9ddf012aae10a06a19b6d8c1a65ec8b8    AGENTS.md
+tim@acantha24:~/dev/tim/fwo$ 
+```
+Notes:
+- 160000 - sub module
+- 120000 - symbolic link

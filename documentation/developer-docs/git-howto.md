@@ -120,25 +120,30 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
 ## Update submodules
 
-### initial update
+### Initial update
 Update submodules to the commits recorded in the superproject (safe, reproducible). Initializes them if necessary.
+Execute this command after the initial clone.
 ```shell
 git submodule update --init --recursive
 ```
 
-## following updates
+## Following updates
 Pull the superproject and update submodules to the recorded commits.
+Execute this command after submodules have changed on the remote branch.
 ```shell
 git pull --recurse-submodules
 ```
 
+## Remote update
 Update submodules to the latest commit on their configured remote tracking branch.
+Execute this command to get the newest version of all submodules from their respective repositories.
 ```shell
 git submodule update --remote --recursive
 ```
 
-## always pull recursively
+## Always pull recursively
 Permanent configuration change for convenience : make `git pull` recurse into submodules without needing `--recurse-submodules`.
+Recommended to avoid the need to manually call `git pull --recurse-submodules` periodically.
 ```shell
 git config submodule.recurse true
 ```

@@ -147,5 +147,6 @@ tim@acantha24:~/dev/tim/fwo$ git ls-tree HEAD AGENTS.md
 120000 blob 95e38a6a9ddf012aae10a06a19b6d8c1a65ec8b8    AGENTS.md
 tim@acantha24:~/dev/tim/fwo$ 
 ```
+Notes:
 - 160000 - sub module
 - 120000 - symbolic link

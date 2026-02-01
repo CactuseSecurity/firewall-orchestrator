@@ -25,8 +25,7 @@
         )
         DELETE FROM rule_metadata
         WHERE mgm_id IN (SELECT mgm_id FROM target_mgm)
-           OR rule_created IN (SELECT control_id FROM target_imports)
-           OR rule_last_modified IN (SELECT control_id FROM target_imports);
+           OR rule_created IN (SELECT control_id FROM target_imports);
         DELETE FROM import_credential WHERE credential_name='{{ test_credential_name }}'; 
         END $do$
     listen: "test importer handler"

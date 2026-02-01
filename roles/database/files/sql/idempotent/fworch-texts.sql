@@ -17,7 +17,7 @@
 --            5300-5399: defaults
 --            5400-5499: personal settings
 --            5500-5599: workflow module
---            5600-5699: workflow module
+--            5600-5699: modelling
 -- 6000-6999: API
 -- 7000-7999: Monitoring
 -- 8000-8999: Workflow
@@ -129,6 +129,8 @@ INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
 INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
 INSERT INTO txt VALUES ('All',		            'German', 	'Alle');
 INSERT INTO txt VALUES ('All',		            'English', 	'All');
+INSERT INTO txt VALUES ('Undefined',		    'German', 	'Undefiniert');
+INSERT INTO txt VALUES ('Undefined',		    'English', 	'Undefined');
 INSERT INTO txt VALUES ('Rules', 			    'German', 	'Regeln: Standard');
 INSERT INTO txt VALUES ('Rules', 			    'English', 	'Rules: Standard');
 INSERT INTO txt VALUES ('Changes', 			    'German', 	'Changes: Standard');
@@ -161,10 +163,10 @@ INSERT INTO txt VALUES ('RecertificationEvent', 'German', 	'Zert: Zertifikat');
 INSERT INTO txt VALUES ('RecertificationEvent', 'English', 	'Cert: Certificate');
 INSERT INTO txt VALUES ('RecertEventReport',    'German', 	'Zert: Zert-Regel-Details');
 INSERT INTO txt VALUES ('RecertEventReport',    'English', 	'Cert: Cert Rule Details');
-INSERT INTO txt VALUES ('ComplianceReport',    'German', 	'Compliance Report');
-INSERT INTO txt VALUES ('ComplianceReport',    'English', 	'Compliance Report');
-INSERT INTO txt VALUES ('ComplianceDiffReport',    'German', 	'Compliance Diff Report');
-INSERT INTO txt VALUES ('ComplianceDiffReport',    'English', 	'Compliance Diff Report');
+INSERT INTO txt VALUES ('ComplianceReport',     'German', 	'Compliance Report');
+INSERT INTO txt VALUES ('ComplianceReport',     'English', 	'Compliance Report');
+INSERT INTO txt VALUES ('ComplianceDiffReport', 'German', 	'Compliance Diff Report');
+INSERT INTO txt VALUES ('ComplianceDiffReport', 'English', 	'Compliance Diff Report');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
 INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
 INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
@@ -271,6 +273,12 @@ INSERT INTO txt VALUES ('RecertDate',       	'German',	'Rezertifizierungsdatum')
 INSERT INTO txt VALUES ('RecertDate', 	    	'English',	'Recertification Date');
 INSERT INTO txt VALUES ('RequestDate',       	'German',	'Antragsdatum');
 INSERT INTO txt VALUES ('RequestDate', 	    	'English',	'Request Date');
+INSERT INTO txt VALUES ('Public',       		'German',	'&Ouml;ffentlich');
+INSERT INTO txt VALUES ('Public', 	    		'English',	'Public');
+INSERT INTO txt VALUES ('Restricted',       	'German',	'Beschr&auml;nkt');
+INSERT INTO txt VALUES ('Restricted', 	    	'English',	'Restricted');
+INSERT INTO txt VALUES ('Private',       		'German',	'Privat');
+INSERT INTO txt VALUES ('Private', 	    		'English',	'Private');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -1558,6 +1566,8 @@ INSERT INTO txt VALUES ('remove_interface', 	'German',	'Schnittstelle entfernen'
 INSERT INTO txt VALUES ('remove_interface', 	'English',	'Remove Interface');
 INSERT INTO txt VALUES ('display_interface',    'German',	'Schnittstelle darstellen');
 INSERT INTO txt VALUES ('display_interface',    'English',	'Display Interface');
+INSERT INTO txt VALUES ('interface_permission',	'German', 	'Berechtigung');
+INSERT INTO txt VALUES ('interface_permission',	'English', 	'Permission');
 INSERT INTO txt VALUES ('request_interface',    'German',	'Schnittstelle anfordern');
 INSERT INTO txt VALUES ('request_interface',    'English',	'Request Interface');
 INSERT INTO txt VALUES ('requested_interface',  'German',	'Angeforderte Schnittstelle');
@@ -1744,8 +1754,6 @@ INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
 INSERT INTO txt VALUES ('remove_members',       'English',  ': Remove Members');
-INSERT INTO txt VALUES ('app_owner_not_found',  'German',   'Keinen Eigent&uuml;mer f&uuml;r diese App gefunden');
-INSERT INTO txt VALUES ('app_owner_not_found',  'English',  'No owner found for this app');
 INSERT INTO txt VALUES ('delete_app_zone', 	    'German',	'App Zone l&ouml;schen');
 INSERT INTO txt VALUES ('delete_app_zone', 	    'English',	'Delete App Zone');
 INSERT INTO txt VALUES ('extra_params',         'German',   'Sonderkonfigurationen');
@@ -2739,6 +2747,8 @@ INSERT INTO txt VALUES ('reset_notification',   'German', 	'Zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('reset_notification',   'English', 	'Reset');
 INSERT INTO txt VALUES ('set_roles_with_import','German', 	'Beim Import zu setzende Rollen');
 INSERT INTO txt VALUES ('set_roles_with_import','English', 	'Set Roles with import');
+INSERT INTO txt VALUES ('no_owners',			'German', 	'Keine Eigent&uuml;mer zur Auswahl');
+INSERT INTO txt VALUES ('no_owners',			'English', 	'No owners to be selected');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -7398,3 +7408,5 @@ INSERT INTO txt VALUES ('H9080', 'English', 'For the Communication Profile the r
 ');
 INSERT INTO txt VALUES ('H9081', 'German',  'Sonderkonfigurationen sind spezielle Anweisungen zur Implementierung, z.B. NAT. Die m&ouml;glichen Typen werden vom Administrator vorgegeben.');
 INSERT INTO txt VALUES ('H9081', 'English', 'Extra configurations are special recommendations for implementation, e.g. NAT. Possible types are defined by the administrator.');
+INSERT INTO txt VALUES ('H9082', 'German',  'Berechtigung: Bestimmt die Sicht- und Nutzbarkeit f&uuml;r andere Applikationen: &Ouml;ffentlich - f&uuml;r alle ohne R&uuml;ckfrage nutzbar, Beschr&auml;nkt - nur mit Zustimmung des Eigent&uuml;mers nutzbar, Privat - ausschliesslich innerhalb des eigenen Kommunikationsprofils nutzbar.');
+INSERT INTO txt VALUES ('H9082', 'English', 'Permission: Defines visability and usability for other applications: Public - usable for all without further query, Restricted - usable only with permission of the owner, Private - usable only inside the own Communication Profile.');

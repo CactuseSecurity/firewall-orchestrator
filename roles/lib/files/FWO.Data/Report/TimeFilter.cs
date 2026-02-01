@@ -38,7 +38,6 @@ namespace FWO.Data.Report
         [JsonProperty("report_time"), JsonPropertyName("report_time")]
         public DateTime ReportTime { get; set; } = DateTime.Now.AddSeconds(-DateTime.Now.Second);
 
-
         [JsonProperty("timerange_type"), JsonPropertyName("timerange_type")]
         public TimeRangeType TimeRangeType { get; set; } = TimeRangeType.Shortcut;
 
@@ -46,6 +45,7 @@ namespace FWO.Data.Report
         public string TimeRangeShortcut { get; set; } = "this year";
 
         [JsonProperty("offset"), JsonPropertyName("offset")]
+        // Number of interval units (days/weeks/months/years) to shift relative time windows.
         public int Offset { get; set; } = 0;
 
         [JsonProperty("interval"), JsonPropertyName("interval")]

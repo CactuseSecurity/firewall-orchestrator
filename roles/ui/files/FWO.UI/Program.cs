@@ -99,7 +99,7 @@ var app = builder.Build();
 
 // Make ServiceProvider accessible via static reference.
 
-FWO.Services.ServiceProvider.UiServices = app.Services;
+FWO.Services.ServiceProvider.Services = app.Services;
 
 //// Configure the HTTP request pipeline.
 #region HTTP Request Pipeline

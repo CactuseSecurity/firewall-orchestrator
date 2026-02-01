@@ -5,6 +5,6 @@ namespace FWO.Services
     /// </summary>
     public static class ServiceProvider
     {
-        public static IServiceProvider? UiServices { get; set; }
+        public static IServiceProvider? Services { get; set; }
     }
 }

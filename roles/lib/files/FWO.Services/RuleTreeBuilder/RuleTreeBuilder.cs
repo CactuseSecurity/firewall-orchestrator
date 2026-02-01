@@ -1,20 +1,23 @@
+using System.Data;
+using System.Diagnostics;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
+using Rule = FWO.Data.Rule;
 
 namespace FWO.Services.RuleTreeBuilder
 {
+    /// <summary>
+    /// Builds a rule tree and order numbers from rulebases and their links.
+    /// </summary>
     public class RuleTreeBuilder : IRuleTreeBuilder
     {
+        #region Properties & fields
+
         /// <summary>
         /// The root item for the tree structure.
         /// </summary>
         public RuleTreeItem RuleTree { get; set; } = new();
-
-        /// <summary>
-        /// A Queue to process rulebases by rulebase links.
-        /// </summary>
-        public Queue<(RulebaseLink link, RulebaseReport rulebase)> RuleTreeBuilderQueue { get; set; } = new();
 
         /// <summary>
         /// The number of order numbers that were created during the process.
@@ -22,323 +25,392 @@ namespace FWO.Services.RuleTreeBuilder
         public int CreatedOrderNumbersCount { get; set; }
 
         /// <summary>
-        /// A counter to easily create the order position (/order number) for the ordered layers on the top level.
+        /// A counter to easily create the order number for the ordered layers on the top level.
         /// </summary>
         public int OrderedLayerCount { get; set; }
 
         /// <summary>
-        /// All of the processed rules.
+        /// Links that are still available to be processed.
         /// </summary>
-        private readonly List<Rule> _allRules = [];
+        public List<RulebaseLink> RemainingLinks { get; set; } = new();
 
+        /// <summary>
+        /// Rulebases available to the current build.
+        /// </summary>
+        public List<RulebaseReport> Rulebases { get; set; } = new();
+
+        /// <summary>
+        /// Inline layer links that are still available to be processed.
+        /// </summary>
+        public List<RulebaseLink> RemainingInlineLayerLinks { get; set; } = new();
+
+        #endregion
+
+        #region Constructor
+
+        /// <summary>
+        /// Creates a new builder with an initialized root node.
+        /// </summary>
         public RuleTreeBuilder()
         {
             RuleTree.IsRoot = true;
         }
 
+        #endregion
+
+        #region Methods - Public
+
         /// <summary>
-        /// Creates multi-level (dotted) order numbers for display, sets internal numeric order for sorting and builds the rule tree.
+        /// Builds the rule tree and returns the flattened list of rule data.
         /// </summary>
-        public List<Rule> BuildRuleTree()
+        public List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links)
         {
-            List<int> lastPosition = [];
+            Reset(rulebases, links);
+            List<int>? trail = null;
 
-            // Start outer loop.
-            while (RuleTreeBuilderQueue.TryDequeue(out (RulebaseLink link, RulebaseReport rulebase) currentQueueItem))
+            // Iterate links in processing order to build the tree and order numbers.
+
+            while (GetNextLink() is RulebaseLink nextLink)
             {
-                lastPosition = HandleRulebaseLinkQueueItem(currentQueueItem, lastPosition);
+                trail = ProcessLink(nextLink, trail);
+            }
 
-                // For concatenations: Set the returned last order number to the number of the last visited rule of the source rulebase if it differs from it.
-                if (RuleTreeBuilderQueue.TryPeek(out (RulebaseLink link, RulebaseReport rulebase) nextQueueItem) && nextQueueItem.link.LinkType == 4)
+            // Returns the Rule objects of the flattened rule tree. Will be deprecated  as soon as we have the TreeView component.
+
+            List<Rule> allRules = new();
+
+            for (int i = 0; i < RuleTree.ElementsFlat.Count; i++)
+            {
+                RuleTreeItem treeItem = (RuleTreeItem)RuleTree.ElementsFlat[i];
+
+                if ((treeItem.IsRule || treeItem.IsSectionHeader) && treeItem.Data != null)
                 {
-                    Rule? lastVisitedRuleOfNextRulebase = _allRules.LastOrDefault(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId);
-
-                    if (lastVisitedRuleOfNextRulebase != null && lastVisitedRuleOfNextRulebase.DisplayOrderNumberString != string.Join(".", lastPosition))
-                    {
-                        string input = lastVisitedRuleOfNextRulebase.DisplayOrderNumberString;
-                        string result = input.Contains('|') ? input.Substring(0, input.IndexOf('|')) : input;
-                        lastPosition = [.. result.Split('.').Select(int.Parse)];
-                    }
+                    allRules.Add(treeItem.Data);
                 }
             }
 
-            return _allRules;
+            return allRules;
         }
 
         /// <summary>
-        /// Recursive method that processes a rulebase link and the target rulebase to create ordernumbers and the integrate the rules in the rule tree.
+        /// Processes a single link and its rulebase, returning the updated trail.
         /// </summary>
-        private List<int> HandleRulebaseLinkQueueItem((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int> lastPosition)
+        public List<int> ProcessLink(RulebaseLink link, List<int>? trail = null)
         {
-            // Get next link and rulebase if they exist.
-            (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem = TryPeekNextQueueItem();
+            // Initialize trail if no trail is provided.
 
-            // Prepare creation of order numbers.
-
-            (List<int> nextPosition, RuleTreeItem? nextParent, lastPosition) = PrepareOrderNumberCreation(currentQueueItem, lastPosition, nextQueueItem);
-
-            // Create order number.
-            List<Rule> currentRules = [.. currentQueueItem.rulebase.Rules];
-            foreach (Rule currentRule in currentRules)
+            if (trail == null || link.LinkType == 2)
             {
-                // Make clone if rule was already processed.
-                Rule rule = currentRule;
-
-                if (_allRules.Contains(currentRule))
-                {
-                    rule = currentRule.CreateClone();
-                }
-
-                // Update next position.
-
-                nextPosition = UpdateNextPosition(nextPosition, nextParent);
-
-                // Update order number.
-
-                nextPosition[nextPosition.Count - 1] = nextPosition.Last() + 1;
-
-                // Get and update tree item that holds currentRule as data.
-
-                RuleTreeItem treeItem = nextParent?.AddItem(addToChildren: true, addToFlatList: true, setLastAddedItem: true) ?? new RuleTreeItem();
-                treeItem.Data = rule;
-                RuleTree.ElementsFlat.Add(treeItem);
-                treeItem.Position = [.. nextPosition];
-                rule.DisplayOrderNumberString = string.Join(".", treeItem.Position);
-                treeItem.IsRule = true;
-
-                treeItem.Identifier = $"Rule (ID/UID): {rule.Id}/{rule.Uid}";
-
-                RuleTree.LastAddedItem = treeItem;
-
-                // Update order number, visited rules and last position.
-                CreatedOrderNumbersCount++;
-                rule.OrderNumber = CreatedOrderNumbersCount;
-                _allRules.Add(rule);
-                lastPosition = nextPosition;
-
-                // Handle inline layers.
-
-                if (nextQueueItem?.link is RulebaseLink nextLink && ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id) || nextLink.IsSection && RuleTree.LastAddedItem?.Data?.RulebaseId == nextLink.FromRulebaseId && currentRule == currentRules.Last()))
-                {
-                    nextQueueItem = RuleTreeBuilderQueue.Dequeue();
-
-                    lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem.Value, lastPosition);
-
-                    // Update current and next queue items in case this loop continues after handling an inline layer.
-
-                    nextQueueItem = TryPeekNextQueueItem();
-                }
+                trail = new();
             }
 
-            return lastPosition;
+            // Get next rulebase.
+
+            RulebaseReport? rulebase = Rulebases.FirstOrDefault(rb => rb.Id == link.NextRulebaseId);
+
+            if (rulebase == null)
+            {
+                throw new InvalidOperationException("Rulebase for link could not be found.");
+            }
+
+            // Create tree item for the rulebase link type.
+
+            if (link.LinkType == 2)
+            {
+                trail = ProcessOrderedLayerLink(link, rulebase, trail);
+            }
+            else if (RemainingInlineLayerLinks.Contains(link))
+            {
+                trail = ProcessInlineLayerLink(link, rulebase, trail);
+            }
+            else if (link.IsSection)
+            {
+                trail = ProcessSectionLink(link, rulebase, trail);
+            }
+            else if (link.LinkType == 4)
+            {
+                trail = ProcessConcatenationLink(link, rulebase, trail);
+            }
+
+            // Create tree items for rules and then process inline layers.
+
+            trail = ProcessRulebase(rulebase, link, trail);
+
+            return trail;
         }
 
         /// <summary>
-        /// Creates the queue that is used to create the rule tree.
+        /// Processes an inline layer link by adding its root item to the tree.
         /// </summary>
-        public Queue<(RulebaseLink, RulebaseReport)>? BuildRulebaseLinkQueue(RulebaseLink[] links, RulebaseReport[] rulebases)
+        public List<int> ProcessInlineLayerLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
         {
-            // Abort if their are no rulebase links or rulebases
-            if (links.Length == 0 || rulebases.Length == 0)
-            {
-                return null;
-            }
+            RuleTreeItem inlineLayerItem = new RuleTreeItem();
 
-            Queue<(RulebaseLink, RulebaseReport)> queue = new();
-            Dictionary<int, RulebaseReport> rulebaseMap = rulebases.ToDictionary(r => r.Id);
+            inlineLayerItem.Header = rulebase.Name ?? "";
+            inlineLayerItem.IsInlineLayerRoot = true;
+            SetParentForTreeItem(inlineLayerItem, link);
+            RuleTree.LastAddedItem = inlineLayerItem;
 
-            // Make copy of link list, to be able to remove links without changing the original collection.
-            List<RulebaseLink> remainingLinks = [.. links];
-
-            // Start with initial link.
-            RulebaseLink? current = remainingLinks.FirstOrDefault(l => l.IsInitial) ?? throw new InvalidOperationException("No initial RulebaseLink found.");
-            while (current != null)
-            {
-                // Get target rulebase to current link and enqueue its rules and the link.
-                if (!rulebaseMap.TryGetValue(current.NextRulebaseId, out RulebaseReport? report))
-                {
-                    throw new KeyNotFoundException($"No report found with ID {current.NextRulebaseId}");
-                }
-
-                RulebaseReport rulebase = new();
-
-                rulebase.Id = report.Id;
-                rulebase.Name = report.Name;
-                rulebase.RuleChanges = report.RuleChanges;
-                rulebase.RuleStatistics = report.RuleStatistics;
-                rulebase.Rules = [.. report.Rules];
-
-                queue.Enqueue((current, rulebase));
-                remainingLinks.Remove(current);
-
-                // Get next link.
-                List<RulebaseLink>? candidates = [.. remainingLinks
-                                                    .Where(l => l.FromRulebaseId == current.NextRulebaseId)
-                                                    .OrderByDescending(l => l.FromRuleId.HasValue)];
-
-                current = candidates.FirstOrDefault();
-                current ??= remainingLinks.FirstOrDefault();
-            }
-            RuleTreeBuilderQueue = queue;
-            return queue;
+            return trail;
         }
 
         /// <summary>
-        /// Returns the next queue item without removing it from the queue.
+        /// Processes a section link by adding a section header rule to the tree.
         /// </summary>
-        private (RulebaseLink, RulebaseReport)? TryPeekNextQueueItem()
+        public List<int> ProcessSectionLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
         {
-            if (RuleTreeBuilderQueue.TryPeek(out (RulebaseLink link, RulebaseReport) peekedQueueItem))
+            RuleTreeItem sectionLinkItem = new();
+
+            sectionLinkItem.Header = rulebase.Name ?? "";
+            sectionLinkItem.IsSectionHeader = true;
+            SetParentForTreeItem(sectionLinkItem, link);
+            Rule newRule = new();
+            CreatedOrderNumbersCount++;
+            newRule.OrderNumber = CreatedOrderNumbersCount;
+            newRule.SectionHeader = rulebase.Name;
+            sectionLinkItem.Data = newRule;
+            RuleTree.LastAddedItem = sectionLinkItem;
+            RuleTree.ElementsFlat.Add(sectionLinkItem);
+
+            return trail;
+        }
+
+        /// <summary>
+        /// Processes an ordered layer link and adds its header to the tree.
+        /// </summary>
+        public List<int> ProcessOrderedLayerLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
+        {
+            RuleTreeItem orderedLayerItem = new();
+
+            orderedLayerItem.Header = rulebase.Name ?? "";
+            orderedLayerItem.IsOrderedLayerHeader = true;
+            SetParentForTreeItem(orderedLayerItem, link);
+            trail.Add(GetOrderLayerCount());
+            orderedLayerItem.Position = trail.ToList();
+            RuleTree.LastAddedItem = orderedLayerItem;
+
+            return trail;
+        }
+
+        /// <summary>
+        /// Processes a concatenation link (currently handled like a section link).
+        /// </summary>
+        public List<int> ProcessConcatenationLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
+        {
+            return ProcessSectionLink(link, rulebase, trail); // TODO: Differentiate between concatenation and section if needed
+        }
+
+        /// <summary>
+        /// Processes all rules of the rulebase and attaches them to the tree.
+        /// </summary>
+        public List<int> ProcessRulebase(RulebaseReport rulebase, RulebaseLink link, List<int> trail)
+        {
+            if (RuleTree.LastAddedItem != null)
             {
-                return peekedQueueItem;
+                RuleTreeItem lastAddedItem = (RuleTreeItem)RuleTree.LastAddedItem;
+
+                for (int i = 0; i < rulebase.Rules.Count(); i++)
+                {
+                    Rule newRule = GetUniqueRuleObject(rulebase.Rules[i]);
+
+                    RuleTreeItem ruleItem = new();
+                    ruleItem.IsRule = true;
+                    ruleItem.Data = newRule;
+
+                    SetParentForTreeItem(ruleItem, link, lastAddedItem);
+
+                    trail = EnsureTrailStartsWithZeroForFirstRule(link, lastAddedItem, trail, i);
+
+                    // Increment the lowest level for the next rule order number.
+
+                    int bottomLevelNumber = trail.Last() + 1;
+                    trail[trail.Count - 1] = bottomLevelNumber;
+
+                    newRule.DisplayOrderNumberString = string.Join(".", trail);
+                    ruleItem.Position = trail.ToList();
+                    CreatedOrderNumbersCount++;
+                    newRule.OrderNumber = CreatedOrderNumbersCount;
+
+                    RuleTree.ElementsFlat.Add(ruleItem);
+                    RuleTree.LastAddedItem = ruleItem;
+
+                    ProcessInlineLayerLinksForRule(rulebase, i, trail);
+                }
+
+                RuleTree.LastAddedItem = lastAddedItem;
+            }
+
+            return trail;
+        }
+
+        /// <summary>
+        /// Returns the next link to process, preferring initial links.
+        /// </summary>
+        public RulebaseLink? GetNextLink()
+        {
+            // Get initial first
+
+            if (RemainingLinks.Any(link => link.IsInitial))
+            {
+                RulebaseLink initialLink = RemainingLinks.First(link => link.IsInitial);
+                RemainingLinks.Remove(initialLink);
+                return initialLink;
+            }
+
+            // Get next link in line
+
+            RulebaseLink? nextLink = RemainingLinks.FirstOrDefault();
+
+            if (nextLink != null)
+            {
+                RemainingLinks.Remove(nextLink);
+            }
+
+            return nextLink;
+        }
+
+        /// <summary>
+        /// Resets all state for a new build.
+        /// </summary>
+        public void Reset(RulebaseReport[] rulebases, RulebaseLink[] links)
+        {
+            RemainingLinks = links.ToList();
+            Rulebases = rulebases.ToList();
+            RemainingInlineLayerLinks = links.Where(link => link.LinkType == 3).ToList();
+            RuleTree = new RuleTreeItem() { IsRoot = true };
+            RuleTree.LastAddedItem = RuleTree;
+            CreatedOrderNumbersCount = 0;
+            OrderedLayerCount = 0;
+        }
+
+
+        #endregion
+
+        #region Methods - Private
+
+        /// <summary>
+        /// Ensures a rule with a duplicate ID gets cloned instead of reused.
+        /// </summary>
+        private Rule GetUniqueRuleObject(Rule rule)
+        {
+            if (RuleTree.ElementsFlat.FirstOrDefault(treeItem => treeItem.Data != null && treeItem.Data.Id == rule.Id)?.Data is Rule existingRule)
+            {
+                return rule.CreateClone();
             }
             else
             {
-                return null;
+                return rule;
             }
         }
 
         /// <summary>
-        /// Returns the item that should be used for the section rule tree item in creation.
+        /// Ensures the trail starts with a zero for the first rule in a sequence.
         /// </summary>
-        private RuleTreeItem GetSectionParent(IEnumerable<int> nextPosition)
+        private List<int> EnsureTrailStartsWithZeroForFirstRule(RulebaseLink link, RuleTreeItem lastAddedItem, List<int> trail, int index)
         {
-            List<int> changedCopy = nextPosition.ToList();
-            bool isLastPositionZero = false;
-            if (changedCopy.Last() == 0)
+            if (index == 0
+                    && (!(link.LinkType == 4)
+                        || lastAddedItem.Parent?.Children.Count() == 1))
             {
-                changedCopy.Remove(changedCopy.Last());
-                isLastPositionZero = true;
+                trail = trail.ToList();
+                trail.Add(0);
             }
-            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => CompareTreeItemPosition(x, changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
 
-            RuleTreeItem parent = item.Parent as RuleTreeItem ?? new RuleTreeItem();
-            if (item.Data is not null && parent.IsOrderedLayerHeader && !isLastPositionZero)
-            {
-                return parent;
-            }
-            if (item.IsOrderedLayerHeader)
-            {
-                return item;
-            }
-            if (parent.IsSectionHeader)
-            {
-                if (isLastPositionZero)
-                {
-                    return item;
-                }
-                return item.Parent?.Parent as RuleTreeItem ?? new RuleTreeItem();
-            }
-            if (item.IsInlineLayerRoot)
-            {
-                return item;
-            }
-            if (parent.IsInlineLayerRoot)
-            {
-                return item.Parent as RuleTreeItem ?? new RuleTreeItem();
-            }
-            return new RuleTreeItem();
+            return trail;
         }
 
-        private (List<int>, RuleTreeItem?, List<int>) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int> lastPosition, (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
+        /// <summary>
+        /// Processes any inline layer link that starts from the current rule.
+        /// </summary>
+        private void ProcessInlineLayerLinksForRule(RulebaseReport rulebase, int ruleIndex, List<int> trail)
         {
-            List<int> nextPosition = [];
-            RuleTreeItem? nextParent = null;
-            if (currentQueueItem.link is { LinkType: 2, IsGlobal: false })
+            if (RemainingInlineLayerLinks.Any(l => l.LinkType == 3 && l.FromRuleId == rulebase.Rules[ruleIndex].Id))
             {
-                // Create position root and header item for new ordered layer
+                RulebaseLink inlineLayerLink = RemainingInlineLayerLinks.First(l => l.LinkType == 3 && l.FromRuleId == rulebase.Rules[ruleIndex].Id);
+                RemainingInlineLayerLinks.Remove(inlineLayerLink);
+                RemainingLinks.Remove(inlineLayerLink);
+                List<int> innerTrail = ProcessLink(inlineLayerLink, trail);
 
-                OrderedLayerCount++;
-                nextPosition = [OrderedLayerCount];
-                nextParent = RuleTree.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
-                nextParent.IsOrderedLayerHeader = true;
-                lastPosition = nextPosition;
-            }
-            else if (currentQueueItem.link.IsSection)
-            {
-                // Get the starting point for the next position.
-
-                nextPosition = lastPosition;
-
-                // Get parent for header item.
-
-                nextParent = GetSectionParent(nextPosition);
-
-                // Create header item for section.
-
-                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
-                nextParent.IsSectionHeader = true;
-            }
-            else if (currentQueueItem.link.LinkType == 3)
-            {
-                nextParent = RuleTree.LastAddedItem as RuleTreeItem;
-                if (nextParent != null)
-                    nextParent.IsInlineLayerRoot = true;
-                nextPosition = lastPosition.ToList();
-                nextPosition.Add(0);
-                lastPosition = nextPosition;
-
-                // Handle sections in inline layers without direct rules.
-
-                if (nextQueueItem?.link is RulebaseLink nextLink && currentQueueItem.rulebase.Rules.Count() == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentQueueItem.link.NextRulebaseId)
+                if (RemainingLinks.FirstOrDefault(x => inlineLayerLink.NextRulebaseId == x.FromRulebaseId) != null)
                 {
-                    lastPosition = HandleRulebaseLinkQueueItem(RuleTreeBuilderQueue.Dequeue(), lastPosition);
+                    RulebaseLink? nextLink = GetNextLink();
+                    if (nextLink != null)
+                    {
+                        ProcessLink(nextLink, innerTrail);
+                    }
                 }
             }
-            else if (currentQueueItem.link.LinkType == 4 && currentQueueItem.link.IsInitial)
+        }
+
+        /// <summary>
+        /// Determines the correct parent for a tree item based on the link type.
+        /// </summary>
+        private void SetParentForTreeItem(RuleTreeItem item, RulebaseLink link, RuleTreeItem? parentOverride = null)
+        {
+            if (item.IsRule && parentOverride != null)
             {
-                nextParent = RuleTree;
+                SetParentForTreeItem(parentOverride, item);
+                return;
             }
 
-            return (nextPosition, nextParent, lastPosition);
-        }
-
-        private List<int> UpdateNextPosition(List<int> nextPosition, RuleTreeItem? nextParent)
-        {
-
-            if (nextParent != null && nextParent.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0 || nextPosition.Count == 0)
+            if (RuleTree.LastAddedItem is RuleTreeItem lastAddedItem && (lastAddedItem.Parent is RuleTreeItem parent || lastAddedItem.IsRoot))
             {
-                nextPosition.Add(0);
+                if (RemainingInlineLayerLinks.Contains(link))
+                {
+                    SetParentForTreeItem(lastAddedItem, item);
+                }
+                else if (link.IsSection)
+                {
+                    SetParentForSectionTreeItem(lastAddedItem, item);
+                }
+                else if (link.LinkType == 2)
+                {
+                    SetParentForTreeItem(RuleTree, item);
+                }
+                else if (link.LinkType == 4 && lastAddedItem.Parent != null)
+                {
+                    SetParentForTreeItem((RuleTreeItem)lastAddedItem.Parent, item);
+                }
             }
-
-            return nextPosition;
         }
 
-        #region NormalizePosition
-        private static string NormalizePosition(IEnumerable<string> parts)
+        /// <summary>
+        /// Sets the parent for a section item, handling root and section headers.
+        /// </summary>
+        private void SetParentForSectionTreeItem(RuleTreeItem lastAddedItem, RuleTreeItem item)
         {
-            var partsArray = parts.ToArray();
-            int lastNonZeroIndex = partsArray.Length - 1;
+            if (lastAddedItem.IsRoot)
+            {
+                SetParentForTreeItem(RuleTree, item);
+            }
+            else if (lastAddedItem.IsSectionHeader == true && lastAddedItem.Parent != null)
+            {
+                SetParentForTreeItem((RuleTreeItem)lastAddedItem.Parent, item);
+            }
+            else
+            {
+                SetParentForTreeItem(lastAddedItem, item);
+            }
+        }
 
-            while (lastNonZeroIndex > 0 && partsArray[lastNonZeroIndex] == "0")
-                lastNonZeroIndex--;
-            return string.Join(".", partsArray.Take(lastNonZeroIndex + 1));
-        }
-        private static string NormalizePosition(IEnumerable<int> parts)
+        /// <summary>
+        /// Assigns parent-child relationship and updates last-added pointer.
+        /// </summary>
+        private void SetParentForTreeItem(RuleTreeItem parent, RuleTreeItem item)
         {
-            var partsArray = parts.ToArray();
-            int lastNonZeroIndex = partsArray.Length - 1;
+            item.Parent = parent;
+            parent.Children.Add(item);
+            parent.LastAddedItem = item;
+        }
 
-            while (lastNonZeroIndex > 0 && partsArray[lastNonZeroIndex] == 0)
-                lastNonZeroIndex--;
-            return string.Join(".", partsArray.Take(lastNonZeroIndex + 1));
-        }
-        private static string NormalizePosition(string position)
+        /// <summary>
+        /// Counts top-level ordered layer headers to build their order number.
+        /// </summary>
+        private int GetOrderLayerCount()
         {
-            return NormalizePosition(position.Split('.'));
+            return RuleTree.Children.Count(treeItem => ((RuleTreeItem)treeItem).IsOrderedLayerHeader);
         }
+
         #endregion
-
-        protected static bool CompareTreeItemPosition(ITreeItem<Rule> treeItem, List<int> list)
-        {
-            string treeItemString = NormalizePosition(treeItem.GetPositionString());
-            string listString = NormalizePosition(list);
-            bool comparisonResult = treeItemString == listString;
-            if (!comparisonResult)
-            {
-                Logging.Log.WriteDebug("Comparing Position", $"Tree Item Position: {treeItemString} | Listing Position: {listString}");
-            }
-            return comparisonResult;
-        }
     }
 }

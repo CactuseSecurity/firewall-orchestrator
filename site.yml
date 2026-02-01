@@ -64,7 +64,6 @@
   tags:
     - samples
     - backend
-  # todo: add a meta dependency on role sample-data
 
 - hosts: importers
   roles:

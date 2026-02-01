@@ -128,10 +128,11 @@ git config core.hooksPath .githooks
 The hooks run after `git pull`, `git checkout`, and `git rebase` and execute:
 ```shell
 git submodule update --init --recursive
-git submodule update --remote --recursive
+git submodule update --remote --merge --recursive
 ```
 Notes:
 - The hook is quiet if you do not have access to a submodule repository (no error output).
+- The hook checks out the configured submodule branch from `.gitmodules` before updating, to avoid detached HEAD.
 - This intentionally moves submodules to the newest commit on their configured branch, even if the superproject has not updated the pointer yet. Expect the submodule to appear "modified" in `git status`.
 
 ### Manual submodule operations
@@ -147,7 +148,7 @@ git submodule update --init --recursive
 #### Update agents repo manually
 This updates the agents repo manually. Update submodules to the latest commit on their configured remote tracking branch. Execute this command to get the newest version of all submodules from their respective repositories.
 ```shell
-git submodule update --remote --recursive
+git submodule update --remote --merge --recursive
 ```
 
 ### Check correct file state

@@ -11,7 +11,7 @@ fi
 
 cd "${repo_root}"
 
- # No submodules configured.
+# No submodules configured.
 if [[ ! -f .gitmodules ]]; then
   exit 0
 fi
@@ -31,6 +31,41 @@ run_quiet() {
   "$@" >/dev/null 2>&1 || true
 }
 
-# Initialize submodules, then move them to the newest commit on their tracking branch.
+# Initialize submodules first so each path exists.
 run_quiet git submodule update --init --recursive
-run_quiet git submodule update --remote --recursive
+
+# Iterate configured submodules to ensure we are on a branch (not detached).
+while read -r key path; do
+  # Convert `submodule.<name>.path` -> `<name>`.
+  name="${key#submodule.}"
+  name="${name%.path}"
+
+  # Skip if the submodule path is missing or not initialized.
+  if [[ ! -d "${path}" ]]; then
+    continue
+  fi
+
+  # Skip if the path is not a Git repo.
+  if ! git -C "${path}" rev-parse --git-dir >/dev/null 2>&1; then
+    continue
+  fi
+
+  # Prefer repo-local submodule.<name>.branch, fallback to .gitmodules.
+  branch="$(git config --get "submodule.${name}.branch" || true)"
+  if [[ -z "${branch}" ]]; then
+    branch="$(git config --file .gitmodules --get "submodule.${name}.branch" || true)"
+  fi
+
+  if [[ -n "${branch}" ]]; then
+    # Try to checkout the branch if it already exists locally.
+    run_quiet git -C "${path}" checkout -q "${branch}"
+
+    # If still detached, create/reset the branch from origin.
+    if ! git -C "${path}" symbolic-ref -q HEAD >/dev/null 2>&1; then
+      run_quiet git -C "${path}" checkout -q -B "${branch}" "origin/${branch}"
+    fi
+  fi
+done < <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$')
+
+# Move submodules to the newest commit on their tracking branch, merging instead of detaching.
+run_quiet git submodule update --remote --merge --recursive

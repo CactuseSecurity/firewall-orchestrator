@@ -277,11 +277,11 @@ def _diff_dicts(a: dict[Any, Any], b: dict[Any, Any], strict: bool, path: str) -
 
 
 def _diff_lists(a: list[Any], b: list[Any], strict: bool, path: str) -> list[str]:
+    if len(a) != len(b):
+        return [f"list length mismatch at {path}: {len(a)} != {len(b)}"]
     diffs: list[str] = []
     for i, (x, y) in enumerate(zip(a, b, strict=False)):
         diffs.extend(find_all_diffs(x, y, strict, f"{path}[{i}]"))
-    if len(a) != len(b):
-        diffs.append(f"list length mismatch at {path}: {len(a)} != {len(b)}")
     return diffs
 
 

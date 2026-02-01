@@ -7,6 +7,7 @@ from fwo_api import FwoApi
 from fwo_base import ConfigAction, find_all_diffs
 from fwo_exceptions import FwoApiFailedDeleteOldImportsError, FwoImporterError, ImportInterruptionError
 from fwo_log import FWOLogger
+from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
@@ -58,12 +59,18 @@ class FwConfigImport:
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {single_manager.manager_uid}")
         previous_config = self.get_latest_config_from_db()
+        previous_global_config: FwConfigNormalized | None = None
         self._global_state.previous_config = previous_config
         if single_manager.is_super_manager:
             self._global_state.previous_global_config = previous_config
+        else:
+            # only set global config for sub managers
+            previous_global_config = self._global_state.previous_global_config
+
+        self.check_and_fix_db_consistency(previous_config, previous_global_config)
 
         # calculate differences and write them to the database via API
-        self.update_diffs(previous_config, self._global_state.previous_global_config, single_manager)
+        self.update_diffs(previous_config, previous_global_config, single_manager)
 
     def import_management_set(self, service_provider: ServiceProvider, mgr_set: FwConfigManagerListController):
         for manager in sorted(mgr_set.ManagerSet, key=lambda m: not getattr(m, "IsSuperManager", False)):
@@ -90,7 +97,7 @@ class FwConfigImport:
         self.import_state.state.mgm_details.current_mgm_is_super_manager = manager.is_super_manager
         config_importer = FwConfigImport()  # TODO: strange to create another import object here - see #3154
         config_importer.import_single_config(manager)
-        config_importer.consistency_check_db()
+        config_importer.consistency_check_config_against_db()
         config_importer.write_latest_config()
 
     def clear_management(self) -> FwConfigManagerListController:
@@ -363,7 +370,7 @@ class FwConfigImport:
                 gw.EnforcedNatPolicyUids.sort()
             # TODO: interfaces and routing as soon as they are implemented
 
-    def consistency_check_db(self):
+    def consistency_check_config_against_db(self):
         normalized_config = self.normalized_config
         if normalized_config is None:
             raise FwoImporterError("cannot perform consistency check: NormalizedConfig is None")
@@ -377,3 +384,121 @@ class FwConfigImport:
             )
             FWOLogger.debug(f"all {len(all_diffs)} differences:\n\t" + "\n\t".join(all_diffs))
             # TODO: long-term this should raise an error:
+
+    def check_and_fix_db_consistency(
+        self,
+        previous_config: FwConfigNormalized,
+        previous_global_config: FwConfigNormalized | None,
+    ):
+        """
+        Check consistency of the imported config against the previous config from the database.
+        If inconsistencies are found, they will be fixed in the database by marking objects/rules/links as removed.
+        """
+        consistency_checker = FwConfigImportCheckConsistency(self.import_state.state)
+        consistency_checker.check_config_consistency(previous_config, previous_global_config, fix_config=True)
+        self.fix_objects_in_db(
+            consistency_checker.network_objects_to_remove,
+            consistency_checker.service_objects_to_remove,
+            consistency_checker.user_objects_to_remove,
+        )
+        self.fix_rules_in_db(consistency_checker.rules_to_remove)
+        if consistency_checker.invalid_rulebase_links_exist:
+            self.fix_rulebase_links_in_db()
+
+    def fix_objects_in_db(self, nwobj_uids: list[str], svcobj_uids: list[str], user_uids: list[str]):
+        """
+        Sets removed flag on network objects, service objects and user objects with the given UIDs in the database
+        to fix consistency issues.
+        """
+        if not nwobj_uids and not svcobj_uids and not user_uids:
+            return  # nothing to do
+
+        mutation = FwoApi.get_graphql_code(
+            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "allObjects/upsertObjects.graphql"]
+        )
+
+        query_variables: dict[str, Any] = {
+            "mgmId": self.import_state.state.mgm_details.current_mgm_id,
+            "importId": self.import_state.state.import_id,
+            "newNwObjects": [],
+            "newSvcObjects": [],
+            "newUsers": [],
+            "newZones": [],
+            "removedNwObjectUids": nwobj_uids,
+            "removedSvcObjectUids": svcobj_uids,
+            "removedUserUids": user_uids,
+            "removedZoneUids": [],
+        }
+
+        try:
+            result = self.import_state.api_call.call(mutation, query_variables=query_variables)
+
+            removed_nwobj_ids = result["data"]["update_object"]["returning"]
+            removed_nwsvc_ids = result["data"]["update_service"]["returning"]
+            removed_user_ids = result["data"]["update_usr"]["returning"]
+            FWOLogger.info(
+                f"removed {len(removed_nwobj_ids)!s} network objects, {len(removed_nwsvc_ids)!s} service objects and {len(removed_user_ids)!s} user objects from DB to fix consistency issues"
+            )
+            self.import_state.state.stats.statistics.inconsistent_nwobj_delete_count += len(removed_nwobj_ids)
+            self.import_state.state.stats.statistics.inconsistent_svcobj_delete_count += len(removed_nwsvc_ids)
+            self.import_state.state.stats.statistics.inconsistent_userobj_delete_count += len(removed_user_ids)
+        except Exception:
+            FWOLogger.exception(
+                f"failed to fix object consistency issues for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+            )
+            raise FwoImporterError("error while trying to fix object consistency issues") from None
+
+    def fix_rules_in_db(self, rule_uids: list[str]):
+        """
+        Sets removed flag on rules with the given UIDs in the database to fix consistency issues.
+        """
+        if not rule_uids:
+            return  # nothing to do
+
+        mutation = """
+            mutation markRulesRemoved($importId: bigint!, $mgmId: Int!, $uids: [String!]!) {
+                update_rule(where: {removed: { _is_null: true }, rule_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}}, _set: {removed: $importId}) {
+                    affected_rows
+                    returning { rule_id }
+                }
+            }
+        """
+        query_variables: dict[str, Any] = {
+            "mgmId": self.import_state.state.mgm_details.current_mgm_id,
+            "importId": self.import_state.state.import_id,
+            "uids": rule_uids,
+        }
+        try:
+            result = self.import_state.api_call.call(mutation, query_variables=query_variables)
+
+            removed_rule_ids = result["data"]["update_rule"]["returning"]
+            FWOLogger.info(f"marked {len(removed_rule_ids)!s} rules as removed in DB to fix consistency issues")
+            self.import_state.state.stats.statistics.inconsistent_rule_delete_count += len(removed_rule_ids)
+        except Exception:
+            FWOLogger.exception(
+                f"failed to fix rule consistency issues for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+            )
+            raise FwoImporterError("error while trying to fix rule consistency issues") from None
+
+    def fix_rulebase_links_in_db(self):
+        """
+        Removes inconsistent rulebase links from the database to fix consistency issues.
+        """
+        mutation = FwoApi.get_graphql_code(
+            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/removeInconsistentRulebaseLinks.graphql"]
+        )
+        query_variables: dict[str, Any] = {
+            "mgmId": self.import_state.state.mgm_details.current_mgm_id,
+            "importId": self.import_state.state.import_id,
+        }
+        try:
+            result = self.import_state.api_call.call(mutation, query_variables=query_variables)
+
+            removed_links = result["data"]["update_rulebase_link"]["affected_rows"]
+            FWOLogger.info(f"removed {removed_links!s} inconsistent rulebase links from DB to fix consistency issues")
+            self.import_state.state.stats.statistics.inconsistent_rulebase_link_delete_count += removed_links
+        except Exception:
+            FWOLogger.exception(
+                f"failed to remove inconsistent rulebase links for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+            )
+            raise FwoImporterError("error while trying to remove inconsistent rulebase links") from None

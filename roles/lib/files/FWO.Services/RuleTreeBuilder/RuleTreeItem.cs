@@ -101,8 +101,10 @@ namespace FWO.Services.RuleTreeBuilder
                         {
                             item.IsVisible = false;
                         }
-
-                        item.IsVisible = true;
+                        else
+                        {
+                            item.IsVisible = true;
+                        }
                     }
                     else
                     {

@@ -26,6 +26,13 @@ namespace FWO.Data.Modelling
         VarianceFound = 33
     }
 
+    public enum InterfacePermissions
+    {
+        Public = 1,
+        Restricted = 2,
+        Private = 3
+    }
+
     public class ModellingConnection
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -115,6 +122,9 @@ namespace FWO.Data.Modelling
         [JsonProperty("removal_date"), JsonPropertyName("removal_date")]
         public DateTime? RemovalDate { get; set; }
 
+        [JsonProperty("interface_permission"), JsonPropertyName("interface_permission")]
+        public string InterfacePermission { get; set; } = InterfacePermissions.Public.ToString();
+
 
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
@@ -137,6 +147,7 @@ namespace FWO.Data.Modelling
         }
         public List<ModellingExtraConfig> ExtraConfigsFromInterface { get; set; } = [];
         public bool ProdRuleFound { get; set; } = false;
+        public List<FwoOwner> PermittedOwners { get; set; } = [];
 
 
         public ModellingConnection()
@@ -180,6 +191,8 @@ namespace FWO.Data.Modelling
             InterfaceIsRejected = conn.InterfaceIsRejected;
             InterfaceIsDecommissioned = conn.InterfaceIsDecommissioned;
             ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
+            InterfacePermission = conn.InterfacePermission;
+            PermittedOwners = conn.PermittedOwners;
         }
 
         public int CompareTo(ModellingConnection secondConnection)

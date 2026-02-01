@@ -107,19 +107,25 @@
                 }
                 @if(ConnHandler.ActConn.IsInterface)
                 {
-                    <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("C9009"))">
+                    <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H9082"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("interface_permission")):</label>
+                        @if(ConnHandler.ReadOnly)
+                        {
+                            <label class="col-sm-3">@(userConfig.GetText(ConnHandler.ActConn.InterfacePermission))</label>
+                        }
+                        else
+                        {
+                            <div class="form-group row col-sm-3 mt-2 me-auto">
+                                <Dropdown ElementType="string" @bind-SelectedElement="ConnHandler.ActConn.InterfacePermission" ElementToString="@(p => userConfig.GetText(p))" Elements="Enum.GetNames<InterfacePermissions>()"/>
+                            </div>
+                        }
+                    </div>
+                   @* <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("C9009"))">
                         <label for="cbx_publish" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("publish")):</label>
                         <div class="col-sm-1">
-                            @if(ConnHandler.ReadOnly)
-                            {
-                                <input id="cbx_publish" type="checkbox" class="w-100" disabled @bind="ConnHandler.ActConn.IsPublished">
-                            }
-                            else
-                            {
-                                <input id="cbx_publish" type="checkbox" class="w-100" @bind="ConnHandler.ActConn.IsPublished">
-                            }
+                            <input id="cbx_publish" type="checkbox" class="w-100" disabled="@ConnHandler.ReadOnly" @bind="ConnHandler.ActConn.IsPublished">
                         </div>
-                    </div>
+                    </div> *@
                 }
                 <br>
                 <div class="form-group row">
@@ -178,13 +184,11 @@
                         }
                         else 
                         {
-                            <div class="@SrcClass()" 
-                            ondragover="event.preventDefault();"
-                            ondragstart="event.dataTransfer.setData('', event.target.id);"
-                            @ondrop="HandleSrcDrop">
+                            <div class="@SrcClass()" ondragover="event.preventDefault();"
+                                    ondragstart="event.dataTransfer.setData('', event.target.id);" @ondrop="HandleSrcDrop">
                                 <EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.SourceAreas)"
-                                ElementsToAdd="ConnHandler.SrcAreasToAdd" ElementsToDelete="ConnHandler.SrcAreasToDelete" StdLayout="false" 
-                                AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                        ElementsToAdd="ConnHandler.SrcAreasToAdd" ElementsToDelete="ConnHandler.SrcAreasToDelete" StdLayout="false" 
+                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                     <Display>
                                         <div class="row">
                                             <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -192,8 +196,8 @@
                                     </Display>
                                 </EditList>
                                 <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.SourceOtherGroups)"
-                                ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false" 
-                                AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                        ElementsToAdd="ConnHandler.SrcNwGroupsToAdd" ElementsToDelete="ConnHandler.SrcNwGroupsToDelete" StdLayout="false" 
+                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                     <Display>
                                         <div class="row">
                                             <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -201,8 +205,8 @@
                                     </Display>
                                 </EditList>
                                 <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.SourceAppRoles.Where(x => x.Content.Id != ConnHandler.DummyAppRole.Id).ToList())"
-                                ElementsToAdd="ConnHandler.SrcAppRolesToAdd" ElementsToDelete="ConnHandler.SrcAppRolesToDelete" StdLayout="false"
-                                AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                        ElementsToAdd="ConnHandler.SrcAppRolesToAdd" ElementsToDelete="ConnHandler.SrcAppRolesToDelete" StdLayout="false"
+                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                     <Display>
                                         <div class="row">
                                             <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -210,8 +214,8 @@
                                     </Display>
                                 </EditList>
                                 <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.SourceAppServers)"
-                                ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false"
-                                AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                        ElementsToAdd="ConnHandler.SrcAppServerToAdd" ElementsToDelete="ConnHandler.SrcAppServerToDelete" StdLayout="false"
+                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                     <Display>
                                         <div class="row">
                                             <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -256,13 +260,11 @@
                         }
                         else 
                         {
-                            <div class="@dropzoneClass" 
-                            ondragover="event.preventDefault();"
-                            ondragstart="event.dataTransfer.setData('', event.target.id);"
-                            @ondrop="HandleSvcDrop">
+                            <div class="@dropzoneClass" ondragover="event.preventDefault();"
+                                    ondragstart="event.dataTransfer.setData('', event.target.id);" @ondrop="HandleSvcDrop">
                                 <EditList ElementType="ModellingServiceGroup" Elements="ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups)"
-                                ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" 
-                                AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                        ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" 
+                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                     <Display>
                                         <div class="row">
                                             <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -270,8 +272,8 @@
                                     </Display>
                                 </EditList>
                                 <EditList ElementType="ModellingService" Elements="ModellingServiceWrapper.Resolve(ConnHandler.ActConn.Services)"
-                                ElementsToAdd="ConnHandler.SvcToAdd" ElementsToDelete="ConnHandler.SvcToDelete" StdLayout="false"
-                                AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                        ElementsToAdd="ConnHandler.SvcToAdd" ElementsToDelete="ConnHandler.SvcToDelete" StdLayout="false"
+                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                     <Display>
                                         <div class="row">
                                             <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -336,13 +338,11 @@
                         }
                         else
                         {
-                            <div class="@DestClass()" 
-                            ondragover="event.preventDefault();"
-                            ondragstart="event.dataTransfer.setData('', event.target.id);"
-                            @ondrop="HandleDstDrop">
+                            <div class="@DestClass()" ondragover="event.preventDefault();"
+                                    ondragstart="event.dataTransfer.setData('', event.target.id);" @ondrop="HandleDstDrop">
                                 <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationOtherGroups)" 
-                                ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false"
-                                AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                        ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false"
+                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                     <Display>
                                         <div class="row">
                                             <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -350,8 +350,8 @@
                                     </Display>
                                 </EditList>
                                 <EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.DestinationAreas)" 
-                                ElementsToAdd="ConnHandler.DstAreasToAdd" ElementsToDelete="ConnHandler.DstAreasToDelete" StdLayout="false"
-                                AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                        ElementsToAdd="ConnHandler.DstAreasToAdd" ElementsToDelete="ConnHandler.DstAreasToDelete" StdLayout="false"
+                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                     <Display>
                                         <div class="row">
                                             <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -359,8 +359,8 @@
                                     </Display>
                                 </EditList>
                                 <EditList ElementType="ModellingAppRole" Elements="ModellingAppRoleWrapper.Resolve(ConnHandler.ActConn.DestinationAppRoles.Where(x => x.Content.Id != ConnHandler.DummyAppRole.Id).ToList())"
-                                ElementsToAdd="ConnHandler.DstAppRolesToAdd" ElementsToDelete="ConnHandler.DstAppRolesToDelete" StdLayout="false"
-                                AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                        ElementsToAdd="ConnHandler.DstAppRolesToAdd" ElementsToDelete="ConnHandler.DstAppRolesToDelete" StdLayout="false"
+                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                     <Display>
                                         <div class="row">
                                             <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -368,8 +368,8 @@
                                     </Display>
                                 </EditList>
                                 <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(ConnHandler.ActConn.DestinationAppServers)"
-                                ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false"
-                                AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
+                                        ElementsToAdd="ConnHandler.DstAppServerToAdd" ElementsToDelete="ConnHandler.DstAppServerToDelete" StdLayout="false"
+                                        AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
                                     <Display>
                                         <div class="row">
                                             <div class="ml-13 col-sm-12 border form-control form-control-sm bg-transparent">@((MarkupString)context.DisplayWithIcon())</div>
@@ -380,6 +380,15 @@
                         }
                     </div>
                 </div>
+                @if(ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.InterfacePermission == InterfacePermissions.Restricted.ToString())
+                {
+                   <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H9083"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("permitted_owners")):</label>
+                        <div class="col-sm-9">
+                            <PermittedOwnersSelection AllOwners="ConnHandler.AllApps" @bind-PermittedOwners="ConnHandler.ActConn.PermittedOwners" Readonly="ConnHandler.ReadOnly"/>
+                        </div>
+                    </div>
+                }
                 @if(!ConnHandler.AddMode)
                 {
                     <br>

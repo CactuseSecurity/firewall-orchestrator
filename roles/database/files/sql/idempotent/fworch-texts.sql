@@ -1824,6 +1824,8 @@ INSERT INTO txt VALUES ('modelled_destination', 'German', 	'Modelliertes Ziel');
 INSERT INTO txt VALUES ('modelled_destination', 'English', 	'Modelled Destination');
 INSERT INTO txt VALUES ('last_requested',		'German', 	'Letzte Beantragung');
 INSERT INTO txt VALUES ('last_requested',		'English', 	'Last Requested');
+INSERT INTO txt VALUES ('permitted_owners',		'German', 	'Berechtigte Applikationen');
+INSERT INTO txt VALUES ('permitted_owners',		'English', 	'Permitted Applications');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -7410,3 +7412,5 @@ INSERT INTO txt VALUES ('H9081', 'German',  'Sonderkonfigurationen sind speziell
 INSERT INTO txt VALUES ('H9081', 'English', 'Extra configurations are special recommendations for implementation, e.g. NAT. Possible types are defined by the administrator.');
 INSERT INTO txt VALUES ('H9082', 'German',  'Berechtigung: Bestimmt die Sicht- und Nutzbarkeit f&uuml;r andere Applikationen: &Ouml;ffentlich - f&uuml;r alle ohne R&uuml;ckfrage nutzbar, Beschr&auml;nkt - nur mit Zustimmung des Eigent&uuml;mers nutzbar, Privat - ausschliesslich innerhalb des eigenen Kommunikationsprofils nutzbar.');
 INSERT INTO txt VALUES ('H9082', 'English', 'Permission: Defines visability and usability for other applications: Public - usable for all without further query, Restricted - usable only with permission of the owner, Private - usable only inside the own Communication Profile.');
+INSERT INTO txt VALUES ('H9083', 'German',  'Berechtigte Applikationen: Bestimmt, welche anderen Applikationen diese Schnittstelle nutzen d&uuml;rfen.');
+INSERT INTO txt VALUES ('H9083', 'English', 'Permitted Applications: Defines which other applications are permitted to use this interface.');

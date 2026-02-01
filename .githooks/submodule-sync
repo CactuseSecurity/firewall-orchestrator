@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Sync submodules quietly after common Git operations.
+
+# Resolve repository root; bail out if not inside a Git repo.
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "${repo_root}" ]]; then
+  exit 0
+fi
+
+cd "${repo_root}"
+
+ # No submodules configured.
+if [[ ! -f .gitmodules ]]; then
+  exit 0
+fi
+
+# No submodule paths registered in .gitmodules.
+if ! git config --file .gitmodules --get-regexp '^submodule\..*\.path$' >/dev/null 2>&1; then
+  exit 0
+fi
+
+# Disable prompts and keep this hook silent for users without repo access.
+export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS=/bin/true
+export GIT_SSH_COMMAND="ssh -o BatchMode=yes"
+
+run_quiet() {
+  # Ignore failures to avoid blocking normal Git operations.
+  "$@" >/dev/null 2>&1 || true
+}
+
+# Initialize submodules, then move them to the newest commit on their tracking branch.
+run_quiet git submodule update --init --recursive
+run_quiet git submodule update --remote --recursive

@@ -28,7 +28,7 @@ def sanitize(content: Any, lower: bool = False) -> None | str:
     if content is None:
         return None
     result = str(content)
-    # Keep LDAP DN punctuation ("," and "=") intact; only strip quotes and line breaks.
+    # Keep LDAP DN punctuation ("," and "=") intact; only strip quotes and line breaks
     result = result.replace('"', "")
     result = result.replace("\n", " ").replace("\r", " ")
     if lower:

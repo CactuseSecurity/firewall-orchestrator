@@ -1,10 +1,7 @@
 query getPermittedOwnersForConnection($connectionId: Int!) {
-  modelling_permitted_owners(where: {connection_id: {_eq: $connectionId}}) {
-    app_id
-    owner {
-      id
-      name
-      app_id_external
-    }
+  owner(where: { permitted_owners: { connection_id: { _eq: $connectionId } } }) {
+    id
+    name
+    app_id_external
   }
 }

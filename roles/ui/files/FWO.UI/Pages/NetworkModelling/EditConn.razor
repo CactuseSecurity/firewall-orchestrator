@@ -385,7 +385,11 @@
                    <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H9083"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("permitted_owners")):</label>
                         <div class="col-sm-9">
-                            <PermittedOwnersSelection AllOwners="ConnHandler.AllApps" @bind-PermittedOwners="ConnHandler.ActConn.PermittedOwners" Readonly="ConnHandler.ReadOnly"/>
+                            <PermittedOwnersSelection AllOwners="ConnHandler.AllApps"
+                                @bind-PermittedOwners="ConnHandler.ActConn.PermittedOwners"
+                                OwnersToAdd="ConnHandler.PermittedOwnersToAdd"
+                                OwnersToDelete="ConnHandler.PermittedOwnersToDelete"
+                                Readonly="ConnHandler.ReadOnly"/>
                         </div>
                     </div>
                 }

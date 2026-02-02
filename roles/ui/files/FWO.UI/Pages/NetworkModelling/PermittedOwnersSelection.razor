@@ -46,12 +46,17 @@ else
     public bool Readonly { get; set; } = false;
 
     private FwoOwner? SelectedOwner;
-    private List<FwoOwner> OwnersToAdd = [];
-    private List<FwoOwner> OwnersToDelete = [];
+    [Parameter]
+    public List<FwoOwner> OwnersToAdd { get; set; } = [];
+
+    [Parameter]
+    public List<FwoOwner> OwnersToDelete { get; set; } = [];
 
     private void AddOwner()
     {
-        if(SelectedOwner != null && !OwnersToAdd.Contains(SelectedOwner))
+        if (SelectedOwner != null &&
+            !OwnersToAdd.Any(o => o.Id == SelectedOwner.Id) &&
+            !PermittedOwners.Any(o => o.Id == SelectedOwner.Id))
         {
             OwnersToAdd.Add(SelectedOwner);
         }

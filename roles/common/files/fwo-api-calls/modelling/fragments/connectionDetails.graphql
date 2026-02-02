@@ -17,6 +17,7 @@ fragment connectionDetails on modelling_connection {
   requested_on_fw
   removed
   removal_date
+  interface_permission
   source_nwobjects: nwobject_connections (where: { connection_field: { _eq: 1 } }){
     owner_network{
       ...appServerDetails

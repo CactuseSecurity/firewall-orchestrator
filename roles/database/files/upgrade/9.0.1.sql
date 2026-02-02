@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS rule_to_owner
 (
     rule_id bigint NOT NULL,
     owner_id int NOT NULL,
+    ip_based BOOLEAN NOT NULL DEFAULT FALSE,
     created bigint NOT NULL,
     removed bigint,
  primary key (rule_id, owner_id, created)

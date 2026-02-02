@@ -7,8 +7,6 @@ query getInterfaceUsers ($id: Int){
     owner{
       id
       name
-      dn
-      group_dn
     }
   }
 }

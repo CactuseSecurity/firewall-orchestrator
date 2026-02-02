@@ -22,14 +22,14 @@ namespace FWO.Data.Report
 
 
         public OwnerConnectionReport()
-        {}
+        { }
 
         public OwnerConnectionReport(long dummyARid)
         {
             DummyARid = dummyARid;
         }
 
-        public OwnerConnectionReport(OwnerConnectionReport report): base(report)
+        public OwnerConnectionReport(OwnerConnectionReport report) : base(report)
         {
             Owner = report.Owner;
             Connections = report.Connections;

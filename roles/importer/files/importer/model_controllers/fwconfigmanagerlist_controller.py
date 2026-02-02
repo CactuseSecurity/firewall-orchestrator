@@ -158,8 +158,5 @@ class FwConfigManagerListController(FwConfigManagerList):
     def is_normalized(self) -> bool:
         return not self.is_native()
 
-    def is_legacy(self) -> bool:
-        return self.ConfigFormat == ConfFormat.is_legacy_config_format
-
     def has_empty_config(self) -> bool:
         return self.native_config_is_empty() and self.normalized_config_is_empty()

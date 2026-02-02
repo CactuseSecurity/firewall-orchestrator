@@ -28,7 +28,7 @@ namespace FWO.Config.Api
             ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
             return await ConstructAsync(apiConnection, loadLanguageData, withSubscription, owningApiConnection: true);
         }
-        
+
         public static async Task<GlobalConfig> ConstructAsync(ApiConnection apiConnection, bool loadLanguageData = true, bool withSubscription = false, bool owningApiConnection = false)
         {
             string productVersion = ConfigFile.ProductVersion;
@@ -89,7 +89,7 @@ namespace FWO.Config.Api
             OverDict = overDict;
         }
 
-        public override string GetText(string key) 
+        public override string GetText(string key)
         {
             ThrowIfDisposed();
             if (LangDict.TryGetValue(DefaultLanguage, out Dictionary<string, string>? langDict) && langDict.TryGetValue(key, out string? value))
@@ -98,7 +98,7 @@ namespace FWO.Config.Api
             }
             return GlobalConst.kUndefinedText;
         }
-        
+
         private static async Task<Dictionary<string, string>> LoadLangDict(Language lang, ApiConnection apiConnection, bool over = false)
         {
             var languageVariable = new { language = lang.Name };

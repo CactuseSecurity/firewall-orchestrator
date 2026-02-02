@@ -1,4 +1,4 @@
-﻿using FWO.Data.Modelling;
+using FWO.Data.Modelling;
 
 namespace FWO.Data.Report
 {
@@ -7,7 +7,7 @@ namespace FWO.Data.Report
         public List<ModellingConnection> GlobalComSvcs = [];
 
         public GlobalCommonSvcReport() : base()
-        {}
+        { }
 
         public GlobalCommonSvcReport(GlobalCommonSvcReport report) : base(report)
         {

@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Basics;
 
@@ -17,7 +17,7 @@ namespace FWO.Data.Modelling
 
 
         public ModellingObject()
-        {}
+        { }
 
         public ModellingObject(ModellingObject modellingObject)
         {

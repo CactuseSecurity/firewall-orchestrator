@@ -176,6 +176,7 @@
     private string refAlertText = "";
     private bool firstCall = true;
     private bool somethingToDo = false;
+    private bool showAlreadyDoneMessages = false;
     private bool DeleteManagementMode = false;
     private Management actManagement = new Management();
     private bool DeleteDeviceMode = false;
@@ -229,6 +230,7 @@
             refAlertText = "";
             somethingToDo = (Actions.Count() > 0);
             bool singleAlert = (Actions.Count() == 1 && Actions[0].AlertId != null);
+            showAlreadyDoneMessages = singleAlert;
 
             foreach(ActionItem action in Actions)
             {
@@ -263,7 +265,10 @@
                         else
                         {
                             // already reactivated
-                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            if (showAlreadyDoneMessages)
+                            {
+                                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            }
                         }
                         break;
                     case ActionCode.DeleteManagement:
@@ -286,7 +291,10 @@
                         else
                         {
                             // already deleted
-                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            if (showAlreadyDoneMessages)
+                            {
+                                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            }
                         }
                         break;
                     case ActionCode.AddGatewayToNewManagement:
@@ -342,7 +350,10 @@
                         else
                         {
                             // already reactivated
-                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            if (showAlreadyDoneMessages)
+                            {
+                                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            }
                         }
                         break;
                     case ActionCode.DeleteGateway:
@@ -438,7 +449,10 @@
             && exMgmt.SuperManagerId == management.SuperManagerId) != null)
         {
             // already created
-            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            if (showAlreadyDoneMessages)
+            {
+                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            }
             return false;
         }
         return true;
@@ -451,7 +465,10 @@
             && existingDevice.LocalRulebase == device.LocalRulebase) != null)
         {
             // already created
-            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            if (showAlreadyDoneMessages)
+            {
+                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            }
             return false;
         }
         return true;
@@ -472,7 +489,10 @@
         else
         {
             // already deleted
-            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            if (showAlreadyDoneMessages)
+            {
+                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            }
         }
     }
 

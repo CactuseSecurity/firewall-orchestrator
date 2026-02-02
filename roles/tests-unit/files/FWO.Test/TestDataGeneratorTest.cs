@@ -85,7 +85,7 @@ namespace FWO.Test
                 Assert.That(generatedInstance.CreationDate, Is.Null, "CreationDate should be null.");
                 Assert.That(generatedInstance.Properties, Is.EqualTo(""), "Properties should be an empty string.");
                 Assert.That(generatedInstance.ExtraParams, Is.EqualTo(""), "ExtraParams should be an empty string.");
-                
+
                 // Listen prüfen
                 Assert.That(generatedInstance.Services, Is.Empty, "Services should be an empty list.");
                 Assert.That(generatedInstance.ServiceGroups, Is.Empty, "ServiceGroups should be an empty list.");
@@ -97,13 +97,13 @@ namespace FWO.Test
                 Assert.That(generatedInstance.DestinationAreas, Is.Empty, "DestinationAreas should be an empty list.");
                 Assert.That(generatedInstance.SourceOtherGroups, Is.Empty, "SourceOtherGroups should be an empty list.");
                 Assert.That(generatedInstance.DestinationOtherGroups, Is.Empty, "DestinationOtherGroups should be an empty list.");
-                
+
                 // Boolean Flags
                 Assert.That(generatedInstance.SrcFromInterface, Is.False, "SrcFromInterface should be false.");
                 Assert.That(generatedInstance.DstFromInterface, Is.False, "DstFromInterface should be false.");
                 Assert.That(generatedInstance.InterfaceIsRequested, Is.False, "InterfaceIsRequested should be false.");
                 Assert.That(generatedInstance.InterfaceIsRejected, Is.False, "InterfaceIsRejected should be false.");
-                
+
                 Assert.That(generatedInstance.OrderNumber, Is.EqualTo(0), "OrderNumber should be 0.");
                 Assert.That(generatedInstance.Props, Is.Null, "Props should be null.");
                 Assert.That(generatedInstance.ExtraConfigs, Is.Empty, "ExtraConfigs should be an empty list.");
@@ -144,15 +144,51 @@ namespace FWO.Test
 
                 if (generatedInstance != null)
                 {
-                    generatedInstances.Add(generatedInstance);                    
+                    generatedInstances.Add(generatedInstance);
                 }
 
             }
-            
+
 
             // ASSERT
             Assert.That(generatedInstances, Has.Count.EqualTo(iterations), "Die Anzahl der generierten Instanzen stimmt nicht mit iterations überein.");
             Assert.That(generatedInstances.All(instance => validNames.Contains(instance?.Name ?? "notinlist")), Is.True, "Mindestens eine generierte Instanz hat einen ungültigen Namen.");
+        }
+
+        [Test]
+        public void GenerateInstance_UsesProbabilitySelection()
+        {
+            // ARRANGE
+            TestDataGenerator<ModellingConnection> testDataGenerator = new();
+            string json = @"
+            {
+                ""config"": [
+                    {
+                        ""set"": {
+                            ""Name"": {
+                                ""always"": 1.0,
+                                ""never"": 0.0
+                            }
+                        }
+                    }
+                ]
+            }";
+            List<ModellingConnection> generatedInstances = new();
+            int iterations = 25;
+
+            // ACT
+            for (int i = 1; i <= iterations; i++)
+            {
+                ModellingConnection? generatedInstance = testDataGenerator.GenerateInstance(json).SingleInstance;
+                if (generatedInstance != null)
+                {
+                    generatedInstances.Add(generatedInstance);
+                }
+            }
+
+            // ASSERT
+            Assert.That(generatedInstances, Has.Count.EqualTo(iterations), "Die Anzahl der generierten Instanzen stimmt nicht mit iterations überein.");
+            Assert.That(generatedInstances.All(instance => instance?.Name == "always"), Is.True, "Mindestens eine generierte Instanz hat einen unerwarteten Namen.");
         }
 
         [Test]

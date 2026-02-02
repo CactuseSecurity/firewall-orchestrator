@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -7,7 +7,7 @@ namespace FWO.Data
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; } = 0;
-        
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
     }

@@ -17,11 +17,7 @@ rule_from_zones {
     rule_created
     rule_first_hit
     rule_last_hit
-    rule_last_modified
     created_import {
-      start_time
-    }
-    last_modified_import {
       start_time
     }
     recertification: recertifications(

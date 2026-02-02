@@ -285,8 +285,12 @@
                 [QueryVar.ImportIdStart] = import_id_start.Values.Any(v => v > 0) ? import_id_start.Values.Where(v => v > 0).Min() : 0,
                 [QueryVar.ImportIdEnd] = import_id_end.Values.Max(),
             };
-            var mgmResult = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails,
+            var mgmResponse = await apiConnection.SendQuerySafeAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails,
             queryVars);
+            if (!TryGetResult(mgmResponse, userConfig.GetText("object_fetch"), out var mgmResult))
+            {
+                return;
+            }
             managementsAllObjects = mgmResult.Where(m => m.Objects.Count() > 0 || m.Services.Count() > 0 || m.Users.Count() >
             0).ToList();
             collapseInRSB.Collapse("all");
@@ -334,7 +338,11 @@
         {
             [QueryVar.Time] = time != "" ? time : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat),
         };
-        List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVars);
+        var response = await apiConnection.SendQuerySafeAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVars);
+        if (!TryGetResult(response, userConfig.GetText("object_fetch"), out var result))
+        {
+            return new Dictionary<int, long>();
+        }
         Dictionary<int, long> importIds = new();
         foreach (ManagementReport mgm in result)
         {
@@ -507,7 +515,11 @@
 
         try
         {
-            List<Rule> rules = await apiConnection.SendQueryAsync<List<Rule>>(query, queryVars);
+            var rulesResponse = await apiConnection.SendQuerySafeAsync<List<Rule>>(query, queryVars);
+            if (!TryGetResult(rulesResponse, userConfig.GetText("object_fetch"), out var rules))
+            {
+                return;
+            }
             Rule? ruleUpdated = rules.FirstOrDefault(r => r.Id == id);
             if (ruleUpdated == null)
             {
@@ -546,8 +558,11 @@
 
             while (keepFetching && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
-                List<ManagementReport> managementsCurrentFetch = await apiConnection.SendQueryAsync<List<ManagementReport>>(query,
-                queryVars);
+                var response = await apiConnection.SendQuerySafeAsync<List<ManagementReport>>(query, queryVars);
+                if (!TryGetResult(response, userConfig.GetText("object_fetch"), out var managementsCurrentFetch))
+                {
+                    break;
+                }
                 if (fetchCount == 1)
                 {
                     reportData.ManagementData = managementsCurrentFetch;
@@ -587,5 +602,26 @@
             return ownerDataForRsb;
         }
         return ownerData;
+    }
+
+    private bool TryGetResult<T>(ApiResponse<T> response, string action, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out T? result)
+    {
+        if (response.HasErrors)
+        {
+            string errorMessage = response.Errors != null ? string.Join(Environment.NewLine, response.Errors) : "";
+            DisplayMessageInUi(null, action, errorMessage, true);
+            result = default;
+            return false;
+        }
+
+        if (response.Result == null)
+        {
+            DisplayMessageInUi(null, action, userConfig.GetText("E0001"), true);
+            result = default;
+            return false;
+        }
+
+        result = response.Result;
+        return true;
     }
 }

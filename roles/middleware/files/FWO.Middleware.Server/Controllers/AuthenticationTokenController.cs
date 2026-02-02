@@ -63,6 +63,7 @@ namespace FWO.Middleware.Server.Controllers
                 }
 
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
 
                 await authManager.AuthorizeUserAsync(user, validatePassword: true);
 

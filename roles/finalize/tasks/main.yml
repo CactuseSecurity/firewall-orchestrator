@@ -95,13 +95,6 @@
   become: true
   when: "demo_data_present.query_result == [] and 'sampleserver' in group_names"
 
-- name: remove temp importer_password from install host
-  file:
-    path: "{{ importer_password_file_on_installer }}"
-    state: absent
-  become: true
-  delegate_to: localhost
-
 - name: start importer service
   systemd:
     name: "{{ product_name }}-importer-api"

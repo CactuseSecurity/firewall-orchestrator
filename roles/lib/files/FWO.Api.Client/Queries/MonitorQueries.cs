@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {

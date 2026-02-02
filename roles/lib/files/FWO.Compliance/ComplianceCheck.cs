@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Basics.Interfaces;
@@ -168,7 +168,7 @@ namespace FWO.Compliance
                     break;
             }
         }
-        
+
         /// <summary>
         /// Retrieves rules with violations from DB, calculates current violations, and prepares diff arguments.
         /// </summary>
@@ -224,7 +224,7 @@ namespace FWO.Compliance
             Logger.TryWriteInfo("Compliance Check", $"Post-processing {rules.Count} rules.", LocalSettings.ComplianceCheckVerbose);
 
             // Create diffs and fill argument bags.
-            
+
             await PostProcessRulesAsync(rules, isInitial);
 
 
@@ -236,7 +236,7 @@ namespace FWO.Compliance
         /// </summary>
         /// <param name="ruleFromDb">Rules including the violations persisted in the database.</param>
         /// <param name="isInitial">Whether this is part of an initial check</param>
-        public Task PostProcessRulesAsync(List<Rule> ruleFromDb, bool isInitial=false)
+        public Task PostProcessRulesAsync(List<Rule> ruleFromDb, bool isInitial = false)
         {
             List<(ComplianceViolation Violation, string Key)> dbViolationsWithKeys = ruleFromDb
                 .SelectMany(rule => rule.Violations)
@@ -565,9 +565,9 @@ namespace FWO.Compliance
             return filteredManagements;
         }
         #endregion
-        
+
         #region Private Methods        
-        
+
         /// <summary>
         /// Full compliance check
         /// </summary>
@@ -660,7 +660,7 @@ namespace FWO.Compliance
 
                 Logger.TryWriteInfo("Compliance Check", $"Compliance check evaluated {RulesInCheck.Count} rules in {elapsed.TotalSeconds} seconds.", true);
                 Logger.TryWriteInfo("Compliance Check", "Compliance check completed.", true);
-                 
+
             }
             catch (Exception e)
             {
@@ -670,7 +670,7 @@ namespace FWO.Compliance
             }
 
         }
-        
+
         /// <summary>
         /// Performs the matrix compliance check for a rule by mapping resolved objects to zones.
         /// </summary>
@@ -1006,7 +1006,7 @@ namespace FWO.Compliance
 
                     networkZones = DetermineZones(dataItem.ipRanges);
                 }
-                
+
                 map.Add((dataItem.networkObject, networkZones));
             }
 

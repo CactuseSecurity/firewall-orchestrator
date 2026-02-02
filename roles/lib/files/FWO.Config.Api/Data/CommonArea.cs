@@ -27,7 +27,7 @@ namespace FWO.Config.Api.Data
 
         public CommonAreaConfig ToConfigItem()
         {
-            return new(){ AreaId = Area.Content.Id, UseInSrc = UseInSrc, UseInDst = UseInDst};
+            return new() { AreaId = Area.Content.Id, UseInSrc = UseInSrc, UseInDst = UseInDst };
         }
     }
 }

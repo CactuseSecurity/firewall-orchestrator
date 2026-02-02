@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,7 +21,7 @@ namespace FWO.Ui.Data
         /// Displayed Nav Symbol
         /// </summary>
         public readonly string Symbol;
-        
+
         public NavItem(Func<string> Name, string Link, string Symbol)
         {
             this.Name = Name;

@@ -92,7 +92,7 @@ class TestCheckConsistencyColors:
             import_state=import_state_controller.state,
         )
 
-        consistency_checker.check_color_consistency(config=config, fix=False)
+        consistency_checker.check_color_consistency(config=config, fix=True)
         configured_color = config.network_objects[nw_obj.obj_uid].obj_color
 
         assert len(consistency_checker.issues) == 0

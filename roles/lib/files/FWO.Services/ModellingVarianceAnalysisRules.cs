@@ -86,7 +86,7 @@ namespace FWO.Services
                         rulesForDeletedModels.Add(rule);
                     }
                 }
-                if (rulesForDeletedModels.Count > 0)
+                if (rulesForDeletedModels.Count > 0) // NOSONAR: false positive, list is built in loop above
                 {
                     varianceResult.DeletedModelsRules.Add(mgt, rulesForDeletedModels);
                 }

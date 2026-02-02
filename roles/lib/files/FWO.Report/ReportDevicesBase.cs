@@ -99,7 +99,7 @@ namespace FWO.Report
             {
                 foreach (DeviceSelect device in management.Devices)
                 {
-                    if (device.Selected && !await UsageDataAvailable(apiConnection, device.Id))
+                    if (device.Selected)
                     {
                         unsupportedList.Add(device.Name ?? "?");
                         device.Selected = false;
@@ -111,25 +111,6 @@ namespace FWO.Report
                 }
             }
             return (unsupportedList, reducedDeviceFilter);
-        }
-
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private static async Task<bool> UsageDataAvailable(ApiConnection apiConnection, int devId)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-        {
-            try
-            {
-                /* NOSONAR - temporarily disabled
-                // TODO: the following only deals with first rulebase of a gateway:
-                // return (await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId })
-                //     ) NOSONAR[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0; NOSONAR
-                */
-                return false;   // TODO : implement and remove pragma warning disable once done
-            }
-            catch (Exception)
-            {
-                return false;
-            }
         }
 
         public override bool NoRuleFound()

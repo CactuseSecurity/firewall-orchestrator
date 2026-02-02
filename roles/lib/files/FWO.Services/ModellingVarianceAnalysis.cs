@@ -142,7 +142,7 @@ namespace FWO.Services
                     AnalyseAppServersForRequest(conn);
                     AnalyseServiceGroupsForRequest(conn, mgt);
                     AnalyseServicesForRequest(conn);
-                    if (ReqElements.Count > 0)
+                    if (ReqElements.Count > 0) // NOSONAR: populated via side effects in Analyse*ForRequest methods
                     {
                         AnalyseConnectionForRequest(mgt, conn);
                     }

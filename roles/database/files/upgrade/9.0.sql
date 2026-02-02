@@ -1933,3 +1933,41 @@ ALTER TABLE "rule_svc_resolved" DROP CONSTRAINT IF EXISTS "rule_svc_resolved_pke
 ALTER TABLE "rule_svc_resolved" ADD PRIMARY KEY ("mgm_id", "rule_id", "svc_id", "created");
 ALTER TABLE "rule_user_resolved" DROP CONSTRAINT IF EXISTS "rule_user_resolved_pkey";
 ALTER TABLE "rule_user_resolved" ADD PRIMARY KEY ("mgm_id", "rule_id", "user_id", "created");
+
+-- rule_to_zone
+ALTER TABLE "rule_to_zone"
+DROP CONSTRAINT IF EXISTS fk_rule_to_zone_rule_id_rule_rule_id;
+
+ALTER TABLE "rule_to_zone"
+ADD CONSTRAINT fk_rule_to_zone_rule_id_rule_rule_id
+FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id")
+ON UPDATE RESTRICT
+ON DELETE CASCADE;
+
+ALTER TABLE "rule_to_zone"
+DROP CONSTRAINT IF EXISTS fk_rule_to_zone_zone_id_zone_zone_id;
+
+ALTER TABLE "rule_to_zone"
+ADD CONSTRAINT fk_rule_to_zone_zone_id_zone_zone_id
+FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id")
+ON UPDATE RESTRICT
+ON DELETE CASCADE;
+
+-- rule_from_zone
+ALTER TABLE "rule_from_zone"
+DROP CONSTRAINT IF EXISTS fk_rule_from_zone_rule_id_rule_rule_id;
+
+ALTER TABLE "rule_from_zone"
+ADD CONSTRAINT fk_rule_from_zone_rule_id_rule_rule_id
+FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id")
+ON UPDATE RESTRICT
+ON DELETE CASCADE;
+
+ALTER TABLE "rule_from_zone"
+DROP CONSTRAINT IF EXISTS fk_rule_from_zone_zone_id_zone_zone_id;
+
+ALTER TABLE "rule_from_zone"
+ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id
+FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id")
+ON UPDATE RESTRICT
+ON DELETE CASCADE;

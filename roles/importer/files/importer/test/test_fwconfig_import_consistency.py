@@ -53,11 +53,6 @@ class TestCheckConsistencyColors:
         nw_obj = MockObjectsFactory.add_standard_network_host_object(config)
         nw_obj.obj_color = "nonexistent_color"
 
-        manager_controller = FwConfigManagerListController()
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
-
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -84,10 +79,6 @@ class TestCheckConsistencyColors:
         nw_obj = MockObjectsFactory.add_standard_network_host_object(config)
         nw_obj.obj_color = "nonexistent_color"
 
-        manager_controller = FwConfigManagerListController()
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
-
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -113,10 +104,6 @@ class TestCheckConsistencyColors:
         nw_obj = MockObjectsFactory.add_standard_network_host_object(config)
         nw_obj.obj_color = "red"
 
-        manager_controller = FwConfigManagerListController()
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
-
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -139,10 +126,6 @@ class TestCheckConsistencyColors:
 
         svc_obj = MockObjectsFactory.add_standard_service_object(config)
         svc_obj.svc_color = "nonexistent_color"
-
-        manager_controller = FwConfigManagerListController()
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -170,10 +153,6 @@ class TestCheckConsistencyColors:
         svc_obj = MockObjectsFactory.add_standard_service_object(config)
         svc_obj.svc_color = "nonexistent_color"
 
-        manager_controller = FwConfigManagerListController()
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
-
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -197,9 +176,6 @@ class TestCheckConsistencyNetworkObjects:
             rulebase_count=3,
             rules_per_rulebase_count=10,
         )
-        manager_controller = FwConfigManagerListController()
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -245,7 +221,6 @@ class TestCheckConsistencyNetworkObjects:
         import_state_controller: ImportStateController,
         fwconfig_builder: FwConfigBuilder,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -255,10 +230,6 @@ class TestCheckConsistencyNetworkObjects:
 
         nw_obj = MockObjectsFactory.add_standard_network_host_object(config)
         MockObjectsFactory.add_standard_network_group_object(config, [nw_obj])
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -275,7 +246,6 @@ class TestCheckConsistencyNetworkObjects:
         import_state_controller: ImportStateController,
         fwconfig_builder: FwConfigBuilder,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -286,11 +256,6 @@ class TestCheckConsistencyNetworkObjects:
         nw_obj1 = MockObjectsFactory.add_standard_network_host_object(config, index=1)
         nw_obj2 = MockObjectsFactory.add_standard_network_host_object(config, index=2)
         MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[nw_obj1, nw_obj2])
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-
-        manager_controller.add_manager(manager)
-
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -307,7 +272,6 @@ class TestCheckConsistencyNetworkObjects:
         import_state_controller: ImportStateController,
         fwconfig_builder: FwConfigBuilder,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -317,9 +281,6 @@ class TestCheckConsistencyNetworkObjects:
 
         nw_group_obj = MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[])
         nw_group_obj.obj_member_refs = nw_group_obj.obj_uid  # Circular reference
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -337,7 +298,6 @@ class TestCheckConsistencyNetworkObjects:
         import_state_controller: ImportStateController,
         fwconfig_builder: FwConfigBuilder,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -346,9 +306,6 @@ class TestCheckConsistencyNetworkObjects:
         )
 
         MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[])
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -404,9 +361,6 @@ class TestCheckConsistencyNetworkObjects:
         group_obj = MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[valid_nw_obj])
         group_obj.obj_member_refs += "|InvalidHost"  # pyright: ignore[reportOperatorIssue]
 
-        manager_controller = FwConfigManagerListController()
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -421,7 +375,6 @@ class TestCheckConsistencyNetworkObjects:
         import_state_controller: ImportStateController,
         fwconfig_builder: FwConfigBuilder,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -433,8 +386,6 @@ class TestCheckConsistencyNetworkObjects:
         nw_obj.obj_ip = None
         nw_obj.obj_ip_end = None
 
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -451,7 +402,6 @@ class TestCheckConsistencyServiceObjects:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -461,9 +411,6 @@ class TestCheckConsistencyServiceObjects:
 
         svc_obj = MockObjectsFactory.add_standard_service_object(config)
         MockObjectsFactory.add_standard_service_group_object(config, [svc_obj])
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -480,7 +427,6 @@ class TestCheckConsistencyServiceObjects:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -490,9 +436,6 @@ class TestCheckConsistencyServiceObjects:
 
         svc_group_obj = MockObjectsFactory.add_standard_service_group_object(config)
         svc_group_obj.svc_member_refs = "NonExistentService"
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -509,7 +452,6 @@ class TestCheckConsistencyServiceObjects:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -519,9 +461,6 @@ class TestCheckConsistencyServiceObjects:
 
         svc_obj = MockObjectsFactory.add_standard_service_object(config)
         svc_obj.svc_typ = "DoesNotExist"
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -538,7 +477,6 @@ class TestCheckConsistencyServiceObjects:
         import_state_controller: ImportStateController,
         fwconfig_builder: FwConfigBuilder,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -548,9 +486,6 @@ class TestCheckConsistencyServiceObjects:
 
         MockObjectsFactory.add_standard_service_object(config, index=1)
         MockObjectsFactory.add_standard_service_object(config, index=2)
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -567,7 +502,6 @@ class TestCheckConsistencyServiceObjects:
         import_state_controller: ImportStateController,
         fwconfig_builder: FwConfigBuilder,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -577,9 +511,6 @@ class TestCheckConsistencyServiceObjects:
 
         svc_group_obj = MockObjectsFactory.add_standard_service_group_object(config)
         svc_group_obj.svc_member_refs = svc_group_obj.svc_uid  # Circular reference
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -596,7 +527,6 @@ class TestCheckConsistencyServiceObjects:
         import_state_controller: ImportStateController,
         fwconfig_builder: FwConfigBuilder,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -606,9 +536,6 @@ class TestCheckConsistencyServiceObjects:
 
         svc_group_obj = MockObjectsFactory.add_standard_service_group_object(config)
         svc_group_obj.svc_member_refs = ""
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -624,7 +551,6 @@ class TestCheckConsistencyServiceObjects:
         import_state_controller: ImportStateController,
         fwconfig_builder: FwConfigBuilder,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -636,9 +562,6 @@ class TestCheckConsistencyServiceObjects:
 
         svc_group_obj = MockObjectsFactory.add_standard_service_group_object(config, index=1)
         svc_group_obj.svc_member_refs = "ServiceObject1|InvalidService"
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -657,7 +580,6 @@ class TestCheckUserObjectConsistency:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -667,9 +589,6 @@ class TestCheckUserObjectConsistency:
             user_group_object_count=2,
             user_group_object_member_count=2,
         )
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -685,7 +604,6 @@ class TestCheckUserObjectConsistency:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -707,9 +625,6 @@ class TestCheckUserObjectConsistency:
 
         config.users["GroupWithInvalidMember"] = group
 
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
-
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -727,16 +642,12 @@ class TestRulebaseConsistency:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
             rules_per_rulebase_count=10,
         )
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -752,12 +663,7 @@ class TestRulebaseConsistency:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         empty_config = fwconfig_builder.build_empty_config()
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(empty_config)
-        manager_controller.add_manager(manager)
-
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -771,7 +677,6 @@ class TestRulebaseConsistency:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -781,9 +686,6 @@ class TestRulebaseConsistency:
 
         rule_uid = next(iter(config.rulebases[0].rules.keys()))
         config.rulebases[0].rules[rule_uid].rule_track = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -799,7 +701,6 @@ class TestRulebaseConsistency:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -809,9 +710,6 @@ class TestRulebaseConsistency:
 
         rule_uid = next(iter(config.rulebases[0].rules.keys()))
         config.rulebases[0].rules[rule_uid].rule_action = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -829,16 +727,12 @@ class TestRulebaseLinkConsistency:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
             rules_per_rulebase_count=10,
         )
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -855,7 +749,6 @@ class TestRulebaseLinkConsistency:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -865,9 +758,6 @@ class TestRulebaseLinkConsistency:
         config.gateways[0].RulebaseLinks[0].from_rule_uid = "NonExistentRuleUid"
         config.gateways[0].RulebaseLinks[0].from_rulebase_uid = "NonExistentFromRulebaseUID"
         config.gateways[0].RulebaseLinks[0].to_rulebase_uid = "NonExistentToRulebaseUID"
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -888,16 +778,12 @@ class TestZoneObjectConsistency:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
             rules_per_rulebase_count=10,
         )
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -922,9 +808,6 @@ class TestZoneObjectConsistency:
         rule_uid = next(iter(config.rulebases[0].rules.keys()))
         config.rulebases[0].rules[rule_uid].rule_src_zone = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
-        manager_controller = FwConfigManagerListController()
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -950,9 +833,6 @@ class TestZoneObjectConsistency:
         rule_uid = next(iter(config.rulebases[0].rules.keys()))
         config.rulebases[0].rules[rule_uid].rule_dst_zone = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
-        manager_controller = FwConfigManagerListController()
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -970,7 +850,6 @@ class TestFullConfigConsistencyCheck:
         fwconfig_builder: FwConfigBuilder,
         import_state_controller: ImportStateController,
     ):
-        manager_controller = FwConfigManagerListController()
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
             service_object_count=10,
@@ -980,9 +859,6 @@ class TestFullConfigConsistencyCheck:
             user_group_object_member_count=2,
             user_object_count=5,
         )
-
-        manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
-        manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,

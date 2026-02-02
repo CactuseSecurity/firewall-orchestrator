@@ -55,7 +55,7 @@ namespace FWO.Report
         {
             var normalizedConfig = new NormalizedConfig
             {
-                ConfigFormat = "NORMALIZED_LEGACY",
+                ConfigFormat = "NORMALIZED",
                 Action = "INSERT",
                 NetworkObjects = managementData.Objects.ToDictionary(
                     nwobj => nwobj.Uid,

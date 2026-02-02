@@ -343,7 +343,7 @@ namespace FWO.Middleware.Server.Controllers
                 }));
             }
 
-            while (ldapValidationRequests.Count > 0)
+            while (ldapValidationRequests.Count > 0) // NOSONAR: requests list is drained in loop
             {
                 Task finishedDnRequest = await Task.WhenAny(ldapValidationRequests);
 

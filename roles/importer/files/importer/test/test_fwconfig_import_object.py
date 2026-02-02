@@ -166,115 +166,63 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
 
 
 class TestFwConfigImportObjectLookupProtoNameToId:
-    def test_lookup_proto_name_to_id_int(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-    ):
-        # Arrange
-        expected_proto_id = 6
-
-        # Act
-        proto_id = fwconfig_import_object.lookup_proto_name_to_id(expected_proto_id)
-
-        # Assert
-        assert proto_id == expected_proto_id
-
     def test_lookup_proto_name_to_id_unknown_name(
         self,
-        fwconfig_import_object: FwConfigImportObject,
+        import_state_controller: ImportStateController,
     ):
         # Arrange
         proto_name = "tcp"
-        expected_proto_id = None
 
-        # Act
-        proto_id = fwconfig_import_object.lookup_proto_name_to_id(proto_name)
-
-        # Assert
-        assert proto_id == expected_proto_id
+        # Act and Assert
+        with pytest.raises(FwoImporterError):
+            import_state_controller.state.lookup_protocol_id(proto_name)
 
     def test_lookup_proto_name_to_id_known_name(
         self,
-        fwconfig_import_object: FwConfigImportObject,
+        import_state_controller: ImportStateController,
     ):
         # Arrange
         proto_name = "icmp"
         expected_proto_id = 1
-        fwconfig_import_object.protocol_map = {
+        import_state_controller.state.protocol_map = {
             "icmp": 1,
             "tcp": 6,
             "udp": 17,
         }
 
         # Act
-        proto_id = fwconfig_import_object.lookup_proto_name_to_id(proto_name)
-
+        proto_id = import_state_controller.state.lookup_protocol_id(proto_name)
         # Assert
         assert proto_id == expected_proto_id
-
-
-class TestFwConfigImportObjectLookupSvcIdToUidAndPolicyName:
-    def test_lookup_svc_id_to_uid_and_policy_name(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-    ):
-        # Arrange
-        svc_id = 42
-        expected_svc_uid = "42"
-
-        # Act
-        svc_uid = fwconfig_import_object.lookup_svc_id_to_uid_and_policy_name(svc_id)
-
-        # Assert
-        assert svc_uid == expected_svc_uid
-
-
-class TestFwConfigImportObjectLookupObjIdToUidAndPolicyName:
-    def test_lookup_obj_id_to_uid_and_policy_name(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-    ):
-        # Arrange
-        obj_id = 99
-        expected_obj_uid = "99"
-
-        # Act
-        obj_uid = fwconfig_import_object.lookup_obj_id_to_uid_and_policy_name(obj_id)
-
-        # Assert
-        assert obj_uid == expected_obj_uid
 
 
 class TestFwConfigImportObjectLookupUserType:
     def test_lookup_user_type_unknown(
         self,
-        fwconfig_import_object: FwConfigImportObject,
+        import_state_controller: ImportStateController,
     ):
         # Arrange
         user_type_str = "some-user-type"
-        expected_user_type = -1
 
-        # Act
-        user_type = fwconfig_import_object.lookup_user_type(user_type_str)
-
-        # Assert
-        assert user_type == expected_user_type
+        # Act and Assert
+        with pytest.raises(FwoImporterError):
+            import_state_controller.state.lookup_user_obj_type_id(user_type_str)
 
     def test_lookup_user_type_known(
         self,
-        fwconfig_import_object: FwConfigImportObject,
+        import_state_controller: ImportStateController,
     ):
         # Arrange
         user_type_str = "imported"
         expected_user_type = 2
-        fwconfig_import_object.user_object_type_map = {
+        import_state_controller.state.user_obj_type_map = {
             "admin": 1,
             "imported": 2,
             "readonly": 3,
         }
 
         # Act
-        user_type = fwconfig_import_object.lookup_user_type(user_type_str)
+        user_type = import_state_controller.state.lookup_user_obj_type_id(user_type_str)
 
         # Assert
         assert user_type == expected_user_type
@@ -283,71 +231,33 @@ class TestFwConfigImportObjectLookupUserType:
 class TestFwConfigImportObjectLookupSvcType:
     def test_lookup_svc_type_unknown(
         self,
-        fwconfig_import_object: FwConfigImportObject,
+        import_state_controller: ImportStateController,
     ):
         # Arrange
         svc_type_str = "some-svc-type"
-        expected_svc_type = -1
 
-        # Act
-        svc_type = fwconfig_import_object.lookup_svc_type(svc_type_str)
-
-        # Assert
-        assert svc_type == expected_svc_type
+        # Act and Assert
+        with pytest.raises(FwoImporterError):
+            import_state_controller.state.lookup_service_obj_type_id(svc_type_str)
 
     def test_lookup_svc_type_known(
         self,
-        fwconfig_import_object: FwConfigImportObject,
+        import_state_controller: ImportStateController,
     ):
         # Arrange
         svc_type_str = "imported"
         expected_svc_type = 2
-        fwconfig_import_object.service_object_type_map = {
+        import_state_controller.state.service_obj_type_map = {
             "builtin": 1,
             "imported": 2,
             "custom": 3,
         }
 
         # Act
-        svc_type = fwconfig_import_object.lookup_svc_type(svc_type_str)
+        svc_type = import_state_controller.state.lookup_service_obj_type_id(svc_type_str)
 
         # Assert
         assert svc_type == expected_svc_type
-
-
-class TestFwConfigImportObjectLookupObjType:
-    def test_lookup_obj_type_unknown(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-    ):
-        # Arrange
-        obj_type_str = "some-obj-type"
-        expected_obj_type = -1
-
-        # Act
-        obj_type = fwconfig_import_object.lookup_obj_type(obj_type_str)
-
-        # Assert
-        assert obj_type == expected_obj_type
-
-    def test_lookup_obj_type_known(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-    ):
-        # Arrange
-        obj_type_str = "imported"
-        expected_obj_type = 2
-        fwconfig_import_object.network_object_type_map = {
-            "builtin": 1,
-            "imported": 2,
-            "custom": 3,
-        }
-
-        # Act
-        obj_type = fwconfig_import_object.lookup_obj_type(obj_type_str)
-
-        # Assert
-        assert obj_type == expected_obj_type
 
 
 class TestFwConfigImportObjectWriteMemberUpdates:
@@ -2034,7 +1944,7 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
                 "user_last_seen": 5,
                 "user_name": f"user-{new_user_uids[0]}",
                 "user_uid": new_user_uids[0],
-                "usr_typ_id": -1,
+                "usr_typ_id": 2,
             },
             {
                 "mgm_id": 1,
@@ -2042,7 +1952,7 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
                 "user_last_seen": 5,
                 "user_name": f"user-{new_user_uids[1]}",
                 "user_uid": new_user_uids[1],
-                "usr_typ_id": -1,
+                "usr_typ_id": 2,
             },
         ]
 
@@ -2087,7 +1997,7 @@ class TestFwConfigImportObjectPrepareNewSvcobjs:
                 color_id=fwconfig_import_object.import_state.state.lookup_color_id(
                     fwconfig_import_object.normalized_config.service_objects[uid].svc_color
                 ),
-                typ_id=fwconfig_import_object.lookup_svc_type(
+                typ_id=fwconfig_import_object.import_state.state.lookup_service_obj_type_id(
                     fwconfig_import_object.normalized_config.service_objects[uid].svc_typ
                 ),
             ).to_dict()
@@ -2135,7 +2045,7 @@ class TestFwConfgImportObjectPrepareNewNwobjs:
                 color_id=fwconfig_import_object.import_state.state.lookup_color_id(
                     fwconfig_import_object.normalized_config.network_objects[uid].obj_color
                 ),
-                typ_id=fwconfig_import_object.lookup_obj_type(
+                typ_id=fwconfig_import_object.import_state.state.lookup_network_obj_type_id(
                     fwconfig_import_object.normalized_config.network_objects[uid].obj_typ
                 ),
             ).to_dict()
@@ -2324,198 +2234,6 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         assert removed_zone_ids == [{"id": 8}]
         expected_path = "/usr/local/fworch/tmp/import/mgm_id_3_query_variables.json"
         m_open.assert_called_with(expected_path, "w")
-
-
-class TestFwConfigImportObjectGetProtocolMap:
-    def test_get_protocol_map(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
-    ):
-        # Arrange
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
-            return_value={
-                "data": {
-                    "stm_ip_proto": [
-                        {
-                            "ip_proto_name": "tcp",
-                            "ip_proto_id": 6,
-                        }
-                    ]
-                }
-            }
-        )
-        expected_protocol_map = {
-            "tcp": 6,
-        }
-
-        # Act
-        protocol_map = fwconfig_import_object.get_protocol_map()
-
-        # Assert
-        assert protocol_map == expected_protocol_map
-
-    def test_get_protocol_map_with_exception(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
-    ):
-        # Arrange
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
-            side_effect=Exception("Unexpected error occurred")
-        )
-        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
-
-        # Act
-        protocol_map = fwconfig_import_object.get_protocol_map()
-
-        # Assert
-        mock_logger.assert_called_once()
-        assert protocol_map == {}
-
-
-class TestFwConfigImportObjectGetUserObjTypeMap:
-    def test_get_userobj_type_map(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
-    ):
-        # Arrange
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
-            return_value={
-                "data": {
-                    "stm_usr_typ": [
-                        {
-                            "usr_typ_name": "user",
-                            "usr_typ_id": 1,
-                        }
-                    ]
-                }
-            }
-        )
-        expected_userobj_type_map = {
-            "user": 1,
-        }
-
-        # Act
-        userobj_type_map = fwconfig_import_object.get_user_obj_type_map()
-
-        # Assert
-        assert userobj_type_map == expected_userobj_type_map
-
-    def test_get_userobj_type_map_with_exception(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
-    ):
-        # Arrange
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
-            side_effect=Exception("Unexpected error occurred")
-        )
-        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
-
-        # Act
-        userobj_type_map = fwconfig_import_object.get_user_obj_type_map()
-
-        # Assert
-        mock_logger.assert_called_once()
-        assert userobj_type_map == {}
-
-
-class TestFwConfigImportObjectGetServiceObjTypeMap:
-    def test_get_serviceobj_type_map(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
-    ):
-        # Arrange
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
-            return_value={
-                "data": {
-                    "stm_svc_typ": [
-                        {
-                            "svc_typ_name": "service",
-                            "svc_typ_id": 1,
-                        }
-                    ]
-                }
-            }
-        )
-        expected_serviceobj_type_map = {
-            "service": 1,
-        }
-
-        # Act
-        serviceobj_type_map = fwconfig_import_object.get_service_obj_type_map()
-
-        # Assert
-        assert serviceobj_type_map == expected_serviceobj_type_map
-
-    def test_get_serviceobj_type_map_with_exception(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
-    ):
-        # Arrange
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
-            side_effect=Exception("Unexpected error occurred")
-        )
-        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
-
-        # Act
-        serviceobj_type_map = fwconfig_import_object.get_service_obj_type_map()
-
-        # Assert
-        mock_logger.assert_called_once()
-        assert serviceobj_type_map == {}
-
-
-class TestFwConfigImportObjectGetNetworkObjTypeMap:
-    def test_get_networkobj_type_map(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
-    ):
-        # Arrange
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
-            return_value={
-                "data": {
-                    "stm_obj_typ": [
-                        {
-                            "obj_typ_name": "network",
-                            "obj_typ_id": 1,
-                        }
-                    ]
-                }
-            }
-        )
-        expected_networkobj_type_map = {
-            "network": 1,
-        }
-
-        # Act
-        networkobj_type_map = fwconfig_import_object.get_network_obj_type_map()
-
-        # Assert
-        assert networkobj_type_map == expected_networkobj_type_map
-
-    def test_get_networkobj_type_map_with_exception(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
-    ):
-        # Arrange
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
-            side_effect=Exception("Unexpected error occurred")
-        )
-        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
-
-        # Act
-        networkobj_type_map = fwconfig_import_object.get_network_obj_type_map()
-
-        # Assert
-        mock_logger.assert_called_once()
-        assert networkobj_type_map == {}
 
 
 class TestFwConfigImportObjectUpdateObjectDiffs:

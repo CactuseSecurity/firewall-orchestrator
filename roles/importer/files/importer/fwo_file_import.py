@@ -1,5 +1,5 @@
 """
-read config from file and convert to non-legacy format (in case of legacy input)
+read config from file
 """
 
 import json
@@ -9,7 +9,6 @@ from typing import Any
 import fwo_globals
 import requests
 from fwo_api_call import FwoApiCall
-from fwo_enums import ConfFormat
 from fwo_exceptions import ConfigFileNotFoundError, FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import (
@@ -20,16 +19,7 @@ from models.import_state import ImportState
 """
     supported input formats:
 
-    1) legacy normalized old:
-
-    {
-        "network_objects": [x,y],
-        "service_objects": [a,b,c],
-        ...
-        "rules": [x,y,z]
-    }
-
-    2) normalized (new from v9 onwards) --> dicts with uid as id
+    normalized (new from v9 onwards) --> dicts with uid as id
 
     {
         "ConfigFormat": "NORMALIZED",
@@ -47,17 +37,6 @@ from models.import_state import ImportState
                 }
             }
         ]
-    }
-
-    3) native legacy formats
-
-    these will we wrapped with the following:
-
-    TODO: need to detect native format from file
-
-    {
-        "ConfigFormat": "<NATIVE_FORMAT>_LEGACY",
-        "config": configJson
     }
 
     output formats:
@@ -90,22 +69,10 @@ def read_json_config_from_file(fwo_api_call: FwoApiCall, import_state: ImportSta
                 f"read a config file without manager sets from {import_state.import_file_name}, trying native config"
             )
             manager_list.native_config = config_json
-            manager_list.ConfigFormat = detect_legacy_format(config_json)
         return manager_list
     except Exception:  # legacy stuff from here
         FWOLogger.info(f"could not serialize config {traceback.format_exc()!s}")
-        raise FwoImporterError(f"could not serialize config {import_state.import_file_name} - trying legacy formats")
-
-
-def detect_legacy_format(config_json: dict[str, Any]) -> ConfFormat:
-    result = ConfFormat.NORMALIZED_LEGACY
-
-    if "object_tables" in config_json:
-        result = ConfFormat.CHECKPOINT_LEGACY
-    elif "domains" in config_json:
-        result = ConfFormat.FORTIMANAGER
-
-    return result
+        raise FwoImporterError(f"could not serialize config {import_state.import_file_name}")
 
 
 def read_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> dict[str, Any]:

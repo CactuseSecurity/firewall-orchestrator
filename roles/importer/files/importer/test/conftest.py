@@ -76,6 +76,10 @@ def import_state_controller(
         "log": 2,
     }
 
+    import_state.network_obj_type_map = {"network": 1, "group": 2, "host": 3, "machine_range": 4}
+    import_state.service_obj_type_map = {"simple": 1, "group": 2, "rpc": 3}
+    import_state.user_obj_type_map = {"group": 1, "simple": 2}
+
     import_state_controller: ImportStateController = unittest.mock.create_autospec(ImportStateController)
     import_state_controller.state = import_state
     import_state_controller.api_call = api_call

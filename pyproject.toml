@@ -9,7 +9,6 @@ exclude = [
     ".git",
     ".venv",
     "venv",
-    "roles/importer/files/importer/test",
     "roles/api/files/scripts",
     "scripts/acquire_lock.py",
     "scripts/gh-search.py",
@@ -57,7 +56,6 @@ exclude = [
     "venv",
     "__init__.py",
     "roles/tests-integration",
-    "roles/importer/files/importer/test",
     "roles/api/files/scripts",
     "scripts/acquire_lock.py",
     "scripts/gh-search.py",
@@ -115,15 +113,21 @@ ignore = [
     "B904",    # Within an except clause, raise exceptions with raise ... from err
     "S113",    # Probable use of requests call without timeout
     "S104",    # Possible binding to all interfaces
+    "S101",    # Usage of assert 
 ]
 fixable = ["ALL"]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"roles/importer/files/importer/test/**.py" = ["SLF001", "PLR2004"]
+
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
 
 [tool.pytest.ini_options]
 pythonpath = [

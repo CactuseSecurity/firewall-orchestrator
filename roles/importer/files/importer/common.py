@@ -227,11 +227,11 @@ def get_config_top_level(
     config_from_file = FwConfigManagerListController.generate_empty_config()
     if gateways is None:
         gateways = []
-    if in_file is not None or string_is_uri(import_state.state.mgm_details.hostname):
+    config_uri = get_config_uri(import_state)
+    file_name = in_file or config_uri
+    if file_name is not None:
         ### getting config from file ######################
-        if in_file is None:
-            in_file = import_state.state.mgm_details.hostname
-        _, config_from_file = import_from_file(import_state, in_file)
+        _, config_from_file = import_from_file(import_state, file_name)
         if not config_from_file.is_native_non_empty():
             config_has_changes = True
             return config_has_changes, config_from_file
@@ -344,7 +344,17 @@ def set_filename(import_state: ImportStateController, file_name: str = ""):
     # set file name in importState
     if file_name == "":
         # if the host name is an URI, do not connect to an API but simply read the config from this URI
-        if string_is_uri(import_state.state.mgm_details.hostname):
-            import_state.set_import_file_name(import_state.state.mgm_details.hostname)
+        config_uri = get_config_uri(import_state)
+        if config_uri is not None:
+            import_state.set_import_file_name(config_uri)
     else:
         import_state.set_import_file_name(file_name)
+
+
+def get_config_uri(import_state: ImportStateController) -> str | None:
+    mgm_details = import_state.state.mgm_details
+    if string_is_uri(mgm_details.hostname):
+        return mgm_details.hostname
+    if mgm_details.domain_name and string_is_uri(mgm_details.domain_name):
+        return mgm_details.domain_name
+    return None

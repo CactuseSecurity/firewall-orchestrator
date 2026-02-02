@@ -35,7 +35,7 @@ class RulebaseLinkController:
         fwo_api_call: FwoApiCall,
         stats: ImportStatisticsController,
         import_id: int,
-        removed_rb_links_ids: list[int | None],
+        removed_rb_links_ids: list[int],
     ) -> None:
         query_variables: dict[str, Any] = {"removedRulebaseLinks": removed_rb_links_ids, "importId": import_id}
         if len(removed_rb_links_ids) == 0:

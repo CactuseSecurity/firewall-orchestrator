@@ -13,14 +13,20 @@ namespace FWO.Logging
         private static readonly Random random = new();
 
         private readonly record struct LogLocation(string CallerName, string CallerFile, int CallerLineNumber);
-        private readonly record struct ErrorLogDetails(
+        /// <summary>
+        /// Encapsulates error log details for structured logging.
+        /// </summary>
+        public readonly record struct ErrorLogDetails(
             string? Text = null,
             Exception? Error = null,
             string? User = null,
             string? Role = null,
             bool ContainsLdapDn = false
         );
-        private readonly record struct AuditLogDetails(
+        /// <summary>
+        /// Encapsulates audit log details for structured logging.
+        /// </summary>
+        public readonly record struct AuditLogDetails(
             string Text,
             string? UserName = null,
             string? UserDn = null,
@@ -139,9 +145,21 @@ namespace FWO.Logging
             WriteLog(new LogEntry("Warning", Title, Text, CreateLocation(callerName, callerFile, callerLineNumber), ConsoleColor.DarkYellow, null, containsLdapDn));
         }
 
-        public static void WriteError(string Title, string? Text = null, Exception? Error = null, bool containsLdapDn = false, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        /// <summary>
+        /// Writes an error log entry with optional user context and exception details.
+        /// </summary>
+        /// <param name="Title">The title of the error log entry.</param>
+        /// <param name="Text">The content of the error log entry.</param>
+        /// <param name="Error">The exception to include in the log entry.</param>
+        /// <param name="User">The user associated with the error.</param>
+        /// <param name="Role">The user role associated with the error.</param>
+        /// <param name="containsLdapDn">The error log entry contains ldap DN data so, do not strip ldap dn delimters (,/=).</param>
+        /// <param name="callerName">The name of the calling method (automatically supplied).</param>
+        /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
+        /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
+        public static void WriteError(string Title, string? Text = null, Exception? Error = null, string? User = null, string? Role = null, bool containsLdapDn = false, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteError(Title, new ErrorLogDetails(Text, Error, null, null, containsLdapDn), callerName, callerFile, callerLineNumber);
+            WriteError(Title, new ErrorLogDetails(Text, Error, User, Role, containsLdapDn), callerName, callerFile, callerLineNumber);
         }
 
         public static void WriteError(string Title, ErrorLogDetails details, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
@@ -180,26 +198,23 @@ namespace FWO.Logging
         /// </summary>
         /// <param name="Title">The title of the audit log entry.</param>
         /// <param name="Text">The content of the audit log entry.</param>
+        /// <param name="UserName">The name of the user performing the action.</param>
+        /// <param name="UserDN">The distinguished name (DN) of the user.</param>
         /// <param name="containsLdapDn">The audit log entry contains ldap DN data so, do not strip ldap dn delimters (,/=).</param>
         /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
         /// <param name="callerName">The name of the calling method (automatically supplied).</param>
         /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
         /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
-        public static void WriteAudit(string Title, string Text, bool WithSeparatorLine = true, bool containsLdapDn = true, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        public static void WriteAudit(string Title, string Text, string? UserName = null, string? UserDN = null, bool WithSeparatorLine = true, bool containsLdapDn = true, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteAudit(Title, new AuditLogDetails(Text, null, null, WithSeparatorLine, containsLdapDn), callerName, callerFile, callerLineNumber);
+            WriteAudit(Title, new AuditLogDetails(Text, UserName, UserDN, WithSeparatorLine, containsLdapDn), callerName, callerFile, callerLineNumber);
         }
 
         /// <summary>
-        /// Writes an audit log entry with the specified title, text, user name, and user distinguished name (DN).
-        /// Optionally appends a separator line to the log entry.
+        /// Writes an audit log entry using pre-composed audit details.
         /// </summary>
         /// <param name="Title">The title of the audit log entry.</param>
-        /// <param name="Text">The content of the audit log entry.</param>
-        /// <param name="containsLdapDn">The audit log entry contains ldap DN data so, do not strip ldap dn delimters (,/=).</param>
-        /// <param name="UserName">The name of the user performing the action.</param>
-        /// <param name="UserDN">The distinguished name (DN) of the user.</param>
-        /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
+        /// <param name="details">The audit log details payload.</param>
         /// <param name="callerName">The name of the calling method (automatically supplied).</param>
         /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
         /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>

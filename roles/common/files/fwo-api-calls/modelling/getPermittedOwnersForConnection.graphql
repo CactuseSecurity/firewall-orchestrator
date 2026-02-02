@@ -4,7 +4,7 @@ query getPermittedOwnersForConnection($connectionId: Int!) {
     owner {
       id
       name
-      external_app_id
+      app_id_external
     }
   }
 }

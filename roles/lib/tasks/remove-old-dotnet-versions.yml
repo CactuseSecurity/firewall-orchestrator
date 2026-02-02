@@ -6,13 +6,17 @@
   set_fact:
     dotnet_version_major: "{{ dotnet_version.split('.')[0] | int }}"
 
+- name: initialize dotnet package removal list
+  set_fact:
+    dotnet_packages_to_remove: []
+
 - name: collect dotnet packages older than target version
   set_fact:
     dotnet_packages_to_remove: "{{ (dotnet_packages_to_remove | default([])) + [item] }}"
   loop: "{{ ansible_facts.packages.keys() | list }}"
   when:
     - item is match('^(dotnet|aspnetcore)-.*-\\d+\\.\\d+$')
-    - (item | regex_search('-(\\d+)\\.\\d+$', '\\1') | int) < dotnet_version_major
+    - (item | regex_search('-(\\d+)\\.\\d+$', '\\1') | int) < (dotnet_version_major | int)
 
 - name: remove dotnet packages older than target version
   package:

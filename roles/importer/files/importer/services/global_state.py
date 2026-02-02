@@ -8,6 +8,10 @@ if TYPE_CHECKING:
 
 
 class GlobalState:
+    """
+    State that is invariant during the import process of a single management.
+    """
+
     import_state: ImportStateController
     previous_config: FwConfigNormalized | None
     previous_global_config: FwConfigNormalized | None

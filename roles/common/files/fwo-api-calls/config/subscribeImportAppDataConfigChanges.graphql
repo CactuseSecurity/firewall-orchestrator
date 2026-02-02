@@ -3,6 +3,7 @@ subscription subscribeImportAppDataConfigChanges {
     {config_key: {_eq: "importAppDataSleepTime"}}, 
     {config_key: {_eq: "importAppDataStartAt"}}, 
     {config_key: {_eq: "importAppDataPath"}}, 
+    {config_key: {_eq: "importAppDataScriptArgs"}},
     {config_key: {_eq: "manageOwnerLdapGroups"}}, 
     {config_key: {_eq: "ownerLdapGroupNames"}}, 
     {config_key: {_eq: "rolesWithAppDataImport"}},

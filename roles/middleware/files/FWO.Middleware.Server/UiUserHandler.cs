@@ -33,15 +33,13 @@ namespace FWO.Middleware.Server
     /// <remarks>
     /// Constructor needing the jwt token
     /// </remarks>
-    public class UiUserHandler(string jwtToken)
+    public static class UiUserHandler
     {
-        private readonly ApiConnection apiConn = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtToken);
-
         /// <summary>
         /// Get the configurated value for the session timeout.
         /// </summary>
         /// <returns>session timeout value in minutes</returns>
-        public async Task<int> GetExpirationTime(string lifetimeKey)
+        public static async Task<int> GetExpirationTime(ApiConnection apiConnection)
         {
             int expirationTime = GlobalConst.kSessionExpirationTimeDefault;
 
@@ -55,15 +53,7 @@ namespace FWO.Middleware.Server
 
             try
             {
-                string? lifetimeKeyDBName = jsonPropertyAttr.PropertyName;
-
-                if (string.IsNullOrEmpty(lifetimeKeyDBName))
-                {
-                    throw new ArgumentException("Lifetime key DB name is null or empty");
-                }
-
-                List<ConfExpirationTime> resultList = await apiConn.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = lifetimeKeyDBName });
-
+                List<ConfExpirationTime> resultList = await apiConnection.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = "sessionTimeout" });
                 if (resultList.Count > 0)
                 {
                     return resultList[0].ExpirationValue;
@@ -98,24 +88,24 @@ namespace FWO.Middleware.Server
         /// the user id is needed for allowing access to report_templates
         /// </summary>
         /// <returns> user including its db id </returns>
-        public async Task<UiUser> HandleUiUserAtLogin(UiUser user)
+        public static async Task<UiUser> HandleUiUserAtLogin(ApiConnection apiConnection, UiUser user)
         {
             bool userSetInDb = false;
             try
             {
-                UiUser[] existingUsers = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
+                UiUser[] existingUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
 
                 if (existingUsers.Length > 0)
                 {
                     user.DbId = existingUsers[0].DbId;
-                    user.PasswordMustBeChanged = await UpdateLastLogin(apiConn, user.DbId);
+                    user.PasswordMustBeChanged = await UpdateLastLogin(apiConnection, user.DbId);
                     userSetInDb = true;
                 }
                 else
                 {
                     Log.WriteDebug("User not found", $"Couldn't find {user.Name} in internal database");
                 }
-                await GetOwnershipsFromOwnerLdap(apiConn, user);
+                await GetOwnershipsFromOwnerLdap(apiConnection, user);
             }
             catch (Exception exeption)
             {
@@ -125,7 +115,7 @@ namespace FWO.Middleware.Server
             if (!userSetInDb)
             {
                 Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to internal database.");
-                await UpsertUiUser(apiConn, user, true);
+                await UpsertUiUser(apiConnection, user, true);
             }
             return user;
         }
@@ -140,8 +130,8 @@ namespace FWO.Middleware.Server
             try
             {
                 // if the user logging in is the main user for an application, add the ownerships
-                List<FwoOwner> directOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDn = user.Dn });
-                foreach (FwoOwner owner in directOwnerships)
+                List<FwoOwner> directOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDns = new List<string> { user.Dn } });
+                foreach (var owner in directOwnerships)
                 {
                     user.Ownerships.Add(owner.Id);
                 }
@@ -154,21 +144,19 @@ namespace FWO.Middleware.Server
                 string? namingConvention = configResult.Count > 0 ? configResult[0].Value : string.Empty;
 
 
-                // get the if of the ldap, the ownergroups are defined in 
-                configResult = await apiConn.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
-                    new { key = "ownerLdapId" });
-                int ownerLdapId = 1;  // default ldap id is 1 (internal LDAP)
-                if (configResult.Count > 0 && int.TryParse(configResult[0].Value, out int parsed) && parsed > 0)
+                List<string> groupsOfUser = user.Groups ?? [];
+                if (groupsOfUser.Count > 0)
                 {
-                    ownerLdapId = parsed;
+                    List<FwoOwner> groupOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(
+                        OwnerQueries.getOwnersFromGroups,
+                        new { groupDns = groupsOfUser });
+                    foreach (var owner in groupOwnerships)
+                    {
+                        user.Ownerships.Add(owner.Id);
+                    }
                 }
 
-                // create ldap connection for owner groups
-                Ldap ownerGroupLdap = await apiConn.SendQueryAsync<Ldap>(AuthQueries.getLdapConnectionForUserSearchById, new { id = ownerLdapId }) ?? throw new KeyNotFoundException("No Ldap for owner groups found.");
-
-                List<string> groupsOfUser = await ownerGroupLdap.GetGroupsOfUser(user.Name);
-
-                foreach (string group in groupsOfUser)
+                foreach (var group in groupsOfUser)
                 {
                     string groupName = new DistName(group).Group;
                     if (!MatchesNamingConvention(groupName, namingConvention))
@@ -197,7 +185,7 @@ namespace FWO.Middleware.Server
             }
             string regexPattern = ReplacePlaceholdersWithPattern(namingConvention);
             string cn = userIn;
-            
+
             if (userIn.Contains(','))
             {
                 // the userIn is a DN, so extract the CN part
@@ -226,20 +214,31 @@ namespace FWO.Middleware.Server
         {
             foreach (FwoOwner app in apps)
             {
-                string[] groupDnParts = app.GroupDn.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                if (groupDnParts.Length == 0)
+                foreach (string dn in app.GetAllOwnerResponsibles())
                 {
-                    continue;
-                }
-                string groupCnPart = groupDnParts[0];
-                string[] cnParts = groupCnPart.Split('=', StringSplitOptions.RemoveEmptyEntries);
-                // note: this only works for flat groups! TODO: make this unversal by checking group membership 
-                if (cnParts.Length == 2 && cnParts[1] == groupName)
-                {
-                    return app;
+                    if (MatchesGroupName(dn, groupName))
+                    {
+                        return app;
+                    }
                 }
             }
             return null;
+        }
+
+        private static bool MatchesGroupName(string dn, string groupName)
+        {
+            if (string.IsNullOrWhiteSpace(dn))
+            {
+                return false;
+            }
+            string[] groupDnParts = dn.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (groupDnParts.Length == 0)
+            {
+                return false;
+            }
+            string[] cnParts = groupDnParts[0].Split('=', StringSplitOptions.RemoveEmptyEntries);
+            // note: this only works for flat groups! TODO: make this universal by checking group membership
+            return cnParts.Length == 2 && cnParts[1].Equals(groupName, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

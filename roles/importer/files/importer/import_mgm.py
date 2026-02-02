@@ -97,7 +97,7 @@ def main(
 
     import_state = ImportStateController.initialize_import(
         mgm_id,
-        jwt,
+        fwo_api_call,
         suppress_certificate_warnings,
         verify_certificates,
         force,

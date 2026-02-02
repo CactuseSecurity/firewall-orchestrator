@@ -53,7 +53,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         self._rule_order_service = self._service_provider.get_service(Services.RULE_ORDER_SERVICE, 1)
 
         update_rule_num_numerics(self._previous_config)
-        update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
+        update_rule_map_and_rulebase_map(self._previous_config, self._service_provider.get_uid2id_mapper(self._import_state.state.import_id))
 
     def tearDown(self):
         """

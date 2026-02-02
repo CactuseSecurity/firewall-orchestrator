@@ -4,7 +4,6 @@ from typing import Any
 import fwo_const
 import fwo_globals
 from fwo_api import FwoApi
-from fwo_api_call import FwoApiCall
 from fwo_base import ConfigAction, find_all_diffs
 from fwo_exceptions import FwoApiFailedDeleteOldImportsError, FwoImporterError, ImportInterruptionError
 from fwo_log import FWOLogger
@@ -113,7 +112,6 @@ class FwConfigImport:
         if len(self.import_state.state.mgm_details.sub_manager_ids) > 0:
             # Read config
             fwo_api = self.import_state.api_connection
-            _ = FwoApiCall(fwo_api)  # TODO: why not used ??
 
             # Reset submanagement
             for sub_manager_id in self.import_state.state.mgm_details.sub_manager_ids:
@@ -175,7 +173,6 @@ class FwConfigImport:
         if fwo_globals.shutdown_requested:
             raise ImportInterruptionError("Shutdown requested during updateRulebaseDiffs.")
 
-        self.import_state.set_rule_map()  # update all rule entries (from currently running import for rulebase_links)
         self._fw_config_import_gateway.update_gateway_diffs()
 
         # get new rules details from API (for obj refs as well as enforcing gateways)

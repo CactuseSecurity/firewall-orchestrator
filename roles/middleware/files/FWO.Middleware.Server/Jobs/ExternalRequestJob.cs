@@ -12,6 +12,7 @@ namespace FWO.Middleware.Server.Jobs
     /// <summary>
     /// Quartz Job for sending external requests
     /// </summary>
+    [DisallowConcurrentExecution]
     public class ExternalRequestJob : IJob
     {
         private const string LogMessageTitle = "External Request Job";

@@ -1,35 +1,39 @@
-using FWO.Logging;
+﻿using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using Newtonsoft.Json.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Api.Client
 {
-    public class GraphQlApiSubscription<SubscriptionResponseType> : ApiSubscription, IDisposable
+    [SuppressMessage("Design", "S3060:DoNotCallOverridableMethodsInConstructors",
+        Justification = "CreateSubscription is virtual for unit tests only. This is a design choice.")]
+    public class GraphQlApiSubscription<SubscriptionResponseType> : ApiSubscription
     {
         public delegate void SubscriptionUpdate(SubscriptionResponseType response);
-        public event SubscriptionUpdate OnUpdate;
+        public event SubscriptionUpdate? OnUpdate;
 
-        private IObservable<GraphQLResponse<dynamic>> subscriptionStream = null!;
-        private IDisposable subscription = null!;
-        private readonly ApiConnection apiConnection;
-        private readonly GraphQLHttpClient graphQlClient;
-        private readonly GraphQLRequest request;
-        private readonly Action<Exception> internalExceptionHandler;
+        private IObservable<GraphQLResponse<dynamic>>? _subscriptionStream;
+        private IDisposable? _subscription;
 
-        public void Initialize()
+        private readonly GraphQLHttpClient _graphQlClient;
+        private readonly GraphQLRequest _request;
+        private readonly Action<Exception> _internalExceptionHandler;
+        private readonly ApiConnection _apiConnection;
+
+        private readonly object _lock = new();
+        private bool _disposed;
+
+        public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
         {
-            CreateSubscription();
-        }
-        public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
-        {
-            this.apiConnection = apiConnection;
-            this.OnUpdate = OnUpdate;
-            this.graphQlClient = graphQlClient;
-            this.request = request;
+            _apiConnection = apiConnection;
+            _graphQlClient = graphQlClient;
+            _request = request;
+
+            OnUpdate += onUpdate;
 
             // handle subscription terminating exceptions
-            internalExceptionHandler = (Exception exception) =>
+            _internalExceptionHandler = (Exception exception) =>
             {
                 // Case: Jwt expired
                 if (exception.Message.Contains("JWTExpired"))
@@ -41,70 +45,86 @@ namespace FWO.Api.Client
                 exceptionHandler(exception);
             };
 
-            Initialize();
+            CreateSubscription();
 
-            apiConnection.OnAuthHeaderChanged += ApiConnectionOnAuthHeaderChanged;
+            _apiConnection.OnAuthHeaderChanged += ApiConnectionOnAuthHeaderChanged;
         }
 
         protected virtual void CreateSubscription()
         {
-            Log.WriteDebug("API", $"Creating API subscription {request.OperationName}.");
-            subscriptionStream = graphQlClient.CreateSubscriptionStream<dynamic>(request, internalExceptionHandler);
-            Log.WriteDebug("API", "API subscription created.");
-
-            subscription = subscriptionStream.Subscribe(response =>
+            lock (_lock)
             {
-                if (ApiConstants.UseSystemTextJsonSerializer)
+                if (_disposed) return;
+
+                _subscription?.Dispose();
+                _subscription = null;
+
+                Log.WriteDebug("API", $"Creating API subscription {_request.OperationName}.");
+                _subscriptionStream = _graphQlClient.CreateSubscriptionStream<dynamic>(_request, _internalExceptionHandler);
+                Log.WriteDebug("API", "API subscription created.");
+
+                _subscription = _subscriptionStream.Subscribe(response =>
                 {
-                    // JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
-                    // responseObjectEnumerator.MoveNext();
-                    // SubscriptionResponseType returnValue = JsonSerializer.Deserialize<SubscriptionResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
-                    // throw new Exception($"Could not convert result from Json to {nameof(SubscriptionResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}"); ;
-                    // OnUpdate(returnValue);
-                }
-                else
-                {
-                    try
+                    if (_disposed) return;
+
+                    if (ApiConstants.UseSystemTextJsonSerializer)
                     {
-                        // If repsonse.Data == null -> Jwt expired - connection was closed
-                        // Leads to this method getting called again
-                        if (response.Data == null)
+                        throw new NotImplementedException("System.Text.Json is not supported anymore.");
+                    }
+                    else
+                    {
+                        try
                         {
-                            // Terminate subscription
-                            subscription?.Dispose();
+                            // If repsonse.Data == null -> Jwt expired - connection was closed
+                            // Leads to this method getting called again
+                            if (response.Data == null)
+                            {
+                                // Terminate subscription
+                                lock (_lock)
+                                {
+                                    _subscription?.Dispose();
+                                    _subscription = null;
+                                }
+                            }
+                            else
+                            {
+                                JObject data = (JObject)response.Data;
+                                JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                                JToken result = prop.Value;
+                                SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
+                                OnUpdate?.Invoke(returnValue);
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            JObject data = (JObject)response.Data;
-                            JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
-                            JToken result = prop.Value;
-                            SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
-                            OnUpdate(returnValue);
+                            Log.WriteError("GraphQL Subscription", "Subscription lead to exception", ex);
+                            throw;
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Log.WriteError("GraphQL Subscription", "Subscription lead to exception", ex);
-                        throw;
-                    }
-                }
-            });
+                });
+            }
         }
 
         private void ApiConnectionOnAuthHeaderChanged(object? sender, string jwt)
         {
-            subscription?.Dispose();
+            // Recreate subscription (CreateSubscription handles disposal + locking)
             CreateSubscription();
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if (!disposing) return;
+
+            lock (_lock)
             {
-                subscription?.Dispose();
+                if (_disposed) return;
+                _disposed = true;
 
                 // Important: detach from ApiConnection event to avoid keeping this subscription alive.
-                apiConnection.OnAuthHeaderChanged -= ApiConnectionOnAuthHeaderChanged;
+                _apiConnection.OnAuthHeaderChanged -= ApiConnectionOnAuthHeaderChanged;
+                _subscription?.Dispose();
+                _subscription = null;
+                OnUpdate = null;
             }
         }
     }

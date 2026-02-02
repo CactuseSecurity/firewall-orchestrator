@@ -202,13 +202,6 @@ rsyslog config
             maxsize 4096k
             missingok
             copytruncate
-            sharedscripts
-                prerotate
-                        systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-                endscript
-                postrotate
-                        systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-                endscript
         }
 ```
 
@@ -335,8 +328,6 @@ isoback ansible_host=10.5.10.10
 put the hosts into the correct section (`[frontends]`, `[backends]`, `[importers]`)
 
 make sure all target hosts meet the requirements for ansible (user with pub key auth & full sudo rights)
-
-modify isohome/etc/iso.conf on frontend(s) - only needed for legacy (perl-based) importers:
 
 enter the address of the database backend server, e.g.
 

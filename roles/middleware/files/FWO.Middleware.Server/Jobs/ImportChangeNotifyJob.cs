@@ -11,6 +11,7 @@ namespace FWO.Middleware.Server.Jobs
     /// <summary>
     /// Quartz Job for import change notifications
     /// </summary>
+    [DisallowConcurrentExecution]
     public class ImportChangeNotifyJob : IJob
     {
         private const string LogMessageTitle = "Import Change Notify";

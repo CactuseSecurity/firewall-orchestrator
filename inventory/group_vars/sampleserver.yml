@@ -5,6 +5,7 @@ sample_data_rate: medium
 sample_role_purpose: demo
 sample_fortigate_basename: fortigate
 sample_fortigate_name: "{{ sample_fortigate_basename }}_demo"
+sample_fortigate_dev_uid: FortiWiFiFirewall
 sample_checkpoint_basename: "checkpoint"
 sample_checkpoint_name: "{{ sample_checkpoint_basename }}_demo"
 sample_checkpoint_uri: "https://fwodemodata.cactus.de/demo12_cpr8x_v{{ product_version.split('.') | first }}.json"
@@ -15,7 +16,7 @@ demo_cpr8x_mgm_uid: "d7a49524-b877-4b2a-b949-a736d86e2baa"
 demo_cpr8x_dev_uid: "cbdd1e35-b6e9-4ead-b13f-fd6389e34987"
 demo_fos_name_without_demo: "FortiOS"
 demo_fos_name: "{{ demo_fos_name_without_demo }}_demo"
-demo_fos_uri: "https://fwodemodata.cactus.de/demo10_fOS_v{{ product_version.split('.') | first }}.json"
+demo_fos_uri: "https://fwodemodata.cactus.de/demo16_fortios_lab.json"
 sample_postfix: _demo
 
 # sample openldap server

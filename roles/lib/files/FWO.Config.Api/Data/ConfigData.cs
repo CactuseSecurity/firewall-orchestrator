@@ -93,6 +93,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("impChangeNotifyActive"), JsonPropertyName("impChangeNotifyActive")]
         public bool ImpChangeNotifyActive { get; set; } = false;
 
+        [JsonProperty("impChangeIncludeObjectChanges"), JsonPropertyName("impChangeIncludeObjectChanges")]
+        public bool ImpChangeIncludeObjectChanges { get; set; } = false;        
+
         [JsonProperty("impChangeNotifyType"), JsonPropertyName("impChangeNotifyType")]
         public int ImpChangeNotifyType { get; set; }
 
@@ -285,6 +288,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
         public string ImportAppDataPath { get; set; } = "";
+
+        [JsonProperty("importAppDataScriptArgs"), JsonPropertyName("importAppDataScriptArgs")]
+        public string ImportAppDataScriptArgs { get; set; } = "";
 
         [JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]
         public int ImportAppDataSleepTime { get; set; } = 24;

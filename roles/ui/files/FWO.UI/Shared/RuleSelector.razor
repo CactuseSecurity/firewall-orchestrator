@@ -8,43 +8,47 @@
         {
             @foreach(var rule in SelectedRules)
             {
-                <div class="row">
-                    @* <div class="col-sm-3 border bg-transparent">@Devices.FirstOrDefault(d => d.Id == rule.Metadata.DeviceId)?.Name</div> *@
-                    <div class="col-sm-7 border bg-transparent">@rule.Metadata.Uid</div>
-                </div>
+                @((MarkupString)DiplayRule(rule))
             }
         }
         else
         {
             <EditList ElementType="Rule" Elements="SelectedRules.ToArray()" ElementsToAdd="RulesToAdd" ElementsToDelete="RulesToDelete" StdLayout="false">
                 <Display>
-                    <div class="row">
-                        @* <div class="col-sm-3 border bg-transparent">@Devices.FirstOrDefault(d => d.Id == context.Metadata.DeviceId)?.Name</div> *@
-                        <div class="col-sm-9 border bg-transparent">@context.Metadata.Uid</div>
-                    </div>
+                    @((MarkupString)DiplayRule(context))
                 </Display>
             </EditList>
             <div class="col-sm-12 mt-1">
                 <div class="form-group row me-auto">
-                    @* <div class="col-sm-3">
-                        <Dropdown ElementType="Device" ElementToString="@(d => d.Name)"
-                            SelectedElement="actDevice" SelectedElementChanged="DeviceChanged" Elements="Devices">
-                            <ElementTemplate Context="dev">
-                                @dev.Name
-                            </ElementTemplate>
-                        </Dropdown>
-                    </div> *@
-                    <div class="col-sm-7">
-                        <Dropdown ElementType="Rule" ElementToString="@(r => r.Uid)" @bind-SelectedElement="actRule" Elements="allRulesOfDevice">
-                            <ElementTemplate Context="rule">
-                                @rule.Uid
+                    <div class="col-sm-2">
+                        <Dropdown ElementType="Management" ElementToString="@(m => m.Name)"
+                            SelectedElement="actManagement" SelectedElementChanged="ManagementChanged" Elements="ManagementsWithRules">
+                            <ElementTemplate Context="mgt">
+                                @mgt.Name
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    @if(Devices.Count > 0)
-                    {
-                        <button @onclick="AddRule" type="button" class="col-sm-2 btn btn-sm btn-success" id="addRule">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
-                    }
+                    <div class="col-sm-2">
+                        <Dropdown ElementType="Rulebase" ElementToString="@(rb => rb.Name)"
+                            SelectedElement="actRulebase" SelectedElementChanged="RulebaseChanged" Elements="actManagement.Rulebases">
+                            <ElementTemplate Context="rb">
+                                @rb.Name
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                    <div class="col-sm-7">
+                        <Dropdown ElementType="Rule" ElementToString="@(r => DisplayRuleDetails(r))" @bind-SelectedElement="actRule" Elements="allRulesOfRulebase">
+                            <ElementTemplate Context="rule">
+                                @(DisplayRuleDetails(rule))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                    <div class="col-sm-1">
+                        @if(actRule.MgmtId != 0)
+                        {
+                            <button @onclick="AddRule" type="button" class="col-sm-12 btn btn-sm btn-success" id="addRule">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                        } 
+                    </div>
                 </div>
             </div>
         }
@@ -74,73 +78,104 @@
     [Parameter]
     public bool Readonly { get; set; } = false;
 
-    private List<Device> Devices = [];
-    private Device actDevice = new();
-    private List<Rule> allRulesOfDevice = [];
+    private List<Management> Managements = [];
+    private List<Management> ManagementsWithRules = [];
+    private Management actManagement = new();
+    private Rulebase actRulebase = new();
+    private List<Rule> allRulesOfRulebase = [];
     private Rule actRule = new();
     
-    //Remove this pragma as you rework the method
-#pragma warning disable CS1998
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
-            // Devices = await apiConnection.SendQueryAsync<List<Device>>(AuthQueries.getVisibleDeviceIdsPerTenant, new { tenantId = userConfig.User.Tenant?.Id }, "getVisibleDeviceIdsPerTenant");
-            @* if(Devices.Count > 0)
+            Managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsWithRulebases);
+            ManagementsWithRules = [.. Managements.Where(m => m.Rulebases.Length > 0)];
+            if(Managements.Count > 0)
             {
-                await DeviceChanged(Devices[0]);
-            } *@           
+                await ManagementChanged(Managements[0]);
+            }          
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
-#pragma warning restore CS1998
     
-    @* private async Task DeviceChanged(Device newDevice)
+    private async Task ManagementChanged(Management newManagement)
     {
         try
         {
-            actDevice = newDevice;
-            int? mgmId = Devices.FirstOrDefault(d => d.Id == newDevice.Id)?.Management.Id;
-            if (mgmId == null)
+            actManagement = newManagement;
+            if(actManagement.Rulebases.Length > 0)
             {
-                return;
+                await RulebaseChanged(actManagement.Rulebases[0]);
             }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+    
+    private async Task RulebaseChanged(Rulebase newRulebase)
+    {
+        try
+        {
+            actRulebase = newRulebase;
             var Variables = new
             {
                 time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                mgmIds = mgmId
+                mgmIds = actManagement.Id
             };
             List<Management> managementsWithRelevantImportId =
                 await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables);
             
             if (managementsWithRelevantImportId.Count > 0)
             {
-                // we may get multiple results if this management is a submanagement of a multi device manager
                 long importId = managementsWithRelevantImportId.Select(m => m.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0).Max();
-                
                 var RuleVariables = new
                 {
-                    devId = newDevice.Id,
+                    rulebaseId = newRulebase.Id,
                     import_id_start = importId,
                     import_id_end   = importId
                 };
-                // allRulesOfDevice = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRuleUidsOfDevice, RuleVariables);
+                allRulesOfRulebase = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRuleUidsOfRulebase, RuleVariables);
             }
-            actRule = allRulesOfDevice.FirstOrDefault() ?? new();
+            actRule = allRulesOfRulebase.FirstOrDefault() ?? new();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
-    } *@
+    }
+
+    private string DiplayRule(Rule rule)
+    {
+        Management? mgt = Managements.FirstOrDefault(m => m.Id == rule.MgmtId);
+        Rulebase? rulebase = mgt?.Rulebases.FirstOrDefault(rb => rb.Id == rule.RulebaseId);
+        return $"<div class=\"row\"><div class=\"col-sm-2 border bg-transparent\">{mgt?.Name}</div><div class=\"col-sm-2 border bg-transparent\">{rulebase?.Name}</div><div class=\"col-sm-8 border bg-transparent\">{DisplayRuleDetails(rule)}</div></div>";
+    }
+
+    private string? DisplayRuleDetails(Rule rule)
+    {
+        return rule.Uid + (string.IsNullOrEmpty(rule.Name) ? "" : " (" + rule.Name + ")");
+    }
 
     private void AddRule()
     {
-        RulesToAdd.Add(actRule);
-    }    
+        if(RulesToAdd.Contains(actRule) || InSelectedRules(actRule))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_rule"), userConfig.GetText("E5501"), true);
+        }
+        else
+        {
+            RulesToAdd.Add(actRule);
+        }
+    }
+
+    private bool InSelectedRules(Rule rule)
+    {
+        return SelectedRules.Any(s => s.MgmtId == rule.MgmtId && s.RulebaseId == rule.RulebaseId && s.Uid == rule.Uid);
+    }
 }
-@* ReSharper restore CSharpWarnings::CS1998 *@

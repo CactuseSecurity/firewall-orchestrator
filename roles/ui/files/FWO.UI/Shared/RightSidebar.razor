@@ -43,14 +43,14 @@
                             <div class="mt-2">
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
                                     Tab="RsbTab.report" InputDataType="ManagementReport"
-                                    Data="CurrentReport.ReportData.ManagementData
-                                    .Where(m => m.Devices.Any(d => d.RulebaseLinks.Any()))"
+                                    Data="managementsReportObjects"
                                 NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.ReportObjects"
                                 NetworkServiceExtractor="man => man.ReportServices"
                                 NetworkUserExtractor="man => man.ReportUsers" />
-                        </div>
-                    </Tab>
-                    <Tab Title="@(userConfig.GetText("rule"))">
+                            </div>
+                        </Tab>
+                    }
+                    <Tab Title="@(userConfig.GetText("rule"))" @ref="ruleTab">
                         <div class="btn-group btn-group-sm d-md-flex justify-content-md-between sticky-marker-45">
                             <div class="btn btn-dark btn-sm w-50"
                                 @onclick="@(async () => { SelectedRules.Clear(); await SelectedRulesChanged.InvokeAsync(SelectedRules); })">
@@ -63,7 +63,7 @@
                             <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
                                 Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false"
                                 InputDataType="Rule"
-                                Data="selectedRulesDetailed.Where(r => SelectedRules.Any(sr => sr.Id == r.Id)).ToList()"
+                                Data="selectedRulesDetailed"
                                 NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                 NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object)
                                                                                                                                         .Union(rule.Tos.Select(nl => nl.Object))
@@ -74,7 +74,6 @@
                                 NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
                         </div>
                     </Tab>
-                                        }
                     @if (CurrentReport?.ReportData.OwnerData.Count > 0 &&
                                         (CurrentReport?.ReportType.IsConnectionRelatedReport() ?? false))
                     {
@@ -142,6 +141,7 @@
     private FWO.Ui.Shared.TabSet tabset = new();
     private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB = new();
     private CollapseState collapseInRSB = new();
+    private Tab? ruleTab;
 
     /// <summary>
     /// List of all managements. Will include detailed objects fetched on demand.
@@ -162,6 +162,7 @@
     private Dictionary<int, long> import_id_start = new(); // import id matching rsbTimeStart for each management
     private Dictionary<int, long> import_id_end = new(); // import id matching rsbTimeEnd for each management
     private List<ManagementReport>? previousReportData = null;
+    private HashSet<long> previousSelectedRuleIds = [];
 
     private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width); } }
 
@@ -184,15 +185,13 @@
         if (CurrentReport?.ReportData.ManagementData != previousReportData)
         {
             previousReportData = CurrentReport?.ReportData.ManagementData;
+        }
+        if (SelectedReportType.IsRuleReport())
+        {
             ResetReportState();
         }
-        foreach (Rule rule in SelectedRules)
-        {
-            if (!selectedRulesDetailed.Any(r => r.Id == rule.Id))
-            {
-                selectedRulesDetailed.Add(new() { Id = rule.Id, Name = rule.Name, MgmtId = rule.MgmtId });
-            }
-        }
+        SyncSelectedRulesDetailed();
+        UpdateRuleTabSelection();
     }
 
     public void ResetReportState()
@@ -200,11 +199,77 @@
         managementsReportObjects = new();
         foreach (ManagementReport mgt in CurrentReport?.ReportData.ManagementData ?? new List<ManagementReport>())
         {
-            if (mgt.Devices.Any(d => d.ContainsRules()))
+            if (HasReportTabData(mgt))
             {
                 managementsReportObjects.Add(new() { Id = mgt.Id, Name = mgt.Name });
             }
         }
+        if (managementsReportObjects.Count == 0 && CurrentReport?.ReportData.ManagementData.Count > 0)
+        {
+            managementsReportObjects = CurrentReport.ReportData.ManagementData
+                .Select(mgt => new ManagementReport { Id = mgt.Id, Name = mgt.Name })
+                .ToList();
+        }
+    }
+
+    private void SyncSelectedRulesDetailed()
+    {
+        Dictionary<long, Rule> detailedById = selectedRulesDetailed
+            .GroupBy(rule => rule.Id)
+            .ToDictionary(group => group.Key, group => group.First());
+        List<Rule> nextRules = new();
+
+        foreach (Rule rule in SelectedRules)
+        {
+            if (detailedById.TryGetValue(rule.Id, out Rule? detailed))
+            {
+                detailed.Name = rule.Name;
+                detailed.MgmtId = rule.MgmtId;
+                detailed.DeviceName = rule.DeviceName;
+                detailed.RulebaseName = rule.RulebaseName;
+                nextRules.Add(detailed);
+            }
+            else
+            {
+                nextRules.Add(new Rule(rule));
+            }
+        }
+
+        selectedRulesDetailed = nextRules;
+    }
+
+    private void UpdateRuleTabSelection()
+    {
+        HashSet<long> currentRuleIds = SelectedRules
+            .Select(rule => rule.Id)
+            .ToHashSet();
+        if (currentRuleIds.SetEquals(previousSelectedRuleIds))
+        {
+            return;
+        }
+
+        previousSelectedRuleIds = currentRuleIds;
+        if (currentRuleIds.Count > 0 && ruleTab != null)
+        {
+            tabset.SetActiveTab(ruleTab);
+        }
+    }
+
+    private static bool HasReportTabData(ManagementReport managementReport)
+    {
+        if (managementReport.ReportedRuleIds.Count > 0)
+        {
+            return true;
+        }
+        if (managementReport.RuleStatistics.ObjectAggregate.ObjectCount > 0)
+        {
+            return true;
+        }
+        if (managementReport.Rulebases.Any(rb => rb.Rules.Length > 0))
+        {
+            return true;
+        }
+        return managementReport.Devices.Any(dev => dev.RulebaseLinks != null && dev.RulebaseLinks.Any());
     }
 
     private async Task ResetAllTabMgts()
@@ -380,6 +445,14 @@
             { QueryVar.Offset, 0 },
             { QueryVar.MgmIds, (int)id }
         };
+        if (import_id_start.TryGetValue((int)id, out var importStart))
+        {
+            queryVars[QueryVar.ImportIdStart] = importStart;
+        }
+        if (import_id_end.TryGetValue((int)id, out var importEnd))
+        {
+            queryVars[QueryVar.ImportIdEnd] = importEnd;
+        }
 
         bool gotAllObjects = await CurrentReport!.GetObjectsForManagementInReport(
             queryVars, objType,

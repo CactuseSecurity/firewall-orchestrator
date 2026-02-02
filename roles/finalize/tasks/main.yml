@@ -67,7 +67,7 @@
     name: "{{ product_name }}-ui"
     state: restarted
   become: true
-  when: "'frontends' in group_names"
+  when: "'frontends' in group_names and (ui_deploy_changed | default(false) or product_version_changed | default(false))"
   
 - name: test whether demo data is present
   postgresql_query:
@@ -104,15 +104,12 @@
 
 - name: start importer service
   systemd:
-    name: "{{ item }}"
+    name: "{{ product_name }}-importer-api"
     state: started
     daemon_reload: true
     enabled: true
   become: true
   when: "'importers' in group_names"
-  loop:
-    - "{{ product_name }}-importer-legacy"
-    - "{{ product_name }}-importer-api"
 
 - name: remove maint website dir
   file:
@@ -137,7 +134,7 @@
     name: "{{ product_name }}-middleware"
     state: restarted
   become: true
-  when: "'middlewareserver' in group_names"
+  when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false))"
 
 # TODO - find out why UI sometimes crashes during upgrade of heavy data installations
 - name: finally restart UI
@@ -145,4 +142,4 @@
     name: "{{ product_name }}-ui"
     state: restarted
   become: true
-  when: "'frontends' in group_names"
+  when: "'frontends' in group_names and (ui_deploy_changed | default(false))"

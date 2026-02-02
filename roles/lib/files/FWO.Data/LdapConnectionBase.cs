@@ -143,7 +143,8 @@ namespace FWO.Data
 
         public bool HasGroupHandling()
         {
-            return GroupSearchPath != null && GroupSearchPath != "";
+            return (GroupSearchPath != null && GroupSearchPath != "")
+                || (GroupWritePath != null && GroupWritePath != "");
         }
 
         public bool HasRoleHandling()

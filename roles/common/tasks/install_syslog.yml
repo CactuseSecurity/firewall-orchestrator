@@ -75,7 +75,6 @@
       if $programname == '{{ ui_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ui.log" template="fworch")
       if $programname == '{{ ldap_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ldap.log" template="fworch")
       if $programname == '{{ product_name }}-api' then action(type="omfile" file="{{ fworch_log_dir }}/api.log" template="fworch")
-      if $programname startswith '{{ product_name }}-importer-legacy' then action(type="omfile" file="{{ fworch_log_dir }}/importer-legacy.log" template="fworch")
       if $programname startswith '{{ product_name }}-importer-api' then action(type="omfile" file="{{ fworch_log_dir }}/importer-api.log" template="fworch")
       if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="{{ fworch_log_dir }}/audit.log" template="fworch")
       if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="{{ fworch_log_dir }}/alert.log" template="fworch")
@@ -117,22 +116,6 @@
               endscript
               postrotate
                 {{ fworch_home }}/scripts/release_lock.py {{ fworch_ui_lockfile }} >/dev/null 2>&1
-              endscript
-      }
-
-      {{ fworch_log_dir }}/importer-legacy.log {
-          compress
-          maxage 7
-          rotate 99
-          maxsize 4096k
-          missingok
-          copytruncate
-          sharedscripts
-              prerotate
-                systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-              endscript
-              postrotate
-                systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
               endscript
       }
 

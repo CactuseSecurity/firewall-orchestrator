@@ -1,8 +1,9 @@
 using FWO.Basics;
-using FWO.Data;
 using FWO.Config.Api;
-using System.Text;
+using FWO.Data;
+using FWO.Report;
 using FWO.Report.Filter;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace FWO.Ui.Display
@@ -87,7 +88,20 @@ namespace FWO.Ui.Display
         {
             return rule.Comment != null ? SanitizeComment(rule.Comment) : "";
         }
-        
+
+        public string DisplayComment(NetworkObject nwo)
+        {
+            return nwo.Comment != null ? SanitizeComment(nwo.Comment) : "";
+        }
+        public string DisplayComment(NetworkService nws)
+        {
+            return nws.Comment != null ? SanitizeComment(nws.Comment) : "";
+        }
+        public string DisplayComment(NetworkUser nwu)
+        {
+            return nwu.Comment != null ? SanitizeComment(nwu.Comment) : "";
+        }
+
         public string DisplayEnabled(Rule rule)
         {
             return rule.Disabled ? "disabled" : "enabled";
@@ -158,6 +172,14 @@ namespace FWO.Ui.Display
             }
 
             return result.ToString();
+        }
+
+        public static string DisplayEnforcingGateways(Rule rule)
+        {
+            return string.Join(",",
+                rule.EnforcingGateways?
+                    .Select(g => g.Content?.Name ?? "")
+                ?? Enumerable.Empty<string>());
         }
 
         protected string ListNetworkZones(NetworkZone[] networkZones)

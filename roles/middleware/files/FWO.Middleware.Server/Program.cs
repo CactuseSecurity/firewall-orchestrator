@@ -5,7 +5,6 @@ using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Server;
-using FWO.Middleware.Server.Jobs;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -97,11 +96,21 @@ await Task.Factory.StartNew(async () =>
     options.WaitForJobsToComplete = true;
 });
 
-// Create and start compliance check scheduler
-await Task.Factory.StartNew(async () =>
-{
-    complianceCheckScheduler = await ComplianceCheckScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+// Register singletons for DI
+builder.Services.AddSingleton(apiConnection);
+builder.Services.AddSingleton(globalConfig);
+builder.Services.AddSingleton<JobExecutionTracker>();
+
+// Register config listeners as singletons (activated at startup)
+builder.Services.AddSingleton<ExternalRequestSchedulerService>();
+builder.Services.AddSingleton<AutoDiscoverSchedulerService>();
+builder.Services.AddSingleton<DailyCheckSchedulerService>();
+builder.Services.AddSingleton<ImportAppDataSchedulerService>();
+builder.Services.AddSingleton<ImportIpDataSchedulerService>();
+builder.Services.AddSingleton<ImportChangeNotifySchedulerService>();
+builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
+builder.Services.AddSingleton<ReportSchedulerService>();
+builder.Services.AddSingleton<ComplianceSchedulerService>();
 
 // Add services to the container.
 builder.Services.AddControllers()

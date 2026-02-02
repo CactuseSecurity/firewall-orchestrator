@@ -39,6 +39,7 @@
       dest: "{{ middleware_server_base_dir }}"
       rsync_opts:
         - "--chown={{ fworch_user }}:{{ fworch_group }}"
+    register: middleware_sync_result
     tags: [ 'test' ]
 
   - name: install python3-openssl for openssl key generation and unprivileged user
@@ -48,6 +49,10 @@
     loop:
       - python3-cryptography
       - python3-openssl
+
+  - name: track middleware deployment changes
+    set_fact:
+      mw_deploy_changed: "{{ middleware_sync_result.changed or installation_mode == 'new' }}"
 
   become: true
 

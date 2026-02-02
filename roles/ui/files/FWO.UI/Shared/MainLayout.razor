@@ -111,9 +111,9 @@
 
     private Timer? UIMessageQueTimer;
 
-    private string? LastLocation;
+    private bool _disposed = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
@@ -515,11 +515,15 @@
 
     public void Dispose()
     {
-        if(UIMessageQueTimer is not null)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected void Dispose(bool disposing)
+    {
+        if (_disposed)
         {
-            UIMessageQueTimer.Stop();
-            UIMessageQueTimer.Elapsed -= OnUIMessageTimerTick;
-            UIMessageQueTimer.Dispose();
+            return;
         }
 
         alertSubscription?.Dispose();

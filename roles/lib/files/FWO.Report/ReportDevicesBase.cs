@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -60,14 +60,14 @@ namespace FWO.Report
             return managementReports;
         }
 
-        public async Task<List<ManagementReport>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, bool? ruleChangeRequired = null)
-        {
-            var queryVariables = new
+        public async Task<List<ManagementReport>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, bool? ruleChangeRequired = null, bool IncludeObjectsInReportChanges = false)
             {
+            var queryVariables = new
+                    {
                 start_time = startTime,
                 end_time = stopTime,
                 mgmIds = Query.RelevantManagementIds,
-                ruleChangesFound = ruleChangeRequired
+                ruleChangesFound = IncludeObjectsInReportChanges ? null : ruleChangeRequired
             };
             List<ManagementReport> managementReports = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsInTimeRange, queryVariables);
 
@@ -153,6 +153,25 @@ namespace FWO.Report
 
             return true;
         }
+
+        public override bool NoChangesFound()
+        {
+            Log.TryWriteLog(LogType.Info, "Management Report", "Checking if changes (rules or objects) were found in management report.", _debugConfig.ExtendedLogReportGeneration);
+
+            foreach (ManagementReport mgmt in ReportData.ManagementData)
+            {
+                Log.TryWriteLog(LogType.Info, "Management Report", $"Checking if changes (rules or objects) were found in management {mgmt.Id} ({mgmt.Name}).", _debugConfig.ExtendedLogReportGeneration);
+
+                if(mgmt.RuleChanges != null && mgmt.RuleChanges.Length > 0)
+                {
+                    return false;
+                }
+            }
+
+            Log.TryWriteLog(LogType.Info, "Management Report", "No changes (rules or objects) found in any Management.", _debugConfig.ExtendedLogReportGeneration);
+
+            return true;
+        }        
 
         private bool CheckDeviceHasNoRules(ManagementReport mgmt, DeviceReport dev)
         {
@@ -282,7 +301,7 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, TimeFilter? timefilter = null)
         {
-            string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames()));
+            string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => ReportType.IsRulebaseReport() ? m.Name : m.NameAndDeviceNames()));
             return GenerateHtmlFrameBase(title, filter, date, htmlReport, deviceFilter, Query.SelectedOwner?.Name, timefilter);
         }
     }

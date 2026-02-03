@@ -366,21 +366,6 @@ namespace FWO.Report
             if (rbLink == null)
             {
                 return report.ToString();
-                //NOSONAR
-                // from develop:
-                // foreach (var dev in mgt.Devices.Where(d => d.Rules != null && d.Rules.Length > 0))
-                // {
-                //     if (dev.Rules != null)
-                //     {
-                //         foreach (Rule rule in dev.Rules)
-                //         {
-                //             rule.ManagementName = mgt.Name ?? "";
-                //             rule.DeviceName = dev.Name ?? "";
-                //             mgt.ReportedRuleIds.Add(rule.Id);
-                //         }
-                //     }
-                // }
-                // mgt.ReportedRuleIds = mgt.ReportedRuleIds.Distinct().ToList();
             }
             foreach (var rule in GetRulesByRulebaseId(rbLink.NextRulebaseId, managementReport)) // just dealing with the first rb for starters
             {

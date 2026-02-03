@@ -10,10 +10,10 @@
 @implements IDisposable
 
 <div class="input-group">
-    <h3>Scheduler Jobs</h3>
+    <h3>@userConfig.GetText("scheduler_jobs_title")</h3>
     <HelpLink Page="monitoring/scheduler" />
 </div>
-<p>Admin users can run scheduler jobs immediately.</p>
+<p>@(userConfig.GetText("scheduler_jobs_description"))</p>
 <hr />
 
 @if (!initComplete)
@@ -26,7 +26,7 @@ else
     {
         <div class="d-flex gap-2 mb-3">
             <button type="button" class="btn btn-sm btn-secondary" @onclick="LoadJobs">
-                <span class="@Icons.Refresh"></span> Refresh
+                <span class="@Icons.Refresh"></span>
             </button>
         </div>
     }
@@ -36,18 +36,18 @@ else
             <thead>
                 <tr>
                     <th scope="col">Job</th>
-                    <th scope="col">Interval</th>
-                    <th scope="col">Last run</th>
-                    <th scope="col">Next run</th>
-                    <th scope="col" class="text-center">Status</th>
-                    <th scope="col" class="text-center">Action</th>
+                    <th scope="col">@(userConfig.GetText("scheduler_interval"))</th>
+                    <th scope="col">@(userConfig.GetText("scheduler_last_run"))</th>
+                    <th scope="col">@(userConfig.GetText("scheduler_next_run"))</th>
+                    <th scope="col" class="text-center">@(userConfig.GetText("scheduler_status"))</th>
+                    <th scope="col" class="text-center">@(userConfig.GetText("scheduler_action"))</th>
                 </tr>
             </thead>
             <tbody>
                 @if (jobs.Count == 0)
                 {
                     <tr>
-                        <td colspan="6">No scheduler jobs available.</td>
+                        <td colspan="6">@(userConfig.GetText("scheduler_no_jobs"))</td>
                     </tr>
                 }
                 else
@@ -66,7 +66,7 @@ else
                                 <button type="button" class="btn btn-sm btn-primary" disabled="@(runningJob == job.JobName)"
                                     @onclick="() => TriggerJob(job.JobName)">
                                     <span class="@Icons.Schedule"></span>
-                                    @(runningJob == job.JobName ? "Starting soon…" : "Start now")
+                                    @(runningJob == job.JobName ? userConfig.GetText("scheduler_starting") : userConfig.GetText("scheduler_start_now"))
                                 </button>
                             </td>
                         </tr>
@@ -149,7 +149,7 @@ else
 
         StateHasChanged();
 
-        await Task.Delay(2500);
+        await Task.Delay(1000);
 
         try
         {
@@ -194,7 +194,7 @@ else
             TimeSpan timeUntil = fireTimeUtc.Value - DateTimeOffset.Now;
             if (timeUntil.TotalSeconds <= 5 && timeUntil.TotalSeconds >= 0)
             {
-                return userConfig.GetText("now") != GlobalConst.kUndefinedText ? userConfig.GetText("now") : "now";
+                return userConfig.GetText("scheduler_now");
             }
         }
 
@@ -261,12 +261,12 @@ else
     {
         if (string.IsNullOrWhiteSpace(job.LastExecutionStatus) || job.LastExecutionStatus == "unknown")
         {
-            return (MarkupString)"<span class=\"text-muted\">—</span>";
+            return (MarkupString)$"<span class=\"text-muted\">—</span>";
         }
 
         if (job.LastExecutionStatus == "success")
         {
-            return (MarkupString)"<span class=\"text-success\" title=\"Success\">✓</span>";
+            return (MarkupString)$"<span class=\"text-success {Icons.Check}\" title=\"Success\"></span>";
         }
 
         if (job.LastExecutionStatus == "error")
@@ -274,7 +274,7 @@ else
             string tooltip = !string.IsNullOrWhiteSpace(job.LastExecutionError)
             ? $"title=\"{System.Web.HttpUtility.HtmlAttributeEncode(job.LastExecutionError)}\""
             : "title=\"Error\"";
-            return (MarkupString)$"<span class=\"text-danger\" {tooltip}>✗</span>";
+            return (MarkupString)$"<span class=\"text-danger {Icons.Close}\" {tooltip}></span>";
         }
 
         return (MarkupString)"<span class=\"text-muted\">—</span>";

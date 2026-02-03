@@ -527,6 +527,16 @@ namespace FWO.Services
                 DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9005"), true);
                 return false;
             }
+            if (ActConn.InterfacePermission == InterfacePermissions.Private.ToString() &&
+                ActConnOrig.InterfacePermission != InterfacePermissions.Private.ToString())
+            {
+                bool otherAppUsesInterface = Connections.Any(c => c.UsedInterfaceId == ActConn.Id && c.AppId != ActConn.AppId);
+                if (otherAppUsesInterface)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9020"), true);
+                    return false;
+                }
+            }
             return true;
         }
 
@@ -674,6 +684,7 @@ namespace FWO.Services
         {
             try
             {
+                EnsurePublishedForOpenPermissions();
                 int? AppId = propose ? null : Application.Id;
                 int? ProposedAppId = propose ? Application.Id : null;
 
@@ -738,6 +749,7 @@ namespace FWO.Services
         {
             try
             {
+                EnsurePublishedForOpenPermissions();
                 var Variables = new
                 {
                     id = ActConn.Id,
@@ -764,6 +776,7 @@ namespace FWO.Services
                 await AddNwObjects(DstAppServerToAdd, DstAppRolesToAdd, DstAreasToAdd, DstNwGroupsToAdd, ModellingTypes.ConnectionField.Destination);
                 await RemoveSvcObjects();
                 await AddSvcObjects(SvcToAdd, SvcGrpToAdd);
+                EnsureUsingAppsPermittedIfRestricted();
                 await ApplyPermittedOwnersOnUpdate();
 
                 Connections[Connections.FindIndex(x => x.Id == ActConn.Id)] = ActConn;
@@ -775,6 +788,47 @@ namespace FWO.Services
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
+            }
+        }
+
+        private void EnsureUsingAppsPermittedIfRestricted()
+        {
+            if (ActConn.InterfacePermission != InterfacePermissions.Restricted.ToString() ||
+                ActConnOrig.InterfacePermission == InterfacePermissions.Restricted.ToString())
+            {
+                return;
+            }
+
+            HashSet<int> existingIds = ActConn.PermittedOwners.Select(o => o.Id).ToHashSet();
+            HashSet<int> pendingIds = PermittedOwnersToAdd.Select(o => o.Id).ToHashSet();
+
+            IEnumerable<int> usingAppIds = Connections
+                .Where(c => c.UsedInterfaceId == ActConn.Id && c.AppId != null)
+                .Select(c => c.AppId!.Value)
+                .Distinct();
+
+            foreach (int appId in usingAppIds)
+            {
+                if (existingIds.Contains(appId) || pendingIds.Contains(appId))
+                {
+                    continue;
+                }
+
+                FwoOwner? owner = AllApps.FirstOrDefault(o => o.Id == appId);
+                if (owner != null)
+                {
+                    PermittedOwnersToAdd.Add(owner);
+                    ActConn.PermittedOwners.Add(owner);
+                }
+            }
+        }
+
+        private void EnsurePublishedForOpenPermissions()
+        {
+            if (ActConn.InterfacePermission == InterfacePermissions.Public.ToString() ||
+                ActConn.InterfacePermission == InterfacePermissions.Restricted.ToString())
+            {
+                ActConn.IsPublished = true;
             }
         }
 

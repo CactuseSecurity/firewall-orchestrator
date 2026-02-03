@@ -7,7 +7,7 @@
     <Body>
         @if (Display && InitComplete)
         {
-            <ConnectionTable PageSizeCallback="UpdatePageSize" ShowPageSizeInput="true" ShowSelectionColumn="true" SelectionType="SelectionType.Multiple" Connections="@selectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
+            <ConnectionTable Application="Application" PageSizeCallback="UpdatePageSize" ShowPageSizeInput="true" ShowSelectionColumn="true" SelectionType="SelectionType.Multiple" Connections="@SelectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
         }
     </Body>
     <Footer>
@@ -45,14 +45,11 @@
     [Parameter]
     public EventCallback<List<ModellingConnection>> PreselectedInterfacesChanged { get; set; }
 
-    // [Parameter]
-    // public Func <ModellingConnection, bool>? SelectAction { get; set; }
-
     [Parameter]
     public FwoOwner Application { get; set; } = new();
 
-    private List<ModellingConnection> selectableInterfaces { get; set; } = new();
-    private List<ModellingConnection> allPublishedInterfaces { get; set; } = new();
+    private List<ModellingConnection> SelectableInterfaces { get; set; } = [];
+    private List<ModellingConnection> AllVisibleInterfaces { get; set; } = [];
     private List<ModellingConnection> SelectedInterfaces { get; set; } = [];
     private bool FirstTry = true;
     private bool InitComplete = false;
@@ -71,7 +68,7 @@
             try
             {
                 FirstTry = false;
-                allPublishedInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getPublishedInterfaces);
+                AllVisibleInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getPublishedInterfaces);
                 RefreshSelectionList();
                 InitComplete = true;
             }
@@ -84,18 +81,17 @@
 
     private void RefreshSelectionList()
     {
-        selectableInterfaces = new();
-        if (allPublishedInterfaces != null && allPublishedInterfaces.Count > 0)
+        SelectableInterfaces = [];
+        if (AllVisibleInterfaces != null && AllVisibleInterfaces.Count > 0)
         {
-            selectableInterfaces = PreselectedInterfaces != null && PreselectedInterfaces.Count > 0 ?
-                allPublishedInterfaces.Where(i => PreselectedInterfaces.FirstOrDefault(sel => sel.Id == i.Id) == null)?.ToList() ?? new() : allPublishedInterfaces;
+            SelectableInterfaces = PreselectedInterfaces != null && PreselectedInterfaces.Count > 0 ?
+                AllVisibleInterfaces.Where(i => PreselectedInterfaces.FirstOrDefault(sel => sel.Id == i.Id) == null)?.ToList() ?? new() : AllVisibleInterfaces;
         }
     }
 
     private async Task SelectInterface()
     {
         await AddInterfaces();
-        // SelectAction(selectedInterface);
         Close();
     }
 
@@ -107,7 +103,7 @@
             {
                 if (PreselectedInterfaces == null)
                 {
-                    PreselectedInterfaces = new();
+                    PreselectedInterfaces = [];
                 }
 
                 foreach (ModellingConnection @interface in SelectedInterfaces)

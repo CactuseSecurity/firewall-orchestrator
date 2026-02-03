@@ -3671,6 +3671,8 @@ INSERT INTO txt VALUES ('E9018', 'German',  'Name schon vergeben. Bitte einen an
 INSERT INTO txt VALUES ('E9018', 'English', 'Name already used. Please choose another.');
 INSERT INTO txt VALUES ('E9019', 'German',  'Benachrichtigungen an @@FAIL_NUMBER@@ App-Verantwortliche konnte nicht gesendet werden.');
 INSERT INTO txt VALUES ('E9019', 'English', 'Email could not be sent to @@FAIL_NUMBER@@ App responsibles.');
+INSERT INTO txt VALUES ('E9020', 'German',  'Schnittstelle kann nicht auf Privat gesetzt werden, da sie von anderen Applikationen verwendet wird.');
+INSERT INTO txt VALUES ('E9020', 'English', 'Interface cannot be set to Private because it is used by other applications.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -3830,6 +3832,8 @@ INSERT INTO txt VALUES ('C9025', 'German',  'Asynchroner Soll-Ist-Abgleich wurde
 INSERT INTO txt VALUES ('C9025', 'English', 'Asynchroneous Variance Analysis not performed yet.');
 INSERT INTO txt VALUES ('C9026', 'German',  'Schnittstelle wurde stillgelegt.');
 INSERT INTO txt VALUES ('C9026', 'English', 'Interface was decommissioned.');
+INSERT INTO txt VALUES ('C9027', 'German',  'Nicht Berechtigt. Bitte Anbieter kontaktieren.');
+INSERT INTO txt VALUES ('C9027', 'English', 'Not authorized. Please contact the provider.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.

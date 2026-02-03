@@ -11372,6 +11372,21 @@
                   }
                 },
                 {
+                  "name": "permitted_owners",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "id": "app_id"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "permitted_owners",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "recertifications",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -11426,21 +11441,6 @@
                       "column": "app_id",
                       "table": {
                         "name": "selected_connections",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "permitted_owners",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "id": "app_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "permitted_owners",
                         "schema": "modelling"
                       }
                     }
@@ -26645,6 +26645,21 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -28158,6 +28173,17 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -29394,6 +29420,17 @@
                       "task_id"
                     ]
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ]
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "modeller",

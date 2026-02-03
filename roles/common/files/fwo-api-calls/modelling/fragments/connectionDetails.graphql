@@ -18,6 +18,13 @@ fragment connectionDetails on modelling_connection {
   removed
   removal_date
   interface_permission
+  permitted_owners {
+    owner {
+      id
+      name
+      app_id_external
+    }
+  }
   source_nwobjects: nwobject_connections (where: { connection_field: { _eq: 1 } }){
     owner_network{
       ...appServerDetails

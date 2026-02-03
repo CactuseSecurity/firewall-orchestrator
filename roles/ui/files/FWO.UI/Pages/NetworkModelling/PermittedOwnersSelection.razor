@@ -6,7 +6,7 @@
 {
     @foreach(var owner in PermittedOwners)
     {
-        <div class="list-group-item border bg-secondary">
+        <div class="list-group-item border">
             <label>@((MarkupString)owner.Display(userConfig.GetText("common_service")))</label>
         </div>
     }

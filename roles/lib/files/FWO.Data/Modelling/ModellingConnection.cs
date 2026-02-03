@@ -123,7 +123,24 @@ namespace FWO.Data.Modelling
         public DateTime? RemovalDate { get; set; }
 
         [JsonProperty("interface_permission"), JsonPropertyName("interface_permission")]
-        public string InterfacePermission { get; set; } = InterfacePermissions.Public.ToString();
+        public string InterfacePermission
+        {
+            get => interfacePermission;
+            set => interfacePermission = string.IsNullOrWhiteSpace(value)
+                ? InterfacePermissions.Public.ToString()
+                : value;
+        }
+
+        [JsonProperty("permitted_owners"), JsonPropertyName("permitted_owners")]
+        public List<PermittedOwnerWrapper> PermittedOwnerWrappers
+        {
+            get => permittedOwnerWrappers;
+            set
+            {
+                permittedOwnerWrappers = value ?? [];
+                PermittedOwners = [.. permittedOwnerWrappers.Select(w => w.Owner).Where(o => o != null)];
+            }
+        }
 
 
         public bool SrcFromInterface { get; set; } = false;
@@ -147,7 +164,17 @@ namespace FWO.Data.Modelling
         }
         public List<ModellingExtraConfig> ExtraConfigsFromInterface { get; set; } = [];
         public bool ProdRuleFound { get; set; } = false;
-        public List<FwoOwner> PermittedOwners { get; set; } = [];
+        private List<FwoOwner> permittedOwners = [];
+        public List<FwoOwner> PermittedOwners
+        {
+            get => permittedOwnerWrappers.Count > 0
+                ? permittedOwnerWrappers.Select(w => w.Owner).Where(o => o != null).ToList()
+                : permittedOwners;
+            set => permittedOwners = value ?? [];
+        }
+
+        private string interfacePermission = InterfacePermissions.Public.ToString();
+        private List<PermittedOwnerWrapper> permittedOwnerWrappers = [];
 
 
         public ModellingConnection()
@@ -192,6 +219,7 @@ namespace FWO.Data.Modelling
             InterfaceIsDecommissioned = conn.InterfaceIsDecommissioned;
             ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
             InterfacePermission = conn.InterfacePermission;
+            PermittedOwnerWrappers = conn.PermittedOwnerWrappers;
             PermittedOwners = conn.PermittedOwners;
         }
 
@@ -494,5 +522,11 @@ namespace FWO.Data.Modelling
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
         }
+    }
+
+    public class PermittedOwnerWrapper
+    {
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public FwoOwner Owner { get; set; } = new();
     }
 }

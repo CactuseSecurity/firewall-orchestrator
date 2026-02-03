@@ -58,13 +58,13 @@ else
                             <td>
                                 <div class="fw-bold">@job.JobName</div>
                             </td>
-                            <td>@FormatInterval(job.IntervalDescription)</td>
-                            <td>@FormatRunTime(job.LastFireTimeUtc, job.IntervalDescription, false)</td>
-                            <td>@FormatRunTime(job.NextFireTimeUtc, job.IntervalDescription, true)</td>
+                            <td class="@(string.IsNullOrWhiteSpace(job.IntervalDescription) ? "text-center" : "")">@FormatInterval(job.IntervalDescription)</td>
+                            <td class="@(job.LastFireTimeUtc is null ? "text-center" : "")">@FormatRunTime(job.LastFireTimeUtc, false)</td>
+                            <td class="@(job.NextFireTimeUtc is null ? "text-center" : "")">@FormatRunTime(job.NextFireTimeUtc, true)</td>
                             <td class="text-center">@FormatExecutionStatus(job)</td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-primary" disabled="@(runningJob == job.JobName)"
-                                    @onclick="() => TriggerJob(job.JobName)">
+                                        @onclick="() => TriggerJob(job.JobName)">
                                     <span class="@Icons.Schedule"></span>
                                     @(runningJob == job.JobName ? userConfig.GetText("scheduler_starting") : userConfig.GetText("scheduler_start_now"))
                                 </button>
@@ -177,16 +177,17 @@ else
         StateHasChanged();
     }
 
-    private string FormatInterval(string intervalDescription)
+    private MarkupString FormatInterval(string intervalDescription)
     {
-        return string.IsNullOrWhiteSpace(intervalDescription) ? "N/A" : intervalDescription;
+        return string.IsNullOrWhiteSpace(intervalDescription) ?
+            (MarkupString)$"<span class=\"text-muted text-center\">—</span>" : (MarkupString)$"{userConfig.GetText("scheduler_interval_description")} {intervalDescription}";
     }
 
-    private string FormatRunTime(DateTimeOffset? fireTimeUtc, string intervalDescription, bool isNextRun)
+    private MarkupString FormatRunTime(DateTimeOffset? fireTimeUtc, bool isNextRun)
     {
         if (fireTimeUtc == null)
         {
-            return "N/A";
+            return (MarkupString)$"<span class=\"text-muted\">—</span>";
         }
 
         if (isNextRun)
@@ -194,67 +195,15 @@ else
             TimeSpan timeUntil = fireTimeUtc.Value - DateTimeOffset.Now;
             if (timeUntil.TotalSeconds <= 5 && timeUntil.TotalSeconds >= 0)
             {
-                return userConfig.GetText("scheduler_now");
+                return (MarkupString)userConfig.GetText("scheduler_now");
             }
         }
 
         DateTime localTime = fireTimeUtc.Value.LocalDateTime;
-        TimeSpan? interval = TryParseInterval(intervalDescription);
-
         bool hasSeconds = localTime.Second != 0;
 
-        if (interval != null && interval.Value < TimeSpan.FromDays(1))
-        {
-            return hasSeconds ? localTime.ToString("T") : localTime.ToString("t");
-        }
-
-        return hasSeconds ? localTime.ToString("G") : localTime.ToString("g");
-    }
-
-    // TODO: check better formating or parsing
-    private TimeSpan? TryParseInterval(string intervalDescription)
-    {
-        if (string.IsNullOrWhiteSpace(intervalDescription))
-        {
-            return null;
-        }
-
-        string trimmed = intervalDescription.Trim().ToLowerInvariant();
-        if (!trimmed.StartsWith("every "))
-        {
-            return null;
-        }
-
-        // expected pattern: "every <number><unit>", e.g., every 30m, every 2h, every 0.5d
-        string withoutPrefix = trimmed[6..].Trim();
-        double value = 0;
-        char unit = '\0';
-
-        int unitIndex = withoutPrefix.TakeWhile(ch => char.IsDigit(ch) || ch == '.' || ch == ',').Count();
-        if (unitIndex == 0 || unitIndex >= withoutPrefix.Length)
-        {
-            return null;
-        }
-
-        string numberPart = withoutPrefix[..unitIndex].Replace(',', '.');
-        string unitPart = withoutPrefix[unitIndex..].Trim();
-
-        if (!double.TryParse(numberPart, System.Globalization.NumberStyles.Any,
-        System.Globalization.CultureInfo.InvariantCulture, out value))
-        {
-            return null;
-        }
-
-        unit = unitPart.FirstOrDefault();
-
-        return unit switch
-        {
-            's' => TimeSpan.FromSeconds(value),
-            'm' => TimeSpan.FromMinutes(value),
-            'h' => TimeSpan.FromHours(value),
-            'd' => TimeSpan.FromDays(value),
-            _ => (TimeSpan?)null
-        };
+        return hasSeconds ?
+           (MarkupString)localTime.ToString("G") : (MarkupString)localTime.ToString("g");
     }
 
     private MarkupString FormatExecutionStatus(SchedulerJobInfo job)

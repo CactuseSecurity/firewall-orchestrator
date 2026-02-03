@@ -127,16 +127,16 @@ namespace FWO.Middleware.Server.Controllers
             {
                 if (trigger is ISimpleTrigger simple && simple.RepeatInterval > TimeSpan.Zero)
                 {
-                    return $"every {FormatInterval(simple.RepeatInterval)}";
+                    return FormatInterval(simple.RepeatInterval);
                 }
 
                 if (trigger is ICronTrigger cron)
                 {
-                    return $"cron: {cron.CronExpressionString}";
+                    return cron.CronExpressionString ?? "";
                 }
             }
 
-            return "manual";
+            return "";
         }
 
         private static string FormatInterval(TimeSpan interval)

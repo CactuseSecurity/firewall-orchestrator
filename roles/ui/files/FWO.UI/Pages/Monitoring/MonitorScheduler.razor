@@ -11,7 +11,6 @@
 
 <div class="input-group">
     <h3>@userConfig.GetText("scheduler_jobs_title")</h3>
-    <HelpLink Page="monitoring/scheduler" />
 </div>
 <p>@(userConfig.GetText("scheduler_jobs_description"))</p>
 <hr />
@@ -70,6 +69,14 @@ else
                                 </button>
                             </td>
                         </tr>
+                        @if (job.LastExecutionStatus == SchedulerJobExecutionStatus.Failed && !string.IsNullOrWhiteSpace(job.LastExecutionError))
+                        {
+                            <tr>
+                                <td colspan="6" style="background-color: #ffd400d6">
+                                    @((MarkupString)$"<p><span class=\"text-danger {Icons.Warning} px-1\"></span><b>{job.LastExecutionError}</b></p>")
+                                </td>
+                            </tr>
+                        }
                     }
                 }
             </tbody>
@@ -200,33 +207,20 @@ else
         }
 
         DateTime localTime = fireTimeUtc.Value.LocalDateTime;
-        bool hasSeconds = localTime.Second != 0;
 
-        return hasSeconds ?
-           (MarkupString)localTime.ToString("G") : (MarkupString)localTime.ToString("g");
+        return localTime.Second != 0 ?
+           (MarkupString)localTime.ToString("G") :
+           (MarkupString)localTime.ToString("g");
     }
 
     private MarkupString FormatExecutionStatus(SchedulerJobInfo job)
     {
-        if (string.IsNullOrWhiteSpace(job.LastExecutionStatus) || job.LastExecutionStatus == "unknown")
+        return job.LastExecutionStatus switch
         {
-            return (MarkupString)$"<span class=\"text-muted\">—</span>";
-        }
-
-        if (job.LastExecutionStatus == "success")
-        {
-            return (MarkupString)$"<span class=\"text-success {Icons.Check}\" title=\"Success\"></span>";
-        }
-
-        if (job.LastExecutionStatus == "error")
-        {
-            string tooltip = !string.IsNullOrWhiteSpace(job.LastExecutionError)
-            ? $"title=\"{System.Web.HttpUtility.HtmlAttributeEncode(job.LastExecutionError)}\""
-            : "title=\"Error\"";
-            return (MarkupString)$"<span class=\"text-danger {Icons.Close}\" {tooltip}></span>";
-        }
-
-        return (MarkupString)"<span class=\"text-muted\">—</span>";
+            SchedulerJobExecutionStatus.Success => (MarkupString)$"<span class=\"text-success {Icons.Check}\"></span>",
+            SchedulerJobExecutionStatus.Failed => (MarkupString)$"<span class=\"text-danger {Icons.Close}\"></span>",
+            _ or SchedulerJobExecutionStatus.None => (MarkupString)$"<span class=\"text-muted\">—</span>"
+        };
     }
 
     public void Dispose()

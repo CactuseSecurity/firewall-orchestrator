@@ -271,8 +271,8 @@
                         Log.WriteAudit(
                             Title: $"Groups Settings",
                             Text: $"Added Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
-                            UserName: userConfig.User.Name,
-                            UserDN: userConfig.User.Dn);
+                            context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                        );
                     }
                 }
                 else
@@ -296,8 +296,8 @@
                         Log.WriteAudit(
                             Title: $"Groups Settings",
                             Text: $"Edited Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
-                            UserName: userConfig.User.Name,
-                            UserDN: userConfig.User.Dn);
+                            context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                        );
                     }
                 }
                 CollectSampleGroups();
@@ -383,8 +383,8 @@
                 Log.WriteAudit(
                     Title: $"Groups Settings",
                     Text: $"Deleted Group: {actGroup.Name} (DN: {actGroup.Dn}) with Roles: {string.Join(", ", actGroup.Roles)}",
-                    UserName: userConfig.User.Name,
-                    UserDN: userConfig.User.Dn);
+                    context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                );
             }
         }
         catch (Exception exception)
@@ -436,8 +436,8 @@
                     Log.WriteAudit(
                         Title: $"Groups Settings",
                         Text: $"Added User: {selectedUser.Name} (DN: {selectedUser.Dn}) to Group: {actGroup.Name} (DN: {actGroup.Dn})",
-                        UserName: userConfig.User.Name,
-                        UserDN: userConfig.User.Dn);
+                        context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                    );
                 }
             }
             catch (System.Exception exception)
@@ -469,8 +469,8 @@
                     Log.WriteAudit(
                         Title: $"Groups Settings",
                         Text: $"Removed User: {selectedUserToDelete.Name} (DN: {selectedUserToDelete.Dn}) from Group: {actGroup.Name} (DN: {actGroup.Dn})",
-                        UserName: userConfig.User.Name,
-                        UserDN: userConfig.User.Dn);
+                        context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                    );
                 }
             }
             catch (System.Exception exception)

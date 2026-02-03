@@ -326,8 +326,8 @@
             Log.WriteAudit(
                 Title: $"LDAP Connection Settings",
                 Text: $"Deleted LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
-                UserName: userConfig.User.Name,
-                UserDN: userConfig.User.Dn);
+                context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+            );
         }
         catch (Exception exception)
         {
@@ -428,8 +428,8 @@
                         Log.WriteAudit(
                             Title: $"LDAP Connection Settings",
                             Text: $"Added LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
-                            UserName: userConfig.User.Name,
-                            UserDN: userConfig.User.Dn);
+                            context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                        );
                     }
                 }
                 else
@@ -448,8 +448,8 @@
                         Log.WriteAudit(
                             Title: $"LDAP Connection Settings",
                             Text: $"Edited LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
-                            UserName: userConfig.User.Name,
-                            UserDN: userConfig.User.Dn);
+                            context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                        );
                     }
                 }
             }

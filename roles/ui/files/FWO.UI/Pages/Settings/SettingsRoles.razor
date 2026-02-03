@@ -143,8 +143,8 @@
                     Log.WriteAudit(
                         Title: $"Roles Settings",
                         Text: $"Added User/Group: {user.Name} (DN: {user.Dn}) to Role: {actRole.Name} (DN: {actRole.Dn})",
-                        UserName: userConfig.User.Name,
-                        UserDN: userConfig.User.Dn);
+                        context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                    );
                 }
             }
             catch (System.Exception exception)
@@ -182,8 +182,8 @@
                         Log.WriteAudit(
                             Title: $"Roles Settings",
                             Text: $"Removed User/Group: {selectedUserToRemove.Name} (DN: {selectedUserToRemove.Dn}) from Role: {actRole.Name} (DN: {actRole.Dn})",
-                            UserName: userConfig.User.Name,
-                            UserDN: userConfig.User.Dn);
+                            context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                        );
                     }
                 }
                 catch (System.Exception exception)

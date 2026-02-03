@@ -445,8 +445,8 @@
         Log.WriteAudit(
             Title: $"Users Settings",
             Text: $"LDAP re-sync started",
-            UserName: userConfig.User.Name,
-            UserDN: userConfig.User.Dn);
+            context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+        );
     }
 
     private async Task SynchronizeUsers()
@@ -773,8 +773,8 @@
                         Log.WriteAudit(
                             Title: $"Users Settings",
                             Text: $"Added User: {actUser.Name} (DN: {actUser.Dn})",
-                            UserName: userConfig.User.Name,
-                            UserDN: userConfig.User.Dn);
+                            context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                        );
                     }
                 }
             }
@@ -795,8 +795,8 @@
                     Log.WriteAudit(
                         Title: $"Users Settings",
                         Text: $"Edited User: {actUser.Name} (DN: {actUser.Dn})",
-                        UserName: userConfig.User.Name,
-                        UserDN: userConfig.User.Dn);
+                        context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                    );
                 }
             }
 
@@ -932,8 +932,8 @@
                 Log.WriteAudit(
                     Title: $"Users Settings",
                     Text: $"Deleted User: {actUser.Name} (DN: {actUser.Dn})",
-                    UserName: userConfig.User.Name,
-                    UserDN: userConfig.User.Dn);
+                    context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                );
             }
         }
         catch (Exception exception)
@@ -1014,8 +1014,8 @@
                     Log.WriteAudit(
                         Title: $"Users Settings",
                         Text: $"Password reset User: {actUser.Name} (DN: {actUser.Dn})",
-                        UserName: userConfig.User.Name,
-                        UserDN: userConfig.User.Dn);
+                        context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                    );
                 }
                 ResetPasswordMode = false;
             }

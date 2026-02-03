@@ -48,8 +48,8 @@ namespace FWO.Middleware.Server
             Log.WriteAudit(
                 Title: $"Compliance Matrix Import",
                 Text: $"Run import from {importFileName}",
-                UserName: userName,
-                UserDN: userDn);
+                context: new Log.AuditContext(UserName: userName, UserDn: userDn)
+            );
 
             return await ImportSingleMatrix(importFileName, FailedImports);
         }

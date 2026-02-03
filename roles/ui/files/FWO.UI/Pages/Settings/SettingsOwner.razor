@@ -599,8 +599,8 @@ else
         Log.WriteAudit(
             Title: $"Owners Settings",
             Text: $"Recertification recalculated",
-            UserName: userConfig.User.Name,
-            UserDN: userConfig.User.Dn);
+            context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+        );
     }
 
     private void AnalyseSampleOwners()
@@ -832,8 +832,8 @@ else
             Log.WriteAudit(
                 Title: $"Owners Settings",
                 Text: $"Added Owner: {actOwner.Name} (Responsibles: {FormatOwnerResponsibles(actOwner.GetAllOwnerResponsibles())})",
-                UserName: userConfig.User.Name,
-                UserDN: userConfig.User.Dn);
+                context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+            );
         }
     }
 
@@ -870,8 +870,8 @@ else
             Log.WriteAudit(
                 Title: $"Owners Settings",
                 Text: $"Edited Owner: {actOwner.Name} (Responsibles: {FormatOwnerResponsibles(actOwner.GetAllOwnerResponsibles())})",
-                UserName: userConfig.User.Name,
-                UserDN: userConfig.User.Dn);
+                context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+            );
         }
     }
 
@@ -1063,8 +1063,8 @@ else
             Log.WriteAudit(
                 Title: $"Owners Settings",
                 Text: $"Deleted Owner: {actOwner.Name} (Responsibles: {FormatOwnerResponsibles(actOwner.GetAllOwnerResponsibles())})",
-                UserName: userConfig.User.Name,
-                UserDN: userConfig.User.Dn);
+                context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+            );
         }
         catch (Exception exception)
         {

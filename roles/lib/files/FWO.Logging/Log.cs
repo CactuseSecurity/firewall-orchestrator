@@ -33,6 +33,23 @@ namespace FWO.Logging
             bool WithSeparatorLine = true,
             bool ContainsLdapDn = true
         );
+        /// <summary>
+        /// Encapsulates user context for error logging.
+        /// </summary>
+        public readonly record struct ErrorContext(
+            string? User = null,
+            string? Role = null,
+            bool ContainsLdapDn = false
+        );
+        /// <summary>
+        /// Encapsulates user context for audit logging.
+        /// </summary>
+        public readonly record struct AuditContext(
+            string? UserName = null,
+            string? UserDn = null,
+            bool WithSeparatorLine = true,
+            bool ContainsLdapDn = true
+        );
         private readonly record struct LogEntry(
             string LogType,
             string Title,
@@ -151,15 +168,14 @@ namespace FWO.Logging
         /// <param name="Title">The title of the error log entry.</param>
         /// <param name="Text">The content of the error log entry.</param>
         /// <param name="Error">The exception to include in the log entry.</param>
-        /// <param name="User">The user associated with the error.</param>
-        /// <param name="Role">The user role associated with the error.</param>
-        /// <param name="containsLdapDn">The error log entry contains ldap DN data so, do not strip ldap dn delimters (,/=).</param>
+        /// <param name="context">The user context associated with the error.</param>
         /// <param name="callerName">The name of the calling method (automatically supplied).</param>
         /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
         /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
-        public static void WriteError(string Title, string? Text = null, Exception? Error = null, string? User = null, string? Role = null, bool containsLdapDn = false, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        public static void WriteError(string Title, string? Text = null, Exception? Error = null, ErrorContext? context = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteError(Title, new ErrorLogDetails(Text, Error, User, Role, containsLdapDn), callerName, callerFile, callerLineNumber);
+            ErrorContext resolvedContext = context ?? new ErrorContext();
+            WriteError(Title, new ErrorLogDetails(Text, Error, resolvedContext.User, resolvedContext.Role, resolvedContext.ContainsLdapDn), callerName, callerFile, callerLineNumber);
         }
 
         public static void WriteError(string Title, ErrorLogDetails details, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
@@ -198,16 +214,14 @@ namespace FWO.Logging
         /// </summary>
         /// <param name="Title">The title of the audit log entry.</param>
         /// <param name="Text">The content of the audit log entry.</param>
-        /// <param name="UserName">The name of the user performing the action.</param>
-        /// <param name="UserDN">The distinguished name (DN) of the user.</param>
-        /// <param name="containsLdapDn">The audit log entry contains ldap DN data so, do not strip ldap dn delimters (,/=).</param>
-        /// <param name="WithSeparatorLine">Whether to append a separator line to the log entry. Default is true.</param>
+        /// <param name="context">The user context associated with the audit log.</param>
         /// <param name="callerName">The name of the calling method (automatically supplied).</param>
         /// <param name="callerFile">The file path of the calling method (automatically supplied).</param>
         /// <param name="callerLineNumber">The line number in the source file at which the method is called (automatically supplied).</param>
-        public static void WriteAudit(string Title, string Text, string? UserName = null, string? UserDN = null, bool WithSeparatorLine = true, bool containsLdapDn = true, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        public static void WriteAudit(string Title, string Text, AuditContext? context = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteAudit(Title, new AuditLogDetails(Text, UserName, UserDN, WithSeparatorLine, containsLdapDn), callerName, callerFile, callerLineNumber);
+            AuditContext resolvedContext = context ?? new AuditContext();
+            WriteAudit(Title, new AuditLogDetails(Text, resolvedContext.UserName, resolvedContext.UserDn, resolvedContext.WithSeparatorLine, resolvedContext.ContainsLdapDn), callerName, callerFile, callerLineNumber);
         }
 
         /// <summary>

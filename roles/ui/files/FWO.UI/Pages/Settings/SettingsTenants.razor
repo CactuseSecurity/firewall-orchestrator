@@ -430,8 +430,8 @@
             Log.WriteAudit(
                 Title: $"Tenants Settings",
                 Text: $"Deleted Tenant: {actTenant.Name} (ID: {actTenant.Id})",
-                UserName: userConfig.User.Name,
-                UserDN: userConfig.User.Dn);
+                context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+            );
 
         }
         catch (Exception exception)
@@ -550,8 +550,8 @@
                 Log.WriteAudit(
                     Title: $"Tenants Settings",
                     Text: $"Added Tenant: {actTenant.Name} (ID: {actTenant.Id})",
-                    UserName: userConfig.User.Name,
-                    UserDN: userConfig.User.Dn);
+                    context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+                );
             }
         }
     }
@@ -572,8 +572,8 @@
             Log.WriteAudit(
                 Title: $"Tenants Settings",
                 Text: $"Edited Tenant: {actTenant.Name} (ID: {actTenant.Id})",
-                UserName: userConfig.User.Name,
-                UserDN: userConfig.User.Dn);
+                context: new Log.AuditContext(UserName: userConfig.User.Name, UserDn: userConfig.User.Dn)
+            );
         }
     }
 

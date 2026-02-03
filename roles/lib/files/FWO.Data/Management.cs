@@ -13,7 +13,7 @@ namespace FWO.Data
         public string? ExtName { get; set; }
     }
 
-    public class Management
+    public sealed class Management
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -170,7 +170,7 @@ namespace FWO.Data
                    Port == management.Port;
         }
 
-        public virtual bool Sanitize()
+        public bool Sanitize()
         {
             bool shortened = false;
             Name = Name.SanitizeMand(ref shortened);

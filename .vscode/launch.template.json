@@ -437,6 +437,24 @@
             "type": "python",
             "request": "launch",
             "module": "roles.importer.files.test.mocking.mock_config"
+        },
+        {
+            "name": "pytest current file",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-s",
+                "-vv",
+                "--cov-report", "xml:cov.xml",
+                "--cov", ".",
+                "${file}"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

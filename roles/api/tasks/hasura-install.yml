@@ -177,6 +177,37 @@
     var: hasura_env
   when: debug_level > '1'
 
+- name: request Docker Hub token for hasura/graphql-engine
+  uri:
+    url: "https://auth.docker.io/token?service=registry.docker.io&scope=repository:hasura/graphql-engine:pull"
+    method: GET
+    return_content: true
+  register: dockerhub_token
+  environment: "{{ proxy_env }}"
+  failed_when: dockerhub_token.status | default(-1) != 200
+
+- name: check Docker Hub manifest access for hasura/graphql-engine:{{ api_hasura_version }}
+  uri:
+    url: "https://registry-1.docker.io/v2/hasura/graphql-engine/manifests/{{ api_hasura_version }}"
+    method: HEAD
+    headers:
+      Authorization: "Bearer {{ dockerhub_token.json.token }}"
+      Accept: "application/vnd.docker.distribution.manifest.v2+json"
+    status_code:
+      - 200
+  register: dockerhub_manifest_check
+  environment: "{{ proxy_env }}"
+  failed_when: false
+
+- name: fail if Docker Hub manifest access is blocked
+  fail:
+    msg: >-
+      Cannot access Docker Hub manifest for hasura/graphql-engine:{{ api_hasura_version }}
+      (HTTP {{ dockerhub_manifest_check.status | default('unknown') }}). This typically indicates
+      blocked registry access or proxy restrictions. Ensure the host can reach registry-1.docker.io
+      or configure a registry mirror.
+  when: dockerhub_manifest_check.status | default(0) != 200
+
 - name: start hasura container
   docker_container:
     name: "{{ api_container_name }}"
@@ -194,7 +225,7 @@
     env: "{{ hasura_env }}"
     container_default_behavior: no_defaults
     user: "1001:1001" # hasura user and group id
-    pull: no
+    pull: false
   register: docker_return
   become: true
   become_user: "{{ fworch_user }}"

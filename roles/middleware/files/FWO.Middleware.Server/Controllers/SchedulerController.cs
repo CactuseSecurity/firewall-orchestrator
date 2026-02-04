@@ -70,7 +70,7 @@ namespace FWO.Middleware.Server.Controllers
 
                 if (lastResult is not null)
                 {
-                    jobExecutionStatus = lastResult.Success ? SchedulerJobExecutionStatus.Success : SchedulerJobExecutionStatus.Success;
+                    jobExecutionStatus = lastResult.Success ? SchedulerJobExecutionStatus.Success : SchedulerJobExecutionStatus.Failed;
                     jobError = lastResult.ErrorMessage;
                 }
 

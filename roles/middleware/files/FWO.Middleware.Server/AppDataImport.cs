@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
@@ -10,6 +11,7 @@ using FWO.Recert;
 using FWO.Services;
 using Novell.Directory.Ldap;
 using System.Data;
+using System.Linq;
 using System.Text.Json;
 
 namespace FWO.Middleware.Server
@@ -27,13 +29,9 @@ namespace FWO.Middleware.Server
         private Ldap ownerGroupLdap = new();
 
         private List<Ldap> connectedLdaps = [];
-        private string modellerRoleDn = "";
-        private string requesterRoleDn = "";
-        private string implementerRoleDn = "";
-        private string reviewerRoleDn = "";
-        private string? ownerGroupLdapPath = "";
+        private string? ownerGroupLdapPath;
         private List<GroupGetReturnParameters> allGroups = [];
-        private List<GroupGetReturnParameters> allInternalGroups = [];
+        private Dictionary<OwnerResponsibleType, List<string>> rolesToSetByType = [];
         private ModellingNamingConvention NamingConvention = new();
         private UserConfig userConfig = new();
         private const string LogMessageTitle = "Import App Data";
@@ -61,7 +59,7 @@ namespace FWO.Middleware.Server
             List<string> failedImports = [];
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
-                if (!RunImportScript(importfilePathAndName + ".py"))
+                if (!RunImportScript(importfilePathAndName + ".py", globalConfig.ImportAppDataScriptArgs))
                 {
                     Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
                 }
@@ -75,23 +73,14 @@ namespace FWO.Middleware.Server
             connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new KeyNotFoundException("No internal Ldap with group handling found.");
             ownerGroupLdap = connectedLdaps.FirstOrDefault(x => x.Id == globalConfig.OwnerLdapId) ?? throw new KeyNotFoundException("Ldap with group handling not found.");
-            modellerRoleDn = $"cn=modeller,{internalLdap.RoleSearchPath}";
-            requesterRoleDn = $"cn=requester,{internalLdap.RoleSearchPath}";
-            implementerRoleDn = $"cn=implementer,{internalLdap.RoleSearchPath}";
-            reviewerRoleDn = $"cn=reviewer,{internalLdap.RoleSearchPath}";
-            allInternalGroups = await internalLdap.GetAllInternalGroups();
-            ownerGroupLdapPath = ownerGroupLdap.GroupWritePath;
-            if (globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId)
-            {
-                allGroups = allInternalGroups;  // TODO: check if ref is ok here
-            }
-            else
-            {
-                allGroups = await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.
+            ownerGroupLdapPath = ResolveOwnerGroupPath(ownerGroupLdap);
+            allGroups = globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId ?
+                await internalLdap.GetAllInternalGroups() :
+                await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.
                     Replace(Placeholder.AppId, "*").
                     Replace(Placeholder.ExternalAppId, "*").
                     Replace(Placeholder.AppPrefix, "*"));
-            }
+            rolesToSetByType = ParseRolesWithImport(globalConfig.RolesWithAppDataImport);
         }
 
         private async Task ImportSingleSource(string importfileName, List<string> failedImports)
@@ -142,7 +131,7 @@ namespace FWO.Middleware.Server
                     }
                 }
                 string? importSource = importedApps.FirstOrDefault()?.ImportSource;
-                if(importSource != null)
+                if (importSource != null)
                 {
                     foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
                     {
@@ -169,31 +158,26 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                string userGroupDn;
                 int appId;
                 FwoOwner? existingApp = existingApps.FirstOrDefault(x => x.ExtAppId == incomingApp.ExtAppId);
+                string userGroupDn = await CreateOrUpdateUserGroup(incomingApp, existingApp);
 
                 if (existingApp == null)
                 {
-                    (userGroupDn, appId) = await NewApp(incomingApp);
+                    appId = await NewApp(incomingApp, userGroupDn);
                 }
                 else
                 {
                     appId = existingApp.Id;
-                    userGroupDn = await UpdateApp(incomingApp, existingApp);
+                    await UpdateApp(incomingApp, existingApp, userGroupDn);
+                }
+                if (incomingApp.MainUser != null && incomingApp.MainUser != "")
+                {
+                    await UpdateRoles(incomingApp.MainUser, GetRolesForType(OwnerResponsibleType.kMainResponsible));
                 }
                 // in order to store email addresses of users in the group in UiUser for email notification:
                 await AddAllGroupMembersToUiUser(userGroupDn);
-                if(userConfig.RecertificationMode == RecertificationMode.OwnersAndRules && 
-                    incomingApp.RecertActive && (existingApp == null || !existingApp.RecertActive))
-                {
-                    RecertHandler recertHandler = new(apiConnection, userConfig);
-                    await recertHandler.InitOwnerRecert(new()
-                    {
-                        Id = appId,
-                        RecertInterval = incomingApp.RecertInterval
-                    });
-                }
+                await InitRecert(incomingApp, existingApp, appId);
             }
             catch (Exception exc)
             {
@@ -205,15 +189,12 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task<(string, int)> NewApp(ModellingImportAppData incomingApp)
+        private async Task<int> NewApp(ModellingImportAppData incomingApp, string userGroupDn)
         {
-            string userGroupDn = globalConfig.ManageOwnerLdapGroups ? await CreateUserGroup(incomingApp) : GetGroupDn(incomingApp.ExtAppId);
             int appId = 0;
             var variables = new
             {
                 name = incomingApp.Name,
-                dn = incomingApp.MainUser ?? "",
-                groupDn = userGroupDn,
                 appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
@@ -224,53 +205,24 @@ namespace FWO.Middleware.Server
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
             if (returnIds != null)
             {
-                if(incomingApp.MainUser != null && incomingApp.MainUser != "")
-                {
-                    await UpdateRoles(incomingApp.MainUser);
-                }
                 appId = returnIds[0].NewId;
+                List<OwnerResponsible> responsibles = BuildOwnerResponsibles(incomingApp.MainUser, userGroupDn, []);
+                await UpdateOwnerResponsibles(appId, responsibles);
+                await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
                 foreach (var appServer in incomingApp.AppServers)
                 {
                     await NewAppServer(appServer, appId, incomingApp.ImportSource);
                 }
             }
-            return (userGroupDn, appId);
+            return appId;
         }
 
-        private async Task<string> UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp)
+        private async Task UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp, string userGroupDn)
         {
-            string userGroupDn = GetGroupDn(incomingApp.ExtAppId);
-            if (globalConfig.ManageOwnerLdapGroups)
-            {
-                if (string.IsNullOrEmpty(existingApp.GroupDn) && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
-                {
-                    string newDn = await CreateUserGroup(incomingApp);
-                    if (newDn != userGroupDn) // may this happen?
-                    {
-                        Log.WriteInfo(LogMessageTitle, $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
-                        userGroupDn = newDn;
-                    }
-                }
-                else
-                {
-                    await UpdateUserGroup(incomingApp, userGroupDn);
-                }
-            }
-            else
-            {
-                // add necessary roles for user group
-                foreach (string role in new List<string> { modellerRoleDn, requesterRoleDn, implementerRoleDn, reviewerRoleDn })
-                {
-                    await internalLdap.AddUserToEntry(userGroupDn, role);
-                }
-            }
-
             var Variables = new
             {
                 id = existingApp.Id,
                 name = incomingApp.Name,
-                dn = incomingApp.MainUser ?? "",
-                groupDn = userGroupDn,
                 appIdExternal = string.IsNullOrEmpty(incomingApp.ExtAppId) ? null : incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
@@ -278,12 +230,13 @@ namespace FWO.Middleware.Server
                 recertActive = incomingApp.RecertActive || existingApp.RecertActive
             };
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.updateOwner, Variables);
-            if(incomingApp.MainUser != null && incomingApp.MainUser != "")
-            {
-                await UpdateRoles(incomingApp.MainUser);
-            }
+            List<OwnerResponsible> responsibles = BuildOwnerResponsibles(
+                incomingApp.MainUser,
+                userGroupDn,
+                existingApp.GetOwnerResponsiblesByType(OwnerResponsibleType.kOptionalEscalationResponsible));
+            await UpdateOwnerResponsibles(existingApp.Id, responsibles);
+            await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
             await ImportAppServers(incomingApp, existingApp.Id);
-            return userGroupDn;
         }
 
         private async Task<bool> DeactivateApp(FwoOwner app)
@@ -302,16 +255,62 @@ namespace FWO.Middleware.Server
             return true;
         }
 
+        private static List<OwnerResponsible> BuildOwnerResponsibles(string? mainUserDn, string userGroupDn, IEnumerable<string> extraDns)
+        {
+            List<OwnerResponsible> responsibles = [];
+            if (!string.IsNullOrWhiteSpace(mainUserDn))
+            {
+                responsibles.Add(new OwnerResponsible { Dn = mainUserDn, ResponsibleType = OwnerResponsibleType.kMainResponsible });
+            }
+            if (!string.IsNullOrWhiteSpace(userGroupDn))
+            {
+                responsibles.Add(new OwnerResponsible { Dn = userGroupDn, ResponsibleType = OwnerResponsibleType.kSupportingResponsible });
+            }
+            foreach (string dn in extraDns.Where(dn => !string.IsNullOrWhiteSpace(dn)))
+            {
+                responsibles.Add(new OwnerResponsible { Dn = dn, ResponsibleType = OwnerResponsibleType.kOptionalEscalationResponsible });
+            }
+            return responsibles;
+        }
+
+        private async Task UpdateOwnerResponsibles(int ownerId, List<OwnerResponsible> responsibles)
+        {
+            await apiConnection.SendQueryAsync<object>(OwnerQueries.deleteOwnerResponsibles, new { ownerId });
+            if (responsibles.Count == 0)
+            {
+                return;
+            }
+
+            var objects = responsibles.ConvertAll(r => new
+            {
+                owner_id = ownerId,
+                dn = r.Dn,
+                responsible_type = (int)r.ResponsibleType
+            });
+            await apiConnection.SendQueryAsync<object>(OwnerQueries.newOwnerResponsibles, new { responsibles = objects });
+        }
+
+        private async Task ApplyRolesToResponsibles(List<OwnerResponsible> responsibles, Dictionary<OwnerResponsibleType, List<string>> rolesByType)
+        {
+            foreach (OwnerResponsible responsible in responsibles)
+            {
+                if (!rolesByType.TryGetValue(responsible.ResponsibleType, out List<string>? roles) || roles.Count == 0)
+                {
+                    continue;
+                }
+                await UpdateRoles(responsible.Dn, roles);
+            }
+        }
+
         private string GetGroupName(string extAppIdString)
         {
             // hard-coded GlobalConst.kAppIdSeparator could be moved to settings
-
             if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.ExternalAppId))
             {
                 return globalConfig.OwnerLdapGroupNames.Replace(Placeholder.ExternalAppId, extAppIdString);
             }
-            
-            if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppPrefix) && 
+
+            if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppPrefix) &&
                 globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppId))
             {
                 string[] parts = extAppIdString.Split(GlobalConst.kAppIdSeparator);
@@ -326,13 +325,68 @@ namespace FWO.Middleware.Server
 
         private string GetGroupDn(string extAppIdString)
         {
-            if (ownerGroupLdapPath == null)
+            if (string.IsNullOrWhiteSpace(ownerGroupLdapPath))
             {
                 throw new ArgumentNullException(nameof(ownerGroupLdapPath));
             }
             return $"cn={GetGroupName(extAppIdString)},{ownerGroupLdapPath}";
         }
 
+        private static string ResolveOwnerGroupPath(Ldap ownerGroupLdap)
+        {
+            if (!string.IsNullOrWhiteSpace(ownerGroupLdap.GroupWritePath))
+            {
+                return ownerGroupLdap.GroupWritePath;
+            }
+
+            if (!string.IsNullOrWhiteSpace(ownerGroupLdap.GroupSearchPath))
+            {
+                Log.WriteWarning(LogMessageTitle, "Owner LDAP group write path not set; falling back to group search path.");
+                return ownerGroupLdap.GroupSearchPath;
+            }
+
+            throw new InvalidOperationException("Owner LDAP group write path is missing and no group search path is configured.");
+        }
+
+        private string GetRoleDn(string role)
+        {
+            return $"cn={role},{internalLdap.RoleSearchPath}";
+        }
+
+        private List<string> GetRolesForType(OwnerResponsibleType typeId)
+        {
+            return rolesToSetByType.TryGetValue(typeId, out List<string>? roles) ? roles : [];
+        }
+
+        private static Dictionary<OwnerResponsibleType, List<string>> ParseRolesWithImport(string rolesJson)
+        {
+            Dictionary<OwnerResponsibleType, List<string>> rolesByType = [];
+            if (string.IsNullOrWhiteSpace(rolesJson))
+            {
+                return rolesByType;
+            }
+
+            string trimmed = rolesJson.TrimStart();
+            if (trimmed.StartsWith("["))
+            {
+                List<string> roles = JsonSerializer.Deserialize<List<string>>(rolesJson) ?? [];
+                rolesByType[OwnerResponsibleType.kSupportingResponsible] = roles;
+                return rolesByType;
+            }
+
+            Dictionary<string, List<string>>? parsed = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(rolesJson);
+            if (parsed != null)
+            {
+                foreach (var entry in parsed)
+                {
+                    if (int.TryParse(entry.Key, out int typeId) && Enum.IsDefined(typeof(OwnerResponsibleType), typeId))
+                    {
+                        rolesByType[(OwnerResponsibleType)typeId] = entry.Value;
+                    }
+                }
+            }
+            return rolesByType;
+        }
 
         /// <summary>
         /// for each user of a remote ldap group create a user in uiuser
@@ -346,7 +400,7 @@ namespace FWO.Middleware.Server
                 foreach (string memberDn in await ldap.GetGroupMembers(userGroupDn))
                 {
                     UiUser? uiUser = await ConvertLdapToUiUser(memberDn);
-                    if(uiUser != null)
+                    if (uiUser != null)
                     {
                         await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
                     }
@@ -369,13 +423,13 @@ namespace FWO.Middleware.Server
                         // add data from ldap entry to uiUser
                         return new()
                         {
-                            LdapConnection = new UiLdapConnection(){ Id = ldap.Id },
+                            LdapConnection = new UiLdapConnection() { Id = ldap.Id },
                             Dn = ldapUser.Dn,
                             Name = Ldap.GetName(ldapUser),
                             Firstname = Ldap.GetFirstName(ldapUser),
                             Lastname = Ldap.GetLastName(ldapUser),
                             Email = Ldap.GetEmail(ldapUser),
-                            Tenant = await DeriveTenantFromLdap(ldap, ldapUser)							
+                            Tenant = await DeriveTenantFromLdap(ldap, ldapUser)
                         };
                     }
                 }
@@ -401,12 +455,9 @@ namespace FWO.Middleware.Server
                     // getting tenant via tenant level setting from distinguished name
                     tenantName = ldap.GetTenantName(ldapUser);
                 }
-                else
+                else if (!string.IsNullOrEmpty(ldap.GlobalTenantName))
                 {
-                    if (!string.IsNullOrEmpty(ldap.GlobalTenantName))
-                    {
-                        tenantName = ldap.GlobalTenantName ?? "";
-                    }
+                    tenantName = ldap.GlobalTenantName ?? "";
                 }
 
                 var variables = new { tenant_name = tenantName };
@@ -419,42 +470,58 @@ namespace FWO.Middleware.Server
             return tenant;
         }
 
-        private async Task<string> CreateUserGroup(ModellingImportAppData incomingApp)
+        private async Task<string> CreateOrUpdateUserGroup(ModellingImportAppData incomingApp, FwoOwner? existingApp)
         {
-            string groupDn = "";
+            string userGroupDn = GetGroupDn(incomingApp.ExtAppId);
+            if (globalConfig.ManageOwnerLdapGroups)
+            {
+                if ((existingApp == null || existingApp.GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible).Count == 0)
+                    && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
+                {
+                    userGroupDn = await CreateUserGroup(incomingApp, userGroupDn);
+                }
+                else
+                {
+                    await UpdateUserGroup(incomingApp, userGroupDn);
+                }
+            }
+            else
+            {
+                // add necessary roles for user group
+                await UpdateRoles(userGroupDn, GetRolesForType(OwnerResponsibleType.kSupportingResponsible));
+            }
+            return userGroupDn;
+        }
+
+        private async Task<string> CreateUserGroup(ModellingImportAppData incomingApp, string userGroupDn)
+        {
             if (incomingApp.Modellers != null && incomingApp.Modellers.Count > 0
                 || incomingApp.ModellerGroups != null && incomingApp.ModellerGroups.Count > 0)
             {
                 string groupName = GetGroupName(incomingApp.ExtAppId);
-                groupDn = await internalLdap.AddGroup(groupName, true);
-                if (incomingApp.Modellers != null)
+                string newDn = await internalLdap.AddGroup(groupName, true);
+                if (newDn == "")
                 {
-                    foreach (var modeller in incomingApp.Modellers)
-                    {
-                        // add user to internal group:
-                        await internalLdap.AddUserToEntry(modeller, groupDn);
-                    }
+                    throw new InternalException($"Group '{groupName}' could not be created in internal Ldap.");
                 }
-                if (incomingApp.ModellerGroups != null)
+                if (newDn != userGroupDn) // may this happen?
                 {
-                    foreach (var modellerGrp in incomingApp.ModellerGroups)
-                    {
-                        await internalLdap.AddUserToEntry(modellerGrp, groupDn);
-                    }
+                    Log.WriteInfo(LogMessageTitle, $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
                 }
-                await internalLdap.AddUserToEntry(groupDn, modellerRoleDn);
-                await internalLdap.AddUserToEntry(groupDn, requesterRoleDn);
-                await internalLdap.AddUserToEntry(groupDn, implementerRoleDn);
-                await internalLdap.AddUserToEntry(groupDn, reviewerRoleDn);
+                // add users to internal group:
+                await AddUsersToGroup(incomingApp.Modellers, [], newDn);
+                await AddUsersToGroup(incomingApp.ModellerGroups, [], newDn);
+                await AddRoles(newDn, GetRolesForType(OwnerResponsibleType.kSupportingResponsible));
+                return newDn;
             }
-            return groupDn;
+            return "";
         }
 
-        private async Task<string> UpdateUserGroup(ModellingImportAppData incomingApp, string groupDn)
+        private async Task UpdateUserGroup(ModellingImportAppData incomingApp, string groupDn)
         {
             List<string> existingMembers = (allGroups.FirstOrDefault(x => x.GroupDn == groupDn) ?? throw new KeyNotFoundException($"Group with DN '{groupDn}' could not be found.")).Members;
-            await AddUsersToEntry(incomingApp.Modellers, existingMembers, groupDn);
-            await AddUsersToEntry(incomingApp.ModellerGroups, existingMembers, groupDn);
+            await AddUsersToGroup(incomingApp.Modellers, existingMembers, groupDn);
+            await AddUsersToGroup(incomingApp.ModellerGroups, existingMembers, groupDn);
             foreach (var member in existingMembers)
             {
                 if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null)
@@ -463,11 +530,10 @@ namespace FWO.Middleware.Server
                     await internalLdap.RemoveUserFromEntry(member, groupDn);
                 }
             }
-            await UpdateRoles(groupDn);
-            return groupDn;
+            await UpdateRoles(groupDn, GetRolesForType(OwnerResponsibleType.kSupportingResponsible));
         }
 
-        private async Task AddUsersToEntry(List<string>? members, List<string> existingMembers, string groupDn)
+        private async Task AddUsersToGroup(List<string>? members, List<string> existingMembers, string groupDn)
         {
             if (members != null)
             {
@@ -481,24 +547,23 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task UpdateRoles(string dn)
+        private async Task AddRoles(string dn, List<string> rolesToApply)
+        {
+            foreach (var role in rolesToApply)
+            {
+                await internalLdap.AddUserToEntry(dn, GetRoleDn(role));
+            }
+        }
+
+        private async Task UpdateRoles(string dn, List<string> rolesToApply)
         {
             List<string> roles = await internalLdap.GetRoles([dn]);
-            if (!roles.Contains(Roles.Modeller))
+            foreach (var role in rolesToApply)
             {
-                await internalLdap.AddUserToEntry(dn, modellerRoleDn);
-            }
-            if (!roles.Contains(Roles.Requester))
-            {
-                await internalLdap.AddUserToEntry(dn, requesterRoleDn);
-            }
-            if (!roles.Contains(Roles.Implementer))
-            {
-                await internalLdap.AddUserToEntry(dn, implementerRoleDn);
-            }
-            if (!roles.Contains(Roles.Reviewer))
-            {
-                await internalLdap.AddUserToEntry(dn, reviewerRoleDn);
+                if (!roles.Contains(role))
+                {
+                    await internalLdap.AddUserToEntry(dn, GetRoleDn(role));
+                }
             }
         }
 
@@ -547,11 +612,11 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if(incomingAppServer.IpEnd == "")
+                if (incomingAppServer.IpEnd == "")
                 {
                     incomingAppServer.IpEnd = incomingAppServer.Ip;
                 }
-                if(globalConfig.DnsLookup)
+                if (globalConfig.DnsLookup)
                 {
                     incomingAppServer.Name = await BuildAppServerName(incomingAppServer);
                 }
@@ -627,9 +692,9 @@ namespace FWO.Middleware.Server
                     customType = 0
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppServer, Variables)).ReturnIds;
-                if(returnIds != null && returnIds.Length > 0)
+                if (returnIds != null && returnIds.Length > 0)
                 {
-                    ModellingAppServer newModAppServer = new(incomingAppServer.ToModellingAppServer()){ Id = returnIds[0].NewIdLong, ImportSource = impSource, AppId = appID};
+                    ModellingAppServer newModAppServer = new(incomingAppServer.ToModellingAppServer()) { Id = returnIds[0].NewIdLong, ImportSource = impSource, AppId = appID };
                     await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, newModAppServer.Id,
                         $"New App Server: {newModAppServer.Display()}", apiConnection, userConfig, newModAppServer.AppId, DefaultInit.DoNothing, null, newModAppServer.ImportSource);
                     await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, newModAppServer);
@@ -742,7 +807,21 @@ namespace FWO.Middleware.Server
             }
             return true;
         }
-        
+
+        private async Task InitRecert(ModellingImportAppData incomingApp, FwoOwner? existingApp, int appId)
+        {
+            if (userConfig.RecertificationMode == RecertificationMode.OwnersAndRules &&
+                incomingApp.RecertActive && (existingApp == null || !existingApp.RecertActive))
+            {
+                RecertHandler recertHandler = new(apiConnection, userConfig);
+                await recertHandler.InitOwnerRecert(new()
+                {
+                    Id = appId,
+                    RecertInterval = incomingApp.RecertInterval
+                });
+            }
+        }
+
         private async Task AddLogEntry(int severity, string level, string description)
         {
             try

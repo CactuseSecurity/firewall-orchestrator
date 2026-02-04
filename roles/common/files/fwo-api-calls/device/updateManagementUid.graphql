@@ -1,0 +1,13 @@
+mutation updateManagementUid(
+  $id: Int!
+  $uid: String
+) {
+  update_management_by_pk(
+    pk_columns: { mgm_id: $id }
+    _set: {
+      mgm_uid: $uid
+    }
+  ) {
+    UpdatedId: mgm_id
+  }
+}

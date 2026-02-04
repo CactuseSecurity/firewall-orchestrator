@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -10,24 +10,24 @@ using System.Timers;
 
 namespace FWO.Middleware.Server
 {
- 	/// <summary>
-	/// Class handling the scheduler base processing
-	/// </summary>
+    /// <summary>
+    /// Class handling the scheduler base processing
+    /// </summary>
     public abstract class SchedulerBase
     {
-		/// <summary>
-		/// API connection
-		/// </summary>
+        /// <summary>
+        /// API connection
+        /// </summary>
         protected readonly ApiConnection apiConnection;
 
-		/// <summary>
-		/// Global config
-		/// </summary>
+        /// <summary>
+        /// Global config
+        /// </summary>
         protected GlobalConfig globalConfig;
 
-		/// <summary>
-		/// Global config change subscription
-		/// </summary>
+        /// <summary>
+        /// Global config change subscription
+        /// </summary>
         protected GraphQlApiSubscription<List<ConfigItem>>? ConfigDataSubscription;
 
         /// <summary>
@@ -38,22 +38,22 @@ namespace FWO.Middleware.Server
             /// <summary>
             /// Management Id
             /// </summary>
-            public int? MgmtId {get; set;}
+            public int? MgmtId { get; set; }
             /// <summary>
             /// Json Data
             /// </summary>
-            public object? JsonData {get; set;}
+            public object? JsonData { get; set; }
             /// <summary>
             /// Device Id
             /// </summary>
-            public int? DevId {get; set;}
+            public int? DevId { get; set; }
             /// <summary>
             /// Reference on other Alert Id
             /// </summary>
-            public long? RefAlertId {get; set;}
+            public long? RefAlertId { get; set; }
         }
 
-		/// <summary>
+        /// <summary>
         /// Schedule Timer
         /// </summary>
         protected System.Timers.Timer ScheduleTimer = new();
@@ -80,9 +80,9 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected abstract void OnGlobalConfigChange(List<ConfigItem> config);
 
-		/// <summary>
-		/// subscription exception handling
-		/// </summary>
+        /// <summary>
+        /// subscription exception handling
+        /// </summary>
         protected void ApiExceptionHandler(Exception exception)
         {
             Log.WriteError(SchedulerText, "Api subscription lead to exception. Retry subscription.", exception);
@@ -94,9 +94,9 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected abstract void Process(object? _, ElapsedEventArgs __);
 
-		/// <summary>
-		/// start the scheduling timer, to be called by specific scheduler
-		/// </summary>
+        /// <summary>
+        /// start the scheduling timer, to be called by specific scheduler
+        /// </summary>
         protected void StartScheduleTimer(int sleepTime, DateTime startTime)
         {
             SleepTime = sleepTime;
@@ -104,6 +104,11 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
+                    // Dispose old timer if existant
+                    ScheduleTimer.Stop();
+                    ScheduleTimer.Elapsed -= Process;
+                    ScheduleTimer.Dispose();
+
                     ScheduleTimer = new();
                     ScheduleTimer.Elapsed += Process;
                     ScheduleTimer.Elapsed += StartRecurringTimer;
@@ -123,7 +128,11 @@ namespace FWO.Middleware.Server
         {
             try
             {
+                // Dispose old timer if existant
                 RecurringTimer.Stop();
+                RecurringTimer.Elapsed -= Process;
+                RecurringTimer.Dispose();
+
                 RecurringTimer = new();
                 RecurringTimer.Elapsed += Process;
                 RecurringTimer.Interval = SleepTimeToMilliseconds();
@@ -172,7 +181,7 @@ namespace FWO.Middleware.Server
             };
         }
 
-		/// <summary>
+        /// <summary>
         /// Write Log and alert
         /// </summary>
         protected async Task LogErrorsWithAlert(int severity, string title, string source, AlertCode alertCode, Exception exc)
@@ -188,9 +197,9 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError(title, $"something went really wrong", exception);
             }
-       }
+        }
 
-		/// <summary>
+        /// <summary>
         /// Write Log to Database. Can be overwritten, if more than basic columns are to be filled
         /// </summary>
         protected virtual async Task AddLogEntry(int severity, string cause, string description, string source, int? mgmtId = null)
@@ -225,9 +234,9 @@ namespace FWO.Middleware.Server
             }
         }
 
-		/// <summary>
-		/// set an alert in error case
-		/// </summary>
+        /// <summary>
+        /// set an alert in error case
+        /// </summary>
         protected async Task<long?> SetAlert(string title, string description, string source, AlertCode alertCode,
             AdditionalAlertData additionalAlertData = new(), bool compareDesc = false)
         {
@@ -266,7 +275,7 @@ namespace FWO.Middleware.Server
                 }
                 LogAlert(title, description, source, alertCode, additionalAlertData.MgmtId, additionalAlertData.JsonData, additionalAlertData.DevId);
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
                 Log.WriteError("Write Alert", $"Could not write Alert for {source}: ", exc);
                 LogAlert(title, description, source, alertCode, additionalAlertData.MgmtId, additionalAlertData.JsonData, additionalAlertData.DevId);
@@ -276,10 +285,10 @@ namespace FWO.Middleware.Server
 
         private static void LogAlert(string title, string description, string source, AlertCode alertCode, int? mgmtId, object? JsonData, int? devId)
         {
-            string? mgmtIdString = mgmtId?.ToString() ?? ""; 
-            string? devIdString = devId?.ToString() ?? ""; 
-            string jsonString = JsonData != null ? JsonSerializer.Serialize(JsonData) : ""; 
-            Log.WriteAlert ($"source: \"{source}\"", $"userId: \"0\", title: \"{title}\", description: \"{description}\", " +
+            string? mgmtIdString = mgmtId?.ToString() ?? "";
+            string? devIdString = devId?.ToString() ?? "";
+            string jsonString = JsonData != null ? JsonSerializer.Serialize(JsonData) : "";
+            Log.WriteAlert($"source: \"{source}\"", $"userId: \"0\", title: \"{title}\", description: \"{description}\", " +
                 $"mgmId: \"{mgmtIdString}\", devId: \"{devIdString}\", jsonData: \"{jsonString}\", alertCode: \"{alertCode}\"");
         }
 

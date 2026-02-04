@@ -60,7 +60,7 @@ namespace FWO.Data.Modelling
         {
             get
             {
-                return NamingConvention.UseAppPart ? ( AppPartExisting() ? IdString.Substring(NamingConvention.FixedPartLength, AppPartEnd() - NamingConvention.FixedPartLength + 1) : "" ) : "";
+                return NamingConvention.UseAppPart ? (AppPartExisting() ? IdString.Substring(NamingConvention.FixedPartLength, AppPartEnd() - NamingConvention.FixedPartLength + 1) : "") : "";
             }
             set
             {
@@ -76,7 +76,7 @@ namespace FWO.Data.Modelling
         {
             get
             {
-                return FixedPart + ( AppPart.EndsWith(separator) ? AppPart.Substring(0, AppPart.Length - 1) : AppPart );
+                return FixedPart + (AppPart.EndsWith(separator) ? AppPart.Substring(0, AppPart.Length - 1) : AppPart);
             }
             set
             {
@@ -146,7 +146,7 @@ namespace FWO.Data.Modelling
 
         public void SetAppPartFromExtId(string extAppId)
         {
-            string zoneType = extAppId.StartsWith("APP") ? "0" : ( extAppId.StartsWith("COM") ? "1" : "?" );
+            string zoneType = extAppId.StartsWith("APP") ? "0" : (extAppId.StartsWith("COM") ? "1" : "?");
             int idx = extAppId.IndexOf(separator);
             string appNumber = idx > 0 ? extAppId.Substring(idx + 1, extAppId.Length - idx - 1) : "";
             AppPart = zoneType + appNumber + separator;
@@ -154,7 +154,7 @@ namespace FWO.Data.Modelling
 
         public void SetAppPartFromExtIdAZ(string extAppId)
         {
-            string zoneType = extAppId.StartsWith("APP") ? "0" : ( extAppId.StartsWith("COM") ? "1" : "?" );
+            string zoneType = extAppId.StartsWith("APP") ? "0" : (extAppId.StartsWith("COM") ? "1" : "?");
             int idx = extAppId.IndexOf("-");
             string appNumber = idx > 0 ? extAppId.Substring(idx + 1, extAppId.Length - idx - 1) : "";
             AppPart = zoneType + appNumber;

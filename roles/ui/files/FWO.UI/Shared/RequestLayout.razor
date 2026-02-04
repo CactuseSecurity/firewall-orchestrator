@@ -5,6 +5,7 @@
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
+@implements IDisposable
 
 @if(InitComplete)
 {
@@ -120,6 +121,10 @@ else
     private void OnChange(Config _, ConfigItem[] __)
     {
         Task.Run(async() => await InvokeAsync(StateHasChanged));
+    }
+    public void Dispose()
+    {
+        userConfig.OnChange -= OnChange;
     }
 }
 

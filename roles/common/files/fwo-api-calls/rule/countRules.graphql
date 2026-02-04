@@ -1,0 +1,5 @@
+    query countRules {
+      rule_aggregate {
+        aggregate { count }
+      }
+    }

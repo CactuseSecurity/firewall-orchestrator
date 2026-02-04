@@ -3,12 +3,16 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Modelling;
+using FWO.Middleware.Client;
 using FWO.Services;
-using Microsoft.AspNetCore.Components.Forms;
-using System.Text.Json;
-using FWO.Services.EventMediator.Interfaces;
 using FWO.Services.EventMediator.Events;
+using FWO.Services.EventMediator.Interfaces;
+using Microsoft.AspNetCore.Components.Forms;
+using RestSharp;
+using System.Net;
+using System.Text.Json;
 
 namespace FWO.Ui.Services
 {
@@ -21,6 +25,7 @@ namespace FWO.Ui.Services
 
         private UserConfig UserConfig { get; set; }
         private ApiConnection ApiConnection { get; set; }
+        private MiddlewareClient MiddlewareClient { get; set; }
 
         private readonly ModellingNamingConvention NamingConvention = new();
         private readonly List<AppServerType> AppServerTypes = [];
@@ -31,18 +36,21 @@ namespace FWO.Ui.Services
         private readonly FileUploadEvent CustomLogoUploadEvent;
         private readonly FileUploadEvent FileUploadEvent;
         private readonly AppServerImportEvent AppServerImportEvent;
+        private readonly FileUploadEvent ComplianceMatrixImportEvent;
 
-        public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, string allowedFileFormats, GlobalConfig globalConfig, IEventMediator eventMediator)
+        public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, MiddlewareClient middlewareClient, string allowedFileFormats, IEventMediator eventMediator)
         {
             UserConfig = userConfig;
             ApiConnection = apiConnection;
+            MiddlewareClient = middlewareClient;
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(UserConfig.ModAppServerTypes) ?? [];
             AllowedFileFormats = allowedFileFormats;
             EventMediator = eventMediator;
-            CustomLogoUploadEvent = new FileUploadEvent();
-            FileUploadEvent = new FileUploadEvent();
-            AppServerImportEvent = new AppServerImportEvent();
+            CustomLogoUploadEvent = new();
+            FileUploadEvent = new();
+            AppServerImportEvent = new();
+            ComplianceMatrixImportEvent = new();
         }
 
         public async Task<FileUploadEventArgs> ReadFileToBytes(InputFileChangeEventArgs args)
@@ -51,12 +59,12 @@ namespace FWO.Ui.Services
             {
                 string fileExtension = Path.GetExtension(args.File.Name);
 
-                if(!AllowedFileFormats.Contains(fileExtension))
+                if (!AllowedFileFormats.Contains(fileExtension))
                 {
                     throw new ArgumentException(UserConfig.GetText("E5430"));
                 }
 
-                if(args.File.Size > GlobalConst.MaxUploadFileSize)
+                if (args.File.Size > GlobalConst.MaxUploadFileSize)
                 {
                     throw new ArgumentException(UserConfig.GetText("E5431"));
                 }
@@ -68,7 +76,7 @@ namespace FWO.Ui.Services
 
                 FileUploadEvent.EventArgs!.Success = true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 FileUploadEvent.EventArgs!.Success = false;
 
@@ -91,12 +99,12 @@ namespace FWO.Ui.Services
         {
             try
             {
-                string base64Data = Convert.ToBase64String(UploadedData);                
+                string base64Data = Convert.ToBase64String(UploadedData);
 
                 CustomLogoUploadEvent.EventArgs!.Success = true;
                 CustomLogoUploadEvent.EventArgs.Data = base64Data;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 CustomLogoUploadEvent.EventArgs!.Success = false;
 
@@ -125,7 +133,7 @@ namespace FWO.Ui.Services
             string text = System.Text.Encoding.UTF8.GetString(UploadedData);
             string[] lines = text.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            foreach(string line in lines)
+            foreach (string line in lines)
             {
                 CSVFileUploadErrorModel? error = new()
                 {
@@ -133,7 +141,7 @@ namespace FWO.Ui.Services
                     MessageType = MessageType.Error,
                 };
 
-                if(!TryGetEntries(line, ';', out string[] entries) && !TryGetEntries(line, ',', out entries))
+                if (!TryGetEntries(line, ';', out string[] entries) && !TryGetEntries(line, ',', out entries))
                 {
                     error.Message = UserConfig.GetText("E5422");
                     errors.Add(error);
@@ -141,12 +149,12 @@ namespace FWO.Ui.Services
                     continue;
                 }
 
-                if(IsHeader(entries))
+                if (IsHeader(entries))
                     continue;
 
                 string ipString = entries[3];
 
-                if(!ipString.TryParseIPString<(string, string)>(out (string Start, string End) ipRange, strictv4Parse: true))
+                if (!ipString.TryParseIPString<(string, string)>(out (string Start, string End) ipRange, strictv4Parse: true))
                 {
                     error.Message = UserConfig.GetText("E5423");
                     errors.Add(error);
@@ -169,7 +177,7 @@ namespace FWO.Ui.Services
                 // write to db
                 (bool importSuccess, Exception? e) = await AddAppServerToDb(importAppServer);
 
-                if(!importSuccess && e is not null)
+                if (!importSuccess && e is not null)
                 {
                     error.Message = e.Message;
                     errors.Add(error);
@@ -180,7 +188,7 @@ namespace FWO.Ui.Services
                 }
             }
 
-            if(AppServerImportEvent.EventArgs is not null)
+            if (AppServerImportEvent.EventArgs is not null)
             {
                 success = [.. success.Distinct()];
 
@@ -192,17 +200,38 @@ namespace FWO.Ui.Services
             }
         }
 
+        public async Task ImportComplianceMatrix(string filename = "")
+        {
+            string data = System.Text.Encoding.UTF8.GetString(UploadedData);
+            ComplianceImportMatrixParameters importParams = new() { FileName = filename, Data = data, UserName = UserConfig.User.Name, UserDn = UserConfig.User.Dn };
+            RestResponse<string> middlewareServerResponse = await MiddlewareClient.ImportCompianceMatrix(importParams);
+            if (ComplianceMatrixImportEvent.EventArgs is not null)
+            {
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+                {
+                    ComplianceMatrixImportEvent.EventArgs.Success = false;
+                    ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.ErrorMessage;
+                }
+                else
+                {
+                    ComplianceMatrixImportEvent.EventArgs.Success = middlewareServerResponse.Data?.StartsWith("Ok") ?? false;
+                    ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.Data;
+                }
+                EventMediator.Publish(nameof(ImportComplianceMatrix), ComplianceMatrixImportEvent);
+            }
+        }
+
         private static bool TryGetEntries(string line, char separator, out string[] entries)
         {
-            if(line.StartsWith('\n'))
+            if (line.StartsWith('\n'))
                 line = line[1..];
 
             entries = line.Split(separator);
 
-            if(entries.Length < 4)
+            if (entries.Length < 4)
                 return false;
 
-            for(int i = 0; i < entries.Length; i++)
+            for (int i = 0; i < entries.Length; i++)
             {
                 entries[i] = entries[i].Trim('"');
             }
@@ -224,13 +253,13 @@ namespace FWO.Ui.Services
             try
             {
                 AppServerType? appServerType = AppServerTypes.FirstOrDefault(_ => _.Name == importAppServer.AppServerTyp);
-                if(appServerType is null)
+                if (appServerType is null)
                 {
                     return new(false, new Exception($"{UserConfig.GetText("owner_appservertype_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
 
                 List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = importAppServer.AppID });
-                if(ownerIds is null || ownerIds.Count == 0)
+                if (ownerIds is null || ownerIds.Count == 0)
                 {
                     return new(false, new Exception($"{UserConfig.GetText("owner_appserver_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
@@ -240,7 +269,7 @@ namespace FWO.Ui.Services
                             !UserConfig.DnsLookup
                     )).Item1 != null, default);
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 return (false, exception);
             }

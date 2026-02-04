@@ -1,11 +1,10 @@
-
-
 using FWO.Api.Client;
 using FWO.Data.Report;
 using FWO.Config.Api;
 using FWO.Report;
 using FWO.Report.Filter;
 using FWO.Basics;
+using FWO.Data;
 
 namespace FWO.Test
 {
@@ -21,29 +20,34 @@ namespace FWO.Test
                     {
                         Id = 1,
                         Name = "Management 1",
-                        Devices = 
+                        Devices =
                         [
                             new DeviceReport
                             {
                                 Id = 1,
                                 Name = "Device 1",
-                                Rules =
+                                RulebaseLinks =
                                 [
-                                    new() { Id = 1, Name = "Rule 1", MgmtId = 1 }
+                                    new RulebaseLink
+                                    {
+                                        GatewayId = 1,
+                                        NextRulebaseId = 1,
+                                        IsInitial = true
+                                    }
                                 ]
                             }
                         ],
-                        Objects = 
+                        Objects =
                         [
                             new() { Id = 1, Name = "Object 1" },
                             new() { Id = 2, Name = "Object 2" }
                         ],
-                        Services = 
+                        Services =
                         [
                             new() { Id = 1, Name = "Service 1" },
                             new() { Id = 2, Name = "Service 2" }
                         ],
-                        Users = 
+                        Users =
                         [
                             new() { Id = 1, Name = "User 1" },
                             new() { Id = 2, Name = "User 2" }
@@ -62,6 +66,26 @@ namespace FWO.Test
                         [
                             new() { Id = 1, Name = "Report User 1" },
                             new() { Id = 2, Name = "Report User 2" }
+                        ],
+                        Rulebases =
+                        [
+                            new RulebaseReport
+                            {
+                                Id = 1,
+                                Name = "Rulebase 1",
+                                Rules =
+                                [
+                                    new Rule
+                                    {
+                                        Id = 1,
+                                        Name = "Rule 1",
+                                        Source = "Object 1",
+                                        Destination = "Object 2",
+                                        Service = "Service 1",
+                                        Action = "accept"
+                                    }
+                                ]
+                            }
                         ]
                     }
                 ]

@@ -92,8 +92,8 @@
     private GraphQlApiSubscription<List<ReportFile>>? archivedReportsSubscription;
     private List<ReportFile> archivedReports = [];
     private List<ReportFile> visibleReports = [];
+    private ReportType selectedReportType = ReportType.Undefined;
     private List<ReportType> visibleReportTypes = [];
-    private ReportType selectedReportType = ReportType.All;
     private FwoOwner? selectedOwner = null;
     private List<FwoOwner> availableOwnersList = [];
     private List<FwoOwner> ownerList = [];
@@ -150,7 +150,7 @@
 
     private void SetVisibleReports()
     {
-        visibleReports = [.. selectedReportType == ReportType.All ? archivedReports : archivedReports.Where(r => r.Type == (int)selectedReportType)];
+        visibleReports = [.. selectedReportType == ReportType.Undefined ? archivedReports : archivedReports.Where(r => r.Type == (int)selectedReportType)];
         if(selectedReportType == ReportType.RecertificationEvent)
         {
             ownerList = [.. availableOwnersList.Where(v => v.Id == 0 || v.ExtAppId == null || visibleReports.Any(r => r.Name.Contains(v.ExtAppId)))];

@@ -4,11 +4,11 @@ using System.Diagnostics;
 
 namespace FWO.Ui.Services
 {
-	public class DomEventService
-	{
+    public class DomEventService
+    {
         public event Action<string>? OnGlobalScroll;
-		public event Action<string>? OnGlobalClick;
-		public event Action? OnGlobalResize;
+        public event Action<string>? OnGlobalClick;
+        public event Action? OnGlobalResize;
 
         private Action<int>? _navbarHeightSubscribers;
         private int? _lastNavbarHeight;
@@ -29,23 +29,23 @@ namespace FWO.Ui.Services
 
         public bool Initialized { get; private set; } = false;
 
-		[JSInvokable]
-		public void InvokeOnGlobalScroll(string elementId)
-		{
-			OnGlobalScroll?.Invoke(elementId ?? "");
-		}
+        [JSInvokable]
+        public void InvokeOnGlobalScroll(string elementId)
+        {
+            OnGlobalScroll?.Invoke(elementId ?? "");
+        }
 
-		[JSInvokable]
-		public void InvokeOnGlobalResize()
-		{
-			OnGlobalResize?.Invoke();
-		}
+        [JSInvokable]
+        public void InvokeOnGlobalResize()
+        {
+            OnGlobalResize?.Invoke();
+        }
 
-		[JSInvokable]
-		public void InvokeOnGlobalClick(string elementId)
-		{
-			OnGlobalClick?.Invoke(elementId ?? "");
-		}
+        [JSInvokable]
+        public void InvokeOnGlobalClick(string elementId)
+        {
+            OnGlobalClick?.Invoke(elementId ?? "");
+        }
 
         [JSInvokable]
         public void InvokeNavbarHeightChanged(int height)
@@ -55,9 +55,9 @@ namespace FWO.Ui.Services
         }
 
         public async Task Initialize(IJSRuntime runtime)
-		{
-			if (!Initialized)
-			{
+        {
+            if (!Initialized)
+            {
                 try
                 {
                     await runtime.InvokeVoidAsync("globalScroll", DotNetObjectReference.Create(this));
@@ -66,11 +66,11 @@ namespace FWO.Ui.Services
                     await runtime.InvokeVoidAsync("observeNavbarHeight", DotNetObjectReference.Create(this));
                     Initialized = true;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Debug.WriteLine(ex.ToString());
-                }				
-			}
-		}
-	}
+                }
+            }
+        }
+    }
 }

@@ -1,0 +1,13 @@
+query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
+  rule(where: {
+    rule_uid: {_in: $uids},
+    _or: [
+      {mgm_id: {_eq: $mgmId}},
+      {management: {multi_device_manager_id: {_eq: $mgmId}}}
+    ],
+    removed: {_is_null: true}
+    }) {
+    rule_id
+    rule_uid
+  }
+}

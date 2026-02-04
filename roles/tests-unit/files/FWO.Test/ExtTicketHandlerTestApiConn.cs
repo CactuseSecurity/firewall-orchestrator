@@ -1,4 +1,4 @@
-﻿using GraphQL;
+using GraphQL;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
@@ -104,7 +104,7 @@ namespace FWO.Test
             AdditionalInfo = "{\"ConnId\":\"1\"}",
             SelectedDevices = "[2]"
         };
-           readonly static WfReqTask reqTask6 = new()
+        readonly static WfReqTask reqTask6 = new()
         {
             Id = 6,
             Title = "Task6",
@@ -141,143 +141,143 @@ namespace FWO.Test
             SelectedDevices = "[1,2]"
         };
 
-        readonly static WfTicket ticket123 = new(){ Id = 123, Title = "Ticket1", Tasks = [reqTask1, reqTask2, reqTask3, reqTask4, reqTask5, reqTask6, reqTask7, reqTask8] };
+        readonly static WfTicket ticket123 = new() { Id = 123, Title = "Ticket1", Tasks = [reqTask1, reqTask2, reqTask3, reqTask4, reqTask5, reqTask6, reqTask7, reqTask8] };
 
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
-            if(responseType == typeof(List<WfExtState>))
+            if (responseType == typeof(List<WfExtState>))
             {
-                List<WfExtState>? extStates = 
+                List<WfExtState>? extStates =
                 [
                     new(){ Id = 1, Name = "ExtReqInitialized", StateId = 1 },
                     new(){ Id = 2, Name = "ExtReqRequested", StateId = 3 },
                     new(){ Id = 3, Name = "ExtReqDone", StateId = 631 }
                 ];
-                GraphQLResponse<dynamic> response = new(){ Data = extStates };
+                GraphQLResponse<dynamic> response = new() { Data = extStates };
                 return response.Data;
             }
-            else if(responseType == typeof(List<IpProtocol>))
+            else if (responseType == typeof(List<IpProtocol>))
             {
-                List<IpProtocol>? ipProtocols = 
+                List<IpProtocol>? ipProtocols =
                 [
                     new(){ Id = 6, Name = "TCP"},
                     new(){ Id = 17, Name = "UDP" }
                 ];
-                GraphQLResponse<dynamic> response = new(){ Data = ipProtocols };
+                GraphQLResponse<dynamic> response = new() { Data = ipProtocols };
                 return response.Data;
             }
-            else if(responseType == typeof(List<Device>))
+            else if (responseType == typeof(List<Device>))
             {
-                List<Device>? devices = 
+                List<Device>? devices =
                 [
                     new(){ Id = 1, Name = "TestGw1" },
                     new(){ Id = 2, Name = "TestGw2" }
                 ];
-                GraphQLResponse<dynamic> response = new(){ Data = devices };
+                GraphQLResponse<dynamic> response = new() { Data = devices };
                 return response.Data;
             }
-            else if(responseType == typeof(List<FwoOwner>))
+            else if (responseType == typeof(List<FwoOwner>))
             {
-                List<FwoOwner>? owners = 
+                List<FwoOwner>? owners =
                 [
                     new(){ Id = 1, Name = "Owner1" }
                 ];
-                GraphQLResponse<dynamic> response = new(){ Data = owners };
+                GraphQLResponse<dynamic> response = new() { Data = owners };
                 return response.Data;
             }
-            else if(responseType == typeof(List<WfState>))
+            else if (responseType == typeof(List<WfState>))
             {
-                List<WfState>? states = 
+                List<WfState>? states =
                 [
                     new(){ Id = 0, Name = "Draft" },
                     new(){ Id = 1, Name = "ExtInit" },
                     new(){ Id = 3, Name = "ExtRequested" },
                     new(){ Id = 631, Name = "ExtDone" }
                 ];
-                GraphQLResponse<dynamic> response = new(){ Data = states };
+                GraphQLResponse<dynamic> response = new() { Data = states };
                 return response.Data;
             }
-            else if(responseType == typeof(List<GlobalStateMatrixHelper>))
+            else if (responseType == typeof(List<GlobalStateMatrixHelper>))
             {
-                List<GlobalStateMatrixHelper> globalStateMatrixHelpers = [ new(){ ConfData = masterStateMatrix } ];
-                GraphQLResponse<dynamic> response = new(){ Data = globalStateMatrixHelpers };
+                List<GlobalStateMatrixHelper> globalStateMatrixHelpers = [new() { ConfData = masterStateMatrix }];
+                GraphQLResponse<dynamic> response = new() { Data = globalStateMatrixHelpers };
                 return response.Data;
             }
-            else if(responseType == typeof(List<WfTicket>))
+            else if (responseType == typeof(List<WfTicket>))
             {
-                List<WfTicket>? tickets = [ ticket123 ];
-                GraphQLResponse<dynamic> response = new(){ Data = tickets };
+                List<WfTicket>? tickets = [ticket123];
+                GraphQLResponse<dynamic> response = new() { Data = tickets };
                 return response.Data;
             }
-            else if(responseType == typeof(WfTicket))
+            else if (responseType == typeof(WfTicket))
             {
-                GraphQLResponse<dynamic> response = new(){ Data = ticket123 };
+                GraphQLResponse<dynamic> response = new() { Data = ticket123 };
                 return response.Data;
             }
-            else if(responseType == typeof(ReturnId))
+            else if (responseType == typeof(ReturnId))
             {
-                if(query == RequestQueries.updateRequestTaskAdditionalInfo && variables != null)
+                if (query == RequestQueries.updateRequestTaskAdditionalInfo && variables != null)
                 {
                     string? Vars = variables.ToString();
-                    if(Vars != null)
+                    if (Vars != null)
                     {
-                        if(Vars.Contains("id = 1"))
+                        if (Vars.Contains("id = 1"))
                         {
                             reqTask1.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4711\"}";
                         }
-                        else if(Vars.Contains("id = 2"))
+                        else if (Vars.Contains("id = 2"))
                         {
                             reqTask2.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4712\"}";
                         }
-                        else if(Vars.Contains("id = 3"))
+                        else if (Vars.Contains("id = 3"))
                         {
                             reqTask3.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4712\"}";
                         }
-                        else if(Vars.Contains("id = 4"))
+                        else if (Vars.Contains("id = 4"))
                         {
                             reqTask4.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4713\"}";
                         }
-                        else if(Vars.Contains("id = 5"))
+                        else if (Vars.Contains("id = 5"))
                         {
                             reqTask5.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4713\"}";
                         }
-                        else if(Vars.Contains("id = 6"))
+                        else if (Vars.Contains("id = 6"))
                         {
                             reqTask6.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4714\"}";
                         }
-                        else if(Vars.Contains("id = 7"))
+                        else if (Vars.Contains("id = 7"))
                         {
                             reqTask7.AdditionalInfo = "{\"ConnId\":\"1\",\"ExtIcketId\":\"4714\"}";
                         }
-                        else if(Vars.Contains("id = 8"))
+                        else if (Vars.Contains("id = 8"))
                         {
                             reqTask8.AdditionalInfo = "{\"ConnId\":\"2\",\"ExtIcketId\":\"4714\"}";
                         }
                     }
                 }
-                ReturnId returnId = new(){ UpdatedIdLong = 1 };
-                GraphQLResponse<dynamic> response = new(){ Data = returnId };
+                ReturnId returnId = new() { UpdatedIdLong = 1 };
+                GraphQLResponse<dynamic> response = new() { Data = returnId };
                 return response.Data;
             }
-            else if(responseType == typeof(ReturnIdWrapper))
+            else if (responseType == typeof(ReturnIdWrapper))
             {
-                if(query == ModellingQueries.addHistoryEntry && variables != null)
+                if (query == ModellingQueries.addHistoryEntry && variables != null)
                 {
                     string? hist = variables.ToString();
-                    if(hist != null)
+                    if (hist != null)
                     {
                         History.Add(hist);
                     }
                 }
-                else if(query == ExtRequestQueries.addExtRequest && variables != null)
+                else if (query == ExtRequestQueries.addExtRequest && variables != null)
                 {
                     AddExtRequestVars = variables.ToString();
                 }
-                ReturnIdWrapper ReturnIdWrap = new(){ ReturnIds = [ new() ] };
-                GraphQLResponse<dynamic> response = new(){ Data = ReturnIdWrap };
+                ReturnIdWrapper ReturnIdWrap = new() { ReturnIds = [new()] };
+                GraphQLResponse<dynamic> response = new() { Data = ReturnIdWrap };
                 return response.Data;
             }
 

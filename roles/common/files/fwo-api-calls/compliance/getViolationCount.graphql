@@ -1,0 +1,7 @@
+query getViolationsCount {
+    compliance_violation_aggregate {
+        aggregate {
+            count
+        }
+    }
+}

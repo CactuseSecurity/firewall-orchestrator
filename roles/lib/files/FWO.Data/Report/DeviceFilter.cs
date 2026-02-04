@@ -13,6 +13,9 @@ namespace FWO.Data.Report
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
+        [JsonProperty("uid"), JsonPropertyName("uid")]
+        public string Uid { get; set; } = "";
+
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public List<DeviceSelect> Devices { get; set; } = [];
 
@@ -24,12 +27,12 @@ namespace FWO.Data.Report
         public ManagementSelect Clone()
         {
             List<DeviceSelect> ClonedDevices = [];
-            foreach(var dev in Devices)
+            foreach (var dev in Devices)
             {
                 ClonedDevices.Add(new DeviceSelect(dev));
             }
 
-			return new ManagementSelect()
+            return new ManagementSelect()
             {
                 Id = Id,
                 Name = Name,
@@ -54,7 +57,7 @@ namespace FWO.Data.Report
         public bool Selected { get; set; } = false;
         public bool Shared { get; set; } = true;
         public DeviceSelect()
-        {}
+        { }
 
         public DeviceSelect(DeviceSelect dev)
         {
@@ -77,7 +80,7 @@ namespace FWO.Data.Report
         public List<DeviceSelect> VisibleGateways { get; set; } = [];
 
         public DeviceFilter()
-        {}
+        { }
 
         public DeviceFilter(DeviceFilter devFilter)
         {
@@ -88,16 +91,16 @@ namespace FWO.Data.Report
         {
             Managements = [.. mgmSelect];
         }
-      
+
         public DeviceFilter Clone()
         {
             List<ManagementSelect> ClonedManagements = [];
-            foreach(var mgt in Managements)
+            foreach (var mgt in Managements)
             {
                 ClonedManagements.Add(mgt.Clone());
             }
 
-			return new DeviceFilter()
+            return new DeviceFilter()
             {
                 Managements = ClonedManagements
             };
@@ -143,7 +146,7 @@ namespace FWO.Data.Report
                 {
                     return true;
                 }
-            }     
+            }
             return false;
         }
 

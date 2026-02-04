@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Middleware.Client;
@@ -22,17 +22,17 @@ namespace FWO.Services
             {
                 foreach (var ldapUserGroup in middlewareServerGroupsResponse.Data)
                 {
-                    if(!ownerGroupsOnly || ldapUserGroup.OwnerGroup)
+                    if (!ownerGroupsOnly || ldapUserGroup.OwnerGroup)
                     {
-                        UserGroup group = new ()
-                        { 
+                        UserGroup group = new()
+                        {
                             Dn = ldapUserGroup.GroupDn,
                             Name = new DistName(ldapUserGroup.GroupDn).Group,
                             OwnerGroup = ldapUserGroup.OwnerGroup
                         };
                         foreach (var userDn in ldapUserGroup.Members)
                         {
-                            UiUser newUser = new () { Dn = userDn, Name = new DistName(userDn).UserName };
+                            UiUser newUser = new() { Dn = userDn, Name = new DistName(userDn).UserName };
                             group.Users.Add(newUser);
                         }
                         groups.Add(group);
@@ -56,6 +56,27 @@ namespace FWO.Services
                 {
                     groupDns.Add(ldapUserGroup.GroupDn);
                 }
+            }
+            return groupDns;
+        }
+
+        static public async Task<List<string>> GetGroupMemberships(MiddlewareClient middlewareClient, UserConfig userConfig,
+            Action<Exception?, string, string, bool> DisplayMessageInUi)
+        {
+            List<string> groupDns = [];
+            GroupMembershipGetParameters parameters = new()
+            {
+                UserDn = userConfig.User.Dn,
+                UserName = userConfig.User.Name
+            };
+            RestResponse<List<string>> middlewareServerGroupsResponse = await middlewareClient.GetGroupMemberships(parameters);
+            if (middlewareServerGroupsResponse.StatusCode != HttpStatusCode.OK || middlewareServerGroupsResponse.Data == null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
+            }
+            else
+            {
+                groupDns.AddRange(middlewareServerGroupsResponse.Data);
             }
             return groupDns;
         }

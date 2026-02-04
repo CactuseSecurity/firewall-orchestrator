@@ -1,115 +1,90 @@
 - block:
-  - name: initialize handler for datarecovery
-    set_fact:
-      importer_handler_guard: start
-    changed_when: true
-    notify:
-    - importer handler
-    when: installation_mode == "upgrade"
+    - name: initialize handler for datarecovery
+      set_fact:
+        importer_handler_guard: start
+      changed_when: true
+      notify:
+        - importer handler
+      when: installation_mode == "upgrade"
 
-  - name: check for importer dir
-    stat:
-      path: "{{ fworch_home }}/importer"
-    register: importer_dir_check
+    - name: check for importer dir
+      stat:
+        path: "{{ fworch_home }}/importer"
+      register: importer_dir_check
 
-  - name: backup importer dir
-    synchronize:
-      src: "{{ fworch_home }}/importer"
-      dest: "{{ fworch_home }}/backup_importer"
-    delegate_to: "{{ inventory_hostname }}"
-    when: importer_dir_check.stat.exists and installation_mode == "upgrade"
+    - name: backup importer dir
+      synchronize:
+        src: "{{ fworch_home }}/importer"
+        dest: "{{ fworch_home }}/backup_importer"
+      delegate_to: "{{ inventory_hostname }}"
+      when: importer_dir_check.stat.exists and installation_mode == "upgrade"
 
-  - name: remove importer dir
-    file:
-      state: absent
-      path: "{{ fworch_home }}/importer"
-    when: installation_mode == "upgrade"
+    - name: copy importer files
+      synchronize:
+        src: "importer"
+        dest: "{{ fworch_home }}"
+        rsync_opts:
+          - "--delete"
+          - "--chmod=0755"
+          - "--chown={{ fworch_user }}:{{ fworch_group }}"
+      tags: ["test"]
 
-  - name: Install importer perl modules 
-    package: name={{ item }} state=present
-    loop:
-      - libdbi-perl 
-      - libdbd-pg-perl 
-      - libdate-calc-perl 
-      - psmisc 
-      - libnet-cidr-perl 
-      - libsys-syslog-perl 
-      - libexpect-perl
-      - libcgi-pm-perl
-      - python3-jsonpickle
-      - python3-gnupg
+    - name: Install importer python3-venv package (for Ubuntu/Debian)
+      package:
+        name: python3-venv
+        state: present
 
-  - name: Install importer python modules
-    package: name={{ item }} state=present
-    loop:
-      - python3-netaddr
+    - name: Create Python virtual environment
+      ansible.builtin.command:
+        cmd: python3 -m venv {{ importer_venv_dir }}
+        creates: "{{ importer_venv_dir }}"
 
-  - name: copy importer files
-    synchronize:
-      src: "importer"
-      dest: "{{ fworch_home }}"
-      rsync_opts:
-        - "--chmod=0755"
-        - "--chown={{ fworch_user }}:{{ fworch_group }}"
-    tags: [ 'test' ]
+    - name: Install Python packages from requirements.txt
+      ansible.builtin.pip:
+        requirements: "{{ fworch_home }}/importer/requirements.txt"
+        virtualenv: "{{ importer_venv_dir }}"
+      environment: "{{ proxy_env }}"
 
-  - name: set x-flag for importer executables (top level only)
-    file:
-      path: "{{ item }}"
-      state: file
-      mode: "0755"
-    with_fileglob: "{{ fworch_home }}/importer/*"
+    - name: set x-flag for importer executables (top level only)
+      file:
+        path: "{{ item }}"
+        state: file
+        mode: "0755"
+      with_fileglob: "{{ fworch_home }}/importer/*"
 
-  - name: create default /var/{{ product_name }} dirs for importer
-    file:
-      path: "{{ item }}"
-      state: directory
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: "0755"
-    loop:
-      - /var/{{ product_name }}
-      - /var/{{ product_name }}/tmp
-      - /var/{{ product_name }}/import_archive
+    - name: create default /var/{{ product_name }} dirs for importer
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0755"
+      loop:
+        - /var/{{ product_name }}
+        - /var/{{ product_name }}/tmp
+        - /var/{{ product_name }}/import_archive
 
-  - name: copy import.conf
-    copy:
-      src: "import.conf"
-      dest: "{{ fworch_home }}/etc/import.conf"
-      mode: "0755"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
+    - name: copy api-importer systemd service script
+      template:
+        src: "{{ product_name }}-importer-api.service.j2"
+        dest: "/lib/systemd/system/{{ product_name }}-importer-api.service"
+        backup: true
+        mode: "0644"
+        owner: "root"
+      become: true
 
-  - name: copy importer systemd service script
-    template:
-      src: "{{ product_name }}-importer-legacy.service.j2"
-      dest: "/lib/systemd/system/{{ product_name }}-importer-legacy.service"
-      backup: true
-      mode: "0644"
-      owner: "root"
-    become: true
+    - name: include fetch importer pwd script
+      import_tasks: fetch-importer-pwd.yml
 
-  - name: copy api-importer systemd service script
-    template:
-      src: "{{ product_name }}-importer-api.service.j2"
-      dest: "/lib/systemd/system/{{ product_name }}-importer-api.service"
-      backup: true
-      mode: "0644"
-      owner: "root"
-    become: true
+    - name: include upgrade script
+      import_tasks: run-upgrades.yml
+      when: "installation_mode == 'upgrade'"
 
-  - name: include fetch importer pwd script
-    import_tasks: fetch-importer-pwd.yml
-
-  - name: include upgrade script
-    import_tasks: run-upgrades.yml
-    when: "installation_mode == 'upgrade'"
-
-  - name: finalize handler for datarecovery
-    set_fact:
-      importer_handler_guard: stop
-    changed_when: true
-    notify: "importer handler"
-    when: installation_mode == "upgrade"
+    - name: finalize handler for datarecovery
+      set_fact:
+        importer_handler_guard: stop
+      changed_when: true
+      notify: "importer handler"
+      when: installation_mode == "upgrade"
 
   become: true

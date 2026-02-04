@@ -13,7 +13,7 @@ namespace FWO.Data.Report
         public int TenantId { get; set; }
 
         public TenantFilter()
-        {}
+        { }
 
         public TenantFilter(TenantFilter tenantFilter)
         {

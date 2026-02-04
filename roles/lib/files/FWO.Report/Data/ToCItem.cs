@@ -1,4 +1,4 @@
-﻿namespace FWO.Report.Data
+namespace FWO.Report.Data
 {
     public class ToCItem(string title, string? id = default)
     {

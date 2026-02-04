@@ -176,6 +176,7 @@
     private string refAlertText = "";
     private bool firstCall = true;
     private bool somethingToDo = false;
+    private bool showAlreadyDoneMessages = false;
     private bool DeleteManagementMode = false;
     private Management actManagement = new Management();
     private bool DeleteDeviceMode = false;
@@ -229,6 +230,7 @@
             refAlertText = "";
             somethingToDo = (Actions.Count() > 0);
             bool singleAlert = (Actions.Count() == 1 && Actions[0].AlertId != null);
+            showAlreadyDoneMessages = singleAlert;
 
             foreach(ActionItem action in Actions)
             {
@@ -263,7 +265,10 @@
                         else
                         {
                             // already reactivated
-                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            if (showAlreadyDoneMessages)
+                            {
+                                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            }
                         }
                         break;
                     case ActionCode.DeleteManagement:
@@ -286,7 +291,10 @@
                         else
                         {
                             // already deleted
-                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            if (showAlreadyDoneMessages)
+                            {
+                                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            }
                         }
                         break;
                     case ActionCode.AddGatewayToNewManagement:
@@ -342,7 +350,10 @@
                         else
                         {
                             // already reactivated
-                            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            if (showAlreadyDoneMessages)
+                            {
+                                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+                            }
                         }
                         break;
                     case ActionCode.DeleteGateway:
@@ -438,7 +449,10 @@
             && exMgmt.SuperManagerId == management.SuperManagerId) != null)
         {
             // already created
-            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            if (showAlreadyDoneMessages)
+            {
+                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            }
             return false;
         }
         return true;
@@ -451,7 +465,10 @@
             && existingDevice.LocalRulebase == device.LocalRulebase) != null)
         {
             // already created
-            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            if (showAlreadyDoneMessages)
+            {
+                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            }
             return false;
         }
         return true;
@@ -472,7 +489,10 @@
         else
         {
             // already deleted
-            DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            if (showAlreadyDoneMessages)
+            {
+                DisplayMessageInUi(null, "AutoDiscovery", userConfig.GetText("E7001"), true);
+            }
         }
     }
 
@@ -498,6 +518,7 @@
                 var Variables = new
                 {
                     name = discMgmt.Name,
+                    uid = discMgmt.Uid,
                     devTypeId = discMgmt.DeviceType.Id,
                     hostname = discMgmt.Hostname,
                     importCredentialId = discMgmt.ImportCredential.Id,
@@ -508,6 +529,7 @@
                     configPath = discMgmt.ConfigPath,
                     domainUid = discMgmt.DomainUid,
                     superManager = discMgmt.SuperManagerId,
+                    isSuperManager = discMgmt.IsSupermanager,
                     importerHostname = discMgmt.ImporterHostname,
                     debugLevel = discMgmt.DebugLevel,
                     comment = discMgmt.Comment,
@@ -517,7 +539,7 @@
                 if (returnIds != null)
                 {
                     discMgmt.Id = returnIds[0].NewId;
-                    // As we know now the ManagementId we can activate following device inserts
+                    // As we now know the ManagementId we can activate the following device inserts
                     devCounter = activateDeviceChanges(discMgmt);
                     existingManagements.Add(discMgmt);
                 }
@@ -585,11 +607,17 @@
                 }
             }
             else
-            {    
+            {
+                if (discoveredDevice.Uid == null || discoveredDevice.Uid == "")
+                {
+                    // fortinet does not have uids for devices, so we are using the device name instead
+                    discoveredDevice.Uid = discoveredDevice.Name;
+                }
                 // insert new device
                 var Variables = new
                 {
                     name = discoveredDevice.Name,
+                    uid = discoveredDevice.Uid,
                     devTypeId = discoveredDevice.DeviceType.Id,
                     managementId = discoveredDevice.Management.Id,
                     localRulebase = discoveredDevice.LocalRulebase,
@@ -612,8 +640,13 @@
                 }
             }
             discoveredDevice.Relevant = false;
-            Management mgmtToIgnore = managementsToDisplay[managementsToDisplay.FindIndex(x => x.Id == discoveredDevice.Management.Id)];
-            if(mgmtToIgnore.Devices.FirstOrDefault(y => y.Relevant == true) == null)
+            if (managementsToDisplay.Count()==0)
+            {
+                return;
+            }
+            int index = managementsToDisplay.FindIndex(x => x.Id == discoveredDevice.Management.Id);
+            Management? mgmtToIgnore = index >= 0 ? managementsToDisplay[index] : null;
+            if (mgmtToIgnore != null &&  mgmtToIgnore.Devices.FirstOrDefault(y => y.Relevant == true) == null)
             {
                 managementsToDisplay.Remove(mgmtToIgnore);
                 if(managementsToDisplay.Count == 0)

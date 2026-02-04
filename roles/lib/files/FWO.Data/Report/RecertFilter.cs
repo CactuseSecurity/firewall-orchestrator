@@ -7,7 +7,7 @@ namespace FWO.Data.Report
         public int RecertificationDisplayPeriod { get; set; } = 0;
 
         public RecertFilter()
-        {}
+        { }
 
         public RecertFilter(RecertFilter recertFilter)
         {

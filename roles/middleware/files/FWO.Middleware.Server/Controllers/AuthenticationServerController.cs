@@ -22,9 +22,9 @@ namespace FWO.Middleware.Server.Controllers
         private List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
 
-		/// <summary>
-		/// Constructor needing connection and ldap list
-		/// </summary>
+        /// <summary>
+        /// Constructor needing connection and ldap list
+        /// </summary>
         public AuthenticationServerController(ApiConnection apiConnection, List<Ldap> ldaps)
         {
             this.apiConnection = apiConnection;
@@ -112,7 +112,7 @@ namespace FWO.Middleware.Server.Controllers
             if (returnIds != null)
             {
                 ldapId = returnIds[0].NewId;
-                ldaps.Add(new Ldap(new LdapGetUpdateParameters (ldapData, ldapId) {}));
+                ldaps.Add(new Ldap(new LdapGetUpdateParameters(ldapData, ldapId) { }));
                 Log.WriteAudit("AddLdap", $"LDAP server {ldapData.Address}:{ldapData.Port} successfully added");
             }
 

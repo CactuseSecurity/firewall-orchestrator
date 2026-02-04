@@ -8,11 +8,11 @@ from typing import Any
 
 import fwo_globals
 import requests
+from fwo_config import FWOConfig
 from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT
 from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
 from query_analyzer import QueryAnalyzer
-from services.service_provider import ServiceProvider
 
 JSON_CONTENT_TYPE = "application/json"
 
@@ -152,9 +152,7 @@ class FwoApi:
             FwoImporterError: If request fails or returns error
 
         """
-        service_provider = ServiceProvider()
-        fwo_config = service_provider.get_fwo_config()
-        url = fwo_config["user_management_api_base_url"] + endpoint.lstrip("/")
+        url = FWOConfig().user_management_api_base_url + endpoint.lstrip("/")
 
         with requests.Session() as session:
             if fwo_globals.verify_certs is None:

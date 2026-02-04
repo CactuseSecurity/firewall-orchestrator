@@ -8,7 +8,8 @@ import urllib3
 from common import import_management  # type: ignore[import-not-found]
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
-from fwo_base import init_service_provider, register_global_state
+from fwo_base import register_global_state
+from fwo_config import FWOConfig
 from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
 from fwo_exceptions import FwoApiLoginFailedError
 from fwo_log import FWOLogger
@@ -43,12 +44,8 @@ def main(
     FWOLogger(debug_level)
     FWOLogger.debug("debug level set to " + str(debug_level))
 
-    service_provider = init_service_provider()
-    fwo_config = service_provider.get_fwo_config()
+    fwo_config = FWOConfig()
     verify_certificates = verify_certificates_default
-    fwo_api_base_url = fwo_config["fwo_api_base_url"]
-    fwo_major_version = fwo_config["fwo_major_version"]
-    user_management_api_base_url = fwo_config["user_management_api_base_url"]
     if suppress_certificate_warnings:
         urllib3.disable_warnings()
 
@@ -65,13 +62,13 @@ def main(
         FWOLogger.error("error while reading importer pwd file")
         raise
 
-    jwt = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
+    jwt = get_fwo_jwt(importer_user_name, importer_pwd, fwo_config.user_management_api_base_url)
     # check if login was successful - if not, wait and retry
     if jwt is None:
         FWOLogger.error("cannot proceed without successful login - exiting")
         return
 
-    fwo_api = FwoApi(fwo_api_base_url, jwt)
+    fwo_api = FwoApi(fwo_config.api_base_url, jwt)
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # suppress ssl warnings only
@@ -86,10 +83,11 @@ def main(
         suppress_certificate_warnings,
         verify_certificates,
         force,
-        fwo_major_version,
+        fwo_config.major_version,
         clear_management_data,
         is_full_import=True,
     )
+
     register_global_state(import_state)
 
     import_management(

@@ -13,7 +13,8 @@ import urllib3
 from common import import_management  # type: ignore[import-not-found]
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
-from fwo_base import init_service_provider, register_global_state
+from fwo_base import register_global_state
+from fwo_config import FWOConfig
 from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
 from fwo_exceptions import FwLoginFailedError, FwoApiFailedLockImportError, FwoApiLoginFailedError
 from fwo_log import FWOLogger
@@ -193,11 +194,7 @@ def main(
     is_full_import: bool = False,
 ):
     FWOLogger(debug_level)
-    service_provider = init_service_provider()
-    fwo_config = service_provider.get_fwo_config()
-    fwo_api_base_url = fwo_config["fwo_api_base_url"]
-    fwo_major_version = fwo_config["fwo_major_version"]
-    user_management_api_base_url = fwo_config["user_management_api_base_url"]
+    fwo_config = FWOConfig()
     fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
     if suppress_certificate_warnings:
         urllib3.disable_warnings()
@@ -216,9 +213,9 @@ def main(
         main_loop(
             importer_pwd_file,
             importer_user_name,
-            user_management_api_base_url,
-            fwo_api_base_url,
-            fwo_major_version,
+            fwo_config.user_management_api_base_url,
+            fwo_config.api_base_url,
+            fwo_config.major_version,
             api_fetch_limit,
             sleep_timer,
             clear,

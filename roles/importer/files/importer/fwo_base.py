@@ -7,7 +7,6 @@ import traceback
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-import fwo_config
 import fwo_const
 from fwo_const import IMPORT_TMP_PATH
 from fwo_enums import ConfFormat, ConfigAction
@@ -252,7 +251,6 @@ def write_native_config_to_file(import_state: "ImportState", config_native: dict
 
 def init_service_provider() -> ServiceProvider:
     service_provider = ServiceProvider()
-    service_provider.register(Services.FWO_CONFIG, lambda: fwo_config.read_config(), Lifetime.SINGLETON)
     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)

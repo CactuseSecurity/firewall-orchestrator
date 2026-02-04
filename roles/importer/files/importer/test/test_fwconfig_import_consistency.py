@@ -1,4 +1,3 @@
-import pytest
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
@@ -266,7 +265,6 @@ class TestCheckConsistencyNetworkObjects:
 
         assert len(consistency_checker.issues) == 0
 
-    @pytest.mark.skip(reason="Currently, circular references are not detected.")
     def test_check_network_object_consistency_with_group_referencing_itself(
         self,
         import_state_controller: ImportStateController,
@@ -291,7 +289,7 @@ class TestCheckConsistencyNetworkObjects:
         )
 
         assert len(consistency_checker.issues) == 1
-        assert consistency_checker.issues == {"circularNwObjRefs": ["GroupObject"]}
+        assert consistency_checker.issues == {"circularNwObjRefs": [nw_group_obj.obj_uid]}
 
     def test_check_network_object_consistency_with_empty_group(
         self,
@@ -496,7 +494,6 @@ class TestCheckConsistencyServiceObjects:
         )
         assert len(consistency_checker.issues) == 0
 
-    @pytest.mark.skip(reason="Currently, circular references are not detected.")
     def test_check_service_object_consistency_with_group_referencing_itself(
         self,
         import_state_controller: ImportStateController,
@@ -520,7 +517,7 @@ class TestCheckConsistencyServiceObjects:
             config=config, global_config=None, fix_inconsistencies=False
         )
         assert len(consistency_checker.issues) == 1
-        assert consistency_checker.issues == {"circularSvcObjRefs": ["GroupObject"]}
+        assert consistency_checker.issues == {"circularSvcObjRefs": [svc_group_obj.svc_uid]}
 
     def test_check_service_object_consistency_with_empty_group(
         self,
@@ -598,7 +595,6 @@ class TestCheckUserObjectConsistency:
         )
         assert len(consistency_checker.issues) == 0
 
-    @pytest.mark.skip(reason="Currently, unresolvable user objects are not detected.")
     def test_check_user_object_unresolvable_object(
         self,
         fwconfig_builder: FwConfigBuilder,
@@ -629,11 +625,46 @@ class TestCheckUserObjectConsistency:
             import_state=import_state_controller.state,
         )
 
-        consistency_checker.check_service_object_consistency(
-            config=config, global_config=None, fix_inconsistencies=False
+        consistency_checker.check_user_object_consistency(
+            config=config, global_config=None, fix_unresolvable_refs=False
         )
         assert len(consistency_checker.issues) == 1
-        assert consistency_checker.issues == {"unresolvableUserObjTypes": ["DoesNotExist"]}
+        assert consistency_checker.issues == {"unresolvableUserObjRefs": ["DoesNotExist"]}
+
+    def test_check_user_object_circular_reference(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+    ):
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+            user_object_count=1,
+            user_group_object_count=2,
+            user_group_object_member_count=2,
+        )
+
+        group = {
+            "user_typ": "group",
+            "user_uid": "GroupWithCircularRef",
+            "user_name": "GroupWithCircularRef",
+            "user_member_names": "GroupWithCircularRef",
+            "user_member_refs": "GroupWithCircularRef",
+        }
+
+        config.users["GroupWithCircularRef"] = group
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_state=import_state_controller.state,
+        )
+
+        consistency_checker.check_user_object_consistency(
+            config=config, global_config=None, fix_unresolvable_refs=False
+        )
+        assert len(consistency_checker.issues) == 1
+        assert consistency_checker.issues == {"circularUserObjRefs": ["GroupWithCircularRef"]}
 
 
 class TestRulebaseConsistency:

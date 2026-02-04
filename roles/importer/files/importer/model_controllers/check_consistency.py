@@ -814,6 +814,37 @@ class FwConfigImportCheckConsistency:
                     filtered_rulebase_links.append(rulebase_link)
             gw.RulebaseLinks = filtered_rulebase_links
 
+    def _detect_circular_reference(
+        self, all_groups: dict[str, Any], get_members_fn: Callable[[Any], str], current_group_id: str, path: set[str]
+    ) -> bool:
+        """
+        Helper function to detect circular references using DFS.
+
+        :param all_groups: Dictionary of all group objects
+        :param get_members_fn: Function to get member references from a group object
+        :param current_group_id: The current group ID being checked
+        :param path: Set of group IDs in the current DFS path
+        :return: True if a circular reference is detected, False otherwise
+        """
+        if current_group_id in path:
+            return True  # Circular reference detected
+
+        path.add(current_group_id)
+        current_group = all_groups.get(current_group_id)
+
+        raw_refs = get_members_fn(current_group) if current_group else None
+
+        if raw_refs:
+            member_ids = raw_refs.split(fwo_const.LIST_DELIMITER)
+            for member_id in member_ids:
+                if member_id in all_groups and self._detect_circular_reference(
+                    all_groups, get_members_fn, member_id, path
+                ):
+                    return True
+
+        path.remove(current_group_id)
+        return False
+
     def _find_cycles(
         self,
         objects: dict[str, Any],
@@ -835,29 +866,9 @@ class FwConfigImportCheckConsistency:
         visited: set[str] = set()
         circular_references: set[str] = set()
 
-        def dfs(current_group_id: str, path: set[str]) -> bool:
-            if current_group_id in path:
-                return True  # Circular reference detected
-
-            path.add(current_group_id)
-            current_group = all_groups.get(current_group_id)
-
-            # 2. Extract members using the provided lambda
-            # We handle the 'None' check safely here
-            raw_refs = get_members_fn(current_group) if current_group else None
-
-            if raw_refs:
-                member_ids = raw_refs.split(fwo_const.LIST_DELIMITER)
-                for member_id in member_ids:
-                    if member_id in all_groups and dfs(member_id, path):
-                        return True
-
-            path.remove(current_group_id)
-            return False
-
         for group_id in all_groups:
             if group_id not in visited:
-                if dfs(group_id, set()):
+                if self._detect_circular_reference(all_groups, get_members_fn, group_id, set()):
                     circular_references.add(group_id)
                 visited.add(group_id)
 

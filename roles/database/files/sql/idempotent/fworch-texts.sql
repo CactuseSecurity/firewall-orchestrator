@@ -2923,7 +2923,7 @@ INSERT INTO txt VALUES ('scheduler_interval', 	          'German',   'Intervall'
 INSERT INTO txt VALUES ('scheduler_interval', 	          'English',  'Interval');
 INSERT INTO txt VALUES ('scheduler_last_run', 	          'German',   'Letzte Ausf&uuml;hrung');
 INSERT INTO txt VALUES ('scheduler_last_run', 	          'English',  'Last run');
-INSERT INTO txt VALUES ('scheduler_next_run', 	          'German',   'Nächste Ausf&uuml;hrung');
+INSERT INTO txt VALUES ('scheduler_next_run', 	          'German',   'N&auml;chste Ausf&uuml;hrung');
 INSERT INTO txt VALUES ('scheduler_next_run', 	          'English',  'Next run');
 INSERT INTO txt VALUES ('scheduler_status', 	          'German',   'Status');
 INSERT INTO txt VALUES ('scheduler_status', 	          'English',  'Status');

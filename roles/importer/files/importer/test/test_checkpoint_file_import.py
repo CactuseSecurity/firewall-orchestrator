@@ -1,37 +1,37 @@
+import unittest.mock
+
 from fw_modules.checkpointR8x import fwcommon
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from test.mocking.mock_import_state import MockImportStateController
+from model_controllers.import_state_controller import ImportStateController
 
 
-def test_checkpoint_native_file_import_skips_login(monkeypatch):
-    config_in = FwConfigManagerListController()
-    config_in.native_config = {
-        "domains": [
-            {
-                "domain_name": "",
-                "domain_uid": "",
-                "is-super-manager": False,
-                "management_name": "unit-test",
-                "management_uid": "uid",
-                "objects": [],
-                "rulebases": [],
-                "nat_rulebases": [],
-                "gateways": [],
-            }
-        ]
-    }
+class TestCheckpointNativeFileImport:
+    def test_checkpoint_native_file_import_skips_login(self, import_state_controller: ImportStateController):
+        config_in = FwConfigManagerListController()
+        config_in.native_config = {
+            "domains": [
+                {
+                    "domain_name": "",
+                    "domain_uid": "",
+                    "is-super-manager": False,
+                    "management_name": "unit-test",
+                    "management_uid": "uid",
+                    "objects": [],
+                    "rulebases": [],
+                    "nat_rulebases": [],
+                    "gateways": [],
+                }
+            ]
+        }
 
-    import_state = MockImportStateController(stub_setCoreData=True)
+        import_state = import_state_controller
 
-    def fake_login(_details):
-        raise AssertionError("login should not be called for native config imports")
+        fwcommon.cp_getter.login = unittest.mock.Mock(
+            side_effect=AssertionError("login should not be called for native config imports")
+        )
 
-    def fake_normalize_config(_state, _config_in, _parsing_config_only, _sid):
-        return config_in
+        fwcommon.normalize_config = unittest.mock.Mock(return_value=config_in)
 
-    monkeypatch.setattr(fwcommon.cp_getter, "login", fake_login)
-    monkeypatch.setattr(fwcommon, "normalize_config", fake_normalize_config)
+        _, result = fwcommon.get_config(config_in, import_state)
 
-    _, result = fwcommon.get_config(config_in, import_state)
-
-    assert result is config_in
+        assert result is config_in

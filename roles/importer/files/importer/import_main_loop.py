@@ -178,7 +178,7 @@ def main_loop(
             is_full_import,
         )
 
-    ServiceProvider().dispose_global_state()
+        ServiceProvider().dispose_global_state()
 
     FWOLogger.info(f"import_main_loop: sleeping for {sleep_timer} seconds until next import cycle")
     wait_with_shutdown_check(sleep_timer)

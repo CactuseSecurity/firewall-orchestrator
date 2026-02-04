@@ -80,11 +80,11 @@ namespace FWO.Middleware.Server
         public async Task<int> SendNotification(FwoNotification notification, FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null)
         {
             int emailsSent = 0;
-            if(SendNow(owner, extDeadline, notification))
+            if (SendNow(owner, extDeadline, notification))
             {
                 // Later: Handle other channels here when implemented
                 await SendEmail(notification, content, owner, report);
-                if(!CheckedNotificationIds.Contains(notification.Id))
+                if (!CheckedNotificationIds.Contains(notification.Id))
                 {
                     CheckedNotificationIds.Add(notification.Id);
                 }
@@ -159,9 +159,9 @@ namespace FWO.Middleware.Server
             {
                 return (DateTime)owner.NextRecertDate;
             }
-            else if(deadline == NotificationDeadline.RequestDate && extDeadline != null)
+            else if (deadline == NotificationDeadline.RequestDate && extDeadline != null)
             {
-                 return (DateTime)extDeadline;
+                return (DateTime)extDeadline;
             }
             return DateTime.Now;
         }
@@ -201,16 +201,16 @@ namespace FWO.Middleware.Server
                         if (string.IsNullOrWhiteSpace(pdfData))
                             throw new ProcessingFailedException("No Pdf generated.");
 
-                        attachment = CreateAttachment(pdfData, GlobalConst.kPdf, subject);
+                        attachment = EmailHelper.CreateAttachment(pdfData, GlobalConst.kPdf, subject);
                         break;
                     case NotificationLayout.HtmlAsAttachment:
-                        attachment = CreateAttachment(report.ExportToHtml(), GlobalConst.kHtml, subject);
+                        attachment = EmailHelper.CreateAttachment(report.ExportToHtml(), GlobalConst.kHtml, subject);
                         break;
                     case NotificationLayout.JsonAsAttachment:
-                        attachment = CreateAttachment(report.ExportToJson(), GlobalConst.kJson, subject);
+                        attachment = EmailHelper.CreateAttachment(report.ExportToJson(), GlobalConst.kJson, subject);
                         break;
                     case NotificationLayout.CsvAsAttachment:
-                        attachment = CreateAttachment(report.ExportToCsv(), GlobalConst.kCsv, subject);
+                        attachment = EmailHelper.CreateAttachment(report.ExportToCsv(), GlobalConst.kCsv, subject);
                         break;
                     default:
                         break;
@@ -222,49 +222,6 @@ namespace FWO.Middleware.Server
                 mailData.Attachments = new FormFileCollection() { attachment };
             }
             return mailData;
-        }
-
-        private static FormFile? CreateAttachment(string? content, string fileFormat, string subject)
-        {
-            if (content != null)
-            {
-                string fileName = ConstructFileName(subject, fileFormat);
-
-                MemoryStream memoryStream;
-                string contentType;
-
-                if (fileFormat == GlobalConst.kPdf)
-                {
-                    memoryStream = new(Convert.FromBase64String(content));
-                    contentType = "application/octet-stream";
-                }
-                else
-                {
-                    memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
-                    contentType = $"application/{fileFormat}";
-                }
-
-                return new(memoryStream, 0, memoryStream.Length, "FWO-Report-Attachment", fileName)
-                {
-                    Headers = new HeaderDictionary(),
-                    ContentType = contentType
-                };
-            }
-            return null;
-        }
-
-        private static string ConstructFileName(string input, string fileFormat)
-        {
-            try
-            {
-                Regex regex = new(@"\s", RegexOptions.None, TimeSpan.FromMilliseconds(500));
-                return $"{regex.Replace(input, "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
-            }
-            catch (RegexMatchTimeoutException)
-            {
-                Log.WriteWarning("Construct File Name", "Timeout when constructing file name. Taking input.");
-                return input;
-            }
         }
 
         private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner owner, bool cc = false)

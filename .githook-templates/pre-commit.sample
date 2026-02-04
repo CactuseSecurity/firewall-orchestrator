@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+RUFF_PATH=.venv/bin/ruff
+
+$RUFF_PATH check --fix
+$RUFF_PATH format

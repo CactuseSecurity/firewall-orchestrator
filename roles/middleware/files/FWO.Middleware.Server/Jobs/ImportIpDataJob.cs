@@ -12,6 +12,7 @@ namespace FWO.Middleware.Server.Jobs
     /// <summary>
     /// Quartz Job for importing area IP data
     /// </summary>
+    [DisallowConcurrentExecution]
     public class ImportIpDataJob : IJob
     {
         private const string LogMessageTitle = "Import Area IP Data";
@@ -32,6 +33,8 @@ namespace FWO.Middleware.Server.Jobs
         /// <inheritdoc />
         public async Task Execute(IJobExecutionContext context)
         {
+            Log.WriteDebug(LogMessageTitle, "Process started");
+
             try
             {
                 AreaIpDataImport import = new(apiConnection, globalConfig);

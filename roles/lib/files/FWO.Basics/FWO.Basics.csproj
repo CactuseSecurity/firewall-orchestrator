@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="DnsClient" Version="1.8.0" />
     <PackageReference Include="IPAddressRange" Version="6.3.0" />
+    <PackageReference Include="IPNetwork2" Version="3.4.832" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -21,8 +21,8 @@ namespace FWO.Services
 
         public ModellingAppServerListHandler(ApiConnection apiConnection, UserConfig userConfig,
             Action<Exception?, string, string, bool> displayMessageInUi)
-            : base (apiConnection, userConfig, new FwoOwner(), false, displayMessageInUi)
-        {}
+            : base(apiConnection, userConfig, new FwoOwner(), false, displayMessageInUi)
+        { }
 
         public async Task Init(FwoOwner application)
         {
@@ -31,7 +31,7 @@ namespace FWO.Services
                 Application = application;
                 ManualAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, new { importSource = GlobalConst.kManual, appId = Application.Id });
                 ManualAppServers.AddRange(await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, new { importSource = GlobalConst.kCSV_ + "%", appId = Application.Id }));
-                foreach(var appServer in ManualAppServers)
+                foreach (var appServer in ManualAppServers)
                 {
                     appServer.InUse = await CheckAppServerInUse(appServer);
                     appServer.HighestPrio = await AppServerHelper.NoHigherPrioActive(apiConnection, appServer);
@@ -46,7 +46,7 @@ namespace FWO.Services
         public void CreateAppServer()
         {
             AddAppServerMode = true;
-            HandleAppServer(new ModellingAppServer(){ ImportSource = GlobalConst.kManual, InUse = false });
+            HandleAppServer(new ModellingAppServer() { ImportSource = GlobalConst.kManual, InUse = false });
         }
 
         public void EditAppServer(ModellingAppServer appServer)
@@ -80,13 +80,13 @@ namespace FWO.Services
             try
             {
                 apiConnection.SetRole(Roles.Admin);
-                if(await CheckAppServerInUse(actAppServer))
+                if (await CheckAppServerInUse(actAppServer))
                 {
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = true });
                     await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Mark App Server as deleted: {actAppServer.Display()}", Application.Id);
                 }
-                else if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteAppServer, new { id = actAppServer.Id })).AffectedRows > 0)
+                else if ((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteAppServer, new { id = actAppServer.Id })).AffectedRows > 0)
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Deleted App Server: {actAppServer.Display()}", Application.Id);
@@ -113,7 +113,7 @@ namespace FWO.Services
         {
             try
             {
-                if(actAppServer.IsDeleted)
+                if (actAppServer.IsDeleted)
                 {
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = false });
                     await LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,

@@ -2917,7 +2917,7 @@ INSERT INTO txt VALUES ('app_role_users', 		'German',   'Nutzer von App Rollen')
 INSERT INTO txt VALUES ('app_role_users', 		'English',  'App Role Users');
 INSERT INTO txt VALUES ('scheduler_jobs_title',           'German',   'Scheduler-Jobs');
 INSERT INTO txt VALUES ('scheduler_jobs_title',           'English',  'Scheduler Jobs');
-INSERT INTO txt VALUES ('scheduler_jobs_description',     'German',   'Admin-Benutzer können Scheduler-Jobs sofort ausf&uuml;hren.');
+INSERT INTO txt VALUES ('scheduler_jobs_description',     'German',   'Admin-Benutzer k&ouml;nnen Scheduler-Jobs sofort ausf&uuml;hren.');
 INSERT INTO txt VALUES ('scheduler_jobs_description',     'English',  'Admin users can run scheduler jobs immediately.');
 INSERT INTO txt VALUES ('scheduler_interval', 	          'German',   'Intervall');
 INSERT INTO txt VALUES ('scheduler_interval', 	          'English',  'Interval');

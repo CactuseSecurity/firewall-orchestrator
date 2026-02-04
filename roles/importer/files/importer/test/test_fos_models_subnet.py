@@ -8,8 +8,8 @@ def test_subnet_list_coerces_to_string():
             "q_origin_key": "net1",
             "uuid": "uuid1",
             "type": "ipmask",
-            "subnet": ["1.2.3.4", 32],
+            "subnet": "1.2.3.4/32",
         }
     )
 
-    assert obj.subnet == "1.2.3.4 32"
+    assert obj.subnet == "1.2.3.4/32"

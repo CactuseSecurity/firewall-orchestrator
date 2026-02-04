@@ -48,7 +48,7 @@ namespace FWO.DeviceAutoDiscovery
                     if (string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
                     {
                         errorTxt += $"could not authenticate to {SuperManagement.Name} - got empty session ID";
-                    }                                            
+                    }
                     Log.WriteWarning(Autodiscovery, errorTxt);
                     throw new AuthenticationException(errorTxtCatch);
                 }
@@ -247,6 +247,7 @@ namespace FWO.DeviceAutoDiscovery
                         Device devFound = new()
                         {
                             Name = devName,
+                            Uid = string.IsNullOrEmpty(fg.Uid) ? devName : fg.Uid,
                             DeviceType = new DeviceType { Id = 10 } // fortiGate
                         };
                         currentManagement.Devices = currentManagement.Devices.Append(devFound).ToArray();
@@ -257,7 +258,7 @@ namespace FWO.DeviceAutoDiscovery
             }
             return discoveredDevices;
         }
-        
+
         // #if DEBUG
         //         List<Management> fillTestDevices()
         //         {

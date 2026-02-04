@@ -10,13 +10,13 @@ namespace FWO.Data
     {
         public static StringBuilder DisplayGateway(Device gateway, bool isTechReport, string? gatewayName = null)
         {
-            StringBuilder result = new ();
+            StringBuilder result = new();
             result.Append($" {gateway.Name}");
             return result;
-        }        
+        }
         public static StringBuilder DisplayService(NetworkService service, bool isTechReport, string? serviceName = null)
         {
-            StringBuilder result = new ();
+            StringBuilder result = new();
             string ports = service.DestinationPortEnd == null || service.DestinationPortEnd == 0 || service.DestinationPort == service.DestinationPortEnd ?
                 $"{service.DestinationPort}" : $"{service.DestinationPort}-{service.DestinationPortEnd}";
             bool displayPorts = service.Protocol != null && service.Protocol.HasPorts() && service.DestinationPort != null;
@@ -62,24 +62,24 @@ namespace FWO.Data
         {
             List<IpProtocol> ListOut = [];
             IpProtocol? tcp = ListIn.Find(x => x.Name.ToLower() == "tcp");
-            if(tcp != null)
+            if (tcp != null)
             {
                 ListOut.Add(tcp);
                 ListIn.Remove(tcp);
             }
             IpProtocol? udp = ListIn.Find(x => x.Name.ToLower() == "udp");
-            if(udp != null)
+            if (udp != null)
             {
                 ListOut.Add(udp);
                 ListIn.Remove(udp);
             }
             IpProtocol? icmp = ListIn.Find(x => x.Name.ToLower() == "icmp");
-            if(icmp != null)
+            if (icmp != null)
             {
                 ListOut.Add(icmp);
                 ListIn.Remove(icmp);
             }
-            foreach(var proto in ListIn.Where(p => p.Name.ToLower() != "unassigned").OrderBy(x => x.Name).ToList())
+            foreach (var proto in ListIn.Where(p => p.Name.ToLower() != "unassigned").OrderBy(x => x.Name).ToList())
             {
                 ListOut.Add(proto);
             }
@@ -88,7 +88,7 @@ namespace FWO.Data
 
         public static string DisplayIpWithName(NetworkObject elem)
         {
-            if(elem.Name != null && elem.Name != "")
+            if (elem.Name != null && elem.Name != "")
             {
                 return elem.Name + DisplayIp(elem.IP, elem.IpEnd, true);
             }
@@ -110,7 +110,7 @@ namespace FWO.Data
                 string nwObjType = IpOperations.GetObjectType(ip1, ip2);
                 return DisplayIp(ip1, ip2, nwObjType, inBrackets);
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
                 Log.WriteError("Ip displaying", $"Exception thrown: {exc.Message}");
                 return "";
@@ -131,7 +131,8 @@ namespace FWO.Data
                 if (string.IsNullOrEmpty(ip1))
                 {
                     Log.WriteDebug("Ip displaying", $"Nessessary parameter {nameof(ip1)} is empty.");
-                }else if (!ip1.IsV4Address() && !ip1.IsV6Address())
+                }
+                else if (!ip1.IsV4Address() && !ip1.IsV6Address())
                 {
                     Log.WriteError("Ip displaying", $"Found undefined IP family: {ip1} - {ip2}");
                 }
@@ -140,7 +141,7 @@ namespace FWO.Data
                     Log.WriteError("Ip displaying", $"Found mixed IP family: {ip1} - {ip2}");
                 }
                 else
-                {                    
+                {
                     string IpStart = ip1.StripOffUnnecessaryNetmask();
                     string IpEnd = ip2.StripOffUnnecessaryNetmask();
 
@@ -281,6 +282,64 @@ namespace FWO.Data
                 result += inBrackets ? ")" : "";
             }
             return result;
+        }
+
+        public static string MemberNamesAsJson(string MemberNames)
+        {
+            // Falls MemberNames leer ist, leeres Array zurückgeben
+            if (string.IsNullOrEmpty(MemberNames))
+                return "[]";
+
+            // Splitten, trimmen
+            var members = MemberNames
+                .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                .Select(m => m.Trim())
+                .ToArray();
+
+            // Wenn nach Split nichts übrig bleibt, leeres Array
+            if (members.Length == 0)
+                return "[]";
+
+            // Jedes Element in Anführungszeichen setzen
+            var quoted = members.Select(m => $"\"{m}\"");
+
+            // Mit Komma verbinden und in eckige Klammern setzen
+            return $"[{string.Join(",", quoted)}]";
+        }
+
+        public static string MemberNamesAsHtml(string MemberNames)
+        {
+            if (MemberNames != null && MemberNames.Contains("|"))
+            {
+                return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
+            }
+            else
+            {
+                return $"<td>{MemberNames}</td>";
+            }
+        }
+        public static string MemberNamesWithoutHtml(string MemberNames)
+        {
+            if (MemberNames != null && MemberNames.Contains("|"))
+            {
+                return $"{string.Join("<br>", MemberNames.Split('|'))}";
+            }
+            else
+            {
+                return $"{MemberNames}";
+            }
+        }
+
+        public static string MemberNamesAsCSV(string MemberNames)
+        {
+            if (MemberNames != null && MemberNames.Contains('|'))
+            {
+                return $"{string.Join(",", MemberNames.Split('|'))}";
+            }
+            else
+            {
+                return $"{MemberNames}";
+            }
         }
 
         private static bool ShouldDisplayProtocolName(NetworkService service)

@@ -63,6 +63,7 @@ def import_management(
     clear_management_data: bool,
     suppress_cert_warnings: bool,
     file: str | None = None,
+    suppress_consistency_check: bool = False,
 ) -> None:
     fwo_signalling.register_signalling_handlers()
     service_provider = ServiceProvider()
@@ -78,6 +79,7 @@ def import_management(
             limit,
             clear_management_data,
             suppress_cert_warnings,
+            suppress_consistency_check,
         )
     except FwLoginFailedError as e:
         exception = e
@@ -100,8 +102,6 @@ def import_management(
     except (FwoApiWriteError, FwoImporterError) as e:
         exception = e
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
-    except ValueError:
-        raise
     except Exception as e:
         exception = e
         handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
@@ -120,6 +120,7 @@ def _import_management(
     limit: int,
     clear_management_data: bool,
     suppress_cert_warnings: bool,
+    suppress_consistency_check: bool,
 ) -> None:
     config_normalized: FwConfigManagerListController
 
@@ -137,7 +138,7 @@ def _import_management(
 
     if import_state.state.mgm_details.importer_hostname != gethostname() and not import_state.state.force_import:
         FWOLogger.info(
-            f"import_management - this host ( {gethostname()}) is not responsible for importing management  {mgm_id!s}"
+            f"import_management - this host ({gethostname()}) is not responsible for importing management {mgm_id!s}"
         )
         import_state.state.responsible_for_importing = False
         return
@@ -170,7 +171,8 @@ def _import_management(
 
     # check config consistency and import it
     if config_changed_since_last_import or import_state.state.force_import:
-        FwConfigImportCheckConsistency(import_state, config_normalized).check_config_consistency(config_normalized)
+        if not suppress_consistency_check:
+            FwConfigImportCheckConsistency(import_state.state).check_fwconfig_managerlist_consistency(config_normalized)
         config_importer.import_management_set(service_provider, config_normalized)
 
     # delete data that has passed the retention time
@@ -187,12 +189,7 @@ def handle_unexpected_exception(
     config_importer: FwConfigImport | None = None,
     e: Exception | None = None,
 ):
-    if (
-        "importState" in locals()
-        and import_state is not None
-        and "configImporter" in locals()
-        and config_importer is not None
-    ):
+    if import_state is not None and config_importer is not None:
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e)
 
 
@@ -211,12 +208,12 @@ def roll_back_exception_handler(
             FWOLogger.error(f"Exception: {type(exc).__name__}")
         else:
             FWOLogger.error("Exception: no exception provided")
-        if "configImporter" in locals() and config_importer is not None:
+        if config_importer is not None:
             FwConfigImportRollback().rollback_current_import(
                 import_state=import_state.state, fwo_api_call=import_state.api_call
             )
         else:
-            FWOLogger.info("No configImporter found, skipping rollback.")
+            FWOLogger.info("No config_importer found, skipping rollback.")
         import_state.delete_import()  # delete whole import
     except Exception as rollbackError:
         FWOLogger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
@@ -230,11 +227,11 @@ def get_config_top_level(
     config_from_file = FwConfigManagerListController.generate_empty_config()
     if gateways is None:
         gateways = []
-    if in_file is not None or string_is_uri(import_state.state.mgm_details.hostname):
+    config_uri = get_config_uri(import_state)
+    file_name = in_file or config_uri
+    if file_name is not None:
         ### getting config from file ######################
-        if in_file is None:
-            in_file = import_state.state.mgm_details.hostname
-        _, config_from_file = import_from_file(import_state, in_file)
+        _, config_from_file = import_from_file(import_state, file_name)
         if not config_from_file.is_native_non_empty():
             config_has_changes = True
             return config_has_changes, config_from_file
@@ -347,7 +344,17 @@ def set_filename(import_state: ImportStateController, file_name: str = ""):
     # set file name in importState
     if file_name == "":
         # if the host name is an URI, do not connect to an API but simply read the config from this URI
-        if string_is_uri(import_state.state.mgm_details.hostname):
-            import_state.set_import_file_name(import_state.state.mgm_details.hostname)
+        config_uri = get_config_uri(import_state)
+        if config_uri is not None:
+            import_state.set_import_file_name(config_uri)
     else:
         import_state.set_import_file_name(file_name)
+
+
+def get_config_uri(import_state: ImportStateController) -> str | None:
+    mgm_details = import_state.state.mgm_details
+    if string_is_uri(mgm_details.hostname):
+        return mgm_details.hostname
+    if mgm_details.domain_name and string_is_uri(mgm_details.domain_name):
+        return mgm_details.domain_name
+    return None

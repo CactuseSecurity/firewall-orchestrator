@@ -1,0 +1,19 @@
+{
+  "timestamp": "2024-11-15T00:00:00Z",
+  "channels": {
+    "Stable": {
+      "channel": "Stable",
+      "version": "128.0.6613.137",
+      "revision": "1188749",
+      "downloads": {
+        "chrome": [
+          {
+            "platform": "linux64",
+            "url": "https://storage.googleapis.com/chrome-for-testing-public/128.0.6613.137/linux64/chrome-linux64.zip",
+            "revision": "1188749"
+          }
+        ]
+      }
+    }
+  }
+}

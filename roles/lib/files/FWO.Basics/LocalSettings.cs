@@ -46,8 +46,8 @@ namespace FWO.Basics
                 {
                     Console.WriteLine($"Reading local settings from {localSettings} failed. Using default settings.");
                 }
-            }            
+            }
         }
-    }    
+    }
 }
 

@@ -1,12 +1,14 @@
 @page "/settings/compliance"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
+@using FWO.Middleware.Client
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
 
 @implements IDisposable
-@inject ApiConnection apiConnection
+@inject MiddlewareClient MiddlewareClient
+@inject ApiConnection ApiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject IEventMediator EventMediator
@@ -236,6 +238,49 @@
             </div>
         }
     <hr />
+    
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5846"))</label>
+                <div class="col-sm-7">
+                    <button class="btn btn-primary" @onclick="DeleteAllViolations">@(userConfig.GetText("H5847"))</button>
+                </div>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5846"))</label>
+                <div class="col-sm-7">
+                    <button class="btn btn-primary" disabled>@(userConfig.GetText("H5847"))</button>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+    
+    <br>
+    
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5848"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5849"))</label>
+                <div class="col-sm-7">
+                    <button class="btn btn-primary" @onclick="RunComplianceCheck">@(userConfig.GetText("H5850"))</button>
+                </div>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5848"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5849"))</label>
+                <div class="col-sm-7">
+                    <button class="btn btn-primary" disabled>@(userConfig.GetText("H5850"))</button>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+    
+    <hr />
+    
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
@@ -244,7 +289,9 @@
             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
         </NotAuthorized>
     </AuthorizeView>
+    <br/>
 }
+    
 else
 {
     <Loading/>
@@ -288,6 +335,8 @@ else
     private ErrorBaseModel? ImportError;
 	private string ImportMessage = "";
 	private bool ImportSuccess = false;
+    
+    private static string DeleteAllQuery => ComplianceQueries.deleteAllViolations;
 
     protected override async Task OnInitializedAsync()
     {
@@ -295,7 +344,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             complianceCheckStartDate = complianceCheckStartTime = configData.ComplianceCheckStartAt;
-            policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
+            policies = await ApiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
             if(configData.ComplianceCheckPolicyId > 0)
             {
                 actPolicy = policies.FirstOrDefault(p => p.Id == configData.ComplianceCheckPolicyId);
@@ -348,7 +397,7 @@ else
             {
                 configData.ComplianceCheckStartAt = complianceCheckStartDate.Date.Add(complianceCheckStartTime.TimeOfDay);
                 configData.ComplianceCheckPolicyId = actPolicy?.Id ?? 0;
-                await globalConfig.WriteToDatabase(configData, apiConnection);
+                await globalConfig.WriteToDatabase(configData, ApiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
             else
@@ -360,6 +409,28 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    /// <summary>
+    /// Sends a query to delete all violations using the specified API connection.
+    /// </summary>
+    /// <returns>
+    /// A task that represents the asynchronous operation.
+    /// </returns>
+    private async Task DeleteAllViolations()
+    {
+        await ApiConnection.SendQueryAsync<DeleteAllViolationsResult>(DeleteAllQuery);
+    }
+
+    /// <summary>
+    /// Sends a query to the middleware server to run a compliance check
+    /// </summary>
+    /// <returns>
+    /// A task that represents the asynchronous operation.
+    /// </returns>
+    private async Task RunComplianceCheck()
+    {
+        await MiddlewareClient.RunComplianceCheck();
     }
 
 	/// <summary>

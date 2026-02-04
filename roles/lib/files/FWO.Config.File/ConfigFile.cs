@@ -167,7 +167,7 @@ namespace FWO.Config.File
                     return default!;
                 }
             }
-            
+
             return configValue;
         }
 

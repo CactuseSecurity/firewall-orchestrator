@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -60,14 +60,14 @@ namespace FWO.Report
             return managementReports;
         }
 
-        public async Task<List<ManagementReport>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, bool? ruleChangeRequired = null)
+        public async Task<List<ManagementReport>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, bool? ruleChangeRequired = null, bool IncludeObjectsInReportChanges = false)
         {
             var queryVariables = new
             {
                 start_time = startTime,
                 end_time = stopTime,
                 mgmIds = Query.RelevantManagementIds,
-                ruleChangesFound = ruleChangeRequired
+                ruleChangesFound = IncludeObjectsInReportChanges ? null : ruleChangeRequired
             };
             List<ManagementReport> managementReports = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsInTimeRange, queryVariables);
 
@@ -99,7 +99,7 @@ namespace FWO.Report
             {
                 foreach (DeviceSelect device in management.Devices)
                 {
-                    if (device.Selected && !await UsageDataAvailable(apiConnection, device.Id))
+                    if (device.Selected)
                     {
                         unsupportedList.Add(device.Name ?? "?");
                         device.Selected = false;
@@ -111,25 +111,6 @@ namespace FWO.Report
                 }
             }
             return (unsupportedList, reducedDeviceFilter);
-        }
-
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private static async Task<bool> UsageDataAvailable(ApiConnection apiConnection, int devId)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-        {
-            try
-            {
-                /* NOSONAR - temporarily disabled
-                // TODO: the following only deals with first rulebase of a gateway:
-                // return (await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId })
-                //     ) NOSONAR[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0; NOSONAR
-                */
-                return false;   // TODO : implement and remove pragma warning disable once done
-            }
-            catch (Exception)
-            {
-                return false;
-            }
         }
 
         public override bool NoRuleFound()
@@ -150,6 +131,25 @@ namespace FWO.Report
             }
 
             Log.TryWriteLog(LogType.Info, "Device Report", "No rules found in any device.", _debugConfig.ExtendedLogReportGeneration);
+
+            return true;
+        }
+
+        public override bool NoChangesFound()
+        {
+            Log.TryWriteLog(LogType.Info, "Management Report", "Checking if changes (rules or objects) were found in management report.", _debugConfig.ExtendedLogReportGeneration);
+
+            foreach (ManagementReport mgmt in ReportData.ManagementData)
+            {
+                Log.TryWriteLog(LogType.Info, "Management Report", $"Checking if changes (rules or objects) were found in management {mgmt.Id} ({mgmt.Name}).", _debugConfig.ExtendedLogReportGeneration);
+
+                if (mgmt.RuleChanges != null && mgmt.RuleChanges.Length > 0)
+                {
+                    return false;
+                }
+            }
+
+            Log.TryWriteLog(LogType.Info, "Management Report", "No changes (rules or objects) found in any Management.", _debugConfig.ExtendedLogReportGeneration);
 
             return true;
         }
@@ -282,7 +282,7 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, TimeFilter? timefilter = null)
         {
-            string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames()));
+            string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => ReportType.IsRulebaseReport() ? m.Name : m.NameAndDeviceNames()));
             return GenerateHtmlFrameBase(title, filter, date, htmlReport, deviceFilter, Query.SelectedOwner?.Name, timefilter);
         }
     }

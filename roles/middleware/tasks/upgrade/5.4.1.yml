@@ -21,3 +21,5 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
+    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"

@@ -44,12 +44,6 @@ class FwConfigImportObject:
         self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_state.state.import_id)
         self.uid2id_mapper = service_provider.get_uid2id_mapper(self.import_state.state.import_id)
 
-        # Create maps.
-        self.network_object_type_map = self.get_network_obj_type_map()
-        self.service_object_type_map = self.get_service_obj_type_map()
-        self.user_object_type_map = self.get_user_obj_type_map()
-        self.protocol_map = self.get_protocol_map()
-
     def update_object_diffs(
         self,
         prev_config: FwConfigNormalized,
@@ -226,58 +220,6 @@ class FwConfigImportObject:
             len(change_logger.changed_service_id_map.items())
         )
 
-    def get_network_obj_type_map(self) -> dict[str, int]:
-        query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
-        try:
-            result = self.import_state.api_call.call(query=query, query_variables={})
-        except Exception as e:
-            FWOLogger.error(f"Error while getting stm_obj_typ: str{e}")
-            return {}
-
-        nwobj_type_map: dict[str, Any] = {}
-        for nw_type in result["data"]["stm_obj_typ"]:
-            nwobj_type_map.update({nw_type["obj_typ_name"]: nw_type["obj_typ_id"]})
-        return nwobj_type_map
-
-    def get_service_obj_type_map(self) -> dict[str, int]:
-        query = "query getServiceObjTypeMap { stm_svc_typ { svc_typ_name svc_typ_id } }"
-        try:
-            result = self.import_state.api_call.call(query=query, query_variables={})
-        except Exception as e:
-            FWOLogger.error(f"Error while getting stm_svc_typ: {e!s}")
-            return {}
-
-        svc_type_map: dict[str, Any] = {}
-        for svc_type in result["data"]["stm_svc_typ"]:
-            svc_type_map.update({svc_type["svc_typ_name"]: svc_type["svc_typ_id"]})
-        return svc_type_map
-
-    def get_user_obj_type_map(self) -> dict[str, int]:
-        query = "query getUserObjTypeMap { stm_usr_typ { usr_typ_name usr_typ_id } }"
-        try:
-            result = self.import_state.api_call.call(query=query, query_variables={})
-        except Exception as e:
-            FWOLogger.error(f"Error while getting stm_usr_typ: {e!s}")
-            return {}
-
-        user_type_map: dict[str, Any] = {}
-        for usr_type in result["data"]["stm_usr_typ"]:
-            user_type_map.update({usr_type["usr_typ_name"]: usr_type["usr_typ_id"]})
-        return user_type_map
-
-    def get_protocol_map(self) -> dict[str, int]:
-        query = "query getIpProtocols { stm_ip_proto { ip_proto_id ip_proto_name } }"
-        try:
-            result = self.import_state.api_call.call(query=query, query_variables={})
-        except Exception as e:
-            FWOLogger.error(f"Error while getting stm_ip_proto: {e!s}")
-            return {}
-
-        protocol_map: dict[str, Any] = {}
-        for proto in result["data"]["stm_ip_proto"]:
-            protocol_map.update({proto["ip_proto_name"].lower(): proto["ip_proto_id"]})
-        return protocol_map
-
     def update_objects_via_api(
         self,
         single_manager: FwConfigManager,
@@ -289,7 +231,34 @@ class FwConfigImportObject:
         removed_svc_object_uids: list[str],
         removed_user_uids: list[str],
         removed_zone_names: list[str],
-    ):
+    ) -> tuple[
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+    ]:
+        """
+        Update objects via FWO API.
+
+        Args:
+            single_manager (FwConfigManager): The manager for which the objects are being updated.
+            new_nw_object_uids (list[str]): List of UIDs for new network objects to be added.
+            new_svc_obj_uids (list[str]): List of UIDs for new service objects to be added.
+            new_user_uids (list[str]): List of UIDs for new users to be added.
+            new_zone_names (list[str]): List of names for new zones to be added.
+            removed_nw_object_uids (list[str]): List of UIDs for network objects to be removed.
+            removed_svc_object_uids (list[str]): List of UIDs for service objects to be removed.
+            removed_user_uids (list[str]): List of UIDs for users to be removed.
+            removed_zone_names (list[str]): List of names for zones to be removed.
+
+        Returns:
+            tuple: A tuple containing lists of dictionaries for new and removed objects' IDs.
+
+        """
         # here we also mark old objects removed before adding the new versions
         new_nwobj_ids = []
         new_nwsvc_ids = []
@@ -379,7 +348,9 @@ class FwConfigImportObject:
                 color_id=self.import_state.state.lookup_color_id(
                     self.normalized_config.network_objects[nwobj_uid].obj_color
                 ),
-                typ_id=self.lookup_obj_type(self.normalized_config.network_objects[nwobj_uid].obj_typ),
+                typ_id=self.import_state.state.lookup_network_obj_type_id(
+                    self.normalized_config.network_objects[nwobj_uid].obj_typ
+                ),
             )
             new_nwobj_dict = new_nwobj.to_dict()
             new_nwobjs.append(new_nwobj_dict)
@@ -394,7 +365,9 @@ class FwConfigImportObject:
                 mgm_id=mgm_id,
                 import_id=self.import_state.state.import_id,
                 color_id=self.import_state.state.lookup_color_id(self.normalized_config.service_objects[uid].svc_color),
-                typ_id=self.lookup_svc_type(self.normalized_config.service_objects[uid].svc_typ),
+                typ_id=self.import_state.state.lookup_service_obj_type_id(
+                    self.normalized_config.service_objects[uid].svc_typ
+                ),
             ).to_dict()
             for uid in new_svcobj_uids
         ]
@@ -408,7 +381,9 @@ class FwConfigImportObject:
                 "mgm_id": mgm_id,
                 "user_create": self.import_state.state.import_id,
                 "user_last_seen": self.import_state.state.import_id,
-                "usr_typ_id": self.lookup_user_type(self.normalized_config.users[uid]["user_typ"]),
+                "usr_typ_id": self.import_state.state.lookup_user_obj_type_id(
+                    self.normalized_config.users[uid]["user_typ"]
+                ),
                 "user_name": self.normalized_config.users[uid]["user_name"],
             }
             for uid in new_user_uids
@@ -428,16 +403,14 @@ class FwConfigImportObject:
             for uid in new_zone_names
         ]
 
-    def get_config_objects(self, typ: Type, prev_config: FwConfigNormalized):
+    def get_config_objects(self, typ: Type, prev_config: FwConfigNormalized) -> tuple[dict[str, Any], dict[str, Any]]:
         if self.normalized_config is None:
             raise FwoImporterError("no normalized config available in FwConfigImportObject.get_config_objects")
         if typ == Type.NETWORK_OBJECT:
             return prev_config.network_objects, self.normalized_config.network_objects
         if typ == Type.SERVICE_OBJECT:
             return prev_config.service_objects, self.normalized_config.service_objects
-        if typ == Type.USER:
-            return prev_config.users, self.normalized_config.users
-        return None
+        return prev_config.users, self.normalized_config.users
 
     def get_id(self, typ: Type, uid: str, before_update: bool = False) -> int | None:
         if typ == Type.NETWORK_OBJECT:
@@ -458,9 +431,7 @@ class FwConfigImportObject:
             return obj.obj_typ == "group"
         if typ == Type.SERVICE_OBJECT:
             return obj.svc_typ == "group"
-        if typ == Type.USER:
-            return obj.get("user_typ", None) == "group"
-        return None
+        return obj.get("user_typ", None) == "group"
 
     def get_refs(self, typ: Type, obj: Any) -> str | None:
         if typ == Type.NETWORK_OBJECT:
@@ -638,6 +609,7 @@ class FwConfigImportObject:
             if group_id is None:
                 FWOLogger.error(f"failed to add group memberships: no id found for group uid '{uid}'")
                 continue
+
             self.collect_group_members(
                 group_id,
                 current_config_objects,
@@ -751,30 +723,6 @@ class FwConfigImportObject:
         except Exception:
             FWOLogger.exception(f"failed to write new objects: {traceback.format_exc()!s}")
             raise
-
-    def lookup_obj_type(self, obj_type_str: str) -> int:
-        # TODO: might check for miss here as this is a mandatory field!
-        return self.network_object_type_map.get(obj_type_str, -1)
-
-    def lookup_svc_type(self, svc_type_str: str) -> int:
-        # TODO: might check for miss here as this is a mandatory field!
-        return self.service_object_type_map.get(svc_type_str, -1)
-
-    def lookup_user_type(self, user_type_str: str) -> int:
-        return self.user_object_type_map.get(user_type_str, -1)
-
-    def lookup_obj_id_to_uid_and_policy_name(self, obj_id: int) -> str:
-        return str(obj_id)  # mock
-        # CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.local_rulebase_name) AS VARCHAR) AS unique_name,
-        # return self.NetworkObjectIdMap.get(objId, None)  # noqa: ERA001
-
-    def lookup_svc_id_to_uid_and_policy_name(self, svc_id: int):
-        return str(svc_id)  # mock
-
-    def lookup_proto_name_to_id(self, proto_str: str | int) -> int | None:
-        if isinstance(proto_str, int):
-            return proto_str  # already an int, do nothing
-        return self.protocol_map.get(proto_str.lower(), None)
 
     def prepare_changelog_objects(
         self,

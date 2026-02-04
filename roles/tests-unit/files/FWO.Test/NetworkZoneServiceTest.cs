@@ -351,7 +351,7 @@ namespace FWO.Test
             AssertThatGeneric.PropertyIsTrue(secondSentQuery.Item2, "isAutoCalculatedInternetZone");
             AssertThatGeneric.PropertyIsEqual(secondSentQuery.Item2, "networkZoneId", 4);
         }
-        
+
         private static object? GetFromGeneric(object o, string name) => o.GetType().GetProperty(name)?.GetValue(o);
 
     }

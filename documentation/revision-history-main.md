@@ -572,3 +572,15 @@ hotfix release
 ## 8.9.4 - 09.12.2025 MAIN
 - bugfix release: common service connection not editable
 - new custom scripts for iiq and cmdb import
+
+
+## 8.9.5 - 10.12.2025 MAIN
+- bugfix release: modelling - change planning showed duplicate NA elements for rule delete requests
+
+## 8.9.6 - 05.01.2026 MAIN
+- new parameters for notifications
+
+# 9.0 - 27.01.2026 MAIN
+A complete 80K lines rework of FWO, including
+- database changes to deduplicate rules (rule to gateway mapping now 1:n by introducing rulebase and rulebase_link tables)
+- migrating import module from mixed python/pgsql to pure python

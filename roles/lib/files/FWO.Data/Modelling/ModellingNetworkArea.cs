@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Basics;
 
@@ -11,11 +11,11 @@ namespace FWO.Data.Modelling
 
         public int MemberCount = 0;
 
-        public ModellingNetworkArea(){}
+        public ModellingNetworkArea() { }
 
         public ModellingNetworkArea(ModellingNwGroup nwgroup) : base(nwgroup)
-        {}
-        
+        { }
+
         public override NetworkObject ToNetworkObjectGroup(bool IdAsName = false, bool ListMembers = true)
         {
             Group<NetworkObject>[] objectGroups = NetworkDataWrapper.ResolveIpDataAsNetworkObjectGroup(IpData ?? []);
@@ -24,7 +24,7 @@ namespace FWO.Data.Modelling
                 Id = Id,
                 Number = Number,
                 Name = IdAsName ? IdString : Name + " (" + IdString + ")" ?? IdString ?? "",
-                Type = new NetworkObjectType(){ Name = ObjectType.Group },
+                Type = new NetworkObjectType() { Name = ObjectType.Group },
                 ObjectGroups = objectGroups,
                 MemberNames = ListMembers ? string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name)) : "..."
             };
@@ -32,11 +32,11 @@ namespace FWO.Data.Modelling
 
         public int CompareTo(ModellingNetworkArea secondArea)
         {
-            if(MemberCount == 0 && secondArea.MemberCount > 0)
+            if (MemberCount == 0 && secondArea.MemberCount > 0)
             {
                 return 1;
             }
-            if(MemberCount > 0 && secondArea.MemberCount == 0)
+            if (MemberCount > 0 && secondArea.MemberCount == 0)
             {
                 return -1;
             }
@@ -46,7 +46,7 @@ namespace FWO.Data.Modelling
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            foreach(var ip in IpData)
+            foreach (var ip in IpData)
             {
                 shortened |= ip.Content.Sanitize();
             }
@@ -78,7 +78,7 @@ namespace FWO.Data.Modelling
         [JsonProperty("ip"), JsonPropertyName("ip")]
         public string? Ip { get; set; }
 
-       [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
+        [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
         public string? IpEnd { get; set; }
 
         public static NetworkObject ToNetworkObject(NetworkSubnet subnet)
@@ -114,8 +114,8 @@ namespace FWO.Data.Modelling
 
         public static Group<NetworkObject>[] ResolveIpDataAsNetworkObjectGroup(List<NetworkDataWrapper> wrappedList)
         {
-            return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkObject> 
-                {Id = wrapper.Content.Id, Object = NetworkSubnet.ToNetworkObject(wrapper.Content)});
+            return Array.ConvertAll(wrappedList.ToArray(), wrapper => new Group<NetworkObject>
+            { Id = wrapper.Content.Id, Object = NetworkSubnet.ToNetworkObject(wrapper.Content) });
         }
     }
 }

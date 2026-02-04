@@ -20,7 +20,8 @@
     {config_key: {_eq: "emailSenderAddress"}},
     {config_key: {_eq: "emailPassword"}},
     {config_key: {_eq: "maxImportDuration"}},
-    {config_key: {_eq: "maxImportInterval"}}
+    {config_key: {_eq: "maxImportInterval"}},
+    {config_key: {_eq: "modUnansweredReqEmailBody"}}
   ]}){
     config_key
     config_value

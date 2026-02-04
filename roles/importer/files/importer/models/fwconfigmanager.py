@@ -11,8 +11,8 @@ class FwConfigManager(BaseModel):
     manager_uid: str = Field(description="Unique identifier string of the management")
     manager_name: str = Field(description="Name of the management")
     is_super_manager: bool = Field(description="Indicates if the management is a super manager", default=False)
-    domain_uid: str = Field(description="Domain UID")
-    domain_name: str = Field(description="Domain name")
+    domain_uid: str | None = Field(default=None, description="Domain UID")
+    domain_name: str | None = Field(default=None, description="Domain name")
     sub_manager_ids: list[int] = Field(default=[], description="List of sub-manager IDs")
     configs: list[FwConfigNormalized] = Field(description="List of normalized firewall configurations")
 

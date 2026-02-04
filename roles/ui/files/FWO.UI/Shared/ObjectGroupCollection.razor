@@ -9,7 +9,7 @@
     {
         <ObjectGroup PageSize="PageSize" FetchObjects="FetchObjects" Recert="Recert" Tab="Tab" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed"
             InputDataType="InputDataType" Content="content" NameExtractor="NameExtractor" NetworkObjectExtractor="NetworkObjectExtractor"
-            NetworkServiceExtractor="NetworkServiceExtractor" NetworkUserExtractor="NetworkUserExtractor" />
+            NetworkServiceExtractor="NetworkServiceExtractor" NetworkUserExtractor="NetworkUserExtractor" @key="GetContentKey(content)" />
         <div class="mb-1"></div>
     }
 }
@@ -50,4 +50,21 @@
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>>? NetworkUserExtractor { get; set; }
 
+    private object GetContentKey(InputDataType? content)
+    {
+        if (content == null)
+        {
+            return string.Empty;
+        }
+
+        return content switch
+        {
+            ManagementReport managementReport => $"m-{managementReport.Id}",
+            Rule rule => $"r-{rule.Id}",
+            OwnerConnectionReport ownerReport => $"owner-{ownerReport.Owner.Id}",
+            GlobalCommonSvcReport globalReport => $"global-{globalReport.Name}",
+            ConnectionReport connectionReport => $"conn-{connectionReport.Name}",
+            _ => content
+        };
+    }
 }

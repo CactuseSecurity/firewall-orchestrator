@@ -1,6 +1,7 @@
 mutation addNotification(
   $client: String!
   $channel: String!
+  $name: String
   $recipientTo: String
   $emailAddressTo: String
   $recipientCc: String
@@ -11,24 +12,27 @@ mutation addNotification(
   $intervalBeforeDeadline: Int
   $offsetBeforeDeadline: Int
   $intervalAfterDeadline: Int
+  $initialOffsetAfterDeadline: Int
   $offsetAfterDeadline: Int
   $repetitionsAfterDeadline: Int
   ) {
   insert_notification(objects: {
     notification_client: $client
     channel: $channel
-	recipient_to: $recipientTo
-	email_address_to: $emailAddressTo
-	recipient_cc: $recipientCc
-	email_address_cc: $emailAddressCc
-	email_subject: $subject
-	layout: $layout
-	deadline: $deadline
-	interval_before_deadline: $intervalBeforeDeadline
-	offset_before_deadline: $offsetBeforeDeadline
-	repeat_interval_after_deadline: $intervalAfterDeadline
-	repeat_offset_after_deadline: $offsetAfterDeadline
-	repetitions_after_deadline: $repetitionsAfterDeadline
+    name: $name
+    recipient_to: $recipientTo
+    email_address_to: $emailAddressTo
+    recipient_cc: $recipientCc
+    email_address_cc: $emailAddressCc
+    email_subject: $subject
+    layout: $layout
+    deadline: $deadline
+    interval_before_deadline: $intervalBeforeDeadline
+    offset_before_deadline: $offsetBeforeDeadline
+    repeat_interval_after_deadline: $intervalAfterDeadline
+    initial_offset_after_deadline: $initialOffsetAfterDeadline
+    repeat_offset_after_deadline: $offsetAfterDeadline
+    repetitions_after_deadline: $repetitionsAfterDeadline
   }) {
     returning {
       newId: id

@@ -112,6 +112,12 @@ namespace FWO.Basics
         {
             return reportType == ReportType.ComplianceReport || reportType == ReportType.ComplianceDiffReport;
         }
+
+        public static bool IsRulebaseReport(this ReportType reportType)
+        {
+            return reportType == ReportType.Recertification || reportType == ReportType.AppRules;
+        }
+
         public static bool HasTimeFilter(this ReportType reportType)
         {
             return reportType switch

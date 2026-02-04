@@ -176,7 +176,7 @@
 
     private string ConstructBody(FwoOwner app)
     {
-        string interfaceUrl = $"{userConfig.UiHostName}/networkmodelling/{ProposedInterface?.App.ExtAppId}/{ProposedInterface?.Id}";
+        string interfaceUrl = $"{userConfig.UiHostName}/{PageName.Modelling}/{ProposedInterface?.App.ExtAppId}/{ProposedInterface?.Id}";
         string interfacelink = $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {ProposedInterface?.Name}</a><br>";
         string body = userConfig.ModDecommEmailBody
             .Replace(Placeholder.INTERFACE_NAME, $"<b>{ConnHandler?.ActConn.Name}</b>")

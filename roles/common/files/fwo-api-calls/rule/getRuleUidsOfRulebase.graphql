@@ -1,0 +1,25 @@
+query getRuleUidsOfRulebase (
+  $rulebaseId: Int!
+  $import_id_start: bigint
+  $import_id_end: bigint
+) {
+  rule (
+  where: {
+    rulebase_id: { _eq: $rulebaseId }
+    active: { _eq: true }
+    access_rule: { _eq: true }
+    rule_head_text: { _is_null: true }
+    rule_disabled: { _eq: false }
+    action_id: { _nin: [2,3,7] }
+    import_control: { control_id: {_lte: $import_id_end } }, importControlByRuleLastSeen: { control_id: {_gte: $import_id_start } }
+  }
+  order_by: { rule_num_numeric: asc }){
+    rule_uid
+    rule_name
+    mgm_id
+    rulebase_id
+    rule_metadatum{
+      rule_metadata_id
+    }
+  }
+}

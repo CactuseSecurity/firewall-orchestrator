@@ -74,18 +74,6 @@ namespace FWO.Data
             return Id.GetHashCode();
         }
 
-        public string MemberNamesAsHtml()
-        {
-            if (MemberNames != null && MemberNames.Contains('|'))
-            {
-                return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
-            }
-            else
-            {
-                return $"<td>{MemberNames}</td>";
-            }
-        }
-
         public bool IsAnyObject()
         {
             return IP == "0.0.0.0/32" && IpEnd == "255.255.255.255/32" ||

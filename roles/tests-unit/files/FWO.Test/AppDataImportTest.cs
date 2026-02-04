@@ -1,0 +1,86 @@
+using System;
+using System.Reflection;
+using FWO.Middleware.Server;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
+
+
+namespace FWO.Test
+{
+    [TestFixture]
+    internal class AppDataImportTest
+    {
+
+        [SetUp]
+        public void Initialize()
+        {
+            // No setup required for these tests
+        }
+
+        [Test]
+        public void ResolveOwnerGroupPathPrefersWritePath()
+        {
+            Ldap ldap = new()
+            {
+                GroupWritePath = "ou=groups,dc=example,dc=com",
+                GroupSearchPath = "ou=search,dc=example,dc=com"
+            };
+
+            string resolved = InvokeResolveOwnerGroupPath(ldap);
+
+            Assert.That(resolved, Is.EqualTo("ou=groups,dc=example,dc=com"));
+        }
+
+        [Test]
+        public void ResolveOwnerGroupPathFallsBackToSearchPath()
+        {
+            Ldap ldap = new()
+            {
+                GroupWritePath = "",
+                GroupSearchPath = "ou=search,dc=example,dc=com"
+            };
+
+            string resolved = InvokeResolveOwnerGroupPath(ldap);
+
+            ClassicAssert.That(resolved, Is.EqualTo("ou=search,dc=example,dc=com"));
+        }
+
+        [Test]
+        public void ResolveOwnerGroupPathSkipsWhitespaceWritePath()
+        {
+            Ldap ldap = new()
+            {
+                GroupWritePath = "   ",
+                GroupSearchPath = "ou=search,dc=example,dc=com"
+            };
+
+            string resolved = InvokeResolveOwnerGroupPath(ldap);
+
+            Assert.That(resolved, Is.EqualTo("ou=search,dc=example,dc=com"));
+        }
+
+        [Test]
+        public void ResolveOwnerGroupPathThrowsWhenMissing()
+        {
+            Ldap ldap = new()
+            {
+                GroupWritePath = "",
+                GroupSearchPath = ""
+            };
+
+            Assert.That(
+                () => InvokeResolveOwnerGroupPath(ldap),
+                Throws.TypeOf<TargetInvocationException>()
+                    .With.InnerException.TypeOf<InvalidOperationException>());
+        }
+
+        private static string InvokeResolveOwnerGroupPath(Ldap ldap)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "ResolveOwnerGroupPath",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("ResolveOwnerGroupPath helper not found.");
+            return (string)method.Invoke(null, [ldap])!;
+        }
+    }
+}

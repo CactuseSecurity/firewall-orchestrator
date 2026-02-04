@@ -6,6 +6,7 @@
 @layout MainLayout
 
 @inject UserConfig userConfig
+@implements IDisposable
 
 
 <div class="w-100">
@@ -50,5 +51,9 @@
     private void OnChange(Config _, ConfigItem[] __)
     {
         Task.Run(async () => await InvokeAsync(StateHasChanged));
+    }
+    public void Dispose()
+    {
+        userConfig.OnChange -= OnChange;
     }
 }

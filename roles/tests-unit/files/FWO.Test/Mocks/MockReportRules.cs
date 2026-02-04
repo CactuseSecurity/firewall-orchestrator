@@ -5,6 +5,8 @@ using FWO.Data.Report;
 using FWO.Report;
 using FWO.Report.Filter;
 using FWO.Services.RuleTreeBuilder;
+using Microsoft.Extensions.DependencyInjection;
+using ServiceProvider = FWO.Services.ServiceProvider;
 
 namespace FWO.Test.Mocks
 {
@@ -15,6 +17,14 @@ namespace FWO.Test.Mocks
 
         public MockReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, Func<List<ManagementReport>>? setupFunc = null) : base(query, userConfig, reportType)
         {
+
+            if (ServiceProvider.Services == null || ServiceProvider.Services.GetService<IRuleTreeBuilder>() == null)
+            {
+                var services = new ServiceCollection();
+                services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
+                ServiceProvider.Services = services.BuildServiceProvider();
+            }
+
             if (setupFunc == null)
             {
                 setupFunc = SetupSingleManagementReportEmpty;
@@ -122,6 +132,6 @@ namespace FWO.Test.Mocks
         {
             base.TryBuildRuleTree();
         }
-        
+
     }
 }

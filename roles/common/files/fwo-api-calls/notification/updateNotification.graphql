@@ -1,6 +1,7 @@
 mutation updateNotification(
   $id: Int!
   $channel: String!
+  $name: String
   $recipientTo: String
   $emailAddressTo: String
   $recipientCc: String
@@ -11,6 +12,7 @@ mutation updateNotification(
   $intervalBeforeDeadline: Int
   $offsetBeforeDeadline: Int
   $intervalAfterDeadline: Int
+  $initialOffsetAfterDeadline: Int
   $offsetAfterDeadline: Int
   $repetitionsAfterDeadline: Int
   ) {
@@ -18,6 +20,7 @@ mutation updateNotification(
     pk_columns: { id: $id }
     _set: {
     channel: $channel
+    name: $name
     recipient_to: $recipientTo
     email_address_to: $emailAddressTo
     recipient_cc: $recipientCc
@@ -28,6 +31,7 @@ mutation updateNotification(
     interval_before_deadline: $intervalBeforeDeadline
     offset_before_deadline: $offsetBeforeDeadline
     repeat_interval_after_deadline: $intervalAfterDeadline
+    initial_offset_after_deadline: $initialOffsetAfterDeadline
     repeat_offset_after_deadline: $offsetAfterDeadline
     repetitions_after_deadline: $repetitionsAfterDeadline
   }) {

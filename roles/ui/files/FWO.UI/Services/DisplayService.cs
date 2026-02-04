@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using Microsoft.AspNetCore.Components;
 
 

@@ -277,9 +277,27 @@
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>>? NetworkUserExtractor { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        if (StartContentDetailed)
+        if (!StartContentDetailed || Content == null)
+        {
+            return;
+        }
+
+        bool contentChanged = !ReferenceEquals(lastContentRef, Content);
+        if (!contentChanged)
+        {
+            return;
+        }
+
+        lastContentRef = Content;
+        lastContentType = Content.GetType();
+        if (TryGetContentId(Content, out long contentId))
+        {
+            lastContentId = contentId;
+        }
+
+        if (!IsDetailed(ObjCategory.all))
         {
             await FetchContent(ObjCategory.all);
         }
@@ -376,6 +394,22 @@
         return false;
     }
 
+    private static bool TryGetContentId(object content, out long id)
+    {
+        switch (content)
+        {
+            case ManagementReport managementReport:
+                id = managementReport.Id;
+                return true;
+            case Rule rule:
+                id = rule.Id;
+                return true;
+            default:
+                id = 0;
+                return false;
+        }
+    }
+
     private async Task FetchContent(ObjCategory objCategory)
     {
         if (FetchObjects != null && !IsDetailed(objCategory))
@@ -405,4 +439,8 @@
         await InvokeAsync(StateHasChanged);
         return;
     }
+
+    private object? lastContentRef;
+    private long? lastContentId;
+    private Type? lastContentType;
 }

@@ -24,7 +24,7 @@ class ImportState:
     last_full_import_id: int
     last_full_import_date: str | None = None
     last_successful_import: str | None = None
-    is_full_import: bool
+    is_full_import: bool = False
     is_initial_import: bool = False
     responsible_for_importing: bool = True
     is_clearing_import: bool = False
@@ -37,15 +37,14 @@ class ImportState:
         self.link_types: dict[str, int] = {}
         self.gateway_map: dict[int, dict[str, int]] = {}
         self.rulebase_map: dict[str, int] = {}
-        self.rule_map: dict[str, int] = {}
         self.management_map: dict[str, int] = {}
         self.color_map: dict[str, int] = {}
+        self.network_obj_type_map: dict[str, int] = {}
+        self.service_obj_type_map: dict[str, int] = {}
+        self.user_obj_type_map: dict[str, int] = {}
+        self.protocol_map: dict[str, int] = {}
         self.rulebase_to_gateway_map: dict[int, list[int]] = {}
-        self.removed_rules_map: dict[str, int] = {}
         self.data_retention_days: int = 30
-
-    def lookup_rule(self, rule_uid: str) -> int | None:
-        return self.rule_map.get(rule_uid, None)
 
     def lookup_action(self, action_str: str) -> int:
         action_id = self.actions.get(action_str.lower(), None)
@@ -61,13 +60,6 @@ class ImportState:
             raise FwoImporterError(f"Track {track_str} not found")
         return track_id
 
-    def lookup_rulebase_id(self, rulebase_uid: str) -> int:
-        rulebase_id = self.rulebase_map.get(rulebase_uid, None)
-        if rulebase_id is None:
-            FWOLogger.error(f"Rulebase {rulebase_uid} not found in {len(self.rulebase_map)} known rulebases")
-            raise FwoImporterError(f"Rulebase {rulebase_uid} not found in {len(self.rulebase_map)} known rulebases")
-        return rulebase_id
-
     def lookup_link_type(self, link_uid: str) -> int:
         link_type_id = self.link_types.get(link_uid, None)
         if not link_type_id:
@@ -75,7 +67,35 @@ class ImportState:
             raise FwoImporterError(f"Link type {link_uid} not found")
         return link_type_id
 
-    def lookup_gateway_id(self, gw_uid: str) -> int | None:
+    def lookup_network_obj_type_id(self, obj_type_str: str) -> int:
+        obj_type_id = self.network_obj_type_map.get(obj_type_str, None)
+        if obj_type_id is None:
+            FWOLogger.error(f"Network object type {obj_type_str} not found")
+            raise FwoImporterError(f"Network object type {obj_type_str} not found")
+        return obj_type_id
+
+    def lookup_service_obj_type_id(self, svc_type_str: str) -> int:
+        obj_type_id = self.service_obj_type_map.get(svc_type_str, None)
+        if obj_type_id is None:
+            FWOLogger.error(f"Service object type {svc_type_str} not found")
+            raise FwoImporterError(f"Service object type {svc_type_str} not found")
+        return obj_type_id
+
+    def lookup_user_obj_type_id(self, usr_type_str: str) -> int:
+        obj_type_id = self.user_obj_type_map.get(usr_type_str, None)
+        if obj_type_id is None:
+            FWOLogger.error(f"User object type {usr_type_str} not found")
+            raise FwoImporterError(f"User object type {usr_type_str} not found")
+        return obj_type_id
+
+    def lookup_protocol_id(self, proto_str: str) -> int:
+        proto_id = self.protocol_map.get(proto_str.lower(), None)
+        if proto_id is None:
+            FWOLogger.error(f"Protocol {proto_str} not found")
+            raise FwoImporterError(f"Protocol {proto_str} not found")
+        return proto_id
+
+    def lookup_gateway_id(self, gw_uid: str) -> int:
         mgm_id = self.mgm_details.current_mgm_id
         gws_for_mgm = self.gateway_map.get(mgm_id, {})
         gw_id = gws_for_mgm.get(gw_uid, None)
@@ -97,6 +117,9 @@ class ImportState:
         if not self.management_map.get(mgm_uid, None):
             FWOLogger.error(f"fwo_api:import_latest_config - no mgm id found for current manager uid '{mgm_uid}'")
         return self.management_map.get(mgm_uid, None)
+
+    def lookup_color_id_unresolved(self, color_str: str) -> int | None:
+        return self.color_map.get(color_str, None)
 
     def lookup_color_id(self, color_str: str) -> int:
         return self.color_map.get(color_str, 1)  # 1 = forground color black

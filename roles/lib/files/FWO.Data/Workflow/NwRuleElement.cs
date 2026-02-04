@@ -1,4 +1,4 @@
-﻿namespace FWO.Data.Workflow
+namespace FWO.Data.Workflow
 {
     public class NwRuleElement
     {

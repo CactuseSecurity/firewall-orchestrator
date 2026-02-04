@@ -41,7 +41,7 @@ namespace FWO.Test.Fixtures
             SimulatedUserConfig.DummyTranslate["H5839"] = "Matrix violation";
             SimulatedUserConfig.DummyTranslate["H5840"] = "Restricted Service";
             SimulatedUserConfig.DummyTranslate["H5841"] = "Assessability issue";
-            
+
             ComplianceCheck = new ComplianceCheck(UserConfig, ApiConnection, Logger.AsSub());
             ComplianceCheck.NetworkZones = CreateNetworkZones(true, true);
         }
@@ -87,7 +87,7 @@ namespace FWO.Test.Fixtures
                     ComplianceCriterion? matrix = ComplianceCheck.Policy!.Criteria
                         .FirstOrDefault(c => c.Content.CriterionType == nameof(CriterionType.Matrix))?.Content;
 
-                    ComplianceCheck.NetworkZones = CreateNetworkZones(true, true);                
+                    ComplianceCheck.NetworkZones = CreateNetworkZones(true, true);
                 }
 
                 ComplianceCheck.RulesInCheck = CreateRulesForComplianceCheckTest(setupNoViolations, ForbiddenServiceUid);
@@ -96,6 +96,8 @@ namespace FWO.Test.Fixtures
                     .SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, Arg.Any<object?>())
                     .Returns(ComplianceCheck.RulesInCheck);
             }
+
+            SetUpViolationCount(1);
 
             return Task.CompletedTask;
         }
@@ -299,7 +301,7 @@ namespace FWO.Test.Fixtures
                             )
                         ]
                     }
-                ); 
+                );
             }
 
             if (createUndefinedInternalZone)
@@ -320,7 +322,7 @@ namespace FWO.Test.Fixtures
                             )
                         ]
                     }
-                ); 
+                );
             }
 
             foreach (ComplianceNetworkZone zone in networkZones.Where(zone => !zone.IsAutoCalculatedUndefinedInternalZone).ToList())
@@ -329,6 +331,12 @@ namespace FWO.Test.Fixtures
             }
 
             return networkZones;
+        }
+
+        protected virtual void SetUpViolationCount(int count)
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<AggregateCount>(ComplianceQueries.getViolationCount).Returns(new AggregateCount { Aggregate = new Aggregate { Count = count } });
         }
     }
 }

@@ -226,20 +226,31 @@ namespace FWO.Middleware.Server
         {
             foreach (FwoOwner app in apps)
             {
-                string[] groupDnParts = app.GroupDn.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                if (groupDnParts.Length == 0)
+                foreach (string dn in app.GetAllOwnerResponsibles())
                 {
-                    continue;
-                }
-                string groupCnPart = groupDnParts[0];
-                string[] cnParts = groupCnPart.Split('=', StringSplitOptions.RemoveEmptyEntries);
-                // note: this only works for flat groups! TODO: make this unversal by checking group membership 
-                if (cnParts.Length == 2 && cnParts[1] == groupName)
-                {
-                    return app;
+                    if (MatchesGroupName(dn, groupName))
+                    {
+                        return app;
+                    }
                 }
             }
             return null;
+        }
+
+        private static bool MatchesGroupName(string dn, string groupName)
+        {
+            if (string.IsNullOrWhiteSpace(dn))
+            {
+                return false;
+            }
+            string[] groupDnParts = dn.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (groupDnParts.Length == 0)
+            {
+                return false;
+            }
+            string[] cnParts = groupDnParts[0].Split('=', StringSplitOptions.RemoveEmptyEntries);
+            // note: this only works for flat groups! TODO: make this universal by checking group membership
+            return cnParts.Length == 2 && cnParts[1].Equals(groupName, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

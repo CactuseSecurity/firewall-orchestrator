@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Report
@@ -41,12 +41,6 @@ namespace FWO.Data.Report
             return activeRulebaseLinks.Any(link => link.NextRulebaseId == rule.RulebaseId);
         }
 
-        public List<Rule> GetRuleListForDevice()
-        {
-            List<RulebaseLink> activeRulebaseLinks = [.. RulebaseLinks.Where(link => link.GatewayId == Id && link.Removed == null)];
-            return [.. Rules.Where(rule => activeRulebaseLinks.Any(link => link.NextRulebaseId == rule.RulebaseId))];
-        }
-
         public List<Rule> GetRuleList()
         {
             return Rules;
@@ -55,6 +49,14 @@ namespace FWO.Data.Report
         public DeviceReport()
         {
             RulebaseLinks = [];
+        }
+
+        public DeviceReport(DeviceReport deviceReport)
+        {
+            Uid = deviceReport.Uid;
+            Id = deviceReport.Id;
+            Name = deviceReport.Name;
+            RulebaseLinks = deviceReport.RulebaseLinks;
         }
 
         public int? GetInitialRulebaseId(ManagementReport managementReport)
@@ -71,7 +73,7 @@ namespace FWO.Data.Report
         {
             return Rules.Count;
         }
-        
+
         /// <summary>
         /// Conforms <see cref="DeviceReport"/> internal data to be valid for further usage.
         /// </summary>

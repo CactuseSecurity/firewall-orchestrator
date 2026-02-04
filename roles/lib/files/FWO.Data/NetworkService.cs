@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -83,10 +83,10 @@ namespace FWO.Data
         public long Number;
         public bool IsSurplus = false;
 
-        public NetworkService ()
-        {}
+        public NetworkService()
+        { }
 
-        public NetworkService (NetworkService networkService)
+        public NetworkService(NetworkService networkService)
         {
             Id = networkService.Id;
             Name = networkService.Name;
@@ -127,18 +127,6 @@ namespace FWO.Data
         public override int GetHashCode()
         {
             return Id.GetHashCode();
-        }
-
-        public string MemberNamesAsHtml()
-        {
-            if (MemberNames != null && MemberNames.Contains("|"))
-            {
-                return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
-            }
-            else
-            {
-                return $"<td>{MemberNames}</td>";
-            }
         }
     }
 }

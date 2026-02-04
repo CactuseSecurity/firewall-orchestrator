@@ -1,9 +1,10 @@
-﻿using FWO.Report.Filter;
+using FWO.Report.Filter;
 using FWO.Report.Filter.Exceptions;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
 using FWO.Data.Report;
+using System.Text.Json;
 namespace FWO.Test
 {
     [TestFixture]
@@ -208,6 +209,35 @@ namespace FWO.Test
             ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("ownerWhere"));
             ClassicAssert.AreEqual("1000", query.QueryVariables["dport0"]);
             ClassicAssert.AreEqual("_and: [{rule_head_text: {_is_null: true}}, { rule_metadatum: { recertifications: { next_recert_date: { _lte: $refdate1 } } } }, {_not: {rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte: $dport0}, svc_port_end: {_gte: $dport0 } } } } }}}] ", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RecertOwnerFilterEmpty()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.Recertification;
+            t.ReportParams.RecertFilter.RecertOwnerList = [];
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("ownerWhere"));
+            ClassicAssert.AreEqual("{}", JsonSerializer.Serialize(query.QueryVariables["ownerWhere"]));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnerFullTextFilterUsesResponsibles()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "text=ops"
+            };
+            t.ReportParams.ReportType = (int)ReportType.OwnerRecertification;
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_responsibles", query.OwnerWhereStatement);
+            ClassicAssert.IsFalse(query.OwnerWhereStatement.Contains("group_dn"));
         }
 
         [Test]

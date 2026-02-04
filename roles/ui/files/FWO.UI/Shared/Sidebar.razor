@@ -1,166 +1,166 @@
 @inject DomEventService eventService
 @inject IJSRuntime jsRuntime
 
-<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@($"top: {topOffset}px; {(PositionLeft ? "left: 0;" : "right: 0;")}")">
-	@if (topOffset != -1)
-	{
-		@if (!PositionLeft)
-		{
-			if (Collapsible)
-			{
-				<div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
-					<div class="@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
-				</div>
-			}
+<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@($"top: 0; {(PositionLeft ? "left: 0;" : "right: 0;")} padding-top: {topOffset}px;")">
+    @if (topOffset != -1)
+    {
+        @if (!PositionLeft)
+        {
+            if (Collapsible)
+            {
+                <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+                    <div class="@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
+                </div>
+            }
 
-			<div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
-		}
+            <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+        }
 
-		<div id="@(PositionLeft ? "lsb-content" : "rsb-content")" class="@(SidebarCssClass)" style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
-			@* Sidebar Content *@
-			@ChildContent
-		</div>
+        <div id="@(PositionLeft ? "lsb-content" : "rsb-content")" class="@(SidebarCssClass)" style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
+            @* Sidebar Content *@
+            @ChildContent
+        </div>
 
-		@if (PositionLeft)
-		{
-			<div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+        @if (PositionLeft)
+        {
+            <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
 
-			if (Collapsible)
-			{
-				<div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" style="transform:rotate(180deg);" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
-					<div class="@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
-				</div>
-			}
-		}
-	}
+            if (Collapsible)
+            {
+                <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" style="transform:rotate(180deg);" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+                    <div class="@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
+                </div>
+            }
+        }
+    }
 </div>
 
 @code
 {
-	[Parameter]
-	public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
-	[Parameter]
-	public string SidebarContainerCssClass { get; set; } = "";
+    [Parameter]
+    public string SidebarContainerCssClass { get; set; } = "";
 
-	[Parameter]
-	public string SidebarCssClass { get; set; } = "bg-blue";
+    [Parameter]
+    public string SidebarCssClass { get; set; } = "bg-blue";
 
-	[Parameter]
-	public bool PositionLeft { get; set; } = true;
+    [Parameter]
+    public bool PositionLeft { get; set; } = true;
 
-	[Parameter]
-	public bool Collapsible { get; set; } = false;
+    [Parameter]
+    public bool Collapsible { get; set; } = false;
 
-	[Parameter]
-	public bool Resizeable { get; set; } = true;
+    [Parameter]
+    public bool Resizeable { get; set; } = true;
 
-	[Parameter]
-	public EventCallback<int> WidthChanged { get; set; }
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
 
-	[Parameter]
-	public int Width { get; set; }
+    [Parameter]
+    public int Width { get; set; }
 
-	[Parameter]
-	public bool StartCollapsed { get; set; } = false;
+    [Parameter]
+    public bool StartCollapsed { get; set; } = false;
 
-	private bool Collapsed = false;
+    private bool Collapsed = false;
 
-	private double resizeStartX;
+    private double resizeStartX;
 
-	private int WidthBeforeMinimize = GlobalConst.kGlobLibraryWidth;
+    private int WidthBeforeMinimize = GlobalConst.kGlobLibraryWidth;
 
-	private string minMaxButtonSymbol = Icons.CollapseRight;
-	private string overflowSidebar = "auto";
+    private string minMaxButtonSymbol = Icons.CollapseRight;
+    private string overflowSidebar = "auto";
 
-	private int topOffset = -1;
+    private int topOffset = -1;
 
-	protected override async Task OnAfterRenderAsync(bool firstRender)
-	{
-		if (firstRender)
-		{
-			if (!eventService.Initialized)
-			{
-				await eventService.Initialize(jsRuntime);
-			}
-			eventService.OnNavbarHeightChanged += OnNavbarHeightChanged;
-		}
-	}
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!eventService.Initialized)
+            {
+                await eventService.Initialize(jsRuntime);
+            }
+            eventService.OnNavbarHeightChanged += OnNavbarHeightChanged;
+        }
+    }
 
-	protected override void OnParametersSet()
-	{
-		if(!Collapsed && StartCollapsed)
-		{
-			ToggleCollapse(true);
-		}
-	}
+    protected override void OnParametersSet()
+    {
+        if (!Collapsed && StartCollapsed)
+        {
+            ToggleCollapse(true);
+        }
+    }
 
-	private void ResizeStart(DragEventArgs dragArgs)
-	{
-		if (!Collapsed)
-		{
-			dragArgs.DataTransfer.DropEffect = "link";
-			dragArgs.DataTransfer.EffectAllowed = "copyMove";
-			resizeStartX = dragArgs.ScreenX;
-		}
-	}
+    private void ResizeStart(DragEventArgs dragArgs)
+    {
+        if (!Collapsed)
+        {
+            dragArgs.DataTransfer.DropEffect = "link";
+            dragArgs.DataTransfer.EffectAllowed = "copyMove";
+            resizeStartX = dragArgs.ScreenX;
+        }
+    }
 
-	private void Resize(DragEventArgs mouseArgs)
-	{
-		if (!Collapsed)
-		{
-			int postitionDiffrence = (int)(resizeStartX - mouseArgs.ScreenX);
+    private void Resize(DragEventArgs mouseArgs)
+    {
+        if (!Collapsed)
+        {
+            int postitionDiffrence = (int)(resizeStartX - mouseArgs.ScreenX);
 
-			if (PositionLeft)
-				postitionDiffrence = -postitionDiffrence;
+            if (PositionLeft)
+                postitionDiffrence = -postitionDiffrence;
 
-			Width = (int)(Width + postitionDiffrence) > 0 ? (int)(Width + postitionDiffrence) : 1;
-			AdjustSidebarOverflow();
-			WidthChanged.InvokeAsync(Width);
-		}
-	}
+            Width = (int)(Width + postitionDiffrence) > 0 ? (int)(Width + postitionDiffrence) : 1;
+            AdjustSidebarOverflow();
+            WidthChanged.InvokeAsync(Width);
+        }
+    }
 
-	private void MinMaxSidebar()
-	{
-		ToggleCollapse(!Collapsed);
-	}
+    private void MinMaxSidebar()
+    {
+        ToggleCollapse(!Collapsed);
+    }
 
-	public void ToggleCollapse(bool collapse)
-	{
-		if (Collapsed != collapse)
-		{
-			if (collapse)
-			{
-				minMaxButtonSymbol = Icons.CollapseLeft;
-				if (Width > 0)
-				{
-					WidthBeforeMinimize = Width;
-				}
-				Width = 0;
-				WidthChanged.InvokeAsync(Width);
-			}
-			else
-			{
-				minMaxButtonSymbol = Icons.CollapseRight;
+    public void ToggleCollapse(bool collapse)
+    {
+        if (Collapsed != collapse)
+        {
+            if (collapse)
+            {
+                minMaxButtonSymbol = Icons.CollapseLeft;
+                if (Width > 0)
+                {
+                    WidthBeforeMinimize = Width;
+                }
+                Width = 0;
+                WidthChanged.InvokeAsync(Width);
+            }
+            else
+            {
+                minMaxButtonSymbol = Icons.CollapseRight;
 
-				Width = WidthBeforeMinimize;
-				WidthChanged.InvokeAsync(Width);
-			}
+                Width = WidthBeforeMinimize;
+                WidthChanged.InvokeAsync(Width);
+            }
 
-			Collapsed = !Collapsed;
-			AdjustSidebarOverflow();
-		}
-	}
+            Collapsed = !Collapsed;
+            AdjustSidebarOverflow();
+        }
+    }
 
-	private void AdjustSidebarOverflow()
-	{
-		overflowSidebar = Width < 5 ? "hidden" : "auto";
-	}
+    private void AdjustSidebarOverflow()
+    {
+        overflowSidebar = Width < 5 ? "hidden" : "auto";
+    }
 
 
-	private void OnNavbarHeightChanged(int height)
-	{
-		topOffset = height;
-		StateHasChanged();
-	}
+    private void OnNavbarHeightChanged(int height)
+    {
+        topOffset = height;
+        StateHasChanged();
+    }
 }

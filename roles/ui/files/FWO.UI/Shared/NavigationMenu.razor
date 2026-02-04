@@ -5,6 +5,7 @@
 @inject ApiConnection apiConnection
 @inject IJSRuntime jsRuntime
 @inject NavigationManager navigationManager
+@implements IDisposable
 
 @if (InitComplete)
 {
@@ -62,7 +63,7 @@
 					{
 						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
-								<NavLink class="nav-link" href="/networkmodelling">
+								<NavLink class="nav-link" href="@("/" + PageName.Modelling)">
 									<span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
 								</NavLink>
 							</li>
@@ -212,4 +213,8 @@
         string workflowRoles = userConfig.ReqShowCompliance ? ", " + WorkflowRoles() : "";
         return $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.ReporterViewAll}, {Roles.Reporter}, {Roles.Auditor}{workflowRoles}";
     }
+	public void Dispose()
+	{
+		userConfig.OnChange -= OnChange;
+	}
 }

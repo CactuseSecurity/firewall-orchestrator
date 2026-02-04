@@ -1,6 +1,6 @@
 
-query getOwnersFromGroups ($groupDns: [String]!) {
-  owner (where: {group_dn: {_in: $groupDns}} order_by: { id: asc }){
+query getOwnersFromGroups ($groupDns: [String!]!) {
+  owner (where: {owner_responsibles: {dn: {_in: $groupDns}, responsible_type: {_in: [1, 2, 3]}}} order_by: { id: asc }){
     id
     recert_interval
     name

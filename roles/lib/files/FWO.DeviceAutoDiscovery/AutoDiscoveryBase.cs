@@ -1,4 +1,5 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Encryption;
 using FWO.Logging;
@@ -37,9 +38,10 @@ namespace FWO.DeviceAutoDiscovery
             {
                 List<Management> existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
 
+                bool compareDevicesByUidOnly = SuperManagement.DeviceType.Name == "FortiManager";
                 foreach (Management discoveredMgmt in discoveredManagements.Where(x => x.ConfigPath != "global"))
                 {
-                    DiscoverManagementDetails(discoveredMgmt, deltaManagements, existingManagements);
+                    DiscoverManagementDetails(discoveredMgmt, deltaManagements, existingManagements, compareDevicesByUidOnly);
                 }
                 // deleted managements
                 foreach (Management existMgmtDisregardingUid in existingManagements.Where(mgt => mgt.SuperManagerId == SuperManagement.Id && mgt.ConfigPath != "global"))
@@ -59,7 +61,11 @@ namespace FWO.DeviceAutoDiscovery
             return deltaManagements;
         }
 
-        private static void DiscoverManagementDetails(Management discoveredMgmt, List<Management> deltaManagements, List<Management> existingManagements)
+        private static void DiscoverManagementDetails(
+            Management discoveredMgmt,
+            List<Management> deltaManagements,
+            List<Management> existingManagements,
+            bool compareDevicesByUidOnly)
         {
             Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements);
             if (existMgmtDisregardingUid == null)
@@ -70,11 +76,15 @@ namespace FWO.DeviceAutoDiscovery
             }
             else
             {
-                HandleChangedManagement(discoveredMgmt, existMgmtDisregardingUid, deltaManagements);
+                HandleChangedManagement(discoveredMgmt, existMgmtDisregardingUid, deltaManagements, compareDevicesByUidOnly);
             }
         }
 
-        private static void HandleChangedManagement(Management discoveredMgmt, Management existMgmtDisregardingUid, List<Management> deltaManagements)
+        private static void HandleChangedManagement(
+            Management discoveredMgmt,
+            Management existMgmtDisregardingUid,
+            List<Management> deltaManagements,
+            bool compareDevicesByUidOnly)
         {
             Management changedMgmt = existMgmtDisregardingUid;
             changedMgmt.Delete = false;
@@ -83,7 +93,8 @@ namespace FWO.DeviceAutoDiscovery
             // new devices in existing management
             foreach (Device discoveredDev in discoveredMgmt.Devices)
             {
-                if (CheckDeviceNotInMgmt(discoveredDev, existMgmtDisregardingUid) || discoveredDev.ImportDisabled)
+                if (CheckDeviceNotInMgmt(discoveredDev, existMgmtDisregardingUid, compareDevicesByUidOnly) ||
+                    discoveredDev.ImportDisabled)
                 {
                     discoveredDev.Delete = false;
                     newDevs.Add(discoveredDev);
@@ -94,7 +105,7 @@ namespace FWO.DeviceAutoDiscovery
             // deleted devices in existing management
             foreach (Device existDev in existMgmtDisregardingUid.Devices)
             {
-                if (CheckDeviceNotInMgmt(existDev, discoveredMgmt) && !existDev.ImportDisabled)
+                if (CheckDeviceNotInMgmt(existDev, discoveredMgmt, compareDevicesByUidOnly) && !existDev.ImportDisabled)
                 {
                     existDev.Delete = true;
                     newDevs.Add(existDev);
@@ -119,8 +130,17 @@ namespace FWO.DeviceAutoDiscovery
             return null;
         }
 
-        private static bool CheckDeviceNotInMgmt(Device dev, Management mgmt)
+        private static bool CheckDeviceNotInMgmt(Device dev, Management mgmt, bool compareDevicesByUidOnly)
         {
+            if (compareDevicesByUidOnly)
+            {
+                if (mgmt.Devices.FirstOrDefault(devInMgt => devInMgt.Uid.GenerousCompare(dev.Uid)) != null)
+                {
+                    return false;
+                }
+                return true;
+            }
+
             if (mgmt.Devices.FirstOrDefault(devInMgt => devInMgt.Equals(dev)) != null)
             {
                 return false;
@@ -295,4 +315,3 @@ namespace FWO.DeviceAutoDiscovery
         }
     }
 }
-

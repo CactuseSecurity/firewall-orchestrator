@@ -11,12 +11,12 @@ using AngleSharp.Dom;
 namespace FWO.Test
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public class UiZoneMatrixTest : Bunit.TestContext
+    public class UiZoneMatrixTest : BunitContext
     {
         private UserConfig _userConfig = new();
         private NetworkZoneService _networkZoneService = new();
-	    private List<(ComplianceNetworkZone, ComplianceNetworkZone)> _addCommunication = [];
-	    private List<(ComplianceNetworkZone, ComplianceNetworkZone)> _deleteCommunication = [];
+        private List<(ComplianceNetworkZone, ComplianceNetworkZone)> _addCommunication = [];
+        private List<(ComplianceNetworkZone, ComplianceNetworkZone)> _deleteCommunication = [];
 
         Task<IRenderedComponent<ZonesMatrix>> RenderZoneMatrix(bool editMode = true, bool sortById = true)
         {
@@ -79,7 +79,7 @@ namespace FWO.Test
 
             // Render component with parameters.
 
-            var cut = RenderComponent<ZonesMatrix>(parameters => parameters
+            var cut = Render<ZonesMatrix>(parameters => parameters
                 .Add(p => p.EditMode, editMode)
                 .Add(p => p.AddCommunication, _addCommunication)
                 .Add(p => p.DeleteCommunication, _deleteCommunication)
@@ -223,9 +223,9 @@ namespace FWO.Test
         }
 
 
-        
 
-//$"matrix-element-{sourceZone.IdString.Replace(" ", "")}-to-{destinationZone.IdString.Replace(" ", "")}"
+
+        //$"matrix-element-{sourceZone.IdString.Replace(" ", "")}-to-{destinationZone.IdString.Replace(" ", "")}"
     }
 
 }

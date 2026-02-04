@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 
@@ -51,7 +51,7 @@ namespace FWO.Services
                 return false;
             }
 
-            if(option.NwSeparateGroupAnalysis)
+            if (option.NwSeparateGroupAnalysis)
             {
                 return !option.NwRegardGroupName || string.Equals(nwObjectGrp1.Name, nwObjectGrp2.Name, StringComparison.Ordinal);
             }
@@ -83,15 +83,15 @@ namespace FWO.Services
             }
 
             int hashCode = 0;
-            
-            if(!option.NwSeparateGroupAnalysis)
+
+            if (!option.NwSeparateGroupAnalysis)
             {
-                foreach(var obj in nwObject.ObjectGroupFlats.Where(o => o.Object != null && !string.Equals(o.Object.Type.Name, ObjectType.Group, StringComparison.Ordinal)).Select(o => o.Object!))
+                foreach (var obj in nwObject.ObjectGroupFlats.Where(o => o.Object != null && !string.Equals(o.Object.Type.Name, ObjectType.Group, StringComparison.Ordinal)).Select(o => o.Object!))
                 {
                     hashCode ^= networkObjectComparer.GetHashCode(obj);
                 }
             }
-            return hashCode ^ (option.NwRegardGroupName ? 
+            return hashCode ^ (option.NwRegardGroupName ?
                 HashCode.Combine(nwObject.Type.Name, nwObject.Name) :
                 HashCode.Combine(nwObject.Type.Name));
         }

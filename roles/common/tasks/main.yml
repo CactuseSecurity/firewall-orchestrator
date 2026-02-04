@@ -61,6 +61,7 @@
         - name: get version of currently installed product
           set_fact:
             old_version: "{{ config.product_version }}"
+            product_version_changed: "{{ config.product_version != product_version }}"
 
       when: already_installed and installation_mode == "upgrade"
 
@@ -101,26 +102,20 @@
       include_tasks: maintenance-site.yml
       when: "installation_mode == 'upgrade' and inventory_hostname in groups['frontends']"
 
-    - name: stop importer service before making any changes
+    - name: stop fw importer service before making any changes
       systemd:
-        name: "{{ item }}"
+        name: "{{ product_name }}-importer-api"
         state: stopped
       become: true
       when: "inventory_hostname in groups['importers'] and installation_mode == 'upgrade'"
-      loop:
-        - "{{ product_name }}-importer-legacy"
-        - "{{ product_name }}-importer-api"
-
+            
     - name: stop importer service before making any changes
       systemd:
-        name: "{{ item }}"
+        name: "{{ product_name }}-importer-api"
         state: stopped
       become: true
       ignore_errors: true # might not have been installed yet in case of early fail installs
       when: "inventory_hostname in groups['importers'] and installation_mode == 'uninstall'"
-      loop:
-        - "{{ product_name }}-importer-legacy"
-        - "{{ product_name }}-importer-api"
 
     - name: update operating system package cache .deb based
       apt:
@@ -235,6 +230,27 @@
         mode: "0750"
       when: "installation_mode == 'new'"
 
+    - name: check importer password file exists
+      stat:
+        path: "{{ importer_password_file }}"
+      register: importer_pwd_stat
+      when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver']"
+
+    - name: set importer password for secrets file
+      set_fact:
+        importer_password: "{{ randomly_generated_pwd }}"
+      when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver'] and not importer_pwd_stat.stat.exists"
+
+    - name: write importer password to secrets directory
+      copy:
+        content: "{{ importer_password }}\n"
+        dest: "{{ importer_password_file }}"
+        mode: "0600"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+      become: true
+      when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver'] and not importer_pwd_stat.stat.exists"
+
     - name: generate main key
       set_fact:
         main_key: "{{ randomly_generated_pwd }}" # 32 bytes
@@ -268,13 +284,6 @@
     - name: include upgrade script
       import_tasks: run-upgrades.yml
       when: "installation_mode == 'upgrade'"
-
-    - name: copy iso.conf to target for legacy importer support only
-      template:
-        src: iso.conf.j2
-        dest: "{{ fworch_home }}/etc/iso.conf"
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
 
     - name: include fworch.yaml config file creator
       import_tasks: conf_file_creator.yml

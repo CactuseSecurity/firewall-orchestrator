@@ -24,6 +24,7 @@ reportMissingImports = false
 reportMissingTypeStubs = true
 
 [tool.ruff]
+required-version = "0.14.8"
 line-length = 120
 indent-width = 4
 target-version = "py313"

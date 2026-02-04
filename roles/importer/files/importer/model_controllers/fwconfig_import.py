@@ -82,6 +82,7 @@ class FwConfigImport:
             """
             for config in manager.configs:
                 self.import_config(service_provider, manager, config)
+        self.update_removed_managers(mgr_set.ManagerSet)
 
     def import_config(self, service_provider: ServiceProvider, manager: FwConfigManager, config: FwConfigNormalized):
         global_state = service_provider.get_global_state()
@@ -99,6 +100,65 @@ class FwConfigImport:
         config_importer.import_single_config(manager)
         config_importer.consistency_check_config_against_db()
         config_importer.write_latest_config()
+
+    def update_removed_managers(self, mgr_set: list[FwConfigManager]):
+        """
+        Sets removed flag on all db entries associated with sub-managers which are not part of the current import set.
+        """
+        if not self.import_state.state.mgm_details.is_super_manager:
+            return  # nothing to do for single management imports
+        get_sub_mgrs_query = FwoApi.get_graphql_code(
+            [fwo_const.GRAPHQL_QUERY_PATH + "device/getSubManagerUids.graphql"]
+        )
+        query_variables = {"mgmId": self.import_state.state.mgm_details.mgm_id}
+        try:
+            query_result = self.import_state.api_connection.call(get_sub_mgrs_query, query_variables=query_variables)
+            if "errors" in query_result:
+                raise FwoImporterError(
+                    f"failed to get sub manager UIDs for super manager mgm id {self.import_state.state.mgm_details.mgm_id!s}: {query_result['errors']!s}"
+                )
+            mgrs_in_db = query_result["data"]["management"]
+        except Exception:
+            FWOLogger.exception(
+                f"failed to get sub manager UIDs for super manager mgm id {self.import_state.state.mgm_details.mgm_id!s}: {traceback.format_exc()!s}"
+            )
+            raise FwoImporterError("error while trying to get the sub manager UIDs") from None
+        mgr_uids_in_db = {mgr["mgm_uid"] for mgr in mgrs_in_db}
+        mgr_uids_in_import = {mgr.manager_uid for mgr in mgr_set}
+        mgr_uids_to_remove = list(mgr_uids_in_db - mgr_uids_in_import)
+        if not mgr_uids_to_remove:
+            return  # nothing to do
+        FWOLogger.info(f"marking all entries associated with sub-managers {mgr_uids_to_remove!s} as removed")
+        mutation = FwoApi.get_graphql_code(
+            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "device/markManagersRemoved.graphql"]
+        )
+        query_variables: dict[str, Any] = {
+            "mgmIds": [mgr["mgm_id"] for mgr in mgrs_in_db if mgr["mgm_uid"] in mgr_uids_to_remove],
+            "importId": self.import_state.state.import_id,
+        }
+        try:
+            result = self.import_state.api_connection.call(mutation, query_variables=query_variables)
+
+            affected_tables = {key: value["affected_rows"] for key, value in result["data"].items()}
+            FWOLogger.debug(f"marked sub-managers {mgr_uids_to_remove!s} as removed in tables: {affected_tables!s}")
+            FWOLogger.info(
+                f"marked {sum(affected_tables.values())!s} entries as removed for sub-managers {mgr_uids_to_remove!s}"
+            )
+            self.import_state.state.stats.statistics.network_object_delete_count += affected_tables.get(
+                "update_object", 0
+            )
+            self.import_state.state.stats.statistics.service_object_delete_count += affected_tables.get(
+                "update_service", 0
+            )
+            self.import_state.state.stats.statistics.user_object_delete_count += affected_tables.get("update_usr", 0)
+            self.import_state.state.stats.statistics.zone_object_delete_count += affected_tables.get("update_zone", 0)
+            self.import_state.state.stats.statistics.rule_delete_count += affected_tables.get("update_rule", 0)
+            self.import_state.state.stats.statistics.rulebase_delete_count += affected_tables.get("update_rulebase", 0)
+        except Exception:
+            FWOLogger.exception(
+                f"failed to mark sub-managers as removed for super manager mgm id {self.import_state.state.mgm_details.mgm_id!s}: {traceback.format_exc()!s}"
+            )
+            raise FwoImporterError("error while trying to mark sub-managers as removed") from None
 
     def clear_management(self) -> FwConfigManagerListController:
         FWOLogger.info('this import run will reset the configuration of this management to "empty"')
@@ -377,6 +437,12 @@ class FwConfigImport:
         normalized_config_from_db = self.get_latest_config_from_db()
         self._sort_lists(normalized_config)
         self._sort_lists(normalized_config_from_db)
+        # filter gateways from DB which are not part of the current import (e.g. in case of import_disabled)
+        normalized_config_from_db.gateways = [
+            gw
+            for gw in normalized_config_from_db.gateways
+            if any(gw.Uid == imported_gw.Uid for imported_gw in normalized_config.gateways)
+        ]
         all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump(), strict=True)
         if len(all_diffs) > 0:
             FWOLogger.warning(

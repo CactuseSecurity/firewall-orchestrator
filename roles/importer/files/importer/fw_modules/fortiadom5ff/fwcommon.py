@@ -67,6 +67,9 @@ def get_config(
         get_zones(sid, fm_api_url, native_config_global, "", limit)
 
         for adom in adom_list:
+            if adom.import_disabled and not import_state.state.force_import:
+                continue
+            # TODO: check if adom exists on fw and fail gracefully if not (custom exception)
             adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM config import")
             native_config_adom = initialize_native_config_domain(adom)
             config_in.native_config["domains"].append(native_config_adom)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
@@ -92,6 +95,9 @@ def get_config(
             #    sid, fm_api_url, nativeConfig, adom_name, adom.Devices, limit)
 
             for mgm_details_device in adom.devices:
+                if mgm_details_device["importDisabled"] and not import_state.state.force_import:
+                    continue
+                # TODO: check if device exists on fw inside adom and fail gracefully if not (custom exception)
                 device_config = initialize_device_config(mgm_details_device)
                 native_config_adom["gateways"].append(device_config)
                 get_access_policy(
@@ -274,6 +280,8 @@ def build_adom_device_vdom_structure(
 ) -> dict[str, dict[str, dict[str, Any]]]:
     adom_device_vdom_structure: dict[str, dict[str, dict[str, Any]]] = {}
     for adom in adom_list:
+        if adom.import_disabled:
+            continue
         adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM device/vdom mapping")
         adom_device_vdom_structure.update({adom_name: {}})
         if len(adom.devices) > 0:

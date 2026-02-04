@@ -63,7 +63,7 @@ def login(mgm_details: ManagementController):
     FWOLogger.debug(f"login - login to url {base_url} with user {mgm_details.import_user}", 3)
     response = cp_api_call(base_url, "login", payload, "")
     if "sid" not in response:
-        exception_text = f"getter ERROR: did not receive a sid, api call: {base_url}"
+        exception_text = f"getter ERROR: did not receive a sid, api call: {base_url}. Please check credentials."
         raise FwLoginFailedError(exception_text)
     return response["sid"]
 

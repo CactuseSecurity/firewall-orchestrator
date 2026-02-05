@@ -407,10 +407,11 @@ class FwConfigBuilder:
                 new_num_numeric += RULE_NUM_NUMERIC_STEPS
                 rule.rule_num_numeric = new_num_numeric
 
-    def add_standard_network_host_object(self, config: FwConfigNormalized, index: int | None = None) -> NetworkObject:
+    def add_standard_network_host_object(self, config: FwConfigNormalized) -> NetworkObject:
+        uid = self.uid_manager.create_uid()
         network_object = NetworkObject(
-            obj_uid="NetworkObject" + (str(index) if index is not None else ""),
-            obj_name="NetworkObject" + (str(index) if index is not None else ""),
+            obj_uid="NetworkObject" + uid,
+            obj_name="NetworkObject" + uid,
             obj_ip=IPNetwork("192.168.1.1/32"),
             obj_ip_end=IPNetwork("192.168.1.1/32"),
             obj_typ="host",
@@ -420,11 +421,12 @@ class FwConfigBuilder:
         return network_object
 
     def add_standard_network_group_object(
-        self, config: FwConfigNormalized, obj_members: list[NetworkObject] | None = None, index: int | None = None
+        self, config: FwConfigNormalized, obj_members: list[NetworkObject] | None = None
     ) -> NetworkObject:
+        uid = self.uid_manager.create_uid()
         network_object = NetworkObject(
-            obj_uid="NetworkGroupObject" + (str(index) if index is not None else ""),
-            obj_name="NetworkGroupObject" + (str(index) if index is not None else ""),
+            obj_uid="NetworkGroupObject" + uid,
+            obj_name="NetworkGroupObject" + uid,
             obj_typ="group",
             obj_color="black",
             obj_member_names=LIST_DELIMITER.join([member.obj_name for member in obj_members])
@@ -437,11 +439,11 @@ class FwConfigBuilder:
         config.network_objects[network_object.obj_uid] = network_object
         return network_object
 
-    @staticmethod
-    def add_standard_service_object(config: FwConfigNormalized, index: int | None = None) -> ServiceObject:
+    def add_standard_service_object(self, config: FwConfigNormalized) -> ServiceObject:
+        uid = self.uid_manager.create_uid()
         service_object = ServiceObject(
-            svc_uid="ServiceObject" + (str(index) if index is not None else ""),
-            svc_name="ServiceObject" + (str(index) if index is not None else ""),
+            svc_uid="ServiceObject" + uid,
+            svc_name="ServiceObject" + uid,
             svc_port=80,
             svc_port_end=80,
             svc_color="blue",
@@ -451,11 +453,12 @@ class FwConfigBuilder:
         return service_object
 
     def add_standard_service_group_object(
-        self, config: FwConfigNormalized, svc_members: list[ServiceObject] | None = None, index: int | None = None
+        self, config: FwConfigNormalized, svc_members: list[ServiceObject] | None = None
     ) -> ServiceObject:
+        uid = self.uid_manager.create_uid()
         service_object = ServiceObject(
-            svc_uid="ServiceGroupObject" + (str(index) if index is not None else ""),
-            svc_name="ServiceGroupObject" + (str(index) if index is not None else ""),
+            svc_uid="ServiceGroupObject" + uid,
+            svc_name="ServiceGroupObject" + uid,
             svc_typ="group",
             svc_color="blue",
             svc_member_names=LIST_DELIMITER.join([member.svc_name for member in svc_members])

@@ -252,9 +252,9 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        nw_obj1 = fwconfig_builder.add_standard_network_host_object(config, index=1)
-        nw_obj2 = fwconfig_builder.add_standard_network_host_object(config, index=2)
-        fwconfig_builder.add_standard_network_group_object(config, index=1, obj_members=[nw_obj1, nw_obj2])
+        nw_obj1 = fwconfig_builder.add_standard_network_host_object(config)
+        nw_obj2 = fwconfig_builder.add_standard_network_host_object(config)
+        fwconfig_builder.add_standard_network_group_object(config, obj_members=[nw_obj1, nw_obj2])
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -277,7 +277,7 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        nw_group_obj = fwconfig_builder.add_standard_network_group_object(config, index=1, obj_members=[])
+        nw_group_obj = fwconfig_builder.add_standard_network_group_object(config, obj_members=[])
         nw_group_obj.obj_member_refs = nw_group_obj.obj_uid  # Circular reference
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -303,7 +303,7 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        fwconfig_builder.add_standard_network_group_object(config, index=1, obj_members=[])
+        fwconfig_builder.add_standard_network_group_object(config, obj_members=[])
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -327,7 +327,7 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        nw_group_obj = fwconfig_builder.add_standard_network_group_object(config, index=1, obj_members=[])
+        nw_group_obj = fwconfig_builder.add_standard_network_group_object(config, obj_members=[])
         nw_group_obj.obj_member_refs = "NonExistentHost"
 
         manager_controller = FwConfigManagerListController()
@@ -355,8 +355,8 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        valid_nw_obj = fwconfig_builder.add_standard_network_host_object(config, index=1)
-        group_obj = fwconfig_builder.add_standard_network_group_object(config, index=1, obj_members=[valid_nw_obj])
+        valid_nw_obj = fwconfig_builder.add_standard_network_host_object(config)
+        group_obj = fwconfig_builder.add_standard_network_group_object(config, obj_members=[valid_nw_obj])
         group_obj.obj_member_refs += "|InvalidHost"  # pyright: ignore[reportOperatorIssue]
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -482,8 +482,8 @@ class TestCheckConsistencyServiceObjects:
             rules_per_rulebase_count=10,
         )
 
-        fwconfig_builder.add_standard_service_object(config, index=1)
-        fwconfig_builder.add_standard_service_object(config, index=2)
+        fwconfig_builder.add_standard_service_object(config)
+        fwconfig_builder.add_standard_service_object(config)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -555,10 +555,10 @@ class TestCheckConsistencyServiceObjects:
             rules_per_rulebase_count=10,
         )
 
-        fwconfig_builder.add_standard_service_object(config, index=1)
+        svc_obj = fwconfig_builder.add_standard_service_object(config)
 
-        svc_group_obj = fwconfig_builder.add_standard_service_group_object(config, index=1)
-        svc_group_obj.svc_member_refs = "ServiceObject1|InvalidService"
+        svc_group_obj = fwconfig_builder.add_standard_service_group_object(config)
+        svc_group_obj.svc_member_refs = f"{svc_obj.svc_uid}|InvalidService"
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,

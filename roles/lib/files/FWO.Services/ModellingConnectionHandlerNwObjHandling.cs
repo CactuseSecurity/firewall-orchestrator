@@ -5,11 +5,170 @@ using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
+using System.Text.Json;
+
 
 namespace FWO.Services
 {
     public partial class ModellingConnectionHandler
     {
+        public List<ModellingAppRole> AvailableAppRoles { get; set; } = [];
+        public List<ModellingNwGroupWrapper> AvailableSelectedObjects { get; set; } = [];
+        public List<ModellingNetworkAreaWrapper> AvailableCommonAreas { get; set; } = [];
+        public List<ModellingNwGroupWrapper> AvailableNwGroups { get; set; } = [];
+        public List<CommonAreaConfig> CommonAreaConfigItems { get; set; } = [];
+        public ModellingAppServerHandler? AppServerHandler { get; set; }
+        private readonly string InsertForbidden = "insert_forbidden";
+        private ModellingAppRole actAppRole = new();
+        private ModellingNwGroup actNwGrpObj = new();
+        private List<ModellingConnection> FoundConnectionsForAppRole = [];
+
+        public async Task InitAvailableNWObjects()
+        {
+            try
+            {
+                AvailableAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = Application.Id });
+                AvailableAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = Application.Id });
+
+                List<ModellingNetworkArea> allAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
+                CommonAreaConfigItems = [];
+                if (userConfig.ModCommonAreas != "")
+                {
+                    CommonAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModCommonAreas) ?? new();
+                }
+                AvailableCommonAreas = [];
+                foreach (var comAreaConfig in CommonAreaConfigItems)
+                {
+                    ModellingNetworkArea? area = allAreas.FirstOrDefault(a => a.Id == comAreaConfig.AreaId);
+                    if (area != null)
+                    {
+                        AvailableCommonAreas.Add(new() { Content = area });
+                    }
+                }
+                AvailableNwGroups = [];
+
+                AvailableSelectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
+                AvailableSelectedObjects = AvailableSelectedObjects.Where(x => AvailableCommonAreas.FirstOrDefault(a => a.Content.Id == x.Content.Id) == null).ToList();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText(InitEnvironment), "", true);
+            }
+        }
+
+        public bool RefreshSelectableNwObjects()
+        {
+            AvailableNwElems = [];
+            foreach (var obj in AvailableCommonAreas.Select(o => o.Content))
+            {
+                AvailableNwElems.Add(new KeyValuePair<int, long>(obj.GroupType, obj.Id));
+            }
+            foreach (var obj in AvailableSelectedObjects.Select(o => o.Content))
+            {
+                AvailableNwElems.Add(new KeyValuePair<int, long>(obj.GroupType, obj.Id));
+            }
+            foreach (var appRole in AvailableAppRoles)
+            {
+                AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppRole, appRole.Id));
+            }
+            if (userConfig.AllowServerInConn)
+            {
+                foreach (var appServer in AvailableAppServers.Where(x => !x.IsDeleted))
+                {
+                    AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppServer, appServer.Id));
+                }
+            }
+            return true;
+        }
+
+        private void SyncSrcChanges()
+        {
+            if (ActConn.IsInterface && SrcFilledInWork(1))
+            {
+                ModellingAppRoleWrapper? linkedDummyAR = ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
+                if (linkedDummyAR != null)
+                {
+                    SrcAppRolesToDelete.Add(linkedDummyAR.Content);
+                }
+            }
+            foreach (var appServer in SrcAppServerToDelete)
+            {
+                ActConn.SourceAppServers.Remove(ActConn.SourceAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new KeyNotFoundException("Did not find app server."));
+            }
+            foreach (var appServer in SrcAppServerToAdd)
+            {
+                ActConn.SourceAppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
+            }
+            foreach (var appRole in SrcAppRolesToDelete)
+            {
+                ActConn.SourceAppRoles.Remove(ActConn.SourceAppRoles.FirstOrDefault(x => x.Content.Id == appRole.Id) ?? throw new KeyNotFoundException("Did not find app role."));
+            }
+            foreach (var appRole in SrcAppRolesToAdd)
+            {
+                ActConn.SourceAppRoles.Add(new ModellingAppRoleWrapper() { Content = appRole });
+            }
+            foreach (var area in SrcAreasToDelete)
+            {
+                ActConn.SourceAreas.Remove(ActConn.SourceAreas.FirstOrDefault(x => x.Content.Id == area.Id) ?? throw new KeyNotFoundException("Did not find area."));
+            }
+            foreach (var area in SrcAreasToAdd)
+            {
+                ActConn.SourceAreas.Add(new ModellingNetworkAreaWrapper() { Content = area });
+            }
+            foreach (var nwGroup in SrcNwGroupsToDelete)
+            {
+                ActConn.SourceOtherGroups.Remove(ActConn.SourceOtherGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) ?? throw new KeyNotFoundException("Did not find nwgroup."));
+            }
+            foreach (var nwGroup in SrcNwGroupsToAdd)
+            {
+                ActConn.SourceOtherGroups.Add(new ModellingNwGroupWrapper() { Content = nwGroup });
+            }
+        }
+
+        private void SyncDstChanges()
+        {
+            if (ActConn.IsInterface && DstFilledInWork(1))
+            {
+                ModellingAppRoleWrapper? linkedDummyAR = ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == DummyAppRole.Id);
+                if (linkedDummyAR != null)
+                {
+                    DstAppRolesToDelete.Add(linkedDummyAR.Content);
+                }
+            }
+            foreach (var appServer in DstAppServerToDelete)
+            {
+                ActConn.DestinationAppServers.Remove(ActConn.DestinationAppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new KeyNotFoundException("Did not find app server."));
+            }
+            foreach (var appServer in DstAppServerToAdd)
+            {
+                ActConn.DestinationAppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
+            }
+            foreach (var appRole in DstAppRolesToDelete)
+            {
+                ActConn.DestinationAppRoles.Remove(ActConn.DestinationAppRoles.FirstOrDefault(x => x.Content.Id == appRole.Id) ?? throw new KeyNotFoundException("Did not find app role."));
+            }
+            foreach (var appRole in DstAppRolesToAdd)
+            {
+                ActConn.DestinationAppRoles.Add(new ModellingAppRoleWrapper() { Content = appRole });
+            }
+            foreach (var area in DstAreasToDelete)
+            {
+                ActConn.DestinationAreas.Remove(ActConn.DestinationAreas.FirstOrDefault(x => x.Content.Id == area.Id) ?? throw new KeyNotFoundException("Did not find area."));
+            }
+            foreach (var area in DstAreasToAdd)
+            {
+                ActConn.DestinationAreas.Add(new ModellingNetworkAreaWrapper() { Content = area });
+            }
+            foreach (var nwGroup in DstNwGroupsToDelete)
+            {
+                ActConn.DestinationOtherGroups.Remove(ActConn.DestinationOtherGroups.FirstOrDefault(x => x.Content.Id == nwGroup.Id) ?? throw new KeyNotFoundException("Did not find nwgroup."));
+            }
+            foreach (var nwGroup in DstNwGroupsToAdd)
+            {
+                ActConn.DestinationOtherGroups.Add(new ModellingNwGroupWrapper() { Content = nwGroup });
+            }
+        }
+
         /// <summary>
         /// Checks if the given network areas are allowed in the current connection/interface/service.
         /// </summary>
@@ -465,6 +624,90 @@ namespace FWO.Services
                     DstAppRolesToAdd.Add(appRole);
                 }
                 CalcVisibility();
+            }
+        }
+
+        private async Task AddNwObjects(List<ModellingAppServer> appServers, List<ModellingAppRole> appRoles,
+            List<ModellingNetworkArea> areas, List<ModellingNwGroup> nwGroups, ModellingTypes.ConnectionField field)
+        {
+            try
+            {
+                foreach (var appServer in appServers)
+                {
+                    var Variables = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, Variables);
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Added App Server {appServer.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
+                }
+                foreach (var appRole in appRoles)
+                {
+                    var Variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        appRole.Id == DummyAppRole.Id ?
+                        $"Marked requested Interface: {ActConn.Name} as {field}" :
+                        $"Added App Role {appRole.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
+                }
+                foreach (var area in areas)
+                {
+                    var Variables = new { nwGroupId = area.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Added Area {area.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
+                }
+                foreach (var nwGroup in nwGroups)
+                {
+                    var Variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Added Object {nwGroup.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
+            }
+        }
+
+        private async Task RemoveNwObjects(List<ModellingAppServer> appServers, List<ModellingAppRole> appRoles,
+            List<ModellingNetworkArea> areas, List<ModellingNwGroup> nwGroups, ModellingTypes.ConnectionField field)
+        {
+            try
+            {
+                foreach (var appServer in appServers)
+                {
+                    var Variables = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromConnection, Variables);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Removed App Server {appServer.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
+                }
+                foreach (var appRole in appRoles)
+                {
+                    var Variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        appRole.Id == DummyAppRole.Id ?
+                        $"Removed {field} marker from requested Interface: {ActConn.Name}" :
+                        $"Removed App Role {appRole.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
+                }
+                foreach (var area in areas)
+                {
+                    var Variables = new { nwGroupId = area.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Removed Area {area.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
+                }
+                foreach (var nwGroup in nwGroups)
+                {
+                    var Variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Removed Object {nwGroup.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
             }
         }
     }

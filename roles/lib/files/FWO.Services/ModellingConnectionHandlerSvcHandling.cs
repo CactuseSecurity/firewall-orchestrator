@@ -10,6 +10,56 @@ namespace FWO.Services
 {
     public partial class ModellingConnectionHandler
     {
+        public List<ModellingServiceGroup> AvailableServiceGroups { get; set; } = [];
+        private ModellingServiceGroup actServiceGroup = new();
+
+        public async Task InitAvailableSvcObjects()
+        {
+            try
+            {
+                AvailableSvcElems = [];
+                AvailableServiceGroups = (await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getGlobalServiceGroups)).Where(x => x.AppId != Application.Id).ToList();
+                AvailableServiceGroups.AddRange(await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = Application.Id }));
+                AvailableServices = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getGlobalServices);
+                AvailableServices.AddRange(await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = Application.Id }));
+                foreach (var svcGrp in AvailableServiceGroups)
+                {
+                    AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.ServiceGroup, svcGrp.Id));
+                }
+                if (userConfig.AllowServiceInConn)
+                {
+                    foreach (var svc in AvailableServices)
+                    {
+                        AvailableSvcElems.Add(new KeyValuePair<int, int>((int)ModellingTypes.ModObjectType.Service, svc.Id));
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        private void SyncSvcChanges()
+        {
+            foreach (var svc in SvcToDelete)
+            {
+                ActConn.Services.Remove(ActConn.Services.FirstOrDefault(x => x.Content.Id == svc.Id) ?? throw new KeyNotFoundException("Did not find service."));
+            }
+            foreach (var svc in SvcToAdd)
+            {
+                ActConn.Services.Add(new ModellingServiceWrapper() { Content = svc });
+            }
+            foreach (var svcGrp in SvcGrpToDelete)
+            {
+                ActConn.ServiceGroups.Remove(ActConn.ServiceGroups.FirstOrDefault(x => x.Content.Id == svcGrp.Id) ?? throw new KeyNotFoundException("Did not find service group."));
+            }
+            foreach (var svcGrp in SvcGrpToAdd)
+            {
+                ActConn.ServiceGroups.Add(new ModellingServiceGroupWrapper() { Content = svcGrp });
+            }
+        }
+
         public void CreateServiceGroup()
         {
             DisplaySvcGrpMode = false;
@@ -172,6 +222,56 @@ namespace FWO.Services
                 {
                     SvcToAdd.Add(svc);
                 }
+            }
+        }
+
+        private async Task AddSvcObjects(List<ModellingService> services, List<ModellingServiceGroup> serviceGroups)
+        {
+            try
+            {
+                foreach (var service in services)
+                {
+                    var svcParams = new { serviceId = service.Id, connectionId = ActConn.Id };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceToConnection, svcParams);
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Added Service {service.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}", Application.Id);
+                }
+                foreach (var serviceGrp in serviceGroups)
+                {
+                    var svcGrpParams = new { serviceGroupId = serviceGrp.Id, connectionId = ActConn.Id };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addServiceGroupToConnection, svcGrpParams);
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Added Service Group {serviceGrp.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}", Application.Id);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
+            }
+        }
+
+        private async Task RemoveSvcObjects()
+        {
+            try
+            {
+                foreach (var service in SvcToDelete)
+                {
+                    var svcParams = new { serviceId = service.Id, connectionId = ActConn.Id };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceFromConnection, svcParams);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Removed Service {service.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}", Application.Id);
+                }
+                foreach (var serviceGrp in SvcGrpToDelete)
+                {
+                    var svcGrpParams = new { serviceGroupId = serviceGrp.Id, connectionId = ActConn.Id };
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceGroupFromConnection, svcGrpParams);
+                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        $"Removed Service Group {serviceGrp.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}", Application.Id);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
             }
         }
     }

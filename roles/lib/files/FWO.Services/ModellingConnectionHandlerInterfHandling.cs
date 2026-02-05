@@ -14,6 +14,73 @@ namespace FWO.Services
 {
     public partial class ModellingConnectionHandler
     {
+        public List<ModellingConnection> PreselectedInterfaces { get; set; } = [];
+        public int RequesterId { get; set; } = 0;
+        private ModellingConnection actInterface = new();
+
+
+        public async Task RefreshPreselectedInterfaces()
+        {
+            try
+            {
+                PreselectedInterfaces = ModellingConnectionWrapper.Resolve(
+                    await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getSelectedConnections, new { appId = Application.Id })).ToList();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        private async Task RefreshInterfaceData()
+        {
+            try
+            {
+                if (ActConn.IsInterface)
+                {
+                    ActConn.PermittedOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(ModellingQueries.getPermittedOwnersForConnection, new { connectionId = ActConn.Id });
+                    PermittedOwnersToAdd.Clear();
+                    PermittedOwnersToDelete.Clear();
+                    if (!AddMode && !ReadOnly)
+                    {
+                        SrcFix = ActConn.SourceFilled();
+                        DstFix = ActConn.DestinationFilled();
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+        }
+
+        private bool CheckInterface()
+        {
+            int srcDummyARCount = ActConn.SourceAppRoles.Count(x => x.Content.Id == DummyAppRole.Id);
+            int dstDummyARCount = ActConn.DestinationAppRoles.Count(x => x.Content.Id == DummyAppRole.Id);
+            if (!(SrcFilledInWork(srcDummyARCount) || DstFilledInWork(dstDummyARCount)) || !SvcFilledInWork())
+            {
+                DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9004"), true);
+                return false;
+            }
+            if (!AddMode && (SrcFilledInWork(srcDummyARCount) != ActConnOrig.SourceFilled() || DstFilledInWork(dstDummyARCount) != ActConnOrig.DestinationFilled()))
+            {
+                DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9005"), true);
+                return false;
+            }
+            if (ActConn.InterfacePermission == InterfacePermissions.Private.ToString() &&
+                ActConnOrig.InterfacePermission != InterfacePermissions.Private.ToString())
+            {
+                bool otherAppUsesInterface = Connections.Any(c => c.UsedInterfaceId == ActConn.Id && c.AppId != ActConn.AppId);
+                if (otherAppUsesInterface)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9020"), true);
+                    return false;
+                }
+            }
+            return true;
+        }
+
         /// <summary>
         /// Checks the given interface object if it can be used with network areas that are added to the connection.
         /// </summary>

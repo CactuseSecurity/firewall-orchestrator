@@ -157,7 +157,9 @@ namespace FWO.Test
             {"service_modified", "service_modified" },
             {"user_added","user_added" },
             {"user_deleted","user_deleted" },
-            {"user_modified","user_modified" }
+            {"user_modified","user_modified" },
+            {"interface_permission","Interface Permission" },
+            {"Public","Public" }
         };
 
         public override string GetText(string key)

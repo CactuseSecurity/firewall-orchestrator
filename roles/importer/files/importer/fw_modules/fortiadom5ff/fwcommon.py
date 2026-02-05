@@ -38,95 +38,7 @@ def get_config(
         parsing_config_only = True
 
     if not parsing_config_only:  # no native config was passed in, so getting it from FortiManager
-        sid = get_sid(import_state.state)
-        limit = import_state.state.fwo_config.api_fetch_size
-        fm_api_url = import_state.state.mgm_details.build_fw_api_string()
-        native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
-        config_in.native_config["domains"].append(native_config_global)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
-        adom_list = build_adom_list(import_state.state)
-        adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
-        # delete_v: das geht schief für unschöne adoms
-        arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
-        adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(
-            adom_device_vdom_structure, sid, fm_api_url
-        )
-
-        # get global
-        get_objects(
-            sid,
-            fm_api_url,
-            native_config_global,
-            native_config_global,
-            "",
-            limit,
-            nw_obj_types,
-            svc_obj_types,
-            "global",
-            arbitrary_vdom_for_updateable_objects,
-        )
-        get_zones(sid, fm_api_url, native_config_global, "", limit)
-
-        for adom in adom_list:
-            if adom.import_disabled and not import_state.state.force_import:
-                continue
-            # TODO: check if adom exists on fw and fail gracefully if not (custom exception)
-            adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM config import")
-            native_config_adom = initialize_native_config_domain(adom)
-            config_in.native_config["domains"].append(native_config_adom)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
-
-            adom_scope = "adom/" + adom_name
-            get_objects(
-                sid,
-                fm_api_url,
-                native_config_adom,
-                native_config_global,
-                adom_name,
-                limit,
-                nw_obj_types,
-                svc_obj_types,
-                adom_scope,
-                arbitrary_vdom_for_updateable_objects,
-            )
-            # currently reading zone from objects/rules for backward compat with FortiManager 6.x
-            get_zones(sid, fm_api_url, native_config_adom, adom_name, limit)
-
-            # TODO: bring interfaces and routing in new domain native config format
-            # getInterfacesAndRouting(
-            #    sid, fm_api_url, nativeConfig, adom_name, adom.Devices, limit)
-
-            for mgm_details_device in adom.devices:
-                if mgm_details_device["importDisabled"] and not import_state.state.force_import:
-                    continue
-                # TODO: check if device exists on fw inside adom and fail gracefully if not (custom exception)
-                device_config = initialize_device_config(mgm_details_device)
-                native_config_adom["gateways"].append(device_config)
-                get_access_policy(
-                    sid,
-                    fm_api_url,
-                    native_config_adom,
-                    native_config_global,
-                    adom_device_vdom_policy_package_structure,
-                    adom_name,
-                    mgm_details_device,
-                    device_config,
-                    limit,
-                )
-                get_nat_policy(
-                    sid,
-                    fm_api_url,
-                    native_config_adom,
-                    adom_device_vdom_policy_package_structure,
-                    adom_name,
-                    mgm_details_device,
-                    limit,
-                )
-
-        try:  # logout of fortimanager API
-            fmgr_getter.logout(fm_api_url, sid)
-        except Exception:
-            raise FwLogoutFailedError("logout exception probably due to timeout - irrelevant, so ignoring it")
-
-        write_native_config_to_file(import_state.state, config_in.native_config)
+        get_native_config(config_in, import_state)
 
     if not config_in.native_config:
         raise ImportError("native config missing")
@@ -134,6 +46,96 @@ def get_config(
     normalized_managers = normalize_config(config_in.native_config)
     FWOLogger.info("completed getting config")
     return 0, normalized_managers
+
+
+def get_native_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> None:
+    sid = get_sid(import_state.state)
+    limit = import_state.state.fwo_config.api_fetch_size
+    fm_api_url = import_state.state.mgm_details.build_fw_api_string()
+    native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
+    config_in.native_config["domains"].append(native_config_global)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
+    adom_list = build_adom_list(import_state.state)
+    adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
+    # delete_v: das geht schief für unschöne adoms
+    arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
+    adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url)
+
+    # get global
+    get_objects(
+        sid,
+        fm_api_url,
+        native_config_global,
+        native_config_global,
+        "",
+        limit,
+        nw_obj_types,
+        svc_obj_types,
+        "global",
+        arbitrary_vdom_for_updateable_objects,
+    )
+    get_zones(sid, fm_api_url, native_config_global, "", limit)
+
+    for adom in adom_list:
+        if adom.import_disabled and not import_state.state.force_import:
+            continue
+        # TODO: check if adom exists on fw and fail gracefully if not (custom exception)
+        adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM config import")
+        native_config_adom = initialize_native_config_domain(adom)
+        config_in.native_config["domains"].append(native_config_adom)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
+
+        adom_scope = "adom/" + adom_name
+        get_objects(
+            sid,
+            fm_api_url,
+            native_config_adom,
+            native_config_global,
+            adom_name,
+            limit,
+            nw_obj_types,
+            svc_obj_types,
+            adom_scope,
+            arbitrary_vdom_for_updateable_objects,
+        )
+        # currently reading zone from objects/rules for backward compat with FortiManager 6.x
+        get_zones(sid, fm_api_url, native_config_adom, adom_name, limit)
+
+        # TODO: bring interfaces and routing in new domain native config format
+        # getInterfacesAndRouting(
+        #    sid, fm_api_url, nativeConfig, adom_name, adom.Devices, limit)
+
+        for mgm_details_device in adom.devices:
+            if mgm_details_device["importDisabled"] and not import_state.state.force_import:
+                continue
+            # TODO: check if device exists on fw inside adom and fail gracefully if not (custom exception)
+            device_config = initialize_device_config(mgm_details_device)
+            native_config_adom["gateways"].append(device_config)
+            get_access_policy(
+                sid,
+                fm_api_url,
+                native_config_adom,
+                native_config_global,
+                adom_device_vdom_policy_package_structure,
+                adom_name,
+                mgm_details_device,
+                device_config,
+                limit,
+            )
+            get_nat_policy(
+                sid,
+                fm_api_url,
+                native_config_adom,
+                adom_device_vdom_policy_package_structure,
+                adom_name,
+                mgm_details_device,
+                limit,
+            )
+
+    try:  # logout of fortimanager API
+        fmgr_getter.logout(fm_api_url, sid)
+    except Exception:
+        raise FwLogoutFailedError("logout exception probably due to timeout - irrelevant, so ignoring it")
+
+    write_native_config_to_file(import_state.state, config_in.native_config)
 
 
 def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:

@@ -184,8 +184,6 @@ class FwConfigImportRule:
             changed_rule_uids: Set of rule_uids for rules that exist in both configs but have changes
 
         """
-        added_rule_uids: set[str] = set()
-        removed_rule_uids: set[str] = set()
         changed_rule_uids: set[str] = set()
 
         if self.normalized_config is None:

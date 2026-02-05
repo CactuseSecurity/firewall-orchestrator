@@ -30,8 +30,9 @@
       - name: apt update
         apt: update_cache=true
 
-      when: ansible_facts['distribution']|lower != 'ubuntu' or 
-        (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
+      when: ansible_facts['distribution']|lower != 'ubuntu' or (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))  
+
+        
 
     # - name: update /etc/apt/preferences for ubuntu >=22 (https://github.com/dotnet/sdk/issues/27129)
     #   blockinfile:
@@ -58,8 +59,38 @@
     - name: apt update
       apt: update_cache=true
 
-    - name: Install dotnet-sdk-{{ dotnet_version }}
-      package: "name=dotnet-sdk-{{ dotnet_version }} state=present"
+    - name: Install .NET SDK {{ dotnet_version }} via script (fallback for missing apt package)
+      block:
+        - name: Download dotnet-install script
+          get_url:
+            url: https://dot.net/v1/dotnet-install.sh
+            dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
+            mode: '0755'
+
+        - name: Check installed .NET SDKs
+          command: dotnet --list-sdks
+          register: installed_sdks
+          changed_when: false
+          failed_when: false
+
+        - name: Run dotnet install script
+          command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --install-dir /usr/share/dotnet"
+          when: dotnet_version not in installed_sdks.stdout
+
+        - name: Check if /usr/bin/dotnet exists
+          stat:
+            path: /usr/bin/dotnet
+          register: dotnet_binary
+
+        - name: Symlink dotnet binary to /usr/bin
+          file:
+            src: /usr/share/dotnet/dotnet
+            dest: /usr/bin/dotnet
+            state: link
+            force: true
+          when: not dotnet_binary.stat.exists or dotnet_binary.stat.islnk
+
+      # Run this block if the apt package is missing or for all installs to be safe
       when: ansible_architecture == "x86_64"
 
     - debug: 

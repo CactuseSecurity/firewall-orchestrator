@@ -639,7 +639,7 @@ Create table "import_control"
 	"control_id" BIGSERIAL,
 	"start_time" Timestamp NOT NULL Default now(),
 	"stop_time" Timestamp,
-	--"import_type_id" INTEGER NOT NULL,
+	"import_type_id" INTEGER NOT NULL,
 	"is_initial_import" Boolean NOT NULL Default FALSE,
 	"delimiter_group" Varchar(3) NOT NULL Default '|',
 	"delimiter_zone" Varchar(3) Default '%',

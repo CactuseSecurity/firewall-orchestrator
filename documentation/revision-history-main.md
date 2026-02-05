@@ -584,3 +584,7 @@ hotfix release
 A complete 80K lines rework of FWO, including
 - database changes to deduplicate rules (rule to gateway mapping now 1:n by introducing rulebase and rulebase_link tables)
 - migrating import module from mixed python/pgsql to pure python
+
+# 9.0.1 - 5.02.2026 MAIN
+- update rule_owner table for REST api
+- update import_control to allow flexible tracking of different import types

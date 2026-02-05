@@ -213,3 +213,6 @@ BEGIN
     END LOOP;
 END
 $$;
+
+-- rule_to_owner was intended as a rule–owner link table; replaced by rule_owner
+DROP TABLE IF EXISTS public.rule_to_owner CASCADE;

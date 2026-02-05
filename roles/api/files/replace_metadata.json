@@ -6948,18 +6948,6 @@
                   }
                 },
                 {
-                  "name": "ruleToOwnersByRemoved",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "removed",
-                      "table": {
-                        "name": "rule_to_owner",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "ruleTosByRtLastSeen",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -7062,18 +7050,6 @@
                       "column": "created",
                       "table": {
                         "name": "rule_svc_resolved",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "rule_to_owners",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "created",
-                      "table": {
-                        "name": "rule_to_owner",
                         "schema": "public"
                       }
                     }
@@ -11343,18 +11319,6 @@
                   }
                 },
                 {
-                  "name": "rule_to_owners",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "owner_id",
-                      "table": {
-                        "name": "rule_to_owner",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "selected_connections",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -15558,18 +15522,6 @@
                   }
                 },
                 {
-                  "name": "rule_to_owners",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_id",
-                      "table": {
-                        "name": "rule_to_owner",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rule_to_zones",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -18872,38 +18824,6 @@
                     "filter": {}
                   },
                   "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "rule_to_owner",
-                "schema": "public"
-              },
-              "object_relationships": [
-                {
-                  "name": "importControlByRemoved",
-                  "using": {
-                    "foreign_key_constraint_on": "removed"
-                  }
-                },
-                {
-                  "name": "import_control",
-                  "using": {
-                    "foreign_key_constraint_on": "created"
-                  }
-                },
-                {
-                  "name": "owner",
-                  "using": {
-                    "foreign_key_constraint_on": "owner_id"
-                  }
-                },
-                {
-                  "name": "rule",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_id"
-                  }
                 }
               ]
             },

@@ -1,5 +1,5 @@
 import traceback
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import fwo_globals
 import urllib3
@@ -133,10 +133,14 @@ class ImportStateController:
             past_date = parser.parse(self.state.last_full_import_date)
 
             # Ensure "now" is timezone-aware (UTC here)
-            now = datetime.now(UTC)
+            now = datetime.now(timezone.utc)  # noqa: UP017
 
             # Normalize pastDate too (convert to UTC if it had a tz)
-            past_date = past_date.replace(tzinfo=UTC) if past_date.tzinfo is None else past_date.astimezone(UTC)
+            past_date = (
+                past_date.replace(tzinfo=timezone.utc)  # noqa: UP017
+                if past_date.tzinfo is None
+                else past_date.astimezone(timezone.utc)  # noqa: UP017
+            )
 
             difference = now - past_date
 

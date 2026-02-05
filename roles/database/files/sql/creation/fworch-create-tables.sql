@@ -1179,21 +1179,12 @@ create table rule_owner
 (
     owner_id int,
     rule_metadata_id bigint,
-    rule_id bigint NOT NULL,
-    created bigint NOT NULL,
-    removed bigint,
-    owner_mapping_source_id bigint,
-    primary key (rule_id, owner_id, created)
+    --rule_id bigint NOT NULL,
+    --created bigint NOT NULL,
+    --removed bigint,
+    --owner_mapping_source_id bigint,
+    --primary key (rule_id, owner_id, created)
 );
-);
-
-create table rule_to_owner
-(
-    rule_id bigint NOT NULL,
-    owner_id int NOT NULL,
-    created bigint NOT NULL,
-    removed bigint,
- primary key (rule_id, owner_id, created)
 );
 
 create table recertification

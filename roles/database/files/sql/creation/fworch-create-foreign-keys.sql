@@ -42,7 +42,7 @@ ALTER TABLE gw_interface ADD CONSTRAINT gw_interface_routing_device_foreign_key 
 Alter table "import_changelog" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "import_config" add constraint "import_config_import_id_f_key"  foreign key ("import_id") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "import_config" add constraint "import_config_mgm_id_f_key"  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
-Alter table "import_control" add foreign key ("import_type_id") references "stm_import" ("import_type_id") on update restrict on delete cascade;
+--Alter table "import_control" add foreign key ("import_type_id") references "stm_import" ("import_type_id") on update restrict on delete cascade;
 Alter table "import_control" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "import_full_config" add constraint "import_full_config_import_id_f_key"  foreign key ("import_id") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "import_full_config" add constraint "import_full_config_mgm_id_f_key"  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;

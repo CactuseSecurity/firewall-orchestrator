@@ -291,6 +291,35 @@ class TestCheckConsistencyNetworkObjects:
         assert len(consistency_checker.issues) == 1
         assert consistency_checker.issues == {"circularNwObjRefs": [nw_group_obj.obj_uid]}
 
+    def test_check_network_object_consistency_with_two_groups_circular_reference(
+        self,
+        import_state_controller: ImportStateController,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        group_a = fwconfig_builder.add_standard_network_group_object(config, obj_members=[])
+        group_b = fwconfig_builder.add_standard_network_group_object(config, obj_members=[])
+
+        group_a.obj_member_refs = group_b.obj_uid
+        group_b.obj_member_refs = group_a.obj_uid
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_state=import_state_controller.state,
+        )
+
+        consistency_checker.check_network_object_consistency(
+            config=config, global_config=None, fix_unresolvable_refs=False
+        )
+
+        assert len(consistency_checker.issues) == 1
+        assert set(consistency_checker.issues["circularNwObjRefs"]) == {group_a.obj_uid, group_b.obj_uid}
+
     def test_check_network_object_consistency_with_empty_group(
         self,
         import_state_controller: ImportStateController,
@@ -519,6 +548,34 @@ class TestCheckConsistencyServiceObjects:
         assert len(consistency_checker.issues) == 1
         assert consistency_checker.issues == {"circularSvcObjRefs": [svc_group_obj.svc_uid]}
 
+    def test_check_service_object_consistency_with_two_groups_circular_reference(
+        self,
+        import_state_controller: ImportStateController,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        group_a = fwconfig_builder.add_standard_service_group_object(config)
+        group_b = fwconfig_builder.add_standard_service_group_object(config)
+
+        group_a.svc_member_refs = group_b.svc_uid
+        group_b.svc_member_refs = group_a.svc_uid
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_state=import_state_controller.state,
+        )
+
+        consistency_checker.check_service_object_consistency(
+            config=config, global_config=None, fix_inconsistencies=False
+        )
+        assert len(consistency_checker.issues) == 1
+        assert set(consistency_checker.issues["circularSvcObjRefs"]) == {group_a.svc_uid, group_b.svc_uid}
+
     def test_check_service_object_consistency_with_empty_group(
         self,
         import_state_controller: ImportStateController,
@@ -665,6 +722,50 @@ class TestCheckUserObjectConsistency:
         )
         assert len(consistency_checker.issues) == 1
         assert consistency_checker.issues == {"circularUserObjRefs": ["GroupWithCircularRef"]}
+
+    def test_check_user_object_with_two_groups_circular_reference(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+    ):
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+            user_object_count=1,
+            user_group_object_count=2,
+            user_group_object_member_count=2,
+        )
+
+        group_a = {
+            "user_typ": "group",
+            "user_uid": "GroupA",
+            "user_name": "GroupA",
+            "user_member_names": "GroupB",
+            "user_member_refs": "GroupB",
+        }
+
+        group_b = {
+            "user_typ": "group",
+            "user_uid": "GroupB",
+            "user_name": "GroupB",
+            "user_member_names": "GroupA",
+            "user_member_refs": "GroupA",
+        }
+
+        config.users["GroupA"] = group_a
+        config.users["GroupB"] = group_b
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_state=import_state_controller.state,
+        )
+
+        consistency_checker.check_user_object_consistency(
+            config=config, global_config=None, fix_unresolvable_refs=False
+        )
+        assert len(consistency_checker.issues) == 1
+        assert set(consistency_checker.issues["circularUserObjRefs"]) == {"GroupA", "GroupB"}
 
 
 class TestRulebaseConsistency:

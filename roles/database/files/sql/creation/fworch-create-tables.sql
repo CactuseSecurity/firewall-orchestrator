@@ -1178,12 +1178,12 @@ create table reqtask_owner
 create table rule_owner
 (
     owner_id int,
-    rule_metadata_id bigint
-    --rule_id bigint NOT NULL,
-    --created bigint NOT NULL,
-    --removed bigint,
-    --owner_mapping_source_id bigint,
-    --primary key (rule_id, owner_id, created)
+    rule_metadata_id bigint,
+    rule_id bigint NOT NULL,
+    created bigint NOT NULL,
+    removed bigint,
+    owner_mapping_source_id bigint,
+    primary key (rule_id, owner_id, created)
 );
 
 create table recertification

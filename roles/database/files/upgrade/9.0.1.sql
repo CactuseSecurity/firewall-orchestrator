@@ -5,10 +5,6 @@ ADD COLUMN IF NOT EXISTS created bigint,
 ADD COLUMN IF NOT EXISTS removed bigint,
 ADD COLUMN IF NOT EXISTS owner_mapping_source_id bigint; -- stm_ for source (ip_based, custom_field, name_field, manual) todo
 
-ALTER TABLE rule_owner
-DROP COLUMN IF EXISTS owner,
-DROP COLUMN IF EXISTS rule_metadatum;
-
 
 -- set not null if not done
 DO $$
@@ -39,6 +35,15 @@ BEGIN
     ) THEN
         ALTER TABLE rule_owner ALTER COLUMN owner_id SET NOT NULL;
     END IF;
+
+    IF EXISTS (
+		SELECT 1 FROM information_schema.columns
+		WHERE table_name = 'rule_owner'
+		  AND column_name = 'owner_mapping_source_id'
+		  AND is_nullable = 'YES'
+	) THEN
+		ALTER TABLE rule_owner ALTER COLUMN owner_mapping_source_id SET NOT NULL;
+	END IF;
 END $$;
 
 -- set primary key
@@ -104,7 +109,7 @@ VALUES
     (2, 'owner')
 ON CONFLICT (import_type_id) DO NOTHING;
 
-
+-- Set all imports to rule import - if import_type_id null
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -133,23 +138,57 @@ BEGIN
     IF EXISTS (
         SELECT 1
         FROM information_schema.columns
-        WHERE table_name='import_control_rule'
+        WHERE table_name='import_control'
           AND column_name='rule_changes_found'
     ) THEN
-        ALTER TABLE import_control_rule RENAME COLUMN rule_changes_found TO changes_found;
+        ALTER TABLE import_control RENAME COLUMN rule_changes_found TO changes_found;
     END IF;
 
     IF EXISTS (
         SELECT 1
         FROM information_schema.columns
-        WHERE table_name='import_control_rule'
+        WHERE table_name='import_control'
           AND column_name='any_changes_found'
     ) THEN
-        ALTER TABLE import_control_rule RENAME COLUMN any_changes_found TO policy_changes_found;
+        ALTER TABLE import_control RENAME COLUMN any_changes_found TO policy_changes_found;
     END IF;
 END$$;
 
--- runs without problems in pgadmin
+-- mgm_id now nullable
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'import_control'
+          AND column_name = 'mgm_id'
+          AND is_nullable = 'NO'
+    ) THEN
+        ALTER TABLE import_control
+        ALTER COLUMN mgm_id DROP NOT NULL;
+    END IF;
+END
+$$;
+
+-- constraint mgm_id not null, if import_type_id = 1
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'import_control_mgm_id_required_for_import_type_1'
+    ) THEN
+        ALTER TABLE import_control
+        ADD CONSTRAINT import_control_mgm_id_required_for_import_type_1
+        CHECK (
+            import_type_id <> 1
+            OR mgm_id IS NOT NULL
+        );
+    END IF;
+END
+$$;
+
+-- runs without problems in pgadmin - drops "old / unused" fields
 DO $$
 DECLARE
     col RECORD;

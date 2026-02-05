@@ -641,7 +641,7 @@ Create table "import_control"
 	"stop_time" Timestamp,
 	"import_type_id" INTEGER NOT NULL,
 	"is_initial_import" Boolean NOT NULL Default FALSE,
-	"mgm_id" Integer NOT NULL,
+	"mgm_id" Integer,
 	"successful_import" Boolean NOT NULL Default FALSE,
 	"policy_changes_found" Boolean NOT NULL Default FALSE, -- rule_changes_found
 	"changes_found" Boolean NOT NULL Default FALSE, -- any_changes_found
@@ -1176,7 +1176,7 @@ create table rule_owner
     rule_id bigint NOT NULL,
     created bigint NOT NULL,
     removed bigint,
-    owner_mapping_source_id bigint,
+    owner_mapping_source_id bigint NOT NULL,
     primary key (rule_id, owner_id, created)
 );
 

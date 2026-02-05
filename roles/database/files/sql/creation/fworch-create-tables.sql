@@ -641,19 +641,13 @@ Create table "import_control"
 	"stop_time" Timestamp,
 	"import_type_id" INTEGER NOT NULL,
 	"is_initial_import" Boolean NOT NULL Default FALSE,
-	"delimiter_group" Varchar(3) NOT NULL Default '|',
-	"delimiter_zone" Varchar(3) Default '%',
-	"delimiter_user" Varchar(3) Default '@',
-	"delimiter_list" Varchar(3) Default '|',
 	"mgm_id" Integer NOT NULL,
-	"last_change_in_config" Timestamp,
 	"successful_import" Boolean NOT NULL Default FALSE,
 	"any_changes_found" Boolean NOT NULL Default FALSE, -- policy_changes_found
 	"rule_changes_found" Boolean NOT NULL Default FALSE, -- changes_found
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
-	"is_full_import" BOOLEAN DEFAULT FALSE,
  primary key ("control_id")
 );
 

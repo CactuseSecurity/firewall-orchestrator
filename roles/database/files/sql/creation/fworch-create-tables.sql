@@ -643,8 +643,8 @@ Create table "import_control"
 	"is_initial_import" Boolean NOT NULL Default FALSE,
 	"mgm_id" Integer NOT NULL,
 	"successful_import" Boolean NOT NULL Default FALSE,
-	"any_changes_found" Boolean NOT NULL Default FALSE, -- policy_changes_found
-	"rule_changes_found" Boolean NOT NULL Default FALSE, -- changes_found
+	"policy_changes_found" Boolean NOT NULL Default FALSE, -- rule_changes_found
+	"changes_found" Boolean NOT NULL Default FALSE, -- any_changes_found
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,

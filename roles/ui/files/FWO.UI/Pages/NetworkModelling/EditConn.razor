@@ -120,12 +120,6 @@
                             </div>
                         }
                     </div>
-                   @* <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("C9009"))">
-                        <label for="cbx_publish" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("publish")):</label>
-                        <div class="col-sm-1">
-                            <input id="cbx_publish" type="checkbox" class="w-100" disabled="@ConnHandler.ReadOnly" @bind="ConnHandler.ActConn.IsPublished">
-                        </div>
-                    </div> *@
                 }
                 <br>
                 <div class="form-group row">
@@ -685,21 +679,12 @@
         workInProgress = true;
         ModellingConnection connBeforeSave = new(ConnHandler!.ActConn);
 
-        bool publishRequested = ConnHandler!.ActConn.IsRequested && ConnHandler!.ActConn.IsPublished;
-        if(publishRequested)
-        {
-            ConnHandler!.ActConn.Creator = userConfig.User.Name;
-            ConnHandler!.ActConn.IsRequested = false;
-            if(ConnHandler!.ActConn.AppId == null)
-            {
-                ConnHandler!.ActConn.AppId = ConnHandler!.ActConn.ProposedAppId;
-                ConnHandler!.ActConn.ProposedAppId = null;
-            }
-        }
+        bool publishRequestedInterface = ConnHandler!.PreparePublishInterface();
+
         if(await ConnHandler!.Save())
         {
             unchangedConn = new(ConnHandler!.ActConn);
-            if(publishRequested)
+            if(publishRequestedInterface)
             {
                 await PromoteTicketToDone();
             }
@@ -760,7 +745,6 @@
     {
         return unchangedConn.Name != ConnHandler?.ActConn.Name
             || unchangedConn.Reason != ConnHandler?.ActConn.Reason
-            || unchangedConn.IsPublished != ConnHandler?.ActConn.IsPublished
             || ConnHandler?.SrcAppServerToAdd.Count > 0
             || ConnHandler?.SrcAppServerToDelete.Count > 0
             || ConnHandler?.DstAppServerToAdd.Count > 0

@@ -684,15 +684,15 @@ namespace FWO.Services
         {
             try
             {
-                EnsurePublishedForOpenPermissions();
-                int? AppId = propose ? null : Application.Id;
-                int? ProposedAppId = propose ? Application.Id : null;
+                ActConn.AppId = propose ? null : Application.Id;
+                ActConn.ProposedAppId = propose ? Application.Id : null;
+                ActConn.IsPublished = !propose;
 
                 var Variables = new
                 {
                     name = ActConn.Name,
-                    appId = AppId,
-                    proposedAppId = ProposedAppId,
+                    appId = ActConn.AppId,
+                    proposedAppId = ActConn.ProposedAppId,
                     reason = ActConn.Reason,
                     isInterface = ActConn.IsInterface,
                     usedInterfaceId = ActConn.UsedInterfaceId,
@@ -710,7 +710,7 @@ namespace FWO.Services
                 {
                     ActConn.Id = returnIds[0].NewId;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"New {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}", AppId);
+                        $"New {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}", ActConn.AppId);
                     if (ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
                     {
                         await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers).ToList(),
@@ -749,7 +749,6 @@ namespace FWO.Services
         {
             try
             {
-                EnsurePublishedForOpenPermissions();
                 var Variables = new
                 {
                     id = ActConn.Id,
@@ -776,7 +775,7 @@ namespace FWO.Services
                 await AddNwObjects(DstAppServerToAdd, DstAppRolesToAdd, DstAreasToAdd, DstNwGroupsToAdd, ModellingTypes.ConnectionField.Destination);
                 await RemoveSvcObjects();
                 await AddSvcObjects(SvcToAdd, SvcGrpToAdd);
-                EnsureUsingAppsPermittedIfRestricted();
+                await EnsureUsingAppsPermittedIfRestricted();
                 await ApplyPermittedOwnersOnUpdate();
 
                 Connections[Connections.FindIndex(x => x.Id == ActConn.Id)] = ActConn;
@@ -791,9 +790,9 @@ namespace FWO.Services
             }
         }
 
-        private void EnsureUsingAppsPermittedIfRestricted()
+        private async Task EnsureUsingAppsPermittedIfRestricted()
         {
-            if (ActConn.InterfacePermission != InterfacePermissions.Restricted.ToString() ||
+            if (!ActConn.IsInterface || ActConn.InterfacePermission != InterfacePermissions.Restricted.ToString() ||
                 ActConnOrig.InterfacePermission == InterfacePermissions.Restricted.ToString())
             {
                 return;
@@ -802,10 +801,8 @@ namespace FWO.Services
             HashSet<int> existingIds = ActConn.PermittedOwners.Select(o => o.Id).ToHashSet();
             HashSet<int> pendingIds = PermittedOwnersToAdd.Select(o => o.Id).ToHashSet();
 
-            IEnumerable<int> usingAppIds = Connections
-                .Where(c => c.UsedInterfaceId == ActConn.Id && c.AppId != null)
-                .Select(c => c.AppId!.Value)
-                .Distinct();
+            List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = ActConn.Id });
+            IEnumerable<int> usingAppIds = usingConnections.Where(c => c.AppId != null).Select(c => c.AppId!.Value).Distinct();
 
             foreach (int appId in usingAppIds)
             {
@@ -820,15 +817,6 @@ namespace FWO.Services
                     PermittedOwnersToAdd.Add(owner);
                     ActConn.PermittedOwners.Add(owner);
                 }
-            }
-        }
-
-        private void EnsurePublishedForOpenPermissions()
-        {
-            if (ActConn.InterfacePermission == InterfacePermissions.Public.ToString() ||
-                ActConn.InterfacePermission == InterfacePermissions.Restricted.ToString())
-            {
-                ActConn.IsPublished = true;
             }
         }
 
@@ -849,6 +837,8 @@ namespace FWO.Services
                     var Variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        appRole.Id == DummyAppRole.Id ?
+                        $"Marked requested Interface: {ActConn.Name} as {field}" :
                         $"Added App Role {appRole.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
                 }
                 foreach (var area in areas)
@@ -889,6 +879,8 @@ namespace FWO.Services
                     var Variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
                     await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                        appRole.Id == DummyAppRole.Id ?
+                        $"Removed {field} marker from requested Interface: {ActConn.Name}" :
                         $"Removed App Role {appRole.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
                 }
                 foreach (var area in areas)

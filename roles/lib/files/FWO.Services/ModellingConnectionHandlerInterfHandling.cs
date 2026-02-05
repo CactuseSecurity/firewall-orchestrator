@@ -238,6 +238,24 @@ namespace FWO.Services
             ActConn.ExtraConfigsFromInterface = [];
         }
 
+        public bool PreparePublishInterface()
+        {
+            bool publishRequested = !AddMode && ActConn.IsInterface && ActConn.IsRequested && !ActConn.IsPublished &&
+                ActConn.InterfacePermission != InterfacePermissions.Private.ToString();
+            if(publishRequested)
+            {
+                ActConn.Creator = userConfig.User.Name;
+                ActConn.IsRequested = false;
+                ActConn.IsPublished = true;
+                if(ActConn.AppId == null)
+                {
+                    ActConn.AppId = ActConn.ProposedAppId;
+                    ActConn.ProposedAppId = null;
+                }
+            }
+            return publishRequested;
+        }
+
         private async Task DecommInterface()
         {
             await DecommInterfaceInDb();

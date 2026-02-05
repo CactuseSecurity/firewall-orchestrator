@@ -77,17 +77,6 @@
         }
         @if(!SelectInterfaceView && !DiffMode)
         {
-            @if(InterfacesPossible)
-            {
-                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
-                    <Template>
-                        @if(context.IsInterface)
-                        {
-                            @context.IsPublished.ShowAsHtml()
-                        }
-                    </Template>
-                </Column>
-            }
             @if(ShowModellingState)
             {
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("mod_state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">

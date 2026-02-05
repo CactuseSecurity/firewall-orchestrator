@@ -45,12 +45,14 @@ else
     [Parameter]
     public bool Readonly { get; set; } = false;
 
-    private FwoOwner? SelectedOwner;
     [Parameter]
     public List<FwoOwner> OwnersToAdd { get; set; } = [];
 
     [Parameter]
     public List<FwoOwner> OwnersToDelete { get; set; } = [];
+
+
+    private FwoOwner? SelectedOwner;
 
     private void AddOwner()
     {

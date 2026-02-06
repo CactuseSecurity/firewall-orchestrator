@@ -1,5 +1,3 @@
-using System;
-
 namespace FWO.Data.Middleware
 {
     /// <summary>Represents a Quartz job exposed to the UI.</summary>
@@ -10,7 +8,7 @@ namespace FWO.Data.Middleware
         public DateTimeOffset? NextFireTimeUtc { get; set; }
         public DateTimeOffset? LastFireTimeUtc { get; set; }
         public string IntervalDescription { get; set; } = "";
-        public string LastExecutionStatus { get; set; } = "";
+        public SchedulerJobExecutionStatus LastExecutionStatus { get; set; } = SchedulerJobExecutionStatus.None;
         public string LastExecutionError { get; set; } = "";
     }
 

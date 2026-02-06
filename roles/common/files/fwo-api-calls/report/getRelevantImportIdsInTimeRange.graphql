@@ -25,8 +25,8 @@ query getRelevantImportIdsInTimeRange(
           { stop_time: { _lte: $end_time } }
         ]
         successful_import: { _eq: true }
-        any_changes_found: { _eq: true }
-        rule_changes_found: { _eq: $ruleChangesFound }
+        policy_changes_found: { _eq: true }
+        changes_found: { _eq: $ruleChangesFound }
       }
       order_by: { stop_time: asc }
     ) {

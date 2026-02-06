@@ -1,4 +1,4 @@
-mutation addImport($mgmId: Int!, $isFullImport: Boolean!, $isInitialImport: Boolean!, $importTypeId: Int!) { 
+mutation addImport($mgmId: Int!, $isInitialImport: Boolean!, $importTypeId: Int!) { 
     insert_import_control(objects: {mgm_id: $mgmId, is_initial_import: $isInitialImport, import_type_id: $importTypeId}) 
     { returning { control_id } } 
 }

@@ -160,7 +160,14 @@ namespace FWO.Test
             {"user_modified","user_modified" },
             {"interface_permission","Interface Permission" },
             {"Public","Public" },
-            {"edit_connection","Edit Connection" }
+            {"edit_connection","Edit Connection" },
+            {"replace","Replace" },
+            {"E9017","ErrorText" },
+            {"from_ticket","From Ticket" },
+            {"U9012","Requested Interface" },
+            {"E9004","Missing Source/Destination or Service" },
+            {"E9005","Source/Destination changed" },
+            {"E9020","Interface in use by other app" }
         };
 
         public override string GetText(string key)

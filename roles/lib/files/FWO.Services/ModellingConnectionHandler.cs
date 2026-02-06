@@ -501,7 +501,6 @@ namespace FWO.Services
             }
         }
 
-
         public void Reset()
         {
             ActConn = ActConnOrig;

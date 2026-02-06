@@ -284,16 +284,12 @@ namespace FWO.Services
             return null;
         }
 
-        protected async Task<bool> CheckInterfaceInUse(ModellingConnection conn)
+        protected async Task<bool> InitUsingConnections(int connId)
         {
             try
             {
-                UsingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = conn.Id });
-                if (UsingConnections.Count == 0)
-                {
-                    return false;
-                }
-                return true;
+                UsingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = connId });
+                return UsingConnections.Count > 0;
             }
             catch (Exception exception)
             {

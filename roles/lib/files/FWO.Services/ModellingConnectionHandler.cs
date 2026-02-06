@@ -345,7 +345,7 @@ namespace FWO.Services
             await UpdateConnectionInDb();
             if (ActConn.IsInterface && ActConn.IsPublished)
             {
-                await UpdateStatusInterfaceUsersPublished(ActConn.Id);
+                await UpdateStatusInterfaceUsersPublished();
             }
         }
 
@@ -529,8 +529,7 @@ namespace FWO.Services
             HashSet<int> existingIds = ActConn.PermittedOwners.Select(o => o.Id).ToHashSet();
             HashSet<int> pendingIds = PermittedOwnersToAdd.Select(o => o.Id).ToHashSet();
 
-            List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = ActConn.Id });
-            IEnumerable<int> usingAppIds = usingConnections.Where(c => c.AppId != null).Select(c => c.AppId!.Value).Distinct();
+            IEnumerable<int> usingAppIds = UsingConnections.Where(c => c.AppId != null).Select(c => c.AppId!.Value).Distinct();
 
             foreach (int appId in usingAppIds)
             {

@@ -238,7 +238,7 @@ namespace FWO.Ui.Services
             if (conn.IsInterface)
             {
                 InterfaceName = conn.Name ?? "";
-                await CheckInterfaceInUse(conn);
+                await InitUsingConnections(conn.Id);
             }
             ShowUsingConnectionsMode = true;
         }
@@ -249,7 +249,7 @@ namespace FWO.Ui.Services
             ConnToDelete = conn;
             if (ConnToDelete.IsInterface)
             {
-                if (await CheckInterfaceInUse(ConnToDelete))
+                if (await InitUsingConnections(ConnToDelete.Id))
                 {
                     Message = userConfig.GetText("E9013") + ConnToDelete.Name;
                     ConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode,

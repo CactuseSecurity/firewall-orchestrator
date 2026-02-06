@@ -41,6 +41,7 @@ namespace FWO.Services
                     ActConn.PermittedOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(ModellingQueries.getPermittedOwnersForConnection, new { connectionId = ActConn.Id });
                     PermittedOwnersToAdd.Clear();
                     PermittedOwnersToDelete.Clear();
+                    await InitUsingConnections(ActConn.Id);
                     if (!AddMode && !ReadOnly)
                     {
                         SrcFix = ActConn.SourceFilled();
@@ -71,8 +72,7 @@ namespace FWO.Services
             if (ActConn.InterfacePermission == InterfacePermissions.Private.ToString() &&
                 ActConnOrig.InterfacePermission != InterfacePermissions.Private.ToString())
             {
-                bool otherAppUsesInterface = Connections.Any(c => c.UsedInterfaceId == ActConn.Id && c.AppId != ActConn.AppId);
-                if (otherAppUsesInterface)
+                if (UsingConnections.Any(c => c.AppId != ActConn.AppId))
                 {
                     DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9020"), true);
                     return false;
@@ -177,7 +177,7 @@ namespace FWO.Services
 
         private async Task ReplaceLinks()
         {
-            if (await CheckInterfaceInUse(ActConn))
+            if (UsingConnections.Count > 0)
             {
                 var Variables = new
                 {
@@ -197,7 +197,7 @@ namespace FWO.Services
 
         private async Task<bool> DeleteRequestedInterface()
         {
-            if (await CheckInterfaceInUse(ActConn))
+            if (UsingConnections.Count > 0)
             {
                 DisplayMessageInUi(null, userConfig.GetText("delete_interface"), userConfig.GetText("E9016"), true);
                 return false;
@@ -326,7 +326,7 @@ namespace FWO.Services
         private async Task DecommInterface()
         {
             await DecommInterfaceInDb();
-            await UpdateStatusInterfaceUsersDecomm(ActConn.Id);
+            await UpdateStatusInterfaceUsersDecomm();
         }
 
         private async Task DecommInterfaceInDb()
@@ -356,12 +356,11 @@ namespace FWO.Services
             }
         }
 
-        private async Task UpdateStatusInterfaceUsersDecomm(int interfaceId)
+        private async Task UpdateStatusInterfaceUsersDecomm()
         {
             try
             {
-                List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = interfaceId });
-                foreach (var conn in usingConnections.Where(c => !c.GetBoolProperty(ConState.InterfaceDecommissioned.ToString())))
+                foreach (var conn in UsingConnections.Where(c => !c.GetBoolProperty(ConState.InterfaceDecommissioned.ToString())))
                 {
                     conn.AddProperty(ConState.InterfaceDecommissioned.ToString());
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, new { id = conn.Id, connProp = conn.Properties });
@@ -373,12 +372,11 @@ namespace FWO.Services
             }
         }
 
-        private async Task UpdateStatusInterfaceUsersPublished(int interfaceId)
+        private async Task UpdateStatusInterfaceUsersPublished()
         {
             try
             {
-                List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = interfaceId });
-                foreach (var conn in usingConnections.Where(c => c.GetBoolProperty(ConState.InterfaceRequested.ToString())))
+                foreach (var conn in UsingConnections.Where(c => c.GetBoolProperty(ConState.InterfaceRequested.ToString())))
                 {
                     conn.RemoveProperty(ConState.InterfaceRequested.ToString());
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, new { id = conn.Id, connProp = conn.Properties });

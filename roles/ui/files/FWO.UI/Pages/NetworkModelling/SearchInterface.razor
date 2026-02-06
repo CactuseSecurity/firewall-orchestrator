@@ -68,7 +68,8 @@
             try
             {
                 FirstTry = false;
-                AllVisibleInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getPublishedInterfaces);
+                AllVisibleInterfaces = [.. (await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getPublishedInterfaces))
+                    .Where(i => i.InterfacePermission != InterfacePermissions.Private.ToString())];
                 RefreshSelectionList();
                 InitComplete = true;
             }

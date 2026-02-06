@@ -71,8 +71,6 @@ namespace FWO.Services
         public bool EditSvcGrpMode { get; set; } = false;
         public bool DeleteSvcGrpMode { get; set; } = false;
         public bool DisplaySvcGrpMode { get; set; } = false;
-        public List<FwoOwner> PermittedOwnersToAdd { get; set; } = [];
-        public List<FwoOwner> PermittedOwnersToDelete { get; set; } = [];
         public Func<Task> RefreshParent { get; set; }
         public ModellingAppRole DummyAppRole { get; set; } = new();
         public int LastWidth { get; set; } = GlobalConst.kGlobLibraryWidth;
@@ -393,21 +391,6 @@ namespace FWO.Services
             SyncPermittedOwnersChanges();
         }
 
-        private void SyncPermittedOwnersChanges()
-        {
-            foreach (var owner in PermittedOwnersToDelete)
-            {
-                ActConn.PermittedOwners.RemoveAll(o => o.Id == owner.Id);
-            }
-            foreach (var owner in PermittedOwnersToAdd)
-            {
-                if (!ActConn.PermittedOwners.Any(o => o.Id == owner.Id))
-                {
-                    ActConn.PermittedOwners.Add(owner);
-                }
-            }
-        }
-
         private async Task AddConnectionToDb(bool propose = false)
         {
             try
@@ -518,107 +501,6 @@ namespace FWO.Services
             }
         }
 
-        private async Task EnsureUsingAppsPermittedIfRestricted()
-        {
-            if (!ActConn.IsInterface || ActConn.InterfacePermission != InterfacePermissions.Restricted.ToString() ||
-                ActConnOrig.InterfacePermission == InterfacePermissions.Restricted.ToString())
-            {
-                return;
-            }
-
-            HashSet<int> existingIds = ActConn.PermittedOwners.Select(o => o.Id).ToHashSet();
-            HashSet<int> pendingIds = PermittedOwnersToAdd.Select(o => o.Id).ToHashSet();
-
-            IEnumerable<int> usingAppIds = UsingConnections.Where(c => c.AppId != null).Select(c => c.AppId!.Value).Distinct();
-
-            foreach (int appId in usingAppIds)
-            {
-                if (existingIds.Contains(appId) || pendingIds.Contains(appId))
-                {
-                    continue;
-                }
-
-                FwoOwner? owner = AllApps.FirstOrDefault(o => o.Id == appId);
-                if (owner != null)
-                {
-                    PermittedOwnersToAdd.Add(owner);
-                    ActConn.PermittedOwners.Add(owner);
-                }
-            }
-        }
-
-        private async Task ApplyPermittedOwnersOnInsert()
-        {
-            if (!ActConn.IsInterface || ActConn.InterfacePermission != InterfacePermissions.Restricted.ToString())
-            {
-                PermittedOwnersToAdd.Clear();
-                PermittedOwnersToDelete.Clear();
-                return;
-            }
-            await AddPermittedOwners(PermittedOwnersToAdd);
-        }
-
-        private async Task ApplyPermittedOwnersOnUpdate()
-        {
-            if (!ActConn.IsInterface || ActConn.InterfacePermission != InterfacePermissions.Restricted.ToString())
-            {
-                await RemoveAllPermittedOwners();
-                ActConn.PermittedOwners.Clear();
-                PermittedOwnersToAdd.Clear();
-                PermittedOwnersToDelete.Clear();
-                return;
-            }
-            await RemovePermittedOwners(PermittedOwnersToDelete);
-            await AddPermittedOwners(PermittedOwnersToAdd);
-        }
-
-        private async Task AddPermittedOwners(List<FwoOwner> owners)
-        {
-            try
-            {
-                foreach (int ownerId in owners.Select(o => o.Id).Distinct().Where(id => id > 0))
-                {
-                    var variables = new { connectionId = ActConn.Id, appId = ownerId };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addPermittedOwner, variables);
-                    FwoOwner? owner = owners.FirstOrDefault(o => o.Id == ownerId);
-                    string ownerLabel = owner != null ? owner.Display(userConfig.GetText("common_service")) : ownerId.ToString();
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"Added permitted owner {ownerLabel} to {kInterface}: {ActConn.Name}", Application.Id);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
-            }
-        }
-
-        private async Task RemovePermittedOwners(List<FwoOwner> owners)
-        {
-            try
-            {
-                foreach (int ownerId in owners.Select(o => o.Id).Distinct().Where(id => id > 0))
-                {
-                    var variables = new { connectionId = ActConn.Id, appId = ownerId };
-                    await apiConnection.SendQueryAsync<FwoOwner>(ModellingQueries.deletePermittedOwner, variables);
-                    FwoOwner? owner = owners.FirstOrDefault(o => o.Id == ownerId);
-                    string ownerLabel = owner != null ? owner.Display(userConfig.GetText("common_service")) : ownerId.ToString();
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"Removed permitted owner {ownerLabel} from {kInterface}: {ActConn.Name}", Application.Id);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
-            }
-        }
-
-        private async Task RemoveAllPermittedOwners()
-        {
-            List<FwoOwner> existing = await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                ModellingQueries.getPermittedOwnersForConnection,
-                new { connectionId = ActConn.Id });
-            await RemovePermittedOwners(existing);
-        }
 
         public void Reset()
         {

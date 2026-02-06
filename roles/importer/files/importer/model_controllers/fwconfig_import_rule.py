@@ -131,18 +131,13 @@ class FwConfigImportRule:
             [(prev_rules[rule_uid], curr_rules[rule_uid]) for rule_uid in changed_rule_uids],
         )
 
-        num_changed_rules, num_moved_rules = self.count_changed_and_moved_rules(
-            {
-                rule_uid: (prev_rules[rule_uid], prev_rule_to_rulebase[rule_uid])
-                for rule_uid in (removed_rule_uids | changed_rule_uids)
-            },
-            {
-                rule_uid: (curr_rules[rule_uid], curr_rule_to_rulebase[rule_uid])
-                for rule_uid in (added_rule_uids | changed_rule_uids)
-            },
+        num_moved_rules = self.count_moved_rules(
+            {rule_uid: (prev_rules[rule_uid], prev_rule_to_rulebase[rule_uid]) for rule_uid in changed_rule_uids},
+            {rule_uid: (curr_rules[rule_uid], curr_rule_to_rulebase[rule_uid]) for rule_uid in changed_rule_uids},
         )
         num_added_rules = len(added_rule_uids)
         num_removed_rules = len(removed_rule_uids)
+        num_changed_rules = len(changed_rule_uids)
 
         self.import_details.state.stats.increment_rulebase_add_count(num_added_rulebases)
         self.import_details.state.stats.increment_rulebase_delete_count(num_deleted_rulebases)
@@ -1181,32 +1176,22 @@ class FwConfigImportRule:
         new_dict = new_rule.model_dump(exclude=exclude)
         return old_dict != new_dict
 
-    def rule_did_change(self, old_rule: RuleNormalized, new_rule: RuleNormalized) -> bool:
-        """
-        Checks if a rule has changed, excluding moves (change in rule_num or rulebase) and values not directly associated with rule entry in db.
-        """
-        exclude = {"last_hit", "rule_num", "rule_src_zone", "rule_dst_zone", "rule_num_numeric"}
-        old_dict = old_rule.model_dump(exclude=exclude)
-        new_dict = new_rule.model_dump(exclude=exclude)
-        return old_dict != new_dict
-
-    def count_changed_and_moved_rules(
+    def count_moved_rules(
         self,
         removed_rules: dict[str, tuple[RuleNormalized, str]],
         added_rules: dict[str, tuple[RuleNormalized, str]],
-    ) -> tuple[int, int]:
+    ) -> int:
         """
-        Counts the number of changed and moved rules based on comparison of inserted and removed rules.
+        Counts the number of moved rules based on comparison of removed and added (= changed) rules.
 
         Args:
-            removed_rules (dict[str, tuple[RuleNormalized, str]]): A dictionary mapping rule_uid -> (RuleNormalized, rulebase_uid) for removed and changed rules.
-            added_rules (dict[str, tuple[RuleNormalized, str]]): A dictionary mapping rule_uid -> (RuleNormalized, rulebase_uid) for added and changed rules.
+            removed_rules (dict[str, tuple[RuleNormalized, str]]): A dictionary mapping rule_uid -> (RuleNormalized, rulebase_uid) for removed rules.
+            added_rules (dict[str, tuple[RuleNormalized, str]]): A dictionary mapping rule_uid -> (RuleNormalized, rulebase_uid) for added rules.
 
         Returns:
-            tuple[int, int]: A tuple containing the number of changed rules and the number of moved rules.
+            int: The number of moved rules.
 
         """
-        changed_rules = 0
         moved_rules = 0
 
         for rule_uid in set(removed_rules.keys()) & set(added_rules.keys()):
@@ -1216,6 +1201,4 @@ class FwConfigImportRule:
             new_rule_num = new_rule.rule_num_numeric
             if old_rb_uid != new_rb_uid or old_rule_num != new_rule_num:
                 moved_rules += 1
-            if self.rule_did_change(old_rule, new_rule):
-                changed_rules += 1
-        return changed_rules, moved_rules
+        return moved_rules

@@ -184,12 +184,8 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         )
 
         global_state.previous_config = config
-        normalized_config = copy.deepcopy(config)
-        # when mocking new config, rule_num_numeric must be set to 0.0
-        for rulebase in normalized_config.rulebases:
-            for rule in rulebase.rules.values():
-                rule.rule_num_numeric = 0.0
-        global_state.normalized_config = normalized_config
+        global_state.normalized_config = copy.deepcopy(config)
+        fwconfig_builder.initialize_rule_num_numerics(global_state.previous_config)
         fwconfig_import_rule.normalized_config = global_state.normalized_config
 
         rulebase = global_state.normalized_config.rulebases[0]

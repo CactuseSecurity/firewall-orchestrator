@@ -83,7 +83,7 @@ Note that the following domains (and their sub-domains) must be reachable throug
     github.com, api.github.com
     githubusercontent.com
     docker.com (and subdomains)
-    docker.io, auth.docker.io
+    docker.io (and subdomains)
     hasura.io, releases.hasura.io
     postgresql.org
     microsoft.com

@@ -75,6 +75,12 @@ class ServiceProvider:
     def dispose_rule_order_service(self, import_id: int = 0):
         self.dispose_service(Services.RULE_ORDER_SERVICE, import_id=import_id)
 
+    def reset(self):
+        self._services = {}
+        self._singletons = {}
+        self._import = {}
+        self._management = {}
+
     def get_service(self, key: Services, import_id: int = 0, management_id: int = 0) -> Any:
         """
         Get an instance of a service based on its lifetime. The service will be instantiated if it does not already exist.

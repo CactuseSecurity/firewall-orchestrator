@@ -1,5 +1,5 @@
 import traceback
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import fwo_globals
 import urllib3
@@ -124,7 +124,7 @@ class ImportStateController:
             FWOLogger.error(
                 f"import_management - error while getting past import details for mgm={self.state.mgm_details.mgm_id!s}: {traceback.format_exc()!s}"
             )
-            raise
+            raise FwoImporterError(f"Error while getting past import details: {traceback.format_exc()!s}")
 
         if self.state.last_full_import_date != "":
             self.state.last_successful_import = self.state.last_full_import_date
@@ -133,10 +133,14 @@ class ImportStateController:
             past_date = parser.parse(self.state.last_full_import_date)
 
             # Ensure "now" is timezone-aware (UTC here)
-            now = datetime.now(UTC)
+            now = datetime.now(timezone.utc)  # noqa: UP017
 
             # Normalize pastDate too (convert to UTC if it had a tz)
-            past_date = past_date.replace(tzinfo=UTC) if past_date.tzinfo is None else past_date.astimezone(UTC)
+            past_date = (
+                past_date.replace(tzinfo=timezone.utc)  # noqa: UP017
+                if past_date.tzinfo is None
+                else past_date.astimezone(timezone.utc)  # noqa: UP017
+            )
 
             difference = now - past_date
 
@@ -162,7 +166,7 @@ class ImportStateController:
             result = self.api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_action: {e!s}")
-            raise
+            raise FwoImporterError(f"Error while getting stm_action: {e!s}")
 
         action_map: dict[str, int] = {}
         for action in result["data"]["stm_action"]:
@@ -175,7 +179,7 @@ class ImportStateController:
             result = self.api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_track: {e!s}")
-            raise
+            raise FwoImporterError(f"Error while getting stm_track: {e!s}")
 
         track_map: dict[str, int] = {}
         for track in result["data"]["stm_track"]:
@@ -188,7 +192,7 @@ class ImportStateController:
             result = self.api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_link_type: {e!s}")
-            raise
+            raise FwoImporterError(f"Error while getting stm_link_type: {e!s}")
 
         link_map: dict[str, int] = {}
         for track in result["data"]["stm_link_type"]:
@@ -202,7 +206,7 @@ class ImportStateController:
             result = self.api_call.call(query=get_colors_query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_color: {e!s}")
-            raise
+            raise FwoImporterError(f"Error while getting stm_color: {e!s}")
 
         color_map: dict[str, int] = {}
         for color in result["data"]["stm_color"]:
@@ -215,7 +219,7 @@ class ImportStateController:
             result = self.api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_obj_typ: {e!s}")
-            raise
+            raise FwoImporterError(f"Error while getting stm_obj_typ: {e!s}")
 
         nwobj_type_map: dict[str, int] = {}
         for nw_type in result["data"]["stm_obj_typ"]:
@@ -228,7 +232,7 @@ class ImportStateController:
             result = self.api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_svc_typ: {e!s}")
-            raise
+            raise FwoImporterError(f"Error while getting stm_svc_typ: {e!s}")
 
         svc_type_map: dict[str, int] = {}
         for svc_type in result["data"]["stm_svc_typ"]:
@@ -241,7 +245,7 @@ class ImportStateController:
             result = self.api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_usr_typ: {e!s}")
-            raise
+            raise FwoImporterError(f"Error while getting stm_usr_typ: {e!s}")
 
         user_type_map: dict[str, int] = {}
         for usr_type in result["data"]["stm_usr_typ"]:
@@ -254,7 +258,7 @@ class ImportStateController:
             result = self.api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_ip_proto: {e!s}")
-            raise
+            raise FwoImporterError(f"Error while getting stm_ip_proto: {e!s}")
 
         protocol_map: dict[str, int] = {}
         for proto in result["data"]["stm_ip_proto"]:
@@ -279,7 +283,7 @@ class ImportStateController:
         except Exception:
             FWOLogger.error("Error while getting gateways")
             self.state.gateway_map = {}
-            raise
+            raise FwoImporterError("Error while getting gateways")
 
         m = {}
         for gw in result["data"]["device"]:
@@ -308,7 +312,7 @@ class ImportStateController:
         except Exception:
             FWOLogger.error("Error while getting managements")
             self.state.management_map = {}
-            raise
+            raise FwoImporterError("Error while getting managements")
 
         m: dict[str, int] = {}
         mgm = result["data"]["management"][0]

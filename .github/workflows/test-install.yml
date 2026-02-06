@@ -54,6 +54,8 @@ jobs:
       - run: pip install -r scripts/customizing/app_data_import/requirements-for-app-data-import.txt
 
       - uses: astral-sh/ruff-action@57714a7c8a2e59f32539362ba31877a1957dded1
+        with:
+          version: "0.14.8"
 
       - run: pyright
 

@@ -85,7 +85,6 @@ class FwoApiCall:
     def set_import_lock(
         self,
         mgm_details: ManagementController,
-        is_full_import: int,
         is_initial_import: int,
     ) -> int:
         import_id = -1
@@ -96,7 +95,6 @@ class FwoApiCall:
                 lock_mutation,
                 query_variables={
                     "mgmId": mgm_id,
-                    "isFullImport": is_full_import,
                     "isInitialImport": is_initial_import,
                 },
             )

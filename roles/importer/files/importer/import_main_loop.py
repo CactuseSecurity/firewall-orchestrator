@@ -60,7 +60,6 @@ def import_single_management(
     force: bool,
     fwo_major_version: int,
     sleep_timer: int,
-    is_full_import: bool,
     suppress_consistency_check: bool = False,
 ):
     wait_with_shutdown_check(0)
@@ -72,7 +71,6 @@ def import_single_management(
         force,
         fwo_major_version,
         clear,
-        is_full_import,
     )
 
     register_global_state(import_state)
@@ -127,7 +125,6 @@ def main_loop(
     sleep_timer: int,
     clear: bool,
     force: bool,
-    is_full_import: bool,
 ):
     wait_with_shutdown_check(0)
 
@@ -175,7 +172,6 @@ def main_loop(
             force,
             fwo_major_version,
             sleep_timer,
-            is_full_import,
         )
 
     ServiceProvider().dispose_global_state()
@@ -190,7 +186,6 @@ def main(
     suppress_certificate_warnings: bool | None = None,
     clear: bool = False,
     force: bool = False,
-    is_full_import: bool = False,
 ):
     FWOLogger(debug_level)
     service_provider = init_service_provider()
@@ -223,7 +218,6 @@ def main(
             sleep_timer,
             clear,
             force,
-            is_full_import,
         )
         if clear:
             break

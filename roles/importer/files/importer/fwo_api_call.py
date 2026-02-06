@@ -95,6 +95,7 @@ class FwoApiCall:
                 lock_mutation,
                 query_variables={
                     "mgmId": mgm_id,
+                    "importTypeId": 1,
                     "isInitialImport": is_initial_import,
                 },
             )
@@ -163,8 +164,8 @@ class FwoApiCall:
                 "stopTime": datetime.datetime.now().isoformat(),
                 "importId": import_id,
                 "success": success,
-                "anyChangesFound": import_stats.get_total_change_number() > 0,
-                "ruleChangesFound": import_stats.get_rule_change_number() > 0,
+                "policyChangesFound": import_stats.get_total_change_number() > 0,
+                "changesFound": import_stats.get_rule_change_number() > 0,
                 "changeNumber": import_stats.get_rule_change_number(),
             }
 

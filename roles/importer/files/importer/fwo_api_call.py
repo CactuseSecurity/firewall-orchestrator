@@ -164,8 +164,8 @@ class FwoApiCall:
                 "stopTime": datetime.datetime.now().isoformat(),
                 "importId": import_id,
                 "success": success,
-                "policyChangesFound": import_stats.get_total_change_number() > 0,
-                "changesFound": import_stats.get_rule_change_number() > 0,
+                "changesFound": import_stats.get_total_change_number() > 0,
+                "policyChangesFound": import_stats.get_rule_change_number() > 0,
                 "changeNumber": import_stats.get_rule_change_number(),
             }
 

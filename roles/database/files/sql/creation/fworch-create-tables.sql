@@ -588,11 +588,23 @@ Create table "stm_obj_typ"
  primary key ("obj_typ_id")
 );
 
+CREATE TABLE "stm_owner_mapping_source"
+(
+    "owner_mapping_source_type_id" BIGINT PRIMARY KEY,
+    "owner_mapping_source_type_name" Varchar NOT NULL
+);
+
 Create table "stm_track"
 (
 	"track_id" Integer,
 	"track_name" Varchar NOT NULL,
  primary key ("track_id")
+);
+
+CREATE TABLE "stm_import"
+(
+    "import_type_id" Integer PRIMARY KEY,
+    "import_type_name" Varchar NOT NULL
 );
 
 Create table "stm_ip_proto"
@@ -627,20 +639,15 @@ Create table "import_control"
 	"control_id" BIGSERIAL,
 	"start_time" Timestamp NOT NULL Default now(),
 	"stop_time" Timestamp,
+	"import_type_id" INTEGER NOT NULL,
 	"is_initial_import" Boolean NOT NULL Default FALSE,
-	"delimiter_group" Varchar(3) NOT NULL Default '|',
-	"delimiter_zone" Varchar(3) Default '%',
-	"delimiter_user" Varchar(3) Default '@',
-	"delimiter_list" Varchar(3) Default '|',
-	"mgm_id" Integer NOT NULL,
-	"last_change_in_config" Timestamp,
+	"mgm_id" Integer,
 	"successful_import" Boolean NOT NULL Default FALSE,
-	"any_changes_found" Boolean NOT NULL Default FALSE,
-	"rule_changes_found" Boolean NOT NULL Default FALSE,
+	"policy_changes_found" Boolean NOT NULL Default FALSE, -- rule_changes_found
+	"changes_found" Boolean NOT NULL Default FALSE, -- any_changes_found
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
-	"is_full_import" BOOLEAN DEFAULT FALSE,
  primary key ("control_id")
 );
 
@@ -1043,16 +1050,12 @@ create table reqtask_owner
 create table rule_owner
 (
     owner_id int,
-    rule_metadata_id bigint
-);
-
-create table rule_to_owner
-(
+    rule_metadata_id bigint,
     rule_id bigint NOT NULL,
-    owner_id int NOT NULL,
     created bigint NOT NULL,
     removed bigint,
- primary key (rule_id, owner_id, created)
+    owner_mapping_source_id bigint NOT NULL,
+    primary key (rule_id, owner_id, created)
 );
 
 create table recertification

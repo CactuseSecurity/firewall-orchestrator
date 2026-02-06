@@ -20,6 +20,7 @@ DEFAULT_GUARDICORE_LABELS_ENDPOINT: str = "/api/v3.0/api/automation_api/v1/label
 DEFAULT_GUARDICORE_FIELD: str = "numeric_ip_addresses"
 DEFAULT_GUARDICORE_KEY_APPZONE: str = "AppZone"
 DEFAULT_GUARDICORE_KEY_APPROLE: str = "AppRole"
+HTTP_CONTENT_TYPE_JSON: str = "application/json"
 HTTP_OK: int = 200
 
 GRAPHQL_QUERY: str = """
@@ -170,7 +171,7 @@ def apply_ssl_settings(session: requests.Session, verify_setting: bool | str) ->
 
 def login_fwo(user: str, password: str, middleware_url: str, verify_ssl: bool | str, timeout: int) -> str:
     payload: dict[str, str] = {"Username": user, "Password": password}
-    headers: dict[str, str] = {"Content-Type": "application/json"}
+    headers: dict[str, str] = {"Content-Type": HTTP_CONTENT_TYPE_JSON}
     endpoint = middleware_url.rstrip("/") + "/api/AuthenticationToken/Get"
 
     with requests.Session() as session:
@@ -187,7 +188,7 @@ def login_fwo(user: str, password: str, middleware_url: str, verify_ssl: bool | 
 
 def login_guardicore(user: str, password: str, base_url: str, verify_ssl: bool | str, timeout: int) -> str:
     payload: dict[str, str] = {"username": user, "password": password}
-    headers: dict[str, str] = {"Content-Type": "application/json"}
+    headers: dict[str, str] = {"Content-Type": HTTP_CONTENT_TYPE_JSON}
     endpoint = base_url.rstrip("/") + "/api/v3.0/authenticate"
 
     with requests.Session() as session:
@@ -213,7 +214,7 @@ def login_guardicore(user: str, password: str, base_url: str, verify_ssl: bool |
 
 def run_graphql_query(config: FwoConfig, query: str) -> dict[str, Any]:
     headers: dict[str, str] = {
-        "Content-Type": "application/json",
+        "Content-Type": HTTP_CONTENT_TYPE_JSON,
         "Authorization": f"Bearer {config.jwt}",
         "x-hasura-role": config.role,
     }
@@ -324,7 +325,7 @@ def to_guardicore_payload(items: list[LabelItem]) -> list[dict[str, Any]]:
 def post_guardicore_labels(config: GuardicoreConfig, payload: list[dict[str, Any]]) -> None:
     headers = {
         "Authorization": f"Bearer {config.token}",
-        "Content-Type": "application/json",
+        "Content-Type": HTTP_CONTENT_TYPE_JSON,
     }
     endpoint = config.base_url.rstrip("/") + DEFAULT_GUARDICORE_LABELS_ENDPOINT
 

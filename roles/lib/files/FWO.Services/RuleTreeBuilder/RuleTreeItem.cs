@@ -53,7 +53,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Backing field for IsExpanded.
         /// </summary>
-        private bool _isExpanded = true;
+        private bool _isExpanded = false;
         /// <summary>
         /// Flag to mark tree items that are visible
         /// </summary>
@@ -73,6 +73,8 @@ namespace FWO.Services.RuleTreeBuilder
 
         #endregion
 
+        #region Methods - Public
+
         /// <summary>
         /// A strongly typed version of the generic AddItem method.
         /// </summary>
@@ -81,6 +83,10 @@ namespace FWO.Services.RuleTreeBuilder
             return base.AddItem(item ?? new RuleTreeItem(), position, header, isRoot, addToFlatList, addToChildren,
                 setLastAddedItem) as RuleTreeItem ?? new RuleTreeItem();
         }
+
+        #endregion
+
+        #region Methods - Private
 
         private void OnIsExpandedChanged()
         {
@@ -97,20 +103,25 @@ namespace FWO.Services.RuleTreeBuilder
 
                     if (IsExpanded)
                     {
-                        if (item != this && item.Parent != null && !item.Parent.IsExpanded)
-                        {
-                            item.IsVisible = false;
-                        }
-                        else
-                        {
-                            item.IsVisible = true;
-                        }
+                        ExpandItem(item);
                     }
                     else
                     {
                         item.IsVisible = false;
                     }
                 }
+            }
+        }
+
+        private void ExpandItem(RuleTreeItem item)
+        {
+            if (item != this && item.Parent != null && !item.Parent.IsExpanded)
+            {
+                item.IsVisible = false;
+            }
+            else
+            {
+                item.IsVisible = true;
             }
         }
 
@@ -149,5 +160,7 @@ namespace FWO.Services.RuleTreeBuilder
                 current = current.Parent;
             }
         }
+
+        #endregion
     }
 }

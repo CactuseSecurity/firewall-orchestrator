@@ -133,7 +133,7 @@ namespace FWO.Report
             {
                 try
                 {
-                    scopedRuleTreeBuilder = Services.ServiceProvider.Services?.GetService<IRuleTreeBuilder>();
+                    scopedRuleTreeBuilder = Services.ServiceProvider.Services!.GetRequiredService<IRuleTreeBuilder>();
                 }
                 catch (InvalidOperationException exception)
                 {

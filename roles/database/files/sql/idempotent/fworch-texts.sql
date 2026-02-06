@@ -2919,6 +2919,30 @@ INSERT INTO txt VALUES ('useCustomLogo',        'German', 	'Benutzerdefiniertes 
 INSERT INTO txt VALUES ('useCustomLogo',        'English', 	'Custom logo');
 INSERT INTO txt VALUES ('app_role_users', 		'German',   'Nutzer von App Rollen');
 INSERT INTO txt VALUES ('app_role_users', 		'English',  'App Role Users');
+INSERT INTO txt VALUES ('scheduler_jobs_title',           'German',   'Scheduler-Jobs');
+INSERT INTO txt VALUES ('scheduler_jobs_title',           'English',  'Scheduler Jobs');
+INSERT INTO txt VALUES ('scheduler_jobs_description',     'German',   'Admin-Benutzer k&ouml;nnen Scheduler-Jobs sofort ausf&uuml;hren.');
+INSERT INTO txt VALUES ('scheduler_jobs_description',     'English',  'Admin users can run scheduler jobs immediately.');
+INSERT INTO txt VALUES ('scheduler_interval', 	          'German',   'Intervall');
+INSERT INTO txt VALUES ('scheduler_interval', 	          'English',  'Interval');
+INSERT INTO txt VALUES ('scheduler_last_run', 	          'German',   'Letzte Ausf&uuml;hrung');
+INSERT INTO txt VALUES ('scheduler_last_run', 	          'English',  'Last run');
+INSERT INTO txt VALUES ('scheduler_next_run', 	          'German',   'N&auml;chste Ausf&uuml;hrung');
+INSERT INTO txt VALUES ('scheduler_next_run', 	          'English',  'Next run');
+INSERT INTO txt VALUES ('scheduler_status', 	          'German',   'Status');
+INSERT INTO txt VALUES ('scheduler_status', 	          'English',  'Status');
+INSERT INTO txt VALUES ('scheduler_action', 	          'German',   'Aktion');
+INSERT INTO txt VALUES ('scheduler_action', 	          'English',  'Action');
+INSERT INTO txt VALUES ('scheduler_no_jobs', 	          'German',   'Keine Scheduler-Jobs verf&uuml;gbar.');
+INSERT INTO txt VALUES ('scheduler_no_jobs', 	          'English',  'No scheduler jobs available.');
+INSERT INTO txt VALUES ('scheduler_starting', 	          'German',   'Startet bald…');
+INSERT INTO txt VALUES ('scheduler_starting', 	          'English',  'Starting soon…');
+INSERT INTO txt VALUES ('scheduler_start_now', 	          'German',   'Jetzt starten');
+INSERT INTO txt VALUES ('scheduler_start_now', 	          'English',  'Start now');
+INSERT INTO txt VALUES ('scheduler_now', 	              'German',   'Jetzt');
+INSERT INTO txt VALUES ('scheduler_now', 	              'English',  'Now');
+INSERT INTO txt VALUES ('scheduler_interval_description', 'German',   'Alle');
+INSERT INTO txt VALUES ('scheduler_interval_description', 'English',  'Every');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');

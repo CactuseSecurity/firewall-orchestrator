@@ -55,7 +55,7 @@ def get_native_config(config_in: FwConfigManagerListController, import_state: Im
     native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
     config_in.native_config["domains"].append(native_config_global)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
     adom_list = build_adom_list(import_state.state)
-    adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
+    adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url, import_state.state)
     # delete_v: das geht schief für unschöne adoms
     arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
     adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url)
@@ -278,11 +278,11 @@ def build_adom_list(import_state: ImportState) -> list[Management]:
 
 
 def build_adom_device_vdom_structure(
-    adom_list: list[Management], sid: str, fm_api_url: str
+    adom_list: list[Management], sid: str, fm_api_url: str, import_state: ImportState
 ) -> dict[str, dict[str, dict[str, Any]]]:
     adom_device_vdom_structure: dict[str, dict[str, dict[str, Any]]] = {}
     for adom in adom_list:
-        if adom.import_disabled:
+        if adom.import_disabled and not import_state.force_import:
             continue
         adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM device/vdom mapping")
         adom_device_vdom_structure.update({adom_name: {}})

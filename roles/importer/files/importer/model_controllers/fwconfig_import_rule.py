@@ -151,13 +151,14 @@ class FwConfigImportRule:
         self.import_details.state.stats.increment_rule_move_count(num_moved_rules)
         self.import_details.state.stats.increment_rule_change_count(num_changed_rules)
 
-        if num_inserted_rules != num_added_rules + num_changed_rules + num_moved_rules:
+        # change counts returned from db mutations should match counts calculated from diffs, if not log a warning
+        if num_inserted_rules != len(added_rule_uids) + len(changed_rule_uids):
             FWOLogger.warning(
-                f"Number of inserted rules ({num_inserted_rules}) does not match number of added + changed + moved rules ({num_added_rules + num_changed_rules + num_moved_rules} = {num_added_rules} + {num_changed_rules} + {num_moved_rules})"
+                f"Number of inserted rules ({num_inserted_rules}) does not match number of added + changed rules ({len(added_rule_uids) + len(changed_rule_uids)} = {len(added_rule_uids)} + {len(changed_rule_uids)})"
             )
-        if num_set_removed_rules != num_removed_rules + num_changed_rules + num_moved_rules:
+        if num_set_removed_rules != len(removed_rule_uids) + len(changed_rule_uids):
             FWOLogger.warning(
-                f"Number of removed rules ({num_set_removed_rules}) does not match number of removed + changed + moved rules ({num_removed_rules + num_changed_rules + num_moved_rules} = {num_removed_rules} + {num_changed_rules} + {num_moved_rules})"
+                f"Number of removed rules ({num_set_removed_rules}) does not match number of removed + changed rules ({len(removed_rule_uids) + len(changed_rule_uids)} = {len(removed_rule_uids)} + {len(changed_rule_uids)})"
             )
 
         return [self.uid2id_mapper.get_rule_id(rule_uid) for rule_uid in added_rule_uids]

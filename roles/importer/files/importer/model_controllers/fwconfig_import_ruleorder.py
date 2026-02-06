@@ -45,19 +45,18 @@ def update_rule_nums_based_on_previous(current_rulebase: "Rulebase", previous_ru
     for rule_uid in uids_num_unchanged:
         # preserve rule_num_numeric for rules that existed and were not moved
         current_rulebase.rules[rule_uid].rule_num_numeric = previous_rulebase.rules[rule_uid].rule_num_numeric
-    for index, rule in enumerate(current_rulebase.rules.values()):
+    # Precompute ordered lists of rule UIDs and rule objects to avoid repeated list construction in the loop
+    rule_uids = list(current_rulebase.rules.keys())
+    rule_list = list(current_rulebase.rules.values())
+    for index, rule in enumerate(rule_list):
         if rule.rule_num_numeric:
             continue  # already set, no need to update
         prev_num_numeric = 0.0
         if index > 0:
-            prev_rule_uid = list(current_rulebase.rules.keys())[index - 1]
+            prev_rule_uid = rule_uids[index - 1]
             prev_num_numeric = current_rulebase.rules[prev_rule_uid].rule_num_numeric
         next_num_numeric = next(
-            (
-                rule.rule_num_numeric
-                for idx, rule in enumerate(current_rulebase.rules.values())
-                if idx > index and rule.rule_num_numeric
-            ),
+            (rule.rule_num_numeric for idx, rule in enumerate(rule_list) if idx > index and rule.rule_num_numeric),
             None,
         )
         if next_num_numeric is not None:

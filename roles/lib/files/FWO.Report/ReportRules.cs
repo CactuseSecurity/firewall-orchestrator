@@ -327,7 +327,7 @@ namespace FWO.Report
 
         public static Rule[] GetAllRulesOfGateway(DeviceReport deviceReport, ManagementReport managementReport, IRuleTreeBuilder ruleTreeBuilder)
         {
-            if (ruleTreeBuilder.RuleTreeCache.TryGetValue((deviceReport.Id, managementReport.Id), out RuleTreeItem? ruleTreeFromCache))
+            if (ruleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, deviceReport.Id), out RuleTreeItem? ruleTreeFromCache))
             {
                 return ruleTreeBuilder.FlattedRules[ruleTreeFromCache];
             }

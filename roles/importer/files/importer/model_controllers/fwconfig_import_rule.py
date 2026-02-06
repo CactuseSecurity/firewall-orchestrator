@@ -1164,7 +1164,8 @@ class FwConfigImportRule:
 
     def is_change_security_relevant(self, old_rule: RuleNormalized, new_rule: RuleNormalized) -> bool:
         """
-        Checks if a change between an old and a new version of a rule is security-relevant, meaning it should be included in the changelog and change reports. For example, changes in last_hit or rule_num are not security-relevant, while changes in rule_action or rule_src are.
+        Checks if a change between an old and a new version of a rule is security-relevant,
+        meaning it should be included in the changelog and change reports.
         """
         exclude = {
             "last_hit",
@@ -1175,6 +1176,15 @@ class FwConfigImportRule:
             "rule_comment",
             "rule_custom_fields",
         }
+        old_dict = old_rule.model_dump(exclude=exclude)
+        new_dict = new_rule.model_dump(exclude=exclude)
+        return old_dict != new_dict
+
+    def rule_did_change(self, old_rule: RuleNormalized, new_rule: RuleNormalized) -> bool:
+        """
+        Checks if a rule has changed, excluding moves (change in rule_num or rulebase) and values not directly associated with rule entry in db.
+        """
+        exclude = {"last_hit", "rule_num", "rule_src_zone", "rule_dst_zone", "rule_num_numeric"}
         old_dict = old_rule.model_dump(exclude=exclude)
         new_dict = new_rule.model_dump(exclude=exclude)
         return old_dict != new_dict
@@ -1205,9 +1215,6 @@ class FwConfigImportRule:
             new_rule_num = new_rule.rule_num_numeric
             if old_rb_uid != new_rb_uid or old_rule_num != new_rule_num:
                 moved_rules += 1
-            exclude = {"last_hit", "rule_num", "rule_src_zone", "rule_dst_zone", "rule_num_numeric"}
-            old_dict = old_rule.model_dump(exclude=exclude)
-            new_dict = new_rule.model_dump(exclude=exclude)
-            if old_dict != new_dict:
+            if self.rule_did_change(old_rule, new_rule):
                 changed_rules += 1
         return changed_rules, moved_rules

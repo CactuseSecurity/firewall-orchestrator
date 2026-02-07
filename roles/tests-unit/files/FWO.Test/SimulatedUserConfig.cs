@@ -167,7 +167,9 @@ namespace FWO.Test
             {"U9012","Requested Interface" },
             {"E9004","Missing Source/Destination or Service" },
             {"E9005","Source/Destination changed" },
-            {"E9020","Interface in use by other app" }
+            {"E9020","Interface in use by other app" },
+            {"E5102","Missing name or reason" },
+            {"E9006","Missing source/destination or service" }
         };
 
         public override string GetText(string key)

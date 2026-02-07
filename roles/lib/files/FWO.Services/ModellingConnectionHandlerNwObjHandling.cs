@@ -266,7 +266,7 @@ namespace FWO.Services
 
         /// <summary>
         /// Internal method that validates whether only network areas (without app roles) exist in the specified direction of a common service.
-        /// Combines existing areas/roles from the connection with items to add, removes items marked for deletion, and checks if the result contains both types.
+        /// Combines existing areas/appRoles from the connection with items to add, removes items marked for deletion, and checks if the result contains both types.
         /// </summary>
         /// <param name="direction">The direction to check (Source or Destination).</param>
         /// <param name="initialAreas">Network areas to be considered in addition to existing ones.</param>
@@ -275,7 +275,7 @@ namespace FWO.Services
         private bool ComSvcContainsOnlyNetworkAreasInDirectionInternal(Direction direction, IEnumerable<ModellingNetworkArea> initialAreas, IEnumerable<ModellingAppRole> initialRoles)
         {
             List<ModellingNetworkArea> areas = [.. initialAreas];
-            List<ModellingAppRole> roles = [.. initialRoles];
+            List<ModellingAppRole> appRoles = [.. initialRoles];
 
             if (direction == Direction.Source)
             {
@@ -285,11 +285,11 @@ namespace FWO.Services
                 HashSet<long> srcAreasToDeleteIds = [.. SrcAreasToDelete.Select(d => d.Id)];
                 areas.RemoveAll(a => srcAreasToDeleteIds.Contains(a.Id));
 
-                roles.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles)]);
-                roles.AddRange(SrcAppRolesToAdd);
+                appRoles.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles)]);
+                appRoles.AddRange(SrcAppRolesToAdd);
 
                 HashSet<long> srcAppRolesToDeleteIds = [.. SrcAppRolesToDelete.Select(d => d.Id)];
-                roles.RemoveAll(r => srcAppRolesToDeleteIds.Contains(r.Id));
+                appRoles.RemoveAll(r => srcAppRolesToDeleteIds.Contains(r.Id));
             }
             else if (direction == Direction.Destination)
             {
@@ -299,18 +299,18 @@ namespace FWO.Services
                 HashSet<long> dstAreasToDeleteIds = [.. DstAreasToDelete.Select(d => d.Id)];
                 areas.RemoveAll(a => dstAreasToDeleteIds.Contains(a.Id));
 
-                roles.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles)]);
-                roles.AddRange(DstAppRolesToAdd);
+                appRoles.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles)]);
+                appRoles.AddRange(DstAppRolesToAdd);
 
                 HashSet<long> dstAppRolesToDeleteIds = [.. DstAppRolesToDelete.Select(d => d.Id)];
-                roles.RemoveAll(r => dstAppRolesToDeleteIds.Contains(r.Id));
+                appRoles.RemoveAll(r => dstAppRolesToDeleteIds.Contains(r.Id));
             }
             else
             {
                 throw new ArgumentException($"{nameof(direction)} not implemented");
             }
 
-            return !(areas.Count > 0 && roles.Count > 0);
+            return !(areas.Count > 0 && appRoles.Count > 0);
         }
 
         /// <summary>

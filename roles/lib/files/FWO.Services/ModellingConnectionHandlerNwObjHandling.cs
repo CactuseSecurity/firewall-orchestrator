@@ -632,40 +632,60 @@ namespace FWO.Services
         {
             try
             {
-                foreach (var appServer in appServers)
-                {
-                    var Variables = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)field };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"Added App Server {appServer.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
-                }
-                foreach (var appRole in appRoles)
-                {
-                    var Variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        appRole.Id == DummyAppRole.Id ?
-                        $"Marked requested Interface: {ActConn.Name} as {field}" :
-                        $"Added App Role {appRole.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
-                }
-                foreach (var area in areas)
-                {
-                    var Variables = new { nwGroupId = area.Id, connectionId = ActConn.Id, connectionField = (int)field };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"Added Area {area.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
-                }
-                foreach (var nwGroup in nwGroups)
-                {
-                    var Variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"Added Object {nwGroup.Display()} to {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
-                }
+                await AddAppServersToConnection(appServers, field);
+                await AddAppRolesToConnection(appRoles, field);
+                await AddAreasToConnection(areas, field);
+                await AddNwGroupsToConnection(nwGroups, field);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
+            }
+        }
+
+        private async Task AddAppServersToConnection(List<ModellingAppServer> appServers, ModellingTypes.ConnectionField field)
+        {
+            foreach (var appServer in appServers)
+            {
+                var variables = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addAppServerToConnection, variables);
+                await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                    $"Added App Server {appServer.Display()} to {GetTypeAndName()}: {field}", Application.Id);
+            }
+        }
+
+        private async Task AddAppRolesToConnection(List<ModellingAppRole> appRoles, ModellingTypes.ConnectionField field)
+        {
+            foreach (var appRole in appRoles)
+            {
+                var variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, variables);
+                string text = appRole.Id == DummyAppRole.Id
+                    ? $"Marked requested Interface: {ActConn.Name} as {field}"
+                    : $"Added App Role {appRole.Display()} to {GetTypeAndName()}: {field}";
+                await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id, text, Application.Id);
+            }
+        }
+
+        private async Task AddAreasToConnection(List<ModellingNetworkArea> areas, ModellingTypes.ConnectionField field)
+        {
+            foreach (var area in areas)
+            {
+                var variables = new { nwGroupId = area.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, variables);
+                await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                    $"Added Area {area.Display()} to {GetTypeAndName()}: {field}", Application.Id);
+            }
+        }
+
+        private async Task AddNwGroupsToConnection(List<ModellingNwGroup> nwGroups, ModellingTypes.ConnectionField field)
+        {
+            foreach (var nwGroup in nwGroups)
+            {
+                var variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwGroupToConnection, variables);
+                await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                    $"Added Object {nwGroup.Display()} to {GetTypeAndName()}: {field}", Application.Id);
             }
         }
 
@@ -674,41 +694,66 @@ namespace FWO.Services
         {
             try
             {
-                foreach (var appServer in appServers)
-                {
-                    var Variables = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)field };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"Removed App Server {appServer.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
-                }
-                foreach (var appRole in appRoles)
-                {
-                    var Variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        appRole.Id == DummyAppRole.Id ?
-                        $"Removed {field} marker from requested Interface: {ActConn.Name}" :
-                        $"Removed App Role {appRole.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
-                }
-                foreach (var area in areas)
-                {
-                    var Variables = new { nwGroupId = area.Id, connectionId = ActConn.Id, connectionField = (int)field };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"Removed Area {area.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
-                }
-                foreach (var nwGroup in nwGroups)
-                {
-                    var Variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, Variables);
-                    await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"Removed Object {nwGroup.Display()} from {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}: {field}", Application.Id);
-                }
+                await RemoveAppServersFromConnection(appServers, field);
+                await RemoveAppRolesFromConnection(appRoles, field);
+                await RemoveAreasFromConnection(areas, field);
+                await RemoveNwGroupsFromConnection(nwGroups, field);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
             }
+        }
+
+        private async Task RemoveAppServersFromConnection(List<ModellingAppServer> appServers, ModellingTypes.ConnectionField field)
+        {
+            foreach (var appServer in appServers)
+            {
+                var variables = new { nwObjectId = appServer.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromConnection, variables);
+                await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                    $"Removed App Server {appServer.Display()} from {GetTypeAndName()}: {field}", Application.Id);
+            }
+        }
+
+        private async Task RemoveAppRolesFromConnection(List<ModellingAppRole> appRoles, ModellingTypes.ConnectionField field)
+        {
+            foreach (var appRole in appRoles)
+            {
+                var variables = new { nwGroupId = appRole.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, variables);
+                string text = appRole.Id == DummyAppRole.Id
+                    ? $"Removed {field} marker from requested Interface: {ActConn.Name}"
+                    : $"Removed App Role {appRole.Display()} from {GetTypeAndName()}: {field}";
+                await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id, text, Application.Id);
+            }
+        }
+
+        private async Task RemoveAreasFromConnection(List<ModellingNetworkArea> areas, ModellingTypes.ConnectionField field)
+        {
+            foreach (var area in areas)
+            {
+                var variables = new { nwGroupId = area.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, variables);
+                await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                    $"Removed Area {area.Display()} from {GetTypeAndName()}: {field}", Application.Id);
+            }
+        }
+
+        private async Task RemoveNwGroupsFromConnection(List<ModellingNwGroup> nwGroups, ModellingTypes.ConnectionField field)
+        {
+            foreach (var nwGroup in nwGroups)
+            {
+                var variables = new { nwGroupId = nwGroup.Id, connectionId = ActConn.Id, connectionField = (int)field };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, variables);
+                await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                    $"Removed Object {nwGroup.Display()} from {GetTypeAndName()}: {field}", Application.Id);
+            }
+        }
+
+        private string GetTypeAndName()
+        {
+            return $"{(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}";
         }
     }
 }

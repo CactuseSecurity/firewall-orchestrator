@@ -138,7 +138,7 @@ namespace FWO.Data.Modelling
             set
             {
                 permittedOwnerWrappers = value ?? [];
-                PermittedOwners = [.. permittedOwnerWrappers.Select(w => w.Owner).Where(o => o != null)];
+                permittedOwners = [.. permittedOwnerWrappers.Select(w => w.Owner).Where(o => o != null)];
             }
         }
 
@@ -167,9 +167,7 @@ namespace FWO.Data.Modelling
         private List<FwoOwner> permittedOwners = [];
         public List<FwoOwner> PermittedOwners
         {
-            get => permittedOwnerWrappers.Count > 0
-                ? permittedOwnerWrappers.Select(w => w.Owner).Where(o => o != null).ToList()
-                : permittedOwners;
+            get => permittedOwners;
             set => permittedOwners = value ?? [];
         }
 

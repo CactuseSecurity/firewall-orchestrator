@@ -70,13 +70,11 @@ namespace FWO.Services
                 return false;
             }
             if (ActConn.InterfacePermission == InterfacePermissions.Private.ToString() &&
-                ActConnOrig.InterfacePermission != InterfacePermissions.Private.ToString())
+                ActConnOrig.InterfacePermission != InterfacePermissions.Private.ToString() &&
+                UsingConnections.Any(c => c.AppId != ActConn.AppId))
             {
-                if (UsingConnections.Any(c => c.AppId != ActConn.AppId))
-                {
-                    DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9020"), true);
-                    return false;
-                }
+                DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9020"), true);
+                return false;
             }
             return true;
         }

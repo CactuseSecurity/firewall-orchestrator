@@ -33,7 +33,7 @@
       package:
         name: python3-venv
         state: present
-      when: ansible_python_interpreter == '/usr/bin/python3' # Skip if using custom python
+      when: ansible_python_interpreter is match('^/usr/bin/python3') # Skip if using custom python
 
 
     - name: Create Python virtual environment

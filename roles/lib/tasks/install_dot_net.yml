@@ -9,9 +9,8 @@
     - set_fact: distribution_version="{{ debian_testing_version }}"    
       when: ansible_facts['distribution_release']|lower == debian_testing_release_name
 
-    # for all distros except ubuntu >=22.04 we need to include a package source
+    # include Microsoft package source to access newer .NET SDK versions
     - block:
-
       - name: get package list from ms {{ dotnet_deb_name }}
         get_url:
           url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
@@ -30,28 +29,17 @@
       - name: apt update
         apt: update_cache=true
 
-      when: ansible_facts['distribution']|lower != 'ubuntu' or (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))  
+      when: ansible_facts['distribution']|lower in ['ubuntu', 'debian']
 
-        
-
-    # - name: update /etc/apt/preferences for ubuntu >=22 (https://github.com/dotnet/sdk/issues/27129)
-    #   blockinfile:
-    #     path: /etc/apt/preferences
-    #     create: true
-    #     block: |
-    #       Package: dotnet-* aspnetcore-* netstandard-*
-    #       Pin: origin packages.microsoft.com
-    #       Pin-Priority: 999
-    #   when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
-
-    # - name: make sure to use the ubuntu version of dotnet sdk on ubuntu >=22
-    #   file:
-    #     path: /etc/apt/sources.list.d/{{ item }}
-    #     state: absent
-    #   loop:
-    #     - "{{ dotnet_deb_name }}"
-    #     - microsoft-prod.list
-    #   when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
+    - name: Prefer Microsoft packages for .NET on Ubuntu >=22.04
+      blockinfile:
+        path: /etc/apt/preferences
+        create: true
+        block: |
+          Package: dotnet-* aspnetcore-* netstandard-*
+          Pin: origin packages.microsoft.com
+          Pin-Priority: 999
+      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
 
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present
@@ -59,11 +47,20 @@
     - name: apt update
       apt: update_cache=true
 
+    - name: Install .NET SDK {{ dotnet_version }} via apt
+      apt:
+        name: "dotnet-sdk-{{ dotnet_version }}"
+        state: present
+      register: dotnet_apt_install
+      failed_when: false
+      when: ansible_architecture == "x86_64"
+
     - name: Install .NET SDK {{ dotnet_version }} via script (fallback for missing apt package)
       block:
-        - name: Download dotnet-install script
-          get_url:
-            url: https://dot.net/v1/dotnet-install.sh
+        # Vendored from https://dot.net/v1/dotnet-install.sh; update manually when needed.
+        - name: Copy vendored dotnet-install script
+          copy:
+            src: dotnet-install.sh
             dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
             mode: '0755'
 
@@ -91,7 +88,7 @@
           when: not dotnet_binary.stat.exists or dotnet_binary.stat.islnk
 
       # Run this block if the apt package is missing or for all installs to be safe
-      when: ansible_architecture == "x86_64"
+      when: ansible_architecture == "x86_64" and (dotnet_apt_install is failed)
 
     - debug: 
         msg:

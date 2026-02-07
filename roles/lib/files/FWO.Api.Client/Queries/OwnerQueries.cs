@@ -66,7 +66,7 @@ namespace FWO.Api.Client.Queries
                 getRuleOwnerships = GetQueryText("owner/getRuleOwnerships.graphql");
                 newRuleOwnership = ownerDetailsFragment + GetQueryText("owner/newRuleOwnership.graphql");
                 deleteRuleOwnership = ownerDetailsFragment + GetQueryText("owner/deleteRuleOwnership.graphql");
-                getOwnerId = GetQueryText("/owner/getOwnerId.graphql");
+                getOwnerId = GetQueryText("owner/getOwnerId.graphql");
                 newOwnerResponsibles = GetQueryText("owner/newOwnerResponsibles.graphql");
                 deleteOwnerResponsibles = GetQueryText("owner/deleteOwnerResponsibles.graphql");
             }

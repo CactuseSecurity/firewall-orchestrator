@@ -11,14 +11,14 @@ on:
 
 jobs:
   test-install:
-    name: Test install on ${{ matrix.os }} (Python ${{ matrix.python-version }})
+    name: Test install on ${{ matrix.os }} with Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     env:
       RUNNING_ON_GITHUB_ACTIONS: true
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04]
+        os: [ubuntu-24.04, ubuntu-22.04]
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
       - uses: actions/checkout@v6
@@ -34,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install build-essential ldap-utils libldap2-dev libsasl2-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt install build-essential ldap-utils libldap2-dev libsasl2-dev -y
           pip install ansible psycopg2-binary python-ldap requests
 
       - name: Run Ansible test install

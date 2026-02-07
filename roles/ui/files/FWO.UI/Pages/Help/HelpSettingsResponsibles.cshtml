@@ -1,0 +1,21 @@
+@page "/help/settings/responsibles"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("responsibles"))</h3>
+    @(Html.Raw(userConfig.GetText("H5901")))
+    <br />
+    @(Html.Raw(userConfig.GetText("H5902")))
+    <br />
+    @(Html.Raw(userConfig.GetText("H5903")))
+</div>

@@ -7,12 +7,20 @@ namespace FWO.Test
     public class OwnerQueriesTest
     {
         [Test]
-        public void GetOwnersForUserIncludesSupportingResponsible()
+        public void GetOwnersForUserUsesActiveResponsibleTypes()
         {
             string query = OwnerQueries.getOwnersForUser;
 
-            Assert.That(query, Does.Contain("responsible_type: {_in: [1, 2]}"));
-            Assert.That(query, Does.Not.Contain("responsible_type: {_in: [1, 3]}"));
+            Assert.That(query, Does.Contain("owner_responsible_type: {active: {_eq: true}}"));
+        }
+
+        [Test]
+        public void GetOwnerResponsibleTypesIncludesAllowWriteAccess()
+        {
+            string query = OwnerQueries.getOwnerResponsibleTypes;
+
+            Assert.That(query, Does.Contain("allow_modelling"));
+            Assert.That(query, Does.Contain("allow_recertification"));
         }
     }
 }

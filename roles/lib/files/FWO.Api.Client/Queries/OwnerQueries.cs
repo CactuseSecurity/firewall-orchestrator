@@ -24,6 +24,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string setOwnerLastRecert;
         public static readonly string getOwnersFromGroups;
         public static readonly string getOwnersForUser;
+        public static readonly string getOwnerResponsibleTypes;
         public static readonly string getNetworkOwnerships;
         public static readonly string newNetworkOwnership;
         public static readonly string deleteNetworkOwnership;
@@ -34,6 +35,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getOwnerId;
         public static readonly string newOwnerResponsibles;
         public static readonly string deleteOwnerResponsibles;
+        public static readonly string newOwnerResponsibleType;
+        public static readonly string updateOwnerResponsibleType;
 
 
         static OwnerQueries()
@@ -59,6 +62,7 @@ namespace FWO.Api.Client.Queries
                 setOwnerLastRecert = GetQueryText("owner/setOwnerLastRecert.graphql");
                 getOwnersFromGroups = ownerDetailsFragment + GetQueryText("owner/getOwnersFromGroups.graphql");
                 getOwnersForUser = ownerDetailsFragment + GetQueryText("owner/getOwnersForUser.graphql");
+                getOwnerResponsibleTypes = GetQueryText("owner/getOwnerResponsibleTypes.graphql");
                 getNetworkOwnerships = ownerDetailsFragment + GetQueryText("owner/getNetworkOwnerships.graphql");
                 newNetworkOwnership = ownerDetailsFragment + GetQueryText("owner/newNetworkOwnership.graphql");
                 deleteNetworkOwnership = ownerDetailsFragment + GetQueryText("owner/deleteNetworkOwnership.graphql");
@@ -69,6 +73,8 @@ namespace FWO.Api.Client.Queries
                 getOwnerId = GetQueryText("owner/getOwnerId.graphql");
                 newOwnerResponsibles = GetQueryText("owner/newOwnerResponsibles.graphql");
                 deleteOwnerResponsibles = GetQueryText("owner/deleteOwnerResponsibles.graphql");
+                newOwnerResponsibleType = GetQueryText("owner/newOwnerResponsibleType.graphql");
+                updateOwnerResponsibleType = GetQueryText("owner/updateOwnerResponsibleType.graphql");
             }
             catch (Exception exception)
             {

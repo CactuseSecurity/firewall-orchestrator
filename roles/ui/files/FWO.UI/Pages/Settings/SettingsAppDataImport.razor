@@ -92,35 +92,19 @@
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5667"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("set_roles_with_import")):</label>
                 <div class="form-group row col-sm-8">
-                    <div class="col-sm-12">
-                        <div class="fw-bold">@userConfig.GetText("main_responsible")</div>
-                    </div>
-                    @foreach (var role in availableRoles)
+                    @foreach (OwnerResponsibleType type in ownerResponsibleTypes)
                     {
-                        <div class="form-group col-sm-3">
-                            <input id="cbx_main_@role" type="checkbox" @bind="rolesByTypeDict[1][role]" />
-                            <label for="cbx_main_@role" class="col-form-label">@(role)</label>
+                        <div class="col-sm-12 mt-2">
+                            <div class="fw-bold">@GetResponsibleTypeDisplayName(type)</div>
                         </div>
-                    }
-                    <div class="col-sm-12 mt-2">
-                        <div class="fw-bold">@userConfig.GetText("group")</div>
-                    </div>
-                    @foreach (var role in availableRoles)
-                    {
-                        <div class="form-group col-sm-3">
-                            <input id="cbx_group_@role" type="checkbox" @bind="rolesByTypeDict[2][role]" />
-                            <label for="cbx_group_@role" class="col-form-label">@(role)</label>
-                        </div>
-                    }
-                    <div class="col-sm-12 mt-2">
-                        <div class="fw-bold">@userConfig.GetText("owner_responsible3")</div>
-                    </div>
-                    @foreach (var role in availableRoles)
-                    {
-                        <div class="form-group col-sm-3">
-                            <input id="cbx_extra_@role" type="checkbox" @bind="rolesByTypeDict[3][role]" />
-                            <label for="cbx_extra_@role" class="col-form-label">@(role)</label>
-                        </div>
+                        @foreach (string role in availableRoles)
+                        {
+                            <div class="form-group col-sm-3">
+                                <input id="@($"cbx_type_{type.Id}_{role}")" type="checkbox" @bind="rolesByTypeDict[type.Id][role]"
+                                       disabled="@(!type.Active || (!type.AllowModelling && OwnerResponsibleRoleHelper.IsModellingRole(role)) || (!type.AllowRecertification && OwnerResponsibleRoleHelper.IsRecertificationRole(role)))" />
+                                <label for="@($"cbx_type_{type.Id}_{role}")" class="col-form-label">@(role)</label>
+                            </div>
+                        }
                     }
                 </div>
             </div>
@@ -242,6 +226,7 @@ else
     private Dictionary<int, List<string>> RolesToSetByType = [];
     private List<string> availableRoles { get; set; } = [];
     private Dictionary<int, Dictionary<string, bool>> rolesByTypeDict = [];
+    private List<OwnerResponsibleType> ownerResponsibleTypes = [];
     private bool initComplete = false;
     private bool ShowCSVImportPopUp { get; set; }
     private List<CSVFileUploadErrorModel>? CSVImportErrors;
@@ -286,9 +271,14 @@ else
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
 
+            ownerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            ownerResponsibleTypes = ownerResponsibleTypes
+                .OrderBy(type => type.SortOrder)
+                .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
             availableRoles = (await RoleAccess.GetRolesFromInternalLdap(middlewareClient)).Select(r => r.Name).Where(n =>
 !RoleGroups.IsTechnicalOrAnonymous(n)).OrderBy(s => s).ToList();
-            rolesByTypeDict = BuildRolesByTypeDict(availableRoles, RolesToSetByType);
+            rolesByTypeDict = BuildRolesByTypeDict(ownerResponsibleTypes, availableRoles, RolesToSetByType);
 
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getAllLdapConnections);
             selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == configData.OwnerLdapId) ?? new();
@@ -363,6 +353,7 @@ OnCSVAppServerImportEvent(_.EventArgs));
     private void PrepareRoles()
     {
         RolesToSetByType = [];
+        Dictionary<int, OwnerResponsibleType> typeById = ownerResponsibleTypes.ToDictionary(type => type.Id, type => type);
         foreach (var typeEntry in rolesByTypeDict)
         {
             List<string> selectedRoles = [];
@@ -373,7 +364,9 @@ OnCSVAppServerImportEvent(_.EventArgs));
                     selectedRoles.Add(roleEntry.Key);
                 }
             }
-            RolesToSetByType[typeEntry.Key] = selectedRoles;
+            bool allowModelling = typeById.TryGetValue(typeEntry.Key, out OwnerResponsibleType? type) && type.AllowModelling;
+            bool allowRecertification = typeById.TryGetValue(typeEntry.Key, out type) && type.AllowRecertification;
+            RolesToSetByType[typeEntry.Key] = OwnerResponsibleRoleHelper.FilterRoles(selectedRoles, allowModelling, allowRecertification);
         }
         configData!.RolesWithAppDataImport = JsonSerializer.Serialize(RolesToSetByType);
     }
@@ -390,7 +383,7 @@ OnCSVAppServerImportEvent(_.EventArgs));
         if (trimmed.StartsWith("["))
         {
             List<string> roles = JsonSerializer.Deserialize<List<string>>(rolesJson) ?? [];
-            rolesByType[2] = roles;
+            rolesByType[GlobalConst.kOwnerResponsibleTypeSupporting] = roles;
             return rolesByType;
         }
 
@@ -408,19 +401,22 @@ OnCSVAppServerImportEvent(_.EventArgs));
         return rolesByType;
     }
 
-    private static Dictionary<int, Dictionary<string, bool>> BuildRolesByTypeDict(List<string> availableRoles,
-Dictionary<int, List<string>> rolesByType)
+    private static Dictionary<int, Dictionary<string, bool>> BuildRolesByTypeDict(List<OwnerResponsibleType> responsibleTypes, List<string> availableRoles,
+        Dictionary<int, List<string>> rolesByType)
     {
         Dictionary<int, Dictionary<string, bool>> dictByType = [];
-        foreach (int typeId in new[] { 1, 2, 3 })
+        foreach (OwnerResponsibleType type in responsibleTypes)
         {
-            List<string> selected = rolesByType.TryGetValue(typeId, out List<string>? roles) ? roles : [];
+            List<string> selected = rolesByType.TryGetValue(type.Id, out List<string>? roles) ? roles : [];
             Dictionary<string, bool> roleDict = [];
             foreach (string role in availableRoles)
             {
-                roleDict[role] = selected.Contains(role);
+                bool isModelling = OwnerResponsibleRoleHelper.IsModellingRole(role);
+                bool isRecertification = OwnerResponsibleRoleHelper.IsRecertificationRole(role);
+                bool blocked = (!type.AllowModelling && isModelling) || (!type.AllowRecertification && isRecertification);
+                roleDict[role] = selected.Contains(role) && !blocked;
             }
-            dictByType[typeId] = roleDict;
+            dictByType[type.Id] = roleDict;
         }
         return dictByType;
     }
@@ -449,6 +445,16 @@ Dictionary<int, List<string>> rolesByType)
             SubnetDataPaths.Add(path);
         }
         configData!.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
+    }
+
+    private string GetResponsibleTypeDisplayName(OwnerResponsibleType type)
+    {
+        string label = type.Name;
+        if (!type.Active)
+        {
+            label += $" ({userConfig.GetText("inactive")})";
+        }
+        return label;
     }
 
     /// <summary>

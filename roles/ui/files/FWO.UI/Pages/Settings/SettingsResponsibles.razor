@@ -1,0 +1,266 @@
+@page "/settings/owners/responsibles"
+
+@using FWO.Api.Client.Queries
+@using FWO.Data
+@using FWO.Logging
+@using FWO.Ui.Services
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if (initComplete)
+{
+    <div class="input-group">
+        <h3>@(userConfig.GetText("responsibles"))</h3>
+        <HelpLink Page="settings/responsibles"/>
+    </div>
+    <hr />
+    @if (userConfig.AllowManualOwnerAdmin)
+    {
+        <div class="btn-group m-1">
+            <button type="button" class="btn btn-sm btn-success" @onclick="AddResponsibleType">@(userConfig.GetText("add_responsible_type"))</button>
+        </div>
+    }
+
+    <div class="m-2 vheight75">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerResponsibleType" Items="responsibleTypes" PageSize="0" ColumnReorder="true">
+            <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("responsibles"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Template>
+                    <div class="btn-group">
+                        @if (userConfig.AllowManualOwnerAdmin)
+                        {
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditResponsibleType(context)">@(userConfig.GetText("edit"))</button>
+                            @if (context.Active)
+                            {
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestToggleActive(context)">@(userConfig.GetText("deactivate"))</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-sm btn-success" @onclick="() => RequestToggleActive(context)">@(userConfig.GetText("reactivate"))</button>
+                            }
+                        }
+                    </div>
+                </Template>
+            </Column>
+            <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("active"))" Field="@(x => x.Active)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("allow_modelling"))" Field="@(x => x.AllowModelling)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("allow_recertification"))" Field="@(x => x.AllowRecertification)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("sort_order"))" Field="@(x => x.SortOrder)" Sortable="true" Filterable="true" />
+        </Table>
+    </div>
+
+    <PopUp Title="@(userConfig.GetText(AddMode ? "add_responsible_type" : "edit_responsible_type"))" Show="@EditMode" Size=PopupSize.Medium OnClose="CancelEdit">
+        <Body>
+            @if (EditMode)
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8 col-form-label col-form-label-sm">@actType.Id</label>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <input type="text" class="col-sm-8 form-control form-control-sm" @bind="actType.Name" />
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
+                    <input type="checkbox" class="col-sm-1 form-check-input" @bind="actType.Active" />
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("allow_modelling")):</label>
+                    <input type="checkbox" class="col-sm-1 form-check-input" @bind="actType.AllowModelling" />
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("allow_recertification")):</label>
+                    <input type="checkbox" class="col-sm-1 form-check-input" @bind="actType.AllowRecertification" />
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("sort_order")):</label>
+                    <input type="number" class="col-sm-8 form-control form-control-sm" @bind="actType.SortOrder" />
+                </div>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-primary" @onclick="SaveResponsibleType">@(userConfig.GetText("save"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+
+    <Confirm @bind-Display="ToggleActiveMode" PerformAction="ToggleActive" Title="@(userConfig.GetText("responsibles"))" Message="@toggleMessage" AllowedRoles="@($"{Roles.Admin}, {Roles.Auditor}")" />
+}
+else
+{
+    <Loading/>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<OwnerResponsibleType> responsibleTypes = [];
+    private OwnerResponsibleType actType = new();
+    private bool initComplete = false;
+    private bool EditMode = false;
+    private bool AddMode = false;
+    private bool ToggleActiveMode = false;
+    private string toggleMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTypes();
+        initComplete = true;
+    }
+
+    private async Task LoadTypes()
+    {
+        try
+        {
+            responsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            responsibleTypes = responsibleTypes
+                .OrderBy(type => type.SortOrder)
+                .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void AddResponsibleType()
+    {
+        AddMode = true;
+        EditMode = true;
+        int nextOrder = responsibleTypes.Count == 0 ? 10 : responsibleTypes.Max(t => t.SortOrder) + 10;
+        actType = new OwnerResponsibleType { Active = true, SortOrder = nextOrder, AllowModelling = false, AllowRecertification = false };
+    }
+
+    private void EditResponsibleType(OwnerResponsibleType type)
+    {
+        AddMode = false;
+        EditMode = true;
+        actType = new OwnerResponsibleType
+        {
+            Id = type.Id,
+            Name = type.Name,
+            Active = type.Active,
+            SortOrder = type.SortOrder,
+            AllowModelling = type.AllowModelling,
+            AllowRecertification = type.AllowRecertification
+        };
+    }
+
+    private void CancelEdit()
+    {
+        EditMode = false;
+        AddMode = false;
+    }
+
+    private async Task SaveResponsibleType()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(actType.Name))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_responsible_type"), userConfig.GetText("E5102"), true);
+                return;
+            }
+
+            if (AddMode)
+            {
+                var variables = new
+                {
+                    name = actType.Name,
+                    active = actType.Active,
+                    sort_order = actType.SortOrder,
+                    allow_modelling = actType.AllowModelling,
+                    allow_recertification = actType.AllowRecertification
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwnerResponsibleType, variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("add_responsible_type"), userConfig.GetText("E5291"), true);
+                    return;
+                }
+                actType.Id = returnIds[0].NewId;
+                responsibleTypes.Add(actType);
+                Log.WriteAudit(Title: "Responsible Types Settings", Text: $"Added responsible type: {actType.Name}");
+            }
+            else
+            {
+                var variables = new
+                {
+                    id = actType.Id,
+                    name = actType.Name,
+                    active = actType.Active,
+                    sort_order = actType.SortOrder,
+                    allow_modelling = actType.AllowModelling,
+                    allow_recertification = actType.AllowRecertification
+                };
+                int updatedId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwnerResponsibleType, variables)).UpdatedId;
+                if (updatedId != actType.Id)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_responsible_type"), userConfig.GetText("E5291"), true);
+                    return;
+                }
+                int index = responsibleTypes.FindIndex(t => t.Id == actType.Id);
+                if (index >= 0)
+                {
+                    responsibleTypes[index] = actType;
+                }
+                Log.WriteAudit(Title: "Responsible Types Settings", Text: $"Updated responsible type: {actType.Name}");
+            }
+            await LoadTypes();
+            EditMode = false;
+            AddMode = false;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_responsible_type"), "", true);
+        }
+    }
+
+    private void RequestToggleActive(OwnerResponsibleType type)
+    {
+        actType = type;
+        toggleMessage = $"{userConfig.GetText(type.Active ? "deactivate" : "reactivate")} {type.Name}?";
+        ToggleActiveMode = true;
+    }
+
+    private async Task ToggleActive()
+    {
+        try
+        {
+            actType.Active = !actType.Active;
+            var variables = new
+            {
+                id = actType.Id,
+                name = actType.Name,
+                active = actType.Active,
+                sort_order = actType.SortOrder,
+                allow_modelling = actType.AllowModelling,
+                allow_recertification = actType.AllowRecertification
+            };
+            int updatedId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwnerResponsibleType, variables)).UpdatedId;
+            if (updatedId != actType.Id)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_responsible_type"), userConfig.GetText("E5291"), true);
+                return;
+            }
+            await LoadTypes();
+            ToggleActiveMode = false;
+            await InvokeAsync(StateHasChanged);
+            Log.WriteAudit(Title: "Responsible Types Settings", Text: $"{(actType.Active ? "Activated" : "Deactivated")} responsible type: {actType.Name}");
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_responsible_type"), "", true);
+        }
+    }
+}

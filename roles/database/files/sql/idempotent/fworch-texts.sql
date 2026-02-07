@@ -351,6 +351,8 @@ INSERT INTO txt VALUES ('PagerSubmit',          'German', 	'Speichern');
 INSERT INTO txt VALUES ('PagerSubmit',          'English',  'Save');
 INSERT INTO txt VALUES ('order_by',             'German',   'Sortieren nach');
 INSERT INTO txt VALUES ('order_by',             'English',  'Order by');
+INSERT INTO txt VALUES ('sort_order',           'German',   'Sortierreihenfolge');
+INSERT INTO txt VALUES ('sort_order',           'English',  'Sort order');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -868,6 +870,8 @@ INSERT INTO txt VALUES ('schedule_owner',		'German', 	'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('schedule_owner',		'English', 	'Owner');
 INSERT INTO txt VALUES ('active', 			    'German',	'Aktiv');
 INSERT INTO txt VALUES ('active', 			    'English',	'Active');
+INSERT INTO txt VALUES ('inactive',            'German',   'Inaktiv');
+INSERT INTO txt VALUES ('inactive',            'English',  'Inactive');
 INSERT INTO txt VALUES ('count', 			    'German',	'Z&auml;hler');
 INSERT INTO txt VALUES ('count', 			    'English',	'Count');
 INSERT INTO txt VALUES ('output_format', 		'German',	'Ausgabeformat');
@@ -2514,6 +2518,16 @@ INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger 
 INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
 INSERT INTO txt VALUES ('main_responsible',     'German',   'Hauptverantwortlicher (DN)');
 INSERT INTO txt VALUES ('main_responsible',     'English',  'Main responsible person (DN)');
+INSERT INTO txt VALUES ('responsibles',         'German',   'Verantwortliche');
+INSERT INTO txt VALUES ('responsibles',         'English',  'Responsibles');
+INSERT INTO txt VALUES ('allow_modelling',      'German',   'Modelling erlauben');
+INSERT INTO txt VALUES ('allow_modelling',      'English',  'Allow modelling');
+INSERT INTO txt VALUES ('allow_recertification','German',   'Rezertifizierung erlauben');
+INSERT INTO txt VALUES ('allow_recertification','English',  'Allow recertification');
+INSERT INTO txt VALUES ('add_responsible_type', 'German',   'Verantwortlichkeitsstufe hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_responsible_type', 'English',  'Add responsible type');
+INSERT INTO txt VALUES ('edit_responsible_type','German',   'Verantwortlichkeitsstufe bearbeiten');
+INSERT INTO txt VALUES ('edit_responsible_type','English',  'Edit responsible type');
 INSERT INTO txt VALUES ('owner_responsible3',   'German',   'Weitere Verantwortliche (DN)');
 INSERT INTO txt VALUES ('owner_responsible3',   'English',  'Additional responsible persons (DN)');
 INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert setzen');
@@ -7434,3 +7448,9 @@ INSERT INTO txt VALUES ('H9081', 'German',  'Sonderkonfigurationen sind speziell
 INSERT INTO txt VALUES ('H9081', 'English', 'Extra configurations are special recommendations for implementation, e.g. NAT. Possible types are defined by the administrator.');
 INSERT INTO txt VALUES ('H9082', 'German',  'Berechtigung: Bestimmt die Sicht- und Nutzbarkeit f&uuml;r andere Applikationen: &Ouml;ffentlich - f&uuml;r alle ohne R&uuml;ckfrage nutzbar, Beschr&auml;nkt - nur mit Zustimmung des Eigent&uuml;mers nutzbar, Privat - ausschliesslich innerhalb des eigenen Kommunikationsprofils nutzbar.');
 INSERT INTO txt VALUES ('H9082', 'English', 'Permission: Defines visability and usability for other applications: Public - usable for all without further query, Restricted - usable only with permission of the owner, Private - usable only inside the own Communication Profile.');
+INSERT INTO txt VALUES ('H5901', 'German',  'Verantwortlichkeitsstufen f&uuml;r Eigent&uuml;mer verwalten. Sie k&ouml;nnen Bezeichnungen und Sortierung anpassen, neue Stufen hinzuf&uuml;gen und nicht mehr ben&ouml;tigte Stufen deaktivieren.');
+INSERT INTO txt VALUES ('H5901', 'English', 'Manage responsible levels for owners. You can rename and sort levels, add new ones, and deactivate levels that should no longer be used.');
+INSERT INTO txt VALUES ('H5902', 'German',  'Wenn aktiv, erhalten Verantwortliche dieser Stufe Modelling-Rechte. Wenn inaktiv, wird die Rolle nicht zugewiesen.');
+INSERT INTO txt VALUES ('H5902', 'English', 'When enabled, responsibles of this type receive modelling rights. When disabled, the role is not assigned.');
+INSERT INTO txt VALUES ('H5903', 'German',  'Wenn aktiv, erhalten Verantwortliche dieser Stufe Rezertifizierungsrechte. Wenn inaktiv, wird die Rolle nicht zugewiesen.');
+INSERT INTO txt VALUES ('H5903', 'English', 'When enabled, responsibles of this type receive recertification rights. When disabled, the role is not assigned.');

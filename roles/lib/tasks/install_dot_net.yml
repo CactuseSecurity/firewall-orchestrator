@@ -51,44 +51,7 @@
       apt:
         name: "dotnet-sdk-{{ dotnet_version }}"
         state: present
-      register: dotnet_apt_install
-      failed_when: false
       when: ansible_architecture == "x86_64"
-
-    - name: Install .NET SDK {{ dotnet_version }} via script (fallback for missing apt package)
-      block:
-        # Vendored from https://dot.net/v1/dotnet-install.sh; update manually when needed.
-        - name: Copy vendored dotnet-install script
-          copy:
-            src: dotnet-install.sh
-            dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
-            mode: '0755'
-
-        - name: Check installed .NET SDKs
-          command: dotnet --list-sdks
-          register: installed_sdks
-          changed_when: false
-          failed_when: false
-
-        - name: Run dotnet install script
-          command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --install-dir /usr/share/dotnet"
-          when: dotnet_version not in installed_sdks.stdout
-
-        - name: Check if /usr/bin/dotnet exists
-          stat:
-            path: /usr/bin/dotnet
-          register: dotnet_binary
-
-        - name: Symlink dotnet binary to /usr/bin
-          file:
-            src: /usr/share/dotnet/dotnet
-            dest: /usr/bin/dotnet
-            state: link
-            force: true
-          when: not dotnet_binary.stat.exists or dotnet_binary.stat.islnk
-
-      # Run this block if the apt package is missing or for all installs to be safe
-      when: ansible_architecture == "x86_64" and (dotnet_apt_install is failed)
 
     - debug: 
         msg:

@@ -35,7 +35,7 @@ jobs:
         run: |
           sudo apt update
           sudo DEBIAN_FRONTEND=noninteractive apt install build-essential ldap-utils libldap2-dev libsasl2-dev -y
-          pip install ansible psycopg2-binary python-ldap requests
+          python -m pip install ansible psycopg2-binary python-ldap requests
 
       - name: Run Ansible test install
         run: |

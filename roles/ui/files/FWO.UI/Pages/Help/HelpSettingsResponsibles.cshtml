@@ -18,4 +18,21 @@
     @(Html.Raw(userConfig.GetText("H5902")))
     <br />
     @(Html.Raw(userConfig.GetText("H5903")))
+    <br />
+    <br />
+    <h5>@(userConfig.GetText("permissions"))</h5>
+    <ul>
+        <li>
+            <b>@(userConfig.GetText("allow_modelling"))</b> controls whether assigned users/groups may modify modelling data for owners where they are responsible.
+        </li>
+        <li>
+            <b>@(userConfig.GetText("allow_recertification"))</b> controls whether assigned users/groups may execute recertification for owners where they are responsible.
+        </li>
+        <li>
+            If no assigned responsible type grants the respective permission, affected actions are shown disabled and execution is blocked.
+        </li>
+        <li>
+            Deactivation of a responsible type keeps historical owner assignments but removes its effective permissions.
+        </li>
+    </ul>
 </div>

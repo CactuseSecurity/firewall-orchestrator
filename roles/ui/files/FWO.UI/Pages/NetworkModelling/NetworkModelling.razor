@@ -75,22 +75,22 @@
                                 </NotAuthorized>
                             </AuthorizeView>
                         }
-                        @if(userConfig.ModRecertActive && appSelected && selectedApp.RecertActive && selectedApp.ConnectionCount.Aggregate.Count > 0 && IsRecertificationAllowedForSelectedApp())
+                        @if(userConfig.ModRecertActive && appSelected && selectedApp.RecertActive && selectedApp.ConnectionCount.Aggregate.Count > 0)
                         {
-                            <AuthorizeView Roles="@($"{Roles.Recertifier}, {Roles.Admin}")">
-                                <Authorized>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="Recertify">
-                                        @(DisplayService.DisplayButtonWithTooltip(userConfig, "recertify", Icons.Recertify, UserConfig.PureLineStat(RecertStatus)))
+                            @if (HasRecertWriteAccess() && IsRecertificationAllowedForSelectedApp())
+                            {
+                                <button type="button" class="btn btn-sm btn-success" @onclick="Recertify">
+                                    @(DisplayService.DisplayButtonWithTooltip(userConfig, "recertify", Icons.Recertify, UserConfig.PureLineStat(RecertStatus)))
+                                </button>
+                            }
+                            else
+                            {
+                                <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
+                                    <button type="button" class="btn btn-sm btn-success" disabled>
+                                        @(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))
                                     </button>
-                                </Authorized>
-                                <NotAuthorized>
-                                    <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
-                                        <button type="button" class="btn btn-sm btn-success" disabled>
-                                            @(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))
-                                        </button>
-                                    </div>
-                                </NotAuthorized>
-                            </AuthorizeView>
+                                </div>
+                            }
                         }
                     </div>
                 </div>
@@ -496,8 +496,7 @@ else
         }
 
         bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
-        bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
-        return isAdmin || isAuditor || recertifiableOwnerIds.Contains(selectedApp.Id);
+        return isAdmin || recertifiableOwnerIds.Contains(selectedApp.Id);
     }
 
     private bool HasRecertWriteAccess()

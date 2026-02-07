@@ -11,6 +11,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getOwnersWithConn;
         public static readonly string getEditableOwners;
         public static readonly string getEditableOwnersWithConn;
+        public static readonly string getOwnersForDnsWithConn;
+        public static readonly string getOwnersForDnsWithModellingWithConn;
         public static readonly string newOwner;
         public static readonly string newLifeCycle;
         public static readonly string updateOwner;
@@ -24,6 +26,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string setOwnerLastRecert;
         public static readonly string getOwnersFromGroups;
         public static readonly string getOwnersForUser;
+        public static readonly string getOwnersForDnsWithRecertification;
         public static readonly string getOwnerResponsibleTypes;
         public static readonly string getNetworkOwnerships;
         public static readonly string newNetworkOwnership;
@@ -50,6 +53,8 @@ namespace FWO.Api.Client.Queries
                 getOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersWithConn.graphql");
                 getEditableOwners = ownerDetailsFragment + GetQueryText("owner/getEditableOwners.graphql");
                 getEditableOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getEditableOwnersWithConn.graphql");
+                getOwnersForDnsWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithConn.graphql");
+                getOwnersForDnsWithModellingWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithModellingWithConn.graphql");
                 newOwner = GetQueryText("owner/newOwner.graphql");
                 newLifeCycle = GetQueryText("owner/newLifeCycle.graphql");
                 updateOwner = GetQueryText("owner/updateOwner.graphql");
@@ -62,6 +67,7 @@ namespace FWO.Api.Client.Queries
                 setOwnerLastRecert = GetQueryText("owner/setOwnerLastRecert.graphql");
                 getOwnersFromGroups = ownerDetailsFragment + GetQueryText("owner/getOwnersFromGroups.graphql");
                 getOwnersForUser = ownerDetailsFragment + GetQueryText("owner/getOwnersForUser.graphql");
+                getOwnersForDnsWithRecertification = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithRecertification.graphql");
                 getOwnerResponsibleTypes = GetQueryText("owner/getOwnerResponsibleTypes.graphql");
                 getNetworkOwnerships = ownerDetailsFragment + GetQueryText("owner/getNetworkOwnerships.graphql");
                 newNetworkOwnership = ownerDetailsFragment + GetQueryText("owner/newNetworkOwnership.graphql");

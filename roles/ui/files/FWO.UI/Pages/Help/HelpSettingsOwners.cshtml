@@ -32,17 +32,11 @@
     </ul>
     <h5>@(userConfig.GetText("responsibles"))</h5>
     <p>
-        Owner permissions are derived from the assigned responsible entries of the current user (direct user DN or group DN) for the selected owner.
+        @(Html.Raw(userConfig.GetText("H5581b")))
     </p>
     <ul>
-        <li>
-            <b>@(userConfig.GetText("allow_modelling"))</b>: write actions in modelling (e.g. add, edit, delete) are only enabled if at least one matching responsible type for that owner allows modelling.
-        </li>
-        <li>
-            <b>@(userConfig.GetText("allow_recertification"))</b>: recertification execution is only enabled if at least one matching responsible type for that owner allows recertification.
-        </li>
-        <li>
-            Users without write permission still keep read access to owners, modelling views and recertification reports.
-        </li>
+        <li>@(Html.Raw(userConfig.GetText("H5581c")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5581d")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5581e")))</li>
     </ul>
 </div>

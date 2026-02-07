@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Server.Services;
@@ -62,21 +63,16 @@ namespace FWO.Middleware.Server.Controllers
 
                 JobExecutionResult? lastResult = executionTracker.GetLastResult(jobKey.Name);
 
-                string executionStatus;
-                string executionError;
-
-                if (lastResult is null)
-                {
-                    executionStatus = "unknown";
-                    executionError = "";
-                }
-                else
-                {
-                    executionStatus = lastResult.Success ? "success" : "error";
-                    executionError = lastResult.Success ? "" : lastResult.ErrorMessage;
-                }
-
                 DateTimeOffset? actualLastFire = lastResult?.ExecutedAt ?? lastFire;
+
+                SchedulerJobExecutionStatus jobExecutionStatus = new();
+                string jobError = "";
+
+                if (lastResult is not null)
+                {
+                    jobExecutionStatus = lastResult.Success ? SchedulerJobExecutionStatus.Success : SchedulerJobExecutionStatus.Failed;
+                    jobError = lastResult.ErrorMessage;
+                }
 
                 jobs.Add(new SchedulerJobInfo
                 {
@@ -85,8 +81,8 @@ namespace FWO.Middleware.Server.Controllers
                     NextFireTimeUtc = nextFire,
                     LastFireTimeUtc = actualLastFire,
                     IntervalDescription = intervalDescription,
-                    LastExecutionStatus = executionStatus,
-                    LastExecutionError = executionError
+                    LastExecutionStatus = jobExecutionStatus,
+                    LastExecutionError = jobError
                 });
             }
 
@@ -127,16 +123,16 @@ namespace FWO.Middleware.Server.Controllers
             {
                 if (trigger is ISimpleTrigger simple && simple.RepeatInterval > TimeSpan.Zero)
                 {
-                    return $"every {FormatInterval(simple.RepeatInterval)}";
+                    return FormatInterval(simple.RepeatInterval);
                 }
 
                 if (trigger is ICronTrigger cron)
                 {
-                    return $"cron: {cron.CronExpressionString}";
+                    return cron.CronExpressionString ?? "";
                 }
             }
 
-            return "manual";
+            return "";
         }
 
         private static string FormatInterval(TimeSpan interval)

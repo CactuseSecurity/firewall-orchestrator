@@ -40,6 +40,7 @@ namespace FWO.Services
         private readonly Action<Exception?, string, string, bool> displayMessageInUi;
         private readonly bool useInMwServer = false;
         private List<UserGroup> ownerGroups = [];
+        private List<OwnerResponsibleType> ownerResponsibleTypes = [];
         private List<UiUser> uiUsers = [];
         private string? ScopedUserTo;
         private string? ScopedUserCc;
@@ -61,6 +62,14 @@ namespace FWO.Services
             {
                 ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, displayMessageInUi, true);
             }
+            try
+            {
+                ownerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            }
+            catch
+            {
+                ownerResponsibleTypes = [];
+            }
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUserEmails);
             ScopedUserTo = scopedUserTo;
             ScopedUserCc = scopedUserCc;
@@ -70,6 +79,13 @@ namespace FWO.Services
         {
             List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
             return await SendEmail(await GetRecipients(recOpt, null, owner, null, null), subject, body, requester);
+        }
+
+        public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, string recipientConfig, bool reqInCc = false, List<string>? otherAddresses = null)
+        {
+            List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
+            List<string> recipients = await GetRecipients(ModellingEmailRecipientSelection.Parse(recipientConfig, GetActiveOwnerResponsibleTypeIds()), owner, otherAddresses);
+            return await SendEmail(recipients, subject, body, requester);
         }
 
         public async Task<bool> SendOwnerEmailFromAction(EmailActionParams emailActionParams, WfStatefulObject statefulObject, FwoOwner? owner)
@@ -89,6 +105,10 @@ namespace FWO.Services
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
             tos = [.. tos.Where(t => t != "")];
+            if (tos.Count == 0)
+            {
+                return false;
+            }
             ccs = ccs?.Where(c => c != "").ToList();
             return await MailKitMailer.SendAsync(new MailData(tos, subject) { Body = body, Cc = ccs ?? [] }, emailConnection, true, new CancellationToken());
         }
@@ -147,6 +167,74 @@ namespace FWO.Services
                     break;
             }
             return recipients;
+        }
+
+        private async Task<List<string>> GetRecipients(ModellingEmailRecipientSelection selection, FwoOwner owner, List<string>? otherAddresses)
+        {
+            if (!selection.HasAnyRecipientOption())
+            {
+                return [];
+            }
+
+            HashSet<string> recipients = new(StringComparer.OrdinalIgnoreCase);
+            if (selection.OtherAddresses && otherAddresses != null)
+            {
+                foreach (string address in otherAddresses)
+                {
+                    if (!string.IsNullOrWhiteSpace(address))
+                    {
+                        recipients.Add(address);
+                    }
+                }
+            }
+
+            // Normal behavior: collect recipients from all explicitly selected responsible types.
+            foreach (int responsibleTypeId in selection.OwnerResponsibleTypeIds.Distinct())
+            {
+                List<string> ownerTypeRecipients = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(responsibleTypeId));
+                if (ownerTypeRecipients.Count > 0)
+                {
+                    foreach (string recipient in ownerTypeRecipients)
+                    {
+                        recipients.Add(recipient);
+                    }
+                }
+            }
+
+            // Optional fallback behavior: only when no selected option yields any recipient.
+            if (selection.EnsureAtLeastOneNotification && recipients.Count == 0)
+            {
+                HashSet<int> selectedTypeIds = selection.OwnerResponsibleTypeIds.ToHashSet();
+                List<int> fallbackTypeIds = ownerResponsibleTypes
+                    .Where(type => type.Active && !selectedTypeIds.Contains(type.Id))
+                    .OrderByDescending(type => type.SortOrder)
+                    .ThenByDescending(type => type.Id)
+                    .Select(type => type.Id)
+                    .ToList();
+
+                foreach (int responsibleTypeId in fallbackTypeIds)
+                {
+                    List<string> ownerTypeRecipients = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(responsibleTypeId));
+                    if (ownerTypeRecipients.Count > 0)
+                    {
+                        foreach (string recipient in ownerTypeRecipients)
+                        {
+                            recipients.Add(recipient);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            return recipients.ToList();
+        }
+
+        private List<int> GetActiveOwnerResponsibleTypeIds()
+        {
+            return ownerResponsibleTypes
+                .Where(type => type.Active)
+                .Select(type => type.Id)
+                .ToList();
         }
 
         public List<string> GetOwnerMainResponsibleRecipients(List<UserGroup> owners)

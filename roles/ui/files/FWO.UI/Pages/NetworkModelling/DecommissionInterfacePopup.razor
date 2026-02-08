@@ -1,4 +1,5 @@
 ﻿@using FWO.Middleware.Client
+@using FWO.Data
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -118,7 +119,7 @@
                 ConnHandler.ActConn.Reason += $"<br>{DateTime.Now.ToString("dd.MM.yyyy")} {userConfig.User.Name}: {userConfig.GetText("decomm_interface")}: {Reason}";
                 await ConnHandler.Save(true, true);
                 await ConnHandler.RemoveFromAllSelections();
-                if(userConfig.ModDecommEmailReceiver != EmailRecipientOption.None)
+                if(ModellingEmailRecipientSelection.Parse(userConfig.ModDecommEmailReceiver).HasAnyRecipientOption())
                 {
                     AppsToNotify = ConnHandler.UsingConnections.Where(c => c.AppId != null && c.AppId != ConnHandler.ActConn.AppId).Select(c => c.App).Distinct().ToList();
                     await NotifyUsers();
@@ -148,7 +149,7 @@
             int failCount = 0;
             foreach (var app in AppsToNotify)
             {
-                if(await emailHelper.SendEmailToOwnerResponsibles(app, subject, ConstructBody(app), userConfig.ModDecommEmailReceiver))
+                if(await emailHelper.SendEmailToOwnerResponsibles(app, subject, ConstructBody(app), userConfig.ModDecommEmailReceiver, false, EmailHelper.SplitAddresses(userConfig.ModDecommEmailOtherAddresses)))
                 {
                     successCount++;
                 }

@@ -1,4 +1,7 @@
 @using System.Text.Json
+@using FWO.Api.Client.Queries
+@using FWO.Basics
+@using FWO.Data
 @using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using FWO.Ui.Data
@@ -200,18 +203,42 @@
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
-            <div class="col-sm-3">
-                <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="configData!.ModReqEmailReceiver"
-                        ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
-                    <ElementTemplate Context="opt">
-                        @(userConfig.GetText(opt.ToString()))
-                    </ElementTemplate>
-                </Dropdown>
+            <div class="col-sm-4">
+                <div class="form-check">
+                    <input id="cbx_mod_req_mail_none" class="form-check-input" type="checkbox" checked="@modReqEmailRecipients.None"
+                        @onchange="@(args => ToggleNoneRecipientSelection(modReqEmailRecipients, args))" />
+                    <label class="form-check-label" for="cbx_mod_req_mail_none">@(userConfig.GetText(nameof(EmailRecipientOption.None)))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_mod_req_mail_other" class="form-check-input" type="checkbox" disabled="@modReqEmailRecipients.None"
+                        checked="@modReqEmailRecipients.OtherAddresses"
+                        @onchange="@(args => ToggleOtherAddressSelection(modReqEmailRecipients, args))" />
+                    <label class="form-check-label" for="cbx_mod_req_mail_other">@(userConfig.GetText(nameof(EmailRecipientOption.OtherAddresses)))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_mod_req_mail_ensure_one" class="form-check-input" type="checkbox" disabled="@modReqEmailRecipients.None"
+                        checked="@modReqEmailRecipients.EnsureAtLeastOneNotification"
+                        @onchange="@(args => ToggleEnsureAtLeastOneNotification(modReqEmailRecipients, args))" />
+                    <label class="form-check-label" for="cbx_mod_req_mail_ensure_one">@(userConfig.GetText("modEnsureAtLeastOneEmailNotification"))</label>
+                </div>
+                @foreach (OwnerResponsibleType ownerResponsibleType in activeOwnerResponsibleTypes)
+                {
+                    <div class="form-check">
+                        <input id="@($"cbx_mod_req_mail_ort_{ownerResponsibleType.Id}")" class="form-check-input" type="checkbox" disabled="@modReqEmailRecipients.None"
+                            checked="@modReqEmailRecipients.OwnerResponsibleTypeIds.Contains(ownerResponsibleType.Id)"
+                            @onchange="@(args => ToggleOwnerResponsibleTypeSelection(modReqEmailRecipients, ownerResponsibleType.Id, args))" />
+                        <label class="form-check-label" for="@($"cbx_mod_req_mail_ort_{ownerResponsibleType.Id}")">@GetOwnerResponsibleTypeDisplayName(ownerResponsibleType)</label>
+                    </div>
+                }
             </div>
             <label for="cbx_email_requester_in_cc" class="col-form-label col-sm-2">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
             <div class="col-sm-1">
                 <input id="cbx_email_requester_in_cc" type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
             </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailOtherAddresses")):</label>
+            <input type="text" class="col-sm-6" disabled="@(!modReqEmailRecipients.OtherAddresses || modReqEmailRecipients.None)" @bind="configData!.ModReqEmailOtherAddresses" />
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailSubject")):</label>
@@ -242,14 +269,38 @@
         <hr />
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5660"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailReceiver")):</label>
-            <div class="col-sm-3">
-                <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="configData!.ModDecommEmailReceiver"
-                        ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
-                    <ElementTemplate Context="opt">
-                        @(userConfig.GetText(opt.ToString()))
-                    </ElementTemplate>
-                </Dropdown>
+            <div class="col-sm-4">
+                <div class="form-check">
+                    <input id="cbx_mod_decomm_mail_none" class="form-check-input" type="checkbox" checked="@modDecommEmailRecipients.None"
+                        @onchange="@(args => ToggleNoneRecipientSelection(modDecommEmailRecipients, args))" />
+                    <label class="form-check-label" for="cbx_mod_decomm_mail_none">@(userConfig.GetText(nameof(EmailRecipientOption.None)))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_mod_decomm_mail_other" class="form-check-input" type="checkbox" disabled="@modDecommEmailRecipients.None"
+                        checked="@modDecommEmailRecipients.OtherAddresses"
+                        @onchange="@(args => ToggleOtherAddressSelection(modDecommEmailRecipients, args))" />
+                    <label class="form-check-label" for="cbx_mod_decomm_mail_other">@(userConfig.GetText(nameof(EmailRecipientOption.OtherAddresses)))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_mod_decomm_mail_ensure_one" class="form-check-input" type="checkbox" disabled="@modDecommEmailRecipients.None"
+                        checked="@modDecommEmailRecipients.EnsureAtLeastOneNotification"
+                        @onchange="@(args => ToggleEnsureAtLeastOneNotification(modDecommEmailRecipients, args))" />
+                    <label class="form-check-label" for="cbx_mod_decomm_mail_ensure_one">@(userConfig.GetText("modEnsureAtLeastOneEmailNotification"))</label>
+                </div>
+                @foreach (OwnerResponsibleType ownerResponsibleType in activeOwnerResponsibleTypes)
+                {
+                    <div class="form-check">
+                        <input id="@($"cbx_mod_decomm_mail_ort_{ownerResponsibleType.Id}")" class="form-check-input" type="checkbox" disabled="@modDecommEmailRecipients.None"
+                            checked="@modDecommEmailRecipients.OwnerResponsibleTypeIds.Contains(ownerResponsibleType.Id)"
+                            @onchange="@(args => ToggleOwnerResponsibleTypeSelection(modDecommEmailRecipients, ownerResponsibleType.Id, args))" />
+                        <label class="form-check-label" for="@($"cbx_mod_decomm_mail_ort_{ownerResponsibleType.Id}")">@GetOwnerResponsibleTypeDisplayName(ownerResponsibleType)</label>
+                    </div>
+                }
             </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailOtherAddresses")):</label>
+            <input type="text" class="col-sm-6" disabled="@(!modDecommEmailRecipients.OtherAddresses || modDecommEmailRecipients.None)" @bind="configData!.ModDecommEmailOtherAddresses" />
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailSubject")):</label>
@@ -391,6 +442,9 @@ else
     private string actExtraConfig = "";
 
     private List<ModellingNwGroup> allAreas = [];
+    private List<OwnerResponsibleType> activeOwnerResponsibleTypes = [];
+    private ModellingEmailRecipientSelection modReqEmailRecipients = new();
+    private ModellingEmailRecipientSelection modDecommEmailRecipients = new();
     private List<CommonArea> CommonAreas = [];
     private List<CommonArea> CommAreasToDelete = [];
     private List<CommonArea> SpecUserAreas = [];
@@ -414,6 +468,15 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
+            activeOwnerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            activeOwnerResponsibleTypes = activeOwnerResponsibleTypes
+                .Where(type => type.Active)
+                .OrderByDescending(type => type.SortOrder)
+                .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
+            modReqEmailRecipients = ModellingEmailRecipientSelection.Parse(configData.ModReqEmailReceiver, activeTypeIds);
+            modDecommEmailRecipients = ModellingEmailRecipientSelection.Parse(configData.ModDecommEmailReceiver, activeTypeIds);
             ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? [];
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
             if (configData.ModAppServerTypes != "")
@@ -560,6 +623,7 @@ else
     private void PrepareConfigData()
     {
         PrepareExtraConfigs();
+        PrepareModellingMailRecipients();
         configData!.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
         configData!.ModCommonAreas = PrepareAreas(CommonAreas, CommAreasToDelete);
@@ -567,6 +631,13 @@ else
         configData!.ModUpdatableObjAreas = PrepareAreas(UpdObjAreas, UpdObjAreasToDelete);
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
         configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
+    }
+
+    private void PrepareModellingMailRecipients()
+    {
+        List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
+        configData!.ModReqEmailReceiver = modReqEmailRecipients.ToConfigValue(activeTypeIds);
+        configData!.ModDecommEmailReceiver = modDecommEmailRecipients.ToConfigValue(activeTypeIds);
     }
 
     private string PrepareAreas(List<CommonArea> areas, List<CommonArea> areasToDelete)
@@ -616,6 +687,71 @@ else
             ExtraConfigs.Add(config);
         }
         configData!.ModExtraConfigs = JsonSerializer.Serialize(ExtraConfigs);
+    }
+
+    private void ToggleNoneRecipientSelection(ModellingEmailRecipientSelection selection, ChangeEventArgs args)
+    {
+        bool isChecked = IsChecked(args);
+        selection.None = isChecked;
+        if (isChecked)
+        {
+            selection.OtherAddresses = false;
+            selection.OwnerResponsibleTypeIds = [];
+        }
+    }
+
+    private void ToggleOtherAddressSelection(ModellingEmailRecipientSelection selection, ChangeEventArgs args)
+    {
+        bool isChecked = IsChecked(args);
+        selection.OtherAddresses = isChecked;
+        if (isChecked)
+        {
+            selection.None = false;
+        }
+        else if (selection.OwnerResponsibleTypeIds.Count == 0)
+        {
+            selection.None = true;
+        }
+    }
+
+    private void ToggleEnsureAtLeastOneNotification(ModellingEmailRecipientSelection selection, ChangeEventArgs args)
+    {
+        selection.EnsureAtLeastOneNotification = IsChecked(args);
+    }
+
+    private void ToggleOwnerResponsibleTypeSelection(ModellingEmailRecipientSelection selection, int typeId, ChangeEventArgs args)
+    {
+        bool isChecked = IsChecked(args);
+        if (isChecked)
+        {
+            if (!selection.OwnerResponsibleTypeIds.Contains(typeId))
+            {
+                selection.OwnerResponsibleTypeIds.Add(typeId);
+            }
+            selection.None = false;
+            return;
+        }
+
+        selection.OwnerResponsibleTypeIds.RemoveAll(selectedTypeId => selectedTypeId == typeId);
+        if (!selection.OtherAddresses && selection.OwnerResponsibleTypeIds.Count == 0)
+        {
+            selection.None = true;
+        }
+    }
+
+    private static bool IsChecked(ChangeEventArgs args)
+    {
+        if (args.Value is bool checkedValue)
+        {
+            return checkedValue;
+        }
+        return bool.TryParse(args.Value?.ToString(), out bool parsedValue) && parsedValue;
+    }
+
+    private string GetOwnerResponsibleTypeDisplayName(OwnerResponsibleType type)
+    {
+        string localized = userConfig.GetText(type.Name);
+        return localized == GlobalConst.kUndefinedText ? type.Name : localized;
     }
 
 }

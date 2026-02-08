@@ -12,13 +12,6 @@ namespace FWO.Data
         exclusive
     }
 
-    public enum OwnerResponsibleType
-    {
-        kMainResponsible = 1,
-        kSupportingResponsible = 2,
-        kOptionalEscalationResponsible = 3
-    }
-
     public class FwoOwnerBase
     {
         [JsonProperty("name"), JsonPropertyName("name")]
@@ -38,11 +31,6 @@ namespace FWO.Data
 
         [JsonProperty("app_id_external"), JsonPropertyName("app_id_external")]
         public string? ExtAppId { get; set; }
-
-        public string OwnerResponsiblesType1Key => string.Join(", ", GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible));
-        public string OwnerResponsiblesType2Key => string.Join(", ", GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible));
-        public string OwnerResponsiblesType3Key => string.Join(", ", GetOwnerResponsiblesByType(OwnerResponsibleType.kOptionalEscalationResponsible));
-
 
         public FwoOwnerBase()
         { }
@@ -79,47 +67,47 @@ namespace FWO.Data
             return responsibles.ToList();
         }
 
-        public List<string> GetOwnerResponsiblesByType(OwnerResponsibleType responsibleType)
+        public List<string> GetOwnerResponsiblesByType(int responsibleType)
         {
             return (OwnerResponsibles ?? [])
-                .Where(responsible => responsible.ResponsibleType == responsibleType)
+                .Where(responsible => responsible.ResponsibleTypeId == responsibleType)
                 .Select(responsible => responsible.Dn)
                 .Where(dn => !string.IsNullOrWhiteSpace(dn))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
 
-        public void SetOwnerResponsiblesByType(OwnerResponsibleType responsibleType, IEnumerable<string> dns)
+        public void SetOwnerResponsiblesByType(int responsibleType, IEnumerable<string> dns)
         {
             OwnerResponsibles ??= [];
-            OwnerResponsibles.RemoveAll(responsible => responsible.ResponsibleType == responsibleType);
+            OwnerResponsibles.RemoveAll(responsible => responsible.ResponsibleTypeId == responsibleType);
             foreach (string dn in dns.Where(dn => !string.IsNullOrWhiteSpace(dn)))
             {
-                OwnerResponsibles.Add(new OwnerResponsible { Dn = dn, ResponsibleType = responsibleType });
+                OwnerResponsibles.Add(new OwnerResponsible { Dn = dn, ResponsibleTypeId = responsibleType });
             }
         }
 
-        public void AddOwnerResponsible(OwnerResponsibleType responsibleType, string dn)
+        public void AddOwnerResponsible(int responsibleType, string dn)
         {
             if (string.IsNullOrWhiteSpace(dn))
             {
                 return;
             }
             OwnerResponsibles ??= [];
-            if (!OwnerResponsibles.Any(r => r.ResponsibleType == responsibleType && r.Dn.Equals(dn, StringComparison.OrdinalIgnoreCase)))
+            if (!OwnerResponsibles.Any(r => r.ResponsibleTypeId == responsibleType && r.Dn.Equals(dn, StringComparison.OrdinalIgnoreCase)))
             {
-                OwnerResponsibles.Add(new OwnerResponsible { Dn = dn, ResponsibleType = responsibleType });
+                OwnerResponsibles.Add(new OwnerResponsible { Dn = dn, ResponsibleTypeId = responsibleType });
             }
         }
 
-        public void RemoveOwnerResponsible(OwnerResponsibleType responsibleType, string dn)
+        public void RemoveOwnerResponsible(int responsibleType, string dn)
         {
             if (string.IsNullOrWhiteSpace(dn))
             {
                 return;
             }
             OwnerResponsibles?.RemoveAll(responsible =>
-                responsible.ResponsibleType == responsibleType && responsible.Dn.Equals(dn, StringComparison.OrdinalIgnoreCase));
+                responsible.ResponsibleTypeId == responsibleType && responsible.Dn.Equals(dn, StringComparison.OrdinalIgnoreCase));
         }
 
         private static void AddResponsible(HashSet<string> responsibles, string? dn)
@@ -138,7 +126,7 @@ namespace FWO.Data
                     sanitized.Add(new OwnerResponsible
                     {
                         Dn = responsible.Dn.SanitizeLdapPathMand(ref shortened),
-                        ResponsibleType = responsible.ResponsibleType
+                        ResponsibleTypeId = responsible.ResponsibleTypeId
                     });
                 }
             }
@@ -152,7 +140,7 @@ namespace FWO.Data
         public string Dn { get; set; } = "";
 
         [JsonProperty("responsible_type"), JsonPropertyName("responsible_type")]
-        public OwnerResponsibleType ResponsibleType { get; set; }
+        public int ResponsibleTypeId { get; set; }
 
         public OwnerResponsible()
         { }
@@ -160,7 +148,7 @@ namespace FWO.Data
         public OwnerResponsible(OwnerResponsible responsible)
         {
             Dn = responsible.Dn;
-            ResponsibleType = responsible.ResponsibleType;
+            ResponsibleTypeId = responsible.ResponsibleTypeId;
         }
     }
 }

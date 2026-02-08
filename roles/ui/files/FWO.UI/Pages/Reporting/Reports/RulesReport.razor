@@ -32,6 +32,195 @@
                     @if (device.ContainsRules() && _ruleDisplay != null)
                     {
                         <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
+                            <TreeView T="RuleTreeItem" Nodes="@GetRuleTree(management, device).Children">
+
+                            </TreeView>
+                        </Collapse>
+                    }
+                }
+            }
+        
+        </Collapse>
+    }
+}
+
+@code
+{
+    #region Parameters
+
+    [Parameter]
+    public List<ManagementReport> Managements { get; set; } = new ();
+
+    [Parameter]
+    public bool ReadonlyMode { get; set; } = false;
+
+    [Parameter]
+    public bool Recertification { get; set; } = false;
+
+    [Parameter]
+    public int RulesPerPage { get; set; }
+
+    [Parameter]
+    public ReportType SelectedReportType { get; set; }
+
+    [Parameter]
+    public List<Rule> SelectedRules { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    #endregion
+
+    #region Consts - Private
+
+    private const int ColumnsCount = 14;
+
+    #endregion
+
+    #region Fields
+
+    // private ITable<RuleTreeItem>? _reportTable;
+    private bool[] _emptyColumns = new bool[ColumnsCount];
+
+    private NatRuleDisplayHtml? _ruleDisplay;
+    private bool _showLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
+
+    private Rule? _lastClickedRule = null;
+    
+    #endregion
+
+    #region Methods - Overrides
+    
+    protected override void OnInitialized()
+    {
+        _ruleDisplay = new NatRuleDisplayHtml(userConfig);
+        // TODO: are we using NatRuleDisplayHtml for non-NAT rules?
+    }
+
+    #endregion
+
+    #region Methods - Private
+
+    private string GetTableRowClasses(Rule rule)
+    {
+        string classes = "";
+        if(rule.SectionHeader != null)
+        {
+            classes = "hide-all-but-second-child second-child-full-width ";
+        }
+        return classes;
+    }
+
+    private OutputLocation GetActLocation()
+    {
+        return Recertification ? OutputLocation.certification : OutputLocation.report;
+    }
+
+    private IEnumerable<Rule> GetAllInlineRecursive(IEnumerable<Rule> rules, Dictionary<string, List<Rule>> dictRuleInlines)
+    {
+        foreach (var r in rules)
+        {
+            yield return r;
+
+            if (dictRuleInlines.TryGetValue(r.DisplayOrderNumberString, out var children) && children.Count > 0)
+            {
+                foreach (var c in GetAllInlineRecursive(children, dictRuleInlines))
+                    yield return c;
+            }
+        }
+    }
+
+    private RuleTreeItem GetRuleTree(ManagementReport managementReport, DeviceReport deviceReport)
+    {
+        if (ruleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, deviceReport.Id), out RuleTreeItem? ruleTreeFromCache))
+        {
+            return ruleTreeFromCache;
+        }
+
+        return new();
+    }
+
+    private string GetToggleArrow(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
+    {
+        // Get corresponding tree item for rule
+
+        RuleTreeItem ruleTree = ruleTreeBuilder.RuleTreeCache[(managementReport.Id, deviceReport.Id)];
+        RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;     
+
+        if (treeItem == null)
+        {
+            throw new Exception("No tree item found for rule");
+        }  
+
+        // Print hidden span for rows (rules or dummy rules for rulebase headers) which are not expandable
+
+        if (!treeItem.Children.Any())
+        {
+            return $"<span style=\"visibility:hidden;\">{Icons.HtmlArrowCollapsed}</span>";
+        }
+
+        // Show correct arrow
+
+        if (treeItem.IsExpanded)
+        {
+            return Icons.HtmlArrowExpanded;
+        }
+        else
+        {
+            return Icons.HtmlArrowCollapsed;
+        }
+    }
+
+    private void OnNumberIconClickToggle(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
+    {
+        // Capture clicked rule
+
+        _lastClickedRule = rule;
+
+        // Get corresponding tree item for rule
+
+        RuleTreeItem ruleTree = ruleTreeBuilder.RuleTreeCache[(managementReport.Id, deviceReport.Id)];
+        RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;
+
+        if (treeItem != null)
+        {
+            // Update exapandable state
+
+            treeItem.IsExpanded = !treeItem.IsExpanded;       
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    #endregion
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  @* 
+                @foreach (var device in management.Devices)
+              {
+                    @if (device.ContainsRules() && _ruleDisplay != null)
+                    {
+                        <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                             <Table SelectedItems="new List<RuleTreeItem>()"
                                 RowClickAction="@(async ruleTreeItem => 
                                 {
@@ -235,176 +424,10 @@
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />
                         </Table>
                     </Collapse>
+
+
+
+
+
                 }
-            }
-        }
-        </Collapse>
-    }
-}
-
-@code
-{
-    #region Parameters
-
-    [Parameter]
-    public List<ManagementReport> Managements { get; set; } = new ();
-
-    [Parameter]
-    public bool ReadonlyMode { get; set; } = false;
-
-    [Parameter]
-    public bool Recertification { get; set; } = false;
-
-    [Parameter]
-    public int RulesPerPage { get; set; }
-
-    [Parameter]
-    public ReportType SelectedReportType { get; set; }
-
-    [Parameter]
-    public List<Rule> SelectedRules { get; set; } = [];
-
-    [Parameter]
-    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
-
-    [Parameter]
-    public int Width { get; set; }
-
-    [Parameter]
-    public EventCallback<int> WidthChanged { get; set; }
-
-    #endregion
-
-    #region Consts - Private
-
-    private const int ColumnsCount = 14;
-
-    #endregion
-
-    #region Fields
-
-    private ITable<RuleTreeItem>? _reportTable;
-    private bool[] _emptyColumns = new bool[ColumnsCount];
-
-    private NatRuleDisplayHtml? _ruleDisplay;
-    private bool _showLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
-
-    private Rule? _lastClickedRule = null;
-    
-    #endregion
-
-    #region Methods - Overrides
-    
-    protected override void OnInitialized()
-    {
-        _ruleDisplay = new NatRuleDisplayHtml(userConfig);
-        // TODO: are we using NatRuleDisplayHtml for non-NAT rules?
-    }
-
-    #endregion
-
-    #region Methods - Private
-
-    private string GetTableRowClasses(Rule rule)
-    {
-        string classes = "";
-        if(rule.SectionHeader != null)
-        {
-            classes = "hide-all-but-second-child second-child-full-width ";
-        }
-        return classes;
-    }
-
-    private OutputLocation GetActLocation()
-    {
-        return Recertification ? OutputLocation.certification : OutputLocation.report;
-    }
-
-    private IEnumerable<Rule> GetAllInlineRecursive(IEnumerable<Rule> rules, Dictionary<string, List<Rule>> dictRuleInlines)
-    {
-        foreach (var r in rules)
-        {
-            yield return r;
-
-            if (dictRuleInlines.TryGetValue(r.DisplayOrderNumberString, out var children) && children.Count > 0)
-            {
-                foreach (var c in GetAllInlineRecursive(children, dictRuleInlines))
-                    yield return c;
-            }
-        }
-    }
-
-    private RuleTreeItem[] GetRuleTreeItems(ManagementReport managementReport, DeviceReport deviceReport)
-    {
-        List<RuleTreeItem> ruleTreeItems = new();
-
-        if (ruleTreeBuilder.RuleTreeCache.TryGetValue((deviceReport.Id, managementReport.Id), out RuleTreeItem? ruleTreeFromCache))
-        {
-            for (int i = 0; i < ruleTreeFromCache.ElementsFlat.Count; i++)
-            {
-                RuleTreeItem ruleTreeItem = (RuleTreeItem) ruleTreeFromCache.ElementsFlat[i];
-
-                if (ruleTreeItem.IsVisible)
-                {
-                    ruleTreeItems.Add(ruleTreeItem);
-                }   
-            }
-        }
-
-        return ruleTreeItems.ToArray();
-    }
-
-    private string GetToggleArrow(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
-    {
-        // Get corresponding tree item for rule
-
-        RuleTreeItem ruleTree = ruleTreeBuilder.RuleTreeCache[(managementReport.Id, deviceReport.Id)];
-        RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;     
-
-        if (treeItem == null)
-        {
-            throw new Exception("No tree item found for rule");
-        }  
-
-        // Print hidden span for rows (rules or dummy rules for rulebase headers) which are not expandable
-
-        if (!treeItem.Children.Any())
-        {
-            return $"<span style=\"visibility:hidden;\">{Icons.HtmlArrowCollapsed}</span>";
-        }
-
-        // Show correct arrow
-
-        if (treeItem.IsExpanded)
-        {
-            return Icons.HtmlArrowExpanded;
-        }
-        else
-        {
-            return Icons.HtmlArrowCollapsed;
-        }
-    }
-
-    private void OnNumberIconClickToggle(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
-    {
-        // Capture clicked rule
-
-        _lastClickedRule = rule;
-
-        // Get corresponding tree item for rule
-
-        RuleTreeItem ruleTree = ruleTreeBuilder.RuleTreeCache[(managementReport.Id, deviceReport.Id)];
-        RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;
-
-        if (treeItem != null)
-        {
-            // Update exapandable state
-
-            treeItem.IsExpanded = !treeItem.IsExpanded;       
-        }
-
-        InvokeAsync(StateHasChanged);
-    }
-
-    #endregion
-}
+            } *@

@@ -1,8 +1,10 @@
+using System.Reflection.PortableExecutable;
 using FWO.Basics;
+using FWO.Basics.Interfaces;
 using FWO.Data;
 namespace FWO.Services.RuleTreeBuilder
 {
-    public class RuleTreeItem : TreeItem<Rule>
+    public class RuleTreeItem : TreeItem<Rule>, ITreeViewItem
     {
         #region Properties & fields
 
@@ -70,6 +72,20 @@ namespace FWO.Services.RuleTreeBuilder
         /// Tree items without children that were reached during the last traversal down.
         /// </summary>
         public List<RuleTreeItem> SelectedRuleTreeLeafs { get; set; } = new();
+
+
+
+        List<ITreeViewItem> ITreeViewItem.Children { get => Children.Select(child => (ITreeViewItem)child).ToList(); set { Children = value.Select(child => (RuleTreeItem)child).ToList(); } }
+        public bool IsExpandable { get; set; } = true;
+        public bool IsSelectable { get; set; } = true;
+        public string Label { get => Header; set { Header = value; } }
+        public Dictionary<string, string> DisplayData { get; set; } = new();
+
+
+
+        object ITreeViewItem.Data { get => Data; set { Data = (Rule)value; } }
+
+        List<ITreeViewItem> ITreeViewItem.ElementsFlat { get => ElementsFlat.Select(element => (ITreeViewItem)element).ToList(); set { ElementsFlat = value.Select(element => (RuleTreeItem)element).ToList(); } }
 
         #endregion
 

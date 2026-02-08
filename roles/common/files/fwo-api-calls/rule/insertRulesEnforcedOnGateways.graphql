@@ -1,0 +1,7 @@
+mutation insertRulesEnforcedOnGateways (
+  $rulesEnforcedOnGateway: [rule_enforced_on_gateway_insert_input!]!
+) {
+  insert_rule_enforced_on_gateway(objects: $rulesEnforcedOnGateway) {
+    affected_rows
+  }
+}

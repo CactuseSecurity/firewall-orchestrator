@@ -7,11 +7,12 @@ from typing import Any, TypeVar
 
 import fwo_const
 from fwo_api import FwoApi
-from fwo_exceptions import FwoApiWriteError, FwoImporterError
+from fwo_exceptions import FwoApiWriteError, FwoImporterError, FwoImporterErrorInconsistenciesError
 from fwo_log import ChangeLogger, FWOLogger
 from model_controllers.fwconfig_import_ruleorder import update_rule_order_diffs
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
+from models.gateway import Gateway
 from models.networkobject import NetworkObject
 from models.rule import Rule, RuleNormalized
 from models.rule_from import RuleFrom
@@ -56,7 +57,7 @@ class FwConfigImportRule:
         self.group_flats_mapper = service_provider.get_group_flats_mapper(self.import_details.state.import_id)
         self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_details.state.import_id)
 
-    def update_rulebase_diffs(self, prev_config: FwConfigNormalized) -> list[int]:
+    def update_rulebase_diffs(self, prev_config: FwConfigNormalized) -> None:
         if self.normalized_config is None:
             raise FwoImporterError("cannot update rulebase diffs: normalized_config is None")
 
@@ -113,7 +114,7 @@ class FwConfigImportRule:
         )
 
         self.uid2id_mapper.add_rule_mappings(inserted_rule_ids)
-        _refs_added = self.add_new_refs(prev_config)
+        refs_added = self.add_new_refs(prev_config)
 
         num_set_removed_rules, _removed_rule_ids = self.mark_rules_removed(list(removed_rule_uids | changed_rule_uids))
         # remove old rulebases
@@ -123,7 +124,9 @@ class FwConfigImportRule:
             if prev_rb.uid not in {rb.uid for rb in self.normalized_config.rulebases}
         ]
         num_deleted_rulebases = self.mark_rulebases_removed(removed_rulebase_uids)
-        _refs_removed = self.remove_outdated_refs(prev_config)
+        refs_removed = self.remove_outdated_refs(prev_config)
+
+        rule_to_gw_refs_added, rule_to_gw_refs_removed = self.update_rule_enforced_on_gateway(changed_rule_uids)
 
         self.write_changelog_rules(
             [curr_rules[rule_uid] for rule_uid in added_rule_uids],
@@ -145,6 +148,8 @@ class FwConfigImportRule:
         self.import_details.state.stats.increment_rule_delete_count(num_removed_rules)
         self.import_details.state.stats.increment_rule_move_count(num_moved_rules)
         self.import_details.state.stats.increment_rule_change_count(num_changed_rules)
+        self.import_details.state.stats.increment_rule_ref_add_count(refs_added + rule_to_gw_refs_added)
+        self.import_details.state.stats.increment_rule_ref_delete_count(refs_removed + rule_to_gw_refs_removed)
 
         # change counts returned from db mutations should match counts calculated from diffs, if not log a warning
         if num_inserted_rules != len(added_rule_uids) + len(changed_rule_uids):
@@ -155,8 +160,6 @@ class FwConfigImportRule:
             FWOLogger.warning(
                 f"Number of removed rules ({num_set_removed_rules}) does not match number of removed + changed rules ({len(removed_rule_uids) + len(changed_rule_uids)} = {len(removed_rule_uids)} + {len(changed_rule_uids)})"
             )
-
-        return [self.uid2id_mapper.get_rule_id(rule_uid) for rule_uid in added_rule_uids]
 
     def get_all_rule_diffs(
         self,
@@ -680,26 +683,6 @@ class FwConfigImportRule:
             raise FwoApiWriteError(f"failed to add new rule references: {import_result['errors']!s}")
         return sum(import_result["data"][f"insert_{ref_type.value}"].get("affected_rows", 0) for ref_type in RefType)
 
-    def get_rules_by_id_with_ref_uids(
-        self, rule_ids: list[int]
-    ) -> list[dict[str, Any]]:  # TODO: change return type to list[Rule] and cast
-        get_rule_uid_refs_query = FwoApi.get_graphql_code(
-            [fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulesByIdWithRefUids.graphql"]
-        )
-        query_variables = {"ruleIds": rule_ids}
-
-        try:
-            import_result = self.import_details.api_call.call(get_rule_uid_refs_query, query_variables=query_variables)
-            if "errors" in import_result:
-                FWOLogger.exception(
-                    f"fwconfig_import_rule:getRulesByIdWithRefUids - error in addNewRules: {import_result['errors']!s}"
-                )
-                return []
-            return import_result["data"]["rule"]
-        except Exception:
-            FWOLogger.exception(f"failed to get rules from API: {traceback.format_exc()!s}")
-            raise
-
     # adds new rule_metadatum to the database
     def add_new_rule_metadata(self, new_rules: list[RuleNormalized]) -> tuple[int, list[int]]:
         """
@@ -925,98 +908,144 @@ class FwConfigImportRule:
 
         return changes, removed_rule_ids
 
-    def update_rule_enforced_on_gateway_after_move(
-        self, insert_rules_return: list[dict[str, Any]], update_rules_return: list[dict[str, Any]]
-    ) -> tuple[int, int, list[str]]:
+    # TODO: find a better place for these kind of functions that simply return from config data
+    @staticmethod
+    def get_rule_to_gw_refs(
+        rulebases: list[Rulebase], global_rulebases: list[Rulebase] | None, gateways: list[Gateway]
+    ) -> set[tuple[str, str]]:
         """
-        Updates the db table rule_enforced_on_gateway by creating new entries for a list of rule_ids and setting the old versions of said rules removed.
+        Get all rule_enforced_on_gateway (rule to gateway) refs based on the given rulebases and gateways.
         """
-        id_map: dict[int, int] = {}
-
-        for insert_rules_return_entry in insert_rules_return:
-            id_map[insert_rules_return_entry["rule_id"]] = next(
-                update_rules_return_entry["rule_id"]
-                for update_rules_return_entry in update_rules_return
-                if update_rules_return_entry["rule_uid"] == insert_rules_return_entry["rule_uid"]
-            )
-
-        set_rule_enforced_on_gateway_entries_removed_mutation = """mutation set_rule_enforced_on_gateway_entries_removed($rule_ids: [Int!], $importId: bigint) {
-                update_rule_enforced_on_gateway(
-                    where: {
-                        rule_id: { _in: $rule_ids },
-                    },
-                    _set: {
-                        removed: $importId,
-                    }
-                ) {
-                    affected_rows
-                    returning {
-                        rule_id
-                        dev_id
-                    }
-                }
-            }
-        """
-
-        set_rule_enforced_on_gateway_entries_removed_variables: dict[str, Any] = {
-            "rule_ids": list(id_map.values()),
-            "importId": self.import_details.state.import_id,
+        # first, gather all rule to gateway references from install-on fields
+        # need to check global rulebases for rules installed on this mgms gws as well
+        rulebases_to_check = rulebases + (global_rulebases if global_rulebases else [])
+        rule_to_gw_refs = {
+            (rule_uid, gw_installon)
+            for rulebase in rulebases_to_check
+            for rule_uid, rule in rulebase.rules.items()
+            for gw_installon in (rule.rule_installon.split(fwo_const.LIST_DELIMITER) if rule.rule_installon else [])
         }
 
-        insert_rule_enforced_on_gateway_entries_mutation = """
-        mutation insert_rule_enforced_on_gateway_entries($new_entries: [rule_enforced_on_gateway_insert_input!]!) {
-            insert_rule_enforced_on_gateway(
-                objects: $new_entries
-            ) {
-                affected_rows
-            }
-        }
-        """
-
-        try:
-            set_rule_enforced_on_gateway_entries_removed_result = self.import_details.api_call.call(
-                set_rule_enforced_on_gateway_entries_removed_mutation,
-                set_rule_enforced_on_gateway_entries_removed_variables,
-            )
-
-            if "errors" in set_rule_enforced_on_gateway_entries_removed_result:
-                FWOLogger.exception(
-                    f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {set_rule_enforced_on_gateway_entries_removed_result['errors']!s}"
+        def lookup_rb_by_uid(rb_uid: str) -> Rulebase:
+            rb = next((rb for rb in rulebases if rb.uid == rb_uid), None)
+            if rb:
+                return rb
+            if not global_rulebases:
+                raise FwoImporterErrorInconsistenciesError(
+                    f"could not find rulebase with UID {rb_uid} in previous config"
                 )
-                return 1, 0, []
+            rb = next((rb for rb in global_rulebases if rb.uid == rb_uid), None)
+            if not rb:
+                raise FwoImporterErrorInconsistenciesError(
+                    f"could not find rulebase with UID {rb_uid} in previous global config"
+                )
+            return rb
 
-            insert_rule_enforced_on_gateway_entries_variables: dict[str, Any] = {
-                "new_entries": [
+        # second, gather all rule to gateway references from enforced policies on gateways
+        # TODO: should installon not exactly match enforced policies?
+        rule_to_gw_refs.update(
+            (rule_uid, gateway.Uid or "")
+            for gateway in gateways
+            for rulebase_link in gateway.RulebaseLinks
+            for rule_uid in lookup_rb_by_uid(rulebase_link.to_rulebase_uid).rules
+        )
+        gw_uids: set[str] = {gw.Uid for gw in gateways if gw.Uid is not None}
+        # filter for all gateways which are part of the current management in the database
+        return {(rule_uid, gw_uid) for rule_uid, gw_uid in rule_to_gw_refs if gw_uid in gw_uids}
+
+    def update_rule_enforced_on_gateway(self, changed_rule_uids: set[str]) -> tuple[int, int]:
+        """
+        Update the rule_enforced_on_gateway table based on changes in rule to gateway references.
+
+        Args:
+            changed_rule_uids (set[str]): set of UIDs of rules that changed in this import
+
+        Returns:
+            tuple[int, int]: A tuple containing the number of added references and the number of removed references
+
+        """
+        if not self.global_state.previous_config:
+            raise FwoImporterError("cannot update rule enforced on gateway: previous_config is None")
+        if not self.global_state.normalized_config:
+            raise FwoImporterError("cannot update rule enforced on gateway: normalized_config is None")
+        prev_rule_to_gw_refs = self.get_rule_to_gw_refs(
+            self.global_state.previous_config.rulebases,
+            self.global_state.previous_global_config.rulebases if self.global_state.previous_global_config else None,
+            self.global_state.previous_config.gateways,
+        )
+        new_rule_to_gw_refs = self.get_rule_to_gw_refs(
+            self.global_state.normalized_config.rulebases,
+            self.global_state.global_normalized_config.rulebases
+            if self.global_state.global_normalized_config
+            else None,
+            self.global_state.normalized_config.gateways,
+        )
+        # check for changed rule_uid -> gw uid assignments
+        refs_to_add = new_rule_to_gw_refs - prev_rule_to_gw_refs
+        refs_to_remove = prev_rule_to_gw_refs - new_rule_to_gw_refs
+        # also add unchanged assignments where the rule was changed -> need to be removed and inserted with new rule id
+        changed_rule_to_gw_refs = {
+            (rule_uid, gw_uid) for rule_uid, gw_uid in new_rule_to_gw_refs if rule_uid in changed_rule_uids
+        }
+        refs_to_add.update(changed_rule_to_gw_refs)
+        refs_to_remove.update(changed_rule_to_gw_refs)
+
+        added_refs, removed_refs = 0, 0
+
+        if refs_to_remove:
+            remove_mutation = FwoApi.get_graphql_code(
+                [fwo_const.GRAPHQL_QUERY_PATH + "rule/updateRuleEnforcedOnGateway.graphql"]
+            )
+            remove_variables = {
+                "refsToRemove": [
                     {
-                        "rule_id": new_id,
-                        "dev_id": next(
-                            entry
-                            for entry in set_rule_enforced_on_gateway_entries_removed_result["data"][
-                                "update_rule_enforced_on_gateway"
-                            ]["returning"]
-                            if entry["rule_id"] == id_map[new_id]
-                        )["dev_id"],
+                        "_and": [
+                            {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
+                            {"dev_id": {"_eq": self.import_details.state.lookup_gateway_id(gw_uid)}},
+                        ]
+                    }
+                    for rule_uid, gw_uid in refs_to_remove
+                ],
+                "importId": self.import_details.state.import_id,
+            }
+            try:
+                remove_result = self.import_details.api_call.call(remove_mutation, query_variables=remove_variables)
+            except Exception:
+                FWOLogger.exception(f"failed to remove rule enforced on gateway refs: {traceback.format_exc()!s}")
+                raise FwoApiWriteError(f"failed to remove rule enforced on gateway refs: {traceback.format_exc()!s}")
+            if "errors" in remove_result:
+                FWOLogger.exception(
+                    f"fwo_api:update_rule_enforced_on_gateway - error while updating moved rules refs: {remove_result['errors']!s}"
+                )
+                raise FwoApiWriteError(f"failed to remove rule enforced on gateway refs: {remove_result['errors']!s}")
+            removed_refs = int(remove_result["data"]["update_rule_enforced_on_gateway"]["affected_rows"])
+        if refs_to_add:
+            add_mutation = FwoApi.get_graphql_code(
+                [fwo_const.GRAPHQL_QUERY_PATH + "rule/insertRuleEnforcedOnGateway.graphql"]
+            )
+            add_variables = {
+                "newEntries": [
+                    {
+                        "rule_id": self.uid2id_mapper.get_rule_id(rule_uid),
+                        "dev_id": self.import_details.state.lookup_gateway_id(gw_uid),
                         "created": self.import_details.state.import_id,
                     }
-                    for new_id in id_map
+                    for rule_uid, gw_uid in refs_to_add
                 ]
             }
-
-            insert_rule_enforced_on_gateway_entries_result = self.import_details.api_call.call(
-                insert_rule_enforced_on_gateway_entries_mutation, insert_rule_enforced_on_gateway_entries_variables
-            )
-
-            if "errors" in insert_rule_enforced_on_gateway_entries_result:
+            try:
+                add_result = self.import_details.api_call.call(add_mutation, query_variables=add_variables)
+            except Exception:
+                FWOLogger.exception(f"failed to add rule enforced on gateway refs: {traceback.format_exc()!s}")
+                raise FwoApiWriteError(f"failed to add rule enforced on gateway refs: {traceback.format_exc()!s}")
+            if "errors" in add_result:
                 FWOLogger.exception(
-                    f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {insert_rule_enforced_on_gateway_entries_result['errors']!s}"
+                    f"fwo_api:update_rule_enforced_on_gateway - error while adding moved rules refs: {add_result['errors']!s}"
                 )
-                return 1, 0, []
+                raise FwoApiWriteError(f"failed to add rule enforced on gateway refs: {add_result['errors']!s}")
+            added_refs = int(add_result["data"]["insert_rule_enforced_on_gateway"]["affected_rows"])
 
-            return 0, 0, []
-
-        except Exception:
-            FWOLogger.exception(f"failed to move rules: {traceback.format_exc()!s}")
-            return 1, 0, []
+        return added_refs, removed_refs
 
     def prepare_rule_for_import(self, rule: RuleNormalized, rulebase_uid: str) -> Rule:
         rulebase_id = self.uid2id_mapper.get_rulebase_id(rulebase_uid)

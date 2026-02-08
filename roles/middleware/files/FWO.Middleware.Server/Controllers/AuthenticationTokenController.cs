@@ -185,7 +185,14 @@ namespace FWO.Middleware.Server.Controllers
 
         public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
         {
-            List<string> userGroups = ldap.GetGroups(ldapUser);
+            HashSet<string> userGroups = new(StringComparer.OrdinalIgnoreCase);
+            userGroups.UnionWith(ldap.GetGroups(ldapUser));
+            if (userGroups.Count == 0)
+            {
+                string? groupPath = !string.IsNullOrWhiteSpace(ldap.GroupSearchPath) ? ldap.GroupSearchPath : ldap.GroupWritePath;
+                List<string> groupNames = await ldap.GetGroups([ldapUser.Dn]);
+                userGroups.UnionWith(Ldap.BuildGroupDns(groupNames, groupPath));
+            }
             if (!ldap.IsInternal())
             {
                 object groupsLock = new();
@@ -199,14 +206,14 @@ namespace FWO.Middleware.Server.Controllers
                         List<string> currentGroups = await currentLdap.GetGroups([ldapUser.Dn]);
                         lock (groupsLock)
                         {
-                            currentGroups = Array.ConvertAll(currentGroups.ToArray(), x => "cn=" + x + "," + currentLdap.GroupSearchPath).ToList();
-                            userGroups.AddRange(currentGroups);
+                            string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath) ? currentLdap.GroupSearchPath : currentLdap.GroupWritePath;
+                            userGroups.UnionWith(Ldap.BuildGroupDns(currentGroups, groupPath));
                         }
                     }));
                 }
                 await Task.WhenAll(ldapRoleRequests);
             }
-            return userGroups;
+            return userGroups.ToList();
         }
 
         public async Task<(LdapEntry, Ldap)> AuthenticateInAnyLdap(UiUser user, bool validatePassword)

@@ -110,9 +110,9 @@
         <Footer>
             @if (!WorkInProgress && RecertPossible)
             {
-                <AuthorizeView Roles="@Roles.Modeller">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
                     <Authorized>
-                        @if (userConfig.User.Ownerships.Contains(AppHandler.Application.Id))
+                        @if (CanRecertify)
                         {
                             <button type="button" class="btn btn-sm btn-success" @onclick="StartRecert">@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
                         }
@@ -153,6 +153,9 @@
 
     [Parameter]
     public Func<FwoOwner, bool> RefreshParent { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public bool CanRecertify { get; set; } = false;
 
     private bool WorkInProgress = false;
     private bool FirstTry = true;
@@ -258,6 +261,11 @@
 
     private async Task StartRecert()
     {
+        if (!CanRecertify || !HasRecertWriteAccess())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("recertify"), userConfig.GetText("C9012"), true);
+            return;
+        }
         try
         {
             WorkInProgress = true;
@@ -297,6 +305,12 @@
                 DisplayMessageInUi(exception, userConfig.GetText("recertification_error"), "", true);
             }
         }
+    }
+
+    private bool HasRecertWriteAccess()
+    {
+        return authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+            || authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
     }
 
     private async Task GenerateAndSaveReport(FwoOwner owner)

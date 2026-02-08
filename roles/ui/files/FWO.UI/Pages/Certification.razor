@@ -12,9 +12,10 @@
 @using FWO.Ui.Pages.Reporting.Reports
 @using System
 @using System.Threading
+@using System.Linq
 @using System.Text.RegularExpressions
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -164,6 +165,7 @@
     private List<FwoOwner> userOwnerships = [];
     private List<FwoOwner> groupOwnerships = [];
     private List<FwoOwner> collectedOwnerships = [];
+    private HashSet<int> recertifiableOwnerIds = [];
     private DeviceFilter deviceFilter = new();
     private List<Rule> selectedRules = [];
 
@@ -182,7 +184,7 @@
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Recertifier, Roles.Admin, Roles.Auditor]);
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Recertifier, Roles.Modeller, Roles.Admin, Roles.Auditor]);
             rulesFound = false;
 
             ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
@@ -201,36 +203,25 @@
 
     private async Task CollectOwnerships()
     {
-        // this gets owners for which the user is the main responsible
-        userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser,
-            new
-            {
-                userDns = new List<string> { userConfig.User.Dn }
-            });
-
-        // this gets owners for which the user is member of an owning LOCAL group
+        List<string> ownerDns = [userConfig.User.Dn];
         List<string> ownerGrpDns = await GroupAccess.GetGroupMemberships(middlewareClient, userConfig,
         DisplayMessageInUi);
-        if (ownerGrpDns.Count > 0)
-        {
-            groupOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersFromGroups,
-                new
-                {
-                    groupDns = ownerGrpDns
-                });
-        }
-
-        foreach (var owner in userOwnerships)
-        {
-            collectedOwnerships.Add(owner);
-        }
-        foreach (var owner in groupOwnerships)
-        {
-            if (collectedOwnerships.FirstOrDefault(x => x.Id == owner.Id) == null)
-            {
-                collectedOwnerships.Add(owner);
-            }
-        }
+        ownerDns.AddRange(ownerGrpDns);
+        ownerDns = ownerDns
+            .Where(dn => !string.IsNullOrWhiteSpace(dn))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        collectedOwnerships = ownerDns.Count == 0
+            ? []
+            : await apiConnection.SendQueryAsync<List<FwoOwner>>(
+                OwnerQueries.getOwnersForDnsWithConn,
+                new { dns = ownerDns });
+        List<FwoOwner> writableOwnerships = ownerDns.Count == 0
+            ? []
+            : await apiConnection.SendQueryAsync<List<FwoOwner>>(
+                OwnerQueries.getOwnersForDnsWithRecertification,
+                new { dns = ownerDns });
+        recertifiableOwnerIds = writableOwnerships.Select(owner => owner.Id).ToHashSet();
         if (collectedOwnerships.Count > 0)
         {
             selectedOwner = collectedOwnerships[0];
@@ -240,7 +231,7 @@
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        readonlyMode = !authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier) || selectedOwner == null;
+        readonlyMode = !CanWriteSelectedOwner();
         selectedRules.Clear();
 
         try
@@ -318,6 +309,11 @@
 
     private void RequestExecuteSelected()
     {
+        if (!CanWriteSelectedOwner())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("C9012"), true);
+            return;
+        }
         AddCommentMode = true;
     }
 
@@ -328,6 +324,11 @@
 
     private async Task ExecuteSelected()
     {
+        if (!CanWriteSelectedOwner())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("C9012"), true);
+            return;
+        }
         bool shortened = false;
         actComment = actComment.SanitizeMand(ref shortened);
         if (shortened)
@@ -430,5 +431,26 @@
         };
         return ((await apiConnection.SendQueryAsync<List<Recertification>>(RecertQueries.getOpenRecertsForRule,
         variables)).Count == 0);
+    }
+
+    private bool HasRecertWriteAccess()
+    {
+        return authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+            || authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
+    }
+
+    private bool CanWriteSelectedOwner()
+    {
+        if (!HasRecertWriteAccess() || selectedOwner == null)
+        {
+            return false;
+        }
+
+        if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+        {
+            return true;
+        }
+
+        return recertifiableOwnerIds.Contains(selectedOwner.Id);
     }
 }

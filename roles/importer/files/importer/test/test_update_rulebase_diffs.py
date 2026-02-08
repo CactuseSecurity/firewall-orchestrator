@@ -37,6 +37,11 @@ def mock_api_connection_response(api_connection: FwoApi):
 
 
 @pytest.fixture
+def mock_import_state_controller_response(import_state_controller: ImportStateController):
+    import_state_controller.state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+
+
+@pytest.fixture
 def mock_fwconfig_import_rule_side_effects(fwconfig_import_rule: FwConfigImportRule):
     def side_effect_mark_rules_removed(removed_rule_uids: list[str]) -> tuple[int, list[int]]:
         changes = 0
@@ -157,6 +162,19 @@ def mock_api_call_response(api_call: FwoApiCall):
                     },
                 }
             )
+
+        if "rulesEnforcedOnGateway" in query_variables:
+            outcome["data"].update(
+                {
+                    "update_rule_enforced_on_gateway": {
+                        "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
+                    },
+                    "insert_rule_enforced_on_gateway": {
+                        "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
+                    },
+                }
+            )
+
         return outcome
 
     api_call.call = unittest.mock.Mock(side_effect=api_call_side_effect)
@@ -172,6 +190,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         mock_graphql: None,  # noqa: ARG002
         mock_uid2id_mapper_response: None,  # noqa: ARG002
         mock_api_connection_response: None,  # noqa: ARG002
+        mock_import_state_controller_response: None,  # noqa: ARG002
         mock_fwconfig_import_rule_side_effects: None,  # noqa: ARG002
         mock_api_call_response: None,  # noqa: ARG002
     ):

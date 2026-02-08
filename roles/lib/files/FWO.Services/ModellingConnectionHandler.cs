@@ -1307,6 +1307,12 @@ namespace FWO.Services
 
         public async Task<bool> Save(bool noCheck = false, bool decommInterface = false)
         {
+            if (!IsOwner)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("save_connection"), userConfig.GetText("C9012"), true);
+                return false;
+            }
+
             if (ActConn.IsCommonService && ComSvcContainsOnlyCommonNetworkArea())
             {
                 DisplayMessageInUi(default, userConfig.GetText("edit_common_service"), userConfig.GetText("U9030"), true);

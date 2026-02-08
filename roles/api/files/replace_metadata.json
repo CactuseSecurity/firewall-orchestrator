@@ -11828,6 +11828,12 @@
                   "using": {
                     "foreign_key_constraint_on": "owner_id"
                   }
+                },
+                {
+                  "name": "owner_responsible_type",
+                  "using": {
+                    "foreign_key_constraint_on": "responsible_type"
+                  }
                 }
               ],
               "insert_permissions": [
@@ -12025,6 +12031,294 @@
                 {
                   "role": "modeller",
                   "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "owner_responsible_type",
+                "schema": "public"
+              },
+              "array_relationships": [
+                {
+                  "name": "owner_responsibles",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "responsible_type",
+                      "table": {
+                        "name": "owner_responsible",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "active",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "name",
+                      "sort_order"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "active",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "name",
+                      "sort_order"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "active",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "name",
+                      "sort_order"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name",
+                      "active",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "name",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "name",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "name",
+                      "sort_order"
+                    ],
                     "filter": {}
                   },
                   "comment": ""

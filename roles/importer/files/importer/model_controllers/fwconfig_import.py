@@ -463,6 +463,8 @@ class FwConfigImport:
         if consistency_checker.invalid_rulebase_links_exist:
             self.fix_rulebase_links_in_db()
         self.fix_rule_to_gw_refs_in_db(previous_config, previous_global_config)
+        self.fix_ref_tables_in_db()
+        self.fix_rule_to_gw_refs_in_db(previous_config, previous_global_config)
 
     def fix_objects_in_db(self, nwobj_uids: list[str], svcobj_uids: list[str], user_uids: list[str]):
         """
@@ -695,3 +697,29 @@ class FwConfigImport:
                 raise FwoImporterError(
                     "error while trying to add missing rule enforced on gateway references"
                 ) from None
+
+    def fix_ref_tables_in_db(self):
+        """
+        Check ref tables for active references to objects/rules which were marked as removed and remove these
+        references to fix consistency issues.
+        """
+        mutation = FwoApi.get_graphql_code(file_list=[fwo_const.GRAPHQL_QUERY_PATH + "allObjects/fixRefTables.graphql"])
+        query_variables: dict[str, Any] = {
+            "mgmId": self.import_state.state.mgm_details.current_mgm_id,
+            "importId": self.import_state.state.import_id,
+        }
+        try:
+            result = self.import_state.api_call.call(mutation, query_variables=query_variables)
+
+            affected_rows = {key: value["affected_rows"] for key, value in result["data"].items()}
+            FWOLogger.info(
+                f"fixed references to removed objects/rules in ref tables to fix consistency issues: {affected_rows!s}"
+            )
+            self.import_state.state.stats.statistics.inconsistent_ref_delete_count += sum(affected_rows.values())
+        except Exception:
+            FWOLogger.exception(
+                f"failed to fix references to removed objects/rules in ref tables for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+            )
+            raise FwoImporterError(
+                "error while trying to fix references to removed objects/rules in ref tables"
+            ) from None

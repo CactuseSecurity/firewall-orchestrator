@@ -997,7 +997,7 @@ class FwConfigImportRule:
                 [fwo_const.GRAPHQL_QUERY_PATH + "rule/updateRuleEnforcedOnGateway.graphql"]
             )
             remove_variables = {
-                "refsToRemove": [
+                "rulesEnforcedOnGateway": [
                     {
                         "_and": [
                             {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
@@ -1024,7 +1024,7 @@ class FwConfigImportRule:
                 [fwo_const.GRAPHQL_QUERY_PATH + "rule/insertRuleEnforcedOnGateway.graphql"]
             )
             add_variables = {
-                "newEntries": [
+                "rulesEnforcedOnGateway": [
                     {
                         "rule_id": self.uid2id_mapper.get_rule_id(rule_uid),
                         "dev_id": self.import_details.state.lookup_gateway_id(gw_uid),

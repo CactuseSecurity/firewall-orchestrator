@@ -1,0 +1,95 @@
+@using FWO.Basics.Interfaces
+
+@namespace FWO.Ui.Shared
+
+@typeparam T where T : ITreeViewItem
+
+<div class="tree-view">
+    @if (Nodes != null && Nodes.Count > 0)
+    {
+        @foreach (var node in Nodes)
+        {
+            @RenderNode(node, 0)
+        }
+    }
+    else
+    {
+        <div class="tree-view-empty">No data</div>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public List<T> Nodes { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<T> OnNodeToggled { get; set; }
+
+    [Parameter]
+    public EventCallback<T> OnNodeSelected { get; set; }
+
+    private RenderFragment RenderNode(T node, int level) => @<div class="tree-node">
+        <div class="tree-node-content" style="margin-left: @(level * 20)px">
+            @if (node.Children.Count > 0)
+            {
+                <button class="tree-node-toggle" @onclick="@(async () => await ToggleNode(node))">
+                    @if (node.IsExpanded)
+                    {
+                        <span>▼</span>
+                    }
+                    else
+                    {
+                        <span>▶</span>
+                    }
+                </button>
+            }
+            else
+            {
+                <span class="tree-node-spacer"></span>
+            }
+            
+            @if (node.IsSelectable)
+            {
+                <button class="tree-node-label" @onclick="@(async () => await SelectNode(node))">
+                    @node.Label
+                </button>
+            }
+            else
+            {
+                <span class="tree-node-label-disabled">@node.Label</span>
+            }
+
+            @if (node.DisplayData != null)
+            {
+                @foreach (var kvp in node.DisplayData)
+                {  // TODO: Above left alignt, smaller and gray the Key            
+                    <span class="tree-node-data">@kvp.Value</span>
+                }
+            }
+        </div>
+
+        @if (node.IsExpanded && node.Children.Count > 0)
+        {
+            <div class="tree-node-children">
+                @foreach (var child in node.Children)
+                {
+                    @RenderNode((T) child, level + 1)
+                }
+            </div>
+        }
+    </div>;
+
+    private async Task ToggleNode(ITreeViewItem node)
+    {
+        node.IsExpanded = !node.IsExpanded;
+        await OnNodeToggled.InvokeAsync((T) node);
+        StateHasChanged();
+    }
+
+    private async Task SelectNode(ITreeViewItem node)
+    {
+        await OnNodeSelected.InvokeAsync((T) node);
+        StateHasChanged();
+    }
+}

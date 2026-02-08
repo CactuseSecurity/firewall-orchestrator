@@ -564,6 +564,61 @@ class FwConfigImport:
             )
             raise FwoImporterError("error while trying to remove inconsistent rulebase links") from None
 
+    def _insert_missing_rule_to_gw_refs_in_db(self, refs_to_add: set[tuple[str, str]]):
+        """Inserts missing rule enforced on gateway references to the database to fix consistency issues."""
+        if not refs_to_add:
+            return  # nothing to do
+        mgm_id = self.import_state.state.mgm_details.current_mgm_id
+        fetch_rule_ids_query = FwoApi.get_graphql_code(
+            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulesByUidsWithCreate.graphql"]
+        )
+        fetch_rule_ids_variables: dict[str, Any] = {
+            "mgmId": mgm_id,
+            "uids": [rule_uid for rule_uid, _gw_uid in refs_to_add],
+        }
+        try:
+            fetch_rule_ids_result = self.import_state.api_call.call(
+                fetch_rule_ids_query, query_variables=fetch_rule_ids_variables
+            )
+            if "errors" in fetch_rule_ids_result:
+                raise FwoImporterError(
+                    f"failed to fetch rule ids for rule UIDs {fetch_rule_ids_variables['uids']!s} for mgm id {mgm_id!s}: {fetch_rule_ids_result['errors']!s}"
+                )
+            rule_uid_to_id_create = {
+                rule["rule_uid"]: (rule["rule_id"], rule["rule_create"])
+                for rule in fetch_rule_ids_result["data"]["rule"]
+            }
+        except Exception:
+            FWOLogger.exception(
+                f"failed to fetch rule ids for rule UIDs {fetch_rule_ids_variables['uids']!s} for mgm id {mgm_id!s}: {traceback.format_exc()!s}"
+            )
+            raise FwoImporterError("error while trying to fetch rule ids for rule UIDs") from None
+        mutation = FwoApi.get_graphql_code(
+            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/insertRulesEnforcedOnGateways.graphql"]
+        )
+        query_variables: dict[str, Any] = {
+            "rulesEnforcedOnGateway": [
+                {
+                    "rule_id": rule_uid_to_id_create[rule_uid][0],
+                    "dev_id": self.import_state.state.gateway_map[mgm_id][gw_uid],
+                    "created": rule_uid_to_id_create[rule_uid][1],
+                }
+                for rule_uid, gw_uid in refs_to_add
+            ],
+        }
+        try:
+            result = self.import_state.api_call.call(mutation, query_variables=query_variables)
+
+            added_refs = result["data"]["insert_rule_enforced_on_gateway"]["affected_rows"]
+            FWOLogger.info(
+                f"added {added_refs!s} missing rule enforced on gateway references to DB to fix consistency issues"
+            )
+        except Exception:
+            FWOLogger.exception(
+                f"failed to add missing rule enforced on gateway references for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+            )
+            raise FwoImporterError("error while trying to add missing rule enforced on gateway references") from None
+
     def fix_rule_to_gw_refs_in_db(
         self, previous_config: FwConfigNormalized, previous_global_config: FwConfigNormalized | None
     ):
@@ -646,57 +701,7 @@ class FwConfigImport:
                 ) from None
 
         if refs_to_add:
-            fetch_rule_ids_query = FwoApi.get_graphql_code(
-                file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulesByUidsWithCreate.graphql"]
-            )
-            fetch_rule_ids_variables: dict[str, Any] = {
-                "mgmId": mgm_id,
-                "uids": [rule_uid for rule_uid, _gw_uid in refs_to_add],
-            }
-            try:
-                fetch_rule_ids_result = self.import_state.api_call.call(
-                    fetch_rule_ids_query, query_variables=fetch_rule_ids_variables
-                )
-                if "errors" in fetch_rule_ids_result:
-                    raise FwoImporterError(
-                        f"failed to fetch rule ids for rule UIDs {fetch_rule_ids_variables['uids']!s} for mgm id {mgm_id!s}: {fetch_rule_ids_result['errors']!s}"
-                    )
-                rule_uid_to_id_create = {
-                    rule["rule_uid"]: (rule["rule_id"], rule["rule_create"])
-                    for rule in fetch_rule_ids_result["data"]["rule"]
-                }
-            except Exception:
-                FWOLogger.exception(
-                    f"failed to fetch rule ids for rule UIDs {fetch_rule_ids_variables['uids']!s} for mgm id {mgm_id!s}: {traceback.format_exc()!s}"
-                )
-                raise FwoImporterError("error while trying to fetch rule ids for rule UIDs") from None
-            mutation = FwoApi.get_graphql_code(
-                file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/insertRulesEnforcedOnGateways.graphql"]
-            )
-            query_variables: dict[str, Any] = {
-                "rulesEnforcedOnGateway": [
-                    {
-                        "rule_id": rule_uid_to_id_create[rule_uid][0],
-                        "dev_id": self.import_state.state.gateway_map[mgm_id][gw_uid],
-                        "created": rule_uid_to_id_create[rule_uid][1],
-                    }
-                    for rule_uid, gw_uid in refs_to_add
-                ],
-            }
-            try:
-                result = self.import_state.api_call.call(mutation, query_variables=query_variables)
-
-                added_refs = result["data"]["insert_rule_enforced_on_gateway"]["affected_rows"]
-                FWOLogger.info(
-                    f"added {added_refs!s} missing rule enforced on gateway references to DB to fix consistency issues"
-                )
-            except Exception:
-                FWOLogger.exception(
-                    f"failed to add missing rule enforced on gateway references for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
-                )
-                raise FwoImporterError(
-                    "error while trying to add missing rule enforced on gateway references"
-                ) from None
+            self._insert_missing_rule_to_gw_refs_in_db(refs_to_add)
 
     def fix_ref_tables_in_db(self):
         """

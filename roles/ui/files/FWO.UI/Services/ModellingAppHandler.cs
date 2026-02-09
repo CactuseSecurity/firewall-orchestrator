@@ -191,6 +191,10 @@ namespace FWO.Ui.Services
 
         public async Task AddConnection()
         {
+            if (!HasWriteAccess(userConfig.GetText("add_connection")))
+            {
+                return;
+            }
             ReadOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection() { AppId = Application.Id });
@@ -198,6 +202,10 @@ namespace FWO.Ui.Services
 
         public async Task AddInterface()
         {
+            if (!HasWriteAccess(userConfig.GetText("add_interface")))
+            {
+                return;
+            }
             ReadOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection() { AppId = Application.Id, IsInterface = true });
@@ -205,6 +213,10 @@ namespace FWO.Ui.Services
 
         public async Task AddCommonService()
         {
+            if (!HasWriteAccess(userConfig.GetText("add_common_service")))
+            {
+                return;
+            }
             ReadOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection() { AppId = Application.Id, IsCommonService = true });
@@ -219,6 +231,11 @@ namespace FWO.Ui.Services
 
         public async Task EditConn(ModellingConnection conn)
         {
+            if (!IsOwner)
+            {
+                await ShowDetails(conn);
+                return;
+            }
             ReadOnly = false;
             AddConnMode = false;
             await HandleConn(conn);
@@ -245,6 +262,10 @@ namespace FWO.Ui.Services
 
         public async Task RequestDeleteConnection(ModellingConnection conn)
         {
+            if (!HasWriteAccess(userConfig.GetText("delete_connection")))
+            {
+                return;
+            }
             ActTab = Tabset.ActiveTab;
             ConnToDelete = conn;
             if (ConnToDelete.IsInterface)
@@ -275,6 +296,10 @@ namespace FWO.Ui.Services
 
         public async Task DeleteConnection()
         {
+            if (!HasWriteAccess(userConfig.GetText("delete_connection")))
+            {
+                return;
+            }
             try
             {
                 if (await DeleteConnection(ConnToDelete))
@@ -290,6 +315,17 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
             }
+        }
+
+        private bool HasWriteAccess(string action)
+        {
+            if (IsOwner)
+            {
+                return true;
+            }
+
+            DisplayMessageInUi(null, action, userConfig.GetText("C9012"), true);
+            return false;
         }
     }
 }

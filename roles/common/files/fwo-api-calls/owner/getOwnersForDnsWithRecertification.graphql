@@ -1,0 +1,16 @@
+query getOwnersForDnsWithRecertification ($dns: [String!]!) {
+  owner (
+    where: {
+      owner_responsibles: {
+        dn: {_in: $dns},
+        owner_responsible_type: {
+          active: {_eq: true},
+          allow_recertification: {_eq: true}
+        }
+      }
+    },
+    order_by: { id: asc }
+  ) {
+    ...ownerDetails
+  }
+}

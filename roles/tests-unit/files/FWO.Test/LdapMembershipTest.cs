@@ -83,5 +83,37 @@ namespace FWO.Test
 
             Assert.That(ldap.HasGroupHandling(), Is.True);
         }
+
+        [Test]
+        public void BuildGroupDnsCreatesDnsFromNames()
+        {
+            var dns = Ldap.BuildGroupDns(new[] { "AppOwners", "SecTeam" }, "ou=groups,dc=example,dc=com");
+
+            Assert.That(dns, Has.Count.EqualTo(2));
+            Assert.That(dns, Does.Contain("cn=AppOwners,ou=groups,dc=example,dc=com"));
+            Assert.That(dns, Does.Contain("cn=SecTeam,ou=groups,dc=example,dc=com"));
+        }
+
+        [Test]
+        public void BuildGroupDnsKeepsExistingDnsAndDeduplicates()
+        {
+            var dns = Ldap.BuildGroupDns(new[]
+            {
+                "AppOwners",
+                "cn=AppOwners,ou=groups,dc=example,dc=com",
+                "APPOWNERS"
+            }, "ou=groups,dc=example,dc=com");
+
+            Assert.That(dns, Has.Count.EqualTo(1));
+            Assert.That(dns, Does.Contain("cn=AppOwners,ou=groups,dc=example,dc=com"));
+        }
+
+        [Test]
+        public void BuildGroupDnsReturnsEmptyWhenPathMissing()
+        {
+            var dns = Ldap.BuildGroupDns(new[] { "AppOwners" }, "");
+
+            Assert.That(dns, Is.Empty);
+        }
     }
 }

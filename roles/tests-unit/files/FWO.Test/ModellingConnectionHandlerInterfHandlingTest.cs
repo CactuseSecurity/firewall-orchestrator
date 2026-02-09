@@ -274,6 +274,108 @@ namespace FWO.Test
             ClassicAssert.AreEqual("InterfName (APP-5:OwnerName)", result);
         }
 
+        [Test]
+        public void DisplayInterface_FallsBackToNameWhenOwnerMissing()
+        {
+            ModellingConnection connection = new() { Id = 12 };
+            ModellingConnection interf = new() { Id = 13, Name = "InterfOnly", AppId = 5 };
+
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.AllApps = [new FwoOwner { Id = 6, Name = "OtherOwner", ExtAppId = "APP-6" }];
+
+            string result = handler.DisplayInterface(interf);
+
+            ClassicAssert.AreEqual("InterfOnly", result);
+        }
+
+        [Test]
+        public void DisplayInterface_ReturnsEmptyWhenNull()
+        {
+            ModellingConnection connection = new() { Id = 14 };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+
+            ClassicAssert.AreEqual("", handler.DisplayInterface(null));
+        }
+
+        [Test]
+        public void InterfaceAllowedWithNetworkArea_AllowsWhenInterfaceFlagSet()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 15,
+                IsInterface = true,
+                AppId = 1,
+                SourceAreas = [WrapArea(1, "Area_src")]
+            };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.DstAreasToAdd.Add(WrapArea(2, "Area_dst").Content);
+
+            ModellingConnection interf = new() { AppId = 99 };
+
+            ClassicAssert.IsTrue(handler.InterfaceAllowedWithNetworkArea(interf));
+        }
+
+        [Test]
+        public void InterfaceAllowedWithNetworkArea_BlocksDifferentAppWhenAreasPresent()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 16,
+                AppId = 1,
+                SourceAreas = [WrapArea(1, "Area_src")]
+            };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+
+            ModellingConnection interf = new() { AppId = 2 };
+
+            ClassicAssert.IsFalse(handler.InterfaceAllowedWithNetworkArea(interf));
+        }
+
+        [Test]
+        public void InterfaceAllowedWithNetworkArea_AllowsDifferentAppWhenNoAreasPresent()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 17,
+                AppId = 1
+            };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+
+            ModellingConnection interf = new() { AppId = 2 };
+
+            ClassicAssert.IsTrue(handler.InterfaceAllowedWithNetworkArea(interf));
+        }
+
+        [Test]
+        public void IsNotInterfaceForeignToApp_BlocksWhenPreselectedInterfaceFromOtherApp()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 18,
+                AppId = 1,
+                UsedInterfaceId = 42
+            };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.PreselectedInterfaces = [new ModellingConnection { Id = 42, AppId = 2 }];
+
+            ClassicAssert.IsFalse(handler.IsNotInterfaceForeignToApp());
+        }
+
+        [Test]
+        public void IsNotInterfaceForeignToApp_AllowsWhenPreselectedInterfaceFromSameApp()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 19,
+                AppId = 1,
+                UsedInterfaceId = 42
+            };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.PreselectedInterfaces = [new ModellingConnection { Id = 42, AppId = 1 }];
+
+            ClassicAssert.IsTrue(handler.IsNotInterfaceForeignToApp());
+        }
+
         private static ModellingConnectionHandler CreateHandler(ModellingConnection connection)
         {
             return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);

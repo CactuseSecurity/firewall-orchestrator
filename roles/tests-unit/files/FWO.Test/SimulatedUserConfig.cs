@@ -161,6 +161,9 @@ namespace FWO.Test
             {"interface_permission","Interface Permission" },
             {"Public","Public" },
             {"edit_connection","Edit Connection" },
+            {"edit_common_service","Edit Common Service" },
+            {"edit_interface","Edit Interface" },
+            {"insert_forbidden","Insert forbidden" },
             {"replace","Replace" },
             {"E9017","ErrorText" },
             {"from_ticket","From Ticket" },
@@ -169,7 +172,11 @@ namespace FWO.Test
             {"E9005","Source/Destination changed" },
             {"E9020","Interface in use by other app" },
             {"E5102","Missing name or reason" },
-            {"E9006","Missing source/destination or service" }
+            {"E9006","Missing source/destination or service" },
+            {"U9022","Network areas on other side" },
+            {"U9021","Interfaces cannot use areas" },
+            {"U9023","Common areas not allowed" },
+            {"E9015","Insert not allowed" }
         };
 
         public override string GetText(string key)

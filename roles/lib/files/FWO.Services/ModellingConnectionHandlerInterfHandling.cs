@@ -182,9 +182,9 @@ namespace FWO.Services
                     usedInterfaceIdOld = ActConn.Id,
                     usedInterfaceIdNew = IntConnHandler?.ActConn.Id
                 };
-                int usingConns = (await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.replaceUsedInterface, Variables)).AffectedRows;
+                int replacedConns = (await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.replaceUsedInterface, Variables)).AffectedRows;
                 await LogChange(ModellingTypes.ChangeType.Replace, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                    $"Replaced Used Interface: {ActConn.Name} by: {IntConnHandler?.ActConn.Name} for {usingConns} Connections", Application.Id);
+                    $"Replaced Used Interface: {ActConn.Name} by: {IntConnHandler?.ActConn.Name} for {replacedConns} Connections", Application.Id);
             }
         }
 

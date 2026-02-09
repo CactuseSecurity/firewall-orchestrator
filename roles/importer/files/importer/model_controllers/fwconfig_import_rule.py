@@ -925,6 +925,7 @@ class FwConfigImportRule:
             for rule_uid, rule in rulebase.rules.items()
             for gw_installon in (rule.rule_installon.split(fwo_const.LIST_DELIMITER) if rule.rule_installon else [])
         }
+        rules_with_installon = {rule_uid for rule_uid, _ in rule_to_gw_refs}
 
         def lookup_rb_by_uid(rb_uid: str) -> Rulebase:
             rb = next((rb for rb in rulebases if rb.uid == rb_uid), None)
@@ -942,12 +943,13 @@ class FwConfigImportRule:
             return rb
 
         # second, gather all rule to gateway references from enforced policies on gateways
-        # TODO: should installon not exactly match enforced policies?
         rule_to_gw_refs.update(
             (rule_uid, gateway.Uid or "")
             for gateway in gateways
             for rulebase_link in gateway.RulebaseLinks
             for rule_uid in lookup_rb_by_uid(rulebase_link.to_rulebase_uid).rules
+            # if rule has installon, this is the source of truth for enforced on gateway refs
+            if rule_uid not in rules_with_installon
         )
         gw_uids: set[str] = {gw.Uid for gw in gateways if gw.Uid is not None}
         # filter for all gateways which are part of the current management in the database

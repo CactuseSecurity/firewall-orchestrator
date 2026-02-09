@@ -464,7 +464,6 @@ class FwConfigImport:
             self.fix_rulebase_links_in_db()
         self.fix_rule_to_gw_refs_in_db(previous_config, previous_global_config)
         self.fix_ref_tables_in_db()
-        self.fix_rule_to_gw_refs_in_db(previous_config, previous_global_config)
 
     def fix_objects_in_db(self, nwobj_uids: list[str], svcobj_uids: list[str], user_uids: list[str]):
         """

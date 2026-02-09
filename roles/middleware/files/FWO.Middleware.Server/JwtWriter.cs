@@ -42,13 +42,13 @@ namespace FWO.Middleware.Server
 
             JwtSecurityTokenHandler tokenHandler = new();
 
-            UiUserHandler uiUserHandler = new(CreateJWTMiddlewareServer());
+            GraphQlApiConnection apiConnection = new(ConfigFile.ApiServerUri, CreateJWTMiddlewareServer());
             // if lifetime was speciefied use it, otherwise use standard lifetime
-            TimeSpan accessLifetime = lifetime ?? TimeSpan.FromHours(await uiUserHandler.GetExpirationTime(nameof(ConfigData.AccessTokenLifetimeHours)));
+            TimeSpan accessLifetime = lifetime ?? TimeSpan.FromHours(await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours)));
 
             ClaimsIdentity subject;
             if (user != null)
-                subject = SetClaims(await uiUserHandler.HandleUiUserAtLogin(user));
+                subject = SetClaims(await UiUserHandler.HandleUiUserAtLogin(apiConnection, user));
             else
                 subject = SetClaims(new UiUser() { Name = "", Password = "", Dn = Roles.Anonymous, Roles = [Roles.Anonymous] });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
@@ -67,9 +67,9 @@ namespace FWO.Middleware.Server
 
             string GeneratedToken = tokenHandler.WriteToken(token);
             if (user != null)
-                Log.WriteDebug("Jwt generation", $"Generated JWT {token.RawData} for User {user.Name}");
+                Log.WriteDebug("Jwt generation", $"Generated JWT {token.RawData} for User {user.Name}. Valid until: {token.ValidTo}.");
             else
-                Log.WriteDebug("Jwt generation", $"Generated JWT {token.RawData}");
+                Log.WriteDebug("Jwt generation", $"Generated JWT {token.RawData}. Valid until: {token.ValidTo}.");
             return GeneratedToken;
         }
 

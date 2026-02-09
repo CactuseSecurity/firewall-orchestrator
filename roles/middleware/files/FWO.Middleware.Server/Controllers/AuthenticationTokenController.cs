@@ -151,7 +151,7 @@ namespace FWO.Middleware.Server.Controllers
                 {
                     return Unauthorized("User not found");
                 }
-
+                await authManager.AuthorizeUserAsync(user, false);
                 // Revoke the old refresh token (token rotation for security)
                 await authManager.RevokeRefreshToken(request.RefreshToken);
 
@@ -606,9 +606,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns></returns>
         public async Task<TokenPair> CreateTokenPair(UiUser? user = null, TimeSpan? accessTokenLifetime = null)
         {
-            UiUserHandler uiUserHandler = new(jwtWriter.CreateJWTMiddlewareServer());
+            TimeSpan accessLifetime = accessTokenLifetime ?? TimeSpan.FromHours(await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours)));
 
-            TimeSpan accessLifetime = accessTokenLifetime ?? TimeSpan.FromHours(await uiUserHandler.GetExpirationTime(nameof(ConfigData.AccessTokenLifetimeHours)));
             string accessToken = await jwtWriter.CreateJWT(user, accessLifetime);
 
             JwtSecurityToken jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
@@ -619,7 +618,7 @@ namespace FWO.Middleware.Server.Controllers
             if (user is not null)
             {
                 refreshToken = JwtWriter.GenerateRefreshToken();
-                int refreshTokenLifetimeDays = await uiUserHandler.GetExpirationTime(nameof(ConfigData.RefreshTokenLifetimeDays));
+                int refreshTokenLifetimeDays = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetimeDays));
                 refreshExpiry = DateTime.UtcNow.AddDays(refreshTokenLifetimeDays);
                 await StoreRefreshToken(user?.DbId ?? 0, refreshToken, refreshExpiry);
             }

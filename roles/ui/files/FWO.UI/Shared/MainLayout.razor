@@ -64,7 +64,7 @@
                 <span class="input-group-text"><span class="@Icons.Locked"></span></span>
             </div>
             <input type="password" class="form-control @reloginCssClass" @bind="password"
-                placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
+                   placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
         </div>
         @if (!string.IsNullOrEmpty(reloginErrorMessage))
         {
@@ -76,7 +76,9 @@
             @if (reloginAbortable)
             {
                 <button type="button" class="btn btn-secondary"
-                    @onclick="@(() => showReloginDialog = false)">@(userConfig.GetText("cancel"))</button>
+                        @onclick="@(() => showReloginDialog = false)">
+                    @(userConfig.GetText("cancel"))
+                </button>
             }
             else
             {
@@ -118,7 +120,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
         await CheckAndRefreshTokenAsync();
@@ -128,8 +129,9 @@
 
         NavigationManager.LocationChanged += OnLocationChanged;
 
-        alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate,
-        MonitorQueries.subscribeAlertChanges);
+        user = authenticationStateTask!.Result.User;
+
+        alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
 
         UIMessageQueTimer = new()
         {
@@ -176,11 +178,7 @@
                 {
                     await InvokeAsync(() =>
                     {
-                        ShowReloginDialog(
-    userConfig.GetText("jwt_expired_title"),
-    userConfig.GetText("jwt_expired_text"),
-    reloginAbortable: false
-    );
+                        ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
                     });
                 }
             }

@@ -44,7 +44,7 @@ namespace FWO.Middleware.Server
 
             UiUserHandler uiUserHandler = new(CreateJWTMiddlewareServer());
             // if lifetime was speciefied use it, otherwise use standard lifetime
-            int jwtMinutesValid = (int)(lifetime?.TotalMinutes ?? await uiUserHandler.GetExpirationTime(nameof(ConfigData.AccessTokenLifetimeHours)));
+            TimeSpan accessLifetime = lifetime ?? TimeSpan.FromHours(await uiUserHandler.GetExpirationTime(nameof(ConfigData.AccessTokenLifetimeHours)));
 
             ClaimsIdentity subject;
             if (user != null)
@@ -61,8 +61,7 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                // Anonymous jwt is valid for ten years (does not violate security)
-                expires: DateTime.UtcNow.AddMinutes(user != null ? jwtMinutesValid : 60 * 24 * 365 * 10),
+                expires: DateTime.UtcNow.Add(user != null ? accessLifetime : TimeSpan.FromDays(365 * 10)), // Anonymous jwt is valid for ten years (does not violate security)
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
 

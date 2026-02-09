@@ -594,7 +594,7 @@ class FwConfigImport:
             )
             raise FwoImporterError("error while trying to fetch rule ids for rule UIDs") from None
         mutation = FwoApi.get_graphql_code(
-            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/insertRulesEnforcedOnGateways.graphql"]
+            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/insertRuleEnforcedOnGateway.graphql"]
         )
         query_variables: dict[str, Any] = {
             "rulesEnforcedOnGateway": [

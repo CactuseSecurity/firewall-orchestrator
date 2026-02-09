@@ -168,6 +168,12 @@ namespace FWO.Services
 
         protected async Task<bool> DeleteConnection(ModellingConnection ConnToDelete, bool removeObjectLinks = false)
         {
+            if (!IsOwner)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("delete_connection"), userConfig.GetText("C9012"), true);
+                return false;
+            }
+
             try
             {
                 if (ConnToDelete.RequestedOnFw || ConnToDelete.IsPublished)

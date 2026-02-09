@@ -1,0 +1,15 @@
+mutation removeInconsistentEnforcedOnGateways(
+  $gwIds: [Int!]!
+  $importId: bigint!
+) {
+  update_rule_enforced_on_gateway(
+    where: {
+      dev_id: { _in: $gwIds }
+      removed: { _is_null: true }
+      rule: { removed: { _is_null: false } }
+    }
+    _set: { removed: $importId }
+  ) {
+    affected_rows
+  }
+}

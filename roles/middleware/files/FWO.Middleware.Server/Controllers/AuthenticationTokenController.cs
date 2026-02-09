@@ -151,7 +151,9 @@ namespace FWO.Middleware.Server.Controllers
                 {
                     return Unauthorized("User not found");
                 }
-                await authManager.AuthorizeUserAsync(user, false);
+
+                user.Roles = await authManager.GetRoles(user);
+
                 // Revoke the old refresh token (token rotation for security)
                 await authManager.RevokeRefreshToken(request.RefreshToken);
 

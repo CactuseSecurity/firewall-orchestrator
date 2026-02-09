@@ -46,11 +46,18 @@ namespace FWO.Ui.Auth
 
                 TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(tokenPairJson) ?? throw new ArgumentException("failed to deserialize token pair");
 
+                if (string.IsNullOrWhiteSpace(tokenPair.AccessToken))
+                {
+                    throw new ArgumentException("no access token in response");
+                }
+                else if (string.IsNullOrWhiteSpace(tokenPair.RefreshToken))
+                {
+                    throw new ArgumentException("no refresh token in response");
+                }
+
                 await tokenService.SetTokenPair(tokenPair);
 
-                string jwtString = tokenPair.AccessToken ?? throw new ArgumentException("no access token in response");
-
-                await Authenticate(jwtString, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler);
+                await Authenticate(tokenPair.AccessToken, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler);
 
                 Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
             }

@@ -90,7 +90,7 @@ class FwoApiCall:
         import_id = -1
         mgm_id = mgm_details.mgm_id
         try:  # set import lock
-            lock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImport.graphql"])
+            lock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImportForMgm.graphql"])
             lock_result = self.api.call(
                 lock_mutation,
                 query_variables={

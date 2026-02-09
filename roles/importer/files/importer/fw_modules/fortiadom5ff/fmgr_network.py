@@ -293,7 +293,7 @@ def remove_nat_ip_entries(config2import: dict[str, Any]) -> None:
 
 def get_first_ip_of_destination(obj_ref: str, config2import: dict[str, Any]) -> str | None:
     if LIST_DELIMITER in obj_ref:
-        obj_ref = obj_ref.split(LIST_DELIMITER)[0]
+        obj_ref = obj_ref.split(LIST_DELIMITER, maxsplit=1)[0]
         # if destination does not contain exactly one ip, raise a warning
         FWOLogger.info(
             "src nat behind interface: more than one NAT IP - just using the first one for routing decision for obj_ref "

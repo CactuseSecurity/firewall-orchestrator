@@ -134,7 +134,7 @@ def get_tisos_from_owner_dict(app_dict: dict[str, Owner]) -> dict[str, str]:
         if owner.main_user != "":
             tiso: str = owner.main_user.replace("CN=", "")  # remove possible CN= prefix
             if "," in tiso:
-                tiso = tiso.split(",")[0]  # take only the user name part before any comma
+                tiso = tiso.split(",", maxsplit=1)[0]  # take only the user name part before any comma
             tisos[f"{app_id}"] = tiso
         else:
             logger.warning("owner %s has no main user, cannot get TISO", owner.name)

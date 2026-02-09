@@ -716,9 +716,10 @@ class FwConfigImport:
             result = self.import_state.api_call.call(mutation, query_variables=query_variables)
 
             affected_rows = {key: value["affected_rows"] for key, value in result["data"].items()}
-            FWOLogger.info(
-                f"fixed references to removed objects/rules in ref tables to fix consistency issues: {affected_rows!s}"
-            )
+            if sum(affected_rows.values()) > 0:
+                FWOLogger.info(
+                    f"fixed references to removed objects/rules in ref tables to fix consistency issues: {affected_rows!s}"
+                )
             self.import_state.state.stats.statistics.inconsistent_ref_delete_count += sum(affected_rows.values())
         except Exception:
             FWOLogger.exception(

@@ -620,7 +620,7 @@ namespace FWO.Middleware.Server.Controllers
                 refreshToken = JwtWriter.GenerateRefreshToken();
                 int refreshTokenLifetimeDays = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetimeDays));
                 refreshExpiry = DateTime.UtcNow.AddDays(refreshTokenLifetimeDays);
-                await StoreRefreshToken(user?.DbId ?? 0, refreshToken, refreshExpiry);
+                await StoreRefreshToken(user.DbId, refreshToken, refreshExpiry);
             }
 
             return new TokenPair

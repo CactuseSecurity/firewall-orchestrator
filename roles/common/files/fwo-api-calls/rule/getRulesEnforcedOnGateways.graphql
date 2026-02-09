@@ -1,0 +1,15 @@
+query getRulesEnforcedOnGateways($gwIds: [Int!]!) {
+  rule_enforced_on_gateway(
+    where: { dev_id: { _in: $gwIds }, removed: { _is_null: true } }
+  ) {
+    rule {
+      rule_id
+      rule_uid
+      removed
+    }
+    device {
+      dev_id
+      dev_uid
+    }
+  }
+}

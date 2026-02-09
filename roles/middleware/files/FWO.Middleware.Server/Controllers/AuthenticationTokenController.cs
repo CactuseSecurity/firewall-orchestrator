@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
@@ -610,17 +611,24 @@ namespace FWO.Middleware.Server.Controllers
             TimeSpan accessLifetime = accessTokenLifetime ?? TimeSpan.FromHours(await uiUserHandler.GetExpirationTime(nameof(ConfigData.AccessTokenLifetimeHours)));
             string accessToken = await jwtWriter.CreateJWT(user, accessLifetime);
 
-            string refreshToken = JwtWriter.GenerateRefreshToken();
-            int refreshTokenLifetimeDays = await uiUserHandler.GetExpirationTime(nameof(ConfigData.RefreshTokenLifetimeDays));
-            DateTime refreshExpiry = DateTime.UtcNow.AddDays(refreshTokenLifetimeDays);
+            JwtSecurityToken jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
 
-            await StoreRefreshToken(user?.DbId ?? 0, refreshToken, refreshExpiry);
+            string refreshToken = "";
+            DateTime refreshExpiry = DateTime.MinValue;
+
+            if (user is not null)
+            {
+                refreshToken = JwtWriter.GenerateRefreshToken();
+                int refreshTokenLifetimeDays = await uiUserHandler.GetExpirationTime(nameof(ConfigData.RefreshTokenLifetimeDays));
+                refreshExpiry = DateTime.UtcNow.AddDays(refreshTokenLifetimeDays);
+                await StoreRefreshToken(user?.DbId ?? 0, refreshToken, refreshExpiry);
+            }
 
             return new TokenPair
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                AccessTokenExpires = DateTime.UtcNow.Add(accessLifetime),
+                AccessTokenExpires = jwt.ValidTo,
                 RefreshTokenExpires = refreshExpiry
             };
         }

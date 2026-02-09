@@ -9,8 +9,11 @@ for parent in Path(__file__).resolve().parents:
         break
 
 from scripts.customizing.provisioning.guardicore.create_guardicore_labels import (
+    build_graphql_query,
+    build_graphql_variables,
     build_labels_from_response,
     criteria_from_network,
+    parse_app_ids,
     to_guardicore_payload,
 )
 
@@ -90,3 +93,29 @@ def test_to_guardicore_payload():
     assert payload[0]["key"] == "AppRole"
     assert payload[0]["value"] == "AR0011617-006"
     assert payload[0]["criteria"][0]["field"] == "numeric_ip_addresses"
+
+
+def test_parse_app_ids():
+    app_ids = parse_app_ids('["APP-1234","APP-2345"]')
+    assert app_ids == ["APP-1234", "APP-2345"]
+
+
+def test_build_graphql_query_without_app_filter():
+    query = build_graphql_query()
+    assert "query getARsAndAZs($appFilter: owner_bool_exp!)" in query
+    assert "$appFilter" in query
+
+
+def test_build_graphql_query_with_app_filter():
+    query = build_graphql_query()
+    assert "$appFilter" in query
+
+
+def test_build_graphql_variables_without_app_filter():
+    variables = build_graphql_variables()
+    assert variables == {"appFilter": {}}
+
+
+def test_build_graphql_variables_with_app_filter():
+    variables = build_graphql_variables(["APP-1234", "APP-2345"])
+    assert variables == {"appFilter": {"app_id_external": {"_in": ["APP-1234", "APP-2345"]}}}

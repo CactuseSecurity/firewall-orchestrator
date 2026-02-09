@@ -8,7 +8,7 @@ import json
 import logging
 import sys
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -23,12 +23,34 @@ DEFAULT_GUARDICORE_KEY_APPROLE: str = "AppRole"
 HTTP_CONTENT_TYPE_JSON: str = "application/json"
 HTTP_OK: int = 200
 
-GRAPHQL_QUERY: str = """
-query getARsAndAZs {
+
+def parse_app_ids(value: str) -> list[str]:
+    """Parse and validate a JSON array of app IDs."""
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise argparse.ArgumentTypeError('--app-ids must be valid JSON, e.g. ["APP-1234", "APP-2345"]') from exc
+
+    if not isinstance(parsed, list):
+        raise argparse.ArgumentTypeError("--app-ids must be a JSON array of strings")
+
+    parsed_list = cast("list[object]", parsed)
+    app_ids: list[str] = []
+    for item in parsed_list:
+        if not isinstance(item, str):
+            raise argparse.ArgumentTypeError("--app-ids must be a JSON array of strings")
+        app_ids.append(item)
+    return app_ids
+
+
+def build_graphql_query() -> str:
+    """Build GraphQL query using variable-based app filtering."""
+    return """
+query getARsAndAZs($appFilter: owner_bool_exp!) {
   owner(where: {_or:[
     {common_service_possible:{_eq:true}}
-    {nwgroups: {group_type: {_eq: 20}}, app_id_external: {_in: [\"APP-5630\", \"APP-1234\"]}}
-    {nwgroups: {group_type: {_eq: 21}}, app_id_external: {_in: [\"APP-5630\", \"APP-1234\"]}}
+    {_and: [{nwgroups: {group_type: {_eq: 20}}}, $appFilter]}
+    {_and: [{nwgroups: {group_type: {_eq: 21}}}, $appFilter]}
   ]}) {
     app_id_external
     name
@@ -48,6 +70,14 @@ query getARsAndAZs {
   }
 }
 """.strip()
+
+
+def build_graphql_variables(app_ids: list[str] | None = None) -> dict[str, Any]:
+    """Build GraphQL variables for optional app-id filtering."""
+    app_filter: dict[str, Any] = {}
+    if app_ids is not None:
+        app_filter = {"app_id_external": {"_in": app_ids}}
+    return {"appFilter": app_filter}
 
 
 class GuardicoreProvisioningError(Exception):
@@ -114,6 +144,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=100,
         help="Number of labels per Guardicore bulk call",
+    )
+    parser.add_argument(
+        "-a",
+        "--app-ids",
+        type=parse_app_ids,
+        help='Optional JSON array of app-ids to filter, e.g. ["APP-1234","APP-2345"]',
     )
     parser.add_argument("--include-empty", action="store_true", help="Include labels with no criteria")
     parser.add_argument(
@@ -212,13 +248,13 @@ def login_guardicore(user: str, password: str, base_url: str, verify_ssl: bool |
     raise GuardicoreProvisioningError(f"Guardicore login response did not include a token: {result}")
 
 
-def run_graphql_query(config: FwoConfig, query: str) -> dict[str, Any]:
+def run_graphql_query(config: FwoConfig, query: str, variables: dict[str, Any]) -> dict[str, Any]:
     headers: dict[str, str] = {
         "Content-Type": HTTP_CONTENT_TYPE_JSON,
         "Authorization": f"Bearer {config.jwt}",
         "x-hasura-role": config.role,
     }
-    payload: dict[str, Any] = {"query": query, "variables": {}}
+    payload: dict[str, Any] = {"query": query, "variables": variables}
 
     with requests.Session() as session:
         apply_ssl_settings(session, config.verify_ssl)
@@ -385,7 +421,11 @@ def main() -> int:
             timeout_seconds=args.timeout,
             role=args.fwo_role,
         )
-        response = run_graphql_query(fwo_config, GRAPHQL_QUERY)
+        response = run_graphql_query(
+            fwo_config,
+            build_graphql_query(),
+            build_graphql_variables(args.app_ids),
+        )
         labels = build_labels_from_response(response, include_empty=args.include_empty)
 
         if not labels:

@@ -151,3 +151,21 @@ app.Services.GetRequiredService<ReportSchedulerService>();
 app.Services.GetRequiredService<ComplianceSchedulerService>();
 
 await app.RunAsync();
+
+namespace FWO.Middleware.ServerTest
+{
+    /// <summary>
+    /// Entry point for the FWO Middleware Server application to make it accessible for testing
+    /// </summary>
+    public partial class Program
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Program"/> class.
+        /// Protected constructor to allow partial class for testing.
+        /// </summary>
+        protected Program()
+        {
+
+        }
+    }
+}

@@ -197,7 +197,7 @@ class FwConfigImport:
         try:
             delete_result = self.import_state.api_call.call(
                 delete_mutation,
-                query_variables={"mgmId": mgm_id, "is_full_import": self.import_state.state.is_full_import},
+                query_variables={"mgmId": mgm_id},
             )
             if delete_result["data"]["delete_import_control"]["returning"]["control_id"]:
                 imports_deleted = len(delete_result["data"]["delete_import_control"]["returning"]["control_id"])

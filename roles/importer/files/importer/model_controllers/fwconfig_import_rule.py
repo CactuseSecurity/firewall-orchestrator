@@ -259,7 +259,7 @@ class FwConfigImportRule:
 
             try:
                 import_result = self.import_details.api_call.call(
-                    update_last_hit_mutation, query_variables=query_variables
+                    update_last_hit_mutation, query_variables=query_variables, analyze_payload=True
                 )
                 if "errors" in import_result:
                     FWOLogger.exception(
@@ -525,7 +525,9 @@ class FwConfigImportRule:
         }
 
         try:
-            import_result = self.import_details.api_call.call(import_mutation, query_variables=query_variables)
+            import_result = self.import_details.api_call.call(
+                import_mutation, query_variables=query_variables, analyze_payload=True
+            )
             if "errors" in import_result:
                 FWOLogger.error(f"failed to remove outdated rule references: {import_result['errors']!s}")
                 raise FwoApiWriteError(f"failed to remove outdated rule references: {import_result['errors']!s}")
@@ -713,7 +715,7 @@ class FwConfigImportRule:
 
         try:
             import_result = self.import_details.api_call.call(
-                add_new_rule_metadata_mutation, query_variables=query_variables
+                add_new_rule_metadata_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
             raise FwoApiWriteError(f"failed to write new RulesMetadata: {traceback.format_exc()!s}")
@@ -757,7 +759,9 @@ class FwConfigImportRule:
         if len(new_rules) > 0:
             query_variables = {"rules": [rule.model_dump() for rule in new_rules]}
             try:
-                import_result = self.import_details.api_call.call(upsert_rules, query_variables=query_variables)
+                import_result = self.import_details.api_call.call(
+                    upsert_rules, query_variables=query_variables, analyze_payload=True
+                )
             except Exception:
                 FWOLogger.exception(
                     f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {traceback.format_exc()!s}"
@@ -1132,7 +1136,7 @@ class FwConfigImportRule:
         if len(changelog_rule_insert_objects) > 0:
             try:
                 update_changelog_rules_result = self.import_details.api_call.call(
-                    update_changelog_rules, query_variables=query_variables
+                    update_changelog_rules, query_variables=query_variables, analyze_payload=True
                 )
                 if "errors" in update_changelog_rules_result:
                     FWOLogger.exception(

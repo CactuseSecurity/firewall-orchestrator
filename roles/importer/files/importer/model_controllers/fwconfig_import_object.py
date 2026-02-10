@@ -301,7 +301,9 @@ class FwConfigImportObject:
             )
 
         try:
-            import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables)
+            import_result = self.import_state.api_call.call(
+                import_mutation, query_variables=query_variables, analyze_payload=True
+            )
             if "errors" in import_result:
                 raise FwoImporterError(f"failed to update objects in updateObjectsViaApi: {import_result['errors']!s}")
             _ = (
@@ -515,7 +517,9 @@ class FwConfigImportObject:
             "removedFlats": removed_flats,
         }
         try:
-            import_result = self.import_state.api_call.call(import_mutation, query_variables)
+            import_result = self.import_state.api_call.call(
+                import_mutation, query_variables=query_variables, analyze_payload=True
+            )
             if "errors" in import_result:
                 FWOLogger.exception(
                     f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {import_result['errors']!s}"
@@ -707,7 +711,9 @@ class FwConfigImportObject:
             "groupFlats": new_group_member_flats,
         }
         try:
-            import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables)
+            import_result = self.import_state.api_call.call(
+                import_mutation, query_variables=query_variables, analyze_payload=True
+            )
             if "errors" in import_result:
                 FWOLogger.exception(f"fwo_api:addGroupMemberships: {import_result['errors']!s}")
                 if "duplicate" in import_result["errors"]:

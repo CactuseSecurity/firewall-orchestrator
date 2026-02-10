@@ -34,7 +34,7 @@ class FwoApi:
         self,
         query: str,
         query_variables: dict[str, list[Any] | Any] | None = None,
-        analyze_payload: bool = True,
+        analyze_payload: bool = False,
     ) -> dict[str, Any]:
         """
         The standard FWO API call.

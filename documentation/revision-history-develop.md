@@ -326,7 +326,7 @@ A complete 80K lines rework of FWO, including
 - add allow_write_access to responsible types to control modelling and recertification
 
 # 9.0.2 - 10.02.2026 DEVELOP
-- importer: call api chunked by default
+- importer: call api chunked where needed
 
 **Breaking changes**
 - Due to introduction of venv for all imports, the following steps have to be taken to manually import a config:

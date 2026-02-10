@@ -57,6 +57,11 @@ namespace FWO.Services
 
         private bool CheckInterface()
         {
+            if (string.IsNullOrWhiteSpace(ActConn.InterfacePermission))
+            {
+                DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9021"), true);
+                return false;
+            }
             int srcDummyARCount = ActConn.SourceAppRoles.Count(x => x.Content.Id == DummyAppRole.Id);
             int dstDummyARCount = ActConn.DestinationAppRoles.Count(x => x.Content.Id == DummyAppRole.Id);
             if (!(SrcFilledInWork(srcDummyARCount) || DstFilledInWork(dstDummyARCount)) || !SvcFilledInWork())

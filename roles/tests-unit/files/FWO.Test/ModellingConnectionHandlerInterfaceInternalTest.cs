@@ -40,6 +40,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CheckInterface_FailsWhenPermissionMissing_ShowsE9021()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 7,
+                IsInterface = true,
+                InterfacePermission = ""
+            };
+
+            string? message = null;
+            ModellingConnectionHandler handler = CreateHandler(connection, addMode: true,
+                (exception, title, text, isError) => message = text);
+
+            bool result = InvokePrivateBool(handler, "CheckInterface");
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual(userConfig.GetText("E9021"), message);
+        }
+
+        [Test]
         public void CheckInterface_FailsWhenPrivateAndUsedByOtherApp()
         {
             ModellingConnection connection = new()
@@ -59,6 +79,30 @@ namespace FWO.Test
             bool result = InvokePrivateBool(handler, "CheckInterface");
 
             ClassicAssert.IsFalse(result);
+        }
+
+        [Test]
+        public void CheckInterface_FailsWhenSrcDstChanged_ShowsE9005()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 8,
+                IsInterface = true,
+                AppId = 1,
+                InterfacePermission = InterfacePermissions.Public.ToString(),
+                Services = [WrapService(30, "Svc1")]
+            };
+
+            string? message = null;
+            ModellingConnectionHandler handler = CreateHandler(connection, addMode: false,
+                (exception, title, text, isError) => message = text);
+
+            handler.ActConn.SourceAreas = [WrapArea(30, "Area1")];
+
+            bool result = InvokePrivateBool(handler, "CheckInterface");
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual(userConfig.GetText("E9005"), message);
         }
 
         [Test]
@@ -150,9 +194,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual(101, apiConnection.SelectedConnectionId);
         }
 
-        private static ModellingConnectionHandler CreateHandler(ModellingConnection connection, bool addMode)
+        private static ModellingConnectionHandler CreateHandler(ModellingConnection connection, bool addMode,
+            Action<Exception?, string, string, bool>? displayMessageInUi = null)
         {
-            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), userConfig, Application, [connection], connection, addMode, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
+            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), userConfig, Application, [connection], connection, addMode, false, displayMessageInUi ?? DisplayMessageInUi, DefaultInit.DoNothing, true);
         }
 
         private static bool InvokePrivateBool(ModellingConnectionHandler handler, string methodName)

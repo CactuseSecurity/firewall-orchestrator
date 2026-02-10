@@ -111,12 +111,17 @@
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("interface_permission")):</label>
                         @if(ConnHandler.ReadOnly)
                         {
-                            <label class="col-sm-3">@(userConfig.GetText(ConnHandler.ActConn.InterfacePermission))</label>
+                            <label class="col-sm-3">@GetInterfacePermissionLabel()</label>
                         }
                         else
                         {
                             <div class="form-group row col-sm-3 mt-2 me-auto">
-                                <Dropdown ElementType="string" @bind-SelectedElement="ConnHandler.ActConn.InterfacePermission" ElementToString="@(p => userConfig.GetText(p))" Elements="Enum.GetNames<InterfacePermissions>()"/>
+                                <Dropdown ElementType="string" @bind-SelectedElement="ConnHandler.ActConn.InterfacePermission"
+                                    Elements="interfacePermissionOptions"
+                                    ElementToString="InterfacePermissionToString"
+                                    ElementTemplate="InterfacePermissionTemplate"
+                                    NoneSelectedText="@SelectText"
+                                    Nullable="true" />
                             </div>
                         }
                     </div>
@@ -485,15 +490,22 @@
     private WfStateDict states = new ();
     private ModellingConnection unchangedConn = new();
     private bool RejectInterfaceMode = false;
+    private bool interfacePermissionInitialized = false;
 
     private List<string> availableExtraConfigs = [];
+    private List<string> interfacePermissionOptions = [];
     private List<Module> availableModules { get; set; } = [];
+    private RenderFragment<string> InterfacePermissionTemplate => permission => __builder =>
+    {
+        __builder.AddContent(0, InterfacePermissionToString(permission));
+    };
 
 
     protected override void OnInitialized()
     {
         sidebarLeftWidth = sidebarInitWidth;
         availableExtraConfigs = JsonSerializer.Deserialize<List<string>>(userConfig.ModExtraConfigs) ?? new();
+        interfacePermissionOptions = ["", .. Enum.GetNames<InterfacePermissions>()];
         availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
             : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
     }
@@ -504,6 +516,11 @@
         {
             ConnHandler.CalcVisibility();
             unchangedConn = new(ConnHandler.ActConn);
+            if (!interfacePermissionInitialized && ConnHandler.AddMode && ConnHandler.ActConn.IsInterface)
+            {
+                ConnHandler.ActConn.InterfacePermission = "";
+                interfacePermissionInitialized = true;
+            }
         }
     }
 
@@ -803,6 +820,7 @@
         ClosingAction();
         workInProgress = false;
         RejectInterfaceMode = false;
+        interfacePermissionInitialized = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }
@@ -841,6 +859,22 @@
             title = userConfig.GetText("interface");
         }
         return title;
+    }
+
+    private string GetInterfacePermissionLabel()
+    {
+        if (string.IsNullOrWhiteSpace(ConnHandler?.ActConn.InterfacePermission))
+        {
+            return userConfig.GetText("select");
+        }
+        return userConfig.GetText(ConnHandler!.ActConn.InterfacePermission);
+    }
+
+    private string SelectText => userConfig.GetText("select");
+
+    private string InterfacePermissionToString(string? permission)
+    {
+        return string.IsNullOrWhiteSpace(permission) ? SelectText : userConfig.GetText(permission);
     }
 
     private string CreationInfo()

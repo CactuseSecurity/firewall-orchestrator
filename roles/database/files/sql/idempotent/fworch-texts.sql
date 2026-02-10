@@ -3711,6 +3711,8 @@ INSERT INTO txt VALUES ('E9019', 'German',  'Benachrichtigungen an @@FAIL_NUMBER
 INSERT INTO txt VALUES ('E9019', 'English', 'Email could not be sent to @@FAIL_NUMBER@@ App responsibles.');
 INSERT INTO txt VALUES ('E9020', 'German',  'Schnittstelle kann nicht auf Privat gesetzt werden, da sie von anderen Applikationen verwendet wird.');
 INSERT INTO txt VALUES ('E9020', 'English', 'Interface cannot be set to Private because it is used by other applications.');
+INSERT INTO txt VALUES ('E9021', 'German',  'Schnittstellenberechtigung erforderlich.');
+INSERT INTO txt VALUES ('E9021', 'English', 'Interface permission required.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');

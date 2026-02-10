@@ -676,7 +676,9 @@ class FwConfigImportRule:
         }
 
         try:
-            import_result = self.import_details.api_call.call(import_mutation, query_variables=query_variables)
+            import_result = self.import_details.api_call.call(
+                import_mutation, query_variables=query_variables, analyze_payload=True
+            )
         except Exception:
             raise FwoApiWriteError(f"failed to add new rule references: {traceback.format_exc()!s}")
         if "errors" in import_result:
@@ -808,7 +810,7 @@ class FwConfigImportRule:
 
         try:
             import_result = self.import_details.api_call.call(
-                add_rulebases_without_rules_mutation, query_variables=query_variables
+                add_rulebases_without_rules_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
             FWOLogger.exception(f"fwo_api:importRules - error in addNewRulebases: {traceback.format_exc()!s}")
@@ -867,7 +869,9 @@ class FwConfigImportRule:
         }
 
         try:
-            remove_result = self.import_details.api_call.call(remove_mutation, query_variables=query_variables)
+            remove_result = self.import_details.api_call.call(
+                remove_mutation, query_variables=query_variables, analyze_payload=True
+            )
         except Exception:
             raise FwoApiWriteError(f"failed to remove rulebases: {traceback.format_exc()!s}")
         if "errors" in remove_result:
@@ -898,7 +902,9 @@ class FwConfigImportRule:
         }
 
         try:
-            remove_result = self.import_details.api_call.call(remove_mutation, query_variables=query_variables)
+            remove_result = self.import_details.api_call.call(
+                remove_mutation, query_variables=query_variables, analyze_payload=True
+            )
         except Exception:
             raise FwoApiWriteError(f"failed to remove rules: {traceback.format_exc()!s}")
         if "errors" in remove_result:
@@ -1011,7 +1017,9 @@ class FwConfigImportRule:
                 "importId": self.import_details.state.import_id,
             }
             try:
-                remove_result = self.import_details.api_call.call(remove_mutation, query_variables=remove_variables)
+                remove_result = self.import_details.api_call.call(
+                    remove_mutation, query_variables=remove_variables, analyze_payload=True
+                )
             except Exception:
                 FWOLogger.exception(f"failed to remove rule enforced on gateway refs: {traceback.format_exc()!s}")
                 raise FwoApiWriteError(f"failed to remove rule enforced on gateway refs: {traceback.format_exc()!s}")
@@ -1036,7 +1044,9 @@ class FwConfigImportRule:
                 ]
             }
             try:
-                add_result = self.import_details.api_call.call(add_mutation, query_variables=add_variables)
+                add_result = self.import_details.api_call.call(
+                    add_mutation, query_variables=add_variables, analyze_payload=True
+                )
             except Exception:
                 FWOLogger.exception(f"failed to add rule enforced on gateway refs: {traceback.format_exc()!s}")
                 raise FwoApiWriteError(f"failed to add rule enforced on gateway refs: {traceback.format_exc()!s}")

@@ -491,7 +491,7 @@ class FwConfigImport:
         }
 
         try:
-            result = self.import_state.api_call.call(mutation, query_variables=query_variables)
+            result = self.import_state.api_call.call(mutation, query_variables=query_variables, analyze_payload=True)
 
             removed_nwobj_ids = result["data"]["update_object"]["returning"]
             removed_nwsvc_ids = result["data"]["update_service"]["returning"]
@@ -529,7 +529,7 @@ class FwConfigImport:
             "uids": rule_uids,
         }
         try:
-            result = self.import_state.api_call.call(mutation, query_variables=query_variables)
+            result = self.import_state.api_call.call(mutation, query_variables=query_variables, analyze_payload=True)
 
             removed_rule_ids = result["data"]["update_rule"]["returning"]
             FWOLogger.info(f"marked {len(removed_rule_ids)!s} rules as removed in DB to fix consistency issues")
@@ -577,7 +577,7 @@ class FwConfigImport:
         }
         try:
             fetch_rule_ids_result = self.import_state.api_call.call(
-                fetch_rule_ids_query, query_variables=fetch_rule_ids_variables
+                fetch_rule_ids_query, query_variables=fetch_rule_ids_variables, analyze_payload=True
             )
             if "errors" in fetch_rule_ids_result:
                 raise FwoImporterError(
@@ -606,7 +606,7 @@ class FwConfigImport:
             ],
         }
         try:
-            result = self.import_state.api_call.call(mutation, query_variables=query_variables)
+            result = self.import_state.api_call.call(mutation, query_variables=query_variables, analyze_payload=True)
 
             added_refs = result["data"]["insert_rule_enforced_on_gateway"]["affected_rows"]
             FWOLogger.info(

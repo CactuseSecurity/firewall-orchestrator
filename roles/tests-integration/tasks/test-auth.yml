@@ -89,6 +89,8 @@
       var: sample_jwt
 
 - name: middleware get jwt test wrong creds output
-  ansible.builtin.debug:
-      msg: "ERROR unexpected jwt test result (not equal 'A0002 Invalid credentials'): {{ sample_jwt.content }}"
-  when: sample_jwt.content is not match(".*A0002.*Invalid\\scredentials.*")
+  ansible.builtin.assert:
+      that:
+          - sample_jwt.content is match(".*A0002.*Invalid\\scredentials.*")
+      fail_msg: "ERROR: Expected 'A0002 Invalid credentials' but got: {{ sample_jwt.content }}"
+      success_msg: "PASS: Received expected error 'A0002 Invalid credentials'"

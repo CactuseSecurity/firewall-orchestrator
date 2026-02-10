@@ -11938,6 +11938,323 @@
             },
             {
               "table": {
+                "name": "owner_lifecycle_state",
+                "schema": "public"
+              },
+              "array_relationships": [
+                {
+                  "name": "owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_lifecycle_state_id",
+                      "table": {
+                        "name": "owner",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "owner_network",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "ip_proto_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "nwobject_connections",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwobject_id",
+                      "table": {
+                        "name": "nwobject_connection",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "nwobject_nwgroups",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwobject_id",
+                      "table": {
+                        "name": "nwobject_nwgroup",
+                        "schema": "modelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "custom_type",
+                      "id",
+                      "import_source",
+                      "ip",
+                      "ip_end",
+                      "ip_proto_id",
+                      "is_deleted",
+                      "name",
+                      "nw_type",
+                      "owner_id",
+                      "port"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "custom_type",
+                      "ip_proto_id",
+                      "nw_type",
+                      "owner_id",
+                      "port"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "custom_type",
+                      "id",
+                      "import_source",
+                      "ip",
+                      "ip_end",
+                      "ip_proto_id",
+                      "is_deleted",
+                      "name",
+                      "nw_type",
+                      "owner_id",
+                      "port"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_deleted",
+                      "import_source",
+                      "name",
+                      "ip",
+                      "ip_end",
+                      "custom_type",
+                      "ip_proto_id",
+                      "nw_type",
+                      "owner_id",
+                      "port"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "custom_type",
+                      "import_source",
+                      "ip",
+                      "ip_end",
+                      "ip_proto_id",
+                      "is_deleted",
+                      "name",
+                      "nw_type",
+                      "owner_id",
+                      "port"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "owner_recertification",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "report",
+                  "using": {
+                    "foreign_key_constraint_on": "report_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_recert_id",
+                      "table": {
+                        "name": "recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "report_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "owner_responsible",
                 "schema": "public"
               },
@@ -12410,7 +12727,8 @@
                       "name",
                       "sort_order"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "check": null
                   },
                   "comment": ""
                 },
@@ -12424,7 +12742,8 @@
                       "name",
                       "sort_order"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "check": null
                   },
                   "comment": ""
                 },
@@ -12438,538 +12757,8 @@
                       "name",
                       "sort_order"
                     ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "owner_lifecycle_state",
-                "schema": "public"
-              },
-              "array_relationships": [
-                {
-                  "name": "owners",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "owner_lifecycle_state_id",
-                      "table": {
-                        "name": "owner",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "owner_network",
-                "schema": "public"
-              },
-              "object_relationships": [
-                {
-                  "name": "owner",
-                  "using": {
-                    "foreign_key_constraint_on": "owner_id"
-                  }
-                },
-                {
-                  "name": "stm_ip_proto",
-                  "using": {
-                    "foreign_key_constraint_on": "ip_proto_id"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "nwobject_connections",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "nwobject_id",
-                      "table": {
-                        "name": "nwobject_connection",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "nwobject_nwgroups",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "nwobject_id",
-                      "table": {
-                        "name": "nwobject_nwgroup",
-                        "schema": "modelling"
-                      }
-                    }
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "custom_type",
-                      "id",
-                      "import_source",
-                      "ip",
-                      "ip_end",
-                      "ip_proto_id",
-                      "is_deleted",
-                      "name",
-                      "nw_type",
-                      "owner_id",
-                      "port"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "is_deleted",
-                      "import_source",
-                      "name",
-                      "ip",
-                      "ip_end",
-                      "custom_type",
-                      "ip_proto_id",
-                      "nw_type",
-                      "owner_id",
-                      "port"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  }
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "custom_type",
-                      "id",
-                      "import_source",
-                      "ip",
-                      "ip_end",
-                      "ip_proto_id",
-                      "is_deleted",
-                      "name",
-                      "nw_type",
-                      "owner_id",
-                      "port"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "is_deleted",
-                      "import_source",
-                      "name",
-                      "ip",
-                      "ip_end",
-                      "custom_type",
-                      "ip_proto_id",
-                      "nw_type",
-                      "owner_id",
-                      "port"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "update_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "custom_type",
-                      "import_source",
-                      "ip",
-                      "ip_end",
-                      "ip_proto_id",
-                      "is_deleted",
-                      "name",
-                      "nw_type",
-                      "owner_id",
-                      "port"
-                    ],
                     "filter": {},
                     "check": null
-                  },
-                  "comment": ""
-                }
-              ],
-              "delete_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "owner_recertification",
-                "schema": "public"
-              },
-              "object_relationships": [
-                {
-                  "name": "owner",
-                  "using": {
-                    "foreign_key_constraint_on": "owner_id"
-                  }
-                },
-                {
-                  "name": "report",
-                  "using": {
-                    "foreign_key_constraint_on": "report_id"
-                  }
-                }
-              ],
-              "array_relationships": [
-                {
-                  "name": "recertifications",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "owner_recert_id",
-                      "table": {
-                        "name": "recertification",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "id",
-                      "report_id",
-                      "recertified",
-                      "comment",
-                      "user_dn",
-                      "owner_id",
-                      "next_recert_date",
-                      "recert_date"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "report_id",
-                      "recertified",
-                      "comment",
-                      "user_dn",
-                      "owner_id",
-                      "next_recert_date",
-                      "recert_date"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "fw-admin",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "report_id",
-                      "recertified",
-                      "comment",
-                      "user_dn",
-                      "owner_id",
-                      "next_recert_date",
-                      "recert_date"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "report_id",
-                      "recertified",
-                      "comment",
-                      "user_dn",
-                      "owner_id",
-                      "next_recert_date",
-                      "recert_date"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "report_id",
-                      "recertified",
-                      "comment",
-                      "user_dn",
-                      "owner_id",
-                      "next_recert_date",
-                      "recert_date"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "update_permissions": [
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "report_id"
-                    ],
-                    "filter": {},
-                    "check": null
-                  },
-                  "comment": ""
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "owner_responsible",
-                "schema": "public"
-              },
-              "object_relationships": [
-                {
-                  "name": "owner",
-                  "using": {
-                    "foreign_key_constraint_on": "owner_id"
-                  }
-                }
-              ],
-              "insert_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ]
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ]
-                  },
-                  "comment": ""
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "approver",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "fw-admin",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "implementer",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "planner",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter-viewall",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "requester",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reviewer",
-                  "permission": {
-                    "columns": [
-                      "id",
-                      "owner_id",
-                      "dn",
-                      "responsible_type"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                }
-              ],
-              "delete_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "filter": {}
                   },
                   "comment": ""
                 }

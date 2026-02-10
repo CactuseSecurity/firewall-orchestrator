@@ -43,7 +43,7 @@ def insert_rule_in_config(
     rule_uids: list[str],
     config_builder: FwConfigBuilder,
     rule: RuleNormalized | None = None,
-):
+) -> str | None:
     """
     Imitates the insertion of a rule in the config dict.
     """

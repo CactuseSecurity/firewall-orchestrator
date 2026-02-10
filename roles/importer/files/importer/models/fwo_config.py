@@ -6,21 +6,27 @@ as read from the global config file including FWO URI
 
 class FwoConfig:
     fwo_api_url: str
-    fwo_user_mgmt_api_uri: str | None
+    fwo_user_mgmt_api_uri: str
     api_fetch_size: int
-    importer_password: str | None
-    major_version: int | None = None
+    major_version: int
+    importer_password: str
+    importer_user_name: str
+    sleep_timer: int = 90
 
     def __init__(
         self,
         fwo_api_url: str,
-        fwo_user_mgmt_api_uri: str | None,
+        fwo_user_mgmt_api_uri: str,
         api_fetch_size: int = 150,
-        importer_password: str | None = None,
-        major_version: int | None = None,
+        major_version: int = 0,
+        importer_password: str = "",
+        importer_user_name: str = "importer",
+        sleep_timer: int = 90,
     ):
+        self.importer_password = importer_password
+        self.importer_user_name = importer_user_name
         self.fwo_api_url = fwo_api_url
         self.fwo_user_mgmt_api_uri = fwo_user_mgmt_api_uri
         self.api_fetch_size = api_fetch_size
-        self.importer_password = importer_password
         self.major_version = major_version
+        self.sleep_timer = sleep_timer

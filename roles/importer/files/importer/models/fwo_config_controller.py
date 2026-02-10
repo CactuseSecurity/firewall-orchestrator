@@ -20,7 +20,10 @@ class FwoConfigController:
             user_management_api_base_url = fwo_config_json["middleware_uri"]
             fwo_api_base_url = fwo_config_json["api_uri"]
             fwo_version = fwo_config_json["product_version"]
+            importer_user_name = fwo_config_json.get("importer_user_name", "importer")
             fwo_major_version = int(fwo_version.split(".")[0])
+            api_fetch_size = fwo_config_json.get("fwApiElementsPerFetch", 150)
+            sleep_timer = fwo_config_json.get("importSleepTime", 90)
 
             # read importer password from file
             with open(IMPORTER_PWD_FILE) as file:
@@ -39,9 +42,11 @@ class FwoConfigController:
         self.fwo_config = FwoConfig(
             fwo_api_url=fwo_api_base_url,
             fwo_user_mgmt_api_uri=user_management_api_base_url,
-            api_fetch_size=fwo_config_json.get("fwApiElementsPerFetch", 150),
-            importer_password=importer_pwd,
+            api_fetch_size=api_fetch_size,
             major_version=fwo_major_version,
+            importer_password=importer_pwd,
+            importer_user_name=importer_user_name,
+            sleep_timer=sleep_timer,
         )
 
     def as_dict(self) -> dict[str, str | int | None]:
@@ -50,5 +55,10 @@ class FwoConfigController:
             "user_management_api_base_url": self.fwo_config.fwo_user_mgmt_api_uri,
             "api_fetch_size": self.fwo_config.api_fetch_size,
             "importer_password": self.fwo_config.importer_password,
+            "importer_user_name": self.fwo_config.importer_user_name,
             "fwo_major_version": self.fwo_config.major_version,
+            "sleep_timer": self.fwo_config.sleep_timer,
         }
+
+    def set_sleep_timer(self, sleep_timer: int):
+        self.fwo_config.sleep_timer = sleep_timer

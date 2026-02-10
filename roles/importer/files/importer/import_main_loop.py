@@ -14,8 +14,7 @@ from common import import_management  # type: ignore[import-not-found]
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_base import register_global_state
-from fwo_config import FWOConfig
-from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
+from fwo_const import IMPORTER_BASE_DIR
 from fwo_exceptions import FwLoginFailedError, FwoApiFailedLockImportError, FwoApiLoginFailedError
 from fwo_log import FWOLogger
 from model_controllers.import_state_controller import ImportStateController
@@ -28,6 +27,7 @@ from model_controllers.management_controller import (
     ManagerInfo,
 )
 from services.service_provider import ServiceProvider
+from states.global_state import GlobalState
 
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
@@ -119,33 +119,21 @@ def import_single_management(
 
 
 def main_loop(
-    importer_pwd_file: str,
-    importer_user_name: str,
-    user_management_api_base_url: str,
-    fwo_api_base_url: str,
-    fwo_major_version: int,
-    api_fetch_limit: int,
-    sleep_timer: int,
+    global_state: GlobalState,
     clear: bool,
     force: bool,
     is_full_import: bool,
 ):
     wait_with_shutdown_check(0)
 
-    try:
-        with open(importer_pwd_file) as f:
-            importer_pwd = f.read().replace("\n", "")
-    except Exception:
-        FWOLogger.error("import_main_loop - error while reading importer pwd file")
-        raise
-
-    jwt = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
+    fwo_config = global_state.fwo_config
+    jwt = get_fwo_jwt(fwo_config.importer_user_name, fwo_config.importer_password, fwo_config.fwo_user_mgmt_api_uri)
     # check if login was successful - if not, wait and retry
     if jwt is None:
-        wait_with_shutdown_check(sleep_timer)
+        wait_with_shutdown_check(fwo_config.sleep_timer)
         return
 
-    fwo_api = FwoApi(fwo_api_base_url, jwt)
+    fwo_api = FwoApi(fwo_config.fwo_api_url, jwt)
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # suppress ssl warnings only
@@ -158,11 +146,11 @@ def main_loop(
         mgm_ids = fwo_api_call.get_mgm_ids()
     except Exception:
         FWOLogger.error(f"import_main_loop - error while getting FW management ids: {traceback.format_exc()!s}")
-        wait_with_shutdown_check(sleep_timer)
+        wait_with_shutdown_check(fwo_config.sleep_timer)
         return
 
-    api_fetch_limit = int(fwo_api_call.get_config_value(key="fwApiElementsPerFetch") or api_fetch_limit)
-    sleep_timer = int(fwo_api_call.get_config_value(key="importSleepTime") or sleep_timer)
+    api_fetch_limit = int(fwo_api_call.get_config_value(key="fwApiElementsPerFetch") or fwo_config.api_fetch_size)
+    sleep_timer = int(fwo_api_call.get_config_value(key="importSleepTime") or fwo_config.sleep_timer)
 
     ## loop through all managements
     for mgm_id in mgm_ids:
@@ -174,8 +162,8 @@ def main_loop(
             clear,
             suppress_certificate_warnings,
             force,
-            fwo_major_version,
-            sleep_timer,
+            fwo_config.major_version,
+            fwo_config.sleep_timer,
             is_full_import,
         )
 
@@ -194,7 +182,7 @@ def main(
     is_full_import: bool = False,
 ):
     FWOLogger(debug_level)
-    fwo_config = FWOConfig()
+
     fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
     if suppress_certificate_warnings:
         urllib3.disable_warnings()
@@ -202,22 +190,13 @@ def main(
     FWOLogger.info("importer_main_loop starting ...")
     if IMPORTER_BASE_DIR not in sys.path:
         sys.path.append(IMPORTER_BASE_DIR)
-    importer_user_name = "importer"  # move to config file?
-    importer_pwd_file = BASE_DIR + "/etc/secrets/importer_pwd"
 
-    # setting defaults (only as fallback if config defaults cannot be fetched via API):
-    api_fetch_limit: int = 150
-    sleep_timer: int = 90
+    global_state = GlobalState()
 
     while True:
         main_loop(
-            importer_pwd_file,
+            global_state,
             importer_user_name,
-            fwo_config.user_management_api_base_url,
-            fwo_config.api_base_url,
-            fwo_config.major_version,
-            api_fetch_limit,
-            sleep_timer,
             clear,
             force,
             is_full_import,

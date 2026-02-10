@@ -9,7 +9,6 @@ from fwo_api_call import FwoApiCall
 from fwo_const import FWO_CONFIG_FILENAME, GRAPHQL_QUERY_PATH
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.fwo_config_controller import FwoConfigController
 from model_controllers.management_controller import (
     ConnectionInfo,
     CredentialInfo,
@@ -18,7 +17,7 @@ from model_controllers.management_controller import (
     ManagementController,
     ManagerInfo,
 )
-from models.fwo_config_controller import read_config
+from models.fwo_config_controller import FwoConfigController
 from models.import_state import ImportState
 
 """Used for storing state during import process per management"""

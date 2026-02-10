@@ -56,10 +56,10 @@
       {%- endif %}
   listen: "test importer handler"
 
-# - name: delete integration test user from ldap
-#   command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x uid={{ integration_test_user_name }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
-#   listen: "test importer handler"
-#   become: true
+- name: delete integration test user from ldap
+  command: "ldapdelete {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x uid={{ integration_test_user_name }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
+  listen: "test importer handler"
+  become: true
 
 - name: find ldap entries with test_postfix
   command: "ldapsearch {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"

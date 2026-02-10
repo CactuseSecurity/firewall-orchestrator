@@ -6,11 +6,10 @@ import urllib3
 from dateutil import parser
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
-from fwo_config import read_config
 from fwo_const import FWO_CONFIG_FILENAME, GRAPHQL_QUERY_PATH
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.fworch_config_controller import FworchConfigController
+from model_controllers.fwo_config_controller import FwoConfigController
 from model_controllers.management_controller import (
     ConnectionInfo,
     CredentialInfo,
@@ -19,6 +18,7 @@ from model_controllers.management_controller import (
     ManagementController,
     ManagerInfo,
 )
+from models.fwo_config_controller import read_config
 from models.import_state import ImportState
 
 """Used for storing state during import process per management"""
@@ -55,7 +55,7 @@ class ImportStateController:
         is_clearing_import: bool,
         is_full_import: bool,
     ):
-        fwo_config = FworchConfigController.from_json(read_config(FWO_CONFIG_FILENAME))
+        fwo_config = FwoConfigController.from_json(read_config(FWO_CONFIG_FILENAME))
 
         # set global https connection values
         fwo_globals.set_global_values(

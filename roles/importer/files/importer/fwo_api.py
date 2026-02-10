@@ -8,7 +8,6 @@ from typing import Any
 
 import fwo_globals
 import requests
-from fwo_config import FWOConfig
 from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT
 from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
@@ -152,7 +151,7 @@ class FwoApi:
             FwoImporterError: If request fails or returns error
 
         """
-        url = FWOConfig().user_management_api_base_url + endpoint.lstrip("/")
+        url = FwoConfigController().user_management_api_base_url + endpoint.lstrip("/")
 
         with requests.Session() as session:
             if fwo_globals.verify_certs is None:

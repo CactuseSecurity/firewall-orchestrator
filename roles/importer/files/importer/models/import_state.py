@@ -2,9 +2,9 @@ import time
 
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.fworch_config_controller import FworchConfigController
 from model_controllers.import_statistics_controller import ImportStatisticsController
 from model_controllers.management_controller import ManagementController
+from models.fwo_config_controller import FwoConfigController
 
 """Used for storing state during import process per management"""
 
@@ -13,7 +13,7 @@ class ImportState:
     debug_level: int
     verify_certs: bool = False
     config_changed_since_last_import: bool
-    fwo_config: FworchConfigController
+    fwo_config: FwoConfigController
     mgm_details: ManagementController
     import_id: int = -1
     import_file_name: str = ""

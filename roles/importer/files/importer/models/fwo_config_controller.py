@@ -3,13 +3,11 @@ import sys
 
 from fwo_const import IMPORTER_PWD_FILE
 from fwo_log import FWOLogger
+from models.fwo_config import FwoConfig
 
 
-class FWOConfig:
-    major_version: int
-    user_management_api_base_url: str
-    api_base_url: str
-    importer_password: str
+class FwoConfigController:
+    fwo_config: FwoConfig
 
     def __init__(self, fwo_config_filename: str = "/etc/fworch/fworch.json"):
         self.read_config(fwo_config_filename)
@@ -38,15 +36,19 @@ class FWOConfig:
             FWOLogger.error("unspecified error occurred while trying to read config file: " + fwo_config_filename)
             sys.exit(1)
 
-        self.major_version = fwo_major_version
-        self.user_management_api_base_url = user_management_api_base_url
-        self.api_base_url = fwo_api_base_url
-        self.importer_password = importer_pwd
+        self.fwo_config = FwoConfig(
+            fwo_api_url=fwo_api_base_url,
+            fwo_user_mgmt_api_uri=user_management_api_base_url,
+            api_fetch_size=fwo_config_json.get("fwApiElementsPerFetch", 150),
+            importer_password=importer_pwd,
+            major_version=fwo_major_version,
+        )
 
-    def as_dict(self) -> dict[str, str | int]:
+    def as_dict(self) -> dict[str, str | int | None]:
         return {
-            "fwo_api_base_url": self.api_base_url,
-            "user_management_api_base_url": self.user_management_api_base_url,
-            "fwo_major_version": self.major_version,
-            "importer_password": self.importer_password,
+            "fwo_api_base_url": self.fwo_config.fwo_api_url,
+            "user_management_api_base_url": self.fwo_config.fwo_user_mgmt_api_uri,
+            "api_fetch_size": self.fwo_config.api_fetch_size,
+            "importer_password": self.fwo_config.importer_password,
+            "fwo_major_version": self.fwo_config.major_version,
         }

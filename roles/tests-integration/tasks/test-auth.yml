@@ -90,5 +90,5 @@
 
 - name: middleware get jwt test wrong creds output
   ansible.builtin.debug:
-      msg: "ERROR unexpected jwt test result (not equal 'error: Invalid credentials.'): {{ sample_jwt.content }}"
-  when: sample_jwt.content is not match(".*error.*Invalid\\scredentials\\..*")
+      msg: "ERROR unexpected jwt test result (not equal 'A0002 Invalid credentials'): {{ sample_jwt.content }}"
+  when: sample_jwt.content is not match(".*A0002.*Invalid\\scredentials.*")

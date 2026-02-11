@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Sockets;
+using System.Numerics;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
@@ -31,6 +34,38 @@ namespace FWO.Middleware.Server.Controllers
                 LogSiemEntry(request, requestId);
 
                 List<RuleDetail> rules = await FetchRulesByAdoIT(request.Query.AdoIT, apiConnection);
+
+                var response = new RulesByAdoItResponse
+                {
+                    Request_Id = requestId,
+                    Result = new RuleResult
+                    {
+                        Count = rules.Count,
+                        Rules = rules
+                    }
+                };
+
+                return Ok(response);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Get Rules By AdoIT", "Error while fetching rules.", exception);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+        
+        [HttpPost("GetByIpAddress")]
+        public async Task<ActionResult<RulesByAdoItResponse>> GetByIpAddress(
+            [FromBody] RulesByIpAddressRequest request)
+        {
+            try
+            {
+                string requestId = HttpContext.Request.Headers["X-Request-Id"].FirstOrDefault()
+                                   ?? Guid.NewGuid().ToString();
+
+                //LogSiemEntry(request, requestId);
+
+                List<RuleDetail> rules = await FilterRules(request.Query.IpAddress, request.Query.Filter.Action, request.Query.Filter.MaxPrefixLength,request.Query.Filter.InField, apiConnection);
 
                 var response = new RulesByAdoItResponse
                 {
@@ -91,7 +126,7 @@ namespace FWO.Middleware.Server.Controllers
                         .Select(f => new NetworkObjectCopy
                         {
                             Name = f.Object.ObjName,
-                            Ip = f.Object.ObjIp ?? ""
+                            Ip = f.Object.ObjIpStart ?? ""
                         })
                         .ToList(),
                     SourceShort = r.RuleFroms.FirstOrDefault()?.Object.ObjName ?? "",
@@ -99,7 +134,7 @@ namespace FWO.Middleware.Server.Controllers
                         .Select(t => new NetworkObjectCopy
                         {
                             Name = t.Object.ObjName,
-                            Ip = t.Object.ObjIp ?? ""
+                            Ip = t.Object.ObjIpStart ?? ""
                         })
                         .ToList(),
                     DestinationShort = r.RuleTos.FirstOrDefault()?.Object.ObjName ?? "",
@@ -107,7 +142,7 @@ namespace FWO.Middleware.Server.Controllers
                         .Select(s => new ServiceObject
                         {
                             Name = s.Service.SvcName,
-                            Protocol = s.Service.ProtocolName.Name,
+                            Protocol = s.Service.ProtocolName?.Name ?? "Protocol name unavailable",
                             Port = s.Service.SvcPort ?? 0
                         })
                         .ToList(),
@@ -147,21 +182,216 @@ namespace FWO.Middleware.Server.Controllers
                 .Select(r => r.RuleId)
                 .ToList();
         }
+
+        private async Task<List<RuleDetail>> FilterRules(string ipAddress, string action, int maxPrefix, string inField,ApiConnection apiConnection)
+        {
+            var query = RuleQueries.getRuleDetailsById;
+
+            var variables = new
+            {
+                rule_action= action
+            };
+
+            var result = await apiConnection.SendQueryAsync<List<RuleItem>>(query, variables);
+            List<RuleItem> ruleItems = [];
+            foreach (var rule in result)
+            {
+                if (rule.RuleId == 2)
+                {
+                    Log.WriteError("uwu");
+                }
+                bool isInRange = false;
+                switch (inField)
+                {
+                    case "source":
+                        isInRange = IsInRange(ipAddress, maxPrefix, rule.RuleFroms.Select(source => source.Object).ToList());
+                        break;
+                    case "destination":
+                        isInRange = IsInRange(ipAddress, maxPrefix, rule.RuleTos.Select(dest => dest.Object).ToList());
+                        break;
+                    case "both": 
+                        bool sourceRange = IsInRange(ipAddress, maxPrefix, rule.RuleFroms.Select(source => source.Object).ToList());
+                        bool destRange = IsInRange(ipAddress, maxPrefix, rule.RuleTos.Select(dest => dest.Object).ToList());
+                        isInRange = sourceRange || destRange;
+                        break;
+                    default: throw new NotImplementedException();
+                }
+
+                if (isInRange)
+                {
+                    ruleItems.Add(rule);
+                }
+            }
+
+            return ConvertRuleList(ruleItems);
+        }
+
+        private static List<RuleDetail> ConvertRuleList(List<RuleItem> inputList)
+        {
+            List<RuleDetail> output = new();
+            foreach (var item in inputList)
+            {
+                RuleDetail rule = new();
+                rule.Uid = item.RuleUid;
+                rule.Manager = item.MgmId.ToString();
+                rule.Source = item.RuleFroms
+                    .Select(f => new NetworkObjectCopy
+                    {
+                        Name = f.Object.ObjName,
+                        Ip = f.Object.ObjIpStart ?? ""
+                    })
+                    .ToList();
+                rule.SourceShort = item.RuleFroms.FirstOrDefault()?.Object.ObjName ?? "";
+                rule.Destination = item.RuleTos
+                    .Select(t => new NetworkObjectCopy
+                    {
+                        Name = t.Object.ObjName,
+                        Ip = t.Object.ObjIpStart ?? ""
+                    })
+                    .ToList();
+                rule.DestinationShort = item.RuleTos.FirstOrDefault()?.Object.ObjName ?? "";
+                rule.Service = item.RuleServices
+                    .Select(s => new ServiceObject
+                    {
+                        Name = s.Service.SvcName,
+                        Protocol = s.Service.ProtocolName?.Name ?? "Protocol name unavailable",
+                        Port = s.Service.SvcPort ?? -1
+                    })
+                    .ToList();
+                rule.ServiceShort = item.RuleServices.FirstOrDefault()?.Service.SvcName ?? "";
+                rule.ChangeID = item.RuleCustomFields ?? "";
+                rule.Name = item.RuleName;
+                rule.CreationDate = item.RuleCreateRaw.ToString();
+                rule.LastHitDate = item.RuleLastSeenRaw?.ToString() ?? "";
+                rule.Action = item.RuleAction;
+                output.Add(rule);
+            }
+
+            return output;
+        }
+        
+        private static bool IsInRange(string ipAddress, int maxPrefix, List<NetworkObjectRaw> objects)
+        {
+            foreach (var ipObject in objects)
+            {
+                bool ipInRange = IsInRange(ipAddress, ipObject.ObjIpStart, ipObject.ObjIpEnd);
+                int rangePrefix = CommonPrefixLength(ipObject.ObjIpStart, ipObject.ObjIpEnd);
+                if (rangePrefix >= maxPrefix)
+                {
+                    if (ipInRange)
+                    {
+                        return true;
+                    }
+                }
+                break;
+            }
+
+            return false;
+        }
+        
+        private static uint ToUInt32(string ipString)
+        {
+            ipString = NormalizeIpv4(ipString) ?? String.Empty;
+            if (string.IsNullOrEmpty(ipString))
+            {
+                return 0;
+            }
+
+            var ip = IPAddress.Parse(ipString);
+            var bytes = ip.GetAddressBytes();
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(bytes);
+            return BitConverter.ToUInt32(bytes, 0);
+                
+        }
+        
+        private static string? NormalizeIpv4(string input)
+        {
+            if (string.IsNullOrEmpty(input.Trim()))
+                return null;
+            
+            var addrPart = input.Split('/', 2)[0].Trim();
+
+            if (!IPAddress.TryParse(addrPart, out var ip))
+                return null;
+
+            if (ip.AddressFamily != AddressFamily.InterNetwork)
+                return null;
+            
+            return ip.ToString();
+        }
+
+        private static bool IsInRange(string ip, string? startIp, string? endIp)
+        {
+            if (startIp is null)
+            {
+                return false;
+            }
+            uint addr = ToUInt32(ip);
+            uint start = ToUInt32(startIp);
+            if (endIp is null)
+            {
+                return addr == start;
+            }
+            uint end = ToUInt32(endIp);
+            if (start > end)
+            {
+                (start, end) = (end, start);
+            }
+            return addr >= start && addr <= end;
+        }
+
+        private static int CommonPrefixLength(string? ipA, string? ipB)
+        {
+            if (ipA is null)
+            {
+                return -1; //start shouldn't ever be null -> abort comparison
+            }
+            if (ipB is null)
+            {
+                return 32; // /32 is prefix of a specific IP address
+            }
+            uint a = ToUInt32(ipA);
+            uint b = ToUInt32(ipB);
+            uint diff = a ^ b;
+            if (diff == 0)
+                return 32;
+
+            int leadingZeros = BitOperations.LeadingZeroCount(diff);
+            return leadingZeros;
+        }
     }
 }
 
-// Main request wrapper
 public class RulesByAdoItRequest
 {
     public RequestContext RequestContext { get; set; } = new();
     public RuleQuery Query { get; set; } = new();
 }
 
-// Main response wrapper
 public class RulesByAdoItResponse
 {
     public string Request_Id { get; set; } = "";
     public RuleResult Result { get; set; } = new();
+}
+
+public class RulesByIpAddressRequest
+{
+    public RequestContext RequestContext { get; set; } = new();
+    public IpQuery Query { get; set; } = new();
+}
+
+public class IpQuery
+{
+    public string IpAddress { get; set; } = "";
+    public RuleFilter Filter { get; set; } = new();
+}
+
+public class RuleFilter
+{
+    public int MaxPrefixLength { get; set; }
+    public string InField { get; set; } = "";
+    public string Action { get; set; } = "";
 }
 
 public class RuleResult
@@ -290,7 +520,10 @@ public class NetworkObjectRaw
     public string ObjName { get; set; } = "";
 
     [JsonProperty("obj_ip")]
-    public string? ObjIp { get; set; }
+    public string? ObjIpStart { get; set; }
+    
+    [JsonProperty("obj_ip_end")]
+    public string? ObjIpEnd { get; set; }
 }
 
 public class RuleServiceLink
@@ -305,10 +538,10 @@ public class ServiceRaw
     public string SvcName { get; set; } = "";
 
     [JsonProperty("ip_proto_id")]
-    public int IpProtoId { get; set; }
+    public int? IpProtoId { get; set; }
 
     [JsonProperty("protocol_name")]
-    public ProtocolName ProtocolName { get; set; } = new();
+    public ProtocolName? ProtocolName { get; set; } = new();
 
     [JsonProperty("svc_port")]
     public int? SvcPort { get; set; }

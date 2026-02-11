@@ -1,5 +1,13 @@
-query RuleDetailById($rule_ids: [bigint!]!) {
-    rule(where: {rule_id: {_in: $rule_ids}}) {
+query RuleDetailById(
+    $rule_ids: [bigint!]
+    $rule_action: String
+) {
+    rule(
+        where:{
+            rule_id: {_in: $rule_ids}
+            rule_action: { _eq: $rule_action}
+        }
+    ) {
         rule_uid
         rule_id
         mgm_id

@@ -1266,20 +1266,20 @@ create table ext_request
 	locked boolean default false
 );
 
-create table time
+create table rule_time
 (
-	id BIGSERIAL PRIMARY KEY,
-	value_type INT DEFAULT 0, -- 0 = undefined, 1 = time span, ...
+	rule_time_id BIGSERIAL PRIMARY KEY,
+	time_type INT DEFAULT 0, -- 0 = undefined, 1 = time span, ...
 	start_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 	end_time TIMESTAMP WITH TIME ZONE,
 	removed INT
 );
 
-create table rule_time
+create table rule_rule_time
 (
-	id BIGSERIAL PRIMARY KEY,
+	rule_rule_time_id BIGSERIAL PRIMARY KEY,
 	rule_id BIGINT,
-  	time_id BIGINT,
+  	rule_time_id BIGINT,
   	removed INT
 );
 

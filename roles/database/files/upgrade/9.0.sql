@@ -2082,25 +2082,25 @@ FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id")
 ON UPDATE RESTRICT
 ON DELETE CASCADE;
 
--- add table time
-
-CREATE TABLE IF NOT EXISTS time
-(
-	id BIGSERIAL PRIMARY KEY,
-	value_type INT DEFAULT 0, -- 0 = undefined, 1 = time span, ...
-	start_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-	end_time TIMESTAMP WITH TIME ZONE,
-  removed INT
-);
-
 -- add table rule_time
 
 CREATE TABLE IF NOT EXISTS rule_time
 (
-	id BIGSERIAL PRIMARY KEY,
+	rule_time_id BIGSERIAL PRIMARY KEY,
+	time_type INT DEFAULT 0, -- 0 = undefined, 1 = time span, ...
+	start_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+	end_time TIMESTAMP WITH TIME ZONE,
+    removed INT
+);
+
+-- add table rule_rule_time
+
+CREATE TABLE IF NOT EXISTS rule_rule_time
+(
+	rule_rule_time_id BIGSERIAL PRIMARY KEY,
 	rule_id BIGINT,
-  time_id BIGINT,
-  removed INT
+    rule_time_id BIGINT,
+    removed INT
 );
 
 

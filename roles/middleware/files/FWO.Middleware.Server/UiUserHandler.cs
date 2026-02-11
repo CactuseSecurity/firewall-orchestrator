@@ -71,15 +71,12 @@ namespace FWO.Middleware.Server
                     ConfigData defaultConfigValue = new();
 
                     //if no value is set in DB, take the default from config file and if that is not set, take the hardcoded constant
-                    switch (lifetimeKey)
+                    return lifetimeKey switch
                     {
-                        case nameof(ConfigData.AccessTokenLifetimeHours):
-                            return (defaultConfigValue.AccessTokenLifetimeHours > 0) ? defaultConfigValue.AccessTokenLifetimeHours : expirationTime;
-                        case nameof(ConfigData.RefreshTokenLifetimeDays):
-                            return (defaultConfigValue.RefreshTokenLifetimeDays > 0) ? defaultConfigValue.RefreshTokenLifetimeDays : expirationTime;
-                        default:
-                            return expirationTime;
-                    }
+                        nameof(ConfigData.AccessTokenLifetimeHours) => (defaultConfigValue.AccessTokenLifetimeHours > 0) ? defaultConfigValue.AccessTokenLifetimeHours : expirationTime,
+                        nameof(ConfigData.RefreshTokenLifetimeDays) => (defaultConfigValue.RefreshTokenLifetimeDays > 0) ? defaultConfigValue.RefreshTokenLifetimeDays : expirationTime,
+                        _ => expirationTime,
+                    };
                 }
             }
             catch (Exception exeption)
@@ -162,7 +159,7 @@ namespace FWO.Middleware.Server
                     }
                 }
 
-                foreach (var group in groupsOfUser)
+                foreach (string group in groupsOfUser)
                 {
                     string groupName = new DistName(group).Group;
                     if (!MatchesNamingConvention(groupName, namingConvention))

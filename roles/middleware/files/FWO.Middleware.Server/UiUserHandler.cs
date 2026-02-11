@@ -128,8 +128,6 @@ namespace FWO.Middleware.Server
             return user;
         }
 
-
-
         /// <summary>
         /// add the ownerships to the given user
         /// </summary>
@@ -138,8 +136,8 @@ namespace FWO.Middleware.Server
             try
             {
                 // if the user logging in is the main user for an application, add the ownerships
-                List<FwoOwner> directOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDn = user.Dn });
-                foreach (FwoOwner owner in directOwnerships)
+                List<FwoOwner> directOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDns = new List<string> { user.Dn } });
+                foreach (var owner in directOwnerships)
                 {
                     user.Ownerships.Add(owner.Id);
                 }
@@ -152,21 +150,19 @@ namespace FWO.Middleware.Server
                 string? namingConvention = configResult.Count > 0 ? configResult[0].Value : string.Empty;
 
 
-                // get the if of the ldap, the ownergroups are defined in 
-                configResult = await apiConn.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
-                    new { key = "ownerLdapId" });
-                int ownerLdapId = 1;  // default ldap id is 1 (internal LDAP)
-                if (configResult.Count > 0 && int.TryParse(configResult[0].Value, out int parsed) && parsed > 0)
+                List<string> groupsOfUser = user.Groups ?? [];
+                if (groupsOfUser.Count > 0)
                 {
-                    ownerLdapId = parsed;
+                    List<FwoOwner> groupOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(
+                        OwnerQueries.getOwnersFromGroups,
+                        new { groupDns = groupsOfUser });
+                    foreach (var owner in groupOwnerships)
+                    {
+                        user.Ownerships.Add(owner.Id);
+                    }
                 }
 
-                // create ldap connection for owner groups
-                Ldap ownerGroupLdap = await apiConn.SendQueryAsync<Ldap>(AuthQueries.getLdapConnectionForUserSearchById, new { id = ownerLdapId }) ?? throw new KeyNotFoundException("No Ldap for owner groups found.");
-
-                List<string> groupsOfUser = await ownerGroupLdap.GetGroupsOfUser(user.Name);
-
-                foreach (string group in groupsOfUser)
+                foreach (var group in groupsOfUser)
                 {
                     string groupName = new DistName(group).Group;
                     if (!MatchesNamingConvention(groupName, namingConvention))

@@ -34,6 +34,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRulesWithViolationsInTimespanByChunk;
         public static readonly string getRulesWithCurrentViolationsByChunk;
         public static readonly string getRulesForSelectedManagements;
+        public static readonly string getRuleDetailsById;
 
 
         static RuleQueries()
@@ -107,6 +108,7 @@ namespace FWO.Api.Client.Queries
                 getRulesForSelectedManagements = ruleDetailsFragments + GetQueryText("rule/getRulesForSelectedManagements.graphql");
                 countRules = GetQueryText("rule/countRules.graphql");
                 countActiveRules = GetQueryText("rule/countActiveRules.graphql");
+                getRuleDetailsById = GetQueryText("rule/getRuleDetailByID.graphql");
             }
             catch (Exception exception)
             {

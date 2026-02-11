@@ -8,4 +8,4 @@ $RUFF_PATH format
 
 $PYRIGHT_PATH
 
-dotnet format ./roles
+dotnet format roles

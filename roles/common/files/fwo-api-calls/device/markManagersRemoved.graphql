@@ -1,0 +1,24 @@
+mutation markManagersRemoved($mgmIds: [Int!], $importId: bigint!) {
+    update_rule(where: {mgm_id: {_in: $mgmIds}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rulebase(where: {mgm_id: {_in: $mgmIds}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rulebase_link(where: {device: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_object(where: {mgm_id: {_in: $mgmIds}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_service(where: {mgm_id: {_in: $mgmIds}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_usr(where: {mgm_id: {_in: $mgmIds}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_zone(where: {mgm_id: {_in: $mgmIds}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_objgrp(where: {object: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_svcgrp(where: {service: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_usergrp(where: {usr: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_objgrp_flat(where: {object: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_svcgrp_flat(where: {service: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_usergrp_flat(where: {usr: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rule_to(where: {rule: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rule_from(where: {rule: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rule_service(where: {rule: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rule_nwobj_resolved(where: {rule: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rule_svc_resolved(where: {rule: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rule_user_resolved(where: {rule: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rule_from_zone(where: {rule: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rule_to_zone(where: {rule: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }
+    update_rule_enforced_on_gateway(where: {rule: {mgm_id: {_in: $mgmIds}}, removed: {_is_null: true}}, _set: {removed: $importId}) { affected_rows }         
+}

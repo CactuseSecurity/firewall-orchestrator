@@ -43,15 +43,34 @@ def parse_app_ids(value: str) -> list[str]:
     return app_ids
 
 
+def parse_group_types(value: str) -> list[int]:
+    """Parse and validate a JSON array of group types."""
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise argparse.ArgumentTypeError("--include-group-types must be valid JSON, e.g. [20, 21]") from exc
+
+    if not isinstance(parsed, list):
+        raise argparse.ArgumentTypeError("--include-group-types must be a JSON array of integers")
+
+    parsed_list = cast("list[object]", parsed)
+    group_types: list[int] = []
+    for item in parsed_list:
+        if not isinstance(item, int):
+            raise argparse.ArgumentTypeError("--include-group-types must be a JSON array of integers")
+        group_types.append(item)
+
+    if not group_types:
+        raise argparse.ArgumentTypeError("--include-group-types must include at least one group type")
+
+    return group_types
+
+
 def build_graphql_query() -> str:
-    """Build GraphQL query using variable-based app filtering."""
+    """Build GraphQL query using a variable-based owner filter."""
     return """
-query getARsAndAZs($appFilter: owner_bool_exp!) {
-  owner(where: {_or:[
-    {common_service_possible:{_eq:true}}
-    {_and: [{nwgroups: {group_type: {_eq: 20}}}, $appFilter]}
-    {_and: [{nwgroups: {group_type: {_eq: 21}}}, $appFilter]}
-  ]}) {
+query getARsAndAZs($ownerFilter: owner_bool_exp!) {
+  owner(where: $ownerFilter) {
     app_id_external
     name
     common_service_possible
@@ -72,12 +91,27 @@ query getARsAndAZs($appFilter: owner_bool_exp!) {
 """.strip()
 
 
-def build_graphql_variables(app_ids: list[str] | None = None) -> dict[str, Any]:
-    """Build GraphQL variables for optional app-id filtering."""
+def build_graphql_variables(
+    app_ids: list[str] | None = None,
+    include_common_services: bool = False,
+    include_group_types: list[int] | None = None,
+) -> dict[str, Any]:
+    """Build GraphQL variables for app-id filtering and optional owner scopes."""
     app_filter: dict[str, Any] = {}
     if app_ids is not None:
         app_filter = {"app_id_external": {"_in": app_ids}}
-    return {"appFilter": app_filter}
+
+    group_types = include_group_types if include_group_types is not None else [20, 21]
+    owners_or_clauses: list[dict[str, Any]] = []
+    and_conditions: list[dict[str, Any]] = [{"nwgroups": {"group_type": {"_in": group_types}}}]
+    if app_filter:
+        and_conditions.append(app_filter)
+    owners_or_clauses.append({"_and": and_conditions})
+
+    if include_common_services:
+        owners_or_clauses.append({"common_service_possible": {"_eq": True}})
+
+    return {"ownerFilter": {"_or": owners_or_clauses}}
 
 
 class GuardicoreProvisioningError(Exception):
@@ -155,6 +189,12 @@ def parse_args() -> argparse.Namespace:
         "--include-common-services",
         action="store_true",
         help="Include labels belonging to owners with common_service_possible=true",
+    )
+    parser.add_argument(
+        "--include-group-types",
+        type=parse_group_types,
+        default=[20, 21],
+        help="JSON array of group types to include, e.g. [20,21] (default: [20,21])",
     )
     parser.add_argument("--include-empty", action="store_true", help="Include labels with no criteria")
     parser.add_argument(
@@ -327,14 +367,11 @@ def build_label_from_group(nwgroup: dict[str, Any], include_empty: bool) -> Labe
 def build_labels_from_response(
     response: dict[str, Any],
     include_empty: bool = False,
-    include_common_services: bool = False,
 ) -> list[LabelItem]:
     owners: list[dict[str, Any]] = response.get("data", {}).get("owner", [])
     labels: list[LabelItem] = []
 
     for owner in owners:
-        if owner.get("common_service_possible") and not include_common_services:
-            continue
         for nwgroup in owner.get("nwgroups", []):
             label = build_label_from_group(nwgroup, include_empty)
             if label:
@@ -432,12 +469,15 @@ def main() -> int:
         response = run_graphql_query(
             fwo_config,
             build_graphql_query(),
-            build_graphql_variables(args.app_ids),
+            build_graphql_variables(
+                args.app_ids,
+                include_common_services=args.include_common_services,
+                include_group_types=args.include_group_types,
+            ),
         )
         labels = build_labels_from_response(
             response,
             include_empty=args.include_empty,
-            include_common_services=args.include_common_services,
         )
 
         if not labels:

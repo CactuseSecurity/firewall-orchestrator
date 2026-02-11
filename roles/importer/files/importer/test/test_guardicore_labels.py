@@ -14,6 +14,7 @@ from scripts.customizing.provisioning.guardicore.create_guardicore_labels import
     build_labels_from_response,
     criteria_from_network,
     parse_app_ids,
+    parse_group_types,
     to_guardicore_payload,
 )
 
@@ -74,7 +75,7 @@ def test_criteria_from_network_range():
 
 
 def test_build_labels_from_response_skips_empty_by_default():
-    labels = build_labels_from_response(json.loads(json.dumps(SAMPLE_RESPONSE)), include_common_services=True)
+    labels = build_labels_from_response(json.loads(json.dumps(SAMPLE_RESPONSE)))
     assert len(labels) == 1
     assert labels[0].key == "AppRole"
     assert labels[0].value == "AR0011617-006"
@@ -84,29 +85,14 @@ def test_build_labels_from_response_includes_empty_when_requested():
     labels = build_labels_from_response(
         json.loads(json.dumps(SAMPLE_RESPONSE)),
         include_empty=True,
-        include_common_services=True,
     )
     assert len(labels) == 2
     values = {label.value for label in labels}
     assert "AZ11617" in values
 
 
-def test_build_labels_from_response_skips_common_services_by_default():
-    labels = build_labels_from_response(json.loads(json.dumps(SAMPLE_RESPONSE)))
-    assert labels == []
-
-
-def test_build_labels_from_response_includes_common_services_when_requested():
-    labels = build_labels_from_response(
-        json.loads(json.dumps(SAMPLE_RESPONSE)),
-        include_common_services=True,
-    )
-    assert len(labels) == 1
-    assert labels[0].value == "AR0011617-006"
-
-
 def test_to_guardicore_payload():
-    labels = build_labels_from_response(json.loads(json.dumps(SAMPLE_RESPONSE)), include_common_services=True)
+    labels = build_labels_from_response(json.loads(json.dumps(SAMPLE_RESPONSE)))
     payload = to_guardicore_payload(labels)
     assert payload[0]["key"] == "AppRole"
     assert payload[0]["value"] == "AR0011617-006"
@@ -118,22 +104,67 @@ def test_parse_app_ids():
     assert app_ids == ["APP-1234", "APP-2345"]
 
 
+def test_parse_group_types():
+    group_types = parse_group_types("[20,21]")
+    assert group_types == [20, 21]
+
+
 def test_build_graphql_query_without_app_filter():
     query = build_graphql_query()
-    assert "query getARsAndAZs($appFilter: owner_bool_exp!)" in query
-    assert "$appFilter" in query
+    assert "query getARsAndAZs($ownerFilter: owner_bool_exp!)" in query
+    assert "$ownerFilter" in query
 
 
 def test_build_graphql_query_with_app_filter():
     query = build_graphql_query()
-    assert "$appFilter" in query
+    assert "$ownerFilter" in query
 
 
 def test_build_graphql_variables_without_app_filter():
     variables = build_graphql_variables()
-    assert variables == {"appFilter": {}}
+    assert variables == {
+        "ownerFilter": {
+            "_or": [
+                {"_and": [{"nwgroups": {"group_type": {"_in": [20, 21]}}}]},
+            ]
+        }
+    }
 
 
 def test_build_graphql_variables_with_app_filter():
     variables = build_graphql_variables(["APP-1234", "APP-2345"])
-    assert variables == {"appFilter": {"app_id_external": {"_in": ["APP-1234", "APP-2345"]}}}
+    assert variables == {
+        "ownerFilter": {
+            "_or": [
+                {
+                    "_and": [
+                        {"nwgroups": {"group_type": {"_in": [20, 21]}}},
+                        {"app_id_external": {"_in": ["APP-1234", "APP-2345"]}},
+                    ]
+                },
+            ]
+        }
+    }
+
+
+def test_build_graphql_variables_include_common_services():
+    variables = build_graphql_variables(include_common_services=True)
+    assert variables == {
+        "ownerFilter": {
+            "_or": [
+                {"_and": [{"nwgroups": {"group_type": {"_in": [20, 21]}}}]},
+                {"common_service_possible": {"_eq": True}},
+            ]
+        }
+    }
+
+
+def test_build_graphql_variables_with_custom_group_types():
+    variables = build_graphql_variables(include_group_types=[22])
+    assert variables == {
+        "ownerFilter": {
+            "_or": [
+                {"_and": [{"nwgroups": {"group_type": {"_in": [22]}}}]},
+            ]
+        }
+    }

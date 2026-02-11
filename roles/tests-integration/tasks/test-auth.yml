@@ -88,7 +88,7 @@
 - ansible.builtin.debug:
       var: sample_jwt
 
-- name: middleware get jwt test wrong creds output
+- name: middleware validate jwt test wrong creds response
   ansible.builtin.assert:
       that:
           - sample_jwt.content is match(".*A0002.*Invalid\\scredentials.*")

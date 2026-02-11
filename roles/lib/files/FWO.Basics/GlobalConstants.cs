@@ -24,6 +24,9 @@ namespace FWO.Basics
         public const int kSecondsToMilliseconds = 1000;
         public const int kDaysPerWeek = 7;
         public const int kMaxPortNumber = 65535;
+        public const int kOwnerResponsibleTypeMain = 1;
+        public const int kOwnerResponsibleTypeSupporting = 2;
+        public const int kOwnerResponsibleTypeOptionalEscalation = 3;
 
         public const string kHtml = "html";
         public const string kPdf = "pdf";

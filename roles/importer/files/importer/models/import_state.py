@@ -43,7 +43,6 @@ class ImportState:
         self.service_obj_type_map: dict[str, int] = {}
         self.user_obj_type_map: dict[str, int] = {}
         self.protocol_map: dict[str, int] = {}
-        self.rulebase_to_gateway_map: dict[int, list[int]] = {}
         self.data_retention_days: int = 30
 
     def lookup_action(self, action_str: str) -> int:

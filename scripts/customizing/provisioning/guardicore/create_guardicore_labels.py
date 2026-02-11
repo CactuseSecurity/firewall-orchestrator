@@ -151,6 +151,11 @@ def parse_args() -> argparse.Namespace:
         type=parse_app_ids,
         help='Optional JSON array of app-ids to filter, e.g. ["APP-1234","APP-2345"]',
     )
+    parser.add_argument(
+        "--include-common-services",
+        action="store_true",
+        help="Include labels belonging to owners with common_service_possible=true",
+    )
     parser.add_argument("--include-empty", action="store_true", help="Include labels with no criteria")
     parser.add_argument(
         "--dry-run",
@@ -322,11 +327,14 @@ def build_label_from_group(nwgroup: dict[str, Any], include_empty: bool) -> Labe
 def build_labels_from_response(
     response: dict[str, Any],
     include_empty: bool = False,
+    include_common_services: bool = False,
 ) -> list[LabelItem]:
     owners: list[dict[str, Any]] = response.get("data", {}).get("owner", [])
     labels: list[LabelItem] = []
 
     for owner in owners:
+        if owner.get("common_service_possible") and not include_common_services:
+            continue
         for nwgroup in owner.get("nwgroups", []):
             label = build_label_from_group(nwgroup, include_empty)
             if label:
@@ -426,7 +434,11 @@ def main() -> int:
             build_graphql_query(),
             build_graphql_variables(args.app_ids),
         )
-        labels = build_labels_from_response(response, include_empty=args.include_empty)
+        labels = build_labels_from_response(
+            response,
+            include_empty=args.include_empty,
+            include_common_services=args.include_common_services,
+        )
 
         if not labels:
             logger.info("No labels to send.")

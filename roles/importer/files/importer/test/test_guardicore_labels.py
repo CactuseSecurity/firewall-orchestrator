@@ -74,21 +74,39 @@ def test_criteria_from_network_range():
 
 
 def test_build_labels_from_response_skips_empty_by_default():
-    labels = build_labels_from_response(json.loads(json.dumps(SAMPLE_RESPONSE)))
+    labels = build_labels_from_response(json.loads(json.dumps(SAMPLE_RESPONSE)), include_common_services=True)
     assert len(labels) == 1
     assert labels[0].key == "AppRole"
     assert labels[0].value == "AR0011617-006"
 
 
 def test_build_labels_from_response_includes_empty_when_requested():
-    labels = build_labels_from_response(json.loads(json.dumps(SAMPLE_RESPONSE)), include_empty=True)
+    labels = build_labels_from_response(
+        json.loads(json.dumps(SAMPLE_RESPONSE)),
+        include_empty=True,
+        include_common_services=True,
+    )
     assert len(labels) == 2
     values = {label.value for label in labels}
     assert "AZ11617" in values
 
 
-def test_to_guardicore_payload():
+def test_build_labels_from_response_skips_common_services_by_default():
     labels = build_labels_from_response(json.loads(json.dumps(SAMPLE_RESPONSE)))
+    assert labels == []
+
+
+def test_build_labels_from_response_includes_common_services_when_requested():
+    labels = build_labels_from_response(
+        json.loads(json.dumps(SAMPLE_RESPONSE)),
+        include_common_services=True,
+    )
+    assert len(labels) == 1
+    assert labels[0].value == "AR0011617-006"
+
+
+def test_to_guardicore_payload():
+    labels = build_labels_from_response(json.loads(json.dumps(SAMPLE_RESPONSE)), include_common_services=True)
     payload = to_guardicore_payload(labels)
     assert payload[0]["key"] == "AppRole"
     assert payload[0]["value"] == "AR0011617-006"

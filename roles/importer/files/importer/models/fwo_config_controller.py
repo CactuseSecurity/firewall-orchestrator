@@ -60,5 +60,28 @@ class FwoConfigController:
             "sleep_timer": self.fwo_config.sleep_timer,
         }
 
-    def set_sleep_timer(self, sleep_timer: int):
-        self.fwo_config.sleep_timer = sleep_timer
+    def update_settings(
+        self,
+        *,
+        fwo_api_url: str | None = None,
+        fwo_user_mgmt_api_uri: str | None = None,
+        api_fetch_size: int | None = None,
+        major_version: int | None = None,
+        importer_password: str | None = None,
+        importer_user_name: str | None = None,
+        sleep_timer: int | None = None,
+    ):
+        if fwo_api_url is not None:
+            self.fwo_config.fwo_api_url = fwo_api_url
+        if fwo_user_mgmt_api_uri is not None:
+            self.fwo_config.fwo_user_mgmt_api_uri = fwo_user_mgmt_api_uri
+        if api_fetch_size is not None:
+            self.fwo_config.api_fetch_size = api_fetch_size
+        if major_version is not None:
+            self.fwo_config.major_version = major_version
+        if importer_password is not None:
+            self.fwo_config.importer_password = importer_password
+        if importer_user_name is not None:
+            self.fwo_config.importer_user_name = importer_user_name
+        if sleep_timer is not None:
+            self.fwo_config.sleep_timer = sleep_timer

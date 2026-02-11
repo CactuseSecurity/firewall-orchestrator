@@ -1,16 +1,19 @@
 from models.fwconfig_normalized import FwConfigNormalized
 from services.group_flats_mapper import GroupFlatsMapper
 from services.uid2id_mapper import Uid2IdMapper
+from states.import_state import ImportState
 
 
 class ManagementState:
+    mgm_id: int
+    import_state: ImportState
     normalized_config: FwConfigNormalized | None
     previous_config: FwConfigNormalized | None
     uid2id_mapper: Uid2IdMapper | None
     group_flats_mapper: GroupFlatsMapper | None
 
-    def __init__(self, global_state):
-        self.global_state = global_state
+    def __init__(self, import_state: ImportState):
+        self.import_state = import_state
         self.normalized_config = None
         self.previous_config = None
         self.uid2id_mapper = None

@@ -28,6 +28,8 @@ from model_controllers.management_controller import (
 )
 from services.service_provider import ServiceProvider
 from states.global_state import GlobalState
+from states.import_state import ImportState
+from states.management_state import ManagementState
 
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
@@ -126,7 +128,7 @@ def main_loop(
 ):
     wait_with_shutdown_check(0)
 
-    fwo_config = global_state.fwo_config
+    fwo_config = global_state.fwo_config_controller.fwo_config
     jwt = get_fwo_jwt(fwo_config.importer_user_name, fwo_config.importer_password, fwo_config.fwo_user_mgmt_api_uri)
     # check if login was successful - if not, wait and retry
     if jwt is None:
@@ -151,9 +153,13 @@ def main_loop(
 
     api_fetch_limit = int(fwo_api_call.get_config_value(key="fwApiElementsPerFetch") or fwo_config.api_fetch_size)
     sleep_timer = int(fwo_api_call.get_config_value(key="importSleepTime") or fwo_config.sleep_timer)
+    global_state.fwo_config_controller.update_settings(sleep_timer=sleep_timer)
+
+    import_state = ImportState(global_state)
 
     ## loop through all managements
     for mgm_id in mgm_ids:
+        management_state = ManagementState(import_state=import_state)
         import_single_management(
             mgm_id,
             fwo_api_call,

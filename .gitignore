@@ -64,5 +64,6 @@ modules.xml
 .idea/vcs.xml
 .idea/inspectionProfiles
 .idea/.gitignore
-
-agents
+cov.xml
+.coverage
+.DS_Store

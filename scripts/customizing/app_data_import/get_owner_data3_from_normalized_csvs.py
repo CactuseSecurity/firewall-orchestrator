@@ -25,15 +25,24 @@ from pathlib import Path
 
 import urllib3
 
-from scripts.customizing.fwo_custom_lib.app_data_basics import transform_app_list_to_dict, write_owners_to_json
+from scripts.customizing.fwo_custom_lib.app_data_basics import (
+    transform_app_list_to_dict,
+    write_owners_to_json,
+)
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 from scripts.customizing.fwo_custom_lib.basic_helpers import (
     get_logger,
     read_custom_config,
     read_custom_config_with_default,
 )
-from scripts.customizing.fwo_custom_lib.git_helpers import read_file_from_git_repo, update_git_repo
-from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
+from scripts.customizing.fwo_custom_lib.git_helpers import (
+    read_file_from_git_repo,
+    update_git_repo,
+)
+from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
+    extract_app_data_from_csv,
+    extract_ip_data_from_csv,
+)
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"
@@ -55,8 +64,8 @@ if __name__ == "__main__":
                         sample config file content: \
                         { \
                             "ldapPath": "dc=example,dc=de", \
-                            "gitRepo": "github.example.de/cmdb/app-export", \
-                            "gitUsername": "git-user-1", \
+                            "cmdbGitRepoUrl": "github.example.de/cmdb/app-export", \
+                            "cmdbGitUsername": "git-user-1", \
                             "gitPassword": "gituser-1-pwd", \
                             "csvOwnerFilePattern": "NeMo_???_meta.csv", \
                             "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv", \
@@ -69,10 +78,16 @@ if __name__ == "__main__":
                         ',
     )
     parser.add_argument(
-        "-s", "--suppress_certificate_warnings", action="store_true", default=True, help="suppress certificate warnings"
+        "-s",
+        "--suppress_certificate_warnings",
+        action="store_true",
+        default=True,
+        help="suppress certificate warnings",
     )
     parser.add_argument(
-        "-f", "--import_from_folder", help="if set, will try to read csv files from given folder instead of git repo"
+        "-f",
+        "--import_from_folder",
+        help="if set, will try to read csv files from given folder instead of git repo",
     )
     parser.add_argument(
         "-l",
@@ -92,9 +107,9 @@ if __name__ == "__main__":
 
     # read config
     ldap_path: str = read_custom_config(args.config, "ldapPath", logger)
-    git_repo_url_without_protocol: str = read_custom_config(args.config, "gitRepo", logger)
-    git_username: str = read_custom_config(args.config, "gitUser", logger)
-    git_password: str = read_custom_config(args.config, "gitPassword", logger)
+    cmdb_git_repo_url_without_protocol: str = read_custom_config(args.config, "cmdbGitRepoUrl", logger)
+    cmdb_git_username: str = read_custom_config(args.config, "cmdbGitUsername", logger)
+    cmdb_git_password: str = read_custom_config(args.config, "cmdbGitPassword", logger)
     csv_owner_file_pattern: str = read_custom_config(args.config, "csvOwnerFilePattern", logger)
     csv_app_server_file_pattern: str = read_custom_config(args.config, "csvAppServerFilePattern", logger)
     recert_active_repo_url: str | None = read_custom_config_with_default(
@@ -129,7 +144,9 @@ if __name__ == "__main__":
         app_data_repo_target_dir = import_from_folder
     else:
         base_dir = app_data_repo_target_dir
-        app_data_repo_url: str = "https://" + git_username + ":" + git_password + "@" + git_repo_url_without_protocol
+        app_data_repo_url: str = (
+            "https://" + cmdb_git_username + ":" + cmdb_git_password + "@" + cmdb_git_repo_url_without_protocol
+        )
 
         repo_updated: bool = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger)
         if not repo_updated:
@@ -139,7 +156,7 @@ if __name__ == "__main__":
     # 2. get app list with activated recertification
 
     if recert_active_repo_url and recert_active_file_name:
-        recert_repo_url: str = f"https://{git_username}:{git_password}@{recert_active_repo_url}"
+        recert_repo_url: str = f"https://{cmdb_git_username}:{cmdb_git_password}@{recert_active_repo_url}"
         recert_activation_data: str | None = read_file_from_git_repo(
             recert_repo_url,
             recert_repo_target_dir,

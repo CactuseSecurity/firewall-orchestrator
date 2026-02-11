@@ -11,7 +11,7 @@
     <Table class="@GetTableClass()" TableItem="ModellingConnection"
            Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
            SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
-        @if(!Readonly && !SelectInterfaceView && AppHandler != null)
+        @if(!SelectInterfaceView && AppHandler != null)
         {
             <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
@@ -24,12 +24,12 @@
                         {
                             @if(!context.GetBoolProperty(ConState.InterfaceRejected.ToString()) && !context.GetBoolProperty(ConState.Rejected.ToString()))
                             {
-                                <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
+                                <button type="button" class="btn btn-sm btn-warning" disabled="@Readonly" @onclick="async () =>
                                     { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
                                     @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
                                 </button>
                             }
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                            <button type="button" class="btn btn-sm btn-danger" disabled="@Readonly" @onclick="async () =>
                                 { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
                                 @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
                             </button>

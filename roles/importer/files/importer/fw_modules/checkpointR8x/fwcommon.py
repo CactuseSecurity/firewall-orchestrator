@@ -87,7 +87,9 @@ def get_config(
         FWOLogger.debug("checkpointR8x/get_config - fetch duration: " + str(duration) + "s")
 
     if config_in.contains_only_native():
-        sid: str = cp_getter.login(import_state.state.mgm_details)
+        sid: str = ""
+        if not parsing_config_only:
+            sid = cp_getter.login(import_state.state.mgm_details)
         normalized_config = normalize_config(import_state.state, config_in, parsing_config_only, sid)
         FWOLogger.info("completed getting config")
         return 0, normalized_config
@@ -127,9 +129,7 @@ def normalize_config(
     if config_in.native_config is None:
         raise FwoImporterError("Did not get a native config to normalize.")
 
-    if "domains" not in config_in.native_config:
-        FWOLogger.error("No domains found in native config. Cannot normalize config.")
-        raise FwoImporterError("No domains found in native config. Cannot normalize config.")
+    ensure_native_domains(config_in.native_config, import_state)
 
     # in case of mds, first nativ config domain is global
     is_global_loop_iteration = False
@@ -187,6 +187,26 @@ def normalize_config(
     return config_in
 
 
+def ensure_native_domains(native_config: dict[str, Any], import_state: ImportState) -> None:
+    if "domains" in native_config:
+        return
+
+    native_config["domains"] = [
+        {
+            "domain_name": import_state.mgm_details.domain_name,
+            "domain_uid": import_state.mgm_details.domain_uid,
+            "is-super-manager": import_state.mgm_details.is_super_manager,
+            "management_name": import_state.mgm_details.name,
+            "management_uid": import_state.mgm_details.uid,
+            "objects": native_config.get("objects", []),
+            "rulebases": native_config.get("rulebases", []),
+            "nat_rulebases": native_config.get("nat_rulebases", []),
+            "gateways": native_config.get("gateways", []),
+            "policies": native_config.get("policies", []),
+        }
+    ]
+
+
 def normalize_single_manager_config(
     native_config: dict[str, Any],
     native_config_global: dict[str, Any],
@@ -229,6 +249,8 @@ def get_rules(native_config: dict[str, Any], import_state: ImportState) -> int:
     global_assignments, global_policy_structure, global_domain, global_sid = None, None, None, None
     manager_details_list = create_ordered_manager_list(import_state)
     for manager_index, manager_details in enumerate(manager_details_list):
+        if manager_details.import_disabled and not import_state.force_import:
+            continue
         cp_manager_api_base_url = import_state.mgm_details.build_fw_api_string()
 
         if manager_details.is_super_manager:
@@ -323,6 +345,8 @@ def process_devices(
     import_state: ImportState,
 ) -> None:
     for device in manager_details.devices:
+        if device["importDisabled"] and not import_state.force_import:
+            continue
         device_config: dict[str, Any] = initialize_device_config(device)
         if not device_config:
             continue

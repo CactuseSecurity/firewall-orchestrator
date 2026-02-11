@@ -49,6 +49,37 @@ namespace FWO.Middleware.Server
             });
         }
 
+        /// <summary>
+        /// Build group DNs from group names and a group path.
+        /// </summary>
+        /// <param name="groupNames">List of group names or DNs.</param>
+        /// <param name="groupPath">LDAP path where groups are located.</param>
+        /// <returns>Distinct list of group DNs.</returns>
+        public static List<string> BuildGroupDns(IEnumerable<string> groupNames, string? groupPath)
+        {
+            if (string.IsNullOrWhiteSpace(groupPath))
+            {
+                return [];
+            }
+            HashSet<string> dns = new(StringComparer.OrdinalIgnoreCase);
+            foreach (string name in groupNames)
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+                if (name.Contains('='))
+                {
+                    dns.Add(name);
+                }
+                else
+                {
+                    dns.Add($"cn={name},{groupPath}");
+                }
+            }
+            return dns.ToList();
+        }
+
         private async Task<List<string>> GetMemberships(List<string> dnList, string? searchPath)
         {
             List<string> userMemberships = [];

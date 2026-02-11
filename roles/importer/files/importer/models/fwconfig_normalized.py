@@ -56,7 +56,7 @@ class FwConfigNormalized(FwConfig):
     zone_objects: dict[str, Any] = {}
     rulebases: list[Rulebase] = []
     gateways: list[Gateway] = []
-    ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
+    ConfigFormat: ConfFormat = ConfFormat.NORMALIZED
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -95,15 +95,3 @@ class FwConfigNormalized(FwConfig):
             if rb.uid == rulebase_uid:
                 return rb
         return None
-
-    def merge(self, other: "FwConfigNormalized"):
-        """
-        Merges the given config into this config.
-        """
-        self.action = other.action
-        self.network_objects.update(other.network_objects)
-        self.service_objects.update(other.service_objects)
-        self.users.update(other.users)
-        self.zone_objects.update(other.zone_objects)
-        self.rulebases.extend(other.rulebases)
-        self.gateways.extend(other.gateways)

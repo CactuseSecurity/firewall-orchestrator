@@ -117,28 +117,48 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
         git push -u origin auth_frontend
 
+## Submodules
+IMPORTANT: Always commit to the submodule first, then commit to the FWO repo (superproject). This avoids the problem that the FWO repo does not point to the newest commit of the submodule (it cant - since it does not exist yet). An addtional commit to the FWO-repo will be necessary to fix this.
 
-## Update submodules
+### Automatic submodule sync via repo hooks
+Enable the repo-managed hooks once (per clone) to keep submodules up to date automatically:
+```shell
+git config core.hooksPath .githooks
+```
+The hooks run after `git pull`, `git checkout`, and `git rebase` and execute:
+```shell
+git submodule update --init --recursive
+git submodule update --remote --merge --recursive
+```
+Notes:
+- The hook is quiet if you do not have access to a submodule repository (no error output).
+- The hook checks out the configured submodule branch from `.gitmodules` before updating, to avoid detached HEAD.
+- This intentionally moves submodules to the newest commit on their configured branch, even if the superproject has not updated the pointer yet. Expect the submodule to appear "modified" in `git status`.
 
-### initial update
+### Manual submodule operations
+If you like to manually execute the submodule setup, see the sections below. Otherwise, please refer to the section above.
+
+#### Initial update
 Update submodules to the commits recorded in the superproject (safe, reproducible). Initializes them if necessary.
+Execute this command after the initial clone of the fwo repo in the fwo repo root directory:
 ```shell
 git submodule update --init --recursive
 ```
 
-## following updates
-Pull the superproject and update submodules to the recorded commits.
+#### Update agents repo manually
+This updates the agents repo manually. Update submodules to the latest commit on their configured remote tracking branch. Execute this command to get the newest version of all submodules from their respective repositories.
 ```shell
-git pull --recurse-submodules
+git submodule update --remote --merge --recursive
 ```
 
-Update submodules to the latest commit on their configured remote tracking branch.
+### Check correct file state
 ```shell
-git submodule update --remote --recursive
+tim@acantha24:~/dev/tim/fwo$ git ls-tree HEAD agents
+160000 commit 73cfbb4efad58dd569c0c0ab4d7ecebc63d23ddd  agents
+tim@acantha24:~/dev/tim/fwo$ git ls-tree HEAD AGENTS.md
+120000 blob 95e38a6a9ddf012aae10a06a19b6d8c1a65ec8b8    AGENTS.md
+tim@acantha24:~/dev/tim/fwo$ 
 ```
-
-## always pull recursively
-Permanent configuration change for convenience : make `git pull` recurse into submodules without needing `--recurse-submodules`.
-```shell
-git config submodule.recurse true
-```
+Notes:
+- 160000 - sub module
+- 120000 - symbolic link

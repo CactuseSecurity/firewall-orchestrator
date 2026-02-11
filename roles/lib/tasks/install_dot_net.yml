@@ -9,6 +9,12 @@
     - set_fact: distribution_version="{{ debian_testing_version }}"    
       when: ansible_facts['distribution_release']|lower == debian_testing_release_name
 
+    - set_fact:
+        github_actions_runner: "{{ (lookup('env', 'GITHUB_ACTIONS') | default('false')) == 'true' }}"
+
+    - set_fact:
+        dotnet_install_required: "{{ (not github_actions_runner) }}"
+
     # include Microsoft package source to access newer .NET SDK versions
     - block:
       - name: get package list from ms {{ dotnet_deb_name }}
@@ -29,7 +35,9 @@
       - name: apt update
         apt: update_cache=true
 
-      when: ansible_facts['distribution']|lower in ['ubuntu', 'debian']
+      when:
+        - ansible_facts['distribution']|lower in ['ubuntu', 'debian']
+        - dotnet_install_required
 
     - name: Prefer Microsoft packages for .NET on Ubuntu >=22.04
       blockinfile:
@@ -39,19 +47,26 @@
           Package: dotnet-* aspnetcore-* netstandard-*
           Pin: origin packages.microsoft.com
           Pin-Priority: 999
-      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
+      when:
+        - ansible_facts['distribution'] == "Ubuntu"
+        - ansible_facts['distribution_major_version'] is version('22', '>=')
+        - dotnet_install_required
 
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present
+      when: dotnet_install_required
 
     - name: apt update
       apt: update_cache=true
+      when: dotnet_install_required
 
-    - name: Install .NET SDK {{ dotnet_version }} via apt
+    - name: Install .NET SDK {{ dotnet_version }} on x86_64
       apt:
         name: "dotnet-sdk-{{ dotnet_version }}"
         state: present
-      when: ansible_architecture == "x86_64"
+      when:
+        - ansible_architecture == "x86_64"
+        - dotnet_install_required
 
     - debug: 
         msg:

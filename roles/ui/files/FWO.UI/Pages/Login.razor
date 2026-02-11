@@ -5,19 +5,18 @@
 @using FWO.Ui.Auth
 @using FWO.Ui.Services
 @using Microsoft.AspNetCore.Components.Server.Circuits;
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
 @using System.Net
 @using System.Security.Authentication
 @using System.Web
 
 @inject MiddlewareClient middlewareClient
-@inject ProtectedSessionStorage sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject ApiConnection ApiConnection
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
 @inject CircuitHandler circuitHandler
+@inject TokenService tokenService
 
 @if (showLoginForm)
 {
@@ -38,17 +37,19 @@
                 <form class="d-flex flex-column">
                     <div class="form-group">
                         <input type="text" class="form-control @InputClass" id="UsernameInput"
-                            placeholder="@(globalConfig.GetText("username"))" value="@Username" @oninput="OnUsernameInput"
-                            @ref="usernameInput">
+                               placeholder="@(globalConfig.GetText("username"))" value="@Username" @oninput="OnUsernameInput"
+                               @ref="usernameInput">
                     </div>
                     <div class="form-group mt-3">
                         <input type="password" class="form-control @InputClass" id="PasswordInput"
-                            placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
+                               placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
                     </div>
                     @if (!loginInProgress)
                     {
                         <button type="submit" class="btn btn-block btn-primary mt-3" @onclick:preventDefault="true"
-                            @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
+                                @onclick="LoginSubmit">
+                            @(globalConfig.GetText("login"))
+                        </button>
                         @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="@Icons.Login"></div></button> *@
                     }
                     else
@@ -88,23 +89,23 @@
             <form class="d-flex flex-column">
                 <div class="form-group">
                     <input type="password" class="form-control @InputClass" id="OldPasswordInput"
-                        placeholder="@(userConfig.GetText("old_password"))" value="@oldPassword"
-                        @oninput="OnOldPasswordInput">
+                           placeholder="@(userConfig.GetText("old_password"))" value="@oldPassword"
+                           @oninput="OnOldPasswordInput">
                 </div>
                 <div class="form-group mt-2">
                     <input type="password" class="form-control @InputClass" id="NewPasswordInput1"
-                        placeholder="@(userConfig.GetText("new_password"))" value="@newPassword1"
-                        @oninput="OnNewPassword1Input">
+                           placeholder="@(userConfig.GetText("new_password"))" value="@newPassword1"
+                           @oninput="OnNewPassword1Input">
                 </div>
                 <div class="form-group mt-2">
                     <input type="password" class="form-control @InputClass" id="NewPasswordInput2"
-                        placeholder="@(userConfig.GetText("new_password"))" value="@newPassword2"
-                        @oninput="OnNewPassword2Input">
+                           placeholder="@(userConfig.GetText("new_password"))" value="@newPassword2"
+                           @oninput="OnNewPassword2Input">
                 </div>
                 @if (!passwordChangeInProgress)
                 {
                     <button type="button" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true"
-                        @onclick="ChangePassword">
+                            @onclick="ChangePassword">
                         <div class="@Icons.Login"></div>
                     </button>
                 }
@@ -152,27 +153,19 @@
 
         if (firstRender)
         {
-            // This might be a reconnect. Check if there is a jwt in session storage.
-            ProtectedBrowserStorageResult<TokenPair> jwtLoadRequest = await sessionStorage.GetAsync<TokenPair>("token_pair");
+            string? jwt = await tokenService.GetAccessTokenAsync();
 
-            if (jwtLoadRequest.Success) // reconnect
+            if (!string.IsNullOrWhiteSpace(jwt))
             {
                 try
                 {
-                    if (jwtLoadRequest.Value?.AccessToken is not null)
-                    {
-                        await ((AuthStateProvider)AuthService)
-                        .Authenticate(jwtLoadRequest.Value.AccessToken, ApiConnection, middlewareClient, globalConfig, userConfig,
-                        ((CircuitHandlerService)circuitHandler));
+                    await ((AuthStateProvider)AuthService)
+                        .Authenticate(jwt, ApiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler));
 
-                        return;
-                    }
-                    else
-                    {
-                        Log.WriteError("Session Restore", "Session restore unsuccessful. Jwt from protected storage is null.");
-                    }
+                    return;
                 }
-                catch (Exception ex) { Log.WriteError("Session Restore", "Session restore unsuccessful.", ex); }
+                catch (Exception) { }
+
             }
 
             if (!string.IsNullOrWhiteSpace(globalConfig.WelcomeMessage))
@@ -218,7 +211,6 @@
         InputClass = "";
     }
 
-
     private async Task LoginSubmit()
     {
         if (!loginInProgress)
@@ -228,8 +220,7 @@
             try
             {
                 RestResponse<TokenPair> authResponse = await ((AuthStateProvider)AuthService)
-                .Authenticate(Username, Password, ApiConnection, middlewareClient, globalConfig, userConfig,
-                ((CircuitHandlerService)circuitHandler));
+                    .Authenticate(Username, Password, ApiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler));
 
                 if (authResponse.StatusCode == HttpStatusCode.OK)
                 {

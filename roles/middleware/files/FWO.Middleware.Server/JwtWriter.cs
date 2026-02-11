@@ -67,9 +67,9 @@ namespace FWO.Middleware.Server
 
             string GeneratedToken = tokenHandler.WriteToken(token);
             if (user != null)
-                Log.WriteDebug("Jwt generation", $"Generated JWT {token.RawData} for User {user.Name}. Valid until: {token.ValidTo}.");
+                Log.WriteDebug("Jwt generation", $"Generated JWT {token.RawData} for User {user.Name}. Valid until: {TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local)}.");
             else
-                Log.WriteDebug("Jwt generation", $"Generated JWT {token.RawData}. Valid until: {token.ValidTo}.");
+                Log.WriteDebug("Jwt generation", $"Generated JWT {token.RawData} as anonymous. Valid until: {TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local)}.");
             return GeneratedToken;
         }
 
@@ -112,7 +112,7 @@ namespace FWO.Middleware.Server
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);
-            Log.WriteDebug("Jwt generation", $"Generated JWT {GeneratedToken} for {role}.");
+            Log.WriteDebug("Jwt generation", $"Generated JWT {GeneratedToken} for {role}. Valid until: {TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local)}.");
             return GeneratedToken;
         }
 

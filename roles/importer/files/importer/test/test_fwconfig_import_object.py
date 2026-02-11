@@ -1169,7 +1169,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         # Assert
         fwconfig_import_object.import_state.api_call.call.assert_called_once()
         call_args = fwconfig_import_object.import_state.api_call.call.call_args
-        assert call_args[0][1] == {
+        assert call_args.kwargs["query_variables"] == {
             "importId": 5,
             "removedMembers": [
                 {"_and": [{"objgrp_id": {"_eq": 1}}, {"objgrp_member_id": {"_eq": 1}}]},
@@ -1303,7 +1303,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
 
         # Assert
         call_args = fwconfig_import_object.import_state.api_call.call.call_args
-        assert call_args[0][1] == {
+        assert call_args.kwargs["query_variables"] == {
             "importId": 6,
             "removedMembers": [{"_and": [{"objgrp_id": {"_eq": 10}}, {"objgrp_member_id": {"_eq": 20}}]}],
             "removedFlats": [{"_and": [{"objgrp_flat_id": {"_eq": 10}}, {"objgrp_flat_member_id": {"_eq": 20}}]}],
@@ -1360,7 +1360,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
 
         # Assert
         call_args = fwconfig_import_object.import_state.api_call.call.call_args
-        assert call_args[0][1] == {
+        assert call_args.kwargs["query_variables"] == {
             "importId": 12,
             "removedMembers": [
                 {"_and": [{"objgrp_id": {"_eq": 100}}, {"objgrp_member_id": {"_eq": 200}}]},

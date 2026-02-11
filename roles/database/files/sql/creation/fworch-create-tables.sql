@@ -1021,6 +1021,16 @@ create table owner_responsible
     responsible_type int NOT NULL
 );
 
+create table owner_responsible_type
+(
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL,
+    active boolean default true,
+    sort_order int default 0,
+    allow_modelling boolean default false,
+    allow_recertification boolean default false
+);
+
 CREATE TABLE owner_lifecycle_state (
     id SERIAL PRIMARY KEY,
     name Varchar NOT NULL

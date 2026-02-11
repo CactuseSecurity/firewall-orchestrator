@@ -10,7 +10,6 @@ def test_compute_min_moves_on_insert():
     target_sequence.insert(insert_position, new_element)
     expected_result = {
         "moves": 1,
-        "operations": [f"Insert element '{new_element}' at target position {insert_position!s}."],
         "insertions": [(insert_position, new_element)],
         "deletions": [],
         "reposition_moves": [],
@@ -21,7 +20,6 @@ def test_compute_min_moves_on_insert():
 
     # assert
     assert compute_min_moves_result["moves"] == expected_result["moves"]
-    assert compute_min_moves_result["operations"] == expected_result["operations"]
     assert compute_min_moves_result["insertions"] == expected_result["insertions"]
     assert compute_min_moves_result["deletions"] == expected_result["deletions"]
     assert compute_min_moves_result["reposition_moves"] == expected_result["reposition_moves"]
@@ -35,7 +33,6 @@ def test_compute_min_moves_on_delete():
     deleted_element = target_sequence.pop(delete_position)
     expected_result = {
         "moves": 1,
-        "operations": [f"Delete element '{deleted_element}' at source index {delete_position!s}."],
         "insertions": [],
         "deletions": [(delete_position, deleted_element)],
         "reposition_moves": [],
@@ -46,7 +43,6 @@ def test_compute_min_moves_on_delete():
 
     # assert
     assert compute_min_moves_result["moves"] == expected_result["moves"]
-    assert compute_min_moves_result["operations"] == expected_result["operations"]
     assert compute_min_moves_result["insertions"] == expected_result["insertions"]
     assert compute_min_moves_result["deletions"] == expected_result["deletions"]
     assert compute_min_moves_result["reposition_moves"] == expected_result["reposition_moves"]
@@ -62,9 +58,6 @@ def test_compute_min_moves_on_move():
     target_sequence.insert(move_target_position, moved_element)
     expected_result = {
         "moves": 1,
-        "operations": [
-            f"Pop element '{moved_element}' from source index {move_source_position!s} and reinsert at target position {move_target_position!s}."
-        ],
         "insertions": [],
         "deletions": [],
         "reposition_moves": [(move_source_position, moved_element, move_target_position)],
@@ -75,7 +68,6 @@ def test_compute_min_moves_on_move():
 
     # assert
     assert compute_min_moves_result["moves"] == expected_result["moves"]
-    assert compute_min_moves_result["operations"] == expected_result["operations"]
     assert compute_min_moves_result["insertions"] == expected_result["insertions"]
     assert compute_min_moves_result["deletions"] == expected_result["deletions"]
     assert compute_min_moves_result["reposition_moves"] == expected_result["reposition_moves"]

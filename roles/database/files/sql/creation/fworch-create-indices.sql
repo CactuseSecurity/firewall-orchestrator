@@ -38,6 +38,7 @@ CREATE UNIQUE INDEX uidx_import_control_only_one_null_stop_time_per_mgm_when_nul
 CREATE UNIQUE index if not exists only_one_default_owner on owner(is_default) where is_default = true;
 CREATE UNIQUE index if not exists owner_responsible_owner_dn_type_unique on owner_responsible(owner_id, dn, responsible_type);
 CREATE index if not exists owner_responsible_dn_idx on owner_responsible(dn);
+CREATE UNIQUE index if not exists owner_responsible_type_name_unique on owner_responsible_type(name);
 
 Create index "IX_Relationship68" on "changelog_object" ("control_id");
 Create index "IX_Relationship76" on "changelog_service" ("control_id");

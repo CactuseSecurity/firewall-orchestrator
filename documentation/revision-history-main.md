@@ -588,3 +588,11 @@ A complete 80K lines rework of FWO, including
 # 9.0.1 - 5.02.2026 DEVELOP
 - update rule_owner table for REST api
 - update import_control to allow flexible tracking of different import types
+- generalized owner responsibles with configurable responsible types
+- add allow_write_access to responsible types to control modelling and recertification
+
+# 9.0.2 - 10.02.2026 DEVELOP
+- fix: chunking for cleanup importer
+
+# 9.0.3 - 11.02.2026 DEVELOP
+- remove stale v8 code

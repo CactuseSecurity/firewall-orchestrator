@@ -7,7 +7,7 @@ from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.import_state_controller import ImportStateController
-from models.rulebase import Rulebase
+from models.rule import RuleNormalized
 from pytest_mock import MockerFixture
 from services.global_state import GlobalState
 from services.uid2id_mapper import Uid2IdMapper
@@ -37,50 +37,32 @@ def mock_api_connection_response(api_connection: FwoApi):
 
 
 @pytest.fixture
+def mock_import_state_controller_response(import_state_controller: ImportStateController):
+    import_state_controller.state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+
+
+@pytest.fixture
 def mock_fwconfig_import_rule_side_effects(fwconfig_import_rule: FwConfigImportRule):
-    def side_effect_mark_rules_removed(removed_rule_uids: dict[str, list[int]]) -> tuple[int, list[int]]:
+    def side_effect_mark_rules_removed(removed_rule_uids: list[str]) -> tuple[int, list[int]]:
         changes = 0
-        collected_removed_rule_ids: list[int] = []
-        for rule_ids in removed_rule_uids.values():
-            changes += len(rule_ids)
-            collected_removed_rule_ids.extend(rule_ids)
+        changes = len(removed_rule_uids)
+        collected_removed_rule_ids = [42 + i for i in range(len(removed_rule_uids))]
 
         return changes, collected_removed_rule_ids
 
     fwconfig_import_rule.mark_rules_removed = unittest.mock.Mock(side_effect=side_effect_mark_rules_removed)
 
-    def side_effect_create_new_rule_version(
-        rule_uids: dict[str, list[str]],
-    ) -> tuple[int, list[int], list[dict[str, Any]]]:
-        changes = 0
-        collected_rule_ids: list[int] = []
-        insert_rules_return: list[dict[str, Any]] = []
-
-        for rulebase_rule_uids in rule_uids.values():
-            changes += len(rulebase_rule_uids)
-            collected_rule_ids = list(range(1, len(rulebase_rule_uids) + 1))
-            for counter in range(len(rulebase_rule_uids)):
-                insert_rule_return: dict[str, Any] = {}
-                insert_rule_return["rule_uid"] = rulebase_rule_uids[counter]
-                insert_rule_return["rule_id"] = changes + counter + 1
-                insert_rules_return.append(insert_rule_return)
-
-        return changes, collected_rule_ids, insert_rules_return
-
-    fwconfig_import_rule.create_new_rule_version = unittest.mock.Mock(side_effect=side_effect_create_new_rule_version)
-
-    def side_effect_add_new_rules(rulebases: list[Rulebase]) -> tuple[int, list[dict[str, Any]]]:
+    def side_effect_add_new_rules(rulebases: dict[str, tuple[RuleNormalized, str]]) -> tuple[int, list[dict[str, Any]]]:
         changes = 0
         new_rule_ids: list[dict[str, Any]] = []
 
-        for rulebase in rulebases:
-            for rule in rulebase.rules.values():
-                changes += 1
-                new_rule_ids.append({"rule_uid": rule.rule_uid, "rule_id": changes})
+        for rule, _rulebase_uid in rulebases.values():
+            changes += 1
+            new_rule_ids.append({"rule_uid": rule.rule_uid, "rule_id": changes})
 
         return changes, new_rule_ids
 
-    fwconfig_import_rule.add_rules_within_rulebases = unittest.mock.Mock(side_effect=side_effect_add_new_rules)
+    fwconfig_import_rule.add_new_rules = unittest.mock.Mock(side_effect=side_effect_add_new_rules)
 
 
 @pytest.fixture
@@ -180,6 +162,19 @@ def mock_api_call_response(api_call: FwoApiCall):
                     },
                 }
             )
+
+        if "rulesEnforcedOnGateway" in query_variables:
+            outcome["data"].update(
+                {
+                    "update_rule_enforced_on_gateway": {
+                        "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
+                    },
+                    "insert_rule_enforced_on_gateway": {
+                        "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
+                    },
+                }
+            )
+
         return outcome
 
     api_call.call = unittest.mock.Mock(side_effect=api_call_side_effect)
@@ -195,6 +190,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         mock_graphql: None,  # noqa: ARG002
         mock_uid2id_mapper_response: None,  # noqa: ARG002
         mock_api_connection_response: None,  # noqa: ARG002
+        mock_import_state_controller_response: None,  # noqa: ARG002
         mock_fwconfig_import_rule_side_effects: None,  # noqa: ARG002
         mock_api_call_response: None,  # noqa: ARG002
     ):
@@ -206,8 +202,9 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
             rules_per_rulebase_count=10,
         )
 
-        global_state.normalized_config = config
-        global_state.previous_config = copy.deepcopy(config)
+        global_state.previous_config = config
+        global_state.normalized_config = copy.deepcopy(config)
+        fwconfig_builder.initialize_rule_num_numerics(global_state.previous_config)
         fwconfig_import_rule.normalized_config = global_state.normalized_config
 
         rulebase = global_state.normalized_config.rulebases[0]
@@ -235,7 +232,3 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         assert import_state_controller.state.stats.statistics.rule_delete_count == 1
         assert import_state_controller.state.stats.statistics.rule_change_count == 1
         assert import_state_controller.state.stats.statistics.rule_move_count == 1
-
-
-class TestFwconfigImportRuleComputeNumForChangedRule:
-    pass

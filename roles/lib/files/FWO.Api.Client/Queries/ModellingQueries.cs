@@ -71,6 +71,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string addSelectedConnection;
         public static readonly string removeSelectedConnectionFromApp;
         public static readonly string removeSelectedConnection;
+        public static readonly string addPermittedOwner;
+        public static readonly string deletePermittedOwner;
+        public static readonly string getPermittedOwnersForConnection;
 
         public static readonly string getNwGroupObjects;
         public static readonly string getSelectedNwGroupObjects;
@@ -185,6 +188,9 @@ namespace FWO.Api.Client.Queries
                 addSelectedConnection = GetQueryText("modelling/addSelectedConnection.graphql");
                 removeSelectedConnectionFromApp = GetQueryText("modelling/removeSelectedConnectionFromApp.graphql");
                 removeSelectedConnection = GetQueryText("modelling/removeSelectedConnection.graphql");
+                addPermittedOwner = GetQueryText("modelling/addPermittedOwner.graphql");
+                deletePermittedOwner = GetQueryText("modelling/deletePermittedOwner.graphql");
+                getPermittedOwnersForConnection = GetQueryText("modelling/getPermittedOwnersForConnection.graphql");
 
                 getNwGroupObjects = GetQueryText("modelling/getNwGroupObjects.graphql");
                 getSelectedNwGroupObjects = GetQueryText("modelling/getSelectedNwGroupObjects.graphql");

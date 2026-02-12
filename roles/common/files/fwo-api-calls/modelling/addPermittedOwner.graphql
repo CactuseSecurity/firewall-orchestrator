@@ -1,0 +1,14 @@
+mutation addPermittedOwner(
+  $connectionId: Int!
+  $appId: Int!
+  ) {
+  insert_modelling_permitted_owners(objects: {
+    connection_id: $connectionId
+    app_id: $appId
+  }) {
+    returning {
+      insertedConnectionId: connection_id
+      insertedAppId: app_id
+    }
+  }
+}

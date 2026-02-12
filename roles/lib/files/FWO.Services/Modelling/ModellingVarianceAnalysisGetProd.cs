@@ -7,7 +7,7 @@ using FWO.Logging;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     /// <summary>
     /// Part of Variance Analysis Class getting the production state

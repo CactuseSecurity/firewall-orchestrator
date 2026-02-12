@@ -4,7 +4,7 @@ using FWO.Data.Workflow;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
-namespace FWO.Services
+namespace FWO.Services.Workflow
 {
     public enum WorkflowPhases
     {

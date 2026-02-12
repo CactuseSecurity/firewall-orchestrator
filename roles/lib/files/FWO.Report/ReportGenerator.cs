@@ -7,6 +7,7 @@ using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Services;
+using FWO.Services.Modelling;
 
 namespace FWO.Report
 {

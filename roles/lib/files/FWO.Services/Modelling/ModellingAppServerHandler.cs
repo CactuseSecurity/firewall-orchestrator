@@ -6,7 +6,7 @@ using FWO.Data.Modelling;
 using FWO.Api.Client;
 
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     public class ModellingAppServerHandler : ModellingHandlerBase
     {

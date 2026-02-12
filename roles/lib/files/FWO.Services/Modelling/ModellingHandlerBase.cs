@@ -7,7 +7,7 @@ using FWO.Data.Modelling;
 using Microsoft.AspNetCore.Components.Authorization;
 
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     public class ModellingHandlerBase
     {

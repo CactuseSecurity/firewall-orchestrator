@@ -5,7 +5,7 @@ using FWO.Data.Modelling;
 using FWO.Config.Api;
 using System.Text.Json;
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
     {

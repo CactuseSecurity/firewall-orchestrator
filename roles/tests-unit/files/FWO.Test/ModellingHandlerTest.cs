@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Ui.Services;
 using FWO.Services;
+using FWO.Services.Modelling;
 using FWO.Basics;
 
 namespace FWO.Test

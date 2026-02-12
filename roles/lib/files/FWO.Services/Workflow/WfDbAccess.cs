@@ -4,7 +4,7 @@ using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 
-namespace FWO.Services
+namespace FWO.Services.Workflow
 {
     public class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin)
     {

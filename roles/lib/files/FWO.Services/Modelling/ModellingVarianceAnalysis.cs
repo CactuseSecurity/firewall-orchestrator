@@ -9,7 +9,7 @@ using FWO.Logging;
 using System.Text.Json;
 
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     /// <summary>
     /// Variance Analysis Class

@@ -8,7 +8,7 @@ using FWO.Config.Api;
 using FWO.Logging;
 using System.Text.Json;
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     public static class AppServerHelper
     {

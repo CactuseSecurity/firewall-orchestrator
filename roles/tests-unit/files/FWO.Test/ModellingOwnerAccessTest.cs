@@ -8,7 +8,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Services;
+using FWO.Services.Modelling;
 using Microsoft.AspNetCore.Components.Authorization;
 using NSubstitute;
 using NUnit.Framework;

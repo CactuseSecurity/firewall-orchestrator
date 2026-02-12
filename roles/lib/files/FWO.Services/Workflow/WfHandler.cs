@@ -9,7 +9,7 @@ using FWO.Middleware.Client;
 using System.Security.Authentication;
 using System.Text.Json;
 
-namespace FWO.Services
+namespace FWO.Services.Workflow
 {
     public enum ObjAction
     {

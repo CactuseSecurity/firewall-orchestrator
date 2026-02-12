@@ -8,7 +8,7 @@ using NetTools;
 using System.Net;
 using System.Text.Json;
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     public class ModellingAppRoleHandler : ModellingHandlerBase
     {

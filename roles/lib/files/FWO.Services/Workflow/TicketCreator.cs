@@ -6,7 +6,7 @@ using FWO.Api.Client;
 using FWO.Logging;
 using FWO.Middleware.Client;
 
-namespace FWO.Services
+namespace FWO.Services.Workflow
 {
     public class TicketCreator
     {

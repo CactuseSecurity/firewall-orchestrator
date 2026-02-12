@@ -1,6 +1,6 @@
 using FWO.Data.Modelling;
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     public class AppRoleComparer() : IEqualityComparer<ModellingAppRole?>
     {

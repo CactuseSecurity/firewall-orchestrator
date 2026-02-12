@@ -7,6 +7,7 @@ using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Services;
+using FWO.Services.Modelling;
 using FWO.Middleware.Client;
 using FWO.Api.Client.Queries;
 using System;

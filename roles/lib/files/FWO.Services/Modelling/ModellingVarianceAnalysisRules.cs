@@ -5,7 +5,7 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using System.Text.Json;
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     /// <summary>
     /// Part of Variance Analysis Class analysing the rules

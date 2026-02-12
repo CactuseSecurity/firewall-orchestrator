@@ -1,7 +1,7 @@
 import json
 import sys
 
-from fwo_const import IMPORTER_PWD_FILE
+from fwo_const import FWO_CONFIG_FILENAME, IMPORTER_PWD_FILE
 from fwo_log import FWOLogger
 from models.fwo_config import FwoConfig
 
@@ -9,10 +9,41 @@ from models.fwo_config import FwoConfig
 class FwoConfigController:
     fwo_config: FwoConfig
 
-    def __init__(self, fwo_config_filename: str = "/etc/fworch/fworch.json"):
-        self.read_config(fwo_config_filename)
+    def __init__(
+        self,
+        fwo_config_filename: str = FWO_CONFIG_FILENAME,
+        force: bool = False,
+        is_full_import: bool = False,
+        clear: bool = False,
+        debug_level: int = 0,
+    ):
+        (
+            user_management_api_base_url,
+            fwo_api_base_url,
+            importer_user_name,
+            importer_pwd,
+            fwo_major_version,
+            api_fetch_size,
+            sleep_timer,
+        ) = self.read_config(fwo_config_filename)
 
-    def read_config(self, fwo_config_filename: str = "/etc/fworch/fworch.json"):
+        self.fwo_config = FwoConfig(
+            fwo_api_url=fwo_api_base_url,
+            fwo_user_mgmt_api_uri=user_management_api_base_url,
+            api_fetch_size=api_fetch_size,
+            major_version=fwo_major_version,
+            importer_password=importer_pwd,
+            importer_user_name=importer_user_name,
+            sleep_timer=sleep_timer,
+            force=force,
+            is_full_import=is_full_import,
+            clear=clear,
+            debug_level=debug_level,
+        )
+
+    def read_config(
+        self, fwo_config_filename: str = "/etc/fworch/fworch.json"
+    ) -> tuple[str, str, str, str, int, int, int]:
         try:
             # read fwo config (API URLs)
             with open(fwo_config_filename) as fwo_config:
@@ -39,14 +70,14 @@ class FwoConfigController:
             FWOLogger.error("unspecified error occurred while trying to read config file: " + fwo_config_filename)
             sys.exit(1)
 
-        self.fwo_config = FwoConfig(
-            fwo_api_url=fwo_api_base_url,
-            fwo_user_mgmt_api_uri=user_management_api_base_url,
-            api_fetch_size=api_fetch_size,
-            major_version=fwo_major_version,
-            importer_password=importer_pwd,
-            importer_user_name=importer_user_name,
-            sleep_timer=sleep_timer,
+        return (
+            user_management_api_base_url,
+            fwo_api_base_url,
+            importer_user_name,
+            importer_pwd,
+            fwo_major_version,
+            api_fetch_size,
+            sleep_timer,
         )
 
     def as_dict(self) -> dict[str, str | int | None]:

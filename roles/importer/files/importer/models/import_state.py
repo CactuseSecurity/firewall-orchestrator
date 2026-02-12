@@ -10,7 +10,6 @@ from models.fwo_config_controller import FwoConfigController
 
 
 class ImportState:
-    debug_level: int
     verify_certs: bool = False
     config_changed_since_last_import: bool
     fwo_config: FwoConfigController

@@ -341,5 +341,5 @@ A complete 80K lines rework of FWO, including
 
 - Limiting database listener to localhost for security reasons
 
-## 9.0.2 - 09.02.2026 DEVELOP
+## 9.0.3 - 12.02.2026 DEVELOP
 - introduce interface permissions

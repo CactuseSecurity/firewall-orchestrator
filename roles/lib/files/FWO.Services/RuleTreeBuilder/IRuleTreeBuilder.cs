@@ -11,10 +11,12 @@ namespace FWO.Services.RuleTreeBuilder
         int OrderedLayerCount { get; set; }
         List<RulebaseLink> RemainingLinks { get; set; }
         List<RulebaseReport> Rulebases { get; set; }
-        List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links);
+        Dictionary<(int managementId, int deviceId), RuleTreeItem> RuleTreeCache { get; set; }
+        List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId);
         RulebaseLink? GetNextLink();
         List<int> ProcessLink(RulebaseLink link, List<int>? trail = null);
         void Reset(RulebaseReport[] rulebases, RulebaseLink[] links);
+        Dictionary<RuleTreeItem, Rule[]> FlattedRules { get; set; }
     }
 }
 

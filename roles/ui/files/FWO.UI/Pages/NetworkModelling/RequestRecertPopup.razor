@@ -5,6 +5,7 @@
 @using FWO.Middleware.Client
 @using FWO.Recert
 @using FWO.Report
+@using FWO.Services.RuleTreeBuilder
 @using FWO.Ui.Pages.Reporting
 @using Newtonsoft.Json
 @using RestSharp
@@ -15,6 +16,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @if (Display && AppHandler != null)
 {
@@ -315,7 +317,7 @@
     {
         ReportBase? report = await ReportGenerator.GenerateFromTemplate(
             new ReportTemplate("", new(){ ReportType = (int)ReportType.RecertificationEvent, ModellingFilter = new(){ SelectedOwner = owner}}),
-            apiConnection, userConfig, DefaultInit.DoNothing);
+            apiConnection, userConfig, DefaultInit.DoNothing, null, ruleTreeBuilder);
         if(report != null)
         {
             var variables = new

@@ -212,7 +212,7 @@
         collectedOwnerships = ownerDns.Count == 0
             ? []
             : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                OwnerQueries.getOwnersForDnsWithConn,
+                OwnerQueries.getOwnersForDns,
                 new { dns = ownerDns });
         List<FwoOwner> writableOwnerships = ownerDns.Count == 0
             ? []

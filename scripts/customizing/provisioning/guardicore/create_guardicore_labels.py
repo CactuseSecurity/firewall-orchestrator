@@ -351,11 +351,13 @@ def extract_criteria(nwgroup: dict[str, Any]) -> list[Criteria]:
     return list(criteria_set.values())
 
 
-def build_label_from_group(nwgroup: dict[str, Any], include_empty: bool) -> LabelItem | None:
-    id_string = nwgroup.get("id_string")
+def build_label_from_group(owner: dict[str, Any], nwgroup: dict[str, Any], include_empty: bool) -> LabelItem | None:
+    id_string = (
+        f"{owner.get('name')} ({owner.get('app_id_external')}) - {nwgroup.get('name')} ({nwgroup.get('id_string')})"
+    )
     if not id_string:
         return None
-    key = label_key_from_id(id_string)
+    key = label_key_from_id(str(nwgroup.get("id_string")))
     if not key:
         return None
     criteria_list = extract_criteria(nwgroup)
@@ -373,7 +375,7 @@ def build_labels_from_response(
 
     for owner in owners:
         for nwgroup in owner.get("nwgroups", []):
-            label = build_label_from_group(nwgroup, include_empty)
+            label = build_label_from_group(owner, nwgroup, include_empty)
             if label:
                 labels.append(label)
 

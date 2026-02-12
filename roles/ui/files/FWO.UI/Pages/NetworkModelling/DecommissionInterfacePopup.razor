@@ -1,6 +1,5 @@
 ﻿@using FWO.Middleware.Client
 
-@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
 
@@ -29,7 +28,7 @@
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("propose_alternative")):</label>
                 <div class="col-sm-1">
                     <input type="checkbox" @bind="ProposeAlternative" />
-                  </div>
+                </div>
                 @if(ProposeAlternative)
                 {
                     <div class="col-sm-8">
@@ -93,7 +92,6 @@
     private string Message { get; set; } = "";
     private bool ProposeAlternative = false;
     private ModellingConnection? ProposedInterface;
-    private List<FwoOwner> AppsToNotify = [];
     private bool WorkInProgress = false;
     private bool firstTry = true;
 
@@ -114,16 +112,7 @@
             WorkInProgress = true;
             try
             {
-                ConnHandler.ActConn.Removed = true;
-                ConnHandler.ActConn.Reason += $"<br>{DateTime.Now.ToString("dd.MM.yyyy")} {userConfig.User.Name}: {userConfig.GetText("decomm_interface")}: {Reason}";
-                await ConnHandler.Save(true, true);
-                await ConnHandler.RemoveFromAllSelections();
-                if(userConfig.ModDecommEmailReceiver != EmailRecipientOption.None)
-                {
-                    AppsToNotify = ConnHandler.UsingConnections.Where(c => c.AppId != null && c.AppId != ConnHandler.ActConn.AppId).Select(c => c.App).Distinct().ToList();
-                    await NotifyUsers();
-                }
-                await AddToSelections();
+                await ConnHandler.DecommissionInterface(Reason, ProposeAlternative, ProposedInterface, middlewareClient);
                 await RefreshParent();
                 Close();
             }
@@ -132,82 +121,6 @@
                 DisplayMessageInUi(exception, userConfig.GetText("decomm_interface"), "", true);
             }
             WorkInProgress = false;
-        }
-    }
-
-    private async Task NotifyUsers()
-    {
-        try
-        {
-            EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);         
-            await emailHelper.Init();
-
-            string subject = userConfig.ModDecommEmailSubject.Replace(Placeholder.INTERFACE_NAME, ConnHandler?.ActConn.Name);
-
-            int successCount = 0;
-            int failCount = 0;
-            foreach (var app in AppsToNotify)
-            {
-                if(await emailHelper.SendEmailToOwnerResponsibles(app, subject, ConstructBody(app), userConfig.ModDecommEmailReceiver))
-                {
-                    successCount++;
-                }
-                else
-                {
-                    failCount++;
-                }
-            }
-            if(successCount > 0)
-            {
-                string msgText = userConfig.GetText("U9033").Replace(Placeholder.OK_NUMBER, successCount.ToString());
-                DisplayMessageInUi(null, userConfig.GetText("send_email"), msgText, false);
-            }
-            if(failCount > 0)
-            {
-                string msgText = userConfig.GetText("E9019").Replace(Placeholder.FAIL_NUMBER, failCount.ToString());
-                DisplayMessageInUi(null, userConfig.GetText("send_email"), msgText, true);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("notification"), "", true);
-        }
-    }
-
-    private string ConstructBody(FwoOwner app)
-    {
-        string interfaceUrl = $"{userConfig.UiHostName}/{PageName.Modelling}/{ProposedInterface?.App.ExtAppId}/{ProposedInterface?.Id}";
-        string interfacelink = $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {ProposedInterface?.Name}</a><br>";
-        string body = userConfig.ModDecommEmailBody
-            .Replace(Placeholder.INTERFACE_NAME, $"<b>{ConnHandler?.ActConn.Name}</b>")
-            .Replace(Placeholder.NEW_INTERFACE_NAME, $"<b>{ProposedInterface?.Name}</b>")
-            .Replace(Placeholder.NEW_INTERFACE_LINK, $"<b>{interfacelink}</b>")
-            .Replace(Placeholder.REASON, $"<b>{Reason}</b>")
-            .Replace(Placeholder.USER_NAME, $"<b>{userConfig.User.Name}</b>");
-       string ConnList = string.Join("<br>", ConnHandler!.UsingConnections.Where(c => c.AppId != null && c.AppId == app.Id).Select(a => a.Name));
-       return $"{body}<br><b>{ConnList}</b>";
-    }
-
-    private async Task AddToSelections()
-    {
-        if(ConnHandler != null && ProposeAlternative && ProposedInterface != null)
-        {
-            foreach (var app in AppsToNotify)
-            {
-                try
-                {
-                    var Variables = new
-                    {
-                        appId = app.Id,
-                        connectionId = ProposedInterface.Id
-                    };
-                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedConnection, Variables);
-                }
-                catch (Exception)
-                {
-                    Log.WriteDebug(userConfig.GetText("add_interface"), "Interface was already selected");
-                }
-            }
         }
     }
 

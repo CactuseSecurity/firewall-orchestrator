@@ -91,6 +91,7 @@ namespace FWO.Test
             {"global_common_services","Global Common Services"},
             {"func_reason","Functional Reason"},
             {"interface_description","Interface Description"},
+            {"interface","Interface"},
             {"published","Published"},
             {"fetch_data","Fetch data"},
             {"new_connection","New Connection"},
@@ -178,7 +179,12 @@ namespace FWO.Test
             {"U9023","Common areas not allowed" },
             {"E9015","Insert not allowed" },
             {"select","Select" },
-            {"E9021","Interface permission required" }
+            {"E9021","Interface permission required" },
+            {"decomm_interface","Decommission Interface" },
+            {"send_email","Send Email"},
+            {"U9033","Emails sent to @@OK_NUMBER@@ owners."},
+            {"E9019","Email could not be sent to @@FAIL_NUMBER@@ owners."},
+            {"notification","Notification" }
         };
 
         public override string GetText(string key)

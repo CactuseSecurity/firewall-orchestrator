@@ -49,7 +49,7 @@ namespace FWO.Services
                 PermittedOwnersToDelete.Clear();
                 return;
             }
-            await AddPermittedOwners(PermittedOwnersToAdd);
+            await AddPermittedOwners(ActConn, PermittedOwnersToAdd);
         }
 
         private async Task ApplyPermittedOwnersOnUpdate()
@@ -63,7 +63,7 @@ namespace FWO.Services
                 return;
             }
             await RemovePermittedOwners(PermittedOwnersToDelete);
-            await AddPermittedOwners(PermittedOwnersToAdd);
+            await AddPermittedOwners(ActConn, PermittedOwnersToAdd);
         }
 
         private void SyncPermittedOwnersChanges()
@@ -81,18 +81,28 @@ namespace FWO.Services
             }
         }
 
-        private async Task AddPermittedOwners(List<FwoOwner> owners)
+        public async Task AddPermittedOwnersIfMissing(ModellingConnection? proposedInterface, List<FwoOwner> owners)
+        {
+            if (proposedInterface == null)
+            {
+                return;
+            }
+
+            await AddPermittedOwners(proposedInterface, [.. owners.Where(own => !proposedInterface.PermittedOwners.Any(o => o.Id == own.Id))]);
+        }
+
+        private async Task AddPermittedOwners(ModellingConnection conn, List<FwoOwner> owners)
         {
             try
             {
                 foreach (int ownerId in owners.Select(o => o.Id).Distinct().Where(id => id > 0))
                 {
-                    var variables = new { connectionId = ActConn.Id, appId = ownerId };
+                    var variables = new { connectionId = conn.Id, appId = ownerId };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addPermittedOwner, variables);
                     FwoOwner? owner = owners.FirstOrDefault(o => o.Id == ownerId);
                     string ownerLabel = owner != null ? owner.Display(userConfig.GetText("common_service")) : ownerId.ToString();
-                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, ActConn.Id,
-                        $"Added permitted owner {ownerLabel} to {kInterface}: {ActConn.Name}", Application.Id);
+                    await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.Connection, conn.Id,
+                        $"Added permitted owner {ownerLabel} to {kInterface}: {conn.Name}", Application.Id);
                 }
             }
             catch (Exception exception)

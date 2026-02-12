@@ -122,7 +122,11 @@ namespace FWO.Test.Mocks
 
             if (children != null)
             {
-                item.Children = children;
+
+
+                item.Children = children
+                    .Cast<RuleTreeItem>()
+                    .ToList(); ;
             }
 
             return item;
@@ -130,7 +134,7 @@ namespace FWO.Test.Mocks
 
         public void TryBuildMockRuleTree()
         {
-            base.TryBuildRuleTree();
+            TryBuildRuleTree();
         }
 
     }

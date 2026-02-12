@@ -8,6 +8,7 @@ using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Services;
 using FWO.Services.Modelling;
+using FWO.Services.RuleTreeBuilder;
 
 namespace FWO.Report
 {
@@ -15,11 +16,11 @@ namespace FWO.Report
     {
         private static ReportBase? _currentReport;
 
-        public static async Task<ReportBase?> GenerateFromTemplate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null)
+        public static async Task<ReportBase?> GenerateFromTemplate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null, IRuleTreeBuilder? ruleTreeBuilder = null)
         {
             try
             {
-                ReportBase report = ReportBase.ConstructReport(reportTemplate, userConfig);
+                ReportBase report = ReportBase.ConstructReport(reportTemplate, userConfig, ruleTreeBuilder);
                 CancellationToken canToken = token == null ? new() : (CancellationToken)token;
                 await DoGeneration(report, reportTemplate, apiConnection, userConfig, displayMessageInUi, canToken);
                 return report;

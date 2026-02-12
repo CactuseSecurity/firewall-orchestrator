@@ -192,40 +192,38 @@ namespace FWO.Ui.Auth
 
         private static async Task<List<int>> GetAssignedOwners(string jwtString)
         {
-            List<int> ownerIds = [];
-            List<string> ownerClaims = await GetClaimList(jwtString, "x-hasura-editable-owners");
-            if (ownerClaims.Count > 0)
+            JwtReader jwtReader = new(jwtString);
+            if (!await jwtReader.Validate())
             {
-                string[] separatingStrings = [",", "{", "}"];
-                string[] owners = ownerClaims[0].Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                ownerIds = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
+                return [];
             }
-            return ownerIds;
+
+            ClaimsIdentity identity = new
+            (
+                claims: jwtReader.GetClaims(),
+                authenticationType: "ldap",
+                nameType: JwtRegisteredClaimNames.UniqueName,
+                roleType: "role"
+            );
+            return JwtClaimParser.ExtractIntClaimValues(identity.Claims, "x-hasura-editable-owners");
         }
 
         private static async Task<List<string>> GetClaimList(string jwtString, string claimType)
         {
-            List<string> claimList = [];
             JwtReader jwtReader = new(jwtString);
-            if (await jwtReader.Validate())
+            if (!await jwtReader.Validate())
             {
-                ClaimsIdentity identity = new
-                (
-                    claims: jwtReader.GetClaims(),
-                    authenticationType: "ldap",
-                    nameType: JwtRegisteredClaimNames.UniqueName,
-                    roleType: "role"
-                );
-                foreach (Claim claim in identity.Claims)
-                {
-                    if (claim.Type == claimType)
-                    {
-                        claimList.Add(claim.Value);
-                    }
-                }
+                return [];
             }
-            return claimList;
+
+            ClaimsIdentity identity = new
+            (
+                claims: jwtReader.GetClaims(),
+                authenticationType: "ldap",
+                nameType: JwtRegisteredClaimNames.UniqueName,
+                roleType: "role"
+            );
+            return JwtClaimParser.ExtractStringClaimValues(identity.Claims, claimType);
         }
     }
 }
-

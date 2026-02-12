@@ -72,7 +72,7 @@ namespace FWO.Services
             HandleService(service);
         }
 
-        public void HandleService(ModellingService service)
+        private void HandleService(ModellingService service)
         {
             try
             {

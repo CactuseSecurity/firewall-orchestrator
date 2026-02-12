@@ -12,6 +12,7 @@ mutation newConnection(
   $commonSvc: Boolean
   $connProp: String
   $extraParams: String
+  $interfacePermission: String
   ) {
   insert_modelling_connection(objects: {
     name: $name
@@ -27,6 +28,7 @@ mutation newConnection(
     common_service: $commonSvc
     conn_prop: $connProp
     extra_params: $extraParams
+    interface_permission: $interfacePermission
   }) {
     returning {
       newId: id

@@ -364,7 +364,7 @@ else
             appSelected = false;
             selectedApp = newApp;
             bool isOwner = authenticationStateTask!.Result.User.IsInRole(Roles.Modeller) &&
-                IsModellingWriteAllowedForSelectedApp(newApp);
+                IsModellingWriteAllowedForApp(newApp);
             if (isOwner)
             {
                 apiConnection.SetRole(Roles.Modeller);
@@ -507,10 +507,10 @@ else
 
     private bool IsModellingWriteAllowedForSelectedApp()
     {
-        return IsModellingWriteAllowedForSelectedApp(selectedApp);
+        return IsModellingWriteAllowedForApp(selectedApp);
     }
 
-    private bool IsModellingWriteAllowedForSelectedApp(FwoOwner owner)
+    private bool IsModellingWriteAllowedForApp(FwoOwner owner)
     {
         if (owner.Id <= 0)
         {

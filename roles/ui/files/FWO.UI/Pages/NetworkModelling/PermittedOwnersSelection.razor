@@ -18,10 +18,10 @@ else
             <div class="border bg-transparent">@((MarkupString)context.Display(userConfig.GetText("common_service")))</div>
         </Display>
     </EditList>
-    <div class="row col-sm-12 mt-1">
-        <div class="col-sm-10">
+    <div class="row col-sm-12 mt-2">
+        <div class="col-sm-11">
             <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display(userConfig.GetText("common_service")))"
-                        @bind-SelectedElement="SelectedOwner" Elements="AllOwners">
+                        @bind-SelectedElement="SelectedOwner" Elements="AllOwners" Nullable="true">
                 <ElementTemplate Context="app">
                     @((MarkupString)(app.Display(userConfig.GetText("common_service"))))
                 </ElementTemplate>
@@ -61,6 +61,7 @@ else
             !PermittedOwners.Any(o => o.Id == SelectedOwner.Id))
         {
             OwnersToAdd.Add(SelectedOwner);
+            SelectedOwner = null;
         }
     }
 }

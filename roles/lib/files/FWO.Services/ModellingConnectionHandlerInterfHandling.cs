@@ -94,7 +94,8 @@ namespace FWO.Services
             await RemoveFromAllSelections();
 
             List<FwoOwner> appsToNotify = [];
-            if (userConfig.ModDecommEmailReceiver != EmailRecipientOption.None)
+            if (!string.IsNullOrWhiteSpace(userConfig.ModDecommEmailReceiver)
+                && !userConfig.ModDecommEmailReceiver.Equals(nameof(EmailRecipientOption.None), StringComparison.Ordinal))
             {
                 appsToNotify = UsingConnections.Where(c => c.AppId != null && c.AppId != ActConn.AppId).Select(c => c.App).Distinct().ToList();
                 await NotifyUsers(appsToNotify, reason, proposedInterface, middlewareClient);

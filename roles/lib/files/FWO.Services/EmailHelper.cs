@@ -81,7 +81,7 @@ namespace FWO.Services
             return await SendEmail(await GetRecipients(recOpt, null, owner, null, null), subject, body, requester);
         }
 
-        public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, string recipientConfig, bool reqInCc = false, List<string>? otherAddresses = null)
+        public virtual async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, string recipientConfig, bool reqInCc = false, List<string>? otherAddresses = null)
         {
             List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
             List<string> recipients = await GetRecipients(ModellingEmailRecipientSelection.Parse(recipientConfig, GetActiveOwnerResponsibleTypeIds()), owner, otherAddresses);

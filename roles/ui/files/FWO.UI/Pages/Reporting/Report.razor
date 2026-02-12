@@ -6,6 +6,7 @@
 @using FWO.Report.Filter.Exceptions
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
+@using FWO.Services.RuleTreeBuilder
 @using System.Diagnostics
 @using System.Text.Json
 
@@ -15,6 +16,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NavigationManager NavigationManager
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @if(InitDone)
 {
@@ -512,7 +514,7 @@
             await PrepareReportGeneration();
             ReportTemplate temp = ConstructReportTemplate();
             
-            currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token);
+            currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token, ruleTreeBuilder);
             processing = false;
             PostProcess();
         }

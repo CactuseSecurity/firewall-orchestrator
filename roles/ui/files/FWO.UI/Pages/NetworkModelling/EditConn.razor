@@ -111,17 +111,14 @@
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("interface_permission")):</label>
                         @if(ConnHandler.ReadOnly)
                         {
-                            <label class="col-sm-3">@GetInterfacePermissionLabel()</label>
+                            <label class="col-sm-3">@InterfacePermissionToString(ConnHandler.ActConn.InterfacePermission)</label>
                         }
                         else
                         {
                             <div class="form-group row col-sm-3 mt-2 me-auto">
                                 <Dropdown ElementType="string" @bind-SelectedElement="ConnHandler.ActConn.InterfacePermission"
-                                    Elements="interfacePermissionOptions"
-                                    ElementToString="InterfacePermissionToString"
-                                    ElementTemplate="InterfacePermissionTemplate"
-                                    NoneSelectedText="@SelectText"
-                                    Nullable="true" />
+                                    Elements="interfacePermissionOptions" ElementToString="InterfacePermissionToString"
+                                    ElementTemplate="InterfacePermissionTemplate" NoneSelectedText="-" Nullable="true" />
                             </div>
                         }
                     </div>
@@ -505,7 +502,7 @@
     {
         sidebarLeftWidth = sidebarInitWidth;
         availableExtraConfigs = JsonSerializer.Deserialize<List<string>>(userConfig.ModExtraConfigs) ?? new();
-        interfacePermissionOptions = ["", .. Enum.GetNames<InterfacePermissions>()];
+        interfacePermissionOptions = [.. Enum.GetNames<InterfacePermissions>()];
         availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
             : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
     }
@@ -861,20 +858,9 @@
         return title;
     }
 
-    private string GetInterfacePermissionLabel()
-    {
-        if (string.IsNullOrWhiteSpace(ConnHandler?.ActConn.InterfacePermission))
-        {
-            return userConfig.GetText("select");
-        }
-        return userConfig.GetText(ConnHandler!.ActConn.InterfacePermission);
-    }
-
-    private string SelectText => userConfig.GetText("select");
-
     private string InterfacePermissionToString(string? permission)
     {
-        return string.IsNullOrWhiteSpace(permission) ? SelectText : userConfig.GetText(permission);
+        return string.IsNullOrWhiteSpace(permission) ? "-" : userConfig.GetText(permission);
     }
 
     private string CreationInfo()

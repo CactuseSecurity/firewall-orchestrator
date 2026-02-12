@@ -162,5 +162,69 @@ namespace FWO.Test
             ClassicAssert.IsFalse(conn.Creator?.Contains(" ") ?? false);
             ClassicAssert.AreEqual("Reason\0", conn.Reason);
         }
+
+        [Test]
+        public void IsRelevantForVarianceAnalysis_ReturnsTrueForCleanConnection()
+        {
+            ModellingAppServerWrapper appServer = new() { Content = new ModellingAppServer { Id = 1, Name = "Server1", Ip = "10.0.0.1" } };
+            ModellingAppRole appRole = new() { Id = 2, Name = "AR1", AppServers = [appServer] };
+            ModellingServiceWrapper service = new() { Content = new ModellingService { Id = 3, Name = "Svc1", ProtoId = 6, Port = 443 } };
+            ModellingServiceGroup serviceGroup = new() { Id = 4, Name = "SvcGrp1", Services = [service] };
+
+            ModellingConnection conn = new()
+            {
+                SourceAppRoles = [new ModellingAppRoleWrapper { Content = appRole }],
+                Services = [service],
+                ServiceGroups = [new ModellingServiceGroupWrapper { Content = serviceGroup }]
+            };
+
+            bool result = conn.IsRelevantForVarianceAnalysis(0);
+
+            ClassicAssert.IsTrue(result);
+        }
+
+        [Test]
+        public void IsRelevantForVarianceAnalysis_ReturnsFalseWhenInterfaceFlagSet()
+        {
+            ModellingConnection conn = new()
+            {
+                IsInterface = true
+            };
+
+            bool result = conn.IsRelevantForVarianceAnalysis(0);
+
+            ClassicAssert.IsFalse(result);
+        }
+
+        [Test]
+        public void IsRelevantForVarianceAnalysis_ReturnsFalseWhenIssuesPresent()
+        {
+            ModellingAppRole emptyRole = new() { Id = 5, Name = "AR2", AppServers = [] };
+            ModellingConnection conn = new()
+            {
+                SourceAppRoles = [new ModellingAppRoleWrapper { Content = emptyRole }]
+            };
+
+            bool result = conn.IsRelevantForVarianceAnalysis(0);
+
+            ClassicAssert.IsFalse(result);
+        }
+
+        [Test]
+        public void CleanUpVarianceResults_RemovesVarianceFlagsOnly()
+        {
+            ModellingConnection conn = new();
+            conn.AddProperty(ConState.VarianceChecked.ToString());
+            conn.AddProperty(ConState.VarianceFound.ToString());
+            conn.AddProperty(ConState.NotImplemented.ToString());
+            conn.AddProperty(ConState.Requested.ToString());
+
+            conn.CleanUpVarianceResults();
+
+            ClassicAssert.IsFalse(conn.GetBoolProperty(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsFalse(conn.GetBoolProperty(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsFalse(conn.GetBoolProperty(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(conn.GetBoolProperty(ConState.Requested.ToString()));
+        }
     }
 }

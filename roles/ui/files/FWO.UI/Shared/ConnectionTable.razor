@@ -310,6 +310,14 @@
                     case nameof(ConState.InterfaceDecommissioned):
                         relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9026")}\">{false.ShowAsHtml()}</span>");
                         break;
+                    case nameof(ConState.InterfaceNoPermission):
+                        if (!connection.Props.ContainsKey(ConState.InterfaceRequested.ToString()) &&
+                            !connection.Props.ContainsKey(ConState.InterfaceRejected.ToString()) &&
+                            !connection.Props.ContainsKey(ConState.InterfaceDecommissioned.ToString()))
+                        {      
+                            relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9028")}\">{false.ShowAsHtml()}</span>");
+                        }
+                        break;
                     case nameof(ConState.Requested):
                         relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9008")}\">{Exclamation()}</span>");
                         break;

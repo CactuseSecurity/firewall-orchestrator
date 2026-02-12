@@ -10,6 +10,7 @@ namespace FWO.Data.Modelling
         InterfaceRequested = 1,
         InterfaceRejected = 2,
         InterfaceDecommissioned = 3,
+        InterfaceNoPermission = 4,
 
         // Interfaces:
         Requested = 11,
@@ -146,6 +147,7 @@ namespace FWO.Data.Modelling
         public bool InterfaceIsRequested { get; set; } = false;
         public bool InterfaceIsRejected { get; set; } = false;
         public bool InterfaceIsDecommissioned { get; set; } = false;
+        public bool InterfaceNoPermission { get; set; } = false;
 
         public int OrderNumber { get; set; } = 0;
         public Dictionary<string, string>? Props { get; set; }
@@ -213,6 +215,7 @@ namespace FWO.Data.Modelling
             InterfaceIsRequested = conn.InterfaceIsRequested;
             InterfaceIsRejected = conn.InterfaceIsRejected;
             InterfaceIsDecommissioned = conn.InterfaceIsDecommissioned;
+            InterfaceNoPermission = conn.InterfaceNoPermission;
             ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
             InterfacePermission = conn.InterfacePermission;
             PermittedOwnerWrappers = conn.PermittedOwnerWrappers;
@@ -270,6 +273,7 @@ namespace FWO.Data.Modelling
                 GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 GetBoolProperty(ConState.InterfaceRejected.ToString()) ||
                 GetBoolProperty(ConState.InterfaceDecommissioned.ToString()) ||
+                GetBoolProperty(ConState.InterfaceNoPermission.ToString()) || // or not ??
                 EmptyAppRolesFound(dummyAppRoleId) ||
                 DeletedObjectsFound() ||
                 EmptyServiceGroupsFound());
@@ -355,6 +359,7 @@ namespace FWO.Data.Modelling
             {
                 UpdateProperty(ConState.InterfaceRequested.ToString(), InterfaceIsRequested);
                 UpdateProperty(ConState.InterfaceDecommissioned.ToString(), InterfaceIsDecommissioned);
+                UpdateProperty(ConState.InterfaceNoPermission.ToString(), InterfaceNoPermission);
             }
         }
 

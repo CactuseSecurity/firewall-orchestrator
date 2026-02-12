@@ -89,7 +89,7 @@ namespace FWO.Services
 
         public ModellingConnectionHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
             List<ModellingConnection> connections, ModellingConnection conn, bool addMode, bool readOnly,
-            Action<Exception?, string, string, bool> displayMessageInUi, Func<Task> refreshParent, bool isOwner = true)
+            Action<Exception?, string, string, bool> displayMessageInUi, Func<Task> refreshParent, bool isOwner)
             : base(apiConnection, userConfig, application, addMode, displayMessageInUi, readOnly, isOwner)
         {
             Connections = connections;

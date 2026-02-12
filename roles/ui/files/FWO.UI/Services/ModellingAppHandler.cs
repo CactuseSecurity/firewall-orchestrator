@@ -30,7 +30,7 @@ namespace FWO.Ui.Services
 
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
-            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner)
             : base(apiConnection, userConfig, application, false, displayMessageInUi, false, isOwner)
         { }
 

@@ -3874,6 +3874,8 @@ INSERT INTO txt VALUES ('C9026', 'German',  'Schnittstelle wurde stillgelegt.');
 INSERT INTO txt VALUES ('C9026', 'English', 'Interface was decommissioned.');
 INSERT INTO txt VALUES ('C9027', 'German',  'Nicht Berechtigt. Bitte Anbieter kontaktieren.');
 INSERT INTO txt VALUES ('C9027', 'English', 'Not authorized. Please contact the provider.');
+INSERT INTO txt VALUES ('C9028', 'German',  'Nutzung der Schnittstelle nicht (mehr) erlaubt.');
+INSERT INTO txt VALUES ('C9028', 'English', 'Usage of interface not allowed (any more).');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.

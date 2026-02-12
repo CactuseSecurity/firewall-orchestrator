@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 from services.enums import Lifetime, Services
 
 if TYPE_CHECKING:
-    from model_controllers.fwconfig_import_ruleorder import RuleOrderService
     from services.global_state import GlobalState
     from services.group_flats_mapper import GroupFlatsMapper
     from services.uid2id_mapper import Uid2IdMapper
@@ -68,12 +67,6 @@ class ServiceProvider:
 
     def dispose_uid2id_mapper(self, import_id: int = 0):
         self.dispose_service(Services.UID2ID_MAPPER, import_id=import_id)
-
-    def get_rule_order_service(self, import_id: int = 0) -> "RuleOrderService":
-        return self.get_service(Services.RULE_ORDER_SERVICE, import_id=import_id)
-
-    def dispose_rule_order_service(self, import_id: int = 0):
-        self.dispose_service(Services.RULE_ORDER_SERVICE, import_id=import_id)
 
     def reset(self):
         self._services = {}

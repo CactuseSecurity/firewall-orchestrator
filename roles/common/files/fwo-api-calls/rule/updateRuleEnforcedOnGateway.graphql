@@ -1,0 +1,13 @@
+mutation updateRuleEnforcedOnGateway(
+    $importId: bigint!
+    $rulesEnforcedOnGateway: [rule_enforced_on_gateway_bool_exp!]!
+) {
+    update_rule_enforced_on_gateway(where: {
+        _or: $rulesEnforcedOnGateway
+        removed: {_is_null: true}
+    }, _set: {
+        removed: $importId
+    }) {
+        affected_rows
+    }
+}

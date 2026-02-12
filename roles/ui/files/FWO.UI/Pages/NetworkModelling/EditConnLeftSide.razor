@@ -46,7 +46,7 @@
                     <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">
                         @(DisplayService.DisplayButton(userConfig, "search_nw_object", Icons.Search))</button>
                 }
-                <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                <button type="button" class="btn btn-sm btn-success" disabled="@(!ConnHandler.IsOwner)" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                     @(DisplayService.DisplayButton(userConfig, "add_app_role", Icons.Add))</button>
                 @if(selectedNwElems.Count == 1)
                 {
@@ -54,10 +54,10 @@
                     {
                         if(!(ResolveAppRole(selectedNwElems[0].Value)?.IsDeleted ?? true))
                         {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
+                            <button type="button" class="btn btn-sm btn-warning" disabled="@(!ConnHandler.IsOwner)" @onclick="async () =>
                                 {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
                                 @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
+                            <button type="button" class="btn btn-sm btn-danger" disabled="@(!ConnHandler.IsOwner)" @onclick="async () =>
                                 {await ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
                                 @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                         }

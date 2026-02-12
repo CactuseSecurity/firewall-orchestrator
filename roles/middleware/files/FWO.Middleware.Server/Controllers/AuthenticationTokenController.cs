@@ -159,6 +159,8 @@ namespace FWO.Middleware.Server.Controllers
 
             // Get dn of user
             user.Dn = ldapUser.Dn;
+            Log.WriteInfo(UserAuthentication,
+                $"User {user.Name} authenticated with dn={user.Dn}, selected_ldap=({AuthLoggingHelper.FormatSelectedLdap(ldap)})");
 
             // Get email of user
             user.Email = Ldap.GetEmail(ldapUser);
@@ -167,7 +169,8 @@ namespace FWO.Middleware.Server.Controllers
 
             // Get groups of user
             user.Groups = await GetGroups(ldapUser, ldap);
-            Log.WriteDebug("Get Groups", $"Found groups for user: {string.Join("; ", user.Groups)}");
+            Log.WriteInfo(UserAuthentication,
+                $"Resolved groups for user dn={user.Dn}: {AuthLoggingHelper.FormatResolvedGroups(user.Groups)}");
 
             // Get roles of user
             user.Roles = await GetRoles(user);

@@ -89,6 +89,8 @@ namespace FWO.Ui.Auth
                 userConfig.User.Tenant = await GetTenantFromJwt(userConfig.User.Jwt, apiConnection);
                 userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
                 userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
+                Log.WriteDebug("Auth Claims", $"Parsed allowed roles: [{string.Join(", ", userConfig.User.Roles)}]");
+                Log.WriteDebug("Auth Claims", $"Parsed editable owners: [{string.Join(", ", userConfig.User.Ownerships)}]");
                 circuitHandler.User = userConfig.User;
 
                 // Add jwt expiry timer

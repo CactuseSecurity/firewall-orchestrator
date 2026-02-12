@@ -33,5 +33,18 @@ namespace FWO.Test
 
             Assert.That(owners, Is.EquivalentTo(new[] { 1, 2, 3, 4, 5 }));
         }
+
+        [Test]
+        public void ExtractStringClaimValuesAcceptsNamespacedClaimTypes()
+        {
+            List<Claim> claims =
+            [
+                new("https://hasura.io/jwt/claims/x-hasura-allowed-roles", "[\"auditor\",\"recertifier\"]")
+            ];
+
+            List<string> roles = JwtClaimParser.ExtractStringClaimValues(claims, "x-hasura-allowed-roles");
+
+            Assert.That(roles, Is.EquivalentTo(new[] { "auditor", "recertifier" }));
+        }
     }
 }

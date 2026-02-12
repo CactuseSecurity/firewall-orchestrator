@@ -127,7 +127,7 @@ namespace FWO.Api.Client
                 return true;
             }
 
-            foreach (Claim claim in user.Claims.Where(currentClaim => currentClaim.Type == "x-hasura-allowed-roles"))
+            foreach (Claim claim in user.Claims.Where(currentClaim => IsHasuraAllowedRolesClaim(currentClaim.Type)))
             {
                 if (claim.Value == role)
                 {
@@ -142,6 +142,16 @@ namespace FWO.Api.Client
             }
 
             return false;
+        }
+
+        private static bool IsHasuraAllowedRolesClaim(string claimType)
+        {
+            if (claimType.Equals("x-hasura-allowed-roles", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return claimType.EndsWith("/x-hasura-allowed-roles", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool TryParseAllowedRoles(string claimValue, out List<string> parsedRoles)

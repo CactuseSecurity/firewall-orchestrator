@@ -8,7 +8,7 @@ namespace FWO.Ui.Auth
         public static List<string> ExtractStringClaimValues(IEnumerable<Claim> claims, string claimType)
         {
             List<string> result = [];
-            foreach (Claim claim in claims.Where(currentClaim => currentClaim.Type == claimType))
+            foreach (Claim claim in claims.Where(currentClaim => ClaimTypeMatches(currentClaim.Type, claimType)))
             {
                 AddStringClaimValue(result, claim.Value);
             }
@@ -18,7 +18,7 @@ namespace FWO.Ui.Auth
         public static List<int> ExtractIntClaimValues(IEnumerable<Claim> claims, string claimType)
         {
             List<int> result = [];
-            foreach (Claim claim in claims.Where(currentClaim => currentClaim.Type == claimType))
+            foreach (Claim claim in claims.Where(currentClaim => ClaimTypeMatches(currentClaim.Type, claimType)))
             {
                 AddIntClaimValue(result, claim.Value);
             }
@@ -155,6 +155,16 @@ namespace FWO.Ui.Auth
                     target.Add(value);
                 }
             }
+        }
+
+        private static bool ClaimTypeMatches(string claimType, string expectedClaimType)
+        {
+            if (claimType.Equals(expectedClaimType, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return claimType.EndsWith("/" + expectedClaimType, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

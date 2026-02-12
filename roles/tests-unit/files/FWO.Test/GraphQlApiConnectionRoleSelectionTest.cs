@@ -34,5 +34,19 @@ namespace FWO.Test
 
             Assert.That(connection.GetActRole(), Is.EqualTo("admin"));
         }
+
+        [Test]
+        public void SetBestRoleParsesNamespacedHasuraAllowedRolesClaim()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = new(new ClaimsIdentity(
+            [
+                new Claim("https://hasura.io/jwt/claims/x-hasura-allowed-roles", "[\"auditor\",\"modeller\"]")
+            ], "test"));
+
+            connection.SetBestRole(user, ["recertifier", "modeller"]);
+
+            Assert.That(connection.GetActRole(), Is.EqualTo("modeller"));
+        }
     }
 }

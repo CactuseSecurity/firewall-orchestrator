@@ -8,6 +8,8 @@ namespace FWO.Services
 {
     public class ExtStateHandler
     {
+        private const string CurrentRootField = "ext_state";
+        private const string LegacyRootField = "request_ext_state";
         private readonly ApiConnection apiConnection;
         private List<WfExtState> extStates = [];
 
@@ -19,6 +21,29 @@ namespace FWO.Services
 
         public async Task Init()
         {
+            string? rootField = await DetectAvailableExtStateRootField();
+            if (rootField == CurrentRootField)
+            {
+                ApiResponse<List<WfExtState>> currentRootResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(RequestQueries.getExtStates);
+                if (!currentRootResponse.HasErrors && currentRootResponse.Result != null)
+                {
+                    extStates = currentRootResponse.Result;
+                    return;
+                }
+                throw new InvalidOperationException($"Could not fetch external states: {BuildErrorMessage(currentRootResponse.Errors)}");
+            }
+            if (rootField == LegacyRootField)
+            {
+                ApiResponse<List<WfExtState>> legacyRootResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(GetLegacyExtStateQuery());
+                if (!legacyRootResponse.HasErrors && legacyRootResponse.Result != null)
+                {
+                    extStates = legacyRootResponse.Result;
+                    return;
+                }
+                throw new InvalidOperationException($"Could not fetch external states: {BuildErrorMessage(legacyRootResponse.Errors)}");
+            }
+
+            // Fallback keeps compatibility when introspection is unavailable or disabled.
             ApiResponse<List<WfExtState>> extStateResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(RequestQueries.getExtStates);
             if (!extStateResponse.HasErrors && extStateResponse.Result != null)
             {
@@ -74,7 +99,34 @@ namespace FWO.Services
 
         private static string GetLegacyExtStateQuery()
         {
-            return "query getExtStatesLegacy { request_ext_state (order_by: { id: asc }) { id name state_id } }";
+            return $"query getExtStatesLegacy {{ {LegacyRootField} (order_by: {{ id: asc }}) {{ id name state_id }} }}";
+        }
+
+        private async Task<string?> DetectAvailableExtStateRootField()
+        {
+            try
+            {
+                ApiResponse<GraphQlTypeInfo> queryRootResponse = await apiConnection.SendQuerySafeAsync<GraphQlTypeInfo>(
+                    "query detectExtStateRootField { __type(name: \"query_root\") { fields { name } } }");
+                if (queryRootResponse.HasErrors || queryRootResponse.Result?.Fields == null)
+                {
+                    return null;
+                }
+
+                if (queryRootResponse.Result.Fields.Any(field => field.Name == CurrentRootField))
+                {
+                    return CurrentRootField;
+                }
+                if (queryRootResponse.Result.Fields.Any(field => field.Name == LegacyRootField))
+                {
+                    return LegacyRootField;
+                }
+            }
+            catch
+            {
+                // Fallback query path below handles non-introspectable schemas and test doubles.
+            }
+            return null;
         }
 
         private static bool IsMissingExtStateRootField(string[]? errors)
@@ -99,6 +151,16 @@ namespace FWO.Services
                 return "unknown error";
             }
             return string.Join(" | ", errors);
+        }
+
+        private sealed class GraphQlTypeInfo
+        {
+            public List<GraphQlFieldInfo> Fields { get; set; } = [];
+        }
+
+        private sealed class GraphQlFieldInfo
+        {
+            public string Name { get; set; } = "";
         }
     }
 }

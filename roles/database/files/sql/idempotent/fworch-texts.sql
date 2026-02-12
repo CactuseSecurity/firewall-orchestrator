@@ -1828,6 +1828,8 @@ INSERT INTO txt VALUES ('modelled_destination', 'German', 	'Modelliertes Ziel');
 INSERT INTO txt VALUES ('modelled_destination', 'English', 	'Modelled Destination');
 INSERT INTO txt VALUES ('last_requested',		'German', 	'Letzte Beantragung');
 INSERT INTO txt VALUES ('last_requested',		'English', 	'Last Requested');
+INSERT INTO txt VALUES ('permitted_owners',		'German', 	'Berechtigte Applikationen');
+INSERT INTO txt VALUES ('permitted_owners',		'English', 	'Permitted Applications');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -3713,6 +3715,10 @@ INSERT INTO txt VALUES ('E9018', 'German',  'Name schon vergeben. Bitte einen an
 INSERT INTO txt VALUES ('E9018', 'English', 'Name already used. Please choose another.');
 INSERT INTO txt VALUES ('E9019', 'German',  'Benachrichtigungen an @@FAIL_NUMBER@@ App-Verantwortliche konnte nicht gesendet werden.');
 INSERT INTO txt VALUES ('E9019', 'English', 'Email could not be sent to @@FAIL_NUMBER@@ App responsibles.');
+INSERT INTO txt VALUES ('E9020', 'German',  'Schnittstelle kann nicht auf Privat gesetzt werden, da sie von anderen Applikationen verwendet wird.');
+INSERT INTO txt VALUES ('E9020', 'English', 'Interface cannot be set to Private because it is used by other applications.');
+INSERT INTO txt VALUES ('E9021', 'German',  'Schnittstellenberechtigung erforderlich.');
+INSERT INTO txt VALUES ('E9021', 'English', 'Interface permission required.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -3872,6 +3878,10 @@ INSERT INTO txt VALUES ('C9025', 'German',  'Asynchroner Soll-Ist-Abgleich wurde
 INSERT INTO txt VALUES ('C9025', 'English', 'Asynchroneous Variance Analysis not performed yet.');
 INSERT INTO txt VALUES ('C9026', 'German',  'Schnittstelle wurde stillgelegt.');
 INSERT INTO txt VALUES ('C9026', 'English', 'Interface was decommissioned.');
+INSERT INTO txt VALUES ('C9027', 'German',  'Nicht Berechtigt. Bitte Anbieter kontaktieren.');
+INSERT INTO txt VALUES ('C9027', 'English', 'Not authorized. Please contact the provider.');
+INSERT INTO txt VALUES ('C9028', 'German',  'Nutzung der Schnittstelle nicht (mehr) erlaubt.');
+INSERT INTO txt VALUES ('C9028', 'English', 'Usage of interface not allowed (any more).');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -7480,6 +7490,8 @@ INSERT INTO txt VALUES ('H9081', 'German',  'Sonderkonfigurationen sind speziell
 INSERT INTO txt VALUES ('H9081', 'English', 'Extra configurations are special recommendations for implementation, e.g. NAT. Possible types are defined by the administrator.');
 INSERT INTO txt VALUES ('H9082', 'German',  'Berechtigung: Bestimmt die Sicht- und Nutzbarkeit f&uuml;r andere Applikationen: &Ouml;ffentlich - f&uuml;r alle ohne R&uuml;ckfrage nutzbar, Beschr&auml;nkt - nur mit Zustimmung des Eigent&uuml;mers nutzbar, Privat - ausschliesslich innerhalb des eigenen Kommunikationsprofils nutzbar.');
 INSERT INTO txt VALUES ('H9082', 'English', 'Permission: Defines visability and usability for other applications: Public - usable for all without further query, Restricted - usable only with permission of the owner, Private - usable only inside the own Communication Profile.');
+INSERT INTO txt VALUES ('H9083', 'German',  'Berechtigte Applikationen: Bestimmt, welche anderen Applikationen diese Schnittstelle nutzen d&uuml;rfen.');
+INSERT INTO txt VALUES ('H9083', 'English', 'Permitted Applications: Defines which other applications are permitted to use this interface.');
 INSERT INTO txt VALUES ('H5901', 'German',  'Verantwortlichkeitsstufen f&uuml;r Eigent&uuml;mer verwalten. Sie k&ouml;nnen Bezeichnungen und Sortierung anpassen, neue Stufen hinzuf&uuml;gen und nicht mehr ben&ouml;tigte Stufen deaktivieren.');
 INSERT INTO txt VALUES ('H5901', 'English', 'Manage responsible levels for owners. You can rename and sort levels, add new ones, and deactivate levels that should no longer be used.');
 INSERT INTO txt VALUES ('H5902', 'German',  'Diese Einstellungen vergeben keine Rollen. Sie steuern nur die UI-Zugriffs- und Aktionsm&ouml;glichkeiten f&uuml;r verantwortliche Benutzer/Gruppen.');

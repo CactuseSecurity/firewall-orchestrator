@@ -56,7 +56,7 @@ namespace FWO.Services
             this.ownerGroups = ownerGroups ?? [];
         }
 
-        public async Task Init(string? scopedUserTo = null, string? scopedUserCc = null)
+        public virtual async Task Init(string? scopedUserTo = null, string? scopedUserCc = null)
         {
             if (!useInMwServer && middlewareClient != null)
             {
@@ -75,7 +75,7 @@ namespace FWO.Services
             ScopedUserCc = scopedUserCc;
         }
 
-        public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
+        public virtual async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
         {
             List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
             return await SendEmail(await GetRecipients(recOpt, null, owner, null, null), subject, body, requester);

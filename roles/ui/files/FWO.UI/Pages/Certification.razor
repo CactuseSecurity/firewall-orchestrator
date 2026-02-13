@@ -219,10 +219,7 @@
             recertifiableOwnerIds = userConfig.User.RecertOwnerships.ToHashSet();
         }
 
-        if (collectedOwnerships.Count > 0)
-        {
-            selectedOwner = collectedOwnerships[0];
-        }
+        selectedOwner = RecertificationOwnerSelection.SelectOwner(collectedOwnerships, recertifiableOwnerIds);
     }
 
     private async Task GenerateRecertificationReport()

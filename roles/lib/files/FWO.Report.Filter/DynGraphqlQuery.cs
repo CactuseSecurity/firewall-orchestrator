@@ -225,19 +225,38 @@ namespace FWO.Report.Filter
                             name: dev_name
                             rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
                             {{
-                                {query.OpenRulesTable}
-                                    where: {{ 
-                                        rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
-                                        active:{{ _eq:true }}
-                                        {query.RuleWhereStatement} 
-                                    }} 
-                                    {limitOffsetString}
-                                    order_by: {{ rule_num_numeric: asc }}
-                                ) 
-                                {{
-                                    mgm_id: mgm_id
-                                    ...ruleOpenCertOverview
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
                                 }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            id
+                            uid
+                            name
+                            {query.OpenRulesTable}
+                                where: {{ 
+                                    rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
+                                    active:{{ _eq:true }}
+                                    {query.RuleWhereStatement} 
+                                }} 
+                                {limitOffsetString}
+                                order_by: {{ rule_num_numeric: asc }}
+                            ) 
+                            {{
+                                mgm_id: mgm_id
+                                ...ruleOpenCertOverview
                             }}
                         }}
                     }}

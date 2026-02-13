@@ -12,7 +12,7 @@
 @implements IDisposable
 
 @page "/networkmodelling/{appId?}/{connId?}"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig

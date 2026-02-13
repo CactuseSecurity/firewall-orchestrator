@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
+using FWO.Logging;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
 using System.Text.Json;
@@ -465,7 +466,22 @@ namespace FWO.Services
                 }
                 else
                 {
-                    UpdateOwnerships(authenticationStateTask, userConfig); // qad: userConfig may not be properly filled
+                    string? username = authenticationStateTask.Result.User.Identity?.Name;
+                    bool usedClaimFallback = false;
+                    // Prefer ownerships already prepared during login; only fall back to claim parsing if needed.
+                    if (userConfig.User.Ownerships.Count == 0)
+                    {
+                        usedClaimFallback = true;
+                        UpdateOwnerships(authenticationStateTask, userConfig);
+                        if (userConfig.User.Ownerships.Count == 0)
+                        {
+                            // Mitigate timing issues where user config hydration lags behind page initialization.
+                            await Task.Delay(100);
+                            UpdateOwnerships(authenticationStateTask, userConfig);
+                        }
+                    }
+                    Log.WriteDebug("GetOwnApps", $"User={username ?? "unknown"}, usedClaimFallback={usedClaimFallback}, ownershipCount={userConfig.User.Ownerships.Count}, withConn={withConn}");
+
                     if (withConn)
                     {
                         apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwnersWithConn, new { appIds = userConfig.User.Ownerships.ToArray() });
@@ -474,6 +490,7 @@ namespace FWO.Services
                     {
                         apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
                     }
+                    Log.WriteDebug("GetOwnApps", $"User={username ?? "unknown"}, editableAppsCount={apps.Count}, withConn={withConn}");
                 }
             }
             catch (Exception exception)

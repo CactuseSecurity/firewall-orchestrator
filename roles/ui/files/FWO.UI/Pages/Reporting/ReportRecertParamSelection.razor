@@ -1,5 +1,7 @@
-﻿@inject ApiConnection apiConnection
+﻿@using FWO.Middleware.Client
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 
 
 <div class="p-3">
@@ -49,6 +51,9 @@
 @code
 {
     [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
@@ -77,7 +82,28 @@
     {
         try
         {
-            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+            bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
+            if (isAdmin || isAuditor)
+            {
+                ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            }
+            else
+            {
+                List<string> ownerDns = [userConfig.User.Dn];
+                List<string> ownerGrpDns = await GroupAccess.GetGroupMemberships(middlewareClient, userConfig, DisplayMessageInUi);
+                ownerDns.AddRange(ownerGrpDns);
+                ownerDns = ownerDns
+                    .Where(dn => !string.IsNullOrWhiteSpace(dn))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                ownerList = ownerDns.Count == 0
+                    ? []
+                    : await apiConnection.SendQueryAsync<List<FwoOwner>>(
+                        OwnerQueries.getOwnersForDnsWithRecertification,
+                        new { dns = ownerDns });
+            }
+
             if(ownerList.Count > 0)
             {
                 ownerList.Add(new(){ Id = AllId, Name = userConfig.GetText("all")});

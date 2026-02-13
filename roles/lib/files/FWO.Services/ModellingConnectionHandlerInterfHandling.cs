@@ -417,12 +417,12 @@ namespace FWO.Services
         {
             bool publishRequested = !AddMode && ActConn.IsInterface && ActConn.IsRequested && !ActConn.IsPublished &&
                 ActConn.InterfacePermission != InterfacePermissions.Private.ToString();
-            if (publishRequested)
+            if(publishRequested)
             {
                 ActConn.Creator = userConfig.User.Name;
                 ActConn.IsRequested = false;
                 ActConn.IsPublished = true;
-                if (ActConn.AppId == null)
+                if(ActConn.AppId == null)
                 {
                     ActConn.AppId = ActConn.ProposedAppId;
                     ActConn.ProposedAppId = null;

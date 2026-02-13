@@ -1,6 +1,5 @@
 ﻿@inject ApiConnection apiConnection
 @inject UserConfig userConfig
-@using System.Security.Claims
 
 
 <div class="p-3">
@@ -50,9 +49,6 @@
 @code
 {
     [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
-    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
@@ -81,26 +77,7 @@
     {
         try
         {
-            bool isAdmin = authenticationStateTask?.Result.User.IsInRole(Roles.Admin) ?? false;
-            bool isAuditor = authenticationStateTask?.Result.User.IsInRole(Roles.Auditor) ?? false;
-            if (isAdmin || isAuditor)
-            {
-                ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-            }
-            else
-            {
-                ClaimsPrincipal user = authenticationStateTask?.Result.User ?? new ClaimsPrincipal();
-                List<int> recertOwnerIds = GetOwnerIdsFromClaim(user, "x-hasura-recertifiable-owners");
-                if (recertOwnerIds.Count == 0)
-                {
-                    recertOwnerIds = GetOwnerIdsFromClaim(user, "x-hasura-editable-owners");
-                }
-                ownerList = recertOwnerIds.Count == 0
-                    ? []
-                    : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                        OwnerQueries.getEditableOwners,
-                        new { appIds = recertOwnerIds.ToArray() });
-            }
+            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             if(ownerList.Count > 0)
             {
                 ownerList.Add(new(){ Id = AllId, Name = userConfig.GetText("all")});
@@ -165,25 +142,5 @@
         {
             RecertFilter.RecertOwnerList = [newOwner.Id];
         }
-    }
-
-    private static List<int> GetOwnerIdsFromClaim(ClaimsPrincipal user, string claimName)
-    {
-        string? claimValue = user.Claims
-            .FirstOrDefault(c => c.Type.Equals(claimName, StringComparison.OrdinalIgnoreCase)
-                || c.Type.EndsWith($"/{claimName}", StringComparison.OrdinalIgnoreCase))
-            ?.Value;
-
-        if (string.IsNullOrWhiteSpace(claimValue))
-        {
-            return [];
-        }
-
-        char[] separators = ['{', '}', '[', ']', ',', ' ', '\t', '\r', '\n'];
-        return claimValue.Split(separators, StringSplitOptions.RemoveEmptyEntries)
-            .Where(token => int.TryParse(token, out _))
-            .Select(int.Parse)
-            .Distinct()
-            .ToList();
     }
 }

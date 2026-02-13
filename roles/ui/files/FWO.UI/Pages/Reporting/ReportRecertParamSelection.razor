@@ -82,17 +82,22 @@
         {
             bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
             bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
-            if (isAdmin || isAuditor)
+            bool isReporterViewAll = authenticationStateTask.Result.User.IsInRole(Roles.ReporterViewAll);
+            if (isAdmin || isAuditor || isReporterViewAll)
             {
                 ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             }
             else
             {
-                ownerList = userConfig.User.RecertOwnerships.Count == 0
+                List<int> readableOwnerIds = userConfig.User.Ownerships
+                    .Concat(userConfig.User.RecertOwnerships)
+                    .Distinct()
+                    .ToList();
+                ownerList = readableOwnerIds.Count == 0
                     ? []
                     : await apiConnection.SendQueryAsync<List<FwoOwner>>(
                         OwnerQueries.getEditableOwners,
-                        new { appIds = userConfig.User.RecertOwnerships.ToArray() });
+                        new { appIds = readableOwnerIds.ToArray() });
             }
 
             if(ownerList.Count > 0)

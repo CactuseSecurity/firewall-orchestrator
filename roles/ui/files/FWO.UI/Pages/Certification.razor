@@ -79,7 +79,7 @@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h3>@(userConfig.GetText("recertification"))</h3>
     <div class="btn-group sticky-marker-60">
-        @if (!readonlyMode)
+        @if (CanWriteSelectedOwner())
         {
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
                 <Authorized>
@@ -102,7 +102,7 @@
         }
     </div>
     <hr />
-    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managementsReport"
+    <RulesReport Recertification="true" ReadonlyMode="@( !CanWriteSelectedOwner() )" Managements="managementsReport"
                  RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"
                  SelectedReportType="ReportType.Recertification" />
 </div>
@@ -157,7 +157,6 @@
 
     private List<ManagementReport> managementsReport = [];
 
-    private bool readonlyMode = false;
     public FwoOwner? selectedOwner = null;
     private List<FwoOwner> ownerList = [];
     private List<FwoOwner> collectedOwnerships = [];
@@ -229,7 +228,6 @@
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        readonlyMode = !CanWriteSelectedOwner();
         selectedRules.Clear();
 
         try

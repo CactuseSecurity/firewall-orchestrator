@@ -187,56 +187,70 @@ namespace FWO.Services
             }
 
             HashSet<string> recipients = new(StringComparer.OrdinalIgnoreCase);
+            AddOtherAddresses(selection, otherAddresses, recipients);
+            await AddOwnerTypeRecipients(owner, selection.OwnerResponsibleTypeIds.Distinct(), recipients);
+            await AddFallbackRecipients(selection, owner, recipients);
+
+            return recipients.ToList();
+        }
+
+        private static void AddOtherAddresses(ModellingEmailRecipientSelection selection, List<string>? otherAddresses, HashSet<string> recipients)
+        {
             if (selection.OtherAddresses && otherAddresses != null)
             {
-                foreach (string address in otherAddresses)
-                {
-                    if (!string.IsNullOrWhiteSpace(address))
-                    {
-                        recipients.Add(address);
-                    }
-                }
+                AddAddresses(recipients, otherAddresses);
+            }
+        }
+
+        private async Task AddOwnerTypeRecipients(FwoOwner owner, IEnumerable<int> responsibleTypeIds, HashSet<string> recipients)
+        {
+            foreach (int responsibleTypeId in responsibleTypeIds)
+            {
+                List<string> ownerTypeRecipients = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(responsibleTypeId));
+                AddAddresses(recipients, ownerTypeRecipients);
+            }
+        }
+
+        private async Task AddFallbackRecipients(ModellingEmailRecipientSelection selection, FwoOwner owner, HashSet<string> recipients)
+        {
+            if (!selection.EnsureAtLeastOneNotification || recipients.Count > 0)
+            {
+                return;
             }
 
-            // Normal behavior: collect recipients from all explicitly selected responsible types.
-            foreach (int responsibleTypeId in selection.OwnerResponsibleTypeIds.Distinct())
+            HashSet<int> selectedTypeIds = selection.OwnerResponsibleTypeIds.ToHashSet();
+            List<int> fallbackTypeIds = ownerResponsibleTypes
+                .Where(type => type.Active && !selectedTypeIds.Contains(type.Id))
+                .OrderByDescending(type => type.SortOrder)
+                .ThenByDescending(type => type.Id)
+                .Select(type => type.Id)
+                .ToList();
+
+            foreach (int responsibleTypeId in fallbackTypeIds)
             {
                 List<string> ownerTypeRecipients = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(responsibleTypeId));
                 if (ownerTypeRecipients.Count > 0)
                 {
-                    foreach (string recipient in ownerTypeRecipients)
-                    {
-                        recipients.Add(recipient);
-                    }
+                    AddAddresses(recipients, ownerTypeRecipients);
+                    break;
                 }
             }
+        }
 
-            // Optional fallback behavior: only when no selected option yields any recipient.
-            if (selection.EnsureAtLeastOneNotification && recipients.Count == 0)
+        private static void AddAddresses(HashSet<string> recipients, IEnumerable<string>? addresses)
+        {
+            if (addresses == null)
             {
-                HashSet<int> selectedTypeIds = selection.OwnerResponsibleTypeIds.ToHashSet();
-                List<int> fallbackTypeIds = ownerResponsibleTypes
-                    .Where(type => type.Active && !selectedTypeIds.Contains(type.Id))
-                    .OrderByDescending(type => type.SortOrder)
-                    .ThenByDescending(type => type.Id)
-                    .Select(type => type.Id)
-                    .ToList();
-
-                foreach (int responsibleTypeId in fallbackTypeIds)
-                {
-                    List<string> ownerTypeRecipients = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(responsibleTypeId));
-                    if (ownerTypeRecipients.Count > 0)
-                    {
-                        foreach (string recipient in ownerTypeRecipients)
-                        {
-                            recipients.Add(recipient);
-                        }
-                        break;
-                    }
-                }
+                return;
             }
 
-            return recipients.ToList();
+            foreach (string address in addresses)
+            {
+                if (!string.IsNullOrWhiteSpace(address))
+                {
+                    recipients.Add(address);
+                }
+            }
         }
 
         private List<int> GetActiveOwnerResponsibleTypeIds()

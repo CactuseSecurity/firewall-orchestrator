@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace FWO.Ui.Auth
 {
@@ -7,161 +6,12 @@ namespace FWO.Ui.Auth
     {
         public static List<string> ExtractStringClaimValues(IEnumerable<Claim> claims, string claimType)
         {
-            List<string> result = [];
-            foreach (Claim claim in claims.Where(currentClaim => ClaimTypeMatches(currentClaim.Type, claimType)))
-            {
-                AddStringClaimValue(result, claim.Value);
-            }
-            return result;
+            return global::FWO.Basics.JwtClaimParser.ExtractStringClaimValues(claims, claimType);
         }
 
         public static List<int> ExtractIntClaimValues(IEnumerable<Claim> claims, string claimType)
         {
-            List<int> result = [];
-            foreach (Claim claim in claims.Where(currentClaim => ClaimTypeMatches(currentClaim.Type, claimType)))
-            {
-                AddIntClaimValue(result, claim.Value);
-            }
-            return result;
-        }
-
-        private static void AddStringClaimValue(List<string> result, string claimValue)
-        {
-            if (string.IsNullOrWhiteSpace(claimValue))
-            {
-                return;
-            }
-
-            string trimmedValue = claimValue.Trim();
-            if (TryDeserializeStringArray(trimmedValue, out List<string> parsedStrings))
-            {
-                AddDistinctStrings(result, parsedStrings);
-                return;
-            }
-
-            if (trimmedValue.StartsWith('{') && trimmedValue.EndsWith('}'))
-            {
-                AddDistinctStrings(result, SplitSeparatedValues(trimmedValue));
-                return;
-            }
-
-            if (!result.Contains(trimmedValue, StringComparer.OrdinalIgnoreCase))
-            {
-                result.Add(trimmedValue);
-            }
-        }
-
-        private static void AddIntClaimValue(List<int> result, string claimValue)
-        {
-            if (string.IsNullOrWhiteSpace(claimValue))
-            {
-                return;
-            }
-
-            string trimmedValue = claimValue.Trim();
-            if (TryDeserializeIntArray(trimmedValue, out List<int> parsedInts))
-            {
-                AddDistinctInts(result, parsedInts);
-                return;
-            }
-
-            foreach (string token in SplitSeparatedValues(trimmedValue))
-            {
-                if (int.TryParse(token, out int parsedInt) && !result.Contains(parsedInt))
-                {
-                    result.Add(parsedInt);
-                }
-            }
-        }
-
-        private static bool TryDeserializeStringArray(string claimValue, out List<string> values)
-        {
-            values = [];
-            if (TryDeserializeJsonArray(claimValue, out string[]? directStringArray) && directStringArray != null)
-            {
-                values = directStringArray.Where(value => !string.IsNullOrWhiteSpace(value)).ToList();
-                return true;
-            }
-            return false;
-        }
-
-        private static bool TryDeserializeIntArray(string claimValue, out List<int> values)
-        {
-            values = [];
-            if (TryDeserializeJsonArray(claimValue, out int[]? directIntArray) && directIntArray != null)
-            {
-                values = directIntArray.ToList();
-                return true;
-            }
-
-            if (!TryDeserializeJsonArray(claimValue, out string[]? stringIntArray) || stringIntArray == null)
-            {
-                return false;
-            }
-
-            foreach (string value in stringIntArray)
-            {
-                if (int.TryParse(value, out int parsedInt))
-                {
-                    values.Add(parsedInt);
-                }
-            }
-            return values.Count > 0;
-        }
-
-        private static bool TryDeserializeJsonArray<T>(string claimValue, out T[]? values)
-        {
-            values = null;
-            try
-            {
-                values = JsonSerializer.Deserialize<T[]>(claimValue);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private static List<string> SplitSeparatedValues(string value)
-        {
-            char[] separators = [',', '{', '}', '[', ']'];
-            return value
-                .Split(separators, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                .Where(token => !string.IsNullOrWhiteSpace(token))
-                .ToList();
-        }
-
-        private static void AddDistinctStrings(List<string> target, IEnumerable<string> values)
-        {
-            foreach (string value in values)
-            {
-                if (!target.Contains(value, StringComparer.OrdinalIgnoreCase))
-                {
-                    target.Add(value);
-                }
-            }
-        }
-
-        private static void AddDistinctInts(List<int> target, IEnumerable<int> values)
-        {
-            foreach (int value in values)
-            {
-                if (!target.Contains(value))
-                {
-                    target.Add(value);
-                }
-            }
-        }
-
-        private static bool ClaimTypeMatches(string claimType, string expectedClaimType)
-        {
-            if (claimType.Equals(expectedClaimType, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return claimType.EndsWith("/" + expectedClaimType, StringComparison.OrdinalIgnoreCase);
+            return global::FWO.Basics.JwtClaimParser.ExtractIntClaimValues(claims, claimType);
         }
     }
 }

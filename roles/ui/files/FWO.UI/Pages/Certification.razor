@@ -234,7 +234,7 @@
             return configuredOwnerIds;
         }
 
-        List<int> parsedOwnerIds = JwtClaimParser.ExtractIntClaimValues(authenticationStateTask!.Result.User.Claims, claimType);
+        List<int> parsedOwnerIds = FWO.Ui.Auth.JwtClaimParser.ExtractIntClaimValues(authenticationStateTask!.Result.User.Claims, claimType);
         return parsedOwnerIds;
     }
 

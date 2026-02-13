@@ -115,31 +115,40 @@ namespace FWO.Services
 
         public async Task<List<string>> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser, List<string>? otherAddresses)
         {
-            switch (recipientOption)
+            Dictionary<EmailRecipientOption, Func<Task<List<string>>>> handlers = BuildRecipientHandlers(statefulObject, owner, scopedUser, otherAddresses);
+            if (handlers.TryGetValue(recipientOption, out Func<Task<List<string>>>? handler))
             {
-                case EmailRecipientOption.CurrentHandler:
-                    return [GetEmailAddress(statefulObject?.CurrentHandler?.Dn)];
-                case EmailRecipientOption.RecentHandler:
-                    return [GetEmailAddress(statefulObject?.RecentHandler?.Dn)];
-                case EmailRecipientOption.AssignedGroup:
-                    return await CollectEmailAddressesFromUserOrGroup(statefulObject?.AssignedGroup);
-                case EmailRecipientOption.OwnerMainResponsible:
-                    return await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeMain);
-                case EmailRecipientOption.AllOwnerResponsibles:
-                    return await CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles());
-                case EmailRecipientOption.OwnerGroupOnly:
-                    return await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting);
-                case EmailRecipientOption.Requester:
-                case EmailRecipientOption.Approver:
-                case EmailRecipientOption.LastCommenter:
-                    return [GetEmailAddress(scopedUser)];
-                case EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty:
-                    return await GetOwnerGroupOrMainResponsibleRecipients(owner);
-                case EmailRecipientOption.OtherAddresses:
-                    return GetOtherAddresses(otherAddresses);
-                default:
-                    return [];
+                return await handler();
             }
+            return [];
+        }
+
+        private Dictionary<EmailRecipientOption, Func<Task<List<string>>>> BuildRecipientHandlers(
+            WfStatefulObject? statefulObject,
+            FwoOwner? owner,
+            string? scopedUser,
+            List<string>? otherAddresses)
+        {
+            Func<Task<List<string>>> scopedUserHandler = () => Task.FromResult(ListWithSingleRecipient(scopedUser));
+            return new Dictionary<EmailRecipientOption, Func<Task<List<string>>>>
+            {
+                { EmailRecipientOption.CurrentHandler, () => Task.FromResult(ListWithSingleRecipient(statefulObject?.CurrentHandler?.Dn)) },
+                { EmailRecipientOption.RecentHandler, () => Task.FromResult(ListWithSingleRecipient(statefulObject?.RecentHandler?.Dn)) },
+                { EmailRecipientOption.AssignedGroup, () => CollectEmailAddressesFromUserOrGroup(statefulObject?.AssignedGroup) },
+                { EmailRecipientOption.OwnerMainResponsible, () => CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeMain) },
+                { EmailRecipientOption.AllOwnerResponsibles, () => CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles()) },
+                { EmailRecipientOption.OwnerGroupOnly, () => CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting) },
+                { EmailRecipientOption.Requester, scopedUserHandler },
+                { EmailRecipientOption.Approver, scopedUserHandler },
+                { EmailRecipientOption.LastCommenter, scopedUserHandler },
+                { EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, () => GetOwnerGroupOrMainResponsibleRecipients(owner) },
+                { EmailRecipientOption.OtherAddresses, () => Task.FromResult(GetOtherAddresses(otherAddresses)) }
+            };
+        }
+
+        private List<string> ListWithSingleRecipient(string? dn)
+        {
+            return [GetEmailAddress(dn)];
         }
 
         private async Task<List<string>> CollectOwnerAddressesByType(FwoOwner? owner, int responsibleType)

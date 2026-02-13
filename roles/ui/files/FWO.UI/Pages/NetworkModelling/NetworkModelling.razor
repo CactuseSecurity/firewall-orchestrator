@@ -299,11 +299,7 @@ else
                     .ToList();
                 userAndGroupDns = ownerDns;
 
-                apps = ownerDns.Count == 0
-                    ? []
-                    : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                        OwnerQueries.getOwnersForDnsWithConn,
-                        new { dns = ownerDns });
+                apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
                 List<FwoOwner> recertifiableOwners = ownerDns.Count == 0
                     ? []
                     : await apiConnection.SendQueryAsync<List<FwoOwner>>(
@@ -522,8 +518,17 @@ else
             return true;
         }
 
-        return authenticationStateTask.Result.User.IsInRole(Roles.Modeller)
-            && HasOwnerResponsiblePermission(owner, type => type.AllowModelling);
+        if (!authenticationStateTask.Result.User.IsInRole(Roles.Modeller))
+        {
+            return false;
+        }
+
+        if (userConfig.User.Ownerships.Contains(owner.Id))
+        {
+            return true;
+        }
+
+        return HasOwnerResponsiblePermission(owner, type => type.AllowModelling);
     }
 
     private bool HasOwnerResponsiblePermission(FwoOwner owner, Func<OwnerResponsibleType, bool> permissionCheck)

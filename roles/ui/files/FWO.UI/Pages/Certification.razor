@@ -160,8 +160,6 @@
     private bool readonlyMode = false;
     public FwoOwner? selectedOwner = null;
     private List<FwoOwner> ownerList = [];
-    private List<FwoOwner> userOwnerships = [];
-    private List<FwoOwner> groupOwnerships = [];
     private List<FwoOwner> collectedOwnerships = [];
     private HashSet<int> recertifiableOwnerIds = [];
     private DeviceFilter deviceFilter = new();
@@ -201,25 +199,27 @@
 
     private async Task CollectOwnerships()
     {
-        List<string> ownerDns = [userConfig.User.Dn];
-        List<string> ownerGrpDns = await GroupAccess.GetGroupMemberships(middlewareClient, userConfig,
-        DisplayMessageInUi);
-        ownerDns.AddRange(ownerGrpDns);
-        ownerDns = ownerDns
-            .Where(dn => !string.IsNullOrWhiteSpace(dn))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        collectedOwnerships = ownerDns.Count == 0
-            ? []
-            : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                OwnerQueries.getOwnersForDns,
-                new { dns = ownerDns });
-        List<FwoOwner> writableOwnerships = ownerDns.Count == 0
-            ? []
-            : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                OwnerQueries.getOwnersForDnsWithRecertification,
-                new { dns = ownerDns });
-        recertifiableOwnerIds = writableOwnerships.Select(owner => owner.Id).ToHashSet();
+        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+        bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
+        if (isAdmin || isAuditor)
+        {
+            collectedOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            recertifiableOwnerIds = isAdmin ? collectedOwnerships.Select(owner => owner.Id).ToHashSet() : [];
+        }
+        else
+        {
+            List<int> readableOwnerIds = userConfig.User.Ownerships
+                .Concat(userConfig.User.RecertOwnerships)
+                .Distinct()
+                .ToList();
+            collectedOwnerships = readableOwnerIds.Count == 0
+                ? []
+                : await apiConnection.SendQueryAsync<List<FwoOwner>>(
+                    OwnerQueries.getEditableOwners,
+                    new { appIds = readableOwnerIds.ToArray() });
+            recertifiableOwnerIds = userConfig.User.RecertOwnerships.ToHashSet();
+        }
+
         if (collectedOwnerships.Count > 0)
         {
             selectedOwner = collectedOwnerships[0];

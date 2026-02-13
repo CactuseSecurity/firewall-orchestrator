@@ -1,5 +1,4 @@
 @using FWO.Data.Workflow
-@using FWO.Middleware.Client
 @using FWO.ExternalSystems
 @using FWO.Data
 @using FWO.Ui.Display
@@ -16,7 +15,6 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
-@inject MiddlewareClient middlewareClient
 @inject NavigationManager NavigationManager
 @inject GlobalConfig globalConfig
 
@@ -209,8 +207,6 @@ else
     private ModellingAppHandler? appHandler;
     private List<FwoOwner> apps = new();
     private HashSet<int> recertifiableOwnerIds = [];
-    private List<string> userAndGroupDns = [];
-    private Dictionary<int, OwnerResponsibleType> responsibleTypeById = new();
     private FwoOwner selectedApp = new();
     private bool appSelected = false;
     private bool manualAppServer = false;
@@ -273,9 +269,6 @@ else
     {
         try
         {
-            List<OwnerResponsibleType> responsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
-            responsibleTypeById = responsibleTypes.ToDictionary(type => type.Id);
-
             bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
             bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
             if (isAdmin)
@@ -290,22 +283,8 @@ else
             }
             else
             {
-                List<string> ownerDns = [userConfig.User.Dn];
-                List<string> ownerGrpDns = await GroupAccess.GetGroupMemberships(middlewareClient, userConfig, DisplayMessageInUi);
-                ownerDns.AddRange(ownerGrpDns);
-                ownerDns = ownerDns
-                    .Where(dn => !string.IsNullOrWhiteSpace(dn))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-                userAndGroupDns = ownerDns;
-
                 apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
-                List<FwoOwner> recertifiableOwners = ownerDns.Count == 0
-                    ? []
-                    : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                        OwnerQueries.getOwnersForDnsWithRecertification,
-                        new { dns = ownerDns });
-                recertifiableOwnerIds = recertifiableOwners.Select(owner => owner.Id).ToHashSet();
+                recertifiableOwnerIds = userConfig.User.RecertOwnerships.ToHashSet();
             }
 
             if (apps.Count == 0)
@@ -527,35 +506,6 @@ else
         {
             return true;
         }
-
-        return HasOwnerResponsiblePermission(owner, type => type.AllowModelling);
-    }
-
-    private bool HasOwnerResponsiblePermission(FwoOwner owner, Func<OwnerResponsibleType, bool> permissionCheck)
-    {
-        if (owner.OwnerResponsibles == null || owner.OwnerResponsibles.Count == 0 || userAndGroupDns.Count == 0)
-        {
-            return false;
-        }
-
-        foreach (OwnerResponsible responsible in owner.OwnerResponsibles)
-        {
-            if (!userAndGroupDns.Contains(responsible.Dn, StringComparer.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (!responsibleTypeById.TryGetValue(responsible.ResponsibleTypeId, out OwnerResponsibleType? responsibleType))
-            {
-                continue;
-            }
-
-            if (responsibleType.Active && permissionCheck(responsibleType))
-            {
-                return true;
-            }
-        }
-
         return false;
     }
 

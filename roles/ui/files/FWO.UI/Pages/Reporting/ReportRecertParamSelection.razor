@@ -1,7 +1,5 @@
-﻿@using FWO.Middleware.Client
-@inject ApiConnection apiConnection
+﻿@inject ApiConnection apiConnection
 @inject UserConfig userConfig
-@inject MiddlewareClient middlewareClient
 
 
 <div class="p-3">
@@ -90,18 +88,11 @@
             }
             else
             {
-                List<string> ownerDns = [userConfig.User.Dn];
-                List<string> ownerGrpDns = await GroupAccess.GetGroupMemberships(middlewareClient, userConfig, DisplayMessageInUi);
-                ownerDns.AddRange(ownerGrpDns);
-                ownerDns = ownerDns
-                    .Where(dn => !string.IsNullOrWhiteSpace(dn))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-                ownerList = ownerDns.Count == 0
+                ownerList = userConfig.User.RecertOwnerships.Count == 0
                     ? []
                     : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                        OwnerQueries.getOwnersForDnsWithRecertification,
-                        new { dns = ownerDns });
+                        OwnerQueries.getEditableOwners,
+                        new { appIds = userConfig.User.RecertOwnerships.ToArray() });
             }
 
             if(ownerList.Count > 0)

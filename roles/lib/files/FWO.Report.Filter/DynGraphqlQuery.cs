@@ -223,19 +223,21 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
-                            {query.OpenRuleBaseTable}
-                            {query.OpenRulesTable}
-                                where: {{ 
-                                    rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
-                                    active:{{ _eq:true }}
-                                    {query.RuleWhereStatement} 
-                                }} 
-                                {limitOffsetString}
-                                order_by: {{ rule_num_numeric: asc }}
-                            ) 
+                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
                             {{
-                                mgm_id: mgm_id
-                                ...ruleOpenCertOverview
+                                {query.OpenRulesTable}
+                                    where: {{ 
+                                        rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
+                                        active:{{ _eq:true }}
+                                        {query.RuleWhereStatement} 
+                                    }} 
+                                    {limitOffsetString}
+                                    order_by: {{ rule_num_numeric: asc }}
+                                ) 
+                                {{
+                                    mgm_id: mgm_id
+                                    ...ruleOpenCertOverview
+                                }}
                             }}
                         }}
                     }}
@@ -366,15 +368,17 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
-                            {query.OpenRuleBaseTable}
-                            {query.OpenRulesTable}
-                                {limitOffsetString}
-                                where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
-                                order_by: {{ rule_num_numeric: asc }} )
+                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
+                            {{
+                                {query.OpenRulesTable}
+                                    {limitOffsetString}
+                                    where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
+                                    order_by: {{ rule_num_numeric: asc }} )
                                 {{
                                     mgm_id: mgm_id
                                     ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
                                 }} 
+                            }}
                         }}
                     }} 
                 }}";

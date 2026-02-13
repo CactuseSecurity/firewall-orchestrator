@@ -227,6 +227,21 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void RecertQueryDoesNotNestRulesInRulebaseLinks()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.Recertification;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.DoesNotContain("rulebase_links ( rules (", query.FullQuery);
+            StringAssert.DoesNotContain("rulebase_links(where:", query.FullQuery);
+            StringAssert.Contains("devices(where:", query.FullQuery);
+            StringAssert.Contains(") { id: dev_id name: dev_name rules (", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
         public void OwnerFullTextFilterUsesResponsibles()
         {
             ReportTemplate t = new()

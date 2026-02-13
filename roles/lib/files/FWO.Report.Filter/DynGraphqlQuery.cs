@@ -223,7 +223,6 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
-                            {query.OpenRuleBaseTable}
                             {query.OpenRulesTable}
                                 where: {{ 
                                     rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
@@ -366,7 +365,6 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
-                            {query.OpenRuleBaseTable}
                             {query.OpenRulesTable}
                                 {limitOffsetString}
                                 where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 

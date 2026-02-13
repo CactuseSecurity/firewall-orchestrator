@@ -290,7 +290,7 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
                 RestResponse<int> restResponse = await SCClient.RestCall(request, restEndPoint);
                 if (restResponse.StatusCode == HttpStatusCode.OK && restResponse.Content != null)
                 {
-                    if(string.IsNullOrWhiteSpace(restResponse.Content))
+                    if (string.IsNullOrWhiteSpace(restResponse.Content))
                     {
                         throw new ProcessingFailedException($"Lookup external requester: User {requesterName} not known in SecureChange - contact Tufin Admin");
                     }

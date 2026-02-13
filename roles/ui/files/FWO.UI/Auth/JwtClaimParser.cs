@@ -77,48 +77,45 @@ namespace FWO.Ui.Auth
         private static bool TryDeserializeStringArray(string claimValue, out List<string> values)
         {
             values = [];
-            try
+            if (TryDeserializeJsonArray(claimValue, out string[]? directStringArray) && directStringArray != null)
             {
-                string[]? directStringArray = JsonSerializer.Deserialize<string[]>(claimValue);
-                if (directStringArray == null)
-                {
-                    return false;
-                }
                 values = directStringArray.Where(value => !string.IsNullOrWhiteSpace(value)).ToList();
                 return true;
             }
-            catch
-            {
-                return false;
-            }
+            return false;
         }
 
         private static bool TryDeserializeIntArray(string claimValue, out List<int> values)
         {
             values = [];
+            if (TryDeserializeJsonArray(claimValue, out int[]? directIntArray) && directIntArray != null)
+            {
+                values = directIntArray.ToList();
+                return true;
+            }
+
+            if (!TryDeserializeJsonArray(claimValue, out string[]? stringIntArray) || stringIntArray == null)
+            {
+                return false;
+            }
+
+            foreach (string value in stringIntArray)
+            {
+                if (int.TryParse(value, out int parsedInt))
+                {
+                    values.Add(parsedInt);
+                }
+            }
+            return values.Count > 0;
+        }
+
+        private static bool TryDeserializeJsonArray<T>(string claimValue, out T[]? values)
+        {
+            values = null;
             try
             {
-                int[]? directIntArray = JsonSerializer.Deserialize<int[]>(claimValue);
-                if (directIntArray != null)
-                {
-                    values = directIntArray.ToList();
-                    return true;
-                }
-
-                string[]? stringIntArray = JsonSerializer.Deserialize<string[]>(claimValue);
-                if (stringIntArray == null)
-                {
-                    return false;
-                }
-
-                foreach (string value in stringIntArray)
-                {
-                    if (int.TryParse(value, out int parsedInt))
-                    {
-                        values.Add(parsedInt);
-                    }
-                }
-                return values.Count > 0;
+                values = JsonSerializer.Deserialize<T[]>(claimValue);
+                return true;
             }
             catch
             {

@@ -482,14 +482,8 @@ namespace FWO.Services
                     }
                     Log.WriteDebug("GetOwnApps", $"User={username ?? "unknown"}, usedClaimFallback={usedClaimFallback}, ownershipCount={userConfig.User.Ownerships.Count}, withConn={withConn}");
 
-                    if (withConn)
-                    {
-                        apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwnersWithConn, new { appIds = userConfig.User.Ownerships.ToArray() });
-                    }
-                    else
-                    {
-                        apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
-                    }
+                    string query = withConn ? OwnerQueries.getEditableOwnersWithConn : OwnerQueries.getEditableOwners;
+                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(query, new { appIds = userConfig.User.Ownerships.ToArray() });
                     Log.WriteDebug("GetOwnApps", $"User={username ?? "unknown"}, editableAppsCount={apps.Count}, withConn={withConn}");
                 }
             }

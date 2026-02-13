@@ -115,58 +115,59 @@ namespace FWO.Services
 
         public async Task<List<string>> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser, List<string>? otherAddresses)
         {
-            List<string> recipients = [];
             switch (recipientOption)
             {
                 case EmailRecipientOption.CurrentHandler:
-                    recipients.Add(GetEmailAddress(statefulObject?.CurrentHandler?.Dn));
-                    break;
+                    return [GetEmailAddress(statefulObject?.CurrentHandler?.Dn)];
                 case EmailRecipientOption.RecentHandler:
-                    recipients.Add(GetEmailAddress(statefulObject?.RecentHandler?.Dn));
-                    break;
+                    return [GetEmailAddress(statefulObject?.RecentHandler?.Dn)];
                 case EmailRecipientOption.AssignedGroup:
-                    recipients.AddRange(await CollectEmailAddressesFromUserOrGroup(statefulObject?.AssignedGroup));
-                    break;
+                    return await CollectEmailAddressesFromUserOrGroup(statefulObject?.AssignedGroup);
                 case EmailRecipientOption.OwnerMainResponsible:
-                    recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetOwnerResponsiblesByType(GlobalConst.kOwnerResponsibleTypeMain)));
-                    break;
+                    return await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeMain);
                 case EmailRecipientOption.AllOwnerResponsibles:
-                    recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles()));
-                    break;
+                    return await CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles());
                 case EmailRecipientOption.OwnerGroupOnly:
-                    recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetOwnerResponsiblesByType(GlobalConst.kOwnerResponsibleTypeSupporting)));
-                    break;
+                    return await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting);
                 case EmailRecipientOption.Requester:
                 case EmailRecipientOption.Approver:
                 case EmailRecipientOption.LastCommenter:
-                    recipients.Add(GetEmailAddress(scopedUser));
-                    break;
+                    return [GetEmailAddress(scopedUser)];
                 case EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty:
-                    if (owner is null)
-                        break;
-
-                    List<string> ownerGroupAdresses = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(GlobalConst.kOwnerResponsibleTypeSupporting));
-                    ownerGroupAdresses.AddRange(await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(GlobalConst.kOwnerResponsibleTypeMain)));
-
-                    if (ownerGroupAdresses.Count == 0)
-                    {
-                        recipients.AddRange(await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(GlobalConst.kOwnerResponsibleTypeMain)));
-                    }
-                    else
-                    {
-                        recipients.AddRange(ownerGroupAdresses);
-                    }
-                    break;
+                    return await GetOwnerGroupOrMainResponsibleRecipients(owner);
                 case EmailRecipientOption.OtherAddresses:
-                    if (otherAddresses != null)
-                    {
-                        recipients.AddRange(otherAddresses);
-                    }
-                    break;
+                    return GetOtherAddresses(otherAddresses);
                 default:
-                    break;
+                    return [];
             }
-            return recipients;
+        }
+
+        private async Task<List<string>> CollectOwnerAddressesByType(FwoOwner? owner, int responsibleType)
+        {
+            return await CollectEmailAddressesFromDns(owner?.GetOwnerResponsiblesByType(responsibleType));
+        }
+
+        private static List<string> GetOtherAddresses(List<string>? otherAddresses)
+        {
+            return otherAddresses != null ? [.. otherAddresses] : [];
+        }
+
+        private async Task<List<string>> GetOwnerGroupOrMainResponsibleRecipients(FwoOwner? owner)
+        {
+            if (owner is null)
+            {
+                return [];
+            }
+
+            List<string> ownerGroupAddresses = await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting);
+            List<string> mainResponsibleAddresses = await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeMain);
+            ownerGroupAddresses.AddRange(mainResponsibleAddresses);
+            if (ownerGroupAddresses.Count > 0)
+            {
+                return ownerGroupAddresses;
+            }
+
+            return mainResponsibleAddresses;
         }
 
         private async Task<List<string>> GetRecipients(ModellingEmailRecipientSelection selection, FwoOwner owner, List<string>? otherAddresses)

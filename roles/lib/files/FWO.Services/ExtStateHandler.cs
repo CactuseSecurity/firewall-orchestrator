@@ -22,42 +22,44 @@ namespace FWO.Services
         public async Task Init()
         {
             string? rootField = await DetectAvailableExtStateRootField();
-            if (rootField == CurrentRootField)
+            if (await TryLoadByDetectedRootField(rootField))
             {
-                ApiResponse<List<WfExtState>> currentRootResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(RequestQueries.getExtStates);
-                if (!currentRootResponse.HasErrors && currentRootResponse.Result != null)
-                {
-                    extStates = currentRootResponse.Result;
-                    return;
-                }
-                throw new InvalidOperationException($"Could not fetch external states: {BuildErrorMessage(currentRootResponse.Errors)}");
-            }
-            if (rootField == LegacyRootField)
-            {
-                ApiResponse<List<WfExtState>> legacyRootResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(GetLegacyExtStateQuery());
-                if (!legacyRootResponse.HasErrors && legacyRootResponse.Result != null)
-                {
-                    extStates = legacyRootResponse.Result;
-                    return;
-                }
-                throw new InvalidOperationException($"Could not fetch external states: {BuildErrorMessage(legacyRootResponse.Errors)}");
-            }
-
-            // Fallback keeps compatibility when introspection is unavailable or disabled.
-            ApiResponse<List<WfExtState>> extStateResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(RequestQueries.getExtStates);
-            if (!extStateResponse.HasErrors && extStateResponse.Result != null)
-            {
-                extStates = extStateResponse.Result;
                 return;
             }
 
+            await LoadWithCompatibilityFallback();
+        }
+
+        private async Task<bool> TryLoadByDetectedRootField(string? rootField)
+        {
+            if (rootField == CurrentRootField)
+            {
+                await LoadOrThrow(RequestQueries.getExtStates);
+                return true;
+            }
+            if (rootField == LegacyRootField)
+            {
+                await LoadOrThrow(GetLegacyExtStateQuery());
+                return true;
+            }
+            return false;
+        }
+
+        private async Task LoadWithCompatibilityFallback()
+        {
+            ApiResponse<List<WfExtState>> extStateResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(RequestQueries.getExtStates);
+            if (TrySetExtStates(extStateResponse))
+            {
+                return;
+            }
+
+            // Fallback keeps compatibility when introspection is unavailable or disabled.
             if (IsMissingExtStateRootField(extStateResponse.Errors))
             {
                 ApiResponse<List<WfExtState>> legacyResponse =
                     await apiConnection.SendQuerySafeAsync<List<WfExtState>>(GetLegacyExtStateQuery());
-                if (!legacyResponse.HasErrors && legacyResponse.Result != null)
+                if (TrySetExtStates(legacyResponse))
                 {
-                    extStates = legacyResponse.Result;
                     return;
                 }
 
@@ -73,6 +75,25 @@ namespace FWO.Services
             }
 
             throw new InvalidOperationException($"Could not fetch external states: {BuildErrorMessage(extStateResponse.Errors)}");
+        }
+
+        private async Task LoadOrThrow(string query)
+        {
+            ApiResponse<List<WfExtState>> response = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(query);
+            if (!TrySetExtStates(response))
+            {
+                throw new InvalidOperationException($"Could not fetch external states: {BuildErrorMessage(response.Errors)}");
+            }
+        }
+
+        private bool TrySetExtStates(ApiResponse<List<WfExtState>> response)
+        {
+            if (response.HasErrors || response.Result == null)
+            {
+                return false;
+            }
+            extStates = response.Result;
+            return true;
         }
 
         public int? GetInternalStateId(ExtStates extState)

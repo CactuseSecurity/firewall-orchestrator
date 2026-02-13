@@ -79,5 +79,17 @@ namespace FWO.Test
             Assert.That(selection.EnsureAtLeastOneNotification, Is.True);
             Assert.That(selection.OwnerResponsibleTypeIds, Is.EqualTo(new[] { 2, 1 }));
         }
+
+        [Test]
+        public void ParseInvalidJsonFallsBackToLegacyValue()
+        {
+            ModellingEmailRecipientSelection selection = ModellingEmailRecipientSelection.Parse(
+                "{invalid-json",
+                [GlobalConst.kOwnerResponsibleTypeMain, GlobalConst.kOwnerResponsibleTypeSupporting]);
+
+            Assert.That(selection.None, Is.True);
+            Assert.That(selection.OtherAddresses, Is.False);
+            Assert.That(selection.OwnerResponsibleTypeIds, Is.Empty);
+        }
     }
 }

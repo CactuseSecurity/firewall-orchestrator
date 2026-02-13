@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Logging;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -141,6 +142,9 @@ namespace FWO.Data
             }
             catch
             {
+                Log.WriteWarning(
+                    "Parse ModellingEmailRecipientSelection",
+                    $"Could not parse recipient selection JSON value \"{rawValue}\". Falling back to legacy parsing.");
             }
 
             return null;

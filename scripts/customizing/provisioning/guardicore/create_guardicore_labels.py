@@ -317,7 +317,7 @@ def run_graphql_query(config: FwoConfig, query: str, variables: dict[str, Any]) 
 
 
 def normalize_ip(value: str) -> str:
-    return value.split("/")[0] if "/" in value else value
+    return value.split("/")[0]
 
 
 def criteria_from_network(ip: str | None, ip_end: str | None) -> Criteria | None:

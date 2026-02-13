@@ -8,6 +8,7 @@
 @using FWO.Report.Filter
 @using FWO.Services
 @using FWO.Ui.Auth
+@using FWO.Services.RuleTreeBuilder
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System
@@ -20,6 +21,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true"
@@ -251,7 +253,7 @@
             }
 
             currentReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", prepareReportParams()), apiConnection,
-            userConfig, DisplayMessageInUi);
+            userConfig, DisplayMessageInUi, null, ruleTreeBuilder);
             if (currentReport != null)
             {
                 managementsReport = currentReport?.ReportData.ManagementData ?? new();

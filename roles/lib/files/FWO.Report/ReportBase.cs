@@ -6,6 +6,7 @@ using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report.Data;
 using FWO.Report.Filter;
+using FWO.Services.RuleTreeBuilder;
 using System.Text;
 using System.Reflection;
 using PuppeteerSharp;
@@ -147,22 +148,22 @@ namespace FWO.Report
 
         public abstract string SetDescription();
 
-        public static ReportBase ConstructReport(ReportTemplate reportFilter, UserConfig userConfig)
+        public static ReportBase ConstructReport(ReportTemplate reportFilter, UserConfig userConfig, IRuleTreeBuilder? ruleTreeBuilder = null)
         {
             DynGraphqlQuery query = Compiler.Compile(reportFilter);
             ReportType repType = (ReportType)reportFilter.ReportParams.ReportType;
             return repType switch
             {
                 ReportType.Statistics => new ReportStatistics(query, userConfig, repType),
-                ReportType.Rules => new ReportRules(query, userConfig, repType),
-                ReportType.ResolvedRules => new ReportRules(query, userConfig, repType),
-                ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType),
+                ReportType.Rules => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
+                ReportType.ResolvedRules => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
+                ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
                 ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
                 ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
                 ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
-                ReportType.Recertification => new ReportRules(query, userConfig, repType),
-                ReportType.UnusedRules => new ReportRules(query, userConfig, repType),
+                ReportType.Recertification => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
+                ReportType.UnusedRules => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),
                 ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter),
                 ReportType.VarianceAnalysis => new ReportVariances(query, userConfig, repType),
@@ -170,7 +171,7 @@ namespace FWO.Report
                 ReportType.ComplianceDiffReport => new ReportComplianceDiff(query, userConfig, repType, reportFilter.ReportParams),
                 ReportType.OwnerRecertification => new ReportOwnerRecerts(query, userConfig, repType),
                 ReportType.RecertificationEvent => new RecertificateOwner(query, userConfig, repType),
-                ReportType.RecertEventReport => new ReportRecertEvent(query, userConfig, repType),
+                ReportType.RecertEventReport => new ReportRecertEvent(query, userConfig, repType, ruleTreeBuilder),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

@@ -1,11 +1,11 @@
-using NUnit.Framework;
-using NUnit.Framework.Legacy;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
-using FWO.Ui.Services;
 using FWO.Services;
 using FWO.Services.Modelling;
-using FWO.Basics;
+using FWO.Ui.Services;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace FWO.Test
 {
@@ -149,6 +149,48 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedSrc, ModellingHandlerBase.GetSrcNames(conn, userConfig));
             ClassicAssert.AreEqual(expectedDst, ModellingHandlerBase.GetDstNames(conn, userConfig));
             ClassicAssert.AreEqual(expectedSvc, ModellingHandlerBase.GetSvcNames(conn, userConfig));
+        }
+
+        [Test]
+        public void TestDisplayAppActiveNoConnections()
+        {
+            FwoOwner owner = new()
+            {
+                Name = "App1",
+                Active = true,
+                ConnectionCount = new AggregateCount { Aggregate = new Aggregate { Count = 0 } }
+            };
+
+            string expected = "<span class=\"text-success\" data-toggle=\"tooltip\" title=\"No connections\">*App1</span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayApp(userConfig, owner));
+        }
+
+        [Test]
+        public void TestDisplayAppInactiveWithConnections()
+        {
+            FwoOwner owner = new()
+            {
+                Name = "App2",
+                Active = false,
+                ConnectionCount = new AggregateCount { Aggregate = new Aggregate { Count = 2 } }
+            };
+
+            string expected = "<span class=\"text-danger\" data-toggle=\"tooltip\" title=\"App disabled\"><i>!App2</i></span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayApp(userConfig, owner));
+        }
+
+        [Test]
+        public void TestDisplayReqIntRequestedOtherOwner()
+        {
+            string expected = "<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"Requested by other owner\"><i>Interface requested: (Ticket 123)</i></span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayReqInt(userConfig, 123, true));
+        }
+
+        [Test]
+        public void TestDisplayReqIntRejected()
+        {
+            string expected = "<span class=\"text-danger\" data-toggle=\"tooltip\" title=\"Rejected\"><i>Interface rejected: (Ticket 456)</i></span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayReqInt(userConfig, 456, false, true));
         }
 
 

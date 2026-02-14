@@ -234,20 +234,22 @@ namespace FWO.Services.Workflow
                     {
                         if (conn.IsRequested && !conn.IsPublished)
                         {
-                            ConnHandler = new(apiConnection, wfHandler.userConfig, owner, [], conn, true, false, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
-                            await ConnHandler.PartialInit();
-                            if (ConnHandler.CheckConn())
+                            if (conn.AppId == null && conn.ProposedAppId != null)
                             {
-                                var Variables = new
-                                {
-                                    id = conn.Id,
-                                    isRequested = false,
-                                    isPublished = true
-                                };
-                                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionPublish, Variables);
-                                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
-                                    $"Updated {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}", apiConnection, wfHandler.userConfig, owner.Id, DefaultInit.DoNothing);
+                                conn.AppId = conn.ProposedAppId;
+                                conn.ProposedAppId = null;
                             }
+                            var Variables = new
+                            {
+                                id = conn.Id,
+                                isRequested = false,
+                                isPublished = true,
+                                appId = conn.AppId,
+                                proposedAppId = conn.ProposedAppId
+                            };
+                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionPublish, Variables);
+                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Publish, ModellingTypes.ModObjectType.Connection, conn.Id,
+                                $"Published {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}", apiConnection, wfHandler.userConfig, owner.Id, DefaultInit.DoNothing);
                         }
                     }
                     apiConnection.SwitchBack();
@@ -279,7 +281,7 @@ namespace FWO.Services.Workflow
                                 connProp = conn.Properties
                             };
                             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, Variables);
-                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
+                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Reject, ModellingTypes.ModObjectType.Connection, conn.Id,
                                 $"Rejected {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}", apiConnection, wfHandler.userConfig, owner.Id, DefaultInit.DoNothing);
                         }
                     }

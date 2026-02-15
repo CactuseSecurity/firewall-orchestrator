@@ -101,6 +101,9 @@ class FwoConfigController:
         importer_password: str | None = None,
         importer_user_name: str | None = None,
         sleep_timer: int | None = None,
+        ssl_verification: bool | None = None,
+        suppress_cert_warnings: bool | None = None,
+        suppress_consistency_check: bool | None = None,
     ):
         if fwo_api_url is not None:
             self.fwo_config.fwo_api_url = fwo_api_url
@@ -116,3 +119,9 @@ class FwoConfigController:
             self.fwo_config.importer_user_name = importer_user_name
         if sleep_timer is not None:
             self.fwo_config.sleep_timer = sleep_timer
+        if ssl_verification is not None:
+            self.fwo_config.ssl_verification = ssl_verification
+        if suppress_cert_warnings is not None:
+            self.fwo_config.suppress_certificate_warnings = suppress_cert_warnings
+        if suppress_consistency_check is not None:
+            self.fwo_config.suppress_consistency_check = suppress_consistency_check

@@ -14,7 +14,7 @@ from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
-    from models.import_state import ImportState
+    from states.import_state import ImportState
 from fwo_log import FWOLogger
 from services.enums import Lifetime, Services
 from services.global_state import GlobalState

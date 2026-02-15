@@ -13,14 +13,14 @@ from fwo_log import FWOLogger
 from model_controllers.fwconfig_import_rollback import FwConfigImportRollback
 from model_controllers.management_controller import ManagementController
 from models.fw_common import FwCommon
-from models.import_state import ImportState
+from states.global_state import GlobalState
+from states.import_state import ImportState
 
 if IMPORTER_BASE_DIR not in sys.path:
     sys.path.append(IMPORTER_BASE_DIR)  # adding absolute path here once
 import fwo_file_import
 import fwo_globals
 import fwo_signalling
-from fwo_api_call import FwoApiCall
 from fwo_base import string_is_uri, write_native_config_to_file
 from fwo_const import IMPORT_TMP_PATH
 from fwo_exceptions import (
@@ -37,7 +37,6 @@ from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.fwconfigmanagerlist_controller import (
     FwConfigManagerListController,
 )
-from model_controllers.import_state_controller import ImportStateController
 from models.gateway import Gateway
 from services.enums import Services
 from services.service_provider import ServiceProvider
@@ -56,30 +55,17 @@ from services.service_provider import ServiceProvider
 
 
 def import_management(
-    mgm_id: int,
-    api_call: FwoApiCall,
-    ssl_verification: bool,
-    limit: int,
-    clear_management_data: bool,
-    suppress_cert_warnings: bool,
-    file: str | None = None,
-    suppress_consistency_check: bool = False,
+    global_state: GlobalState,
+    import_state: ImportState,
 ) -> None:
     fwo_signalling.register_signalling_handlers()
-    service_provider = ServiceProvider()
-    import_state = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
     exception: BaseException | None = None
 
     try:
         _import_management(
-            mgm_id,
-            ssl_verification,
-            file,
-            limit,
-            clear_management_data,
-            suppress_cert_warnings,
-            suppress_consistency_check,
+            global_state=global_state,
+            import_state=import_state,
         )
     except FwLoginFailedError as e:
         exception = e
@@ -114,13 +100,8 @@ def import_management(
 
 
 def _import_management(
-    mgm_id: int,
-    ssl_verification: bool,
-    file: str | None,
-    limit: int,
-    clear_management_data: bool,
-    suppress_cert_warnings: bool,
-    suppress_consistency_check: bool,
+    global_state: GlobalState,
+    import_state: ImportState,
 ) -> None:
     config_normalized: FwConfigManagerListController
 
@@ -144,12 +125,12 @@ def _import_management(
         return
 
     Path(IMPORT_TMP_PATH).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
-    gateways = ManagementController.build_gateway_list(import_state.state.mgm_details)
+    gateways = ManagementController.build_gateway_list(import_state.mgm_details)
 
-    import_state.state.import_id = import_state.api_call.set_import_lock(
-        import_state.state.mgm_details,
-        import_state.state.is_full_import,
-        import_state.state.is_initial_import,
+    import_state.import_id = import_state.fwo_api_call.set_import_lock(
+        import_state.mgm_details,
+        import_state.is_full_import,
+        import_state.is_initial_import,
     )
     FWOLogger.info(
         f"starting import of management {import_state.state.mgm_details.name} ({mgm_id!s}), import_id={import_state.state.import_id!s}"
@@ -170,22 +151,19 @@ def _import_management(
         )
 
     # check config consistency and import it
-    if config_changed_since_last_import or import_state.state.force_import:
+    if config_changed_since_last_import or import_state.force_import:
         if not suppress_consistency_check:
-            FwConfigImportCheckConsistency(import_state.state).check_fwconfig_managerlist_consistency(config_normalized)
+            FwConfigImportCheckConsistency(import_state).check_fwconfig_managerlist_consistency(config_normalized)
         config_importer.import_management_set(service_provider, config_normalized)
 
     # delete data that has passed the retention time
     # TODO: replace by deletion of old data with removed date > retention?
-    if (
-        not clear_management_data
-        and import_state.state.data_retention_days < import_state.state.days_since_last_full_import
-    ):
+    if not clear_management_data and import_state.data_retention_days < import_state.days_since_last_full_import:
         config_importer.delete_old_imports()  # delete all imports of the current management before the last but one full import
 
 
 def handle_unexpected_exception(
-    import_state: ImportStateController | None = None,
+    import_state: ImportState | None = None,
     config_importer: FwConfigImport | None = None,
     e: Exception | None = None,
 ):
@@ -194,7 +172,7 @@ def handle_unexpected_exception(
 
 
 def roll_back_exception_handler(
-    import_state: ImportStateController,
+    import_state: ImportState,
     config_importer: FwConfigImport | None = None,
     exc: BaseException | None = None,
     error_text: str = "",
@@ -210,7 +188,7 @@ def roll_back_exception_handler(
             FWOLogger.error("Exception: no exception provided")
         if config_importer is not None:
             FwConfigImportRollback().rollback_current_import(
-                import_state=import_state.state, fwo_api_call=import_state.api_call
+                import_state=import_state, fwo_api_call=import_state.fwo_api_call
             )
         else:
             FWOLogger.info("No config_importer found, skipping rollback.")
@@ -220,7 +198,7 @@ def roll_back_exception_handler(
 
 
 def get_config_top_level(
-    import_state: ImportStateController,
+    import_state: ImportState,
     in_file: str | None = None,
     gateways: list[Gateway] | None = None,
 ) -> tuple[bool, FwConfigManagerListController]:
@@ -240,16 +218,14 @@ def get_config_top_level(
     return get_config_from_api(import_state, config_from_file)
 
 
-def import_from_file(
-    import_state: ImportStateController, file_name: str = ""
-) -> tuple[bool, FwConfigManagerListController]:
+def import_from_file(import_state: ImportState, file_name: str = "") -> tuple[bool, FwConfigManagerListController]:
     FWOLogger.debug(f"import_management - not getting config from API but from file: {file_name}")
 
     config_changed_since_last_import = True
 
     set_filename(import_state, file_name=file_name)
 
-    config_from_file = fwo_file_import.read_json_config_from_file(import_state.api_call, import_state.state)
+    config_from_file = fwo_file_import.read_json_config_from_file(import_state.fwo_api_call, import_state)
 
     return config_changed_since_last_import, config_from_file
 
@@ -273,10 +249,10 @@ def get_module(import_state: ImportState) -> FwCommon:
 
 
 def get_config_from_api(
-    import_state: ImportStateController, config_in: FwConfigManagerListController
+    import_state: ImportState, config_in: FwConfigManagerListController, force_import: bool = False
 ) -> tuple[bool, FwConfigManagerListController]:
     try:  # pick product-specific importer:
-        fw_module = get_module(import_state.state)
+        fw_module = get_module(import_state)
     except Exception:
         FWOLogger.exception(
             "import_management - error while loading product specific fwcommon module",
@@ -286,32 +262,28 @@ def get_config_from_api(
 
     # check for changes from product-specific FW API, if we are importing from file we assume config changes
     # TODO: implement real change detection
-    config_changed_since_last_import = fw_module.has_config_changed(
-        config_in, import_state, import_state.state.force_import
-    )
+    config_changed_since_last_import = fw_module.has_config_changed(config_in, import_state, force_import)
     if config_changed_since_last_import:
         FWOLogger.info(
             "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = "
-            + str(import_state.state.force_import)
+            + str(force_import)
         )
     else:
         FWOLogger.info("has_config_changed: no new changes found")
 
-    if config_changed_since_last_import or import_state.state.force_import:
+    if config_changed_since_last_import or force_import:
         # get config from product-specific FW API
         _, native_config = fw_module.get_config(config_in, import_state)
     else:
-        native_config = FwConfigManagerListController.generate_empty_config(
-            import_state.state.mgm_details.is_super_manager
-        )
+        native_config = FwConfigManagerListController.generate_empty_config(import_state.mgm_details.is_super_manager)
     if config_in.native_config is None:
         raise FwoImporterError("import_management: get_config returned no config")
 
-    write_native_config_to_file(import_state.state, config_in.native_config)
+    write_native_config_to_file(import_state, config_in.native_config)
 
     FWOLogger.debug(
         "import_management: get_config completed (including normalization), duration: "
-        + str(int(time.time()) - import_state.state.start_time)
+        + str(int(time.time()) - import_state.start_time)
         + "s"
     )
 
@@ -340,7 +312,7 @@ def get_module_package_name(import_state: ImportState):
     return pkg_name
 
 
-def set_filename(import_state: ImportStateController, file_name: str = ""):
+def set_filename(import_state: ImportState, file_name: str = ""):
     # set file name in importState
     if file_name == "":
         # if the host name is an URI, do not connect to an API but simply read the config from this URI
@@ -351,8 +323,8 @@ def set_filename(import_state: ImportStateController, file_name: str = ""):
         import_state.set_import_file_name(file_name)
 
 
-def get_config_uri(import_state: ImportStateController) -> str | None:
-    mgm_details = import_state.state.mgm_details
+def get_config_uri(import_state: ImportState) -> str | None:
+    mgm_details = import_state.mgm_details
     if string_is_uri(mgm_details.hostname):
         return mgm_details.hostname
     if mgm_details.domain_name and string_is_uri(mgm_details.domain_name):

@@ -16,6 +16,9 @@ class FwoConfig:
     is_full_import: bool = False
     clear: bool = False
     debug_level: int = 0
+    ssl_verification: bool = True
+    suppress_certificate_warnings: bool = False
+    suppress_consistency_check: bool = False
 
     def __init__(
         self,
@@ -30,6 +33,9 @@ class FwoConfig:
         is_full_import: bool = False,
         clear: bool = False,
         debug_level: int = 0,
+        ssl_verification: bool = True,
+        suppress_certificate_warnings: bool = False,
+        suppress_consistency_check: bool = False,
     ):
         self.importer_password = importer_password
         self.importer_user_name = importer_user_name
@@ -42,3 +48,6 @@ class FwoConfig:
         self.is_full_import = is_full_import
         self.clear = clear
         self.debug_level = debug_level
+        self.ssl_verification = ssl_verification
+        self.suppress_certificate_warnings = suppress_certificate_warnings
+        self.suppress_consistency_check = suppress_consistency_check

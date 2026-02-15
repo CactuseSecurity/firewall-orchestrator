@@ -17,17 +17,11 @@ from fwo_const import FWO_CONFIG_FILENAME, IMPORTER_BASE_DIR
 from fwo_exceptions import FwLoginFailedError, FwoApiFailedLockImportError, FwoApiLoginFailedError
 from fwo_log import FWOLogger
 from model_controllers.management_controller import (
-    ConnectionInfo,
-    CredentialInfo,
-    DeviceInfo,
-    DomainInfo,
     ManagementController,
-    ManagerInfo,
 )
 from services.service_provider import ServiceProvider
 from states.global_state import GlobalState
 from states.import_state import ImportState
-from states.management_state import ManagementState
 
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
@@ -54,27 +48,15 @@ def wait_with_shutdown_check(sleep_time: int):
 def import_single_management(
     global_state: GlobalState,
     import_state: ImportState,
-    management_state: ManagementState,
 ):
     wait_with_shutdown_check(0)
 
     try:
-        mgm_controller = ManagementController(
-            management_state.mgm_id,
-            "",
-            [],
-            DeviceInfo(),
-            ConnectionInfo(),
-            "",
-            CredentialInfo(),
-            ManagerInfo(),
-            DomainInfo(),
-        )
-        mgm_details = mgm_controller.get_mgm_details(import_state.fwo_api_call.api, management_state.mgm_id)
+        mgm_details = ManagementController.get_mgm_details(import_state.fwo_api, import_state.mgm_id)
     except Exception:
         FWOLogger.error(
             "import_main_loop - error while getting FW management details for mgm_id="
-            + str(management_state.mgm_id)
+            + str(import_state.mgm_id)
             + " - skipping: "
             + str(traceback.format_exc())
         )
@@ -85,24 +67,21 @@ def import_single_management(
     if mgm_details["deviceType"]["id"] not in (9, 12, 17, 22, 23, 24, 28, 29):
         return
 
-    FWOLogger.debug(f"import_main_loop: starting import of mgm_id={super_mgm_id}")
+    FWOLogger.debug(f"import_main_loop: starting import of mgm_id={mgm_details['id']}")
 
     try:
         import_management(
-            mgm_id,
-            fwo_api_call,
-            verify_certificates,
-            api_fetch_limit,
-            clear,
-            suppress_certificate_warnings,
-            suppress_consistency_check=suppress_consistency_check,
+            global_state=global_state,
+            import_state=import_state,
         )
     except (FwoApiFailedLockImportError, FwLoginFailedError):
-        FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
+        FWOLogger.info(
+            f"import_main_loop - minor error while importing mgm_id={mgm_details['id']}, {traceback.format_exc()!s}"
+        )
         return  # minor errors for a single mgm, go to next one
     except Exception:  # all other exceptions are logged here
         FWOLogger.error(
-            f"import_main_loop - unspecific error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}"
+            f"import_main_loop - unspecific error while importing mgm_id={mgm_details['id']}, {traceback.format_exc()!s}"
         )
 
 
@@ -124,6 +103,12 @@ def main_loop(
     urllib3.disable_warnings()  # suppress ssl warnings only
     verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
     suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
+
+    global_state.fwo_config_controller.update_settings(
+        ssl_verification=verify_certificates,
+        suppress_cert_warnings=suppress_certificate_warnings,
+    )
+
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
 
@@ -138,12 +123,10 @@ def main_loop(
     sleep_timer = int(fwo_api_call.get_config_value(key="importSleepTime") or fwo_config.sleep_timer)
     global_state.fwo_config_controller.update_settings(sleep_timer=sleep_timer, api_fetch_size=api_fetch_limit)
 
-    import_state = ImportState(fwo_api=fwo_api, fwo_api_call=fwo_api_call)
-
     ## loop through all managements
     for mgm_id in mgm_ids:
-        management_state = ManagementState(import_state=import_state, mgm_id=mgm_id)
-        import_single_management(global_state, import_state, management_state)
+        import_state = ImportState(fwo_api=fwo_api, fwo_api_call=fwo_api_call, mgm_id=mgm_id)
+        import_single_management(global_state, import_state)
 
         ServiceProvider().dispose_global_state()
 

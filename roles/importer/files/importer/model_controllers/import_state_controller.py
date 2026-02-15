@@ -10,12 +10,7 @@ from fwo_const import FWO_CONFIG_FILENAME, GRAPHQL_QUERY_PATH
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.management_controller import (
-    ConnectionInfo,
-    CredentialInfo,
-    DeviceInfo,
-    DomainInfo,
     ManagementController,
-    ManagerInfo,
 )
 from models.fwo_config_controller import FwoConfigController
 from models.import_state import ImportState
@@ -65,18 +60,7 @@ class ImportStateController:
             urllib3.disable_warnings()  # suppress ssl warnings only
 
         try:  # get mgm_details (fw-type, port, ip, user credentials):
-            mgm_controller = ManagementController(
-                mgm_id,
-                "",
-                [],
-                DeviceInfo(),
-                ConnectionInfo(),
-                "",
-                CredentialInfo(),
-                ManagerInfo(),
-                DomainInfo(),
-            )
-            mgm_details = mgm_controller.get_mgm_details(api_call.api, mgm_id)
+            mgm_details = ManagementController.get_mgm_details(api_call.api, mgm_id)
         except Exception as _:
             FWOLogger.error(
                 f"import_management - error while getting fw management details for mgm={mgm_id}: {traceback.format_exc()!s}"

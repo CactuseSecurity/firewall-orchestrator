@@ -45,26 +45,9 @@ namespace FWO.Services.Modelling
                         }
                         return true;
                     }
-                    else if (!string.IsNullOrEmpty(ExistingAppServerName))
-                    {
-                        if (ExistingAppServerName == ActAppServer.Name)
-                        {
-                            DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E9018"), true);
-                        }
-                        else
-                        {
-                            DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), $"{userConfig.GetText("E9010")} {DisplayBase.DisplayIp(ActAppServer.Ip, ActAppServer.IpEnd)} in {ExistingAppServerName}", true);
-                        }
-                        return false;
-                    }
-                    else if (string.IsNullOrEmpty(ExistingAppServerName) && string.IsNullOrEmpty(ActAppServer.Name))
-                    {
-                        string message = $"{userConfig.GetText("E9018")} Name: \"\"";
-                        DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), message, true);
-                    }
                     else
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E0034"), true);
+                        DisplayErrorMessage(ExistingAppServerName);
                     }
                 }
             }
@@ -73,6 +56,30 @@ namespace FWO.Services.Modelling
                 DisplayMessageInUi(exception, userConfig.GetText("edit_app_server"), "", true);
             }
             return false;
+        }
+
+        private void DisplayErrorMessage(string? existingAppServerName)
+        {
+            if (!string.IsNullOrEmpty(existingAppServerName))
+            {
+                if (existingAppServerName == ActAppServer.Name)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E9018"), true);
+                }
+                else
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), $"{userConfig.GetText("E9010")} {DisplayBase.DisplayIp(ActAppServer.Ip, ActAppServer.IpEnd)} in {existingAppServerName}", true);
+                }
+            }
+            else if (string.IsNullOrEmpty(existingAppServerName) && string.IsNullOrEmpty(ActAppServer.Name))
+            {
+                string message = $"{userConfig.GetText("E9018")} Name: \"\"";
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), message, true);
+            }
+            else
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E0034"), true);
+            }
         }
 
         public void Reset()

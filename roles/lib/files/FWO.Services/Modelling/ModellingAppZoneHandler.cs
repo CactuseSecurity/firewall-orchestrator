@@ -77,12 +77,12 @@ namespace FWO.Services.Modelling
         private async Task<List<ModellingAppServerWrapper>> GetAllModelledAppServers()
         {
             List<ModellingAppServer> tempAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = owner.Id });
-            List<ModellingAppServerWrapper> allAppServers = [];
+            List<ModellingAppServerWrapper> allModelledAppServers = [];
             foreach (ModellingAppServer appServer in tempAppServers.Where(a => !a.IsDeleted))
             {
-                allAppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
+                allModelledAppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
             }
-            return allAppServers;
+            return allModelledAppServers;
         }
 
         private void ApplyNamingConvention(string? extAppId, ModellingAppZone appZone)

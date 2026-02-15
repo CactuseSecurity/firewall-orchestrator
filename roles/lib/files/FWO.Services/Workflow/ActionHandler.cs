@@ -208,8 +208,17 @@ namespace FWO.Services.Workflow
                                 propAppId = owner.Id
                             };
                             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateProposedConnectionOwner, Variables);
-                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
-                                $"Updated {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}", apiConnection, wfHandler.userConfig, owner.Id, DefaultInit.DoNothing);
+                            await ModellingHandlerBase.LogChange(new LogChangeRequest
+                            {
+                                ChangeType = ModellingTypes.ChangeType.Update,
+                                ObjectType = ModellingTypes.ModObjectType.Connection,
+                                ObjectId = conn.Id,
+                                Text = $"Updated {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
+                                ApiConnection = apiConnection,
+                                UserConfig = wfHandler.userConfig,
+                                ApplicationId = owner.Id,
+                                DisplayMessageInUi = DefaultInit.DoNothing
+                            });
                         }
                     }
                     apiConnection.SwitchBack();
@@ -248,8 +257,17 @@ namespace FWO.Services.Workflow
                                 proposedAppId = conn.ProposedAppId
                             };
                             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionPublish, Variables);
-                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Publish, ModellingTypes.ModObjectType.Connection, conn.Id,
-                                $"Published {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}", apiConnection, wfHandler.userConfig, owner.Id, DefaultInit.DoNothing);
+                            await ModellingHandlerBase.LogChange(new LogChangeRequest
+                            {
+                                ChangeType = ModellingTypes.ChangeType.Publish,
+                                ObjectType = ModellingTypes.ModObjectType.Connection,
+                                ObjectId = conn.Id,
+                                Text = $"Published {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
+                                ApiConnection = apiConnection,
+                                UserConfig = wfHandler.userConfig,
+                                ApplicationId = owner.Id,
+                                DisplayMessageInUi = DefaultInit.DoNothing
+                            });
                         }
                     }
                     apiConnection.SwitchBack();
@@ -281,8 +299,17 @@ namespace FWO.Services.Workflow
                                 connProp = conn.Properties
                             };
                             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, Variables);
-                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Reject, ModellingTypes.ModObjectType.Connection, conn.Id,
-                                $"Rejected {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}", apiConnection, wfHandler.userConfig, owner.Id, DefaultInit.DoNothing);
+                            await ModellingHandlerBase.LogChange(new LogChangeRequest
+                            {
+                                ChangeType = ModellingTypes.ChangeType.Reject,
+                                ObjectType = ModellingTypes.ModObjectType.Connection,
+                                ObjectId = conn.Id,
+                                Text = $"Rejected {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
+                                ApiConnection = apiConnection,
+                                UserConfig = wfHandler.userConfig,
+                                ApplicationId = owner.Id,
+                                DisplayMessageInUi = DefaultInit.DoNothing
+                            });
                         }
                     }
                     apiConnection.SwitchBack();

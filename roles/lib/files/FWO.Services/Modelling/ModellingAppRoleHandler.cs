@@ -54,13 +54,10 @@ namespace FWO.Services.Modelling
         public async Task InitAppRole(ModellingNetworkArea? newArea)
         {
             ActAppRole.Area = newArea;
-            if (newArea != null)
+            if (newArea != null && newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode)
             {
-                if (newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode)
-                {
-                    ActAppRole.ManagedIdString.ConvertAreaToAppRoleFixedPart(newArea.IdString);
-                    ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(ActAppRole.ManagedIdString);
-                }
+                ActAppRole.ManagedIdString.ConvertAreaToAppRoleFixedPart(newArea.IdString);
+                ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(ActAppRole.ManagedIdString);
             }
             OrigId = new(ActAppRole.ManagedIdString);
             await SelectAppServersFromArea(newArea);

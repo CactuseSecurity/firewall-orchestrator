@@ -421,23 +421,7 @@ namespace FWO.Services.Workflow
                 if (dbAcc != null)
                 {
                     ActTicket.StateId = ticket.StateId;
-                    if (ActTicket.Sanitize())
-                    {
-                        DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
-                    }
-                    foreach (WfReqTask reqTask in ActTicket.Tasks)
-                    {
-                        if (reqTask.StateId < ActTicket.StateId)
-                        {
-                            reqTask.StateId = ActTicket.StateId;
-                        }
-                    }
-
-                    if (ActTicket.Deadline == null)
-                    {
-                        int? tickDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.TicketDeadline;
-                        ActTicket.Deadline = tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null;
-                    }
+                    PrepareTicketData();
 
                     if (AddTicketMode)
                     {
@@ -469,6 +453,27 @@ namespace FWO.Services.Workflow
                 DisplayMessageInUi(exception, userConfig.GetText("save_request"), "", true);
             }
             return 0;
+        }
+
+        private void PrepareTicketData()
+        {
+            if (ActTicket.Sanitize())
+            {
+                DisplayMessageInUi(null, userConfig.GetText("save_request"), userConfig.GetText("U0001"), true);
+            }
+            foreach (WfReqTask reqTask in ActTicket.Tasks)
+            {
+                if (reqTask.StateId < ActTicket.StateId)
+                {
+                    reqTask.StateId = ActTicket.StateId;
+                }
+            }
+
+            if (ActTicket.Deadline == null)
+            {
+                int? tickDeadline = PrioList.FirstOrDefault(x => x.NumPrio == ActTicket.Priority)?.TicketDeadline;
+                ActTicket.Deadline = tickDeadline != null && tickDeadline > 0 ? DateTime.Now.AddDays((int)tickDeadline) : null;
+            }
         }
 
         public async Task<bool> PromoteTicket(WfStatefulObject ticket)
@@ -620,7 +625,7 @@ namespace FWO.Services.Workflow
         {
             ActReqTask.AssignedGroup = statefulObject.AssignedGroup;
             ActReqTask.RecentHandler = ActReqTask.CurrentHandler ?? userConfig.User;
-            if (ActionHandler != null && CheckAssignValues(ActReqTask))
+            if (ActionHandler != null)
             {
                 await UpdateActReqTaskState();
                 await ActionHandler.DoOnAssignmentActions(statefulObject, ActReqTask.AssignedGroup);
@@ -704,6 +709,26 @@ namespace FWO.Services.Workflow
             DisplayReqTaskCommentMode = false;
         }
 
+        public async Task ConfAddCommentToTicket(string commentText)
+        {
+            WfComment comment = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                CreationDate = DateTime.Now,
+                Creator = userConfig.User,
+                CommentText = commentText
+            };
+            if (dbAcc != null)
+            {
+                long commentId = await dbAcc.AddCommentToDb(comment);
+                if (commentId != 0)
+                {
+                    await dbAcc.AssignCommentToTicketInDb(ActTicket.Id, commentId);
+                }
+            }
+            ActTicket.Comments.Add(new WfCommentDataHelper(comment) { });
+        }
+
         public string GetRequestingOwner()
         {
             int? ownerId = ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner);
@@ -744,14 +769,7 @@ namespace FWO.Services.Workflow
 
                 if (Phase == WorkflowPhases.planning)
                 {
-                    foreach (WfImplTask implTask in ActReqTask.ImplementationTasks)
-                    {
-                        implTask.StateId = ActReqTask.StateId;
-                        if (dbAcc != null)
-                        {
-                            await dbAcc.UpdateImplTaskStateInDb(implTask);
-                        }
-                    }
+                    await UpgradeImplTaskStatesToReqTask(ActReqTask);
                 }
 
                 await UpdateActTicketStateFromReqTasks();
@@ -829,7 +847,8 @@ namespace FWO.Services.Workflow
                 {
                     await AddApproval();
                 }
-                ActApproval = ActReqTask.Approvals.FirstOrDefault(x => x.StateId < ActStateMatrix.LowestEndState) ?? (ActApproval = ActReqTask.Approvals.Last() ?? new());  // todo: select own approvals
+                ActApproval = ActReqTask.Approvals.FirstOrDefault(x => x.StateId < ActStateMatrix.LowestEndState) 
+                    ?? ActReqTask.Approvals.Last() ?? new();  // todo: select own approvals
             }
         }
 
@@ -923,8 +942,8 @@ namespace FWO.Services.Workflow
         public async Task AssignApprovalGroup(WfStatefulObject statefulObject)
         {
             ActApproval.AssignedGroup = statefulObject.AssignedGroup;
-            // ActApproval.RecentHandler = ActApproval.CurrentHandler;
-            if (ActionHandler != null && CheckAssignValues(ActApproval))
+            ActApproval.RecentHandler = ActApproval.CurrentHandler;
+            if (ActionHandler != null)
             {
                 await UpdateActApproval();
                 await ActionHandler.DoOnAssignmentActions(statefulObject, ActApproval.AssignedGroup);
@@ -932,17 +951,17 @@ namespace FWO.Services.Workflow
             DisplayAssignApprovalMode = false;
         }
 
-        // public async Task AssignApprovalBack()
-        // {
-        //     ActApproval.AssignedGroup = ActApproval.RecentHandler?.Dn;
-        //     ActApproval.RecentHandler = ActApproval.CurrentHandler;
-        //     await UpdateActApproval();
-        //    if(ActionHandler != null)
-        //    {
-        //       await ActionHandler.DoOnAssignmentActions(ActApproval, ActApproval.AssignedGroup);
-        //    }
-        //     DisplayAssignApprovalMode = false;
-        // }
+        public async Task AssignApprovalBack() // Todo: implement callers
+        {
+            ActApproval.AssignedGroup = ActApproval.RecentHandler?.Dn;
+            ActApproval.RecentHandler = ActApproval.CurrentHandler;
+            await UpdateActApproval();
+            if(ActionHandler != null)
+            {
+               await ActionHandler.DoOnAssignmentActions(ActApproval, ActApproval.AssignedGroup);
+            }
+            DisplayAssignApprovalMode = false;
+        }
 
         public async Task ConfAddCommentToApproval(string commentText)
         {
@@ -1069,20 +1088,7 @@ namespace FWO.Services.Workflow
                 {
                     foreach (var ticket in TicketList)
                     {
-                        foreach (var reqTask in ticket.Tasks)
-                        {
-                            foreach (var implTask in reqTask.ImplementationTasks)
-                            {
-                                bool assignedToMe = implTask.CurrentHandler?.DbId == userConfig.User.DbId || implTask.AssignedGroup == userConfig.User.Dn;  // todo: resolve group membership?
-                                if (selectedOwnerOpt.Id == -1 || (selectedOwnerOpt.Id == -2 && assignedToMe)
-                                    || (selectedOwnerOpt.Id > 0 && reqTask.Owners.FirstOrDefault(o => o.Owner.Id == selectedOwnerOpt.Id) != null))
-                                {
-                                    implTask.TicketId = ticket.Id;
-                                    implTask.ReqTaskId = reqTask.Id;
-                                    AllVisibleImplTasks.Add(implTask);
-                                }
-                            }
-                        }
+                        SelectFromTicketByOwner(ticket, selectedOwnerOpt);
                     }
                 }
                 return selectedOwnerOpt.Id == -3;
@@ -1094,6 +1100,24 @@ namespace FWO.Services.Workflow
             return true;
         }
 
+        private void SelectFromTicketByOwner(WfTicket ticket, FwoOwner selectedOwnerOpt)
+        {
+            foreach (var reqTask in ticket.Tasks)
+            {
+                foreach (var implTask in reqTask.ImplementationTasks)
+                {
+                    bool assignedToMe = implTask.CurrentHandler?.DbId == userConfig.User.DbId || implTask.AssignedGroup == userConfig.User.Dn;  // todo: resolve group membership?
+                    if (selectedOwnerOpt.Id == -1 || (selectedOwnerOpt.Id == -2 && assignedToMe)
+                        || (selectedOwnerOpt.Id > 0 && reqTask.Owners.FirstOrDefault(o => o.Owner.Id == selectedOwnerOpt.Id) != null))
+                    {
+                        implTask.TicketId = ticket.Id;
+                        implTask.ReqTaskId = reqTask.Id;
+                        AllVisibleImplTasks.Add(implTask);
+                    }
+                }
+            }
+        }
+
         public bool SelectDeviceImplTasks(Device selectedDeviceOpt)
         {
             try
@@ -1103,18 +1127,7 @@ namespace FWO.Services.Workflow
                 {
                     foreach (var ticket in TicketList)
                     {
-                        foreach (var reqTask in ticket.Tasks)
-                        {
-                            foreach (var implTask in reqTask.ImplementationTasks)
-                            {
-                                if (selectedDeviceOpt.Id == 0 || implTask.DeviceId == selectedDeviceOpt.Id)
-                                {
-                                    implTask.TicketId = ticket.Id;
-                                    implTask.ReqTaskId = reqTask.Id;
-                                    AllVisibleImplTasks.Add(implTask);
-                                }
-                            }
-                        }
+                        SelectFromTicketByDevice(ticket, selectedDeviceOpt);
                     }
                 }
                 return selectedDeviceOpt.Id == -1;
@@ -1126,10 +1139,26 @@ namespace FWO.Services.Workflow
             return true;
         }
 
+        private void SelectFromTicketByDevice(WfTicket ticket, Device selectedDeviceOpt)
+        {
+            foreach (var reqTask in ticket.Tasks)
+            {
+                foreach (var implTask in reqTask.ImplementationTasks)
+                {
+                    if (selectedDeviceOpt.Id == 0 || implTask.DeviceId == selectedDeviceOpt.Id)
+                    {
+                        implTask.TicketId = ticket.Id;
+                        implTask.ReqTaskId = reqTask.Id;
+                        AllVisibleImplTasks.Add(implTask);
+                    }
+                }
+            }
+        }
+
         public async Task AssignImplTaskGroup(WfStatefulObject statefulObject)
         {
             ActImplTask.RecentHandler = ActImplTask.CurrentHandler ?? userConfig.User;
-            if (ActionHandler != null && CheckAssignValues(ActImplTask))
+            if (ActionHandler != null)
             {
                 await UpdateActImplTaskState();
                 await ActionHandler.DoOnAssignmentActions(statefulObject, ActImplTask.AssignedGroup);
@@ -1265,17 +1294,22 @@ namespace FWO.Services.Workflow
                     }
                     else
                     {
-                        if (dbAcc != null)
-                        {
-                            foreach (var impltask in reqTask.ImplementationTasks)
-                            {
-                                if (impltask.StateId < reqTask.StateId)
-                                {
-                                    impltask.StateId = reqTask.StateId;
-                                    await dbAcc.UpdateImplTaskStateInDb(impltask);
-                                }
-                            }
-                        }
+                        await UpgradeImplTaskStatesToReqTask(reqTask);
+                    }
+                }
+            }
+        }
+
+        private async Task UpgradeImplTaskStatesToReqTask(WfReqTask reqTask)
+        {
+            if (dbAcc != null)
+            {
+                foreach (var impltask in reqTask.ImplementationTasks)
+                {
+                    if (impltask.StateId < reqTask.StateId)
+                    {
+                        impltask.StateId = reqTask.StateId;
+                        await dbAcc.UpdateImplTaskStateInDb(impltask);
                     }
                 }
             }
@@ -1498,16 +1532,6 @@ namespace FWO.Services.Workflow
                 return await dbAcc.FindRuleUid(deviceId, ruleUid);
             }
             return false;
-        }
-
-        private bool CheckAssignValues(WfStatefulObject statefulObject)
-        {
-            // if (statefulObject.AssignedGroup == null || statefulObject.AssignedGroup == "")
-            // {
-            //     DisplayMessageInUi(null, userConfig.GetText("assign_group"), userConfig.GetText("E8010"), true);
-            //     return false;
-            // }
-            return true;
         }
     }
 }

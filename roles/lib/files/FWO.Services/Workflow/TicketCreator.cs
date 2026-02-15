@@ -224,7 +224,11 @@ namespace FWO.Services.Workflow
                 wfHandler.ActTicket.Tasks.Add(wfHandler.ActReqTask);
             }
             wfHandler.AddTicketMode = true;
-            await wfHandler.SaveTicket(wfHandler.ActTicket);
+            long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
+            if (ticketId > 0 && !string.IsNullOrWhiteSpace(comment))
+            {
+                await wfHandler.ConfAddCommentToTicket(comment);
+            }
         }
 
         private async Task AddRequesterInfoToImplTask(long ticketId, FwoOwner owner)

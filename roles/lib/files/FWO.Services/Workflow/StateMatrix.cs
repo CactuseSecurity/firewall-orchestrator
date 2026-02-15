@@ -89,62 +89,28 @@ namespace FWO.Services.Workflow
                 return 0;
             }
             int stateOut;
-            int backAssignedState = LowestInputState;
-            int initState = 0;
-            int inWorkState = LowestEndState;
-            int minFinishedState = 999;
-            int backAssignedTasks = 0;
-            int openTasks = 0;
-            int inWorkTasks = 0;
-            int finishedTasks = 0;
+            DerivedStateTracking tracking = new(LowestInputState, 0, LowestEndState, 999);
+            TaskCounters counters = new();
             foreach (int state in statesIn)
             {
-                if (state < LowestInputState)
-                {
-                    backAssignedTasks++;
-                    if (state < backAssignedState)
-                    {
-                        backAssignedState = state;
-                    }
-                }
-                else if (state < LowestStartedState)
-                {
-                    openTasks++;
-                    initState = state;
-                }
-                else if (state < LowestEndState)
-                {
-                    inWorkTasks++;
-                    if (state < inWorkState)
-                    {
-                        inWorkState = state;
-                    }
-                }
-                else
-                {
-                    finishedTasks++;
-                    if (state < minFinishedState)
-                    {
-                        minFinishedState = state;
-                    }
-                }
+                UpdateDerivedStateTracking(state, ref tracking, ref counters);
             }
 
-            if (backAssignedTasks > 0)
+            if (counters.BackAssignedTasks > 0)
             {
-                stateOut = backAssignedState;
+                stateOut = tracking.BackAssignedState;
             }
-            else if (inWorkTasks > 0)
+            else if (counters.InWorkTasks > 0)
             {
-                stateOut = inWorkState;
+                stateOut = tracking.InWorkState;
             }
-            else if (finishedTasks == statesIn.Count)
+            else if (counters.FinishedTasks == statesIn.Count)
             {
-                stateOut = minFinishedState;
+                stateOut = tracking.MinFinishedState;
             }
-            else if (openTasks == statesIn.Count)
+            else if (counters.OpenTasks == statesIn.Count)
             {
-                stateOut = initState;
+                stateOut = tracking.InitState;
             }
             else
             {
@@ -156,6 +122,40 @@ namespace FWO.Services.Workflow
                 return DerivedStates[stateOut];
             }
             return stateOut;
+        }
+
+        private readonly record struct DerivedStateTracking(int BackAssignedState, int InitState, int InWorkState, int MinFinishedState);
+
+        private struct TaskCounters
+        {
+            public int BackAssignedTasks;
+            public int OpenTasks;
+            public int InWorkTasks;
+            public int FinishedTasks;
+        }
+
+        private void UpdateDerivedStateTracking(int state, ref DerivedStateTracking tracking, ref TaskCounters counters)
+        {
+            if (state < LowestInputState)
+            {
+                counters.BackAssignedTasks++;
+                tracking = tracking with { BackAssignedState = Math.Min(state, tracking.BackAssignedState) };
+            }
+            else if (state < LowestStartedState)
+            {
+                counters.OpenTasks++;
+                tracking = tracking with { InitState = state };
+            }
+            else if (state < LowestEndState)
+            {
+                counters.InWorkTasks++;
+                tracking = tracking with { InWorkState = Math.Min(state, tracking.InWorkState) };
+            }
+            else
+            {
+                counters.FinishedTasks++;
+                tracking = tracking with { MinFinishedState = Math.Min(state, tracking.MinFinishedState) };
+            }
         }
     }
 

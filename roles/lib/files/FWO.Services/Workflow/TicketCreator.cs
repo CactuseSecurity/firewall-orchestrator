@@ -128,7 +128,7 @@ namespace FWO.Services.Workflow
             long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
             if (ticketId > 0)
             {
-                await AddRequesterInfoToImplTask(ticketId, requestingOwner);
+                await AddRequesterInfoToImplTask(ticketId);
             }
             return ticketId;
         }
@@ -231,13 +231,13 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private async Task AddRequesterInfoToImplTask(long ticketId, FwoOwner owner)
+        private async Task AddRequesterInfoToImplTask(long ticketId)
         {
             WfImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
             if (implTask != null)
             {
                 wfHandler.SetImplTaskEnv(implTask);
-                string comment = $"{userConfig.GetText("requested_by")}: {userConfig.User.Name}"; // {userConfig.GetText("for")} {owner.Display()}";
+                string comment = $"{userConfig.GetText("requested_by")}: {userConfig.User.Name}";
                 await wfHandler.ConfAddCommentToImplTask(comment);
             }
         }

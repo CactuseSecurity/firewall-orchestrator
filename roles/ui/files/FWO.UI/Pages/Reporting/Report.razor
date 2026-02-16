@@ -6,15 +6,17 @@
 @using FWO.Report.Filter.Exceptions
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
+@using FWO.Services.RuleTreeBuilder
 @using System.Diagnostics
 @using System.Text.Json
 
 @page "/report/generation/{appId?}"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}, {Roles.Recertifier}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NavigationManager NavigationManager
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @if(InitDone)
 {
@@ -288,10 +290,12 @@
         || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
         || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier);
     private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier);
 
     private bool _showAnyRulesInComplianceReport = true;
 
@@ -399,11 +403,11 @@
     {
         if(actReportFilters.ReportType.IsModellingReport())
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Modeller, Roles.Auditor]);
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor]);
         }
         else
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Auditor]);
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Recertifier, Roles.Modeller, Roles.Auditor]);
         }
     }
 
@@ -512,7 +516,7 @@
             await PrepareReportGeneration();
             ReportTemplate temp = ConstructReportTemplate();
             
-            currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token);
+            currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token, ruleTreeBuilder);
             processing = false;
             PostProcess();
         }

@@ -594,5 +594,8 @@ A complete 80K lines rework of FWO, including
 # 9.0.2 - 10.02.2026 DEVELOP
 - fix: chunking for cleanup importer
 
-# 9.0.3 - 11.02.2026 DEVELOP
+# 9.0.4 - 13.02.2026 MAIN
+- maintenance release with explicit 9.0.4 upgrade step
+
+# 9.0.5 - 16.02.2026 DEVELOP
 - remove stale v8 code

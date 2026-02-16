@@ -4,7 +4,9 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
+using FWO.Logging;
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
 
 
 namespace FWO.Services
@@ -216,6 +218,7 @@ namespace FWO.Services
                         conn.SrcFromInterface = interf[0].SourceFilled();
                         conn.DstFromInterface = interf[0].DestinationFilled();
                         conn.InterfaceIsDecommissioned = interf[0].GetBoolProperty(ConState.Decommissioned.ToString());
+                        conn.InterfaceNoPermission = !interf[0].PermittedOwnerWrappers.Any(w => w.Owner != null && w.Owner.Id == conn.AppId);
                         if (interf[0].IsRequested)
                         {
                             conn.InterfaceIsRequested = true;
@@ -226,18 +229,7 @@ namespace FWO.Services
                         {
                             interfaceName = ExtractFullInterface(conn, interf[0]);
                         }
-                        if (interf[0].GetBoolProperty(ConState.Rejected.ToString()))
-                        {
-                            conn.AddProperty(ConState.InterfaceRejected.ToString());
-                        }
-                        else if (interf[0].GetBoolProperty(ConState.Requested.ToString()))
-                        {
-                            conn.AddProperty(ConState.InterfaceRequested.ToString());
-                        }
-                        else if (interf[0].GetBoolProperty(ConState.Decommissioned.ToString()))
-                        {
-                            conn.AddProperty(ConState.InterfaceDecommissioned.ToString());
-                        }
+                        SetRelevantProps(conn, interf[0]);
                     }
                 }
             }
@@ -270,6 +262,26 @@ namespace FWO.Services
             return interf.Name ?? "";
         }
 
+        private static void SetRelevantProps(ModellingConnection conn, ModellingConnection interf)
+        {
+            if (interf.GetBoolProperty(ConState.Rejected.ToString()))
+            {
+                conn.AddProperty(ConState.InterfaceRejected.ToString());
+            }
+            else if (conn.InterfaceIsRequested)
+            {
+                conn.AddProperty(ConState.InterfaceRequested.ToString());
+            }
+            else if (conn.InterfaceIsDecommissioned)
+            {
+                conn.AddProperty(ConState.InterfaceDecommissioned.ToString());
+            }
+            else if (conn.InterfaceNoPermission)
+            {
+                conn.AddProperty(ConState.InterfaceNoPermission.ToString());
+            }
+        }
+
         public async Task<ModellingConnection?> GetUsedInterface(ModellingConnection conn)
         {
             try
@@ -290,16 +302,12 @@ namespace FWO.Services
             return null;
         }
 
-        protected async Task<bool> CheckInterfaceInUse(ModellingConnection conn)
+        protected async Task<bool> InitUsingConnections(int connId)
         {
             try
             {
-                UsingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = conn.Id });
-                if (UsingConnections.Count == 0)
-                {
-                    return false;
-                }
-                return true;
+                UsingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = connId });
+                return UsingConnections.Count > 0;
             }
             catch (Exception exception)
             {
@@ -457,15 +465,25 @@ namespace FWO.Services
                 }
                 else
                 {
-                    UpdateOwnerships(authenticationStateTask, userConfig); // qad: userConfig may not be properly filled
-                    if (withConn)
+                    string? username = authenticationStateTask.Result.User.Identity?.Name;
+                    bool usedClaimFallback = false;
+                    // Prefer ownerships already prepared during login; only fall back to claim parsing if needed.
+                    if (userConfig.User.Ownerships.Count == 0)
                     {
-                        apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwnersWithConn, new { appIds = userConfig.User.Ownerships.ToArray() });
+                        usedClaimFallback = true;
+                        UpdateOwnerships(authenticationStateTask, userConfig);
+                        if (userConfig.User.Ownerships.Count == 0)
+                        {
+                            // Mitigate timing issues where user config hydration lags behind page initialization.
+                            await Task.Delay(100);
+                            UpdateOwnerships(authenticationStateTask, userConfig);
+                        }
                     }
-                    else
-                    {
-                        apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = userConfig.User.Ownerships.ToArray() });
-                    }
+                    Log.WriteDebug("GetOwnApps", $"User={username ?? "unknown"}, usedClaimFallback={usedClaimFallback}, ownershipCount={userConfig.User.Ownerships.Count}, withConn={withConn}");
+
+                    string query = withConn ? OwnerQueries.getEditableOwnersWithConn : OwnerQueries.getEditableOwners;
+                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(query, new { appIds = userConfig.User.Ownerships.ToArray() });
+                    Log.WriteDebug("GetOwnApps", $"User={username ?? "unknown"}, editableAppsCount={apps.Count}, withConn={withConn}");
                 }
             }
             catch (Exception exception)
@@ -477,13 +495,8 @@ namespace FWO.Services
 
         private static void UpdateOwnerships(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig)
         {
-            string? ownerString = authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners")?.Value;
-            if (ownerString != null)
-            {
-                string[] separatingStrings = [",", "{", "}"];
-                string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                userConfig.User.Ownerships = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
-            }
+            List<Claim> claims = authenticationStateTask.Result.User.Claims.ToList();
+            userConfig.User.Ownerships = JwtClaimParser.ExtractIntClaimValues(claims, "x-hasura-editable-owners");
         }
     }
 }

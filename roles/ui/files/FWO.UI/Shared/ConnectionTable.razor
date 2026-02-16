@@ -49,19 +49,17 @@
         {
             <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("select"))" Sortable="false" Filterable="false">
                 <Template>
-                    @if(SelectionType == SelectionType.Single)
+                    @if(!IsVisibleToOwner(context))
                     {
-                        <input type="radio"
-                               disabled="@(!IsVisibleToOwner(context))"
-                               checked="@(SelectedConns.Contains(context))"
-                               title="@(!IsVisibleToOwner(context) ? userConfig.GetText("C9027") : null)" />
+                        <div class="col-sm-12" data-toggle="tooltip" title="@(userConfig.PureLine("C9027"))">&nbsp;</div>
+                    }
+                    else if(SelectionType == SelectionType.Single)
+                    {
+                        <input type="radio" checked="@(SelectedConns.Contains(context))" />
                     }
                     else if(SelectionType == SelectionType.Multiple)
                     {
-                        <input type="checkbox"
-                               disabled="@(!IsVisibleToOwner(context))"
-                               checked="@(SelectedConns.Contains(context))"
-                               title="@(!IsVisibleToOwner(context) ? userConfig.GetText("C9027") : null)" />
+                        <input type="checkbox" checked="@(SelectedConns.Contains(context))" />
                     }
                 </Template>
             </Column>
@@ -278,7 +276,7 @@
 
     private bool IsVisibleToOwner(ModellingConnection interf)
     {
-        if(interf.InterfacePermission == InterfacePermissions.Public.ToString())
+        if(interf.InterfacePermission == InterfacePermissions.Public.ToString() || interf.App.Id == Application.Id)
         {
             return true;
         }
@@ -286,7 +284,7 @@
         {
             return false;
         }
-        return interf.App.Id == Application.Id || interf.PermittedOwners.Select(o => o.Id).Contains(Application.Id);
+        return interf.PermittedOwners.Select(o => o.Id).Contains(Application.Id);
     }
 
     private List<string> CollectModellingProps(ModellingConnection connection)

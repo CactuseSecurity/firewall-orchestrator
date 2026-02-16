@@ -11,6 +11,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getOwnersWithConn;
         public static readonly string getEditableOwners;
         public static readonly string getEditableOwnersWithConn;
+        public static readonly string getOwnersForDns;
         public static readonly string getOwnersForDnsWithConn;
         public static readonly string getOwnersForDnsWithModellingWithConn;
         public static readonly string newOwner;
@@ -53,6 +54,7 @@ namespace FWO.Api.Client.Queries
                 getOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersWithConn.graphql");
                 getEditableOwners = ownerDetailsFragment + GetQueryText("owner/getEditableOwners.graphql");
                 getEditableOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getEditableOwnersWithConn.graphql");
+                getOwnersForDns = ownerDetailsFragment + GetQueryText("owner/getOwnersForDns.graphql");
                 getOwnersForDnsWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithConn.graphql");
                 getOwnersForDnsWithModellingWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithModellingWithConn.graphql");
                 newOwner = GetQueryText("owner/newOwner.graphql");

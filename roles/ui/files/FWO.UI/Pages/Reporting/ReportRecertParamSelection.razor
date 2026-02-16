@@ -49,6 +49,9 @@
 @code
 {
     [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
@@ -77,7 +80,26 @@
     {
         try
         {
-            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+            bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
+            bool isReporterViewAll = authenticationStateTask.Result.User.IsInRole(Roles.ReporterViewAll);
+            if (isAdmin || isAuditor || isReporterViewAll)
+            {
+                ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            }
+            else
+            {
+                List<int> readableOwnerIds = userConfig.User.Ownerships
+                    .Concat(userConfig.User.RecertOwnerships)
+                    .Distinct()
+                    .ToList();
+                ownerList = readableOwnerIds.Count == 0
+                    ? []
+                    : await apiConnection.SendQueryAsync<List<FwoOwner>>(
+                        OwnerQueries.getEditableOwners,
+                        new { appIds = readableOwnerIds.ToArray() });
+            }
+
             if(ownerList.Count > 0)
             {
                 ownerList.Add(new(){ Id = AllId, Name = userConfig.GetText("all")});

@@ -341,10 +341,13 @@ namespace FWO.Config.Api.Data
         public string ModReqInterfaceName { get; set; } = "";
 
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
-        public EmailRecipientOption ModReqEmailReceiver { get; set; } = EmailRecipientOption.None;
+        public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 
         [JsonProperty("modReqEmailRequesterInCc"), JsonPropertyName("modReqEmailRequesterInCc")]
         public bool ModReqEmailRequesterInCc { get; set; } = true;
+
+        [JsonProperty("modReqEmailOtherAddresses"), JsonPropertyName("modReqEmailOtherAddresses")]
+        public string ModReqEmailOtherAddresses { get; set; } = "";
 
         [JsonProperty("modReqEmailSubject"), JsonPropertyName("modReqEmailSubject")]
         public string ModReqEmailSubject { get; set; } = "";
@@ -362,7 +365,10 @@ namespace FWO.Config.Api.Data
         public string ModReqTaskTitle { get; set; } = "";
 
         [JsonProperty("modDecommEmailReceiver"), JsonPropertyName("modDecommEmailReceiver")]
-        public EmailRecipientOption ModDecommEmailReceiver { get; set; } = EmailRecipientOption.None;
+        public string ModDecommEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
+
+        [JsonProperty("modDecommEmailOtherAddresses"), JsonPropertyName("modDecommEmailOtherAddresses")]
+        public string ModDecommEmailOtherAddresses { get; set; } = "";
 
         [JsonProperty("modDecommEmailSubject"), JsonPropertyName("modDecommEmailSubject")]
         public string ModDecommEmailSubject { get; set; } = "";

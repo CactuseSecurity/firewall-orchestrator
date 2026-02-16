@@ -135,6 +135,7 @@ namespace FWO.Middleware.Server
                 }
             }
             claimsIdentity.AddClaim(new Claim("x-hasura-editable-owners", $"{{ {string.Join(",", user.Ownerships)} }}"));
+            claimsIdentity.AddClaim(new Claim("x-hasura-recertifiable-owners", $"{{ {string.Join(",", user.RecertOwnerships)} }}"));
             AddRoleClaims(claimsIdentity, user);
             return claimsIdentity;
         }

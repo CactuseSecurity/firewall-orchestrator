@@ -55,6 +55,48 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ReporterUsesNamespacedEditableOwnersClaim()
+        {
+            ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
+                .Returns(new List<FwoOwner>());
+
+            ClaimsPrincipal principal = BuildPrincipal(
+                new List<string> { Roles.Reporter },
+                new Claim("https://hasura.io/jwt/claims/x-hasura-editable-owners", "{1,2}"));
+            Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
+            UserConfig userConfig = new SimulatedUserConfig();
+
+            await ModellingHandlerBase.GetOwnApps(authStateTask, userConfig, apiConnection, NoopDisplay);
+
+            await apiConnection.Received(1)
+                .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners,
+                    Arg.Is<object?>(vars => HasOwnerIds(vars, new[] { 1, 2 })),
+                    Arg.Any<string?>());
+        }
+
+        [Test]
+        public async Task ReporterUsesJsonEditableOwnersClaim()
+        {
+            ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
+                .Returns(new List<FwoOwner>());
+
+            ClaimsPrincipal principal = BuildPrincipal(
+                new List<string> { Roles.Reporter },
+                new Claim("x-hasura-editable-owners", "[11,12]"));
+            Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
+            UserConfig userConfig = new SimulatedUserConfig();
+
+            await ModellingHandlerBase.GetOwnApps(authStateTask, userConfig, apiConnection, NoopDisplay);
+
+            await apiConnection.Received(1)
+                .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners,
+                    Arg.Is<object?>(vars => HasOwnerIds(vars, new[] { 11, 12 })),
+                    Arg.Any<string?>());
+        }
+
+        [Test]
         public async Task ReporterWithoutClaimUsesEmptyOwnerships()
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
@@ -94,7 +136,7 @@ namespace FWO.Test
             var prop = vars.GetType().GetProperty("appIds");
             if (prop?.GetValue(vars) is int[] ids)
             {
-                return ids.Length == expected.Length && ids.SequenceEqual(expected);
+                return ids.Length == expected.Length && ids.OrderBy(id => id).SequenceEqual(expected.OrderBy(id => id));
             }
 
             return false;

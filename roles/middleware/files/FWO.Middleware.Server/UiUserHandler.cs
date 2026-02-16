@@ -132,6 +132,9 @@ namespace FWO.Middleware.Server
         {
             try
             {
+                user.Ownerships.Clear();
+                user.RecertOwnerships.Clear();
+
                 // if the user logging in is the main user for an application, add the ownerships
                 List<FwoOwner> directOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDns = new List<string> { user.Dn } });
                 foreach (var owner in directOwnerships)
@@ -173,6 +176,22 @@ namespace FWO.Middleware.Server
                         user.Ownerships.Add(owner.Id);
                     }
                 }
+
+                List<string> ownerDns = [user.Dn];
+                ownerDns.AddRange(groupsOfUser);
+                ownerDns = ownerDns
+                    .Where(dn => !string.IsNullOrWhiteSpace(dn))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                List<FwoOwner> recertOwnerships = ownerDns.Count == 0
+                    ? []
+                    : await apiConn.SendQueryAsync<List<FwoOwner>>(
+                        OwnerQueries.getOwnersForDnsWithRecertification,
+                        new { dns = ownerDns });
+                user.RecertOwnerships.AddRange(recertOwnerships.Select(owner => owner.Id));
+
+                user.Ownerships = user.Ownerships.Distinct().ToList();
+                user.RecertOwnerships = user.RecertOwnerships.Distinct().ToList();
             }
             catch (Exception exeption)
             {

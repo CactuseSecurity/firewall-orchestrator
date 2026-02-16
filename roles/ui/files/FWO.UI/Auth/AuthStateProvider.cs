@@ -108,6 +108,10 @@ namespace FWO.Ui.Auth
                 userConfig.User.Tenant = await GetTenantFromJwt(userConfig.User.Jwt, apiConnection);
                 userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
                 userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
+                userConfig.User.RecertOwnerships = await GetRecertifiableOwners(userConfig.User.Jwt);
+                Log.WriteDebug("Auth Claims", $"Parsed allowed roles: [{string.Join(", ", userConfig.User.Roles)}]");
+                Log.WriteDebug("Auth Claims", $"Parsed editable owners: [{string.Join(", ", userConfig.User.Ownerships)}]");
+                Log.WriteDebug("Auth Claims", $"Parsed recertifiable owners: [{string.Join(", ", userConfig.User.RecertOwnerships)}]");
                 circuitHandler.User = userConfig.User;
 
                 if (!userConfig.User.PasswordMustBeChanged)
@@ -214,40 +218,48 @@ namespace FWO.Ui.Auth
 
         private static async Task<List<int>> GetAssignedOwners(string jwtString)
         {
-            List<int> ownerIds = [];
-            List<string> ownerClaims = await GetClaimList(jwtString, "x-hasura-editable-owners");
-            if (ownerClaims.Count > 0)
-            {
-                string[] separatingStrings = [",", "{", "}"];
-                string[] owners = ownerClaims[0].Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                ownerIds = Array.ConvertAll(owners, x => int.Parse(x)).ToList();
-            }
-            return ownerIds;
+            return await GetIntClaimList(jwtString, "x-hasura-editable-owners");
+        }
+
+        private static async Task<List<int>> GetRecertifiableOwners(string jwtString)
+        {
+            return await GetIntClaimList(jwtString, "x-hasura-recertifiable-owners");
         }
 
         private static async Task<List<string>> GetClaimList(string jwtString, string claimType)
         {
-            List<string> claimList = [];
             JwtReader jwtReader = new(jwtString);
-            if (await jwtReader.Validate())
+            if (!await jwtReader.Validate())
             {
-                ClaimsIdentity identity = new
-                (
-                    claims: jwtReader.GetClaims(),
-                    authenticationType: "ldap",
-                    nameType: JwtRegisteredClaimNames.UniqueName,
-                    roleType: "role"
-                );
-                foreach (Claim claim in identity.Claims)
-                {
-                    if (claim.Type == claimType)
-                    {
-                        claimList.Add(claim.Value);
-                    }
-                }
+                return [];
             }
-            return claimList;
+
+            ClaimsIdentity identity = new
+            (
+                claims: jwtReader.GetClaims(),
+                authenticationType: "ldap",
+                nameType: JwtRegisteredClaimNames.UniqueName,
+                roleType: "role"
+            );
+            return JwtClaimParser.ExtractStringClaimValues(identity.Claims, claimType);
+        }
+
+        private static async Task<List<int>> GetIntClaimList(string jwtString, string claimType)
+        {
+            JwtReader jwtReader = new(jwtString);
+            if (!await jwtReader.Validate())
+            {
+                return [];
+            }
+
+            ClaimsIdentity identity = new
+            (
+                claims: jwtReader.GetClaims(),
+                authenticationType: "ldap",
+                nameType: JwtRegisteredClaimNames.UniqueName,
+                roleType: "role"
+            );
+            return JwtClaimParser.ExtractIntClaimValues(identity.Claims, claimType);
         }
     }
 }
-

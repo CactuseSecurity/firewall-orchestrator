@@ -49,8 +49,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 builder.Services.AddScoped<CircuitHandler, CircuitHandlerService>();
 builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();
 builder.Services.AddScoped<IEventMediator, EventMediator>();
-
-builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
+builder.Services.AddScoped<IRuleTreeBuilder>(_ => new RuleTreeBuilder());
 
 string ApiUri = ConfigFile.ApiServerUri;
 string MiddlewareUri = ConfigFile.MiddlewareServerUri;

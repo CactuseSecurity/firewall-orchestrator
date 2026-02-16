@@ -387,7 +387,7 @@ namespace FWO.Services.Workflow
 
         private static Dictionary<string, object?> BuildReqElementVariables(WfReqElement element)
         {
-            var variables = BuildElementBaseVariables(element);
+            var variables = BuildElementBaseVariables(element, element.Cidr, element.CidrEnd);
             variables["requestAction"] = element.RequestAction;
             variables["taskId"] = element.TaskId;
             variables["deviceId"] = element.DeviceId;
@@ -649,18 +649,18 @@ namespace FWO.Services.Workflow
 
         private static Dictionary<string, object?> BuildImplElementVariables(WfImplElement element)
         {
-            var variables = BuildElementBaseVariables(element);
+            var variables = BuildElementBaseVariables(element, element.Cidr, element.CidrEnd);
             variables["implementationAction"] = element.ImplAction;
             variables["implTaskId"] = element.ImplTaskId;
             return variables;
         }
 
-        private static Dictionary<string, object?> BuildElementBaseVariables(WfElementBase element)
+        private static Dictionary<string, object?> BuildElementBaseVariables(WfElementBase element, Cidr? cidr, Cidr? cidrEnd)
         {
             return new Dictionary<string, object?>
             {
-                ["ip"] = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
-                ["ipEnd"] = element.CidrEnd != null && element.CidrEnd.Valid ? element.CidrEnd.CidrString : null,
+                ["ip"] = cidr != null && cidr.Valid ? cidr.CidrString : null,
+                ["ipEnd"] = cidrEnd != null && cidrEnd.Valid ? cidrEnd.CidrString : null,
                 ["port"] = element.Port,
                 ["portEnd"] = element.PortEnd,
                 ["proto"] = element.ProtoId,

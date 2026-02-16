@@ -6,6 +6,7 @@ using GraphQL.Client.Serializer.Newtonsoft;
 using GraphQL.Client.Abstractions;
 using Newtonsoft.Json.Linq;
 using FWO.Logging;
+using System.Security.Claims;
 
 namespace FWO.Api.Client
 {
@@ -90,7 +91,7 @@ namespace FWO.Api.Client
             prevRole = GetActRole();
             foreach (string role in targetRoleList)
             {
-                if (user.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == role) != null)
+                if (HasAllowedRole(user, role))
                 {
                     SetRole(role);
                     return;
@@ -116,6 +117,64 @@ namespace FWO.Api.Client
             if (prevRole != "")
             {
                 SetRole(prevRole);
+            }
+        }
+
+        private static bool HasAllowedRole(ClaimsPrincipal user, string role)
+        {
+            if (user.IsInRole(role))
+            {
+                return true;
+            }
+
+            foreach (Claim claim in user.Claims.Where(currentClaim => IsHasuraAllowedRolesClaim(currentClaim.Type)))
+            {
+                if (claim.Value == role)
+                {
+                    return true;
+                }
+
+                if (TryParseAllowedRoles(claim.Value, out List<string> parsedRoles)
+                    && parsedRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsHasuraAllowedRolesClaim(string claimType)
+        {
+            if (claimType.Equals("x-hasura-allowed-roles", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return claimType.EndsWith("/x-hasura-allowed-roles", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryParseAllowedRoles(string claimValue, out List<string> parsedRoles)
+        {
+            parsedRoles = [];
+            if (string.IsNullOrWhiteSpace(claimValue))
+            {
+                return false;
+            }
+
+            try
+            {
+                string[]? roleArray = JsonSerializer.Deserialize<string[]>(claimValue);
+                if (roleArray == null)
+                {
+                    return false;
+                }
+                parsedRoles = roleArray.Where(role => !string.IsNullOrWhiteSpace(role)).ToList();
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
 

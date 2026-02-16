@@ -5,6 +5,8 @@ using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Services;
+using FWO.Services.Modelling;
+using FWO.Services.Workflow;
 using FWO.Basics;
 
 namespace FWO.Test

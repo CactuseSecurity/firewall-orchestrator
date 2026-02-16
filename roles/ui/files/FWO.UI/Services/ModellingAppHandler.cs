@@ -4,8 +4,8 @@ using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Services;
 using FWO.Services.Modelling;
+using FWO.Services.Workflow;
 
 
 namespace FWO.Ui.Services

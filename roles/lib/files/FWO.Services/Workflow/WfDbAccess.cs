@@ -387,25 +387,11 @@ namespace FWO.Services.Workflow
 
         private static Dictionary<string, object?> BuildReqElementVariables(WfReqElement element)
         {
-            return new Dictionary<string, object?>
-            {
-                ["requestAction"] = element.RequestAction,
-                ["taskId"] = element.TaskId,
-                ["ip"] = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
-                ["ipEnd"] = element.CidrEnd != null && element.CidrEnd.Valid ? element.CidrEnd.CidrString : null,
-                ["port"] = element.Port,
-                ["portEnd"] = element.PortEnd,
-                ["proto"] = element.ProtoId,
-                ["networkObjId"] = element.NetworkId,
-                ["serviceId"] = element.ServiceId,
-                ["field"] = element.Field,
-                ["userId"] = element.UserId,
-                ["originalNatId"] = element.OriginalNatId,
-                ["deviceId"] = element.DeviceId,
-                ["ruleUid"] = element.RuleUid,
-                ["groupName"] = element.GroupName,
-                ["name"] = element.Name
-            };
+            var variables = BuildElementBaseVariables(element);
+            variables["requestAction"] = element.RequestAction;
+            variables["taskId"] = element.TaskId;
+            variables["deviceId"] = element.DeviceId;
+            return variables;
         }
 
 
@@ -663,10 +649,16 @@ namespace FWO.Services.Workflow
 
         private static Dictionary<string, object?> BuildImplElementVariables(WfImplElement element)
         {
+            var variables = BuildElementBaseVariables(element);
+            variables["implementationAction"] = element.ImplAction;
+            variables["implTaskId"] = element.ImplTaskId;
+            return variables;
+        }
+
+        private static Dictionary<string, object?> BuildElementBaseVariables(WfElementBase element)
+        {
             return new Dictionary<string, object?>
             {
-                ["implementationAction"] = element.ImplAction,
-                ["implTaskId"] = element.ImplTaskId,
                 ["ip"] = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
                 ["ipEnd"] = element.CidrEnd != null && element.CidrEnd.Valid ? element.CidrEnd.CidrString : null,
                 ["port"] = element.Port,

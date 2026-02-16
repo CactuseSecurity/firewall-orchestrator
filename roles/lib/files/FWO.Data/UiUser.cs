@@ -49,6 +49,7 @@ namespace FWO.Data
         public List<string> Roles { get; set; } = [];
         public List<string> Groups { get; set; } = [];
         public List<int> Ownerships { get; set; } = [];
+        public List<int> RecertOwnerships { get; set; } = [];
 
 
         public UiUser()
@@ -74,6 +75,7 @@ namespace FWO.Data
             Groups = user.Groups;
             Roles = user.Roles;
             Ownerships = user.Ownerships;
+            RecertOwnerships = user.RecertOwnerships;
             if (user.LdapConnection != null)
             {
                 LdapConnection = new UiLdapConnection(user.LdapConnection);

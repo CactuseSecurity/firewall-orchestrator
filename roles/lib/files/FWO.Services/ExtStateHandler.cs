@@ -18,7 +18,14 @@ namespace FWO.Services
 
         public async Task Init()
         {
-            extStates = await apiConnection.SendQueryAsync<List<WfExtState>>(RequestQueries.getExtStates);
+            ApiResponse<List<WfExtState>> extStateResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(RequestQueries.getExtStates);
+            if (!extStateResponse.HasErrors && extStateResponse.Result != null)
+            {
+                extStates = extStateResponse.Result;
+                return;
+            }
+
+            throw new InvalidOperationException($"Could not fetch external states: {BuildErrorMessage(extStateResponse.Errors)}");
         }
 
         public int? GetInternalStateId(ExtStates extState)
@@ -41,6 +48,15 @@ namespace FWO.Services
         public bool IsDone(int stateId)
         {
             return stateId == GetInternalStateId(ExtStates.ExtReqDone);
+        }
+
+        private static string BuildErrorMessage(string[]? errors)
+        {
+            if (errors == null || errors.Length == 0)
+            {
+                return "unknown error";
+            }
+            return string.Join(" | ", errors);
         }
     }
 }

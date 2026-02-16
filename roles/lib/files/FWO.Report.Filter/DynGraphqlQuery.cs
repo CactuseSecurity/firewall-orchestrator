@@ -223,7 +223,28 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
-                            {query.OpenRuleBaseTable}
+                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
+                            {{
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            id
+                            uid
+                            name
                             {query.OpenRulesTable}
                                 where: {{ 
                                     rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
@@ -366,15 +387,17 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
-                            {query.OpenRuleBaseTable}
-                            {query.OpenRulesTable}
-                                {limitOffsetString}
-                                where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
-                                order_by: {{ rule_num_numeric: asc }} )
+                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
+                            {{
+                                {query.OpenRulesTable}
+                                    {limitOffsetString}
+                                    where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
+                                    order_by: {{ rule_num_numeric: asc }} )
                                 {{
                                     mgm_id: mgm_id
                                     ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
                                 }} 
+                            }}
                         }}
                     }} 
                 }}";

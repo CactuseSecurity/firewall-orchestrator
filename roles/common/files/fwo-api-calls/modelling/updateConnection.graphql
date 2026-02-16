@@ -11,6 +11,7 @@ mutation updateConnection(
   $commonSvc: Boolean
   $connProp: String
   $extraParams: String
+  $interfacePermission: String
   ) {
   update_modelling_connection_by_pk(
     pk_columns: { id: $id }
@@ -26,6 +27,7 @@ mutation updateConnection(
       common_service: $commonSvc
       conn_prop: $connProp
       extra_params: $extraParams
+      interface_permission: $interfacePermission
   }) {
     updatedId: id
   }

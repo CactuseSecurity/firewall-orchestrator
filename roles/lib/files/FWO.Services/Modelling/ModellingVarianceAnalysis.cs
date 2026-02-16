@@ -36,6 +36,7 @@ namespace FWO.Services.Modelling
         private ModellingVarianceResult varianceResult = new();
 
         private Dictionary<int, List<Rule>> allModelledRules = [];
+        private readonly Dictionary<int, Dictionary<long, List<Rule>>> connectionsByConnId = [];
         private List<ModellingAppRole> allModelledAppRoles = [];
 
         private readonly Dictionary<int, List<ModellingAppRole>> allProdAppRoles = [];

@@ -47,6 +47,7 @@ namespace FWO.Services.Modelling
                 int modelledRulesCount = 0;
                 int notModelledRulesCount = 0;
                 allModelledRules = [];
+                connectionsByConnId.Clear();
 
                 foreach (Management mgt in RelevantManagements)
                 {
@@ -73,6 +74,7 @@ namespace FWO.Services.Modelling
         private void IdentifyModelledRules(Management mgt, List<Rule> rulesByMgt)
         {
             allModelledRules.Add(mgt.Id, []);
+            connectionsByConnId[mgt.Id] = [];
             foreach (var rule in rulesByMgt)
             {
                 rule.ManagementName = mgt.Name;
@@ -82,6 +84,12 @@ namespace FWO.Services.Modelling
                     if (long.TryParse(connRef, out long connId))
                     {
                         rule.ConnId = connId;
+                        if (!connectionsByConnId[mgt.Id].TryGetValue(connId, out List<Rule>? rulesForConn))
+                        {
+                            rulesForConn = [];
+                            connectionsByConnId[mgt.Id].Add(connId, rulesForConn);
+                        }
+                        rulesForConn.Add(rule);
                     }
                     allModelledRules[mgt.Id].Add(rule);
                 }
@@ -148,7 +156,7 @@ namespace FWO.Services.Modelling
                     import_id_start = relImpId,
                     import_id_end = relImpId
                 };
-                return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByManagement, RuleVariables);
+                return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByManagementForVariance, RuleVariables);
             }
             else
             {
@@ -162,8 +170,8 @@ namespace FWO.Services.Modelling
 
                 string query = userConfig.ModModelledMarkerLocation switch
                 {
-                    MarkerLocation.Rulename => RuleQueries.getModelledRulesByManagementName,
-                    MarkerLocation.Comment => RuleQueries.getModelledRulesByManagementComment,
+                    MarkerLocation.Rulename => RuleQueries.getConnectionsByManagementNameForVariance,
+                    MarkerLocation.Comment => RuleQueries.getConnectionsByManagementCommentForVariance,
                     _ => throw new NotSupportedException("invalid or undefined Marker Location")
                 };
                 return await apiConnection.SendQueryAsync<List<Rule>>(query, RuleVariables);

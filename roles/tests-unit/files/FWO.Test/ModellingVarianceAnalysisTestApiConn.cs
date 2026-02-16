@@ -163,6 +163,12 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<Rule>))
             {
+                if (query != RuleQueries.getRulesByManagementForVariance
+                    && query != RuleQueries.getConnectionsByManagementNameForVariance
+                    && query != RuleQueries.getConnectionsByManagementCommentForVariance)
+                {
+                    throw new ArgumentException($"Unexpected rule query: {query}");
+                }
                 GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7), new(Rule8), new(Rule9) } };
                 return response.Data;
             }

@@ -8,6 +8,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string ruleOverviewForChangeReportFragments;
         public static readonly string ruleDetailsFragments;
         public static readonly string ruleDetailsForReportFragments;
+        public static readonly string ruleDetailsForVarianceFragments;
         public static readonly string ruleDetailsForAppRuleReportFragments;
         public static readonly string ruleDetailsForChangeReportFragments;
         public static readonly string natRuleOverviewFragments;
@@ -23,8 +24,11 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRuleUidsOfDevice;
         public static readonly string getRuleUidsOfRulebase;
         public static readonly string getRulesByManagement;
+        public static readonly string getRulesByManagementForVariance;
         public static readonly string getModelledRulesByManagementName;
         public static readonly string getModelledRulesByManagementComment;
+        public static readonly string getConnectionsByManagementNameForVariance;
+        public static readonly string getConnectionsByManagementCommentForVariance;
         public static readonly string getNatRuleOverview;
         public static readonly string getNatRuleDetails;
         // public static readonly string getNatRuleDetailsForReport;
@@ -67,6 +71,11 @@ namespace FWO.Api.Client.Queries
                     ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
                     GetQueryText("rule/fragments/ruleDetailsForReport.graphql");
+                ruleDetailsForVarianceFragments =
+                    GetQueryText("networkObject/fragments/networkObjectDetailsForVariance.graphql") +
+                    GetQueryText("networkService/fragments/networkServiceDetailsForVariance.graphql") +
+                    GetQueryText("user/fragments/userDetailsForVariance.graphql") +
+                    GetQueryText("rule/fragments/ruleDetailsForVariance.graphql");
                 ruleDetailsForAppRuleReportFragments =
                     GetQueryText("networkObject/fragments/networkObjectDetailsForAppRules.graphql") +
                     GetQueryText("networkService/fragments/networkServiceOverview.graphql") +
@@ -98,8 +107,11 @@ namespace FWO.Api.Client.Queries
                 getRuleUidsOfDevice = GetQueryText("rule/getRuleUidsOfDevice.graphql");
                 getRuleUidsOfRulebase = GetQueryText("rule/getRuleUidsOfRulebase.graphql");
                 getRulesByManagement = ruleDetailsFragments + GetQueryText("rule/getRulesByManagement.graphql");
+                getRulesByManagementForVariance = ruleDetailsForVarianceFragments + GetQueryText("rule/getRulesByManagementForVariance.graphql");
                 getModelledRulesByManagementName = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementName.graphql");
                 getModelledRulesByManagementComment = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
+                getConnectionsByManagementNameForVariance = ruleDetailsForVarianceFragments + GetQueryText("report/getConnectionsByManagementNameForVariance.graphql");
+                getConnectionsByManagementCommentForVariance = ruleDetailsForVarianceFragments + GetQueryText("report/getConnectionsByManagementCommentForVariance.graphql");
                 getNatRuleOverview = natRuleOverviewFragments + GetQueryText("rule/getNatRuleOverview.graphql");
                 getNatRuleDetails = natRuleDetailsFragments + GetQueryText("rule/getNatRuleDetails.graphql");
                 getRulesWithViolationsInTimespanByChunk = ruleDetailsFragments + GetQueryText("rule/getRulesWithViolationsInTimespanByChunk.graphql");

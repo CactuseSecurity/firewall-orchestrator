@@ -26,7 +26,7 @@ namespace FWO.Test
         {
             DecommissionTestApiConn apiConnection = new();
             SimulatedUserConfig userConfig = new();
-            userConfig.ModDecommEmailReceiver = EmailRecipientOption.OwnerMainResponsible;
+            userConfig.ModDecommEmailReceiver = nameof(EmailRecipientOption.OwnerMainResponsible);
             userConfig.ModDecommEmailSubject = $"Subject {Placeholder.INTERFACE_NAME}";
             userConfig.ModDecommEmailBody = $"Body {Placeholder.INTERFACE_NAME} {Placeholder.NEW_INTERFACE_NAME} {Placeholder.NEW_INTERFACE_LINK} {Placeholder.REASON} {Placeholder.USER_NAME}";
             userConfig.UiHostName = "https://ui.example.test";
@@ -123,6 +123,14 @@ namespace FWO.Test
             public override Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
             {
                 SentEmails.Add((owner, subject, body, recOpt));
+                return Task.FromResult(true);
+            }
+
+            public override Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, string recipientConfig, bool reqInCc = false, List<string>? otherAddresses = null)
+            {
+                ModellingEmailRecipientSelection parsedSelection = ModellingEmailRecipientSelection.Parse(recipientConfig);
+                EmailRecipientOption recipient = parsedSelection.None ? EmailRecipientOption.None : EmailRecipientOption.OwnerMainResponsible;
+                SentEmails.Add((owner, subject, body, recipient));
                 return Task.FromResult(true);
             }
         }

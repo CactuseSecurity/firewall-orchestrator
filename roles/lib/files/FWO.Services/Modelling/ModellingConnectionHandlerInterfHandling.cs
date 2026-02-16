@@ -95,7 +95,8 @@ namespace FWO.Services.Modelling
             await RemoveFromAllSelections();
 
             List<FwoOwner> appsToNotify = [];
-            if (userConfig.ModDecommEmailReceiver != EmailRecipientOption.None)
+            if (!string.IsNullOrWhiteSpace(userConfig.ModDecommEmailReceiver)
+                && !userConfig.ModDecommEmailReceiver.Equals(nameof(EmailRecipientOption.None), StringComparison.Ordinal))
             {
                 appsToNotify = UsingConnections.Where(c => c.AppId != null && c.AppId != ActConn.AppId).Select(c => c.App).Distinct().ToList();
                 await NotifyUsers(appsToNotify, reason, proposedInterface, middlewareClient);
@@ -418,12 +419,12 @@ namespace FWO.Services.Modelling
         {
             bool publishRequested = !AddMode && ActConn.IsInterface && ActConn.IsRequested && !ActConn.IsPublished &&
                 ActConn.InterfacePermission != InterfacePermissions.Private.ToString();
-            if(publishRequested)
+            if (publishRequested)
             {
                 ActConn.Creator = userConfig.User.Name;
                 ActConn.IsRequested = false;
                 ActConn.IsPublished = true;
-                if(ActConn.AppId == null)
+                if (ActConn.AppId == null)
                 {
                     ActConn.AppId = ActConn.ProposedAppId;
                     ActConn.ProposedAppId = null;

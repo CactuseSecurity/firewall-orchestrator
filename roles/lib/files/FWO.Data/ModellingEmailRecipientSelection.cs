@@ -31,15 +31,11 @@ namespace FWO.Data
             string rawValue = configValue?.Trim() ?? "";
             if (string.IsNullOrWhiteSpace(rawValue))
             {
-                return new ModellingEmailRecipientSelection();
+                return CreateDefault().Sanitize(activeOwnerResponsibleTypeIds);
             }
 
-            ModellingEmailRecipientSelection? parsedSelection = ParseJson(rawValue);
-            if (parsedSelection == null)
-            {
-                parsedSelection = ParseLegacy(rawValue, activeOwnerResponsibleTypeIds);
-            }
-
+            ModellingEmailRecipientSelection parsedSelection = TryParseValue(rawValue, activeOwnerResponsibleTypeIds)
+                ?? CreateDefault();
             return parsedSelection.Sanitize(activeOwnerResponsibleTypeIds);
         }
 
@@ -129,15 +125,32 @@ namespace FWO.Data
             return sanitized;
         }
 
-        private static ModellingEmailRecipientSelection? ParseJson(string rawValue)
+        private static ModellingEmailRecipientSelection? TryParseValue(string rawValue, IEnumerable<int>? activeOwnerResponsibleTypeIds)
         {
+            if (LooksLikeJson(rawValue) && TryParseJson(rawValue, out ModellingEmailRecipientSelection jsonSelection))
+            {
+                return jsonSelection;
+            }
+
+            if (TryParseLegacy(rawValue, activeOwnerResponsibleTypeIds, out ModellingEmailRecipientSelection legacySelection))
+            {
+                return legacySelection;
+            }
+
+            return null;
+        }
+
+        private static bool TryParseJson(string rawValue, out ModellingEmailRecipientSelection selection)
+        {
+            selection = CreateDefault();
             try
             {
                 ModellingEmailRecipientSelection? parsedSelection = JsonSerializer.Deserialize<ModellingEmailRecipientSelection>(rawValue);
                 if (parsedSelection != null)
                 {
                     parsedSelection.OwnerResponsibleTypeIds ??= [];
-                    return parsedSelection;
+                    selection = parsedSelection;
+                    return true;
                 }
             }
             catch
@@ -147,47 +160,99 @@ namespace FWO.Data
                     $"Could not parse recipient selection JSON value \"{rawValue}\". Falling back to legacy parsing.");
             }
 
-            return null;
+            return false;
         }
 
-        private static ModellingEmailRecipientSelection ParseLegacy(string rawValue, IEnumerable<int>? activeOwnerResponsibleTypeIds)
+        private static bool TryParseLegacy(
+            string rawValue,
+            IEnumerable<int>? activeOwnerResponsibleTypeIds,
+            out ModellingEmailRecipientSelection selection)
         {
-            ModellingEmailRecipientSelection selection = new();
-            IEnumerable<int> activeTypeIds = activeOwnerResponsibleTypeIds ?? [GlobalConst.kOwnerResponsibleTypeMain, GlobalConst.kOwnerResponsibleTypeSupporting, GlobalConst.kOwnerResponsibleTypeOptionalEscalation];
+            List<int> activeTypeIds = ResolveActiveOwnerResponsibleTypeIds(activeOwnerResponsibleTypeIds);
 
             switch (rawValue)
             {
                 case nameof(EmailRecipientOption.None):
                 case "0":
-                    selection.None = true;
-                    break;
+                    selection = CreateNoneSelection();
+                    return true;
                 case nameof(EmailRecipientOption.OtherAddresses):
-                    selection.None = false;
-                    selection.OtherAddresses = true;
-                    break;
+                    selection = CreateOtherAddressSelection();
+                    return true;
                 case nameof(EmailRecipientOption.OwnerMainResponsible):
-                    selection.None = false;
-                    selection.OwnerResponsibleTypeIds = [GlobalConst.kOwnerResponsibleTypeMain];
-                    break;
+                    selection = CreateOwnerResponsibleTypeSelection(GlobalConst.kOwnerResponsibleTypeMain);
+                    return true;
                 case nameof(EmailRecipientOption.OwnerGroupOnly):
-                    selection.None = false;
-                    selection.OwnerResponsibleTypeIds = [GlobalConst.kOwnerResponsibleTypeSupporting];
-                    break;
+                    selection = CreateOwnerResponsibleTypeSelection(GlobalConst.kOwnerResponsibleTypeSupporting);
+                    return true;
                 case nameof(EmailRecipientOption.AllOwnerResponsibles):
-                    selection.None = false;
-                    selection.OwnerResponsibleTypeIds = activeTypeIds.ToList();
-                    break;
+                    selection = CreateOwnerResponsibleTypeSelection(activeTypeIds);
+                    return true;
                 case nameof(EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty):
-                    selection.None = false;
-                    selection.EnsureAtLeastOneNotification = true;
-                    selection.OwnerResponsibleTypeIds = [GlobalConst.kOwnerResponsibleTypeSupporting, GlobalConst.kOwnerResponsibleTypeMain];
-                    break;
+                    selection = CreateFallbackSelection();
+                    return true;
                 default:
-                    selection.None = true;
-                    break;
+                    selection = CreateDefault();
+                    return false;
+            }
+        }
+
+        private static bool LooksLikeJson(string rawValue)
+        {
+            return rawValue.StartsWith('{');
+        }
+
+        private static List<int> ResolveActiveOwnerResponsibleTypeIds(IEnumerable<int>? activeOwnerResponsibleTypeIds)
+        {
+            if (activeOwnerResponsibleTypeIds != null)
+            {
+                return activeOwnerResponsibleTypeIds.ToList();
             }
 
-            return selection;
+            return [GlobalConst.kOwnerResponsibleTypeMain, GlobalConst.kOwnerResponsibleTypeSupporting, GlobalConst.kOwnerResponsibleTypeOptionalEscalation];
+        }
+
+        private static ModellingEmailRecipientSelection CreateNoneSelection()
+        {
+            return CreateDefault();
+        }
+
+        private static ModellingEmailRecipientSelection CreateOtherAddressSelection()
+        {
+            return new ModellingEmailRecipientSelection
+            {
+                None = false,
+                OtherAddresses = true
+            };
+        }
+
+        private static ModellingEmailRecipientSelection CreateOwnerResponsibleTypeSelection(params int[] ownerResponsibleTypeIds)
+        {
+            return CreateOwnerResponsibleTypeSelection((IEnumerable<int>)ownerResponsibleTypeIds);
+        }
+
+        private static ModellingEmailRecipientSelection CreateOwnerResponsibleTypeSelection(IEnumerable<int> ownerResponsibleTypeIds)
+        {
+            return new ModellingEmailRecipientSelection
+            {
+                None = false,
+                OwnerResponsibleTypeIds = ownerResponsibleTypeIds.ToList()
+            };
+        }
+
+        private static ModellingEmailRecipientSelection CreateFallbackSelection()
+        {
+            return new ModellingEmailRecipientSelection
+            {
+                None = false,
+                EnsureAtLeastOneNotification = true,
+                OwnerResponsibleTypeIds = [GlobalConst.kOwnerResponsibleTypeSupporting, GlobalConst.kOwnerResponsibleTypeMain]
+            };
+        }
+
+        private static ModellingEmailRecipientSelection CreateDefault()
+        {
+            return new ModellingEmailRecipientSelection();
         }
     }
 }

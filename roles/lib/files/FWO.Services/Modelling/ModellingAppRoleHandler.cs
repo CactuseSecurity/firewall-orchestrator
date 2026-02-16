@@ -8,7 +8,7 @@ using NetTools;
 using System.Net;
 using System.Text.Json;
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     public class ModellingAppRoleHandler : ModellingHandlerBase
     {
@@ -54,13 +54,10 @@ namespace FWO.Services
         public async Task InitAppRole(ModellingNetworkArea? newArea)
         {
             ActAppRole.Area = newArea;
-            if (newArea != null)
+            if (newArea != null && newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode)
             {
-                if (newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode)
-                {
-                    ActAppRole.ManagedIdString.ConvertAreaToAppRoleFixedPart(newArea.IdString);
-                    ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(ActAppRole.ManagedIdString);
-                }
+                ActAppRole.ManagedIdString.ConvertAreaToAppRoleFixedPart(newArea.IdString);
+                ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(ActAppRole.ManagedIdString);
             }
             OrigId = new(ActAppRole.ManagedIdString);
             await SelectAppServersFromArea(newArea);

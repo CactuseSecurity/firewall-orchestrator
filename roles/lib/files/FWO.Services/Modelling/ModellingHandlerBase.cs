@@ -9,8 +9,22 @@ using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
 
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
+    public record LogChangeRequest
+    {
+        public ModellingTypes.ChangeType ChangeType { get; init; }
+        public ModellingTypes.ModObjectType ObjectType { get; init; }
+        public long ObjectId { get; init; }
+        public string Text { get; init; } = "";
+        public ApiConnection ApiConnection { get; init; } = null!;
+        public UserConfig UserConfig { get; init; } = null!;
+        public int? ApplicationId { get; init; }
+        public Action<Exception?, string, string, bool> DisplayMessageInUi { get; init; } = null!;
+        public string? Requester { get; init; }
+        public string ChangeSource { get; init; } = GlobalConst.kManual;
+    }
+
     public class ModellingHandlerBase
     {
         public FwoOwner Application { get; set; } = new();
@@ -89,30 +103,39 @@ namespace FWO.Services
 
         protected async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text, int? applicationId, string changeSource = GlobalConst.kManual)
         {
-            await LogChange(changeType, objectType, objId, text, apiConnection, userConfig, applicationId, DisplayMessageInUi, null, changeSource);
+            await LogChange(new LogChangeRequest
+            {
+                ChangeType = changeType,
+                ObjectType = objectType,
+                ObjectId = objId,
+                Text = text,
+                ApiConnection = apiConnection,
+                UserConfig = userConfig,
+                ApplicationId = applicationId,
+                DisplayMessageInUi = DisplayMessageInUi,
+                ChangeSource = changeSource
+            });
         }
 
-        public static async Task LogChange(ModellingTypes.ChangeType changeType, ModellingTypes.ModObjectType objectType, long objId, string text,
-            ApiConnection apiConnection, UserConfig userConfig, int? applicationId, Action<Exception?, string, string, bool> displayMessageInUi,
-            string? requester = null, string changeSource = GlobalConst.kManual)
+        public static async Task LogChange(LogChangeRequest request)
         {
             try
             {
                 var Variables = new
                 {
-                    appId = applicationId,
-                    changeType = (int)changeType,
-                    objectType = (int)objectType,
-                    objectId = objId,
-                    changeText = text,
-                    changer = requester ?? userConfig.User.Name,
-                    changeSource
+                    appId = request.ApplicationId,
+                    changeType = (int)request.ChangeType,
+                    objectType = (int)request.ObjectType,
+                    objectId = request.ObjectId,
+                    changeText = request.Text,
+                    changer = request.Requester ?? request.UserConfig.User.Name,
+                    changeSource = request.ChangeSource
                 };
-                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntry, Variables);
+                await request.ApiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntry, Variables);
             }
             catch (Exception exception)
             {
-                displayMessageInUi(exception, userConfig.GetText("log_change"), "", true);
+                request.DisplayMessageInUi(exception, request.UserConfig.GetText("log_change"), "", true);
             }
         }
 

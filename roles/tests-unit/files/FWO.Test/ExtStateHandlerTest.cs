@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services;
+using FWO.Services.Workflow;
 using NUnit.Framework;
 
 namespace FWO.Test

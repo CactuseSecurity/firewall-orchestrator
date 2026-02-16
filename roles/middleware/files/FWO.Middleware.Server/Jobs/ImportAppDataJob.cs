@@ -4,7 +4,7 @@ using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
-using FWO.Services;
+using FWO.Services.Modelling;
 using Quartz;
 
 namespace FWO.Middleware.Server.Jobs

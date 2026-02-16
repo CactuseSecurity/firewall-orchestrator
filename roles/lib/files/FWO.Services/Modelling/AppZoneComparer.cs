@@ -1,6 +1,6 @@
 using FWO.Data.Modelling;
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     public class AppZoneComparer(ModellingNamingConvention namingConvention) : IEqualityComparer<ModellingAppZone?>
     {

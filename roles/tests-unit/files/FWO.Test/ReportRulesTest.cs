@@ -2,6 +2,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Report;
+using FWO.Services.RuleTreeBuilder;
 using FWO.Test.Mocks;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -22,8 +23,10 @@ namespace FWO.Test
 
         private Rule[] _rules = new Rule[0];
 
+        private RuleTreeBuilder _ruleTreeBuilder = new();
+
         [SetUp]
-        public void setUp()
+        public void SetUp()
         {
             MockReportRules.RulebaseId = 0;
             MockReportRules.RuleId = 0;
@@ -86,24 +89,26 @@ namespace FWO.Test
                 }
             );
 
-            List<ManagementReport> SetupData() => new()
+            _managementReports = new()
             {
                 new ManagementReport
                 {
                     Id = 1,
                     Name = "ManagementX",
-                    Devices = new[] { _deviceReport },
-                    Rulebases = new[] { _rb1, _rb2, _rb3 }
+                    Devices = [_deviceReport],
+                    Rulebases = [_rb1, _rb2, _rb3]
                 }
             };
-            _managementReports = SetupData();
-            _managementReport = SetupData().First();
+
+            _managementReport = _managementReports.First();
 
             // Cache manuell fill mit der Reihenfolge: RB2 (initial) zuerst
             _rules = _rb2.Rules.Concat(_rb1.Rules).Concat(_rb3.Rules).ToArray();
             typeof(ReportRules)
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
                 .SetValue(null, new Dictionary<(int, int), Rule[]> { [(_deviceReport.Id, _managementReport.Id)] = _rules });
+
+            _ruleTreeBuilder.Reset(_managementReport.Rulebases, _deviceReport.RulebaseLinks);
         }
 
         [TearDown]
@@ -183,15 +188,15 @@ namespace FWO.Test
         [Test]
         public void Test_GetAllRulesOfGateway_ReturnsEmpty_WhenCacheEmpty()
         {
-            var device = MockReportRules.CreateDeviceReport();
-            var management = new ManagementReport();
+            // ARRANGE
 
-            // Cache leeren
-            typeof(ReportRules)
-                .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
-                .SetValue(null, new Dictionary<(int, int), Rule[]>());
+            _ruleTreeBuilder.RuleTreeCache.Clear();
 
-            var result = ReportRules.GetAllRulesOfGateway(device, management);
+            // ACT
+
+            var result = ReportRules.GetAllRulesOfGateway(_deviceReport!, _managementReport!, _ruleTreeBuilder);
+
+            // ASSERT
 
             Assert.That(result, Is.Empty);
         }
@@ -252,7 +257,9 @@ namespace FWO.Test
         public void Test_GetAllRulesOfGateway_ReturnsRules_FromCache()
         {
             var device = MockReportRules.CreateDeviceReport();
+            device.Id = 1;
             var management = new ManagementReport();
+            management.Id = 1;
             var rules = new Rule[] { new Rule { Id = 1, RulebaseId = 1 } };
 
             // Cache manuell setzen
@@ -260,7 +267,11 @@ namespace FWO.Test
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
                 .SetValue(null, new Dictionary<(int, int), Rule[]> { [(device.Id, management.Id)] = rules });
 
-            var result = ReportRules.GetAllRulesOfGateway(device, management);
+            RuleTreeBuilder ruleTreeBuilder = new RuleTreeBuilder();
+            ruleTreeBuilder.RuleTreeCache[(management.Id, device.Id)] = ruleTreeBuilder.RuleTree;
+            ruleTreeBuilder.FlattedRules[ruleTreeBuilder.RuleTree] = rules;
+            ruleTreeBuilder.Reset(management.Rulebases, device.RulebaseLinks);
+            var result = ReportRules.GetAllRulesOfGateway(device, management, ruleTreeBuilder);
 
             Assert.That(result, Has.Length.EqualTo(1));
             Assert.That(result[0].Id, Is.EqualTo(1));
@@ -269,40 +280,51 @@ namespace FWO.Test
         [Test]
         public void Test_GetRulesByDeviceAndRulebase_WithThreeLinks_InitialSecond_ReturnsCorrectOrder()
         {
-            // ACT ------------------------------------------------------------------
+            // ARRANGE
+
+            _ruleTreeBuilder.BuildRuleTree(_managementReport!.Rulebases, _deviceReport!.RulebaseLinks, _managementReport.Id, _deviceReport.Id);
+
+
+            // ACT
+
             var initialRules = ReportRules.GetInitialRulesOfGateway(_deviceReport!, _managementReport!);
-            var retrievedAllRules = ReportRules.GetAllRulesOfGateway(_deviceReport!, _managementReport!);
+            var retrievedAllRules = ReportRules.GetAllRulesOfGateway(_deviceReport!, _managementReport!, _ruleTreeBuilder);
+            var retrieveRulesWithoutDummies = retrievedAllRules.Where(rule => rule.SectionHeader == "").ToArray(); // rulebases get their dummy rules to be displayable in blazor table, so we have to exclude these here
 
-            // ASSERT ---------------------------------------------------------------
+            // ASSERT
 
-            // 1. Initial Rules check
+            // Initial rules correct
+
             ClassicAssert.AreEqual(_rb2!.Rules.Length, initialRules.Length);
             ClassicAssert.IsTrue(initialRules.All(r => r.RulebaseId == _rb2!.Id));
 
-            // 2. Alle Rules check
-            ClassicAssert.AreEqual(_rules.Count(), retrievedAllRules.Length);
+            // All rules of gateway correct
 
-            // 3. Order check: RB2 (initial), dann RB1, dann RB3
-            for (int i = 0; i < retrievedAllRules.Count(); i++)
+            ClassicAssert.AreEqual(_rules.Count(), retrieveRulesWithoutDummies.Length);
+
+            // Order correct
+
+            for (int i = 0; i < retrieveRulesWithoutDummies.Count(); i++)
             {
                 if (i < _rb2.Rules.Length)
                 {
-                    ClassicAssert.AreEqual(_rb2.Id, retrievedAllRules[i].RulebaseId);
+                    ClassicAssert.AreEqual(_rb2.Id, retrieveRulesWithoutDummies[i].RulebaseId);
                 }
                 else if (i < _rb2.Rules.Length + _rb1!.Rules.Length)
                 {
-                    ClassicAssert.AreEqual(_rb1.Id, retrievedAllRules[i].RulebaseId);
+                    ClassicAssert.AreEqual(_rb1.Id, retrieveRulesWithoutDummies[i].RulebaseId);
                 }
                 else
                 {
-                    ClassicAssert.AreEqual(_rb3!.Id, retrievedAllRules[i].RulebaseId);
+                    ClassicAssert.AreEqual(_rb3!.Id, retrieveRulesWithoutDummies[i].RulebaseId);
                 }
             }
 
-            // Struktur prüfen
+            // Structure correct
+
             ClassicAssert.AreEqual(1, _managementReport!.Devices.Length);
             ClassicAssert.AreEqual(3, _managementReport.Rulebases.Length);
-            ClassicAssert.AreEqual(_rb1!.Rules.Length + _rb2.Rules.Length + _rb3!.Rules.Length, retrievedAllRules.Length);
+            ClassicAssert.AreEqual(_rb1!.Rules.Length + _rb2.Rules.Length + _rb3!.Rules.Length, retrieveRulesWithoutDummies.Length);
         }
 
         [Test]

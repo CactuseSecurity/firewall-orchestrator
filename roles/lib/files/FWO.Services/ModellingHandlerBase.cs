@@ -216,6 +216,7 @@ namespace FWO.Services
                         conn.SrcFromInterface = interf[0].SourceFilled();
                         conn.DstFromInterface = interf[0].DestinationFilled();
                         conn.InterfaceIsDecommissioned = interf[0].GetBoolProperty(ConState.Decommissioned.ToString());
+                        conn.InterfaceNoPermission = !interf[0].PermittedOwnerWrappers.Any(w => w.Owner != null && w.Owner.Id == conn.AppId);
                         if (interf[0].IsRequested)
                         {
                             conn.InterfaceIsRequested = true;
@@ -226,18 +227,7 @@ namespace FWO.Services
                         {
                             interfaceName = ExtractFullInterface(conn, interf[0]);
                         }
-                        if (interf[0].GetBoolProperty(ConState.Rejected.ToString()))
-                        {
-                            conn.AddProperty(ConState.InterfaceRejected.ToString());
-                        }
-                        else if (interf[0].GetBoolProperty(ConState.Requested.ToString()))
-                        {
-                            conn.AddProperty(ConState.InterfaceRequested.ToString());
-                        }
-                        else if (interf[0].GetBoolProperty(ConState.Decommissioned.ToString()))
-                        {
-                            conn.AddProperty(ConState.InterfaceDecommissioned.ToString());
-                        }
+                        SetRelevantProps(conn, interf[0]);
                     }
                 }
             }
@@ -270,6 +260,26 @@ namespace FWO.Services
             return interf.Name ?? "";
         }
 
+        private static void SetRelevantProps(ModellingConnection conn, ModellingConnection interf)
+        {
+            if (interf.GetBoolProperty(ConState.Rejected.ToString()))
+            {
+                conn.AddProperty(ConState.InterfaceRejected.ToString());
+            }
+            else if (conn.InterfaceIsRequested)
+            {
+                conn.AddProperty(ConState.InterfaceRequested.ToString());
+            }
+            else if (conn.InterfaceIsDecommissioned)
+            {
+                conn.AddProperty(ConState.InterfaceDecommissioned.ToString());
+            }
+            else if (conn.InterfaceNoPermission)
+            {
+                conn.AddProperty(ConState.InterfaceNoPermission.ToString());
+            }
+        }
+
         public async Task<ModellingConnection?> GetUsedInterface(ModellingConnection conn)
         {
             try
@@ -290,16 +300,12 @@ namespace FWO.Services
             return null;
         }
 
-        protected async Task<bool> CheckInterfaceInUse(ModellingConnection conn)
+        protected async Task<bool> InitUsingConnections(int connId)
         {
             try
             {
-                UsingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = conn.Id });
-                if (UsingConnections.Count == 0)
-                {
-                    return false;
-                }
-                return true;
+                UsingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = connId });
+                return UsingConnections.Count > 0;
             }
             catch (Exception exception)
             {

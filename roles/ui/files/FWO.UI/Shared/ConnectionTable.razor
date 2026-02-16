@@ -51,29 +51,32 @@
                 <Template>
                     @if(SelectionType == SelectionType.Single)
                     {
-                        <input type="radio" checked="@(SelectedConns.Contains(context))" />
+                        <input type="radio"
+                               disabled="@(!IsVisibleToOwner(context))"
+                               checked="@(SelectedConns.Contains(context))"
+                               title="@(!IsVisibleToOwner(context) ? userConfig.GetText("C9027") : null)" />
                     }
                     else if(SelectionType == SelectionType.Multiple)
                     {
-                        <input type="checkbox" checked="@(SelectedConns.Contains(context))" />
+                        <input type="checkbox"
+                               disabled="@(!IsVisibleToOwner(context))"
+                               checked="@(SelectedConns.Contains(context))"
+                               title="@(!IsVisibleToOwner(context) ? userConfig.GetText("C9027") : null)" />
                     }
                 </Template>
             </Column>
         }
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+        @if(Connections.Count > 0 && Connections.First().IsInterface)
+        {
+            <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("interface_permission"))" Field="@(x => x.InterfacePermission)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.IsInterface ? userConfig.GetText(context.InterfacePermission) : "")
+                </Template>
+            </Column>
+        }
         @if(!SelectInterfaceView && !DiffMode)
         {
-            @if(InterfacesPossible)
-            {
-                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
-                    <Template>
-                        @if(context.IsInterface)
-                        {
-                            @context.IsPublished.ShowAsHtml()
-                        }
-                    </Template>
-                </Column>
-            }
             @if(ShowModellingState)
             {
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("mod_state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
@@ -160,6 +163,9 @@
 
     [Parameter]
     public EventCallback<ModellingAppHandler> AppHandlerChanged { get; set; }
+    
+    [Parameter]
+    public FwoOwner Application { get; set; } = new();
 
     [Parameter]
     public bool AppActive { get; set; } = false;
@@ -270,6 +276,19 @@
         return connection.GetBoolProperty(ConState.VarianceChecked.ToString()) ? (implementationProps.Count > 0 ? string.Join(",", implementationProps) : Ok("C9024")) : Question();
     }
 
+    private bool IsVisibleToOwner(ModellingConnection interf)
+    {
+        if(interf.InterfacePermission == InterfacePermissions.Public.ToString())
+        {
+            return true;
+        }
+        if(interf.InterfacePermission == InterfacePermissions.Private.ToString())
+        {
+            return false;
+        }
+        return interf.App.Id == Application.Id || interf.PermittedOwners.Select(o => o.Id).Contains(Application.Id);
+    }
+
     private List<string> CollectModellingProps(ModellingConnection connection)
     {
         List<string> relevantProps = [];
@@ -290,6 +309,14 @@
                         break;
                     case nameof(ConState.InterfaceDecommissioned):
                         relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9026")}\">{false.ShowAsHtml()}</span>");
+                        break;
+                    case nameof(ConState.InterfaceNoPermission):
+                        if (!connection.Props.ContainsKey(ConState.InterfaceRequested.ToString()) &&
+                            !connection.Props.ContainsKey(ConState.InterfaceRejected.ToString()) &&
+                            !connection.Props.ContainsKey(ConState.InterfaceDecommissioned.ToString()))
+                        {      
+                            relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9028")}\">{false.ShowAsHtml()}</span>");
+                        }
                         break;
                     case nameof(ConState.Requested):
                         relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9008")}\">{Exclamation()}</span>");

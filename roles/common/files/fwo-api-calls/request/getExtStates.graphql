@@ -1,6 +1,6 @@
 
 query getExtStates {
-  ext_state (order_by: { id: asc }){
+  request_ext_state (order_by: { id: asc }){
     id
     name
     state_id

@@ -1,5 +1,5 @@
 mutation removeExtState($id: Int!) {
-  delete_ext_state_by_pk (
+  delete_request_ext_state_by_pk (
     id: $id
   ) {
     deletedId: id

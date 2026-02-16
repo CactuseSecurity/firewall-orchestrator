@@ -7,7 +7,6 @@
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Services
-@using FWO.Ui.Auth
 @using FWO.Services.RuleTreeBuilder
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
@@ -210,8 +209,14 @@
         }
         else
         {
-            List<int> editableOwnerIds = GetResolvedOwnerIds(userConfig.User.Ownerships, "x-hasura-editable-owners");
-            List<int> resolvedRecertOwnerIds = GetResolvedOwnerIds(userConfig.User.RecertOwnerships, "x-hasura-recertifiable-owners");
+            List<int> editableOwnerIds = RecertificationOwnerSelection.ResolveOwnerIds(
+                userConfig.User.Ownerships,
+                authenticationStateTask!.Result.User.Claims,
+                "x-hasura-editable-owners");
+            List<int> resolvedRecertOwnerIds = RecertificationOwnerSelection.ResolveOwnerIds(
+                userConfig.User.RecertOwnerships,
+                authenticationStateTask.Result.User.Claims,
+                "x-hasura-recertifiable-owners");
             List<int> readableOwnerIds = editableOwnerIds
                 .Concat(resolvedRecertOwnerIds)
                 .Distinct()
@@ -225,17 +230,6 @@
         }
 
         selectedOwner = RecertificationOwnerSelection.SelectOwner(collectedOwnerships, recertifiableOwnerIds);
-    }
-
-    private List<int> GetResolvedOwnerIds(List<int> configuredOwnerIds, string claimType)
-    {
-        if (configuredOwnerIds.Count > 0)
-        {
-            return configuredOwnerIds;
-        }
-
-        List<int> parsedOwnerIds = FWO.Ui.Auth.JwtClaimParser.ExtractIntClaimValues(authenticationStateTask!.Result.User.Claims, claimType);
-        return parsedOwnerIds;
     }
 
     private async Task GenerateRecertificationReport()
@@ -442,24 +436,11 @@
         variables)).Count == 0);
     }
 
-    private bool HasRecertWriteAccess()
-    {
-        return authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-            || authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
-    }
-
     private bool CanWriteSelectedOwner()
     {
-        if (!HasRecertWriteAccess() || selectedOwner == null)
-        {
-            return false;
-        }
+        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+        bool hasRecertifierRole = authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
 
-        if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
-        {
-            return true;
-        }
-
-        return recertifiableOwnerIds.Contains(selectedOwner.Id);
+        return RecertificationOwnerSelection.CanWriteSelectedOwner(selectedOwner, isAdmin, hasRecertifierRole, recertifiableOwnerIds);
     }
 }

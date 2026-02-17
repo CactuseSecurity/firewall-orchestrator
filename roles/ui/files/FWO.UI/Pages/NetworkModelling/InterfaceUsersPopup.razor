@@ -14,7 +14,7 @@
                         }
                         else
                         {
-                            @($"{@context.App.Name} (Id: {context.App.ExtAppId})")
+                            @($"{@context.App.Name} ({context.App.ExtAppId})")
                         }
                     </Template>
                 </Column>
@@ -58,7 +58,7 @@
             }
             else
             {
-                return $"{userConfig.GetText("using_connections")} {InterfaceName} (Id: {App.ExtAppId})";
+                return $"{userConfig.GetText("using_connections")} {InterfaceName} ({App.ExtAppId})";
             }
         }
     }

@@ -6,7 +6,7 @@ using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     public partial class ModellingConnectionHandler
     {

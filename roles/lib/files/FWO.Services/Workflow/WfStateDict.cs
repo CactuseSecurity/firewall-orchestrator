@@ -2,7 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data.Workflow;
 
-namespace FWO.Services
+namespace FWO.Services.Workflow
 {
     public class WfStateDict
     {

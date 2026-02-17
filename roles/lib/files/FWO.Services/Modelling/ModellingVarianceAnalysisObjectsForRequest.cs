@@ -5,7 +5,7 @@ using FWO.Data.Workflow;
 using FWO.Logging;
 using System.Text.Json;
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     /// <summary>
     /// Part of Variance Analysis Class analysing the rules, network and service objects for request

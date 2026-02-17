@@ -7,11 +7,12 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Logging;
 using FWO.Middleware.Client;
+using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 
 
-namespace FWO.Services
+namespace FWO.Services.Modelling
 {
     public partial class ModellingConnectionHandler
     {

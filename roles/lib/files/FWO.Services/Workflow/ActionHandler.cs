@@ -5,10 +5,11 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using FWO.Services.Modelling;
 using System.Text.Json;
 
 
-namespace FWO.Services
+namespace FWO.Services.Workflow
 {
     public class ActionHandler
     {
@@ -117,14 +118,11 @@ namespace FWO.Services
                     await wfHandler.HandlePathAnalysisAction(action.ExternalParams);
                     break;
                 case nameof(StateActionTypes.ExternalCall):
-                    // await CallExternal(action);
+                    await CallExternal(action);
                     break;
                 case nameof(StateActionTypes.SendEmail):
                     await SendEmail(action, statefulObject, scope, owner, userGrpDn);
                     break;
-                // case nameof(StateActionTypes.CreateConnection):
-                //     await CreateConnection(action, owner);
-                //     break;
                 case nameof(StateActionTypes.UpdateConnectionOwner):
                     await UpdateConnectionOwner(owner, ticketId);
                     break;
@@ -142,10 +140,10 @@ namespace FWO.Services
             }
         }
 
-        // public async Task CallExternal(WfStateAction action)
-        // {
-        //     // call external APIs with ExternalParams, e.g. for Compliance Check
-        // }
+        public async Task CallExternal(WfStateAction action)
+        {
+            // call external APIs with ExternalParams, e.g. for Compliance Check
+        }
 
         public async Task SendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
         {
@@ -171,23 +169,6 @@ namespace FWO.Services
             }
         }
 
-        // public async Task CreateConnection(WfStateAction action, FwoOwner? owner)
-        // {
-        //     Log.WriteDebug("CreateConnection", "Perform Action");
-        //     try
-        //     {
-        //         ModellingConnection proposedInterface = new(){ IsInterface = true, IsRequested = true, TicketId = wfHandler.ActTicket.Id };
-        //         ModellingConnectionHandler ConnHandler = new (apiConnection, wfHandler.userConfig, wfHandler.ActReqTask.Owners.First().Owner, new(), proposedInterface, true, false, DefaultInit.DoNothing, false);
-        //         apiConnection.SetProperRole(user, [Roles.Modeller, Roles.Admin]);
-        //         await ConnHandler.CreateNewRequestedInterface();
-        //         apiConnection.SwitchBack());
-        //     }
-        //     catch(Exception exc)
-        //     {
-        //         Log.WriteError("Create Connection", $"Could not create connection externally from Workflow: ", exc);
-        //     }
-        // }
-
         public async Task UpdateConnectionOwner(FwoOwner? owner, long? ticketId)
         {
             Log.WriteDebug("UpdateConnectionOwner", "Perform Action");
@@ -207,8 +188,17 @@ namespace FWO.Services
                                 propAppId = owner.Id
                             };
                             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateProposedConnectionOwner, Variables);
-                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
-                                $"Updated {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}", apiConnection, wfHandler.userConfig, owner.Id, DefaultInit.DoNothing);
+                            await ModellingHandlerBase.LogChange(new LogChangeRequest
+                            {
+                                ChangeType = ModellingTypes.ChangeType.Update,
+                                ObjectType = ModellingTypes.ModObjectType.Connection,
+                                ObjectId = conn.Id,
+                                Text = $"Updated {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
+                                ApiConnection = apiConnection,
+                                UserConfig = wfHandler.userConfig,
+                                ApplicationId = owner.Id,
+                                DisplayMessageInUi = DefaultInit.DoNothing
+                            });
                         }
                     }
                     apiConnection.SwitchBack();
@@ -233,20 +223,7 @@ namespace FWO.Services
                     {
                         if (conn.IsRequested && !conn.IsPublished)
                         {
-                            ConnHandler = new(apiConnection, wfHandler.userConfig, owner, [], conn, true, false, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
-                            await ConnHandler.PartialInit();
-                            if (ConnHandler.CheckConn())
-                            {
-                                var Variables = new
-                                {
-                                    id = conn.Id,
-                                    isRequested = false,
-                                    isPublished = true
-                                };
-                                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionPublish, Variables);
-                                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
-                                    $"Updated {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}", apiConnection, wfHandler.userConfig, owner.Id, DefaultInit.DoNothing);
-                            }
+                            await PublishInterface(conn, owner);
                         }
                     }
                     apiConnection.SwitchBack();
@@ -256,6 +233,35 @@ namespace FWO.Services
             {
                 Log.WriteError("Update Connection Publish", $"Could not publish connection: ", exc);
             }
+        }
+
+        private async Task PublishInterface(ModellingConnection conn, FwoOwner owner)
+        {
+            if (conn.AppId == null && conn.ProposedAppId != null)
+            {
+                conn.AppId = conn.ProposedAppId;
+                conn.ProposedAppId = null;
+            }
+            var Variables = new
+            {
+                id = conn.Id,
+                isRequested = false,
+                isPublished = true,
+                appId = conn.AppId,
+                proposedAppId = conn.ProposedAppId
+            };
+            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionPublish, Variables);
+            await ModellingHandlerBase.LogChange(new LogChangeRequest
+            {
+                ChangeType = ModellingTypes.ChangeType.Publish,
+                ObjectType = ModellingTypes.ModObjectType.Connection,
+                ObjectId = conn.Id,
+                Text = $"Published {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
+                ApiConnection = apiConnection,
+                UserConfig = wfHandler.userConfig,
+                ApplicationId = owner.Id,
+                DisplayMessageInUi = DefaultInit.DoNothing
+            });
         }
 
         public async Task UpdateConnectionReject(FwoOwner? owner, long? ticketId)
@@ -278,8 +284,17 @@ namespace FWO.Services
                                 connProp = conn.Properties
                             };
                             await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, Variables);
-                            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, conn.Id,
-                                $"Rejected {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}", apiConnection, wfHandler.userConfig, owner.Id, DefaultInit.DoNothing);
+                            await ModellingHandlerBase.LogChange(new LogChangeRequest
+                            {
+                                ChangeType = ModellingTypes.ChangeType.Reject,
+                                ObjectType = ModellingTypes.ModObjectType.Connection,
+                                ObjectId = conn.Id,
+                                Text = $"Rejected {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
+                                ApiConnection = apiConnection,
+                                UserConfig = wfHandler.userConfig,
+                                ApplicationId = owner.Id,
+                                DisplayMessageInUi = DefaultInit.DoNothing
+                            });
                         }
                     }
                     apiConnection.SwitchBack();
@@ -306,11 +321,11 @@ namespace FWO.Services
                 if (owner != null && wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
                 {
                     apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin, Roles.Auditor]);
-                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner?.Id });
+                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner.Id });
                     ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
                     if (conn != null)
                     {
-                        ConnHandler = new ModellingConnectionHandler(apiConnection, wfHandler.userConfig, owner ?? new(), Connections, conn, false, true, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
+                        ConnHandler = new ModellingConnectionHandler(apiConnection, wfHandler.userConfig, owner, Connections, conn, false, true, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
                         await ConnHandler.Init();
                         DisplayConnectionMode = true;
                     }

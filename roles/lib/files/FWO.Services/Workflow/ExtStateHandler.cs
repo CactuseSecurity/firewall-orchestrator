@@ -3,7 +3,7 @@ using FWO.Data.Workflow;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 
-namespace FWO.Services
+namespace FWO.Services.Workflow
 {
     public class ExtStateHandler
     {

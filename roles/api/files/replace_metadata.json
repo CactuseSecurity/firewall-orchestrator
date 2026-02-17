@@ -9580,6 +9580,18 @@
                   }
                 },
                 {
+                  "name": "time_objects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "mgm_id",
+                      "table": {
+                        "name": "time_object",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "usrs",
                   "using": {
                     "foreign_key_constraint_on": {

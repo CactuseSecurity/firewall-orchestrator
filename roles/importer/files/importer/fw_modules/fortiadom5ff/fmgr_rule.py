@@ -245,6 +245,8 @@ def parse_single_rule(
 
     last_hit = rule_parse_last_hit(native_rule)
 
+    time = rule_parse_time(native_rule)
+
     # Create the normalized rule
     rule_normalized = RuleNormalized(
         rule_num=0,
@@ -262,7 +264,7 @@ def parse_single_rule(
         rule_action=rule_action,
         rule_track=rule_track,
         rule_installon=rule_installon,
-        rule_time=None,  # Time-based rules not commonly used in basic Fortinet configs
+        rule_time=time,  # Time-based rules not commonly used in basic Fortinet configs
         rule_name=native_rule.get("name"),
         rule_uid=native_rule.get("uuid"),
         rule_custom_fields=str(native_rule.get("meta fields", {})),
@@ -465,6 +467,15 @@ def rule_parse_last_hit(native_rule: dict[str, Any]) -> str | None:
     if last_hit is not None:
         last_hit = strftime("%Y-%m-%d %H:%M:%S", localtime(last_hit))
     return last_hit
+
+
+def rule_parse_time(native_rule: dict[str, Any]) -> str | None:
+    schedule: list[str] | None = native_rule.get("schedule")
+
+    if schedule is None:
+        return None
+
+    return "|".join(s.replace(" ", "_") for s in schedule)
 
 
 def get_access_policy(

@@ -18,6 +18,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.import_state import ImportState
 from models.management import Management
+from models.time_object import TimeObject
 from utils.conversion_utils import convert_list_to_dict
 
 
@@ -150,6 +151,7 @@ def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
         "nat_rulebases": [],
         "zones": [],
         "gateways": [],
+        "time_objects": [],
     }
 
 
@@ -266,6 +268,8 @@ def normalize_single_manager_config(
         is_global_loop_iteration,
     )
     FWOLogger.info("completed normalizing rulebases for manager: " + native_config.get("domain_name", ""))
+    normalize_time_objects(native_config, normalized_config_adom)
+    FWOLogger.info("completed normalizing time objects for manager: " + native_config.get("domain_name", ""))
 
     normalize_gateways(native_config, normalized_config_adom)
 
@@ -452,6 +456,18 @@ def get_objects(
             limit=limit,
         )
 
+    # schedules: /pm/config/adom/root/obj/firewall/schedule/onetime, /pm/config/adom/root/obj/firewall/schedule/recurring, /pm/config/adom/root/obj/firewall/schedule/group
+    # get schedules:
+    for object_type in ["onetime", "recurring", "group"]:
+        fmgr_getter.update_config_with_fortinet_api_call(
+            native_config_domain["time_objects"],
+            sid,
+            fm_api_url,
+            api_base_path + "firewall/schedule/" + object_type,
+            "schedule_obj_" + adom_scope + "_" + "firewall/schedule/" + object_type,
+            limit=limit,
+        )
+
     # get one arbitrary device and vdom to get dynamic objects
     # they are equal across all adoms, vdoms, devices
     if arbitrary_vdom_for_updateable_objects is None:
@@ -515,3 +531,28 @@ def normalize_links(rulebase_links: list[dict[str, Any]]) -> list[dict[str, Any]
             if link["from_rule_uid"] is not None:
                 link["from_rule_uid"] = None
     return rulebase_links
+
+
+def normalize_time_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any]):
+    time_objects: list[TimeObject] = []
+
+    for rulebase in native_config.get("rulebases", []):  # include nat rulebases?
+        for rule in rulebase.get("data", []):
+            if "schedule" in rule and rule["schedule"] is not None:
+                schedule_ref = rule["schedule"]
+                matching_time_objects = [obj for obj in time_objects if obj.time_obj_uid == schedule_ref]
+                if matching_time_objects:
+                    new_time_object = TimeObject(
+                        time_obj_uid=matching_time_objects[0].time_obj_uid,
+                        time_obj_type="1",
+                        time_obj_name=matching_time_objects[0].time_obj_name,
+                        start_time=matching_time_objects[0].start_time,
+                        end_time=matching_time_objects[0].end_time,
+                    )
+                    time_objects.append(new_time_object)
+                else:
+                    FWOLogger.warning(
+                        f"Schedule reference {schedule_ref} in rule {rule['name']} does not match any known time object."
+                    )
+
+    normalized_config_adom.update({"time_objects": time_objects})

@@ -544,7 +544,7 @@ def normalize_time_objects(native_config: dict[str, Any], normalized_config_adom
                 if matching_time_objects:
                     new_time_object = TimeObject(
                         time_obj_uid=matching_time_objects[0].time_obj_uid,
-                        time_obj_type="1",
+                        time_obj_type_str="1",
                         time_obj_name=matching_time_objects[0].time_obj_name,
                         start_time=matching_time_objects[0].start_time,
                         end_time=matching_time_objects[0].end_time,

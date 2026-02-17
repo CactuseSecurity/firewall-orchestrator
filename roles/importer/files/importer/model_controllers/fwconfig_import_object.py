@@ -156,7 +156,9 @@ class FwConfigImportObject:
             deleted_user_uids,
             deleted_zone_names,
         )
-        self.update_time_objs_via_api(prev_config.time_objects, self.normalized_config.time_objects)
+        self.update_time_objs_via_api(
+            prev_config.time_objects, self.normalized_config.time_objects, is_global=single_manager.is_super_manager
+        )
 
         self.uid2id_mapper.add_network_object_mappings(new_nw_obj_ids, is_global=single_manager.is_super_manager)
         self.uid2id_mapper.add_service_object_mappings(new_svc_obj_ids, is_global=single_manager.is_super_manager)
@@ -330,13 +332,23 @@ class FwConfigImportObject:
         )
 
     def update_time_objs_via_api(
-        self, previous_time_objs: dict[str, TimeObject], current_time_objs: dict[str, TimeObject]
+        self, previous_time_objs: dict[str, TimeObject], current_time_objs: dict[str, TimeObject], is_global: bool
     ) -> None:
+        """
+        Insert new time objects and update removed time objects via FWO API.
+        Also updates uid2id mapping for time objects.
+        """
+        self.uid2id_mapper.update_time_object_mapping(is_global=is_global)
         import_mutation = FwoApi.get_graphql_code(
             file_list=[fwo_const.GRAPHQL_QUERY_PATH + "time/upsertTimeObjects.graphql"]
         )
         new_uids = list(current_time_objs.keys() - previous_time_objs.keys())
         removed_uids = list(previous_time_objs.keys() - current_time_objs.keys())
+        # changed time objects
+        for uid in current_time_objs.keys() & previous_time_objs.keys():
+            if current_time_objs[uid] != previous_time_objs[uid]:
+                new_uids.append(uid)
+                removed_uids.append(uid)
         query_variables: dict[str, Any] = {
             "mgmId": self.import_state.state.mgm_details.current_mgm_id,
             "importId": self.import_state.state.import_id,
@@ -348,7 +360,7 @@ class FwConfigImportObject:
                 ).model_dump()
                 for uid in new_uids
             ],
-            "removedTimeObjectUids": removed_uids,
+            "removedTimeObjectIds": [self.uid2id_mapper.get_time_object_id(uid) for uid in removed_uids],
         }
         try:
             import_result = self.import_state.api_call.call(
@@ -358,8 +370,11 @@ class FwConfigImportObject:
                 raise FwoImporterError(f"failed to update time objects: {import_result['errors']!s}")
             insert_count = int(import_result["data"]["insert_time_object"]["affected_rows"])
             update_count = int(import_result["data"]["update_time_object"]["affected_rows"])
+            self.uid2id_mapper.add_time_object_mappings(
+                import_result["data"]["insert_time_object"]["returning"], is_global=is_global
+            )
             FWOLogger.debug(
-                f"fwo_api:importNwObject - updated time objects via API. Inserted: {insert_count}, Updated: {update_count}"
+                f"fwo_api:importTimeObject - updated time objects via API. Inserted: {insert_count}, Updated: {update_count}"
             )
         except Exception:
             raise FwoImporterError(f"failed to update time objects: {traceback.format_exc()!s}")

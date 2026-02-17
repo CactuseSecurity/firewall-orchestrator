@@ -282,7 +282,7 @@ def normalize_time_objects(full_config: dict[str, Any], config2import: dict[str,
                 TimeObject(
                     time_obj_uid=obj["uid"],
                     time_obj_name=obj["name"],
-                    time_obj_type=obj["type"],
+                    time_obj_type_str=obj["type"],
                     start_time=None if obj["start-now"] else obj["start"]["iso-8601"],
                     end_time=None if obj["end-never"] else obj["end"]["iso-8601"],
                 ).model_dump()  # TODO: rework dicts to models everywhere

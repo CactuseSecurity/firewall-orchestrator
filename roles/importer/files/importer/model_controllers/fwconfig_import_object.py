@@ -1,5 +1,4 @@
 import datetime
-import json
 import traceback
 from enum import Enum
 from typing import Any
@@ -156,6 +155,7 @@ class FwConfigImportObject:
             deleted_user_uids,
             deleted_zone_names,
         )
+        self.update_time_objs_via_api(prev_config.time_objects, self.normalized_config.time_objects)
 
         self.uid2id_mapper.add_network_object_mappings(new_nw_obj_ids, is_global=single_manager.is_super_manager)
         self.uid2id_mapper.add_service_object_mappings(new_svc_obj_ids, is_global=single_manager.is_super_manager)
@@ -220,6 +220,7 @@ class FwConfigImportObject:
             len(change_logger.changed_service_id_map.items())
         )
 
+    # TODO: split into multiple functions again, as large queries are not handled efficiently in some scenarios
     def update_objects_via_api(
         self,
         single_manager: FwConfigManager,
@@ -290,15 +291,6 @@ class FwConfigImportObject:
         }
 
         FWOLogger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}", 9)
-        if FWOLogger.is_debug_level(9):
-            json.dump(
-                query_variables,
-                open(  # noqa: SIM115
-                    f"/usr/local/fworch/tmp/import/mgm_id_{self.import_state.state.mgm_details.mgm_id}_query_variables.json",
-                    "w",
-                ),
-                indent=4,
-            )
 
         try:
             import_result = self.import_state.api_call.call(
@@ -335,6 +327,31 @@ class FwConfigImportObject:
             removed_user_ids,
             removed_zone_ids,
         )
+
+    def update_time_objs_via_api(self, previous_time_objs: dict[str, Any], current_time_objs: dict[str, Any]) -> None:
+        import_mutation = FwoApi.get_graphql_code(
+            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "allObjects/upsertTimeObjects.graphql"]
+        )
+        new_uids = list(current_time_objs.keys() - previous_time_objs.keys())
+        removed_uids = list(previous_time_objs.keys() - current_time_objs.keys())
+        query_variables: dict[str, Any] = {
+            "importId": self.import_state.state.import_id,
+            "newTimeObjects": [current_time_objs[uid].model_dump() for uid in new_uids],
+            "removedTimeObjectUids": removed_uids,
+        }
+        try:
+            import_result = self.import_state.api_call.call(
+                import_mutation, query_variables=query_variables, analyze_payload=True
+            )
+            if "errors" in import_result:
+                raise FwoImporterError(f"failed to update time objects: {import_result['errors']!s}")
+            insert_count = int(import_result["data"]["insert_time_object"]["affected_rows"])
+            update_count = int(import_result["data"]["update_time_object"]["affected_rows"])
+            FWOLogger.debug(
+                f"fwo_api:importNwObject - updated time objects via API. Inserted: {insert_count}, Updated: {update_count}"
+            )
+        except Exception:
+            raise FwoImporterError(f"failed to update time objects: {traceback.format_exc()!s}")
 
     def prepare_new_nwobjs(self, new_nwobj_uids: list[str], mgm_id: int) -> list[dict[str, Any]]:
         if self.normalized_config is None:

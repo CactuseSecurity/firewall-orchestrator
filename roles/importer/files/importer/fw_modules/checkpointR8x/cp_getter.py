@@ -968,7 +968,7 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str
         return handle_updatable_objects(obj)
     if obj_type in ["Internet", "security-zone"]:
         return handle_network_zone_objects(obj)
-    if obj_type == "access-role" or obj_type in cp_const.api_obj_types or obj_type == "time":
+    if obj_type == "access-role" or obj_type in cp_const.api_obj_types:
         return obj
     FWOLogger.warning(f"missing nw obj of unexpected type '{obj_type}': {uid_missing_obj}")
     return {}

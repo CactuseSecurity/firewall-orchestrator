@@ -33,8 +33,9 @@ local_nw_obj_table_names = [
     "CpmiVoipSipDomain",
     "CpmiVoipMgcpDomain",
     "gsn_handover_group",
-    "times",
 ]
+
+time_obj_table_names = ["times"]
 
 # the global objects need to be fetched only once per super manager
 global_nw_obj_table_names = ["updatable-objects", "dynamic-objects"]
@@ -63,12 +64,14 @@ global_svc_obj_table_names = [*global_group_svc_obj_types, "CpmiAnyObject"]
 svc_obj_table_names = local_svc_obj_table_names + global_svc_obj_table_names
 
 local_api_obj_types = (
-    local_nw_obj_table_names + local_svc_obj_table_names
+    local_nw_obj_table_names + local_svc_obj_table_names + time_obj_table_names
 )  # all obj table names to look at during import
 global_api_obj_types = (
     global_nw_obj_table_names + global_svc_obj_table_names
 )  # all global obj table names to look at during import
-api_obj_types = nw_obj_table_names + svc_obj_table_names  # all obj table names to look at during import
+api_obj_types = (
+    nw_obj_table_names + svc_obj_table_names + time_obj_table_names
+)  # all obj table names to look at during import
 
 types_to_remove_globals_from = ["service-groups"]
 
@@ -79,8 +82,8 @@ obj_types_full_fetch_needed = [
     "updatable-objects",
     "gateways-and-servers",
     "services-other",
-    "times",
     *group_svc_obj_types,
+    *time_obj_table_names,
 ]
 
 cp_specific_object_types = [  # used for fetching enrichment data via "get object" separately (no specific API call)

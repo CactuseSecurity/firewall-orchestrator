@@ -1,0 +1,30 @@
+mutation upsertTimeObjects(
+  $mgmId: Int!
+  $importId: bigint!
+  $removedTimeObjectUids: [String!]!
+  $newTimeObjects: [time_object_insert_input!]!
+) {
+  update_time_object(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      obj_uid: { _in: $removedTimeObjectUids }
+      removed: { _is_null: true }
+    }
+    _set: { removed: $importId, active: false }
+  ) {
+    affected_rows
+    returning {
+      obj_id
+      obj_uid
+      obj_typ_id
+    }
+  }
+  insert_time_object(objects: $newTimeObjects) {
+    affected_rows
+    returning {
+      obj_id
+      obj_uid
+      obj_typ_id
+    }
+  }
+}

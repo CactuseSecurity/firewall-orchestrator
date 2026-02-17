@@ -1,7 +1,4 @@
 fragment userDetailsForVariance on usr {
   user_id
   user_name
-  type: stm_usr_typ {
-    usr_typ_name
-  }
 }

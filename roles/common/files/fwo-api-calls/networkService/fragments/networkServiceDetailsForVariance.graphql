@@ -4,10 +4,6 @@ fragment networkServiceDetailsForVariance on service {
   svc_port
   svc_port_end
   ip_proto_id
-  protocol_name: stm_ip_proto {
-    id: ip_proto_id
-    name: ip_proto_name
-  }
   service_type: stm_svc_typ {
     name: svc_typ_name
   }
@@ -22,17 +18,12 @@ fragment networkServiceDetailsForVariance on service {
     }
     order_by: { svcgrp_flat_member_id: asc }
   ) {
-    flat_id: svcgrp_flat_id
     byFlatId: serviceBySvcgrpFlatMemberId {
       svc_id
       svc_name
       svc_port
       svc_port_end
       ip_proto_id
-      protocol_name: stm_ip_proto {
-        id: ip_proto_id
-        name: ip_proto_name
-      }
       service_type: stm_svc_typ {
         name: svc_typ_name
       }

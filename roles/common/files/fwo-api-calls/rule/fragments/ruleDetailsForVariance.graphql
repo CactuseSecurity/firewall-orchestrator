@@ -1,16 +1,11 @@
 fragment ruleDetailsForVariance on rule {
-  rule_id
   rule_uid
   mgm_id
-  dev_id
   rule_action
-  rulebase_id
   rule_comment
   rule_disabled
   rule_src_neg
   rule_dst_neg
-  rule_svc_neg
-  rule_num_numeric
   rule_name
   rule_custom_fields
   rule_froms(
@@ -22,7 +17,6 @@ fragment ruleDetailsForVariance on rule {
         { removed: { _gt: $import_id_start } }
       ]
     }
-    order_by: { object: { obj_name: asc } }
   ) {
     usr {
       ...userDetailsForVariance
@@ -40,7 +34,6 @@ fragment ruleDetailsForVariance on rule {
         { removed: { _gt: $import_id_start } }
       ]
     }
-    order_by: { object: { obj_name: asc } }
   ) {
     usr {
       ...userDetailsForVariance
@@ -58,7 +51,6 @@ fragment ruleDetailsForVariance on rule {
         { removed: { _gt: $import_id_start } }
       ]
     }
-    order_by: { service: { svc_name: asc } }
   ) {
     service {
       ...networkServiceDetailsForVariance
@@ -67,7 +59,6 @@ fragment ruleDetailsForVariance on rule {
   rule_enforced_on_gateways(order_by: { device: { dev_name: asc } }) {
     device {
       id: dev_id
-      name: dev_name
     }
   }
 }

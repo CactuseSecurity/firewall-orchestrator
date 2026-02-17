@@ -17,7 +17,6 @@ fragment networkObjectDetailsForVariance on object {
     }
     order_by: { objgrp_flat_member_id: asc }
   ) {
-    id_flat: objgrp_flat_id
     byFlatId: objectByObjgrpFlatMemberId {
       obj_id
       obj_name

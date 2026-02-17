@@ -168,48 +168,57 @@ namespace FWO.Services.Modelling
 
         public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections)
         {
-            appServerComparer = new(namingConvention);
-            await InitManagements();
-            await LoadAreas();
-            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
-            await GetNwObjectsProductionState();
-            await GetDeletedConnections();
+            string? previousRunId = varianceTimingRunId.Value;
+            varianceTimingRunId.Value = $"va-{Guid.NewGuid():N}".Substring(0, 11);
+            try
+            {
+                appServerComparer = new(namingConvention);
+                await InitManagements();
+                await LoadAreas();
+                await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
+                await GetNwObjectsProductionState();
+                await GetDeletedConnections();
 
-            TaskList = [];
-            AddAccessTaskList = [];
-            ChangeAccessTaskList = [];
-            DeleteAccessTaskList = [];
-            DeleteObjectTasksList = [];
-            foreach (Management mgt in RelevantManagements)
-            {
-                await AnalyseAppZoneForRequest(mgt);
-                foreach (var conn in connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()).OrderBy(c => c.Id))
+                TaskList = [];
+                AddAccessTaskList = [];
+                ChangeAccessTaskList = [];
+                DeleteAccessTaskList = [];
+                DeleteObjectTasksList = [];
+                foreach (Management mgt in RelevantManagements)
                 {
-                    ReqElements = [];
-                    AnalyseNetworkAreasForRequest(conn);
-                    AnalyseAppRolesForRequest(conn, mgt);
-                    AnalyseAppServersForRequest(conn);
-                    AnalyseServiceGroupsForRequest(conn, mgt);
-                    AnalyseServicesForRequest(conn);
-                    if (ReqElements.Count > 0) // NOSONAR: populated via side effects in Analyse*ForRequest methods
+                    await AnalyseAppZoneForRequest(mgt);
+                    foreach (var conn in connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()).OrderBy(c => c.Id))
                     {
-                        AnalyseConnectionForRequest(mgt, conn);
+                        ReqElements = [];
+                        AnalyseNetworkAreasForRequest(conn);
+                        AnalyseAppRolesForRequest(conn, mgt);
+                        AnalyseAppServersForRequest(conn);
+                        AnalyseServiceGroupsForRequest(conn, mgt);
+                        AnalyseServicesForRequest(conn);
+                        if (ReqElements.Count > 0) // NOSONAR: populated via side effects in Analyse*ForRequest methods
+                        {
+                            AnalyseConnectionForRequest(mgt, conn);
+                        }
                     }
+                    AnalyseDeletedConnsForRequest(mgt, [.. connections.Where(c => c.IsDocumentationOnly())]);
                 }
-                AnalyseDeletedConnsForRequest(mgt, [.. connections.Where(c => c.IsDocumentationOnly())]);
+                TaskList.AddRange(AddAccessTaskList);
+                TaskList.AddRange(ChangeAccessTaskList);
+                TaskList.AddRange(DeleteAccessTaskList);
+                TaskList.AddRange(DeleteObjectTasksList);
+                taskNumber = 1;
+                foreach (WfReqTask task in TaskList)
+                {
+                    task.TaskNumber = taskNumber++;
+                    task.Owners = [new() { Owner = owner }];
+                    task.StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0;
+                }
+                return TaskList;
             }
-            TaskList.AddRange(AddAccessTaskList);
-            TaskList.AddRange(ChangeAccessTaskList);
-            TaskList.AddRange(DeleteAccessTaskList);
-            TaskList.AddRange(DeleteObjectTasksList);
-            taskNumber = 1;
-            foreach (WfReqTask task in TaskList)
+            finally
             {
-                task.TaskNumber = taskNumber++;
-                task.Owners = [new() { Owner = owner }];
-                task.StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0;
+                varianceTimingRunId.Value = previousRunId;
             }
-            return TaskList;
         }
 
         public async Task<string> GetSuccessfulRequestState()
@@ -342,7 +351,8 @@ namespace FWO.Services.Modelling
 
         private void LogTiming(string phase, long milliseconds, string details = "")
         {
-            string runId = varianceTimingRunId.Value ?? "va-none";
+            varianceTimingRunId.Value ??= $"va-{Guid.NewGuid():N}".Substring(0, 11);
+            string runId = varianceTimingRunId.Value;
             string message = $"[{runId}] {phase}: {milliseconds} ms{(string.IsNullOrWhiteSpace(details) ? "" : $" ({details})")}";
             Log.WriteDebug("Variance Timing", message);
             try

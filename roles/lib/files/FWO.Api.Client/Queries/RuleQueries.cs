@@ -29,6 +29,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string getModelledRulesByManagementComment;
         public static readonly string getConnectionsByManagementNameForVariance;
         public static readonly string getConnectionsByManagementCommentForVariance;
+        public static readonly string getConnectionRuleIdsByManagementNameForVariance;
+        public static readonly string getConnectionRuleIdsByManagementCommentForVariance;
+        public static readonly string getRulesByIdsForVariance;
         public static readonly string getNatRuleOverview;
         public static readonly string getNatRuleDetails;
         // public static readonly string getNatRuleDetailsForReport;
@@ -112,6 +115,9 @@ namespace FWO.Api.Client.Queries
                 getModelledRulesByManagementComment = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
                 getConnectionsByManagementNameForVariance = ruleDetailsForVarianceFragments + GetQueryText("report/getConnectionsByManagementNameForVariance.graphql");
                 getConnectionsByManagementCommentForVariance = ruleDetailsForVarianceFragments + GetQueryText("report/getConnectionsByManagementCommentForVariance.graphql");
+                getConnectionRuleIdsByManagementNameForVariance = GetQueryText("report/getConnectionRuleIdsByManagementNameForVariance.graphql");
+                getConnectionRuleIdsByManagementCommentForVariance = GetQueryText("report/getConnectionRuleIdsByManagementCommentForVariance.graphql");
+                getRulesByIdsForVariance = ruleDetailsForVarianceFragments + GetQueryText("rule/getRulesByIdsForVariance.graphql");
                 getNatRuleOverview = natRuleOverviewFragments + GetQueryText("rule/getNatRuleOverview.graphql");
                 getNatRuleDetails = natRuleDetailsFragments + GetQueryText("rule/getNatRuleDetails.graphql");
                 getRulesWithViolationsInTimespanByChunk = ruleDetailsFragments + GetQueryText("rule/getRulesWithViolationsInTimespanByChunk.graphql");

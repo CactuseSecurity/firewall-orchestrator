@@ -183,13 +183,49 @@ namespace FWO.Services.Modelling
 
                 string query = userConfig.ModModelledMarkerLocation switch
                 {
-                    MarkerLocation.Rulename => RuleQueries.getConnectionsByManagementNameForVariance,
-                    MarkerLocation.Comment => RuleQueries.getConnectionsByManagementCommentForVariance,
+                    MarkerLocation.Rulename => RuleQueries.getConnectionRuleIdsByManagementNameForVariance,
+                    MarkerLocation.Comment => RuleQueries.getConnectionRuleIdsByManagementCommentForVariance,
                     _ => throw new NotSupportedException("invalid or undefined Marker Location")
                 };
-                List<Rule>? rules = await apiConnection.SendQueryAsync<List<Rule>>(query, RuleVariables);
+
+                Stopwatch ruleIdTimer = Stopwatch.StartNew();
+                List<ReturnId>? ruleIdsRaw = await apiConnection.SendQueryAsync<List<ReturnId>>(query, RuleVariables);
+                ruleIdTimer.Stop();
+                List<long> ruleIds = [.. ruleIdsRaw?
+                    .Where(x => x.Id != null)
+                    .Select(x => x.Id ?? 0)
+                    .Distinct() ?? []];
+                LogTiming("fetch rule ids query", ruleIdTimer.ElapsedMilliseconds, $"mgmt_id={mgtId}, ids={ruleIds.Count}");
+
+                List<Rule> rules = [];
+                if (ruleIds.Count > 0)
+                {
+                    const int kVarianceDetailsChunkSize = 500;
+                    int chunkNo = 0;
+                    foreach (long[] idChunk in ruleIds.Chunk(kVarianceDetailsChunkSize))
+                    {
+                        chunkNo++;
+                        Stopwatch chunkTimer = Stopwatch.StartNew();
+                        var detailsVariables = new
+                        {
+                            ruleIds = idChunk,
+                            active = true,
+                            import_id_start = relImpId,
+                            import_id_end = relImpId
+                        };
+                        List<Rule>? rulesChunk = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByIdsForVariance, detailsVariables);
+                        chunkTimer.Stop();
+                        if (rulesChunk != null)
+                        {
+                            rules.AddRange(rulesChunk);
+                        }
+                        LogTiming("fetch rules details chunk", chunkTimer.ElapsedMilliseconds,
+                            $"mgmt_id={mgtId}, chunk={chunkNo}, ids={idChunk.Length}, count={rulesChunk?.Count ?? 0}");
+                    }
+                }
+
                 queryTimer.Stop();
-                LogTiming("fetch rules query", queryTimer.ElapsedMilliseconds, $"mgmt_id={mgtId}, mode=marker_filtered, count={rules?.Count ?? 0}");
+                LogTiming("fetch rules query", queryTimer.ElapsedMilliseconds, $"mgmt_id={mgtId}, mode=marker_filtered_chunked, count={rules.Count}");
                 return rules;
             }
         }

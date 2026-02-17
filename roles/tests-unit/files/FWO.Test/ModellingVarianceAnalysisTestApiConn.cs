@@ -165,11 +165,36 @@ namespace FWO.Test
             {
                 if (query != RuleQueries.getRulesByManagementForVariance
                     && query != RuleQueries.getConnectionsByManagementNameForVariance
-                    && query != RuleQueries.getConnectionsByManagementCommentForVariance)
+                    && query != RuleQueries.getConnectionsByManagementCommentForVariance
+                    && query != RuleQueries.getRulesByIdsForVariance)
                 {
                     throw new ArgumentException($"Unexpected rule query: {query}");
                 }
                 GraphQLResponse<dynamic> response = new() { Data = new List<Rule>() { new(Rule1), new(Rule2), new(Rule3), new(Rule4), new(Rule5), new(Rule6), new(Rule7), new(Rule8), new(Rule9) } };
+                return response.Data;
+            }
+            else if (responseType == typeof(List<ReturnId>))
+            {
+                if (query != RuleQueries.getConnectionRuleIdsByManagementNameForVariance
+                    && query != RuleQueries.getConnectionRuleIdsByManagementCommentForVariance)
+                {
+                    throw new ArgumentException($"Unexpected return id query: {query}");
+                }
+                GraphQLResponse<dynamic> response = new()
+                {
+                    Data = new List<ReturnId>()
+                    {
+                        new() { Id = 1 },
+                        new() { Id = 2 },
+                        new() { Id = 3 },
+                        new() { Id = 4 },
+                        new() { Id = 5 },
+                        new() { Id = 6 },
+                        new() { Id = 7 },
+                        new() { Id = 8 },
+                        new() { Id = 9 }
+                    }
+                };
                 return response.Data;
             }
             else if (responseType == typeof(List<ModellingConnection>))

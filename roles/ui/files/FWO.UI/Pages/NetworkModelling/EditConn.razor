@@ -414,7 +414,14 @@
                     {
                         @if((ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested) && !(ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Decommissioned.ToString())))
                         {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                            <AuthorizeView Roles="@Roles.Modeller">
+                                <Authorized>
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                                </NotAuthorized> 
+                            </AuthorizeView>
                         }
                         else
                         {

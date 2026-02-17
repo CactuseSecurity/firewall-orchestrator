@@ -330,7 +330,7 @@ class FwConfigImportObject:
 
     def update_time_objs_via_api(self, previous_time_objs: dict[str, Any], current_time_objs: dict[str, Any]) -> None:
         import_mutation = FwoApi.get_graphql_code(
-            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "allObjects/upsertTimeObjects.graphql"]
+            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "time/upsertTimeObjects.graphql"]
         )
         new_uids = list(current_time_objs.keys() - previous_time_objs.keys())
         removed_uids = list(previous_time_objs.keys() - current_time_objs.keys())

@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 Create index IF NOT EXISTS idx_changelog_object01 on changelog_object (change_type_id);
 Create index IF NOT EXISTS idx_changelog_object02 on changelog_object (mgm_id);
 Create index IF NOT EXISTS idx_changelog_rule01 on changelog_rule (change_type_id);
@@ -40,6 +42,10 @@ Create index IF NOT EXISTS idx_zone02 on zone (mgm_id); -- needed as mgm_id is n
 -- make sure a maximum of one stop_time=null entry exists per mgm_id (only one running import per mgm):
 CREATE UNIQUE INDEX uidx_import_control_only_one_null_stop_time_per_mgm_when_null ON import_control (mgm_id) WHERE stop_time IS NULL;
 Create index IF NOT EXISTS idx_rule_dev_active_access on rule (dev_id, rule_num_numeric)
+    where active = true and access_rule = true and rule_disabled = false and rule_head_text IS NULL;
+Create index IF NOT EXISTS idx_rule_name_trgm_active_access on rule using gin (rule_name gin_trgm_ops)
+    where active = true and access_rule = true and rule_disabled = false and rule_head_text IS NULL;
+Create index IF NOT EXISTS idx_rule_comment_trgm_active_access on rule using gin (rule_comment gin_trgm_ops)
     where active = true and access_rule = true and rule_disabled = false and rule_head_text IS NULL;
 Create index IF NOT EXISTS idx_objgrp_flat_flat_member on objgrp_flat (objgrp_flat_id, objgrp_flat_member_id);
 Create index IF NOT EXISTS idx_tenant_network_tenant on tenant_network (tenant_id);

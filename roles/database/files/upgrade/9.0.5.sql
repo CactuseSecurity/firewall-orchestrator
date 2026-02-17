@@ -20,6 +20,16 @@ CREATE INDEX IF NOT EXISTS idx_tenant_to_management_lookup
 CREATE INDEX IF NOT EXISTS idx_tenant_to_device_lookup
     ON tenant_to_device (device_id, tenant_id, shared);
 
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX IF NOT EXISTS idx_rule_name_trgm_active_access
+    ON rule USING gin (rule_name gin_trgm_ops)
+    WHERE active = true AND access_rule = true AND rule_disabled = false AND rule_head_text IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_rule_comment_trgm_active_access
+    ON rule USING gin (rule_comment gin_trgm_ops)
+    WHERE active = true AND access_rule = true AND rule_disabled = false AND rule_head_text IS NULL;
+
 CREATE OR REPLACE FUNCTION get_rules_for_tenant(device_row device, tenant integer, hasura_session json)
 RETURNS SETOF rule AS $$
     DECLARE

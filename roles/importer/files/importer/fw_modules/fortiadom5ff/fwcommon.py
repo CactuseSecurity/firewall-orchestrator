@@ -268,7 +268,7 @@ def normalize_single_manager_config(
         is_global_loop_iteration,
     )
     FWOLogger.info("completed normalizing rulebases for manager: " + native_config.get("domain_name", ""))
-    normalize_time_objects(normalized_config_adom)
+    normalize_time_objects(native_config, normalized_config_adom)
     FWOLogger.info("completed normalizing time objects for manager: " + native_config.get("domain_name", ""))
 
     normalize_gateways(native_config, normalized_config_adom)
@@ -533,13 +533,13 @@ def normalize_links(rulebase_links: list[dict[str, Any]]) -> list[dict[str, Any]
     return rulebase_links
 
 
-def normalize_time_objects(normalized_config_adom: dict[str, Any]):
+def normalize_time_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any]):
     time_objects: list[TimeObject] = []
 
-    for rulebase in normalized_config_adom.get("rulebases", []):
-        for rule in rulebase.get("rules", []):
-            if "rule_time" in rule and rule["rule_time"] is not None:
-                schedule_ref = rule["rule_time"]
+    for rulebase in native_config.get("rulebases", []):  # include nat rulebases?
+        for rule in rulebase.get("data", []):
+            if "schedule" in rule and rule["schedule"] is not None:
+                schedule_ref = rule["schedule"]
                 matching_time_objects = [obj for obj in time_objects if obj.time_obj_uid == schedule_ref]
                 if matching_time_objects:
                     new_time_object = TimeObject(

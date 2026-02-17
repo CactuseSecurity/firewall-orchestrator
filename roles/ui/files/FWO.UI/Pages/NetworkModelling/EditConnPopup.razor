@@ -11,7 +11,7 @@
     <Footer>
         @if(ReplaceMode)
         {
-            <AuthorizeView Roles="@Roles.Modeller">
+            <AuthorizeView Roles="@(Roles.Modeller)">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>

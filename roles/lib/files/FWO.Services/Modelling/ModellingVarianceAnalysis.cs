@@ -37,7 +37,6 @@ namespace FWO.Services.Modelling
 
         private Dictionary<int, List<Rule>> allModelledRules = [];
         private readonly Dictionary<int, Dictionary<long, List<Rule>>> connectionsByConnId = [];
-        private readonly Dictionary<int, Dictionary<long, Dictionary<int, List<Rule>>>> rulesByConnAndSignature = [];
         private List<ModellingAppRole> allModelledAppRoles = [];
 
         private readonly Dictionary<int, List<ModellingAppRole>> allProdAppRoles = [];
@@ -47,8 +46,6 @@ namespace FWO.Services.Modelling
         private List<ModellingNetworkArea> AllAreas = [];
 
         private readonly Dictionary<int, List<DeviceReport>> DeviceRules = [];
-        private readonly Dictionary<int, int> connectionSignatureHashes = [];
-        private readonly Dictionary<int, List<ModellingConnection>> connectionsBySignature = [];
 
         public ModellingAppZone? PlannedAppZoneDbUpdate { get; set; } = default;
 
@@ -101,7 +98,6 @@ namespace FWO.Services.Modelling
         {
             await InitManagements();
             await LoadAreas();
-            BuildConnectionSignatureTables(connections);
             varianceResult = new() { Managements = RelevantManagements };
             if (ruleRecognitionOption.NwSeparateGroupAnalysis && fullAnalysis && !ignoreGroups)
             {

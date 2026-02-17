@@ -48,7 +48,6 @@ namespace FWO.Services.Modelling
                 int notModelledRulesCount = 0;
                 allModelledRules = [];
                 connectionsByConnId.Clear();
-                rulesByConnAndSignature.Clear();
 
                 foreach (Management mgt in RelevantManagements)
                 {
@@ -76,7 +75,6 @@ namespace FWO.Services.Modelling
         {
             allModelledRules.Add(mgt.Id, []);
             connectionsByConnId[mgt.Id] = [];
-            rulesByConnAndSignature[mgt.Id] = [];
             foreach (var rule in rulesByMgt)
             {
                 rule.ManagementName = mgt.Name;
@@ -92,19 +90,6 @@ namespace FWO.Services.Modelling
                             connectionsByConnId[mgt.Id].Add(connId, rulesForConn);
                         }
                         rulesForConn.Add(rule);
-
-                        int signatureHash = GetRuleSignatureHash(rule);
-                        if (!rulesByConnAndSignature[mgt.Id].TryGetValue(connId, out Dictionary<int, List<Rule>>? hashBuckets))
-                        {
-                            hashBuckets = [];
-                            rulesByConnAndSignature[mgt.Id].Add(connId, hashBuckets);
-                        }
-                        if (!hashBuckets.TryGetValue(signatureHash, out List<Rule>? signatureRules))
-                        {
-                            signatureRules = [];
-                            hashBuckets.Add(signatureHash, signatureRules);
-                        }
-                        signatureRules.Add(rule);
                     }
                     allModelledRules[mgt.Id].Add(rule);
                 }

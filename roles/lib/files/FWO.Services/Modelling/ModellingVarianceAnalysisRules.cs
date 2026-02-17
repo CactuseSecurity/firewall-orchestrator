@@ -31,6 +31,7 @@ namespace FWO.Services.Modelling
             networkObjectGroupComparer = new(ruleRecognitionOption);
             networkServiceComparer = new(ruleRecognitionOption);
             networkServiceGroupComparer = new(ruleRecognitionOption);
+            int connectionSignatureHash = GetConnectionSignatureHash(conn);
             bool ruleFound = false;
             foreach (var mgt in RelevantManagements)
             {
@@ -39,7 +40,18 @@ namespace FWO.Services.Modelling
                 {
                     continue;
                 }
-                foreach (var rule in rulesForConn.Where(r => CompareRuleToConn(r, conn)))
+
+                IEnumerable<Rule> prioritizedRules = rulesForConn;
+                if (rulesByConnAndSignature.TryGetValue(mgt.Id, out Dictionary<long, Dictionary<int, List<Rule>>>? rulesBySigPerConn)
+                    && rulesBySigPerConn.TryGetValue(conn.Id, out Dictionary<int, List<Rule>>? signatureBuckets))
+                {
+                    if (signatureBuckets.TryGetValue(connectionSignatureHash, out List<Rule>? exactMatches) && exactMatches.Count > 0)
+                    {
+                        prioritizedRules = exactMatches.Concat(rulesForConn.Except(exactMatches));
+                    }
+                }
+
+                foreach (var rule in prioritizedRules.Where(r => CompareRuleToConn(r, conn)))
                 {
                     ruleFound = true;
                 }
@@ -489,6 +501,133 @@ namespace FWO.Services.Modelling
             return allModSvcObjects.Count == allProdSvcObjects.Count
                 && allModSvcObjects.Except(allProdSvcObjects, comparer).ToList().Count == 0
                 && allProdSvcObjects.Except(allModSvcObjects, comparer).ToList().Count == 0;
+        }
+
+        private void BuildConnectionSignatureTables(List<ModellingConnection> connections)
+        {
+            connectionSignatureHashes.Clear();
+            connectionsBySignature.Clear();
+            foreach (ModellingConnection conn in connections)
+            {
+                int signatureHash = GetConnectionSignatureHash(conn);
+                connectionSignatureHashes[conn.Id] = signatureHash;
+                if (!connectionsBySignature.TryGetValue(signatureHash, out List<ModellingConnection>? connBucket))
+                {
+                    connBucket = [];
+                    connectionsBySignature.Add(signatureHash, connBucket);
+                }
+                connBucket.Add(conn);
+            }
+        }
+
+        private int GetConnectionSignatureHash(ModellingConnection conn)
+        {
+            if (connectionSignatureHashes.TryGetValue(conn.Id, out int cachedHash))
+            {
+                return cachedHash;
+            }
+
+            List<string> sourceTokens = [];
+            sourceTokens.AddRange(ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas).Select(a => BuildGroupToken(a.ToNetworkObjectGroup(true))));
+            sourceTokens.AddRange(ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups).Select(g => BuildGroupToken(g.ToNetworkObjectGroup())));
+            sourceTokens.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).Select(g => BuildGroupToken(g.ToNetworkObjectGroup(true))));
+            sourceTokens.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).Select(a => BuildObjectToken(ModellingAppServer.ToNetworkObject(a))));
+
+            List<string> destinationTokens = [];
+            destinationTokens.AddRange(ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas).Select(a => BuildGroupToken(a.ToNetworkObjectGroup(true))));
+            destinationTokens.AddRange(ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups).Select(g => BuildGroupToken(g.ToNetworkObjectGroup())));
+            destinationTokens.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).Select(g => BuildGroupToken(g.ToNetworkObjectGroup(true))));
+            destinationTokens.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).Select(a => BuildObjectToken(ModellingAppServer.ToNetworkObject(a))));
+
+            List<NetworkService> normalizedConnectionServices = SplitPortRanges(ModellingServiceWrapper.Resolve(conn.Services).Select(ModellingService.ToNetworkService).ToList());
+            List<NetworkService> normalizedConnectionServiceGroups = SplitPortRanges(ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).Select(g => g.ToNetworkServiceGroup()).ToList());
+            List<string> serviceTokens = [.. normalizedConnectionServices.Select(BuildServiceToken), .. normalizedConnectionServiceGroups.Select(BuildServiceToken)];
+
+            List<string> specialTokens = [.. conn.ExtraConfigs
+                .Where(c => !c.ExtraConfigType.StartsWith(GlobalConst.kDoku_, StringComparison.OrdinalIgnoreCase))
+                .Select(c => $"{c.ExtraConfigType.Trim().ToLowerInvariant()}={c.ExtraConfigText.Trim().ToLowerInvariant()}")
+                .OrderBy(x => x)];
+
+            int signatureHash = BuildSignatureHash(sourceTokens, destinationTokens, serviceTokens, specialTokens);
+            connectionSignatureHashes[conn.Id] = signatureHash;
+            return signatureHash;
+        }
+
+        private int GetRuleSignatureHash(Rule rule)
+        {
+            List<string> sourceTokens = [.. rule.Froms.Select(l => l.Object.Type.Name == ObjectType.Group ? BuildGroupToken(l.Object) : BuildObjectToken(l.Object))];
+            List<string> destinationTokens = [.. rule.Tos.Select(l => l.Object.Type.Name == ObjectType.Group ? BuildGroupToken(l.Object) : BuildObjectToken(l.Object))];
+            List<string> serviceTokens = [.. SplitPortRanges(rule.Services.Select(s => s.Content).ToList()).Select(BuildServiceToken)];
+            List<string> ruleFlags =
+            [
+                $"drop={rule.IsDropRule()}",
+                $"disabled={rule.Disabled}",
+                $"srcNeg={rule.SourceNegated}",
+                $"dstNeg={rule.DestinationNegated}"
+            ];
+            return BuildSignatureHash(sourceTokens, destinationTokens, serviceTokens, ruleFlags);
+        }
+
+        private static int BuildSignatureHash(IEnumerable<string> sourceTokens, IEnumerable<string> destinationTokens, IEnumerable<string> serviceTokens, IEnumerable<string> extraTokens)
+        {
+            HashCode signatureHash = new();
+            signatureHash.Add("src");
+            foreach (string token in sourceTokens.OrderBy(x => x))
+            {
+                signatureHash.Add(token);
+            }
+            signatureHash.Add("dst");
+            foreach (string token in destinationTokens.OrderBy(x => x))
+            {
+                signatureHash.Add(token);
+            }
+            signatureHash.Add("svc");
+            foreach (string token in serviceTokens.OrderBy(x => x))
+            {
+                signatureHash.Add(token);
+            }
+            signatureHash.Add("extra");
+            foreach (string token in extraTokens.OrderBy(x => x))
+            {
+                signatureHash.Add(token);
+            }
+            return signatureHash.ToHashCode();
+        }
+
+        private string BuildObjectToken(NetworkObject networkObject)
+        {
+            return ruleRecognitionOption.NwRegardIp || !ruleRecognitionOption.NwRegardName
+                ? $"{networkObject.Type.Name}|{(ruleRecognitionOption.NwRegardIp ? $"{networkObject.IP}-{networkObject.IpEnd}" : string.Empty)}|{(ruleRecognitionOption.NwRegardName ? networkObject.Name : string.Empty)}"
+                : $"{networkObject.Type.Name}|{networkObject.Name}";
+        }
+
+        private string BuildGroupToken(NetworkObject groupObject)
+        {
+            if (ruleRecognitionOption.NwSeparateGroupAnalysis)
+            {
+                return $"grp|{(ruleRecognitionOption.NwRegardGroupName ? groupObject.Name : string.Empty)}";
+            }
+
+            List<string> members = [.. groupObject.ObjectGroupFlats
+                .Where(f => f.Object != null && f.Object.Type.Name != ObjectType.Group)
+                .Select(f => BuildObjectToken(f.Object!))
+                .OrderBy(x => x)];
+            return $"grp|{(ruleRecognitionOption.NwRegardGroupName ? groupObject.Name : string.Empty)}|{string.Join(",", members)}";
+        }
+
+        private string BuildServiceToken(NetworkService networkService)
+        {
+            if (networkService.Type.Name != ServiceType.Group)
+            {
+                int? protoId = networkService.ProtoId ?? networkService.Protocol?.Id;
+                return $"svc|{(ruleRecognitionOption.SvcRegardPortAndProt ? $"{protoId}:{networkService.DestinationPort}-{networkService.DestinationPortEnd}" : string.Empty)}|{(ruleRecognitionOption.SvcRegardName ? networkService.Name : string.Empty)}";
+            }
+
+            List<string> members = [.. networkService.ServiceGroupFlats
+                .Where(f => f.Object != null && f.Object.Type.Name != ServiceType.Group)
+                .Select(f => BuildServiceToken(f.Object!))
+                .OrderBy(x => x)];
+            return $"svcgrp|{(ruleRecognitionOption.SvcRegardGroupName ? networkService.Name : string.Empty)}|{string.Join(",", members)}";
         }
     }
 }

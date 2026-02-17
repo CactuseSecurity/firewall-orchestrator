@@ -12,6 +12,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
+from models.time_object import TimeObject, TimeObjectForImport
 from services.group_flats_mapper import GroupFlatsMapper
 from services.service_provider import ServiceProvider
 from services.uid2id_mapper import Uid2IdMapper
@@ -328,15 +329,25 @@ class FwConfigImportObject:
             removed_zone_ids,
         )
 
-    def update_time_objs_via_api(self, previous_time_objs: dict[str, Any], current_time_objs: dict[str, Any]) -> None:
+    def update_time_objs_via_api(
+        self, previous_time_objs: dict[str, TimeObject], current_time_objs: dict[str, TimeObject]
+    ) -> None:
         import_mutation = FwoApi.get_graphql_code(
             file_list=[fwo_const.GRAPHQL_QUERY_PATH + "time/upsertTimeObjects.graphql"]
         )
         new_uids = list(current_time_objs.keys() - previous_time_objs.keys())
         removed_uids = list(previous_time_objs.keys() - current_time_objs.keys())
         query_variables: dict[str, Any] = {
+            "mgmId": self.import_state.state.mgm_details.current_mgm_id,
             "importId": self.import_state.state.import_id,
-            "newTimeObjects": [current_time_objs[uid].model_dump() for uid in new_uids],
+            "newTimeObjects": [
+                TimeObjectForImport.from_normalized(
+                    current_time_objs[uid],
+                    self.import_state.state.mgm_details.current_mgm_id,
+                    self.import_state.state.import_id,
+                ).model_dump()
+                for uid in new_uids
+            ],
             "removedTimeObjectUids": removed_uids,
         }
         try:

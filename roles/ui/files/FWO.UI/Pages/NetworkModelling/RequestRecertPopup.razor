@@ -5,6 +5,8 @@
 @using FWO.Middleware.Client
 @using FWO.Recert
 @using FWO.Report
+@using FWO.Services.RuleTreeBuilder
+@using FWO.Services.Workflow
 @using FWO.Ui.Pages.Reporting
 @using Newtonsoft.Json
 @using RestSharp
@@ -15,6 +17,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @if (Display && AppHandler != null)
 {
@@ -286,9 +289,17 @@
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
                 FwoOwner recertifiedOwner = await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules(), null);
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Recertify, ModellingTypes.ModObjectType.CommunicationProfile, 0,
-                    $"Recertified Application: {AppHandler.Application.Name} with {VarianceResult.GetAllOkRules().Count.ToString()} rules",
-                    apiConnection, userConfig, AppHandler.Application.Id, DisplayMessageInUi);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = ModellingTypes.ChangeType.Recertify,
+                    ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
+                    ObjectId = 0,
+                    Text = $"Recertified Application: {AppHandler.Application.Name} with {VarianceResult.GetAllOkRules().Count.ToString()} rules",
+                    ApiConnection = apiConnection,
+                    UserConfig = userConfig,
+                    ApplicationId = AppHandler.Application.Id,
+                    DisplayMessageInUi = DisplayMessageInUi
+                });
                 await GenerateAndSaveReport(recertifiedOwner);
                 RefreshParent(recertifiedOwner);
 
@@ -315,7 +326,7 @@
     {
         ReportBase? report = await ReportGenerator.GenerateFromTemplate(
             new ReportTemplate("", new(){ ReportType = (int)ReportType.RecertificationEvent, ModellingFilter = new(){ SelectedOwner = owner}}),
-            apiConnection, userConfig, DefaultInit.DoNothing);
+            apiConnection, userConfig, DefaultInit.DoNothing, null, ruleTreeBuilder);
         if(report != null)
         {
             var variables = new

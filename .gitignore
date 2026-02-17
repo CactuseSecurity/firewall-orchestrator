@@ -67,3 +67,4 @@ modules.xml
 cov.xml
 .coverage
 .DS_Store
+.dotnet

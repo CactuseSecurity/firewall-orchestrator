@@ -4,7 +4,8 @@ using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Services;
+using FWO.Services.Modelling;
+using FWO.Services.Workflow;
 
 
 namespace FWO.Ui.Services
@@ -30,7 +31,7 @@ namespace FWO.Ui.Services
 
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
-            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner)
             : base(apiConnection, userConfig, application, false, displayMessageInUi, false, isOwner)
         { }
 
@@ -255,7 +256,7 @@ namespace FWO.Ui.Services
             if (conn.IsInterface)
             {
                 InterfaceName = conn.Name ?? "";
-                await CheckInterfaceInUse(conn);
+                await InitUsingConnections(conn.Id);
             }
             ShowUsingConnectionsMode = true;
         }
@@ -270,7 +271,7 @@ namespace FWO.Ui.Services
             ConnToDelete = conn;
             if (ConnToDelete.IsInterface)
             {
-                if (await CheckInterfaceInUse(ConnToDelete))
+                if (await InitUsingConnections(ConnToDelete.Id))
                 {
                     Message = userConfig.GetText("E9013") + ConnToDelete.Name;
                     ConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode,

@@ -9,56 +9,63 @@
     - set_fact: distribution_version="{{ debian_testing_version }}"    
       when: ansible_facts['distribution_release']|lower == debian_testing_release_name
 
-    - set_fact:
-        github_actions_runner: "{{ (lookup('env', 'GITHUB_ACTIONS') | default('false')) == 'true' }}"
-
-    - set_fact:
-        dotnet_install_required: "{{ (not github_actions_runner) }}"
-
-    # include Microsoft package source to access newer .NET SDK versions
+    # Debian: use Microsoft package source
     - block:
-      - name: get package list from ms {{ dotnet_deb_name }}
+      - name: get package list from ms packages-microsoft-prod.deb
         get_url:
-          url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
-          dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+          url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/packages-microsoft-prod.deb"
+          dest: "{{ lib_tmp_dir }}/packages-microsoft-prod.deb"
           mode: "0644"
 
       - name: install ms package list
         apt:
-          deb: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+          deb: "{{ lib_tmp_dir }}/packages-microsoft-prod.deb"
 
       - name: remove package list file
         file:
-          dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+          dest: "{{ lib_tmp_dir }}/packages-microsoft-prod.deb"
           state: absent
 
       - name: apt update
         apt: update_cache=true
 
       when:
-        - ansible_facts['distribution']|lower in ['ubuntu', 'debian']
-        - dotnet_install_required
+        - ansible_facts['distribution']|lower == 'debian'
+
+    # Ubuntu: Microsoft no longer publishes .NET packages for Ubuntu.
+    # Use the official Ubuntu .NET backports PPA instead (covers 22.04 + 24.04).
+    - block:
+      - name: Install software-properties-common (provides add-apt-repository)
+        apt:
+          name: software-properties-common
+          state: present
+
+      - name: Add Ubuntu .NET backports PPA
+        apt_repository:
+          repo: ppa:dotnet/backports
+          state: present
+          update_cache: true
+
+      when:
+        - ansible_facts['distribution']|lower == 'ubuntu'
 
     - name: Prefer Microsoft packages for .NET on Ubuntu >=22.04
       blockinfile:
-        path: /etc/apt/preferences
+        path: /etc/apt/preferences.d/microsoft-dotnet
         create: true
         block: |
           Package: dotnet-* aspnetcore-* netstandard-*
           Pin: origin packages.microsoft.com
-          Pin-Priority: 999
+          Pin-Priority: 1001
       when:
         - ansible_facts['distribution'] == "Ubuntu"
         - ansible_facts['distribution_major_version'] is version('22', '>=')
-        - dotnet_install_required
 
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present
-      when: dotnet_install_required
 
     - name: apt update
       apt: update_cache=true
-      when: dotnet_install_required
 
     - name: Install .NET SDK {{ dotnet_version }} on x86_64
       apt:
@@ -66,7 +73,6 @@
         state: present
       when:
         - ansible_architecture == "x86_64"
-        - dotnet_install_required
 
     - debug: 
         msg:

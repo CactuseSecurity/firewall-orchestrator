@@ -1,14 +1,14 @@
 ﻿@inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("using_connections") + InterfaceName)" Show="@Display" Size=PopupSize.Medium OnClose="Close">
+<PopUp Title="@($"{userConfig.GetText("using_connections")} {InterfaceName} (Id: {App.Id})")" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
         @if (Display)
         {
-            <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection" Items="UsingConnections">
+            <Table TableClass=" table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection" Items="UsingConnections">
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" >
                     <Template>
-                        @(context.App.Name)
+                        @($"{@context.App.Name} (Id: {context.App.Id})")
                     </Template>
                 </Column>
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
@@ -38,6 +38,8 @@
     [Parameter] 
     public List<ModellingConnection> UsingConnections { get; set; } = [];
 
+    [Parameter, EditorRequired]
+    public required FwoOwner App { private get; init; }
 
     private void Close()
     {

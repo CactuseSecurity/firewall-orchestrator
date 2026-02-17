@@ -35,14 +35,14 @@ jobs:
 
       - name: Run Ansible test install
         run: |
-          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
+          cd ${{ github.workspace }}
           ansible-playbook -e force_install=true -e "ansible_python_interpreter=$(which python)" site.yml -K
 
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
         if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
         run: |
-          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test
+          cd ${{ github.workspace }}/roles/tests-unit/files/FWO.Test
           dotnet restore
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
-          
+

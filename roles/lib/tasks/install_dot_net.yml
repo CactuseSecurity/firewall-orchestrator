@@ -49,16 +49,29 @@
       when:
         - ansible_facts['distribution']|lower == 'ubuntu'
 
-    - name: Prefer Microsoft packages for .NET on Ubuntu >=22.04
-      blockinfile:
-        path: /etc/apt/preferences.d/microsoft-dotnet
-        create: true
-        block: |
-          Package: dotnet-* aspnetcore-* netstandard-*
+    # If the Microsoft repo happens to be registered on this Ubuntu host
+    # (e.g. for Azure CLI or PowerShell), deprioritise its .NET packages
+    # so they never conflict with the backports PPA.
+    - name: Deprioritise Microsoft .NET packages on Ubuntu if Microsoft repo is present
+      copy:
+        dest: /etc/apt/preferences.d/dotnet-microsoft-deprioritise
+        content: |
+          Package: dotnet-*
           Pin: origin packages.microsoft.com
-          Pin-Priority: 1001
+          Pin-Priority: 1
+
+          Package: aspnetcore-*
+          Pin: origin packages.microsoft.com
+          Pin-Priority: 1
+
+          Package: netstandard-*
+          Pin: origin packages.microsoft.com
+          Pin-Priority: 1
+        owner: root
+        group: root
+        mode: "0644"
       when:
-        - ansible_facts['distribution'] == "Ubuntu"
+        - ansible_facts['distribution']|lower == 'ubuntu'
         - ansible_facts['distribution_major_version'] is version('22', '>=')
 
     - name: Install apt-transport-https

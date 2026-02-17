@@ -3,9 +3,10 @@
 create table time_object
 (
 	time_obj_id BIGSERIAL PRIMARY KEY,
-	time_obj_type INT DEFAULT 0, -- 0 = undefined, 1 = time span, ...
-	time_obj_name Varchar,
+	mgm_id Integer NOT NULL,
 	time_obj_uid Varchar,
+	time_obj_name Varchar,
+	time_obj_type INT DEFAULT 0, -- 0 = undefined, 1 = time span, ...
 	start_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 	end_time TIMESTAMP WITH TIME ZONE,
 	created BIGINT,

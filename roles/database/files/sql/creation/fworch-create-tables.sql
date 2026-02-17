@@ -1269,6 +1269,7 @@ create table ext_request
 create table time_object
 (
 	time_obj_id BIGSERIAL PRIMARY KEY,
+	mgm_id Integer NOT NULL,
 	time_obj_uid Varchar,
 	time_obj_name Varchar,
 	time_obj_type INT DEFAULT 0, -- 0 = undefined, 1 = time span, ...

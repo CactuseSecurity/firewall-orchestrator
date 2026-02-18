@@ -367,13 +367,20 @@
             else
             {
                 string role = "";
-                try
+                if(apiConnection is GraphQlApiConnection)
                 {
-                    JwtReader jwtReader = new (userConfig.User.Jwt);
-                    Task.Run(async () => await jwtReader.Validate());
-                    role = jwtReader.GetRole();
+                    role = ((GraphQlApiConnection)apiConnection).GetActRole();
                 }
-                catch (Exception) { }
+                else
+                {
+                    try
+                    {
+                        JwtReader jwtReader = new (userConfig.User.Jwt);
+                        Task.Run(async () => await jwtReader.Validate());
+                        role = jwtReader.GetRole();
+                    }
+                    catch (Exception) { }
+                }
                 Log.WriteError(( title != "" ? title : "Unspecified Error" ), ( message != "" ? message : "Unspecified error occured: " ), exception, userConfig.User.Name, role);
                 severity = 2;
                 cause = ( title != "" ? title : userConfig.GetText("unspecified_error") );

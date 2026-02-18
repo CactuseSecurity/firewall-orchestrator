@@ -289,4 +289,15 @@ def normalize_time_objects(full_config: dict[str, Any], config2import: dict[str,
                 for obj in chunk.get("objects", [])
             )
 
+    # add default 'Any' time object
+    time_objects.append(
+        TimeObject(
+            time_obj_uid="Any",
+            time_obj_name="Any",
+            time_obj_type_str="time",
+            start_time=None,
+            end_time=None,
+        ).model_dump()
+    )
+
     config2import.update({"time_objects": time_objects})

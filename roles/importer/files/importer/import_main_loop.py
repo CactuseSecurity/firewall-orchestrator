@@ -161,7 +161,7 @@ def main_loop(
     fwo_api = FwoApi(fwo_api_base_url, jwt)
     fwo_api_call = FwoApiCall(fwo_api)
 
-    urllib3.disable_warnings()  # suppress ssl warnings only
+    urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
     verify_certificates = (
         fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
     )
@@ -225,7 +225,7 @@ def main(
     user_management_api_base_url = fwo_config["user_management_api_base_url"]
     fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
     if suppress_certificate_warnings:
-        urllib3.disable_warnings()
+        urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
 
     FWOLogger.info("importer_main_loop starting ...")
     if IMPORTER_BASE_DIR not in sys.path:

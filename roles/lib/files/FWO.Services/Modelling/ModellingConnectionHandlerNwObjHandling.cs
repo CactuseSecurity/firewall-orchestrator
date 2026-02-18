@@ -353,7 +353,7 @@ namespace FWO.Services.Modelling
             {
                 try
                 {
-                    AppServerHandler = new(apiConnection, userConfig, Application, appServer, [], false, DisplayMessageInUi) { ReadOnly = true };
+                    AppServerHandler = new(apiConnection, userConfig, Application, appServer, [], false, DisplayMessageInUi, ReadOnly, IsOwner) { ReadOnly = true };
                     DisplayAppServerMode = true;
                 }
                 catch (Exception exception)

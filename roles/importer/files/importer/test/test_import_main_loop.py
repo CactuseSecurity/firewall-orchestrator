@@ -142,9 +142,7 @@ class TestImportSingleManagement:
             "initialize_import",
             return_value=import_state_controller,
         )
-        mock_register_global_state = mocker.patch(
-            "importer.import_main_loop.register_global_state"
-        )
+        mock_register_global_state = mocker.patch("importer.import_main_loop.register_global_state")
         mock_get_graphql_code(mocker, return_value={"data": {"jwt": "mocked_jwt"}})
         mock_get_mgm_details = mocker.patch.object(
             ManagementController,

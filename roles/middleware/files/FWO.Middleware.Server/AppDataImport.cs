@@ -9,6 +9,7 @@ using FWO.Data.Modelling;
 using FWO.Logging;
 using FWO.Recert;
 using FWO.Services;
+using FWO.Services.Modelling;
 using Novell.Directory.Ldap;
 using System.Data;
 using System.Linq;
@@ -705,8 +706,18 @@ namespace FWO.Middleware.Server
                 if (returnIds != null && returnIds.Length > 0)
                 {
                     ModellingAppServer newModAppServer = new(incomingAppServer.ToModellingAppServer()) { Id = returnIds[0].NewIdLong, ImportSource = impSource, AppId = appID };
-                    await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, newModAppServer.Id,
-                        $"New App Server: {newModAppServer.Display()}", apiConnection, userConfig, newModAppServer.AppId, DefaultInit.DoNothing, null, newModAppServer.ImportSource);
+                    await ModellingHandlerBase.LogChange(new LogChangeRequest
+                    {
+                        ChangeType = ModellingTypes.ChangeType.Insert,
+                        ObjectType = ModellingTypes.ModObjectType.AppServer,
+                        ObjectId = newModAppServer.Id,
+                        Text = $"New App Server: {newModAppServer.Display()}",
+                        ApiConnection = apiConnection,
+                        UserConfig = userConfig,
+                        ApplicationId = newModAppServer.AppId,
+                        DisplayMessageInUi = DefaultInit.DoNothing,
+                        ChangeSource = newModAppServer.ImportSource
+                    });
                     await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, newModAppServer);
                 }
             }
@@ -730,8 +741,18 @@ namespace FWO.Middleware.Server
                     deleted = false
                 };
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, appServer.Id,
-                    $"Reactivate App Server: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = ModellingTypes.ChangeType.Reactivate,
+                    ObjectType = ModellingTypes.ModObjectType.AppServer,
+                    ObjectId = appServer.Id,
+                    Text = $"Reactivate App Server: {appServer.Display()}",
+                    ApiConnection = apiConnection,
+                    UserConfig = userConfig,
+                    ApplicationId = appServer.AppId,
+                    DisplayMessageInUi = DefaultInit.DoNothing,
+                    ChangeSource = appServer.ImportSource
+                });
                 await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, appServer);
             }
             catch (Exception exc)
@@ -754,8 +775,18 @@ namespace FWO.Middleware.Server
                     customType = 0
                 };
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerType, Variables);
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, appServer.Id,
-                    $"Update App Server Type: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = ModellingTypes.ChangeType.Update,
+                    ObjectType = ModellingTypes.ModObjectType.AppServer,
+                    ObjectId = appServer.Id,
+                    Text = $"Update App Server Type: {appServer.Display()}",
+                    ApiConnection = apiConnection,
+                    UserConfig = userConfig,
+                    ApplicationId = appServer.AppId,
+                    DisplayMessageInUi = DefaultInit.DoNothing,
+                    ChangeSource = appServer.ImportSource
+                });
             }
             catch (Exception exc)
             {
@@ -779,8 +810,18 @@ namespace FWO.Middleware.Server
                         id = appServer.Id,
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerName, Variables);
-                    await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, appServer.Id,
-                        $"Update App Server Name: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
+                    await ModellingHandlerBase.LogChange(new LogChangeRequest
+                    {
+                        ChangeType = ModellingTypes.ChangeType.Update,
+                        ObjectType = ModellingTypes.ModObjectType.AppServer,
+                        ObjectId = appServer.Id,
+                        Text = $"Update App Server Name: {appServer.Display()}",
+                        ApiConnection = apiConnection,
+                        UserConfig = userConfig,
+                        ApplicationId = appServer.AppId,
+                        DisplayMessageInUi = DefaultInit.DoNothing,
+                        ChangeSource = appServer.ImportSource
+                    });
                     Log.WriteWarning(LogMessageTitle, $"Name of App Server changed from {appServer.Name} changed to {newName}");
                 }
                 catch (Exception exc)
@@ -804,8 +845,18 @@ namespace FWO.Middleware.Server
                     deleted = true
                 };
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, appServer.Id,
-                    $"Deactivate App Server: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = ModellingTypes.ChangeType.Update,
+                    ObjectType = ModellingTypes.ModObjectType.AppServer,
+                    ObjectId = appServer.Id,
+                    Text = $"Deactivate App Server: {appServer.Display()}",
+                    ApiConnection = apiConnection,
+                    UserConfig = userConfig,
+                    ApplicationId = appServer.AppId,
+                    DisplayMessageInUi = DefaultInit.DoNothing,
+                    ChangeSource = appServer.ImportSource
+                });
                 await AppServerHelper.ReactivateOtherSource(apiConnection, userConfig, appServer);
             }
             catch (Exception exc)

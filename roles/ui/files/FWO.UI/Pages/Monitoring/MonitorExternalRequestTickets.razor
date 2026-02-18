@@ -49,7 +49,7 @@
                 </Template>
             </Column>
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("creation_date"))" Field="@(x => x.Ticket.CreationDate)" Sortable="true" Filterable="true" />
-	        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     </div>
 }
@@ -94,7 +94,7 @@ else
                         </Template>
                     </Column>
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("start_time"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
-	                <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
                 </Table>
             </form>
         }
@@ -121,7 +121,7 @@ else
 
     private List<FwoOwner> allOwners = [];
     private FwoOwner actOwner = new();
-	private List<OwnerTicket> ownerTickets = [];
+    private List<OwnerTicket> ownerTickets = [];
     private OwnerTicket actOwnerTicket = new();
     private WfStateDict statesDict = new ();
     private StateMatrixDict stateMatrixDict = new ();
@@ -235,9 +235,18 @@ else
                 Log.WriteDebug("ReInit ExtRequest", $"External Request for Ticket {actOwnerTicket.Ticket.Id.ToString()} created.");
             }
 
-            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
-                0, $"Reinitialized Rollout Requests", apiConnection, userConfig,
-				actOwnerTicket.Ticket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, userConfig.User.Name);
+            await ModellingHandlerBase.LogChange(new LogChangeRequest
+            {
+                ChangeType = ModellingTypes.ChangeType.InitRequests,
+                ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
+                ObjectId = 0,
+                Text = "Reinitialized Rollout Requests",
+                ApiConnection = apiConnection,
+                UserConfig = userConfig,
+                ApplicationId = actOwnerTicket.Ticket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
+                DisplayMessageInUi = DefaultInit.DoNothing,
+                Requester = userConfig.User.Name
+            });
         }
         catch (Exception exception)
         {

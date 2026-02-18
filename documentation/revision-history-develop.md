@@ -343,3 +343,6 @@ A complete 80K lines rework of FWO, including
 
 ## 9.0.3 - 12.02.2026 DEVELOP
 - introduce interface permissions
+
+## 9.0.4 - 13.02.2026 DEVELOP
+- maintenance release with explicit 9.0.4 upgrade step

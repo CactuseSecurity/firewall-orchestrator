@@ -555,6 +555,7 @@ insert into stm_link_type (id, name) VALUES (5, 'domain');
 
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (1, 'rule');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (2, 'owner');
+INSERT INTO stm_import (import_type_id, import_type_name) VALUES (3, 'admin via reinitialize button');
 
 INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name) VALUES (1, 'ip_based');
 INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name) VALUES (2, 'custom_field');

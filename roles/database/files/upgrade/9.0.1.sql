@@ -106,7 +106,8 @@ CREATE TABLE if not EXISTS stm_import
 INSERT INTO stm_import (import_type_id, import_type_name)
 VALUES
     (1, 'rule'),
-    (2, 'owner')
+    (2, 'owner'),
+    (3, 'admin via reinitialize button')
 ON CONFLICT (import_type_id) DO NOTHING;
 
 -- Set all imports to rule import - if import_type_id null
@@ -151,6 +152,16 @@ BEGIN
           AND column_name='any_changes_found'
     ) THEN
         ALTER TABLE import_control RENAME COLUMN any_changes_found TO policy_changes_found;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'import_control'
+          AND column_name = 'rule_owner_mapping_done'
+    ) THEN
+        ALTER TABLE import_control
+        ADD COLUMN rule_owner_mapping_done BOOLEAN NOT NULL DEFAULT FALSE;
     END IF;
 END$$;
 

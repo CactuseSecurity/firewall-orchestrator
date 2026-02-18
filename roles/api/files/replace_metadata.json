@@ -7302,18 +7302,41 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "notification_done",
-                      "policy_changes_found",
-                      "successful_import",
+                      "control_id",
                       "import_errors",
                       "import_type_id",
+                      "is_initial_import",
                       "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "changes_found",
+                      "control_id",
+                      "import_errors",
+                      "import_type_id",
+                      "is_initial_import",
+                      "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
+                      "security_relevant_changes_counter",
+                      "start_time",
+                      "stop_time",
+                      "successful_import"
                     ]
                   },
                   "comment": ""
@@ -7324,18 +7347,19 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "notification_done",
-                      "policy_changes_found",
-                      "successful_import",
+                      "control_id",
                       "import_errors",
                       "import_type_id",
+                      "is_initial_import",
                       "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7346,18 +7370,19 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "control_id",
-                      "policy_changes_found",
-                      "is_initial_import",
-                      "notification_done",
                       "changes_found",
-                      "successful_import",
+                      "control_id",
                       "import_errors",
                       "import_type_id",
+                      "is_initial_import",
                       "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7368,18 +7393,19 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "notification_done",
-                      "policy_changes_found",
-                      "successful_import",
+                      "control_id",
                       "import_errors",
                       "import_type_id",
+                      "is_initial_import",
                       "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7390,18 +7416,19 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "control_id",
-                      "policy_changes_found",
-                      "is_initial_import",
-                      "notification_done",
                       "changes_found",
-                      "successful_import",
+                      "control_id",
                       "import_errors",
                       "import_type_id",
+                      "is_initial_import",
                       "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7412,18 +7439,19 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "notification_done",
-                      "policy_changes_found",
-                      "successful_import",
+                      "control_id",
                       "import_errors",
                       "import_type_id",
+                      "is_initial_import",
                       "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -7438,18 +7466,19 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "notification_done",
-                      "policy_changes_found",
-                      "successful_import",
+                      "control_id",
                       "import_errors",
                       "import_type_id",
+                      "is_initial_import",
                       "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -7464,18 +7493,19 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "notification_done",
-                      "policy_changes_found",
-                      "successful_import",
+                      "control_id",
                       "import_errors",
                       "import_type_id",
+                      "is_initial_import",
                       "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -7490,18 +7520,19 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "notification_done",
-                      "policy_changes_found",
-                      "successful_import",
+                      "control_id",
                       "import_errors",
                       "import_type_id",
+                      "is_initial_import",
                       "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7514,18 +7545,19 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "control_id",
                       "changes_found",
-                      "is_initial_import",
-                      "notification_done",
-                      "policy_changes_found",
-                      "successful_import",
+                      "control_id",
                       "import_errors",
                       "import_type_id",
+                      "is_initial_import",
                       "mgm_id",
+                      "notification_done",
+                      "policy_changes_found",
+                      "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time"
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {},
                     "check": {}
@@ -7536,7 +7568,10 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "notification_done"
+                      "notification_done",
+                      "rule_owner_mapping_done",
+                      "stop_time",
+                      "successful_import"
                     ],
                     "filter": {},
                     "check": {}
@@ -17900,6 +17935,21 @@
                     ]
                   },
                   "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "created",
+                      "owner_mapping_source_id",
+                      "removed",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
                 }
               ],
               "select_permissions": [
@@ -18116,6 +18166,17 @@
                       "rule_id",
                       "rule_metadata_id",
                       "owner_id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed"
                     ],
                     "filter": {},
                     "check": {}

@@ -647,6 +647,7 @@ Create table "import_control"
 	"changes_found" Boolean NOT NULL Default FALSE, -- old_field: any_changes_found 
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
+	"rule_owner_mapping_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
  primary key ("control_id")
 );

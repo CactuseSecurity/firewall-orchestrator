@@ -264,7 +264,7 @@ def parse_single_rule(
         rule_action=rule_action,
         rule_track=rule_track,
         rule_installon=rule_installon,
-        rule_time=time,  # Time-based rules not commonly used in basic Fortinet configs
+        rule_time=time,
         rule_name=native_rule.get("name"),
         rule_uid=native_rule.get("uuid"),
         rule_custom_fields=str(native_rule.get("meta fields", {})),

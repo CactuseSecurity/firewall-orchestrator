@@ -16,7 +16,12 @@ if TYPE_CHECKING:
 import requests
 import urllib3
 
-DEFAULT_GUARDICORE_LABELS_ENDPOINT: str = "/api/v3.0/api/automation_api/v1/labels/bulk"
+DEFAULT_GUARDICORE_API_V4_BASE_ENDPOINT: str = "/api/v4.0/"
+DEFAULT_GUARDICORE_AUTH_ENDPOINT: str = "/api/v3.0/authenticate"
+DEFAULT_GUARDICORE_LABELS_BULK_ENDPOINT: str = f"{DEFAULT_GUARDICORE_API_V4_BASE_ENDPOINT}labels/bulk"
+DEFAULT_GUARDICORE_LABELS_LIST_ENDPOINT: str = f"{DEFAULT_GUARDICORE_API_V4_BASE_ENDPOINT}labels"
+DEFAULT_GUARDICORE_LABELS_LIST_FIELDS: str = "id,key,value,dynamic_criteria"
+DEFAULT_GUARDICORE_LABELS_PAGE_SIZE: int = 1000
 DEFAULT_GUARDICORE_FIELD: str = "numeric_ip_addresses"
 DEFAULT_GUARDICORE_KEY_APPZONE: str = "AppZone"
 DEFAULT_GUARDICORE_KEY_APPROLE: str = "AppRole"
@@ -270,7 +275,7 @@ def login_fwo(user: str, password: str, middleware_url: str, verify_ssl: bool | 
 def login_guardicore(user: str, password: str, base_url: str, verify_ssl: bool | str, timeout: int) -> str:
     payload: dict[str, str] = {"username": user, "password": password}
     headers: dict[str, str] = {"Content-Type": HTTP_CONTENT_TYPE_JSON}
-    endpoint = base_url.rstrip("/") + "/api/v3.0/authenticate"
+    endpoint = base_url.rstrip("/") + DEFAULT_GUARDICORE_AUTH_ENDPOINT
 
     with requests.Session() as session:
         apply_ssl_settings(session, verify_ssl)
@@ -405,12 +410,107 @@ def to_guardicore_payload(items: list[LabelItem]) -> list[dict[str, Any]]:
     ]
 
 
+def parse_existing_label_pairs(payload: Any) -> set[tuple[str, str]]:
+    """Extract existing key/value pairs from Guardicore label list responses."""
+    label_items: list[dict[str, Any]] = []
+    if isinstance(payload, list):
+        payload_list = cast("list[Any]", payload)
+        label_items.extend(cast("dict[str, Any]", item) for item in payload_list if isinstance(item, dict))
+    elif isinstance(payload, dict):
+        payload_dict = cast("dict[str, Any]", payload)
+        for candidate_key in ("objects", "items", "labels", "results", "data"):
+            candidate_value = payload_dict.get(candidate_key)
+            if isinstance(candidate_value, list):
+                candidate_list = cast("list[Any]", candidate_value)
+                label_items.extend(cast("dict[str, Any]", item) for item in candidate_list if isinstance(item, dict))
+                break
+        if not label_items:
+            label_items = [payload_dict]
+
+    existing_pairs: set[tuple[str, str]] = set()
+    for label_item in label_items:
+        key = label_item.get("key")
+        value = label_item.get("value")
+        nested_label_value = label_item.get("label")
+        if (not isinstance(key, str) or not isinstance(value, str)) and isinstance(nested_label_value, dict):
+            nested_label = cast("dict[str, Any]", nested_label_value)
+            key = nested_label.get("key")
+            value = nested_label.get("value")
+        if isinstance(key, str) and isinstance(value, str):
+            existing_pairs.add((key.strip(), value.strip()))
+    return existing_pairs
+
+
+def fetch_existing_guardicore_labels(config: GuardicoreConfig) -> set[tuple[str, str]]:
+    headers = {
+        "Authorization": f"Bearer {config.token}",
+        "accept": HTTP_CONTENT_TYPE_JSON,
+    }
+    endpoint = config.base_url.rstrip("/") + DEFAULT_GUARDICORE_LABELS_LIST_ENDPOINT
+    base_params = {
+        "expand": "dynamic_assets",
+        "fields": DEFAULT_GUARDICORE_LABELS_LIST_FIELDS,
+        "limit": DEFAULT_GUARDICORE_LABELS_PAGE_SIZE,
+    }
+    existing_pairs: set[tuple[str, str]] = set()
+    offset = 0
+
+    with requests.Session() as session:
+        apply_ssl_settings(session, config.verify_ssl)
+        session.headers.update(headers)
+        while True:
+            params = dict(base_params)
+            params["offset"] = offset
+            try:
+                response = session.get(endpoint, params=params, timeout=config.timeout_seconds)
+                response.raise_for_status()
+            except requests.exceptions.RequestException as exc:
+                raise GuardicoreProvisioningError(f"Guardicore label query failed: {exc}") from exc
+
+            try:
+                result = response.json()
+            except ValueError as exc:
+                raise GuardicoreProvisioningError("Guardicore label query response was not valid JSON.") from exc
+
+            existing_pairs.update(parse_existing_label_pairs(result))
+            if not isinstance(result, dict):
+                break
+
+            result_dict = cast("dict[str, Any]", result)
+            objects_value = result_dict.get("objects")
+            objects: list[dict[str, Any]] = []
+            if isinstance(objects_value, list):
+                objects_list = cast("list[Any]", objects_value)
+                objects.extend(cast("dict[str, Any]", obj) for obj in objects_list if isinstance(obj, dict))
+            if len(objects) == 0:
+                break
+
+            total_count = result_dict.get("total_count")
+            offset += len(objects)
+            if isinstance(total_count, int) and offset >= total_count:
+                break
+            if isinstance(total_count, int):
+                continue
+            if len(objects) < DEFAULT_GUARDICORE_LABELS_PAGE_SIZE:
+                break
+
+    return existing_pairs
+
+
+def filter_missing_labels(labels: list[LabelItem], existing_pairs: set[tuple[str, str]]) -> list[LabelItem]:
+    """Filter out labels that already exist in Guardicore by key/value."""
+    return [label for label in labels if (label.key.strip(), label.value.strip()) not in existing_pairs]
+
+
 def post_guardicore_labels(config: GuardicoreConfig, payload: list[dict[str, Any]]) -> None:
+    if not payload:
+        return
+
     headers = {
         "Authorization": f"Bearer {config.token}",
         "Content-Type": HTTP_CONTENT_TYPE_JSON,
     }
-    endpoint = config.base_url.rstrip("/") + DEFAULT_GUARDICORE_LABELS_ENDPOINT
+    endpoint = config.base_url.rstrip("/") + DEFAULT_GUARDICORE_LABELS_BULK_ENDPOINT
 
     with requests.Session() as session:
         apply_ssl_settings(session, config.verify_ssl)
@@ -498,9 +598,15 @@ def main() -> int:
             verify_ssl=guardicore_verify,
             timeout_seconds=args.timeout,
         )
+        existing_label_pairs = fetch_existing_guardicore_labels(guardicore_config)
+        labels_to_create = filter_missing_labels(labels, existing_label_pairs)
+        skipped_existing = len(labels) - len(labels_to_create)
+        if not labels_to_create:
+            logger.info("All %s labels already exist. Nothing to create.", len(labels))
+            return 0
 
         total_sent = 0
-        for batch in chunked(labels, args.batch_size):
+        for batch in chunked(labels_to_create, args.batch_size):
             payload = to_guardicore_payload(batch)
             if args.dry_run:
                 logger.info("Dry run payload: %s", json.dumps(payload, indent=2))
@@ -508,7 +614,12 @@ def main() -> int:
                 post_guardicore_labels(guardicore_config, payload)
             total_sent += len(batch)
 
-        logger.info("Processed %s label(s).", total_sent)
+        logger.info(
+            "Processed %s label(s): created=%s, skipped_existing=%s.",
+            len(labels),
+            total_sent,
+            skipped_existing,
+        )
         return 0
 
     except GuardicoreProvisioningError:

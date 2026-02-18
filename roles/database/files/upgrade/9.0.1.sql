@@ -8,14 +8,6 @@ CREATE TABLE IF NOT EXISTS owner_responsible_type
     allow_modelling boolean NOT NULL DEFAULT false,
     allow_recertification boolean NOT NULL DEFAULT false
 );
--- add owner source
-INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name)
-VALUES
-    (1, 'ip_based'),
-    (2, 'custom_field'),
-    (3, 'name_field'),
-    (4, 'manual')
-ON CONFLICT (owner_mapping_source_type_id) DO NOTHING;
 
 INSERT INTO owner_responsible_type (id, name, active, sort_order)
 VALUES
@@ -92,6 +84,3 @@ BEGIN
     END LOOP;
 END
 $$;
-
--- rule_to_owner was intended as a rule�owner link table; replaced by rule_owner
-DROP TABLE IF EXISTS public.rule_to_owner CASCADE;

@@ -350,8 +350,6 @@ class FwConfigImportObject:
             for uid in current_time_objs.keys() & previous_time_objs.keys()
             if current_time_objs[uid] != previous_time_objs[uid]
         ]
-        new_uids.extend(changed_uids)
-        removed_uids.extend(changed_uids)
         query_variables: dict[str, Any] = {
             "mgmId": self.import_state.state.mgm_details.current_mgm_id,
             "importId": self.import_state.state.import_id,
@@ -361,9 +359,9 @@ class FwConfigImportObject:
                     self.import_state.state.mgm_details.current_mgm_id,
                     self.import_state.state.import_id,
                 ).model_dump()
-                for uid in new_uids
+                for uid in new_uids + changed_uids
             ],
-            "removedTimeObjectIds": [self.uid2id_mapper.get_time_object_id(uid) for uid in removed_uids],
+            "removedTimeObjectIds": [self.uid2id_mapper.get_time_object_id(uid) for uid in removed_uids + changed_uids],
         }
         try:
             import_result = self.import_state.api_call.call(

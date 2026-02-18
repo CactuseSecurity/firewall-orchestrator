@@ -18,10 +18,10 @@ namespace FWO.Data
         public string Uid { get; set; } = "";
 
         [JsonProperty("start_time"), JsonPropertyName("start_time")]
-        public DateTime StartTime { get; set; }
+        public DateTime? StartTime { get; set; }
 
         [JsonProperty("end_time"), JsonPropertyName("end_time")]
-        public DateTime EndTime { get; set; }
+        public DateTime? EndTime { get; set; }
 
         [JsonProperty("created"), JsonPropertyName("created")]
         public long Created { get; set; }

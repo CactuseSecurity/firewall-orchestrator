@@ -8,7 +8,11 @@ from pytest_mock import MockerFixture
 from test.data.mock_objects import MockObjectsFactory
 from test.utils.test_utils import mock_get_graphql_code, mock_login
 
-from importer.import_main_loop import get_fwo_jwt, import_single_management, wait_with_shutdown_check
+from importer.import_main_loop import (
+    get_fwo_jwt,
+    import_single_management,
+    wait_with_shutdown_check,
+)
 
 
 class TestGetFwoJwt:
@@ -138,7 +142,9 @@ class TestImportSingleManagement:
             "initialize_import",
             return_value=import_state_controller,
         )
-        mock_register_global_state = mocker.patch("importer.import_main_loop.register_global_state")
+        mock_register_global_state = mocker.patch(
+            "importer.import_main_loop.register_global_state"
+        )
         mock_get_graphql_code(mocker, return_value={"data": {"jwt": "mocked_jwt"}})
         mock_get_mgm_details = mocker.patch.object(
             ManagementController,
@@ -157,11 +163,12 @@ class TestImportSingleManagement:
             force=False,
             fwo_major_version=9,
             sleep_timer=0,
-            is_full_import=True,
         )
 
         # Assert
         mock_wait.assert_called_with(0)
         mock_get_mgm_details.assert_called_once()
-        mock_initialize_import.assert_called_once_with(1, api_call, False, True, False, 9, False, True)  # noqa: FBT003
+        mock_initialize_import.assert_called_once_with(
+            1, api_call, False, True, False, 9, False, True
+        )  # noqa: FBT003
         mock_register_global_state.assert_called_once_with(import_state_controller)

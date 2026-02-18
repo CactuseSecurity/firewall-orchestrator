@@ -336,7 +336,7 @@ class FwConfigImportObject:
     ) -> None:
         """
         Insert new time objects and update removed time objects via FWO API.
-        Also updates uid2id mapping for time objects.
+        Also updates uid2id mapping for time objects and import statistics.
         """
         self.uid2id_mapper.update_time_object_mapping(is_global=is_global)
         import_mutation = FwoApi.get_graphql_code(
@@ -344,11 +344,14 @@ class FwConfigImportObject:
         )
         new_uids = list(current_time_objs.keys() - previous_time_objs.keys())
         removed_uids = list(previous_time_objs.keys() - current_time_objs.keys())
-        # changed time objects
-        for uid in current_time_objs.keys() & previous_time_objs.keys():
-            if current_time_objs[uid] != previous_time_objs[uid]:
-                new_uids.append(uid)
-                removed_uids.append(uid)
+        # changed time objects will be set to removed and re-added with new data
+        changed_uids = [
+            uid
+            for uid in current_time_objs.keys() & previous_time_objs.keys()
+            if current_time_objs[uid] != previous_time_objs[uid]
+        ]
+        new_uids.extend(changed_uids)
+        removed_uids.extend(changed_uids)
         query_variables: dict[str, Any] = {
             "mgmId": self.import_state.state.mgm_details.current_mgm_id,
             "importId": self.import_state.state.import_id,
@@ -373,6 +376,9 @@ class FwConfigImportObject:
             self.uid2id_mapper.add_time_object_mappings(
                 import_result["data"]["insert_time_object"]["returning"], is_global=is_global
             )
+            self.import_state.state.stats.statistics.time_object_add_count += len(new_uids)
+            self.import_state.state.stats.statistics.time_object_delete_count += len(removed_uids)
+            self.import_state.state.stats.statistics.time_object_change_count += len(changed_uids)
             FWOLogger.debug(
                 f"fwo_api:importTimeObject - updated time objects via API. Inserted: {insert_count}, Updated: {update_count}"
             )

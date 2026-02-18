@@ -9,6 +9,7 @@ using FWO.Data.Modelling;
 using FWO.Logging;
 using FWO.Recert;
 using FWO.Services;
+using FWO.Services.Modelling;
 using Novell.Directory.Ldap;
 using System.Data;
 using System.Linq;
@@ -31,7 +32,8 @@ namespace FWO.Middleware.Server
         private List<Ldap> connectedLdaps = [];
         private string? ownerGroupLdapPath;
         private List<GroupGetReturnParameters> allGroups = [];
-        private Dictionary<OwnerResponsibleType, List<string>> rolesToSetByType = [];
+        private Dictionary<int, List<string>> rolesToSetByType = [];
+        private Dictionary<int, OwnerResponsibleType> ownerResponsibleTypeById = [];
         private ModellingNamingConvention NamingConvention = new();
         private UserConfig userConfig = new();
         private const string LogMessageTitle = "Import App Data";
@@ -81,6 +83,8 @@ namespace FWO.Middleware.Server
                     Replace(Placeholder.ExternalAppId, "*").
                     Replace(Placeholder.AppPrefix, "*"));
             rolesToSetByType = ParseRolesWithImport(globalConfig.RolesWithAppDataImport);
+            List<OwnerResponsibleType> responsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            ownerResponsibleTypeById = responsibleTypes.ToDictionary(type => type.Id, type => type);
         }
 
         private async Task ImportSingleSource(string importfileName, List<string> failedImports)
@@ -173,7 +177,7 @@ namespace FWO.Middleware.Server
                 }
                 if (incomingApp.MainUser != null && incomingApp.MainUser != "")
                 {
-                    await UpdateRoles(incomingApp.MainUser, GetRolesForType(OwnerResponsibleType.kMainResponsible));
+                    await UpdateRoles(incomingApp.MainUser, GetRolesForType(GlobalConst.kOwnerResponsibleTypeMain));
                 }
                 // in order to store email addresses of users in the group in UiUser for email notification:
                 await AddAllGroupMembersToUiUser(userGroupDn);
@@ -233,7 +237,7 @@ namespace FWO.Middleware.Server
             List<OwnerResponsible> responsibles = BuildOwnerResponsibles(
                 incomingApp.MainUser,
                 userGroupDn,
-                existingApp.GetOwnerResponsiblesByType(OwnerResponsibleType.kOptionalEscalationResponsible));
+                existingApp.GetOwnerResponsiblesByType(GlobalConst.kOwnerResponsibleTypeOptionalEscalation));
             await UpdateOwnerResponsibles(existingApp.Id, responsibles);
             await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
             await ImportAppServers(incomingApp, existingApp.Id);
@@ -260,15 +264,15 @@ namespace FWO.Middleware.Server
             List<OwnerResponsible> responsibles = [];
             if (!string.IsNullOrWhiteSpace(mainUserDn))
             {
-                responsibles.Add(new OwnerResponsible { Dn = mainUserDn, ResponsibleType = OwnerResponsibleType.kMainResponsible });
+                responsibles.Add(new OwnerResponsible { Dn = mainUserDn, ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain });
             }
             if (!string.IsNullOrWhiteSpace(userGroupDn))
             {
-                responsibles.Add(new OwnerResponsible { Dn = userGroupDn, ResponsibleType = OwnerResponsibleType.kSupportingResponsible });
+                responsibles.Add(new OwnerResponsible { Dn = userGroupDn, ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeSupporting });
             }
             foreach (string dn in extraDns.Where(dn => !string.IsNullOrWhiteSpace(dn)))
             {
-                responsibles.Add(new OwnerResponsible { Dn = dn, ResponsibleType = OwnerResponsibleType.kOptionalEscalationResponsible });
+                responsibles.Add(new OwnerResponsible { Dn = dn, ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeOptionalEscalation });
             }
             return responsibles;
         }
@@ -285,20 +289,27 @@ namespace FWO.Middleware.Server
             {
                 owner_id = ownerId,
                 dn = r.Dn,
-                responsible_type = (int)r.ResponsibleType
+                responsible_type = r.ResponsibleTypeId
             });
             await apiConnection.SendQueryAsync<object>(OwnerQueries.newOwnerResponsibles, new { responsibles = objects });
         }
 
-        private async Task ApplyRolesToResponsibles(List<OwnerResponsible> responsibles, Dictionary<OwnerResponsibleType, List<string>> rolesByType)
+        private async Task ApplyRolesToResponsibles(List<OwnerResponsible> responsibles, Dictionary<int, List<string>> rolesByType)
         {
             foreach (OwnerResponsible responsible in responsibles)
             {
-                if (!rolesByType.TryGetValue(responsible.ResponsibleType, out List<string>? roles) || roles.Count == 0)
+                if (!rolesByType.TryGetValue(responsible.ResponsibleTypeId, out List<string>? roles) || roles.Count == 0)
                 {
                     continue;
                 }
-                await UpdateRoles(responsible.Dn, roles);
+                bool allowModelling = ownerResponsibleTypeById.TryGetValue(responsible.ResponsibleTypeId, out OwnerResponsibleType? type) && type.AllowModelling;
+                bool allowRecertification = ownerResponsibleTypeById.TryGetValue(responsible.ResponsibleTypeId, out type) && type.AllowRecertification;
+                List<string> filteredRoles = OwnerResponsibleRoleHelper.FilterRoles(roles, allowModelling, allowRecertification);
+                if (filteredRoles.Count == 0)
+                {
+                    continue;
+                }
+                await UpdateRoles(responsible.Dn, filteredRoles);
             }
         }
 
@@ -353,14 +364,14 @@ namespace FWO.Middleware.Server
             return $"cn={role},{internalLdap.RoleSearchPath}";
         }
 
-        private List<string> GetRolesForType(OwnerResponsibleType typeId)
+        private List<string> GetRolesForType(int typeId)
         {
             return rolesToSetByType.TryGetValue(typeId, out List<string>? roles) ? roles : [];
         }
 
-        private static Dictionary<OwnerResponsibleType, List<string>> ParseRolesWithImport(string rolesJson)
+        private static Dictionary<int, List<string>> ParseRolesWithImport(string rolesJson)
         {
-            Dictionary<OwnerResponsibleType, List<string>> rolesByType = [];
+            Dictionary<int, List<string>> rolesByType = [];
             if (string.IsNullOrWhiteSpace(rolesJson))
             {
                 return rolesByType;
@@ -370,7 +381,7 @@ namespace FWO.Middleware.Server
             if (trimmed.StartsWith("["))
             {
                 List<string> roles = JsonSerializer.Deserialize<List<string>>(rolesJson) ?? [];
-                rolesByType[OwnerResponsibleType.kSupportingResponsible] = roles;
+                rolesByType[GlobalConst.kOwnerResponsibleTypeSupporting] = roles;
                 return rolesByType;
             }
 
@@ -379,9 +390,9 @@ namespace FWO.Middleware.Server
             {
                 foreach (var entry in parsed)
                 {
-                    if (int.TryParse(entry.Key, out int typeId) && Enum.IsDefined(typeof(OwnerResponsibleType), typeId))
+                    if (int.TryParse(entry.Key, out int typeId))
                     {
-                        rolesByType[(OwnerResponsibleType)typeId] = entry.Value;
+                        rolesByType[typeId] = entry.Value;
                     }
                 }
             }
@@ -475,7 +486,7 @@ namespace FWO.Middleware.Server
             string userGroupDn = GetGroupDn(incomingApp.ExtAppId);
             if (globalConfig.ManageOwnerLdapGroups)
             {
-                if ((existingApp == null || existingApp.GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible).Count == 0)
+                if ((existingApp == null || existingApp.GetOwnerResponsiblesByType(GlobalConst.kOwnerResponsibleTypeSupporting).Count == 0)
                     && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
                 {
                     userGroupDn = await CreateUserGroup(incomingApp, userGroupDn);
@@ -488,7 +499,7 @@ namespace FWO.Middleware.Server
             else
             {
                 // add necessary roles for user group
-                await UpdateRoles(userGroupDn, GetRolesForType(OwnerResponsibleType.kSupportingResponsible));
+                await UpdateRoles(userGroupDn, GetRolesForType(GlobalConst.kOwnerResponsibleTypeSupporting));
             }
             return userGroupDn;
         }
@@ -511,7 +522,7 @@ namespace FWO.Middleware.Server
                 // add users to internal group:
                 await AddUsersToGroup(incomingApp.Modellers, [], newDn);
                 await AddUsersToGroup(incomingApp.ModellerGroups, [], newDn);
-                await AddRoles(newDn, GetRolesForType(OwnerResponsibleType.kSupportingResponsible));
+                await AddRoles(newDn, GetRolesForType(GlobalConst.kOwnerResponsibleTypeSupporting));
                 return newDn;
             }
             return "";
@@ -530,7 +541,7 @@ namespace FWO.Middleware.Server
                     await internalLdap.RemoveUserFromEntry(member, groupDn);
                 }
             }
-            await UpdateRoles(groupDn, GetRolesForType(OwnerResponsibleType.kSupportingResponsible));
+            await UpdateRoles(groupDn, GetRolesForType(GlobalConst.kOwnerResponsibleTypeSupporting));
         }
 
         private async Task AddUsersToGroup(List<string>? members, List<string> existingMembers, string groupDn)
@@ -695,8 +706,18 @@ namespace FWO.Middleware.Server
                 if (returnIds != null && returnIds.Length > 0)
                 {
                     ModellingAppServer newModAppServer = new(incomingAppServer.ToModellingAppServer()) { Id = returnIds[0].NewIdLong, ImportSource = impSource, AppId = appID };
-                    await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, newModAppServer.Id,
-                        $"New App Server: {newModAppServer.Display()}", apiConnection, userConfig, newModAppServer.AppId, DefaultInit.DoNothing, null, newModAppServer.ImportSource);
+                    await ModellingHandlerBase.LogChange(new LogChangeRequest
+                    {
+                        ChangeType = ModellingTypes.ChangeType.Insert,
+                        ObjectType = ModellingTypes.ModObjectType.AppServer,
+                        ObjectId = newModAppServer.Id,
+                        Text = $"New App Server: {newModAppServer.Display()}",
+                        ApiConnection = apiConnection,
+                        UserConfig = userConfig,
+                        ApplicationId = newModAppServer.AppId,
+                        DisplayMessageInUi = DefaultInit.DoNothing,
+                        ChangeSource = newModAppServer.ImportSource
+                    });
                     await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, newModAppServer);
                 }
             }
@@ -720,8 +741,18 @@ namespace FWO.Middleware.Server
                     deleted = false
                 };
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, appServer.Id,
-                    $"Reactivate App Server: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = ModellingTypes.ChangeType.Reactivate,
+                    ObjectType = ModellingTypes.ModObjectType.AppServer,
+                    ObjectId = appServer.Id,
+                    Text = $"Reactivate App Server: {appServer.Display()}",
+                    ApiConnection = apiConnection,
+                    UserConfig = userConfig,
+                    ApplicationId = appServer.AppId,
+                    DisplayMessageInUi = DefaultInit.DoNothing,
+                    ChangeSource = appServer.ImportSource
+                });
                 await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, appServer);
             }
             catch (Exception exc)
@@ -744,8 +775,18 @@ namespace FWO.Middleware.Server
                     customType = 0
                 };
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerType, Variables);
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, appServer.Id,
-                    $"Update App Server Type: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = ModellingTypes.ChangeType.Update,
+                    ObjectType = ModellingTypes.ModObjectType.AppServer,
+                    ObjectId = appServer.Id,
+                    Text = $"Update App Server Type: {appServer.Display()}",
+                    ApiConnection = apiConnection,
+                    UserConfig = userConfig,
+                    ApplicationId = appServer.AppId,
+                    DisplayMessageInUi = DefaultInit.DoNothing,
+                    ChangeSource = appServer.ImportSource
+                });
             }
             catch (Exception exc)
             {
@@ -769,8 +810,18 @@ namespace FWO.Middleware.Server
                         id = appServer.Id,
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerName, Variables);
-                    await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, appServer.Id,
-                        $"Update App Server Name: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
+                    await ModellingHandlerBase.LogChange(new LogChangeRequest
+                    {
+                        ChangeType = ModellingTypes.ChangeType.Update,
+                        ObjectType = ModellingTypes.ModObjectType.AppServer,
+                        ObjectId = appServer.Id,
+                        Text = $"Update App Server Name: {appServer.Display()}",
+                        ApiConnection = apiConnection,
+                        UserConfig = userConfig,
+                        ApplicationId = appServer.AppId,
+                        DisplayMessageInUi = DefaultInit.DoNothing,
+                        ChangeSource = appServer.ImportSource
+                    });
                     Log.WriteWarning(LogMessageTitle, $"Name of App Server changed from {appServer.Name} changed to {newName}");
                 }
                 catch (Exception exc)
@@ -794,8 +845,18 @@ namespace FWO.Middleware.Server
                     deleted = true
                 };
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppServer, appServer.Id,
-                    $"Deactivate App Server: {appServer.Display()}", apiConnection, userConfig, appServer.AppId, DefaultInit.DoNothing, null, appServer.ImportSource);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = ModellingTypes.ChangeType.Update,
+                    ObjectType = ModellingTypes.ModObjectType.AppServer,
+                    ObjectId = appServer.Id,
+                    Text = $"Deactivate App Server: {appServer.Display()}",
+                    ApiConnection = apiConnection,
+                    UserConfig = userConfig,
+                    ApplicationId = appServer.AppId,
+                    DisplayMessageInUi = DefaultInit.DoNothing,
+                    ChangeSource = appServer.ImportSource
+                });
                 await AppServerHelper.ReactivateOtherSource(apiConnection, userConfig, appServer);
             }
             catch (Exception exc)

@@ -389,6 +389,7 @@ namespace FWO.Ui.Display
         }
         public string DisplayServiceProtocol(ServiceChange serviceChange)
         {
+
             switch (serviceChange.ChangeAction)
             {
 

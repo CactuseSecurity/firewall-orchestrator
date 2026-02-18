@@ -321,6 +321,13 @@ A complete 80K lines rework of FWO, including
 - database changes to deduplicate rules (rule to gateway mapping now 1:n by introducing rulebase and rulebase_link tables)
 - migrating import module from mixed python/pgsql to pure python
 
+# 9.0.1 - 07.02.2026 DEVELOP
+- generalized owner responsibles with configurable responsible types
+- add allow_write_access to responsible types to control modelling and recertification
+
+# 9.0.2 - 10.02.2026 DEVELOP
+- importer: call api chunked where needed
+
 **Breaking changes**
 - Due to introduction of venv for all imports, the following steps have to be taken to manually import a config:
 
@@ -333,3 +340,9 @@ A complete 80K lines rework of FWO, including
   As we now need support for pip, in installations behind url filter, make sure that all sub-domains of "pythonhosted.org" are also allowed.
 
 - Limiting database listener to localhost for security reasons
+
+## 9.0.3 - 12.02.2026 DEVELOP
+- introduce interface permissions
+
+## 9.0.4 - 13.02.2026 DEVELOP
+- maintenance release with explicit 9.0.4 upgrade step

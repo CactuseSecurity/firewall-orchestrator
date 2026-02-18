@@ -1144,6 +1144,16 @@ create table owner_responsible
     responsible_type int NOT NULL
 );
 
+create table owner_responsible_type
+(
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL,
+    active boolean default true,
+    sort_order int default 0,
+    allow_modelling boolean default false,
+    allow_recertification boolean default false
+);
+
 CREATE TABLE owner_lifecycle_state (
     id SERIAL PRIMARY KEY,
     name Varchar NOT NULL
@@ -1609,7 +1619,15 @@ create table modelling.connection
 	extra_params Varchar,
 	requested_on_fw boolean default false,
 	removed boolean default false,
-	removal_date timestamp
+	removal_date timestamp,
+	interface_permission Varchar
+);
+
+create table modelling.permitted_owners
+(
+	connection_id int,
+	app_id int,
+	primary key (connection_id, app_id)
 );
 
 create table modelling.selected_objects

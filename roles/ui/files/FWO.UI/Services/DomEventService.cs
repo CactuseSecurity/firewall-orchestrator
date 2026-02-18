@@ -1,14 +1,16 @@
+using FWO.Logging;
 using Microsoft.JSInterop;
-using Newtonsoft.Json.Linq;
-using System.Diagnostics;
 
 namespace FWO.Ui.Services
 {
-    public class DomEventService
+    public class DomEventService : IAsyncDisposable
     {
-        public event Action<string>? OnGlobalScroll;
-        public event Action<string>? OnGlobalClick;
-        public event Action? OnGlobalResize;
+        public delegate void OnDomEvent(string elementId);
+
+        public event OnDomEvent? OnGlobalScroll;
+        public event OnDomEvent? OnGlobalClick;
+        public event OnDomEvent? OnGlobalFocus;
+        public event OnDomEvent? OnGlobalResize;
 
         private Action<int>? _navbarHeightSubscribers;
         private int? _lastNavbarHeight;
@@ -27,24 +29,51 @@ namespace FWO.Ui.Services
             remove => _navbarHeightSubscribers -= value;
         }
 
-        public bool Initialized { get; private set; } = false;
+        private DotNetObjectReference<DomEventService>? _dotNetRef;
+        private IJSRuntime? _runtime;
+
+        public bool Initialized { get; private set; }
+
+        public async Task Initialize(IJSRuntime runtime)
+        {
+            if (!Initialized)
+            {
+                try
+                {
+                    _runtime = runtime;
+                    _dotNetRef ??= DotNetObjectReference.Create(this);
+                    await runtime.InvokeVoidAsync("initializeEventHandlers", _dotNetRef);
+                    Initialized = true;
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError("DomEventService", $"Initialization failure", exception);
+                }
+            }
+        }
 
         [JSInvokable]
         public void InvokeOnGlobalScroll(string elementId)
         {
-            OnGlobalScroll?.Invoke(elementId ?? "");
+            OnGlobalScroll?.Invoke(elementId);
         }
 
         [JSInvokable]
-        public void InvokeOnGlobalResize()
+        public void InvokeOnGlobalResize(string elementId)
         {
-            OnGlobalResize?.Invoke();
+            OnGlobalResize?.Invoke(elementId);
         }
 
         [JSInvokable]
         public void InvokeOnGlobalClick(string elementId)
         {
-            OnGlobalClick?.Invoke(elementId ?? "");
+            OnGlobalClick?.Invoke(elementId);
+        }
+
+        [JSInvokable]
+        public void InvokeOnGlobalFocus(string elementId)
+        {
+            OnGlobalFocus?.Invoke(elementId);
         }
 
         [JSInvokable]
@@ -54,23 +83,24 @@ namespace FWO.Ui.Services
             _navbarHeightSubscribers?.Invoke(height);
         }
 
-        public async Task Initialize(IJSRuntime runtime)
+        protected virtual async ValueTask DisposeAsyncCore()
         {
-            if (!Initialized)
+            try
             {
-                try
-                {
-                    await runtime.InvokeVoidAsync("globalScroll", DotNetObjectReference.Create(this));
-                    await runtime.InvokeVoidAsync("globalResize", DotNetObjectReference.Create(this));
-                    await runtime.InvokeVoidAsync("globalClick", DotNetObjectReference.Create(this));
-                    await runtime.InvokeVoidAsync("observeNavbarHeight", DotNetObjectReference.Create(this));
-                    Initialized = true;
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.ToString());
-                }
+                if (Initialized && _runtime is not null)
+                    await _runtime.InvokeVoidAsync("disposeEventHandlers");
             }
+            catch { /* ignore */ }
+
+            _dotNetRef?.Dispose();
+            _dotNetRef = null;
+            Initialized = false;
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await DisposeAsyncCore().ConfigureAwait(false);
+            GC.SuppressFinalize(this);
         }
     }
 }

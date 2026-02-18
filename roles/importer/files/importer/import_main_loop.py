@@ -162,6 +162,7 @@ def main_loop(
 
     ## loop through all managements
     for mgm_id in mgm_ids:
+        init_service_provider()
         import_single_management(
             mgm_id,
             fwo_api_call,
@@ -174,7 +175,7 @@ def main_loop(
             sleep_timer,
         )
 
-    ServiceProvider().dispose_global_state()
+        ServiceProvider().reset()
 
     FWOLogger.info(f"import_main_loop: sleeping for {sleep_timer} seconds until next import cycle")
     wait_with_shutdown_check(sleep_timer)

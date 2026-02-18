@@ -4,7 +4,8 @@ using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Services;
+using FWO.Services.Modelling;
+using FWO.Services.Workflow;
 
 
 namespace FWO.Ui.Services
@@ -30,7 +31,7 @@ namespace FWO.Ui.Services
 
 
         public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
-            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
+            Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner)
             : base(apiConnection, userConfig, application, false, displayMessageInUi, false, isOwner)
         { }
 
@@ -191,6 +192,10 @@ namespace FWO.Ui.Services
 
         public async Task AddConnection()
         {
+            if (!HasWriteAccess(userConfig.GetText("add_connection")))
+            {
+                return;
+            }
             ReadOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection() { AppId = Application.Id });
@@ -198,6 +203,10 @@ namespace FWO.Ui.Services
 
         public async Task AddInterface()
         {
+            if (!HasWriteAccess(userConfig.GetText("add_interface")))
+            {
+                return;
+            }
             ReadOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection() { AppId = Application.Id, IsInterface = true });
@@ -205,6 +214,10 @@ namespace FWO.Ui.Services
 
         public async Task AddCommonService()
         {
+            if (!HasWriteAccess(userConfig.GetText("add_common_service")))
+            {
+                return;
+            }
             ReadOnly = false;
             AddConnMode = true;
             await HandleConn(new ModellingConnection() { AppId = Application.Id, IsCommonService = true });
@@ -219,6 +232,11 @@ namespace FWO.Ui.Services
 
         public async Task EditConn(ModellingConnection conn)
         {
+            if (!IsOwner)
+            {
+                await ShowDetails(conn);
+                return;
+            }
             ReadOnly = false;
             AddConnMode = false;
             await HandleConn(conn);
@@ -238,18 +256,22 @@ namespace FWO.Ui.Services
             if (conn.IsInterface)
             {
                 InterfaceName = conn.Name ?? "";
-                await CheckInterfaceInUse(conn);
+                await InitUsingConnections(conn.Id);
             }
             ShowUsingConnectionsMode = true;
         }
 
         public async Task RequestDeleteConnection(ModellingConnection conn)
         {
+            if (!HasWriteAccess(userConfig.GetText("delete_connection")))
+            {
+                return;
+            }
             ActTab = Tabset.ActiveTab;
             ConnToDelete = conn;
             if (ConnToDelete.IsInterface)
             {
-                if (await CheckInterfaceInUse(ConnToDelete))
+                if (await InitUsingConnections(ConnToDelete.Id))
                 {
                     Message = userConfig.GetText("E9013") + ConnToDelete.Name;
                     ConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode,
@@ -275,6 +297,10 @@ namespace FWO.Ui.Services
 
         public async Task DeleteConnection()
         {
+            if (!HasWriteAccess(userConfig.GetText("delete_connection")))
+            {
+                return;
+            }
             try
             {
                 if (await DeleteConnection(ConnToDelete))
@@ -290,6 +316,17 @@ namespace FWO.Ui.Services
             {
                 DisplayMessageInUi(exception, userConfig.GetText("delete_connection"), "", true);
             }
+        }
+
+        private bool HasWriteAccess(string action)
+        {
+            if (IsOwner)
+            {
+                return true;
+            }
+
+            DisplayMessageInUi(null, action, userConfig.GetText("C9012"), true);
+            return false;
         }
     }
 }

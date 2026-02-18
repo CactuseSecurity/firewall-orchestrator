@@ -13,7 +13,9 @@ from typing import Any
 import git  # apt install python3-git # or: pip install git
 import urllib3
 
-from scripts.customizing.fwo_custom_lib.app_data_basics import transform_app_list_to_dict
+from scripts.customizing.fwo_custom_lib.app_data_basics import (
+    transform_app_list_to_dict,
+)
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 from scripts.customizing.fwo_custom_lib.basic_helpers import (
     FWOLogger,
@@ -21,7 +23,10 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     read_custom_config,
     read_custom_config_with_default,
 )
-from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
+from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
+    extract_app_data_from_csv,
+    extract_ip_data_from_csv,
+)
 from scripts.customizing.iiq_request_missing_roles.iiq_client import IIQClient
 
 __version__ = "2026-01-08"
@@ -173,11 +178,17 @@ def request_all_roles(
         counter += 1
         tiso: str | None = tisos.get(app_id_with_prefix)
         if tiso is None:
-            logger.warning("did not find a TISO for owner %s, skipping group creation", app_id_with_prefix)
+            logger.warning(
+                "did not find a TISO for owner %s, skipping group creation",
+                app_id_with_prefix,
+            )
             continue
         org_id: str | None = tiso_orgids.get(tiso) if tiso else None
         if org_id is None:
-            logger.warning("did not find an OrgId for owner %s, skipping group creation", app_id_with_prefix)
+            logger.warning(
+                "did not find an OrgId for owner %s, skipping group creation",
+                app_id_with_prefix,
+            )
             continue
 
         app_prefix: str
@@ -185,12 +196,22 @@ def request_all_roles(
         app_prefix, app_id = app_id_with_prefix.split("-")
         # get existing (already modelled) functions for this app to find out, what still needs to be changed in iiq
         if iiq_client.app_functions_exist_in_iiq(app_prefix, app_id, stats):
-            logger.info_if(5, "not requesting groups for %s - they already exist", app_id_with_prefix)
+            logger.info_if(
+                5,
+                "not requesting groups for %s - they already exist",
+                app_id_with_prefix,
+            )
             continue
 
         logger.info_if(5, "requesting groups for %s", app_id_with_prefix)
         iiq_client.request_group_creation(
-            app_prefix, app_id, org_id, tiso, owner.name, stats, run_workflow=run_workflow
+            app_prefix,
+            app_id,
+            org_id,
+            tiso,
+            owner.name,
+            stats,
+            run_workflow=run_workflow,
         )
 
         # if first parameter is set, only handle the first "first" applications, otherwise handle all
@@ -263,9 +284,9 @@ if __name__ == "__main__":
                             "iiqHostname": "stest.api.example.de",} \
                             "iiqUsername": "iiq-user-id", \
                             "iiqPassword": "iiq-user-pwd", \
-                            "gitRepo": "github.example.de/cmdb/app-export", \
-                            "gitName": "git-user-1", \
-                            "gitPassword": "gituser-1-pwd", \
+                            "cmdbGitRepoUrl": "github.example.de/cmdb/app-export", \
+                            "cmdbGitUsername": "git-user-1", \
+                            "cmdbGitPassword": "gituser-1-pwd", \
                             "csvOwnerFilePattern": "NeMo_???_meta.csv", \
                             "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv", \
                             "iiqAppName": "AD EXAMPLEDE", \
@@ -274,7 +295,11 @@ if __name__ == "__main__":
                         ',
     )
     parser.add_argument(
-        "-s", "--suppress_certificate_warnings", action="store_true", default=True, help="suppress certificate warnings"
+        "-s",
+        "--suppress_certificate_warnings",
+        action="store_true",
+        default=True,
+        help="suppress certificate warnings",
     )
     parser.add_argument(
         "-d",
@@ -311,7 +336,9 @@ if __name__ == "__main__":
         help="Just dump the org_ids of all TISOs as CSV and then exit.",
     )
     parser.add_argument(
-        "-o", "--import_from_folder", help="if set, will try to read csv files from given folder instead of git repo"
+        "-o",
+        "--import_from_folder",
+        help="if set, will try to read csv files from given folder instead of git repo",
     )
 
     args: argparse.Namespace = parser.parse_args()
@@ -346,7 +373,14 @@ if __name__ == "__main__":
     iiq_app_name: str = read_custom_config(args.config, "iiqAppName", logger)
     user_prefix: str = read_custom_config(args.config, "userPrefix", logger)
     iiq_client: IIQClient = IIQClient(
-        iiq_hostname, iiq_user, iiq_password, iiq_app_name, user_prefix, stage=stage, debug=debug, logger=logger
+        iiq_hostname,
+        iiq_user,
+        iiq_password,
+        iiq_app_name,
+        user_prefix,
+        stage=stage,
+        debug=debug,
+        logger=logger,
     )
 
     if args.import_from_folder:

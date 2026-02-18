@@ -91,11 +91,13 @@ insert into config (config_key, config_value, config_user) VALUES ('modAppServer
 insert into config (config_key, config_value, config_user) VALUES ('modReqInterfaceName', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailReceiver', 'OwnerGroupOnly', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailRequesterInCc', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modReqEmailOtherAddresses', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailSubject', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTicketTitle', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTaskTitle', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailReceiver', 'None', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailOtherAddresses', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailSubject', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutActive', 'true', 0);
@@ -537,6 +539,12 @@ insert into request.state (id,name) VALUES (620,'Discarded');
 
 INSERT INTO owner (id, name, is_default, recert_interval, app_id_external) 
 VALUES    (0, 'super-owner', true, 365, 'NONE');
+INSERT INTO owner_responsible_type (id, name, active, sort_order, allow_modelling, allow_recertification)
+VALUES
+    (1, 'Main responsible', true, 10, true, true),
+    (2, 'Supporting responsible', true, 20, true, true),
+    (3, 'Optional escalation responsible', true, 30, false, false)
+ON CONFLICT DO NOTHING;
 INSERT INTO owner_responsible (owner_id, dn, responsible_type)
 VALUES
     (0, 'uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal', 1),

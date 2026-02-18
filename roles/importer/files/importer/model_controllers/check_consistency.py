@@ -393,19 +393,19 @@ class FwConfigImportCheckConsistency:
         unresolvable_user_colors: list[str] = []
         # check all nwobj color refs
         for color_string in all_used_nw_obj_color_ref_set:
-            color_id = self.import_state.lookup_color_id(color_string)
+            color_id = self.import_state.lookup_color_id_unresolved(color_string)
             if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
                 unresolvable_nw_obj_colors.append(color_string)
 
         # check all nwobj color refs
         for color_string in all_used_svc_color_ref_set:
-            color_id = self.import_state.lookup_color_id(color_string)
+            color_id = self.import_state.lookup_color_id_unresolved(color_string)
             if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
                 unresolvable_svc_colors.append(color_string)
 
         # check all user color refs
         for color_string in all_used_user_color_ref_set:
-            color_id = self.import_state.lookup_color_id(color_string)
+            color_id = self.import_state.lookup_color_id_unresolved(color_string)
             if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
                 unresolvable_user_colors.append(color_string)
 

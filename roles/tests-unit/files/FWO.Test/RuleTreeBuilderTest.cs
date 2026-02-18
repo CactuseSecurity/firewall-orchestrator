@@ -33,12 +33,12 @@ namespace FWO.Test
             ];
 
             // Act
-            List<Rule> resultRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links);
+            List<Rule> resultRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1).Where(rule => rule.SectionHeader == "").ToList();
 
             // Assert
             Assert.That(resultRules.Count == 2);
-            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem)element).IsRule) == 2);
-            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem)element).IsSectionHeader) == 0);
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsRule) == 2);
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsSectionHeader) == 0);
             Assert.That(FindOrderedLayerRoots(_ruleTreeBuilder.RuleTree).Count == 1);
         }
 
@@ -60,12 +60,12 @@ namespace FWO.Test
             ];
 
             // Act
-            List<Rule> resultRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links);
+            List<Rule> resultRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
 
             // Assert
-            Assert.That(resultRules.Count == 5);
-            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem)element).IsRule) == 3);
-            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem)element).IsSectionHeader) == 2);
+            Assert.That(resultRules.Count == 6);
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsRule) == 3);
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsSectionHeader) == 2);
             Assert.That(FindOrderedLayerRoots(_ruleTreeBuilder.RuleTree).Count == 1);
         }
 
@@ -85,11 +85,11 @@ namespace FWO.Test
             ];
 
             // Act
-            List<Rule> resultRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links);
+            List<Rule> resultRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1).Where(rule => rule.SectionHeader == "").ToList();
 
             // Assert
             Assert.That(resultRules.Count == 4);
-            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem)element).IsRule) == 4);
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsRule) == 4);
         }
 
         [Test]
@@ -110,12 +110,12 @@ namespace FWO.Test
             ];
 
             // Act
-            List<Rule> resultRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links);
+            List<Rule> resultRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1).Where(rule => rule.SectionHeader == "").ToList();
 
             // Assert
-            Assert.That(resultRules.Count == 4);
-            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem)element).IsRule) == 3);
-            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem)element).IsSectionHeader) == 1);
+            Assert.That(resultRules.Count == 3);
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsRule) == 3);
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => element.IsSectionHeader) == 1);
         }
 
         private static RulebaseReport Rulebase(int id, string name, params int[] ruleIds)

@@ -15,7 +15,11 @@ from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_base import init_service_provider, register_global_state
 from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
-from fwo_exceptions import FwLoginFailedError, FwoApiFailedLockImportError, FwoApiLoginFailedError
+from fwo_exceptions import (
+    FwLoginFailedError,
+    FwoApiFailedLockImportError,
+    FwoApiLoginFailedError,
+)
 from fwo_log import FWOLogger
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import (
@@ -29,14 +33,17 @@ from model_controllers.management_controller import (
 from services.service_provider import ServiceProvider
 
 
-def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
+def get_fwo_jwt(
+    import_user: str, import_pwd: str, user_management_api: str
+) -> str | None:
     try:
         return FwoApi.login(import_user, import_pwd, user_management_api)
     except FwoApiLoginFailedError as e:
         FWOLogger.error(e.message)
     except Exception:
         FWOLogger.error(
-            "import_main_loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
+            "import_main_loop - unspecified error during FWO API login - skipping: "
+            + str(traceback.format_exc())
         )
 
 
@@ -64,20 +71,28 @@ def import_single_management(
 ):
     wait_with_shutdown_check(0)
     import_state = ImportStateController.initialize_import(
-        mgm_id,
-        fwo_api_call,
-        suppress_certificate_warnings,
-        verify_certificates,
-        force,
-        fwo_major_version,
-        clear,
+        mgm_id=mgm_id,
+        api_call=fwo_api_call,
+        suppress_cert_warnings=suppress_certificate_warnings,
+        ssl_verification=verify_certificates,
+        force=force,
+        version=fwo_major_version,
+        is_clearing_import=clear,
     )
 
     register_global_state(import_state)
 
     try:
         mgm_controller = ManagementController(
-            mgm_id, "", [], DeviceInfo(), ConnectionInfo(), "", CredentialInfo(), ManagerInfo(), DomainInfo()
+            mgm_id,
+            "",
+            [],
+            DeviceInfo(),
+            ConnectionInfo(),
+            "",
+            CredentialInfo(),
+            ManagerInfo(),
+            DomainInfo(),
         )
         mgm_details = mgm_controller.get_mgm_details(fwo_api_call.api, mgm_id)
     except Exception:
@@ -107,7 +122,9 @@ def import_single_management(
             suppress_consistency_check=suppress_consistency_check,
         )
     except (FwoApiFailedLockImportError, FwLoginFailedError):
-        FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
+        FWOLogger.info(
+            f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}"
+        )
         return  # minor errors for a single mgm, go to next one
     except Exception:  # all other exceptions are logged here
         FWOLogger.error(
@@ -145,20 +162,30 @@ def main_loop(
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # suppress ssl warnings only
-    verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
-    suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
+    verify_certificates = (
+        fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    )
+    suppress_certificate_warnings = (
+        fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
+    )
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
 
     try:
         mgm_ids = fwo_api_call.get_mgm_ids()
     except Exception:
-        FWOLogger.error(f"import_main_loop - error while getting FW management ids: {traceback.format_exc()!s}")
+        FWOLogger.error(
+            f"import_main_loop - error while getting FW management ids: {traceback.format_exc()!s}"
+        )
         wait_with_shutdown_check(sleep_timer)
         return
 
-    api_fetch_limit = int(fwo_api_call.get_config_value(key="fwApiElementsPerFetch") or api_fetch_limit)
-    sleep_timer = int(fwo_api_call.get_config_value(key="importSleepTime") or sleep_timer)
+    api_fetch_limit = int(
+        fwo_api_call.get_config_value(key="fwApiElementsPerFetch") or api_fetch_limit
+    )
+    sleep_timer = int(
+        fwo_api_call.get_config_value(key="importSleepTime") or sleep_timer
+    )
 
     ## loop through all managements
     for mgm_id in mgm_ids:
@@ -177,7 +204,9 @@ def main_loop(
 
         ServiceProvider().reset()
 
-    FWOLogger.info(f"import_main_loop: sleeping for {sleep_timer} seconds until next import cycle")
+    FWOLogger.info(
+        f"import_main_loop: sleeping for {sleep_timer} seconds until next import cycle"
+    )
     wait_with_shutdown_check(sleep_timer)
 
 
@@ -235,9 +264,19 @@ if __name__ == "__main__":
         default="0",
         help="Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=keep temporary config files; default=0",
     )
-    parser.add_argument("-v", "--verify_certificates", action="store_true", default=None, help="verify certificates")
     parser.add_argument(
-        "-s", "--suppress_certificate_warnings", action="store_true", default=None, help="suppress certificate warnings"
+        "-v",
+        "--verify_certificates",
+        action="store_true",
+        default=None,
+        help="verify certificates",
+    )
+    parser.add_argument(
+        "-s",
+        "--suppress_certificate_warnings",
+        action="store_true",
+        default=None,
+        help="suppress certificate warnings",
     )
     parser.add_argument(
         "-c",

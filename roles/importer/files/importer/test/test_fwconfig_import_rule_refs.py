@@ -25,6 +25,9 @@ def build_rule(rule_uid: str) -> RuleNormalized:
         rule_svc_neg=False,
         rule_svc="svc",
         rule_svc_refs="svc",
+        rule_src_zone="src_zone",
+        rule_dst_zone="dst_zone",
+        rule_time="time",
         rule_action=RuleAction.ACCEPT,
         rule_track=RuleTrack.NONE,
         rule_implied=False,
@@ -57,28 +60,30 @@ class TestFwconfigImportRuleRefs:
         prev_rule = build_rule("rule-1")
 
         fake_refs = {
-            RefType.SRC: [("src1", None)],
-            RefType.DST: [("dst1", "user1")],
-            RefType.SVC: ["svc1"],
-            RefType.NWOBJ_RESOLVED: ["src1", "dst1"],
-            RefType.SVC_RESOLVED: ["svc1"],
-            RefType.USER_RESOLVED: ["user1"],
-            RefType.SRC_ZONE: ["zone1"],
-            RefType.DST_ZONE: ["zone2"],
+            RefType.SRC: [("src", None)],
+            RefType.DST: [("dst", "user")],
+            RefType.SVC: ["svc"],
+            RefType.NWOBJ_RESOLVED: ["src", "dst"],
+            RefType.SVC_RESOLVED: ["svc"],
+            RefType.USER_RESOLVED: ["user"],
+            RefType.SRC_ZONE: ["src_zone"],
+            RefType.DST_ZONE: ["dst_zone"],
+            RefType.TIME: ["time"],
         }
 
         uid2id_mapper.get_rule_id = unittest.mock.MagicMock(return_value=100)
 
         def _get_network_object_id(uid: str, before_update: bool = True) -> int:  # noqa: ARG001
-            return {"src1": 10, "dst1": 11}[uid]
+            return {"src": 10, "dst": 11}[uid]
 
         def _get_zone_object_id(uid: str, before_update: bool = True) -> int:  # noqa: ARG001
-            return {"zone1": 40, "zone2": 41}[uid]
+            return {"src_zone": 40, "dst_zone": 41}[uid]
 
         uid2id_mapper.get_network_object_id = unittest.mock.MagicMock(side_effect=_get_network_object_id)
         uid2id_mapper.get_user_id = unittest.mock.MagicMock(return_value=30)
         uid2id_mapper.get_service_object_id = unittest.mock.MagicMock(return_value=20)
         uid2id_mapper.get_zone_object_id = unittest.mock.MagicMock(side_effect=_get_zone_object_id)
+        uid2id_mapper.get_time_object_id = unittest.mock.MagicMock(return_value=50)
 
         fwconfig_import_rule.get_rule_refs = unittest.mock.MagicMock(
             return_value=fake_refs,
@@ -98,3 +103,4 @@ class TestFwconfigImportRuleRefs:
         assert {"_and": [{"rule_id": {"_eq": 100}}, {"user_id": {"_eq": 30}}]} in refs_to_remove[RefType.USER_RESOLVED]
         assert {"_and": [{"rule_id": {"_eq": 100}}, {"zone_id": {"_eq": 40}}]} in refs_to_remove[RefType.SRC_ZONE]
         assert {"_and": [{"rule_id": {"_eq": 100}}, {"zone_id": {"_eq": 41}}]} in refs_to_remove[RefType.DST_ZONE]
+        assert {"_and": [{"rule_id": {"_eq": 100}}, {"time_obj_id": {"_eq": 50}}]} in refs_to_remove[RefType.TIME]

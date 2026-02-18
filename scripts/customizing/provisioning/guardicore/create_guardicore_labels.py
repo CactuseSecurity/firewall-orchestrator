@@ -522,6 +522,88 @@ def post_guardicore_labels(config: GuardicoreConfig, payload: list[dict[str, Any
             raise GuardicoreProvisioningError(f"Guardicore API call failed: {exc}") from exc
 
 
+def resolve_ssl_verification_settings(args: argparse.Namespace) -> tuple[bool | str, bool | str]:
+    verify_ssl = not args.insecure
+    fwo_verify: bool | str = verify_ssl
+    guardicore_verify: bool | str = verify_ssl
+
+    if args.fwo_insecure:
+        fwo_verify = False
+    elif args.fwo_ca_cert:
+        fwo_verify = args.fwo_ca_cert
+
+    if args.guardicore_insecure:
+        guardicore_verify = False
+    elif args.guardicore_ca_cert:
+        guardicore_verify = args.guardicore_ca_cert
+
+    return fwo_verify, guardicore_verify
+
+
+def get_fwo_jwt(args: argparse.Namespace, fwo_verify: bool | str) -> str:
+    if args.fwo_jwt:
+        return args.fwo_jwt
+    return login_fwo(
+        args.fwo_user,
+        args.fwo_password,
+        args.fwo_middleware_url,
+        fwo_verify,
+        args.timeout,
+    )
+
+
+def fetch_labels_from_fwo(args: argparse.Namespace, jwt: str, fwo_verify: bool | str) -> list[LabelItem]:
+    fwo_config = FwoConfig(
+        graphql_url=args.fwo_graphql_url,
+        jwt=jwt,
+        verify_ssl=fwo_verify,
+        timeout_seconds=args.timeout,
+        role=args.fwo_role,
+    )
+    response = run_graphql_query(
+        fwo_config,
+        build_graphql_query(),
+        build_graphql_variables(
+            args.app_ids,
+            include_common_services=args.include_common_services,
+            include_group_types=args.include_group_types,
+        ),
+    )
+    return build_labels_from_response(response, include_empty=args.include_empty)
+
+
+def build_guardicore_config(args: argparse.Namespace, guardicore_verify: bool | str) -> GuardicoreConfig:
+    return GuardicoreConfig(
+        base_url=args.guardicore_url,
+        token=login_guardicore(
+            args.guardicore_user,
+            args.guardicore_password,
+            args.guardicore_url,
+            guardicore_verify,
+            args.timeout,
+        ),
+        verify_ssl=guardicore_verify,
+        timeout_seconds=args.timeout,
+    )
+
+
+def send_labels_in_batches(
+    args: argparse.Namespace,
+    labels_to_create: list[LabelItem],
+    guardicore_config: GuardicoreConfig,
+    logger: logging.Logger,
+) -> int:
+    total_sent = 0
+    for batch in chunked(labels_to_create, args.batch_size):
+        payload = to_guardicore_payload(batch)
+        if args.dry_run:
+            logger.info("Dry run payload: %s", json.dumps(payload, indent=2))
+        else:
+            post_guardicore_labels(guardicore_config, payload)
+        total_sent += len(batch)
+    return total_sent
+
+
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger(__name__)
@@ -535,69 +617,15 @@ def main() -> int:
         return 2
 
     try:
-        verify_ssl = not args.insecure
-        if args.fwo_insecure:
-            fwo_verify = False
-        elif args.fwo_ca_cert:
-            fwo_verify = args.fwo_ca_cert
-        else:
-            fwo_verify = verify_ssl
-
-        if args.guardicore_insecure:
-            guardicore_verify = False
-        elif args.guardicore_ca_cert:
-            guardicore_verify = args.guardicore_ca_cert
-        else:
-            guardicore_verify = verify_ssl
-
-        if args.fwo_jwt:
-            jwt = args.fwo_jwt
-        else:
-            jwt = login_fwo(
-                args.fwo_user,
-                args.fwo_password,
-                args.fwo_middleware_url,
-                fwo_verify,
-                args.timeout,
-            )
-
-        fwo_config = FwoConfig(
-            graphql_url=args.fwo_graphql_url,
-            jwt=jwt,
-            verify_ssl=fwo_verify,
-            timeout_seconds=args.timeout,
-            role=args.fwo_role,
-        )
-        response = run_graphql_query(
-            fwo_config,
-            build_graphql_query(),
-            build_graphql_variables(
-                args.app_ids,
-                include_common_services=args.include_common_services,
-                include_group_types=args.include_group_types,
-            ),
-        )
-        labels = build_labels_from_response(
-            response,
-            include_empty=args.include_empty,
-        )
+        fwo_verify, guardicore_verify = resolve_ssl_verification_settings(args)
+        jwt = get_fwo_jwt(args, fwo_verify)
+        labels = fetch_labels_from_fwo(args, jwt, fwo_verify)
 
         if not labels:
             logger.info("No labels to send.")
             return 0
 
-        guardicore_config = GuardicoreConfig(
-            base_url=args.guardicore_url,
-            token=login_guardicore(
-                args.guardicore_user,
-                args.guardicore_password,
-                args.guardicore_url,
-                guardicore_verify,
-                args.timeout,
-            ),
-            verify_ssl=guardicore_verify,
-            timeout_seconds=args.timeout,
-        )
+        guardicore_config = build_guardicore_config(args, guardicore_verify)
         existing_label_pairs = fetch_existing_guardicore_labels(guardicore_config)
         labels_to_create = filter_missing_labels(labels, existing_label_pairs)
         skipped_existing = len(labels) - len(labels_to_create)
@@ -605,14 +633,7 @@ def main() -> int:
             logger.info("All %s labels already exist. Nothing to create.", len(labels))
             return 0
 
-        total_sent = 0
-        for batch in chunked(labels_to_create, args.batch_size):
-            payload = to_guardicore_payload(batch)
-            if args.dry_run:
-                logger.info("Dry run payload: %s", json.dumps(payload, indent=2))
-            else:
-                post_guardicore_labels(guardicore_config, payload)
-            total_sent += len(batch)
+        total_sent = send_labels_in_batches(args, labels_to_create, guardicore_config, logger)
 
         logger.info(
             "Processed %s label(s): created=%s, skipped_existing=%s.",

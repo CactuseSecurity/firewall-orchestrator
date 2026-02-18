@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any
+from typing import Any, cast
 
 import fwo_const
 from fw_modules.fortiadom5ff import fmgr_getter
@@ -191,6 +191,10 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
             is_global_loop_iteration,
         )
 
+        normalized_time_objects = normalized_config_adom.get("time_objects", {})
+        if not isinstance(normalized_time_objects, dict):
+            normalized_time_objects = {}
+
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT,
             network_objects=convert_list_to_dict(normalized_config_adom.get("network_objects", []), "obj_uid"),
@@ -198,6 +202,7 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
             zone_objects=convert_list_to_dict(normalized_config_adom.get("zone_objects", []), "zone_name"),
             rulebases=normalized_config_adom.get("policies", []),
             gateways=normalized_config_adom.get("gateways", []),
+            time_objects=cast("dict[str, TimeObject]", normalized_time_objects),
         )
 
         # TODO: identify the correct manager
@@ -540,7 +545,19 @@ def normalize_time_objects(native_config: dict[str, Any], normalized_config_adom
         for rule in rulebase.get("data", []):
             if "schedule" in rule and rule["schedule"] is not None:
                 schedule_ref = rule["schedule"]
-                matching_time_objects = [obj for obj in time_objects if obj.time_obj_uid == schedule_ref]
+
+                # Get time objects from native
+
+                time_objects_from_native = [
+                    TimeObject.model_validate(to_time_object_dict(item))
+                    for native_time_object in native_config.get("time_objects", [])
+                    for item in native_time_object.get("data", [])
+                ]
+
+                # Find the time object in native config that matches the schedule reference
+
+                matching_time_objects = [obj for obj in time_objects_from_native if obj.time_obj_name in schedule_ref]
+
                 if matching_time_objects:
                     new_time_object = TimeObject(
                         time_obj_uid=matching_time_objects[0].time_obj_uid,
@@ -555,4 +572,18 @@ def normalize_time_objects(native_config: dict[str, Any], normalized_config_adom
                         f"Schedule reference {schedule_ref} in rule {rule['name']} does not match any known time object."
                     )
 
-    normalized_config_adom.update({"time_objects": time_objects})
+    time_object_by_uid = {obj.time_obj_uid: obj for obj in time_objects}
+
+    normalized_config_adom.update({"time_objects": time_object_by_uid})
+
+
+def to_time_object_dict(d: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "time_obj_uid": d.get(
+            "name"
+        ),  # uid for forti is tricky, as it is not explicitly given for time objects, but we need a unique identifier for them, so using the name as uid for now, as it is unique within the manager and there is no better alternative
+        "time_obj_name": d.get("name"),
+        "time_obj_type_str": "1",
+        "start_time": d.get("start_time"),
+        "end_time": d.get("end_time"),
+    }

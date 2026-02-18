@@ -15,8 +15,9 @@ namespace FWO.Services.Modelling
 
 
         public ModellingAppServerHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
-            ModellingAppServer appServer, List<ModellingAppServer> availableAppServers, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi)
-            : base(apiConnection, userConfig, application, addMode, displayMessageInUi)
+            ModellingAppServer appServer, List<ModellingAppServer> availableAppServers, bool addMode,
+            Action<Exception?, string, string, bool> displayMessageInUi, bool readOnly, bool isOwner)
+            : base(apiConnection, userConfig, application, addMode, displayMessageInUi, readOnly, isOwner)
         {
             ActAppServer = appServer;
             AvailableAppServers = availableAppServers;
@@ -35,7 +36,16 @@ namespace FWO.Services.Modelling
                 }
                 if (CheckAppServer())
                 {
+                    if(IsOwner)
+                    {
+                        apiConnection.SetRole(Roles.Admin);  // usual modeller has no write permission on App Servers
+                    }
                     (long? appServerId, string? ExistingAppServerName) = await AppServerHelper.UpsertAppServer(apiConnection, userConfig, ActAppServer, !userConfig.DnsLookup, true, AddMode);
+                    if(IsOwner)
+                    {
+                        apiConnection.SwitchBack();
+                    }
+
                     if (appServerId != null)
                     {
                         if (AddMode)

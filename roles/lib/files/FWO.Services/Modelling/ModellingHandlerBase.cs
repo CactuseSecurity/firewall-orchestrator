@@ -48,7 +48,7 @@ namespace FWO.Services.Modelling
         private const string DeactMsg = "C9001";
 
         public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
-            bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool readOnly = false, bool isOwner = true)
+            bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool readOnly, bool isOwner)
         {
             this.apiConnection = apiConnection;
             this.userConfig = userConfig;

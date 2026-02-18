@@ -142,7 +142,9 @@ class TestImportSingleManagement:
             "initialize_import",
             return_value=import_state_controller,
         )
-        mock_register_global_state = mocker.patch("importer.import_main_loop.register_global_state")
+        mock_register_global_state = mocker.patch(
+            "importer.import_main_loop.register_global_state"
+        )
         mock_get_graphql_code(mocker, return_value={"data": {"jwt": "mocked_jwt"}})
         mock_get_mgm_details = mocker.patch.object(
             ManagementController,
@@ -168,12 +170,11 @@ class TestImportSingleManagement:
         mock_get_mgm_details.assert_called_once()
         mock_initialize_import.assert_called_once_with(
             mgm_id=1,
-            fwo_api_call=api_call,
-            verify_certificates=True,
-            api_fetch_limit=100,
-            clear=False,
-            suppress_certificate_warnings=False,
+            api_call=api_call,
+            suppress_cert_warnings=False,
+            ssl_verification=True,
             force=False,
-            fwo_major_version=9,
+            version=9,
+            is_clearing_import=False,
         )
         mock_register_global_state.assert_called_once_with(import_state_controller)

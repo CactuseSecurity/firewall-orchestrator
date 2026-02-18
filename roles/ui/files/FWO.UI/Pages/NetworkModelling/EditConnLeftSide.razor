@@ -20,7 +20,7 @@
             <div class="form-group row">
                 <div class="@ColWidthClass()">
                     <DraggableList AllElements="AvailableNwElements" @bind-SelectedElements="selectedNwElems"
-                    HandleDragStart="HandleNwDragStart" Display="@DisplayNwObject" MaxHeight="25"/>
+                        HandleDragStart="HandleNwDragStart" Display="@DisplayNwObject" MaxHeight="25" OnDragEndCallback="StateHasChanged" />
                 </div>
                 @if(!OverviewMode)
                 {
@@ -91,7 +91,7 @@
                 <div class="form-group row">
                     <div class="@ColWidthClass()">
                         <DraggableList AllElements="ConnHandler.AvailableSvcElems" @bind-SelectedElements="selectedSvcElems"
-                        HandleDragStart="HandleSvcDragStart" Display="@DisplaySvcObject" MaxHeight="25"/>
+                            HandleDragStart="HandleSvcDragStart" Display="@DisplaySvcObject" MaxHeight="25" OnDragEndCallback="StateHasChanged" />
                     </div>
                     @if(!OverviewMode)
                     {
@@ -470,7 +470,7 @@
     }
 
     private bool HandleNwDragStart(DragEventArgs e, KeyValuePair<int, long> selectedNwElem)
-    {
+    {        
         if(!selectedNwElems.Contains(selectedNwElem))
         {
             selectedNwElems.Add(selectedNwElem);

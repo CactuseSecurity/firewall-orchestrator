@@ -17,14 +17,12 @@ namespace FWO.Services
         private const string LogMessageTitle = "Update rule_owner Notifier";
         protected readonly ApiConnection apiConnection;
         protected GlobalConfig globalConfig;
-        private readonly UserConfig userConfig;
 
         public UpdateRuleOwnerMapping(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
 
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            userConfig = new(globalConfig);
         }
 
         protected override async Task<bool> Execute(UpdateRuleOwnerMappingEventArgs? eventArgs = null)  // FullReinitialize like ErrorModel AppServer for overview Data Sucessfull or Error

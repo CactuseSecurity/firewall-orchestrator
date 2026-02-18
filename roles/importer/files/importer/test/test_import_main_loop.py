@@ -166,5 +166,14 @@ class TestImportSingleManagement:
         # Assert
         mock_wait.assert_called_with(0)
         mock_get_mgm_details.assert_called_once()
-        mock_initialize_import.assert_called_once_with(1, api_call, False, True, False, 9, False)
+        mock_initialize_import.assert_called_once_with(
+            mgm_id=1,
+            fwo_api_call=api_call,
+            verify_certificates=True,
+            api_fetch_limit=100,
+            clear=False,
+            suppress_certificate_warnings=False,
+            force=False,
+            fwo_major_version=9,
+        )
         mock_register_global_state.assert_called_once_with(import_state_controller)

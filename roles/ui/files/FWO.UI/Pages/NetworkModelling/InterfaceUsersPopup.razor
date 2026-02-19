@@ -52,13 +52,13 @@
     {
         get
         {
-            if (App is null || string.IsNullOrWhiteSpace(App.ExtAppId))
+            if (App is null || string.IsNullOrWhiteSpace(App.ExtAppId) || string.IsNullOrWhiteSpace(App.Name))
             {
                 return $"{userConfig.GetText("using_connections")} {InterfaceName}";
             }
             else
             {
-                return $"{userConfig.GetText("using_connections")} {InterfaceName} ({App.ExtAppId})";
+                return $"{userConfig.GetText("using_connections")} {InterfaceName} - {App.Name} ({App.ExtAppId})";
             }
         }
     }

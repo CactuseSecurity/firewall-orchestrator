@@ -87,9 +87,9 @@
     </PopUp>
     <EditAppServer @bind-Display="appServerListHandler.EditAppServerMode" @bind-AppServerHandler="appServerListHandler.AppServerHandler" />
     <ConfirmDelete @bind-Display="appServerListHandler.DeleteAppServerMode" PerformAction="Delete"
-    Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@appServerListHandler.Message" />
+        Title="@userConfig.GetText("delete_app_server")" DeleteMessage="@appServerListHandler.Message" />
     <Confirm @bind-Display="appServerListHandler.ReactivateAppServerMode" PerformAction="Reactivate"
-    Title="@userConfig.GetText("reactivate")" Message="@appServerListHandler.Message" />
+        Title="@userConfig.GetText("reactivate")" Message="@appServerListHandler.Message" />
 }
 <InProgress Display="workInProgress" />
 
@@ -116,7 +116,7 @@
     {
         try
         {
-            appServerListHandler = new ModellingAppServerListHandler(apiConnection, userConfig, DisplayMessageInUi);
+            appServerListHandler = new ModellingAppServerListHandler(apiConnection, userConfig, DisplayMessageInUi, false, true);
             if (userConfig.ModAppServerTypes != "")
             {
                 appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();

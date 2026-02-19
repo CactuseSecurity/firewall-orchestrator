@@ -174,9 +174,8 @@ namespace FWO.Services
 
                 case ImportType.OWNER:
                     {
-                        owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getChangedOwnersForRuleOwnerMapping);
+                        
 
-                        // TODO: get rule changes from old rule_owner map, and load rules? / when custom field, and owner changes, is it also rule_change?
                         break;
                     }
 

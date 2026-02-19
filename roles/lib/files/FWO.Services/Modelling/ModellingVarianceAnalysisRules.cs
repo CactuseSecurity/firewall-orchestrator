@@ -34,7 +34,12 @@ namespace FWO.Services.Modelling
             bool ruleFound = false;
             foreach (var mgt in RelevantManagements)
             {
-                foreach (var rule in allModelledRules[mgt.Id].Where(r => CompareRuleToConn(r, conn)))
+                if (!connectionsByConnId.TryGetValue(mgt.Id, out Dictionary<long, List<Rule>>? rulesByConn)
+                    || !rulesByConn.TryGetValue(conn.Id, out List<Rule>? rulesForConn))
+                {
+                    continue;
+                }
+                foreach (var rule in rulesForConn.Where(r => CompareRuleToConn(r, conn)))
                 {
                     ruleFound = true;
                 }

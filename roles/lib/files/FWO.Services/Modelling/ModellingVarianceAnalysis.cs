@@ -7,6 +7,8 @@ using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Services.Workflow;
+using System.Diagnostics;
+using System.Threading;
 using System.Text.Json;
 
 
@@ -36,6 +38,7 @@ namespace FWO.Services.Modelling
         private ModellingVarianceResult varianceResult = new();
 
         private Dictionary<int, List<Rule>> allModelledRules = [];
+        private readonly Dictionary<int, Dictionary<long, List<Rule>>> connectionsByConnId = [];
         private List<ModellingAppRole> allModelledAppRoles = [];
 
         private readonly Dictionary<int, List<ModellingAppRole>> allProdAppRoles = [];
@@ -45,6 +48,7 @@ namespace FWO.Services.Modelling
         private List<ModellingNetworkArea> AllAreas = [];
 
         private readonly Dictionary<int, List<DeviceReport>> DeviceRules = [];
+        private readonly AsyncLocal<string?> varianceTimingRunId = new();
 
         public ModellingAppZone? PlannedAppZoneDbUpdate { get; set; } = default;
 
@@ -95,73 +99,126 @@ namespace FWO.Services.Modelling
         public async Task<ModellingVarianceResult> AnalyseRulesVsModelledConnections(List<ModellingConnection> connections,
             ModellingFilter modellingFilter, bool fullAnalysis = true, bool ignoreGroups = false)
         {
-            await InitManagements();
-            await LoadAreas();
-            varianceResult = new() { Managements = RelevantManagements };
-            if (ruleRecognitionOption.NwSeparateGroupAnalysis && fullAnalysis && !ignoreGroups)
+            string? previousRunId = varianceTimingRunId.Value;
+            varianceTimingRunId.Value = $"va-{Guid.NewGuid():N}".Substring(0, 11);
+            Stopwatch totalTimer = Stopwatch.StartNew();
+            Stopwatch phaseTimer = Stopwatch.StartNew();
+            try
             {
-                await GetNwObjectsProductionState();
-                PreAnalyseAllAppRoles(connections);
+                await InitManagements();
+                phaseTimer.Stop();
+                LogTiming("init managements", phaseTimer.ElapsedMilliseconds, $"mgmt_count={RelevantManagements.Count}");
+                phaseTimer.Restart();
+                await LoadAreas();
+                phaseTimer.Stop();
+                LogTiming("load areas", phaseTimer.ElapsedMilliseconds, $"area_count={AllAreas.Count}");
+                varianceResult = new() { Managements = RelevantManagements };
+                if (ruleRecognitionOption.NwSeparateGroupAnalysis && fullAnalysis && !ignoreGroups)
+                {
+                    phaseTimer.Restart();
+                    await GetNwObjectsProductionState();
+                    phaseTimer.Stop();
+                    LogTiming("load production objects", phaseTimer.ElapsedMilliseconds);
+                    phaseTimer.Restart();
+                    PreAnalyseAllAppRoles(connections);
+                    phaseTimer.Stop();
+                    LogTiming("pre-analyse app roles", phaseTimer.ElapsedMilliseconds, $"modelled_app_roles={allModelledAppRoles.Count}");
+                }
+                phaseTimer.Restart();
+                if (await GetModelledRulesProductionState(modellingFilter))
+                {
+                    phaseTimer.Stop();
+                    LogTiming("load modelled rules production state", phaseTimer.ElapsedMilliseconds);
+
+                    Dictionary<int, long> connTimes = [];
+                    phaseTimer.Restart();
+                    foreach (var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
+                    {
+                        Stopwatch connTimer = Stopwatch.StartNew();
+                        AnalyseRules(conn, fullAnalysis);
+                        connTimer.Stop();
+                        connTimes[conn.Id] = connTimer.ElapsedMilliseconds;
+                    }
+                    phaseTimer.Stop();
+                    LogTiming("analyse rules vs modelled connections", phaseTimer.ElapsedMilliseconds, $"conn_count={connTimes.Count}");
+                    if (connTimes.Count > 0)
+                    {
+                        string slowest = string.Join(", ", connTimes.OrderByDescending(c => c.Value).Take(5).Select(c => $"{c.Key}:{c.Value}ms"));
+                        LogTiming("top slow connections", connTimes.Values.Sum(), slowest);
+                    }
+                    if (modellingFilter.RulesForDeletedConns)
+                    {
+                        phaseTimer.Restart();
+                        await GetRulesForDeletedConns([.. connections.Where(c => c.IsDocumentationOnly())]);
+                        phaseTimer.Stop();
+                        LogTiming("collect rules for deleted connections", phaseTimer.ElapsedMilliseconds);
+                    }
+                }
+                varianceResult.DeviceRules = DeviceRules;
+                totalTimer.Stop();
+                LogTiming("variance total", totalTimer.ElapsedMilliseconds,
+                    $"fullAnalysis={fullAnalysis}, ignoreGroups={ignoreGroups}, conn_count={connections.Count}");
+                return varianceResult;
             }
-            if (await GetModelledRulesProductionState(modellingFilter))
+            finally
             {
-                foreach (var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
-                {
-                    AnalyseRules(conn, fullAnalysis);
-                }
-                if (modellingFilter.RulesForDeletedConns)
-                {
-                    await GetRulesForDeletedConns([.. connections.Where(c => c.IsDocumentationOnly())]);
-                }
+                varianceTimingRunId.Value = previousRunId;
             }
-            varianceResult.DeviceRules = DeviceRules;
-            return varianceResult;
         }
 
         public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections)
         {
-            appServerComparer = new(namingConvention);
-            await InitManagements();
-            await LoadAreas();
-            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
-            await GetNwObjectsProductionState();
-            await GetDeletedConnections();
+            string? previousRunId = varianceTimingRunId.Value;
+            varianceTimingRunId.Value = $"va-{Guid.NewGuid():N}".Substring(0, 11);
+            try
+            {
+                appServerComparer = new(namingConvention);
+                await InitManagements();
+                await LoadAreas();
+                await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
+                await GetNwObjectsProductionState();
+                await GetDeletedConnections();
 
-            TaskList = [];
-            AddAccessTaskList = [];
-            ChangeAccessTaskList = [];
-            DeleteAccessTaskList = [];
-            DeleteObjectTasksList = [];
-            foreach (Management mgt in RelevantManagements)
-            {
-                await AnalyseAppZoneForRequest(mgt);
-                foreach (var conn in connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()).OrderBy(c => c.Id))
+                TaskList = [];
+                AddAccessTaskList = [];
+                ChangeAccessTaskList = [];
+                DeleteAccessTaskList = [];
+                DeleteObjectTasksList = [];
+                foreach (Management mgt in RelevantManagements)
                 {
-                    ReqElements = [];
-                    AnalyseNetworkAreasForRequest(conn);
-                    AnalyseAppRolesForRequest(conn, mgt);
-                    AnalyseAppServersForRequest(conn);
-                    AnalyseServiceGroupsForRequest(conn, mgt);
-                    AnalyseServicesForRequest(conn);
-                    if (ReqElements.Count > 0) // NOSONAR: populated via side effects in Analyse*ForRequest methods
+                    await AnalyseAppZoneForRequest(mgt);
+                    foreach (var conn in connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()).OrderBy(c => c.Id))
                     {
-                        AnalyseConnectionForRequest(mgt, conn);
+                        ReqElements = [];
+                        AnalyseNetworkAreasForRequest(conn);
+                        AnalyseAppRolesForRequest(conn, mgt);
+                        AnalyseAppServersForRequest(conn);
+                        AnalyseServiceGroupsForRequest(conn, mgt);
+                        AnalyseServicesForRequest(conn);
+                        if (ReqElements.Count > 0) // NOSONAR: populated via side effects in Analyse*ForRequest methods
+                        {
+                            AnalyseConnectionForRequest(mgt, conn);
+                        }
                     }
+                    AnalyseDeletedConnsForRequest(mgt, [.. connections.Where(c => c.IsDocumentationOnly())]);
                 }
-                AnalyseDeletedConnsForRequest(mgt, [.. connections.Where(c => c.IsDocumentationOnly())]);
+                TaskList.AddRange(AddAccessTaskList);
+                TaskList.AddRange(ChangeAccessTaskList);
+                TaskList.AddRange(DeleteAccessTaskList);
+                TaskList.AddRange(DeleteObjectTasksList);
+                taskNumber = 1;
+                foreach (WfReqTask task in TaskList)
+                {
+                    task.TaskNumber = taskNumber++;
+                    task.Owners = [new() { Owner = owner }];
+                    task.StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0;
+                }
+                return TaskList;
             }
-            TaskList.AddRange(AddAccessTaskList);
-            TaskList.AddRange(ChangeAccessTaskList);
-            TaskList.AddRange(DeleteAccessTaskList);
-            TaskList.AddRange(DeleteObjectTasksList);
-            taskNumber = 1;
-            foreach (WfReqTask task in TaskList)
+            finally
             {
-                task.TaskNumber = taskNumber++;
-                task.Owners = [new() { Owner = owner }];
-                task.StateId = extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0;
+                varianceTimingRunId.Value = previousRunId;
             }
-            return TaskList;
         }
 
         public async Task<string> GetSuccessfulRequestState()
@@ -290,6 +347,22 @@ namespace FWO.Services.Modelling
                     string.Join(", ", conn.ExtraConfigs.ConvertAll(x => x.Display()).Concat(conn.ExtraConfigsFromInterface.ConvertAll(x => x.Display())));
             }
             return comment;
+        }
+
+        private void LogTiming(string phase, long milliseconds, string details = "")
+        {
+            varianceTimingRunId.Value ??= $"va-{Guid.NewGuid():N}".Substring(0, 11);
+            string runId = varianceTimingRunId.Value;
+            string message = $"[{runId}] {phase}: {milliseconds} ms{(string.IsNullOrWhiteSpace(details) ? "" : $" ({details})")}";
+            Log.WriteDebug("Variance Timing", message);
+            try
+            {
+                displayMessageInUi(null, "Variance timing", message, false);
+            }
+            catch
+            {
+                // Timing logging must never impact variance analysis execution.
+            }
         }
 
         private async Task UpdateConnectionStatus(ModellingConnection conn)

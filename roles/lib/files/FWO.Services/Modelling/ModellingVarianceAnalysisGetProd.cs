@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -44,12 +45,15 @@ namespace FWO.Services.Modelling
         {
             try
             {
+                Stopwatch totalTimer = Stopwatch.StartNew();
                 int modelledRulesCount = 0;
                 int notModelledRulesCount = 0;
                 allModelledRules = [];
+                connectionsByConnId.Clear();
 
                 foreach (Management mgt in RelevantManagements)
                 {
+                    Stopwatch mgmtTimer = Stopwatch.StartNew();
                     varianceResult.UnModelledRules.Add(mgt.Id, []);
                     List<Rule>? rulesByMgt = await GetRules(mgt.Id, modellingFilter);
                     if (rulesByMgt != null)
@@ -58,8 +62,14 @@ namespace FWO.Services.Modelling
                         modelledRulesCount += allModelledRules[mgt.Id].Count;
                         notModelledRulesCount += varianceResult.UnModelledRules[mgt.Id].Count;
                     }
+                    mgmtTimer.Stop();
+                    LogTiming("load modelled rules per management", mgmtTimer.ElapsedMilliseconds,
+                        $"mgmt={mgt.Name}, modelled={allModelledRules.GetValueOrDefault(mgt.Id, []).Count}, unmodelled={varianceResult.UnModelledRules.GetValueOrDefault(mgt.Id, []).Count}");
                 }
+                totalTimer.Stop();
                 Log.WriteDebug("GetModelledRulesProductionState", $"Found {modelledRulesCount} modelled rules, {notModelledRulesCount} others.");
+                LogTiming("load modelled rules summary", totalTimer.ElapsedMilliseconds,
+                    $"modelled={modelledRulesCount}, unmodelled={notModelledRulesCount}");
             }
             catch (Exception exception)
             {
@@ -73,6 +83,7 @@ namespace FWO.Services.Modelling
         private void IdentifyModelledRules(Management mgt, List<Rule> rulesByMgt)
         {
             allModelledRules.Add(mgt.Id, []);
+            connectionsByConnId[mgt.Id] = [];
             foreach (var rule in rulesByMgt)
             {
                 rule.ManagementName = mgt.Name;
@@ -82,6 +93,12 @@ namespace FWO.Services.Modelling
                     if (long.TryParse(connRef, out long connId))
                     {
                         rule.ConnId = connId;
+                        if (!connectionsByConnId[mgt.Id].TryGetValue(connId, out List<Rule>? rulesForConn))
+                        {
+                            rulesForConn = [];
+                            connectionsByConnId[mgt.Id].Add(connId, rulesForConn);
+                        }
+                        rulesForConn.Add(rule);
                     }
                     allModelledRules[mgt.Id].Add(rule);
                 }
@@ -138,6 +155,7 @@ namespace FWO.Services.Modelling
 
         private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)
         {
+            Stopwatch queryTimer = Stopwatch.StartNew();
             long? relImpId = await GetRelevantImportId(mgtId);
             await GetRuleDevices(mgtId, modellingFilter);
             if (modellingFilter.AnalyseRemainingRules)
@@ -148,7 +166,10 @@ namespace FWO.Services.Modelling
                     import_id_start = relImpId,
                     import_id_end = relImpId
                 };
-                return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByManagement, RuleVariables);
+                List<Rule>? rules = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByManagementForVariance, RuleVariables);
+                queryTimer.Stop();
+                LogTiming("fetch rules query", queryTimer.ElapsedMilliseconds, $"mgmt_id={mgtId}, mode=all_modelled, count={rules?.Count ?? 0}");
+                return rules;
             }
             else
             {
@@ -162,11 +183,50 @@ namespace FWO.Services.Modelling
 
                 string query = userConfig.ModModelledMarkerLocation switch
                 {
-                    MarkerLocation.Rulename => RuleQueries.getModelledRulesByManagementName,
-                    MarkerLocation.Comment => RuleQueries.getModelledRulesByManagementComment,
+                    MarkerLocation.Rulename => RuleQueries.getConnectionRuleIdsByManagementNameForVariance,
+                    MarkerLocation.Comment => RuleQueries.getConnectionRuleIdsByManagementCommentForVariance,
                     _ => throw new NotSupportedException("invalid or undefined Marker Location")
                 };
-                return await apiConnection.SendQueryAsync<List<Rule>>(query, RuleVariables);
+
+                Stopwatch ruleIdTimer = Stopwatch.StartNew();
+                List<ReturnId>? ruleIdsRaw = await apiConnection.SendQueryAsync<List<ReturnId>>(query, RuleVariables);
+                ruleIdTimer.Stop();
+                List<long> ruleIds = [.. ruleIdsRaw?
+                    .Where(x => x.Id != null)
+                    .Select(x => x.Id ?? 0)
+                    .Distinct() ?? []];
+                LogTiming("fetch rule ids query", ruleIdTimer.ElapsedMilliseconds, $"mgmt_id={mgtId}, ids={ruleIds.Count}");
+
+                List<Rule> rules = [];
+                if (ruleIds.Count > 0)
+                {
+                    const int kVarianceDetailsChunkSize = 500;
+                    int chunkNo = 0;
+                    foreach (long[] idChunk in ruleIds.Chunk(kVarianceDetailsChunkSize))
+                    {
+                        chunkNo++;
+                        Stopwatch chunkTimer = Stopwatch.StartNew();
+                        var detailsVariables = new
+                        {
+                            ruleIds = idChunk,
+                            active = true,
+                            import_id_start = relImpId,
+                            import_id_end = relImpId
+                        };
+                        List<Rule>? rulesChunk = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByIdsForVariance, detailsVariables);
+                        chunkTimer.Stop();
+                        if (rulesChunk != null)
+                        {
+                            rules.AddRange(rulesChunk);
+                        }
+                        LogTiming("fetch rules details chunk", chunkTimer.ElapsedMilliseconds,
+                            $"mgmt_id={mgtId}, chunk={chunkNo}, ids={idChunk.Length}, count={rulesChunk?.Count ?? 0}");
+                    }
+                }
+
+                queryTimer.Stop();
+                LogTiming("fetch rules query", queryTimer.ElapsedMilliseconds, $"mgmt_id={mgtId}, mode=marker_filtered_chunked, count={rules.Count}");
+                return rules;
             }
         }
 
@@ -182,14 +242,20 @@ namespace FWO.Services.Modelling
         {
             try
             {
+                Stopwatch totalTimer = Stopwatch.StartNew();
                 int aRCount = 0;
                 int aSCount = 0;
                 foreach (var mgtId in RelevantManagements.Select(m => m.Id))
                 {
+                    Stopwatch mgmtTimer = Stopwatch.StartNew();
                     aRCount += await CollectGroupObjects(mgtId);
                     aSCount += await CollectAppServers(mgtId);
+                    mgmtTimer.Stop();
+                    LogTiming("load production objects per management", mgmtTimer.ElapsedMilliseconds, $"mgmt_id={mgtId}");
                 }
+                totalTimer.Stop();
                 Log.WriteDebug("GetNwObjectsProductionState", $"Found {aRCount} AppRoles, {aSCount} AppServer.");
+                LogTiming("load production objects summary", totalTimer.ElapsedMilliseconds, $"app_roles={aRCount}, app_servers={aSCount}");
             }
             catch (Exception exception)
             {

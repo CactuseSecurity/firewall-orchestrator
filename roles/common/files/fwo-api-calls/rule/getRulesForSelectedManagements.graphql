@@ -12,7 +12,7 @@ query getRulesForSelectedManagementsByChunk(
     limit: $limit
     offset: $offset
     order_by: { rule_uid: asc }
-    where: { removed: { _is_null: true } mgm_id: { _in: $mgm_ids }}
+    where: { mgm_id: { _in: $mgm_ids } removed: { _is_null: true } }
   ){
     rule_src
     rule_dst

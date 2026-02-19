@@ -23676,7 +23676,6 @@
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
-                      "time_obj_type",
                       "end_time",
                       "start_time"
                     ]
@@ -23695,7 +23694,6 @@
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
-                      "time_obj_type",
                       "end_time",
                       "start_time"
                     ],
@@ -23713,7 +23711,6 @@
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
-                      "time_obj_type",
                       "end_time",
                       "start_time"
                     ],
@@ -23731,7 +23728,6 @@
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
-                      "time_obj_type",
                       "end_time",
                       "start_time"
                     ],
@@ -23749,7 +23745,6 @@
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
-                      "time_obj_type",
                       "end_time",
                       "start_time"
                     ],
@@ -23767,7 +23762,6 @@
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
-                      "time_obj_type",
                       "end_time",
                       "start_time"
                     ],
@@ -23789,7 +23783,6 @@
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
-                      "time_obj_type",
                       "end_time",
                       "start_time"
                     ],
@@ -23811,7 +23804,6 @@
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
-                      "time_obj_type",
                       "end_time",
                       "start_time"
                     ],
@@ -23833,7 +23825,6 @@
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
-                      "time_obj_type",
                       "end_time",
                       "start_time"
                     ],
@@ -23853,7 +23844,6 @@
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
-                      "time_obj_type",
                       "end_time",
                       "start_time"
                     ],

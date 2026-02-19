@@ -12,9 +12,6 @@ namespace FWO.Data
         [JsonProperty("time_obj_name"), JsonPropertyName("time_obj_name")]
         public string Name { get; set; } = "";
 
-        [JsonProperty("time_obj_type"), JsonPropertyName("time_obj_type")]
-        public string Type { get; set; } = "";
-
         [JsonProperty("start_time"), JsonPropertyName("start_time")]
         public string? StartTime { get; set; }
 
@@ -26,7 +23,6 @@ namespace FWO.Data
             {
                 Uid = timeObject.Uid,
                 Name = timeObject.Name,
-                Type = "time", //TODO: need to implement proper time object types
                 StartTime = timeObject.StartTime.HasValue ? NormalizedConfig.FormatDatetime(timeObject.StartTime.Value) : null,
                 EndTime = timeObject.EndTime.HasValue ? NormalizedConfig.FormatDatetime(timeObject.EndTime.Value) : null
             };

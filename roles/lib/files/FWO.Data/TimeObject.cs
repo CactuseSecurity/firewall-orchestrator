@@ -8,9 +8,6 @@ namespace FWO.Data
         [JsonProperty("time_obj_id"), JsonPropertyName("time_obj_id")]
         public long Id { get; set; }
 
-        [JsonProperty("time_obj_type"), JsonPropertyName("time_obj_type")]
-        public long TimeType { get; set; } // timespan, schedule, etc.
-
         [JsonProperty("time_obj_name"), JsonPropertyName("time_obj_name")]
         public string Name { get; set; } = "";
 

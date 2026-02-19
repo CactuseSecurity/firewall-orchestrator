@@ -6,7 +6,6 @@ from pydantic import BaseModel, field_validator
 class TimeObject(BaseModel):
     time_obj_uid: str
     time_obj_name: str
-    time_obj_type: str
     start_time: str | None = None
     end_time: str | None = None
 
@@ -32,7 +31,6 @@ class TimeObjectForImport(BaseModel):
     mgm_id: int
     time_obj_uid: str
     time_obj_name: str
-    time_obj_type: int
     start_time: str | None = None
     end_time: str | None = None
     created: int
@@ -42,7 +40,6 @@ class TimeObjectForImport(BaseModel):
         return cls(
             time_obj_uid=time_obj.time_obj_uid,
             time_obj_name=time_obj.time_obj_name,
-            time_obj_type=1,  # TODO: implement and map time_obj_type to time_obj_type
             start_time=time_obj.start_time,
             end_time=time_obj.end_time,
             mgm_id=mgm_id,

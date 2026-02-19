@@ -8,19 +8,16 @@ from fwo_log import FWOLogger
 from model_controllers.import_statistics_controller import ImportStatisticsController
 from model_controllers.management_controller import ManagementController
 from models.fwconfig_normalized import FwConfigNormalized
-from states.management_state import ManagementState
 
 
 class ImportState:
     import_id: int = -1
-    mgm_id: int = -1
 
     fwo_api: FwoApi
     fwo_api_call: FwoApiCall
 
     super_config: FwConfigNormalized | None
     previous_global_config: FwConfigNormalized | None
-    management_state: ManagementState
     mgm_map: dict[int, dict[str, int]]
     gateway_map: dict[int, dict[str, int]]
     rulebase_map: dict[str, int]
@@ -36,12 +33,14 @@ class ImportState:
     is_full_import: bool = False
     is_initial_import: bool = False
     responsible_for_importing: bool = True
-    is_clearing_import: bool = False
+    input_file: str | None = None
 
-    def __init__(self, fwo_api: FwoApi, fwo_api_call: FwoApiCall, mgm_id: int):
+    # uid 2 id mapper...
+
+    def __init__(self, fwo_api: FwoApi, fwo_api_call: FwoApiCall, mgm_id: int, file: str | None = None):
         self.fwo_api = fwo_api
         self.fwo_api_call = fwo_api_call
-        self.mgm_id = mgm_id
+        self.input_file = file
 
         self.stats: ImportStatisticsController = ImportStatisticsController()
         self.start_time: int = int(time.time())

@@ -14,18 +14,14 @@ from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import (
-    ConnectionInfo,
-    CredentialInfo,
-    DeviceInfo,
-    DomainInfo,
     ManagementController,
-    ManagerInfo,
 )
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManager
 from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
+from states.import_state import ImportState
 
 
 # this class is used for importing a config into the FWO API
@@ -72,7 +68,9 @@ class FwConfigImport:
         # calculate differences and write them to the database via API
         self.update_diffs(previous_config, previous_global_config, single_manager)
 
-    def import_management_set(self, service_provider: ServiceProvider, mgr_set: FwConfigManagerListController):
+    def import_management_set(
+        self, global_state: GlobalState, import_state: ImportState, mgr_set: FwConfigManagerListController
+    ):
         for manager in sorted(mgr_set.ManagerSet, key=lambda m: not getattr(m, "IsSuperManager", False)):
             """
             the following loop is a preparation for future functionality
@@ -81,10 +79,9 @@ class FwConfigImport:
             currently we always only have one config per manager
             """
             for config in manager.configs:
-                self.import_config(service_provider, manager, config)
+                self.import_config(manager, config)
 
-    def import_config(self, service_provider: ServiceProvider, manager: FwConfigManager, config: FwConfigNormalized):
-        global_state = service_provider.get_global_state()
+    def import_config(self, manager: FwConfigManager, config: FwConfigNormalized):
         global_state.normalized_config = config
         if manager.is_super_manager:
             # store global config as it is needed when importing sub managers which might reference it
@@ -123,18 +120,8 @@ class FwConfigImport:
             # Reset submanagement
             for sub_manager_id in self.import_state.state.mgm_details.sub_manager_ids:
                 # Fetch sub management details
-                mgm_controller = ManagementController(
-                    mgm_id=int(sub_manager_id),
-                    uid="",
-                    devices=[],
-                    device_info=DeviceInfo(),
-                    connection_info=ConnectionInfo(),
-                    importer_hostname="",
-                    credential_info=CredentialInfo(),
-                    manager_info=ManagerInfo(),
-                    domain_info=DomainInfo(),
-                )
-                mgm_details_raw = mgm_controller.get_mgm_details(fwo_api, sub_manager_id)
+
+                mgm_details_raw = ManagementController.get_mgm_details(fwo_api, sub_manager_id)
                 mgm_details = ManagementController.from_json(mgm_details_raw)
                 config_normalized.add_manager(
                     manager=FwConfigManager(

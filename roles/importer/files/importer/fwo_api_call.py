@@ -15,7 +15,7 @@ from query_analyzer import QueryAnalyzer
 
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
-    from models.import_state import ImportState
+    from states.import_state import ImportState
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
 

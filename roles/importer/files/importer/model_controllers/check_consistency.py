@@ -7,8 +7,8 @@ from model_controllers.fwconfigmanagerlist_controller import (
     FwConfigManagerListController,
 )
 from models.fwconfig_normalized import FwConfigNormalized
-from models.import_state import ImportState
 from models.rulebase import Rulebase
+from states.import_state import ImportState
 
 if TYPE_CHECKING:
     from models.networkobject import NetworkObject

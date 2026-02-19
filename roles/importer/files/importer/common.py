@@ -93,8 +93,8 @@ def import_management(
         handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
     finally:
         try:
-            api_call.complete_import(import_state.state, exception)
-            ServiceProvider().dispose_service(Services.UID2ID_MAPPER, import_state.state.import_id)
+            import_state.fwo_api_call.complete_import(import_state, exception)
+            ServiceProvider().dispose_service(Services.UID2ID_MAPPER, import_state.import_id)
         except Exception as e:
             FWOLogger.error(f"Error during import completion: {e!s}")
 
@@ -106,22 +106,25 @@ def _import_management(
     config_normalized: FwConfigManagerListController
 
     config_changed_since_last_import = True
-    service_provider = ServiceProvider()
-    import_state = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
-    FWOLogger.debug(f"import_management - ssl_verification: {ssl_verification}", 9)
-    FWOLogger.debug(f"import_management - suppress_cert_warnings_in: {suppress_cert_warnings}", 9)
-    FWOLogger.debug(f"import_management - limit: {limit}", 9)
 
-    if import_state.state.mgm_details.import_disabled and not import_state.state.force_import:
-        FWOLogger.info(f"import_management - import disabled for mgm  {mgm_id!s} - skipping")
+    fwo_config = global_state.fwo_config_controller.fwo_config
+    FWOLogger.debug(f"import_management - ssl_verification: {fwo_config.ssl_verification}", 9)
+    FWOLogger.debug(
+        f"import_management - suppress_cert_warnings_in: {fwo_config.suppress_certificate_warnings}",
+        9,
+    )
+    FWOLogger.debug(f"import_management - limit: {fwo_config.api_fetch_size}", 9)
+
+    if import_state.mgm_details.import_disabled and not fwo_config.force:
+        FWOLogger.info(f"import_management - import disabled for mgm  {import_state.mgm_details.mgm_id!s} - skipping")
         return
 
-    if import_state.state.mgm_details.importer_hostname != gethostname() and not import_state.state.force_import:
+    if import_state.mgm_details.importer_hostname != gethostname() and not fwo_config.force:
         FWOLogger.info(
-            f"import_management - this host ({gethostname()}) is not responsible for importing management {mgm_id!s}"
+            f"import_management - this host ({gethostname()}) is not responsible for importing management {import_state.mgm_details.mgm_id!s}"
         )
-        import_state.state.responsible_for_importing = False
+        import_state.responsible_for_importing = False
         return
 
     Path(IMPORT_TMP_PATH).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
@@ -133,32 +136,32 @@ def _import_management(
         import_state.is_initial_import,
     )
     FWOLogger.info(
-        f"starting import of management {import_state.state.mgm_details.name} ({mgm_id!s}), import_id={import_state.state.import_id!s}"
+        f"starting import of management {import_state.mgm_details.name} ({import_state.mgm_details.mgm_id!s}), import_id={import_state.import_id!s}"
     )
 
-    if clear_management_data:
+    if fwo_config.clear:
         config_normalized = config_importer.clear_management()
     else:
         # get config
-        config_changed_since_last_import, config_normalized = get_config_top_level(import_state, file, gateways)
+        config_changed_since_last_import, config_normalized = get_config_top_level(
+            import_state, import_state.input_file, gateways
+        )
 
         # write normalized config to file
-        config_normalized.store_full_normalized_config_to_file(import_state.state)
+        config_normalized.store_full_normalized_config_to_file(import_state)
         FWOLogger.debug(
-            "import_management - getting config total duration "
-            + str(int(time.time()) - import_state.state.start_time)
-            + "s"
+            "import_management - getting config total duration " + str(int(time.time()) - import_state.start_time) + "s"
         )
 
     # check config consistency and import it
-    if config_changed_since_last_import or import_state.force_import:
-        if not suppress_consistency_check:
+    if config_changed_since_last_import or fwo_config.force:
+        if not fwo_config.suppress_consistency_check:
             FwConfigImportCheckConsistency(import_state).check_fwconfig_managerlist_consistency(config_normalized)
-        config_importer.import_management_set(service_provider, config_normalized)
+        config_importer.import_management_set(global_state, import_state, config_normalized)
 
     # delete data that has passed the retention time
     # TODO: replace by deletion of old data with removed date > retention?
-    if not clear_management_data and import_state.data_retention_days < import_state.days_since_last_full_import:
+    if not fwo_config.clear and import_state.data_retention_days < import_state.days_since_last_full_import:
         config_importer.delete_old_imports()  # delete all imports of the current management before the last but one full import
 
 

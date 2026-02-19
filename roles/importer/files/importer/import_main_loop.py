@@ -19,7 +19,6 @@ from fwo_log import FWOLogger
 from model_controllers.management_controller import (
     ManagementController,
 )
-from services.service_provider import ServiceProvider
 from states.global_state import GlobalState
 from states.import_state import ImportState
 
@@ -48,15 +47,16 @@ def wait_with_shutdown_check(sleep_time: int):
 def import_single_management(
     global_state: GlobalState,
     import_state: ImportState,
+    mgm_id: int,
 ):
     wait_with_shutdown_check(0)
 
     try:
-        mgm_details = ManagementController.get_mgm_details(import_state.fwo_api, import_state.mgm_id)
+        mgm_details = ManagementController.get_mgm_details(import_state.fwo_api, mgm_id)
     except Exception:
         FWOLogger.error(
             "import_main_loop - error while getting FW management details for mgm_id="
-            + str(import_state.mgm_id)
+            + str(mgm_id)
             + " - skipping: "
             + str(traceback.format_exc())
         )
@@ -106,7 +106,7 @@ def main_loop(
 
     global_state.fwo_config_controller.update_settings(
         ssl_verification=verify_certificates,
-        suppress_cert_warnings=suppress_certificate_warnings,
+        suppress_certificate_warnings=suppress_certificate_warnings,
     )
 
     if not suppress_certificate_warnings:
@@ -126,9 +126,7 @@ def main_loop(
     ## loop through all managements
     for mgm_id in mgm_ids:
         import_state = ImportState(fwo_api=fwo_api, fwo_api_call=fwo_api_call, mgm_id=mgm_id)
-        import_single_management(global_state, import_state)
-
-        ServiceProvider().dispose_global_state()
+        import_single_management(global_state, import_state, mgm_id)
 
     FWOLogger.info(f"import_main_loop: sleeping for {sleep_timer} seconds until next import cycle")
     wait_with_shutdown_check(sleep_timer)

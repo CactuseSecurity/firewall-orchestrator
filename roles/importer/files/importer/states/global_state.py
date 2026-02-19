@@ -3,6 +3,7 @@ from models.fwo_config_controller import FwoConfigController
 
 class GlobalState:
     fwo_config_controller: FwoConfigController
+    # stm tabellen
 
     def __init__(
         self,

@@ -111,6 +111,40 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(owner.main_user, "CN=user2")
             self.assertEqual(owner.recert_period_days, 182)
 
+    def test_extract_app_data_from_csv_applies_default_recert_active_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nMy App,APP-004,user4,false\n")
+
+            app_list_true: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list_true,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                default_recert_active_state=True,
+            )
+            self.assertTrue(app_list_true[0].recert_active)
+
+            app_list_false: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list_false,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                default_recert_active_state=False,
+            )
+            self.assertFalse(app_list_false[0].recert_active)
+
     def test_extract_ip_data_from_csv_allows_custom_header_patterns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             ip_csv_path: Path = Path(tmpdir) / "ips.csv"

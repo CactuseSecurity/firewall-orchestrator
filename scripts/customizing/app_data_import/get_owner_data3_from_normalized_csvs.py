@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2026-01-08-01"
+__version__ = "2026-02-19-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -8,6 +8,13 @@ __version__ = "2026-01-08-01"
 # 2025-12-02-01, adding new fields to the interface:
 #   - daysUntilFirstRecertification: int|None (if not set, we assume the same intervals as for normal recertification),
 #   - recertificationActive: bool
+# 2026-02-19-01:
+#   - setting fields recertificationActive for all apps to true or false
+#   - importing owner_lifecycle_status from csv file if column pattern is given in config; if not, owner_lifecycle_status will be set to "unknown" for all apps
+#   - enhancing import of owner_responsibles from csv file (allowing for multiple columns for different levels of responsibility)
+#   - importing criticality from csv file if column pattern is given in config; if not, criticality will be set to "unknown" for all apps
+#   - allowing for composite fields with delimiter string to allow concatenation of two columns into one field
+#   - in UI-Settings: allow passing of multiple script parameters via multiple text fields (should be limited to non-sensitive parameters, as they will be visible to all users with access to the UI-Settings)
 
 # reads the main app data from multiple csv files contained in a git repo
 # users will reside in external ldap groups with standardized names
@@ -50,6 +57,15 @@ app_data_repo_target_dir: str = base_dir_etc + "cmdb-repo"
 recert_repo_target_dir: str = base_dir_etc + "recert-repo"
 default_config_file_name: str = base_dir_etc + "secrets/customizingConfig.json"
 default_import_source_string: str = "tufinRlm"
+
+
+def parse_bool_arg(value: str) -> bool:
+    normalized_value: str = value.strip().lower()
+    if normalized_value in ("true", "1", "yes", "y"):
+        return True
+    if normalized_value in ("false", "0", "no", "n"):
+        return False
+    raise argparse.ArgumentTypeError(f"invalid boolean value: {value}")
 
 
 if __name__ == "__main__":
@@ -97,6 +113,14 @@ if __name__ == "__main__":
         help="The maximal number of returned results per HTTPS Connection; default=50",
     )
     parser.add_argument("-d", "--debug", default=0, help="debug level, default=0")
+    parser.add_argument(
+        "--defaultRecertificationActiveState",
+        "--detauldRecertificationActiveState",
+        dest="default_recertification_active_state",
+        type=parse_bool_arg,
+        default=False,
+        help="default recertificationActive state for owners without specific data (true|false), default=false",
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -129,6 +153,7 @@ if __name__ == "__main__":
         args.config, "validAppIdPrefixes", None, logger
     )
     csv_separator: str = read_custom_config_with_default(args.config, "csvSeparator", ",", logger)
+    default_recert_active_state: bool = args.default_recertification_active_state
 
     if args.debug:
         debug_level: int = int(args.debug)
@@ -185,6 +210,7 @@ if __name__ == "__main__":
                 debug_level,
                 base_dir=base_dir,
                 recert_active_app_list=recert_active_app_list,
+                default_recert_active_state=default_recert_active_state,
                 column_patterns=owner_header_patterns,
                 valid_app_id_prefixes=valid_app_id_prefixes,
                 csv_separator=csv_separator,

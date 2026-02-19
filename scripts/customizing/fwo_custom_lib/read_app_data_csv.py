@@ -144,6 +144,7 @@ def extract_app_data_from_csv(
     debug_level: int,
     base_dir: str = ".",
     recert_active_app_list: list[str] | None = None,
+    default_recert_active_state: bool = False,
     column_patterns: dict[str, str] | None = None,
     valid_app_id_prefixes: list[str] | None = None,
     csv_separator: str = ",",
@@ -181,16 +182,13 @@ def extract_app_data_from_csv(
     if debug_level > 0:
         logger.info("%s: #total lines %s, skipped: %s", csv_file_path, len(apps_from_csv), count_skips)
 
-    if len(recert_active_app_list) > 0:
-        # activate recertification for apps in recert_active_app_list
-        for app in app_list:
-            if app.app_id_external in recert_active_app_list:
-                app.recert_active = True
-                app.days_until_first_recert = (
-                    app.recert_period_days
-                )  # settings initial recertification to standard period of days
-            else:
-                app.recert_active = False
+    recert_active_app_set: set[str] = set(recert_active_app_list)
+    for app in app_list:
+        app.recert_active = default_recert_active_state
+        if app.app_id_external in recert_active_app_set:
+            app.recert_active = True
+            # Set initial recertification to standard period of days.
+            app.days_until_first_recert = app.recert_period_days
 
 
 def read_ip_data_from_csv(

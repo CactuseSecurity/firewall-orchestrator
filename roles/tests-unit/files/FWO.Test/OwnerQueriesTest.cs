@@ -43,6 +43,16 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetOwnersForDnsDoesNotDependOnConnectionsAggregate()
+        {
+            string query = OwnerQueries.getOwnersForDns;
+
+            Assert.That(query, Does.Contain("owner_responsibles: {"));
+            Assert.That(query, Does.Contain("active: {_eq: true}"));
+            Assert.That(query, Does.Not.Contain("connections_aggregate"));
+        }
+
+        [Test]
         public void GetOwnersForDnsWithRecertificationUsesAllowRecertificationFilter()
         {
             string query = OwnerQueries.getOwnersForDnsWithRecertification;

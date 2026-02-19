@@ -4,5 +4,6 @@ query getOwnersForRuleOwner {
   {
     id
     name
+    app_id_external
   }
 }

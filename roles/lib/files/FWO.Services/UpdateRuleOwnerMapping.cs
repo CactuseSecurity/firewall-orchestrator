@@ -256,7 +256,8 @@ namespace FWO.Services
         private List<RuleOwner> BuildNewRuleOwnersCustomField(List<Rule> rulesToMap, List<FwoOwner> ownersToMap, long importControlId)
         {
             // create a dictionary for owner name to id mapping for faster lookup
-            var ownerNameToIdMap = ownersToMap.ToDictionary(o => o.Name, o => o.Id);
+            var ownerNameToIdMap = ownersToMap.Where(o => !string.IsNullOrWhiteSpace(o.ExtAppId))
+                                              .ToDictionary(o => o.ExtAppId!, o => o.Id);
             var newRuleOwners = new List<RuleOwner>();
 
             // iterate through rules and create new mappings based on CustomFields

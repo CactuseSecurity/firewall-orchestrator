@@ -23,7 +23,6 @@ SET allow_modelling = true,
     allow_recertification = true
 WHERE id IN (1, 2);
 
--- mgm_id now nullable
 DO $$
 DECLARE
   seq_name text;
@@ -37,7 +36,6 @@ BEGIN
 END
 $$;
 
--- constraint mgm_id not null, if import_type_id = 1
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -56,31 +54,5 @@ BEGIN
       ON UPDATE RESTRICT
       ON DELETE RESTRICT;
   END IF;
-END
-$$;
-
--- runs without problems in pgadmin - drops "old / unused" fields
-DO $$
-DECLARE
-    col RECORD;
-BEGIN
-    FOR col IN
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_name = 'import_control'
-          AND column_name IN (
-              'delimiter_group',
-              'delimiter_zone',
-              'delimiter_user',
-              'delimiter_list',
-              'last_change_in_config',
-              'is_full_import'
-          )
-    LOOP
-        EXECUTE format(
-            'ALTER TABLE import_control DROP COLUMN IF EXISTS %I',
-            col.column_name
-        );
-    END LOOP;
 END
 $$;

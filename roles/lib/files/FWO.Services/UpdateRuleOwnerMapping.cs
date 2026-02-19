@@ -106,7 +106,7 @@ namespace FWO.Services
 
         private async Task<bool> RunIncremental() 
         {
-            var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports); // rule_owner_mapping_done = false
+            var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
 
             if (pendingImports == null || !pendingImports.Any())
             {
@@ -149,13 +149,21 @@ namespace FWO.Services
 
                         var filteredChanges = changelogRules.Where(rc =>
                         {
-                            var oldFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rc.OldRule.CustomFields.Replace("'", "\""));
-                            var newFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rc.NewRule.CustomFields.Replace("'", "\""));
+                            var oldRaw = rc.OldRule?.CustomFields;
+                            var newRaw = rc.NewRule?.CustomFields;
+
+                            var oldFields = !string.IsNullOrWhiteSpace(oldRaw)
+                                ? JsonSerializer.Deserialize<Dictionary<string, string>>(oldRaw.Replace("'", "\""))
+                                : new Dictionary<string, string>();
+
+                            var newFields = !string.IsNullOrWhiteSpace(newRaw)
+                                ? JsonSerializer.Deserialize<Dictionary<string, string>>(newRaw.Replace("'", "\""))
+                                : new Dictionary<string, string>();
 
                             oldFields ??= new Dictionary<string, string>();
                             newFields ??= new Dictionary<string, string>();
 
-                            // Prüfen, ob sich der Wert des Keys geändert hat
+                            // get keys for check
                             oldFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var oldValue);
                             newFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var newValue);
 
@@ -163,8 +171,8 @@ namespace FWO.Services
                         })
                         .ToList();
 
-                        rulesToInsert = filteredChanges!.Select(c => c.NewRule).ToList();
-                        var rulesToRemove = filteredChanges!.Select(c => c.OldRule).ToList();
+                        rulesToInsert = filteredChanges!.Select(c => c.NewRule).Where(r => r != null).ToList();
+                        var rulesToRemove = filteredChanges!.Select(c => c.OldRule).Where(r => r != null).ToList();
 
                         owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwner);
 
@@ -174,8 +182,7 @@ namespace FWO.Services
 
                 case ImportType.OWNER:
                     {
-                        
-
+                        await RunFullReinitialize();
                         break;
                     }
 

@@ -36,12 +36,12 @@ namespace FWO.Services.Modelling
                 }
                 if (CheckAppServer())
                 {
-                    if(IsOwner)
+                    if (IsOwner)
                     {
                         apiConnection.SetRole(Roles.Admin);  // usual modeller has no write permission on App Servers
                     }
                     (long? appServerId, string? ExistingAppServerName) = await AppServerHelper.UpsertAppServer(apiConnection, userConfig, ActAppServer, !userConfig.DnsLookup, true, AddMode);
-                    if(IsOwner)
+                    if (IsOwner)
                     {
                         apiConnection.SwitchBack();
                     }

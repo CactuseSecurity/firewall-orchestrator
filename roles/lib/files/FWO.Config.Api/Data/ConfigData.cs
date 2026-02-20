@@ -314,7 +314,7 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
         public string OwnerLdapGroupNames { get; set; } = GlobalConst.kLdapGroupPattern;
-        
+
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;
 

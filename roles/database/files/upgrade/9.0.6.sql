@@ -1,22 +1,22 @@
 create table if not EXISTS time_object
 (
-	time_obj_id BIGSERIAL PRIMARY KEY,
-	mgm_id Integer NOT NULL,
-	time_obj_uid Varchar,
-	time_obj_name Varchar,
-	start_time TIMESTAMP WITHOUT TIME ZONE,
-	end_time TIMESTAMP WITHOUT TIME ZONE,
-	created BIGINT,
-	removed BIGINT
+    time_obj_id BIGSERIAL PRIMARY KEY,
+    mgm_id Integer NOT NULL,
+    time_obj_uid Varchar,
+    time_obj_name Varchar,
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    created BIGINT,
+    removed BIGINT
 );
 
 create table if not EXISTS rule_time
 (
-	rule_time_id BIGSERIAL PRIMARY KEY,
-	rule_id BIGINT,
-  	time_obj_id BIGINT,
-	created BIGINT,
-  	removed BIGINT
+    rule_time_id BIGSERIAL PRIMARY KEY,
+    rule_id BIGINT,
+	time_obj_id BIGINT,
+    created BIGINT,
+	removed BIGINT
 );
 
 

@@ -17,7 +17,7 @@ namespace FWO.Services.EventMediator.Events
 
         public UpdateRuleOwnerMappingEvent(UpdateRuleOwnerMappingEventArgs? args = null)
         {
-            
+
             EventArgs = args ?? new UpdateRuleOwnerMappingEventArgs();
         }
     }

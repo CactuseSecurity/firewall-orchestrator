@@ -5,7 +5,6 @@ query getRelevantImportIdsInTimeRange(
   $ruleChangesFound: Boolean
 ) {
   management(where: {
-    hide_in_gui: {_eq: false}
     _or: [
       { mgm_id: {_in: $mgmIds}}
       {_and: {
@@ -13,6 +12,7 @@ query getRelevantImportIdsInTimeRange(
         managementByMultiDeviceManagerId: { mgm_id: {_in: $mgmIds}}
       }}
     ]
+    hide_in_gui: {_eq: false}
   } order_by: {mgm_name: asc}) {
     id: mgm_id
     managementByMultiDeviceManagerId {

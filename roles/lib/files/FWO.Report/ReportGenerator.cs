@@ -6,8 +6,9 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
-using FWO.Services;
+using FWO.Services.Modelling;
 using FWO.Services.RuleTreeBuilder;
+using FWO.Services.Workflow;
 
 namespace FWO.Report
 {
@@ -124,7 +125,7 @@ namespace FWO.Report
         private static async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerConnectionReport ownerReport, ReportType reportType, ModellingFilter modellingFilter,
             ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
         {
-            ModellingHandlerBase handlerBase = new(apiConnection, userConfig, new(), false, displayMessageInUi);
+            ModellingHandlerBase handlerBase = new(apiConnection, userConfig, new(), false, displayMessageInUi, true, false);
             foreach (var conn in ownerReport.Connections)
             {
                 await handlerBase.ExtractUsedInterface(conn);

@@ -1,14 +1,21 @@
 ﻿@inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("using_connections") + InterfaceName)" Show="@Display" Size=PopupSize.Medium OnClose="Close">
+<PopUp Title="@Title" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
         @if (Display)
         {
-            <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection" Items="UsingConnections">
+            <Table TableClass=" table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection" Items="UsingConnections">
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
-                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" >
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)">
                     <Template>
-                        @(context.App.Name)
+                        @if (string.IsNullOrWhiteSpace(context.App.ExtAppId))
+                        {
+                            @($"{@context.App.Name}")
+                        }
+                        else
+                        {
+                            @($"{@context.App.Name} ({context.App.ExtAppId})")
+                        }
                     </Template>
                 </Column>
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
@@ -32,12 +39,29 @@
     [Parameter]
     public EventCallback<bool> DisplayChanged { get; set; }
 
-    [Parameter] 
+    [Parameter]
     public string InterfaceName { get; set; } = "";
 
-    [Parameter] 
+    [Parameter]
     public List<ModellingConnection> UsingConnections { get; set; } = [];
 
+    [Parameter, EditorRequired]
+    public required FwoOwner App { private get; init; }
+
+    private string Title
+    {
+        get
+        {
+            if (App is null || string.IsNullOrWhiteSpace(App.ExtAppId) || string.IsNullOrWhiteSpace(App.Name))
+            {
+                return $"{userConfig.GetText("using_connections")} {InterfaceName}";
+            }
+            else
+            {
+                return $"{userConfig.GetText("using_connections")} {InterfaceName} - {App.Name} ({App.ExtAppId})";
+            }
+        }
+    }
 
     private void Close()
     {

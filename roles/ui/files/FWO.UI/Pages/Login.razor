@@ -8,6 +8,7 @@
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
 @using System.Net
+@using System.Security.Cryptography
 @using System.Security.Authentication
 @using System.Web
 
@@ -153,7 +154,21 @@
         if (firstRender)
         {
             // This might be a reconnect. Check if there is a jwt in session storage.
-            ProtectedBrowserStorageResult<string> jwtLoadRequest = await sessionStorage.GetAsync<string>("jwt");
+            ProtectedBrowserStorageResult<string> jwtLoadRequest = new();
+            try
+            {
+                jwtLoadRequest = await sessionStorage.GetAsync<string>("jwt");
+            }
+            catch (CryptographicException ex)
+            {
+                // Old/corrupted protected storage data can no longer be decrypted after key rotation.
+                Log.WriteWarning("Session Restore", $"Invalid protected session payload for jwt. Removing it. Details: {ex.Message}");
+                await sessionStorage.DeleteAsync("jwt");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("Session Restore", "Could not read jwt from protected session storage.", ex);
+            }
 
             if (jwtLoadRequest.Success) // reconnect
             {

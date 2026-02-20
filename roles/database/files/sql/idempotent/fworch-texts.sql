@@ -81,8 +81,6 @@ INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
 INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
 INSERT INTO txt VALUES ('SendEmail',	        'German', 	'Email verschicken');
 INSERT INTO txt VALUES ('SendEmail',		    'English', 	'Send email');
-INSERT INTO txt VALUES ('CreateConnection',	    'German', 	'Verbindung anlegen');
-INSERT INTO txt VALUES ('CreateConnection',		'English', 	'Create Connection');
 INSERT INTO txt VALUES ('UpdateConnectionOwner','German', 	'Verbindungseigent&uuml;mer &auml;ndern');
 INSERT INTO txt VALUES ('UpdateConnectionOwner','English', 	'Update Connection Owner');
 INSERT INTO txt VALUES ('UpdateConnectionRelease','German', 'Verbindung ver&ouml;ffentlichen');
@@ -1948,6 +1946,12 @@ INSERT INTO txt VALUES ('email_settings',       'German', 	'Email-Einstellungen'
 INSERT INTO txt VALUES ('email_settings',       'English', 	'Email settings');
 INSERT INTO txt VALUES ('importer_settings',    'German', 	'FW-Importer-Einstellungen');
 INSERT INTO txt VALUES ('importer_settings',    'English', 	'FW Importer Settings');
+INSERT INTO txt VALUES ('change_trigger',       'German', 	'FW-&Auml;nderungstrigger-Einstellungen');
+INSERT INTO txt VALUES ('change_trigger',       'English', 	'FW Change Trigger Settings');
+INSERT INTO txt VALUES ('change_notification_sub',       'German', 	'Einstellungen f&uuml;r Trigger von &Auml;nderungsbenachrichtigungen');
+INSERT INTO txt VALUES ('change_notification_sub',       'English', 	'Change Notification Event Trigger Settings');
+INSERT INTO txt VALUES ('update_rule_owner_mapping_sub',       'German', 	'Einstellungen f&uuml;r Trigger zur Aktualisierung der Regelverantwortung');
+INSERT INTO txt VALUES ('update_rule_owner_mapping_sub',       'English', 	'Rule Owner Mapping Update Event Trigger Settings');
 INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');
 INSERT INTO txt VALUES ('edit_email',           'English', 	'Edit email settings');
 INSERT INTO txt VALUES ('email_sender',         'German', 	'Email-Absendeadresse');
@@ -2250,6 +2254,12 @@ INSERT INTO txt VALUES ('impChangeNotifySleepTime','German','&Auml;nderungsbenac
 INSERT INTO txt VALUES ('impChangeNotifySleepTime','English','Change notification sleep time (in seconds)');
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenachrichtigungs-Start');
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingActive',    'German', 	'Regelbesitzer zuordnungs aktualisierung aktiv?');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingActive',    'English', 	'Update Rule Owner Mapping active?');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','German','Regelbesitzer zuordnungs aktualisierungs-Intervall (in Sekunden)');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','English','Update Rule Owner Mapping sleep time (in seconds)');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingStartAt',  'German','Regelbesitzer zuordnung aktualisierungs-Start');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingStartAt',  'English','Update Rule Owner Mapping start at');
 INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('externalRequestSleepTime','English','External Request sleep time (in seconds)');
 INSERT INTO txt VALUES ('externalRequestStartAt',  'German','Externer Auftrags-Start');
@@ -2588,6 +2598,10 @@ INSERT INTO txt VALUES ('modReqEmailReceiver',  'German',   'Empf&auml;nger der 
 INSERT INTO txt VALUES ('modReqEmailReceiver',  'English',  'Receiver of request email');
 INSERT INTO txt VALUES ('modReqEmailRequesterInCc','German','Antragssteller in CC');
 INSERT INTO txt VALUES ('modReqEmailRequesterInCc','English','Requester in CC');
+INSERT INTO txt VALUES ('modReqEmailOtherAddresses','German','Weitere Email-Adressen');
+INSERT INTO txt VALUES ('modReqEmailOtherAddresses','English','Additional email addresses');
+INSERT INTO txt VALUES ('modEnsureAtLeastOneEmailNotification','German','Mindestens eine Email-Benachrichtigung sicherstellen');
+INSERT INTO txt VALUES ('modEnsureAtLeastOneEmailNotification','English','Ensure at least one email notification can be sent');
 INSERT INTO txt VALUES ('modReqEmailSubject',   'German',   'Titel der Antragsbenachrichtigung');
 INSERT INTO txt VALUES ('modReqEmailSubject',   'English',  'Subject of request emails');
 INSERT INTO txt VALUES ('modReqEmailBody',      'German',   'Text der Antragsbenachrichtigung');
@@ -2600,6 +2614,8 @@ INSERT INTO txt VALUES ('modReqTaskTitle',      'German',   'Titel des Schnittst
 INSERT INTO txt VALUES ('modReqTaskTitle',      'English',  'Title of interface request task');
 INSERT INTO txt VALUES ('modDecommEmailReceiver','German',  'Empf&auml;nger der Stilllegungsbenachrichtigung');
 INSERT INTO txt VALUES ('modDecommEmailReceiver','English', 'Receiver of decommission email');
+INSERT INTO txt VALUES ('modDecommEmailOtherAddresses','German','Weitere Email-Adressen');
+INSERT INTO txt VALUES ('modDecommEmailOtherAddresses','English','Additional email addresses');
 INSERT INTO txt VALUES ('modDecommEmailSubject','German',   'Titel der Stilllegungsbenachrichtigung');
 INSERT INTO txt VALUES ('modDecommEmailSubject','English',  'Subject of decommission emails');
 INSERT INTO txt VALUES ('modDecommEmailBody',   'German',   'Text der Stilllegungsbenachrichtigung');
@@ -3076,7 +3092,7 @@ INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U1002', 'English', 'Do you really want to delete report template');
 INSERT INTO txt VALUES ('U1003', 'German',  'In diesem Report werden nur vollst&auml;ndig modellierte Verbindungen ber&uuml;cksichtigt.');
 INSERT INTO txt VALUES ('U1003', 'English', 'In this report only completely modelled connections are regarded.');
-INSERT INTO txt VALUES ('U1004', 'German',  'Objektänderungen anzeigen');
+INSERT INTO txt VALUES ('U1004', 'German',  'Objekt&auml;nderungen anzeigen');
 INSERT INTO txt VALUES ('U1004', 'English', 'Include object changes');
 
 
@@ -3127,7 +3143,10 @@ INSERT INTO txt VALUES ('U5015', 'German',  'Verwaltung der Workflow-Voreinstell
 INSERT INTO txt VALUES ('U5015', 'English', 'Administration of workflow settings (only by admin)');
 INSERT INTO txt VALUES ('U5016', 'German',  'Verwaltung der externen Auftr&auml;ge (nur f&uuml;r Admin)');
 INSERT INTO txt VALUES ('U5016', 'English', 'Administration of external requests (only by admin)');
-
+INSERT INTO txt VALUES ('U5017', 'German',  'Regelbesitzer zuordnung neu erstellen');
+INSERT INTO txt VALUES ('U5017', 'English', '(Re)initialize Rule Owner Mapping');
+INSERT INTO txt VALUES ('U5018', 'German',  'Besitzerzuordnungsquelle');
+INSERT INTO txt VALUES ('U5018', 'English', 'Owner Mappings Source');
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
 INSERT INTO txt VALUES ('U5102', 'German',  'L&ouml;scht alle Beispielmanagements (auf "_demo" endend) und alle zugeordneten Gateways');
@@ -3242,6 +3261,8 @@ INSERT INTO txt VALUES ('U5324', 'German',  'Verwaltung der Compliance-Voreinste
 INSERT INTO txt VALUES ('U5324', 'English', 'Administration of compliance settings for all users');
 INSERT INTO txt VALUES ('U5325', 'German',  'Mehrere Service-Uids mit Komma trennen');
 INSERT INTO txt VALUES ('U5325', 'English', 'Multiple service uids can be separated by using commas');
+INSERT INTO txt VALUES ('U5326', 'German',  'Verwaltung aller durch FW-&Auml;nderungen ausgel&ouml;sten Events');
+INSERT INTO txt VALUES ('U5326', 'English', 'Set the settings for all events triggerd by FW changes');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -5261,8 +5282,12 @@ INSERT INTO txt VALUES ('H5414', 'English', 'Completely auto-fill right sidebar:
 ');
 INSERT INTO txt VALUES ('H5415', 'German',  'Datenaufbewahrungszeit (in Tagen): Legt fest, wie lange die Daten in der Datenbank gehalten werden (wird noch nicht unterst&uuml;tzt).');
 INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defines how long the data is kept in the database (currently not supported).');
-INSERT INTO txt VALUES ('H5416', 'German',  '&Auml;nderungsbenachrichtigung via Email:');
-INSERT INTO txt VALUES ('H5416', 'English', 'Change notification via email:');
+INSERT INTO txt VALUES ('H5416', 'German',  'Einstellungen f&uuml;r &Auml;nderungsbenachrichtigungen via E-Mail:');
+INSERT INTO txt VALUES ('H5416', 'English', 'Change Notification Email Settings:');
+INSERT INTO txt VALUES ('H5416a', 'German',  'Trigger-Einstellungen f&uuml;r &Auml;nderungsbenachrichtigungen:');
+INSERT INTO txt VALUES ('H5416a', 'English', 'Change Notification Trigger Settings:');
+INSERT INTO txt VALUES ('H5416b', 'German',  'Trigger-Einstellungen f&uuml;r Regelverantwortlungs-Aktualisierung:');
+INSERT INTO txt VALUES ('H5416b', 'English', 'Update Rule Owner Mapping Trigger Settings:');
 INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der ein Eigent&uuml;mer bzw. eine Regel rezertifiziert werden soll. 
     Bei Rezertifizierungsmodus "Eigent&uuml;mer und Regeln": Default-Wert f&uuml;r alle Eigent&uuml;mer, f&uuml;r die kein Wert gesetzt ist.
 ');
@@ -5401,10 +5426,18 @@ INSERT INTO txt VALUES ('H5481', 'German',  'Ein Rezertifizierer kann einige per
 INSERT INTO txt VALUES ('H5481', 'English', 'A recertifier can overwrite some personal settings for the recertification report.
     The default value is set by the admin in the <a href="/help/settings/defaults">Default Settings</a>.
 ');
+INSERT INTO txt VALUES ('H5482', 'German',  'Die folgenden Einstellungen gelten f&uuml;r Ereignis-Trigger bei FW-&Auml;nderungen und Aktualisierungen');
+INSERT INTO txt VALUES ('H5482', 'English', 'The following settings apply to event triggers for FW changes and updates');
 INSERT INTO txt VALUES ('H5483', 'German',  '&Auml;nderungsbenachrichtigung aktiv: Sollen Emails bei festgestellten &Auml;nderungen versendet werden, ist diese
     Einstellung zu aktivieren. Default-Wert = "inaktiv".
 ');
 INSERT INTO txt VALUES ('H5483', 'English', 'Change notification active?: When an import finds security relevant changes, should an email be sent out?
+    Default value = "inactive".
+');
+INSERT INTO txt VALUES ('H5483a', 'German',  'Regelbesitzer zuordnungs aktualisierung aktiv: Wenn sich ein Besitzer oder eine Regel &auml;ndert, wird die Zuordnung automatisch &uuml;berpr&uuml;ft und ggf. eine neue Zuordnung erstellt.
+    Default-Wert = "inaktiv".
+');
+INSERT INTO txt VALUES ('H5483a', 'English', 'Update Rule Owner Mapping active?: When an owner or a rule changes, the mapping is automatically checked and a new mapping is created if needed.
     Default value = "inactive".
 ');
 INSERT INTO txt VALUES ('H5484', 'German',  '&Auml;nderungsbenachrichtigungstyp: Art und Umfang, in dem die &Auml;nderungsbenachrichtigung gesendet werden soll:
@@ -5427,8 +5460,12 @@ INSERT INTO txt VALUES ('H5484', 'English', 'Change notification type: Defines h
 ');
 INSERT INTO txt VALUES ('H5485', 'German',  '&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5485', 'English', 'Change notification sleep time (in seconds): Time between the checks for imported changes.');
+INSERT INTO txt VALUES ('H5485a', 'German',  'Regelbesitzer zuordnungs aktualisierungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
+INSERT INTO txt VALUES ('H5485a', 'English', 'Update Rule Owner Mapping sleep time (in seconds): Time between the checks for imported changes.');
 INSERT INTO txt VALUES ('H5486', 'German',  '&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5486', 'English', 'Change notification start at: Start time for the import change checks.');
+INSERT INTO txt VALUES ('H5486a', 'German',  'Regelbesitzer zuordnungs aktualisierungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
+INSERT INTO txt VALUES ('H5486a', 'English', 'Update Rule Owner Mapping start at: Start time for the import change checks.');
 INSERT INTO txt VALUES ('H5487', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
     sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".
 ');
@@ -5879,13 +5916,15 @@ INSERT INTO txt VALUES ('H5628', 'English', 'Predefined Services: Offers a menu 
 ');
 INSERT INTO txt VALUES ('H5629', 'German',  'Erinnerungsbenachrichtigungen: Legt fest, wer wie oft in welchem Zeitintervall &uuml;ber offene Schnittstellenantr&auml;ge benachrichtigt wird.');
 INSERT INTO txt VALUES ('H5629', 'English', 'Reminders: Defines who will be notified how often and in which time interval about open interface requests.');
-INSERT INTO txt VALUES ('H5630', 'German',  'Empf&auml;nger der Antragsbenachrichtigung: Auswahl, wem die Email mit der Antragsbenachrichtigung geschickt werden soll:
-    Der Eigent&uuml;mergruppe (Default), dem Hauptverantwortlichen oder beiden.
-    Desweiteren kann festgelegt werden, ob der Antragsteller die Nachricht im Cc bekommen soll (Default: ja).
+INSERT INTO txt VALUES ('H5630', 'German',  'Empf&auml;nger der Antragsbenachrichtigung: Mehrfachauswahl, an wen die Email geschickt werden soll.
+    Verf&uuml;gbare Optionen sind Keine, Andere Adressen, die Option "Mindestens eine Email-Benachrichtigung sicherstellen" und alle aktiven Verantwortlichkeitsstufen.
+    Ist "Keine" gesetzt, sind alle anderen Optionen deaktiviert. Wenn "Mindestens eine Email-Benachrichtigung sicherstellen" aktiv ist, werden zuerst die ausgew&auml;hlten Optionen verwendet. Nur falls daraus keine Empf&auml;nger entstehen, werden nicht ausgew&auml;hlte Verantwortlichkeitsstufen von hoher zu niedriger Sortierreihenfolge durchsucht, bis eine Stufe mit Empf&auml;ngern gefunden wird.
+    Zus&auml;tzlich kann festgelegt werden, ob der Antragsteller die Nachricht im Cc bekommen soll (Default: ja).
 ');
-INSERT INTO txt VALUES ('H5630', 'English', 'Receiver of request emails: Selection to whom the request notification email should be sent:
-    the Owner Group, the Owner Main Responsible or both.
-    Furtheron it can be determined whether the requester should get the email in Cc (default: yes).
+INSERT INTO txt VALUES ('H5630', 'English', 'Receiver of request emails: Multi-select list defining who receives the request notification email.
+    Available options are None, Other addresses, the option "Ensure at least one email notification can be sent", and all active responsible levels.
+    If "None" is selected, all other options are disabled. If "Ensure at least one email notification can be sent" is active, selected options are used first. Only if they yield no recipients, non-selected responsible levels are checked from highest to lowest sort order until a level with recipients is found.
+    It can also be configured whether the requester receives the email in Cc (default: yes).
 ');
 INSERT INTO txt VALUES ('H5631', 'German',  'Servicegruppen aufl&ouml;sen: Ersetze beim Erzeugen eines externen Auftrags die Servicegruppen durch die einzelnen Mitglieder.');
 INSERT INTO txt VALUES ('H5631', 'English', 'Resolve service groups: Replace service groups by its members when creating an external request.');
@@ -5969,8 +6008,12 @@ INSERT INTO txt VALUES ('H5658', 'German',  'Rezertifizierungstext: Text, der zu
 INSERT INTO txt VALUES ('H5658', 'English', 'Recertification Text: Text to be shown to confirm recertification. If the text contains a placeholder "@@APPNAME@@", it is replaced by the app name.');
 INSERT INTO txt VALUES ('H5659', 'German',  'Netzwerkareas f&uuml;r Updatable Objects: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration "Updatable Objects" genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
 INSERT INTO txt VALUES ('H5659', 'English', 'Network Areas for Updatable Objects: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations "Updatable Objects". The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
-INSERT INTO txt VALUES ('H5660', 'German',  'Empf&auml;nger der Stilllegungsbenachrichtigung: Auswahl, wem die Email mit der Stilllegungsbenachrichtigung geschickt werden soll: Der Eigent&uuml;mergruppe (Default), dem Hauptverantwortlichen oder beiden.');
-INSERT INTO txt VALUES ('H5660', 'English', 'Receiver of decommission emails: Selection to whom the decommission notification email should be sent: the Owner Group, the Owner Main Responsible or both.');
+INSERT INTO txt VALUES ('H5660', 'German',  'Empf&auml;nger der Stilllegungsbenachrichtigung: Mehrfachauswahl, an wen die Email geschickt werden soll.
+    Verf&uuml;gbare Optionen sind Keine, Andere Adressen, die Option "Mindestens eine Email-Benachrichtigung sicherstellen" und alle aktiven Verantwortlichkeitsstufen.
+    Ist "Keine" gesetzt, sind alle anderen Optionen deaktiviert. Wenn "Mindestens eine Email-Benachrichtigung sicherstellen" aktiv ist, werden zuerst die ausgew&auml;hlten Optionen verwendet. Nur falls daraus keine Empf&auml;nger entstehen, werden nicht ausgew&auml;hlte Verantwortlichkeitsstufen von hoher zu niedriger Sortierreihenfolge durchsucht, bis eine Stufe mit Empf&auml;ngern gefunden wird.');
+INSERT INTO txt VALUES ('H5660', 'English', 'Receiver of decommission emails: Multi-select list defining who receives the decommission notification email.
+    Available options are None, Other addresses, the option "Ensure at least one email notification can be sent", and all active responsible levels.
+    If "None" is selected, all other options are disabled. If "Ensure at least one email notification can be sent" is active, selected options are used first. Only if they yield no recipients, non-selected responsible levels are checked from highest to lowest sort order until a level with recipients is found.');
 INSERT INTO txt VALUES ('H5661', 'German',  'Titel der Stilllegungsbenachrichtigung: Betreff der Email-Benachrichtigung an die betroffenen Eigent&uuml;mer. Platzhalter @@INTERFACE_NAME@@ werden mit dem Namen der zu l&ouml;schenden Schnittstelle ersetzt.');
 INSERT INTO txt VALUES ('H5661', 'English', 'Subject of decommission emails: Subject of the email to the addressed owners. Placeholders @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned.');
 INSERT INTO txt VALUES ('H5662', 'German',  'Text der Stilllegungsbenachrichtigung: Text der Email-Benachrichtigung an die Nutzer der Schnittstelle, gefolgt von der Liste der betroffenen Verbindungen. Es k&ouml;nnen folgende Platzhalter genutzt werden:
@@ -6126,7 +6169,7 @@ INSERT INTO txt VALUES ('H5849', 'German',  'Initialen Check durchf&uuml;hren');
 INSERT INTO txt VALUES ('H5849', 'English', 'Run initial check');
 INSERT INTO txt VALUES ('H5850', 'German',  'Check starten');
 INSERT INTO txt VALUES ('H5850', 'English', 'Run Check');
-INSERT INTO txt VALUES ('H5851', 'German',  'Sollen festgestellte Objektänderungen im &Auml;nderungsreport angezeigt werden, ist diese Einstellung zu aktivieren. Default-Wert = "inaktiv".');
+INSERT INTO txt VALUES ('H5851', 'German',  'Sollen festgestellte Objekt&auml;nderungen im &Auml;nderungsreport angezeigt werden, ist diese Einstellung zu aktivieren. Default-Wert = "inaktiv".');
 INSERT INTO txt VALUES ('H5851', 'English', 'Include object changes: When the import detects object changes, they will be included in the change report. Default value = "inactive".');
 
 

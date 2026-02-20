@@ -53,7 +53,6 @@ class ImportStateController:
         force: bool,
         version: int,
         is_clearing_import: bool,
-        is_full_import: bool,
     ):
         fwo_config = FworchConfigController.from_json(read_config(FWO_CONFIG_FILENAME))
 
@@ -97,7 +96,6 @@ class ImportStateController:
         state.force_import = force
         state.import_version = version
         state.is_clearing_import = is_clearing_import
-        state.is_full_import = is_full_import
         state.is_initial_import = last_import_date == ""
         state.verify_certs = ssl_verification
         state.last_successful_import = last_import_date

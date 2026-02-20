@@ -127,7 +127,7 @@ namespace FWO.Data.Modelling
         public string InterfacePermission
         {
             get => interfacePermission;
-            set => interfacePermission = value ?? "";
+            set => interfacePermission = value ?? InterfacePermissions.Public.ToString();
         }
 
         [JsonProperty("permitted_owners"), JsonPropertyName("permitted_owners")]

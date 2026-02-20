@@ -588,3 +588,6 @@ A complete 80K lines rework of FWO, including
 # 9.0.1 - 07.02.2026 MAIN
 - generalized owner responsibles with configurable responsible types
 - add allow_write_access to responsible types to control modelling and recertification
+
+# 9.0.4 - 13.02.2026 MAIN
+- maintenance release with explicit 9.0.4 upgrade step

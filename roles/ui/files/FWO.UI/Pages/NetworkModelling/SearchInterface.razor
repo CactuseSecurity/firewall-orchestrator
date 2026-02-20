@@ -7,7 +7,9 @@
     <Body>
         @if (Display && InitComplete)
         {
-            <ConnectionTable Application="Application" PageSizeCallback="UpdatePageSize" ShowPageSizeInput="true" ShowSelectionColumn="true" SelectionType="SelectionType.Multiple" Connections="@SelectableInterfaces" SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
+            <ConnectionTable Application="Application" PageSizeCallback="UpdatePageSize" ShowPageSizeInput="true"
+                ShowSelectionColumn="true" SelectionType="SelectionType.Multiple" Connections="@SelectableInterfaces"
+                SelectInterfaceView="true" ShowAppName="true" @bind-SelectedConns="SelectedInterfaces" />
         }
     </Body>
     <Footer>
@@ -69,7 +71,7 @@
             {
                 FirstTry = false;
                 AllVisibleInterfaces = [.. (await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getPublishedInterfaces))
-                    .Where(i => i.InterfacePermission != InterfacePermissions.Private.ToString())];
+                    .Where(i => i.AppId == Application.Id || i.InterfacePermission != InterfacePermissions.Private.ToString())];
                 RefreshSelectionList();
                 InitComplete = true;
             }

@@ -1,0 +1,7 @@
+query getLastImportControl {
+  import_control(order_by: {control_id: desc}, limit: 1) {
+    control_id
+    import_type_id
+    rule_owner_mapping_done
+  }
+}

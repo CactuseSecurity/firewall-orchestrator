@@ -126,20 +126,27 @@ namespace FWO.Middleware.Server
             if (user.Dn != null && user.Dn.Length > 0)
                 claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
 
+            int[] visibleManagementIds = user.Tenant?.VisibleManagementIds ?? [];
+            int[] visibleGatewayIds = user.Tenant?.VisibleGatewayIds ?? [];
+
             if (user.Tenant != null)
             {
                 claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
-                if (user.Tenant.VisibleGatewayIds != null && user.Tenant.VisibleManagementIds != null)
-                {
-                    // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
-                    claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagementIds)} }}"));
-                    claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleGatewayIds)} }}"));
-                }
             }
+            // Hasura role permissions reference these session variables. Always provide them,
+            // even when tenant resolution fails, to avoid runtime "missing session variable" errors.
+            claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", ToHasuraIdSet(visibleManagementIds)));
+            claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", ToHasuraIdSet(visibleGatewayIds)));
             claimsIdentity.AddClaim(new Claim("x-hasura-editable-owners", $"{{ {string.Join(",", user.Ownerships)} }}"));
             claimsIdentity.AddClaim(new Claim("x-hasura-recertifiable-owners", $"{{ {string.Join(",", user.RecertOwnerships)} }}"));
             AddRoleClaims(claimsIdentity, user);
             return claimsIdentity;
+        }
+
+        private static string ToHasuraIdSet(IEnumerable<int> ids)
+        {
+            int[] idList = ids.ToArray();
+            return idList.Length > 0 ? $"{{{string.Join(",", idList)}}}" : "{}";
         }
 
         private static void AddRoleClaims(ClaimsIdentity claimsIdentity, UiUser user)

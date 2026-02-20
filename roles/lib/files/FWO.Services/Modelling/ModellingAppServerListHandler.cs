@@ -79,7 +79,7 @@ namespace FWO.Services.Modelling
         {
             try
             {
-                if(IsOwner)
+                if (IsOwner)
                 {
                     apiConnection.SetRole(Roles.Admin);  // usual modeller has no write permission on App Servers
                 }
@@ -96,7 +96,7 @@ namespace FWO.Services.Modelling
                 }
                 await AppServerHelper.ReactivateOtherSource(apiConnection, userConfig, actAppServer);
                 await Init(Application);
-                if(IsOwner)
+                if (IsOwner)
                 {
                     apiConnection.SwitchBack();
                 }
@@ -121,7 +121,7 @@ namespace FWO.Services.Modelling
             {
                 if (actAppServer.IsDeleted)
                 {
-                    if(IsOwner)
+                    if (IsOwner)
                     {
                         apiConnection.SetRole(Roles.Admin);  // usual modeller has no write permission on App Servers
                     }
@@ -129,7 +129,7 @@ namespace FWO.Services.Modelling
                     await LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Reactivate App Server: {actAppServer.Display()}", Application.Id);
                     await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, actAppServer);
-                    if(IsOwner)
+                    if (IsOwner)
                     {
                         apiConnection.SwitchBack();
                     }

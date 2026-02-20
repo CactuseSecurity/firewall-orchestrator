@@ -11,7 +11,7 @@
 @if(AppRoleHandler != null && Display)
 {
     <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
-           Size="@(AppRoleHandler.ReadOnly? PopupSize.Medium: PopupSize.Large)" Show="@Display" OnClose="Close" FooterCssClass="d-flex justify-content-between">
+           Size="PopupSize.Auto" Show="@Display" OnClose="Close" FooterCssClass="d-flex justify-content-between">
         <Body>
             @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {

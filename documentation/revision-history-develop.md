@@ -350,3 +350,5 @@ A complete 80K lines rework of FWO, including
 # 9.0.5 - 18.02.2026 DEVELOP
 - update rule_owner table for REST api
 - update import_control to allow flexible tracking of different import types
+- create rule_owner mapping for custom_field via button and service/job
+- create changelog_owner table

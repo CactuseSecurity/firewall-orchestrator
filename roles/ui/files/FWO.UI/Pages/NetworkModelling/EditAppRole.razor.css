@@ -4,7 +4,7 @@
 }
 
 .appserver-right-scrollable {
-    height: calc(100vh - 715px);
+    height: calc(50vh - 200px);
     overflow-y: auto;
 }
 

@@ -539,39 +539,30 @@ def normalize_links(rulebase_links: list[dict[str, Any]]) -> list[dict[str, Any]
 
 
 def normalize_time_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any]):
-    time_objects: list[TimeObject] = []
+    time_object_by_uid: dict[str, TimeObject] = {}
+
+    # Get time objects from native
+    time_objects_from_native = [
+        TimeObject.model_validate(to_time_object_dict(item))
+        for native_time_object in native_config.get("time_objects", [])
+        for item in native_time_object.get("data", [])
+    ]
 
     for rulebase in native_config.get("rulebases", []):  # include nat rulebases?
         for rule in rulebase.get("data", []):
             if "schedule" in rule and rule["schedule"] is not None:
-                schedule_ref = rule["schedule"]
-
-                # Get time objects from native
-
-                time_objects_from_native = [
-                    TimeObject.model_validate(to_time_object_dict(item))
-                    for native_time_object in native_config.get("time_objects", [])
-                    for item in native_time_object.get("data", [])
-                ]
+                schedule_ref: list[str] = rule["schedule"]
 
                 # Find the time object in native config that matches the schedule reference
 
                 matching_time_objects = [obj for obj in time_objects_from_native if obj.time_obj_name in schedule_ref]
 
                 if matching_time_objects:
-                    new_time_object = TimeObject(
-                        time_obj_uid=matching_time_objects[0].time_obj_uid,
-                        time_obj_name=matching_time_objects[0].time_obj_name,
-                        start_time=matching_time_objects[0].start_time,
-                        end_time=matching_time_objects[0].end_time,
-                    )
-                    time_objects.append(new_time_object)
+                    time_object_by_uid.update({time_obj.time_obj_uid: time_obj for time_obj in matching_time_objects})
                 else:
                     FWOLogger.warning(
                         f"Schedule reference {schedule_ref} in rule {rule['name']} does not match any known time object."
                     )
-
-    time_object_by_uid = {obj.time_obj_uid: obj for obj in time_objects}
 
     normalized_config_adom.update({"time_objects": time_object_by_uid})
 

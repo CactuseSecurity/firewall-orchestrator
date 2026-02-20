@@ -1285,8 +1285,8 @@ create table time_object
 	mgm_id Integer NOT NULL,
 	time_obj_uid Varchar,
 	time_obj_name Varchar,
-	start_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-	end_time TIMESTAMP WITH TIME ZONE,
+	start_time TIMESTAMP WITHOUT TIME ZONE,
+	end_time TIMESTAMP WITHOUT TIME ZONE,
 	created BIGINT,
 	removed BIGINT
 );

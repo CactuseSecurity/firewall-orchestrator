@@ -475,7 +475,7 @@ def rule_parse_time(native_rule: dict[str, Any]) -> str | None:
     if schedule is None:
         return None
 
-    return "|".join(s.replace(" ", "_") for s in schedule)
+    return "|".join(schedule)
 
 
 def get_access_policy(

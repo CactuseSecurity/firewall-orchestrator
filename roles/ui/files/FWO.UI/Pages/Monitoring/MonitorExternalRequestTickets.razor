@@ -1,3 +1,4 @@
+@using FWO.Basics
 @using FWO.Data.Middleware
 @using FWO.Data.Modelling
 @using FWO.Data.Workflow
@@ -25,14 +26,14 @@
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Ticket.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => Details(context)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                         @if(ReInitPossible(context))
                         {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestReInit(context)">@(userConfig.GetText("reinit_ext_request"))</button>
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestReInit(context)">@(DisplayService.DisplayButton(userConfig, "reinit_ext_request", Icons.Refresh))</button>
                         }
                         @if(ClosePossible(context))
                         {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestClose(context)">@(userConfig.GetText("reject_ticket"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestClose(context)">@(DisplayService.DisplayButton(userConfig, "reject_ticket", Icons.Reject))</button>
                         }
                     </div>
                 </Template>
@@ -101,7 +102,7 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "ok", Icons.Confirm))</button>
         </div>
     </Footer>
 </PopUp>

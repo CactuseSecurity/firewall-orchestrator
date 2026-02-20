@@ -139,6 +139,24 @@ namespace FWO.Services
             }
         }
 
+        public static async Task<int> AcknowledgeAllOpenAlerts(ApiConnection apiConnection, int ackUser = 0)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    ackUser = ackUser,
+                    ackTime = DateTime.Now
+                };
+                return (await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAllOpenAlerts, Variables)).AffectedRows;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Acknowledge Alerts", $"Could not acknowledge all open alerts: ", exception);
+            }
+            return -1;
+        }
+
         private static void LogAlert(string title, string description, string source, AlertCode alertCode, int? mgmtId, object? jsonData, int? devId)
         {
             string? mgmtIdString = mgmtId?.ToString() ?? "";

@@ -63,6 +63,7 @@ namespace FWO.Data.Workflow
             ExternalTicketId = ticket.ExternalTicketId;
             ExternalTicketSource = ticket.ExternalTicketSource;
             Deadline = ticket.Deadline;
+            Priority = ticket.Priority;
         }
 
         public override bool Sanitize()

@@ -527,9 +527,7 @@ def _parse_policy_class_block(block: list[str], start_idx: int) -> tuple[PolicyC
         t = block[idx].strip()
         mi = re.match(r"^inspect\s+(\S+)(?:\s+(\S+))?$", t, re.IGNORECASE)
         if mi:
-            inspections.append(
-                InspectionAction(protocol=mi.group(1).lower(), policy_map=(mi.group(2) if mi.group(2) else None))
-            )
+            inspections.append(InspectionAction(protocol=mi.group(1).lower(), policy_map=(mi.group(2) or None)))
         # ignore other class-level lines for now
         idx += 1
 

@@ -7,7 +7,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getIpProtocols;
         public static readonly string getRuleActions;
         public static readonly string getTracking;
-
+        public static readonly string getOwnerMappingSources;
 
         static StmQueries()
         {
@@ -16,6 +16,7 @@ namespace FWO.Api.Client.Queries
                 getIpProtocols = GetQueryText("stmTables/getIpProtocols.graphql");
                 getRuleActions = GetQueryText("stmTables/getRuleActions.graphql");
                 getTracking = GetQueryText("stmTables/getTracking.graphql");
+                getOwnerMappingSources = GetQueryText("stmTables/getOwnerMappingSources.graphql");
             }
             catch (Exception exception)
             {

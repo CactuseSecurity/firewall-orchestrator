@@ -74,7 +74,7 @@ def fortios_api_call(api_url: str) -> list[dict[str, Any]]:
     return result_json["results"]
 
 
-def parse_api_results(model_class: type[T], data: list[dict[str, Any]]) -> list[T]:  # noqa: UP047 #TODO: needs python 3.12
+def parse_api_results(model_class: type[T], data: list[dict[str, Any]]) -> list[T]:  # TODO: needs python 3.12
     """
     Parse API results into Pydantic model instances.
 

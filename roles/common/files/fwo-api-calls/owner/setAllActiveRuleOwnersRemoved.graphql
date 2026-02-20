@@ -1,0 +1,8 @@
+mutation setAllActiveRuleOwnersRemoved($controlId: bigint!) {
+  update_rule_owner(
+    where: { removed: { _is_null: true } },
+    _set: { removed: $controlId }
+  ) {
+    affected_rows
+  }
+}

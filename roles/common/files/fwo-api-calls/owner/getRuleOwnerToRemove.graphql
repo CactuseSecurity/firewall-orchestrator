@@ -1,0 +1,12 @@
+query getRuleOwnerToRemove($ruleIds: [bigint!]!) {
+  rule_owner(
+    where: { 
+      rule_id: { _in: $ruleIds },
+      removed: { _is_null: true } 
+    }
+  ) {
+    rule_id
+    owner_id
+    created
+  }
+}

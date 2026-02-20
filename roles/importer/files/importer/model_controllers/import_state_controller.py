@@ -131,13 +131,13 @@ class ImportStateController:
             past_date = parser.parse(self.state.last_full_import_date)
 
             # Ensure "now" is timezone-aware (UTC here)
-            now = datetime.now(timezone.utc)  # noqa: UP017
+            now = datetime.now(timezone.utc)
 
             # Normalize pastDate too (convert to UTC if it had a tz)
             past_date = (
-                past_date.replace(tzinfo=timezone.utc)  # noqa: UP017
+                past_date.replace(tzinfo=timezone.utc)
                 if past_date.tzinfo is None
-                else past_date.astimezone(timezone.utc)  # noqa: UP017
+                else past_date.astimezone(timezone.utc)
             )
 
             difference = now - past_date

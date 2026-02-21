@@ -9,10 +9,10 @@ namespace FWO.Services
         private int running = 0;
 
         public async Task<bool> Run(TEventArgs? eventArgs = null)
-        {            
+        {
             if (Interlocked.Exchange(ref running, 1) == 1)
             {
-                return false; 
+                return false;
             }
             try
             {

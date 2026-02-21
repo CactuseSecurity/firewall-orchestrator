@@ -23,10 +23,23 @@ namespace FWO.Data
         [JsonProperty("zone_objects"), JsonPropertyName("zone_objects")]
         public Dictionary<string, NormalizedZoneObject> ZoneObjects { get; set; } = [];
 
+        [JsonProperty("time_objects"), JsonPropertyName("time_objects")]
+        public Dictionary<string, NormalizedTimeObject> TimeObjects { get; set; } = [];
+
         [JsonProperty("rulebases"), JsonPropertyName("rulebases")]
         public NormalizedRulebase[] Rulebases { get; set; } = [];
 
         [JsonProperty("gateways"), JsonPropertyName("gateways")]
         public NormalizedGateway[] Gateways { get; set; } = [];
+
+        public static string FormatDatetimeZ(DateTime dateTime)
+        {
+            return dateTime.ToString("yyyy-MM-ddTHH:mm") + dateTime.ToString("zzz").Replace(":", "");
+        }
+
+        public static string FormatDatetime(DateTime dateTime)
+        {
+            return dateTime.ToString("yyyy-MM-ddTHH:mm:ss");
+        }
     }
 }

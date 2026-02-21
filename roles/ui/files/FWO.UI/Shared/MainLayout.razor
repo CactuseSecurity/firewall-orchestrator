@@ -425,8 +425,12 @@
     {
         Log.WriteAlert($"source: \"{GlobalConst.kUi}\"",
             $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
-        AlertHelper.AdditionalAlertData alertData = new() { };
-        await AlertHelper.SetAlert(apiConnection, title, message, GlobalConst.kUi, AlertCode.UiError, alertData, compareDesc: false, compareTitle: true, userId: userConfig.User.DbId);
+        AlertHelper.AdditionalAlertData alertData = new()
+        {
+            UserId = userConfig.User.DbId,
+            CompareTitle = true
+        };
+        await AlertHelper.SetAlert(apiConnection, title, message, GlobalConst.kUi, AlertCode.UiError, alertData);
     }
 
     public void Dispose()

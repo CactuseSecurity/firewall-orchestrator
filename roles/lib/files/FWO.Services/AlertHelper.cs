@@ -17,6 +17,9 @@ namespace FWO.Services
             public object? JsonData { get; set; }
             public int? DevId { get; set; }
             public long? RefAlertId { get; set; }
+            public int UserId { get; set; }
+            public bool CompareDesc { get; set; }
+            public bool CompareTitle { get; set; }
         }
 
         public static async Task LogErrorsWithAlert(ApiConnection apiConnection, GlobalConfig globalConfig, int severity, string title, string source, AlertCode alertCode, Exception exc)
@@ -66,15 +69,8 @@ namespace FWO.Services
             }
         }
 
-        public static Task<long?> SetAlert(ApiConnection apiConnection, string title, string description, string source, AlertCode alertCode,
-            AdditionalAlertData additionalAlertData, bool compareDesc = false, bool compareTitle = false, int userId = 0)
-        {
-            return SetAlert(apiConnection, title, description, source, alertCode, additionalAlertData.MgmtId, additionalAlertData.JsonData,
-                additionalAlertData.DevId, additionalAlertData.RefAlertId, compareDesc, compareTitle, userId);
-        }
-
         public static async Task<long?> SetAlert(ApiConnection apiConnection, string title, string description, string source, AlertCode alertCode,
-            int? mgmtId = null, object? jsonData = null, int? devId = null, long? refAlertId = null, bool compareDesc = false, bool compareTitle = false, int userId = 0)
+            AdditionalAlertData additionalAlertData)
         {
             long? alertId = null;
             try
@@ -83,14 +79,14 @@ namespace FWO.Services
                 var Variables = new
                 {
                     source = source,
-                    userId = userId,
+                    userId = additionalAlertData.UserId,
                     title = title,
                     description = description,
-                    mgmId = mgmtId,
-                    devId = devId,
+                    mgmId = additionalAlertData.MgmtId,
+                    devId = additionalAlertData.DevId,
                     alertCode = (int)alertCode,
-                    jsonData = jsonData,
-                    refAlert = refAlertId
+                    jsonData = additionalAlertData.JsonData,
+                    refAlert = additionalAlertData.RefAlertId
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
@@ -98,25 +94,25 @@ namespace FWO.Services
                     // Acknowledge older alert for same problem
                     alertId = returnIds[0].NewIdLong;
                     Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode
-                        && (x.ManagementId == mgmtId || (x.ManagementId == null && mgmtId == null))
-                        && (userId == 0 || x.UserId == userId)
-                        && (!compareDesc || x.Description == description)
-                        && (!compareTitle || x.Title == title));
+                        && (x.ManagementId == additionalAlertData.MgmtId || (x.ManagementId == null && additionalAlertData.MgmtId == null))
+                        && (additionalAlertData.UserId == 0 || x.UserId == additionalAlertData.UserId)
+                        && (!additionalAlertData.CompareDesc || x.Description == description)
+                        && (!additionalAlertData.CompareTitle || x.Title == title));
                     if (existingAlert != null)
                     {
-                        await AcknowledgeAlert(apiConnection, existingAlert.Id, userId);
+                        await AcknowledgeAlert(apiConnection, existingAlert.Id, additionalAlertData.UserId);
                     }
                 }
                 else
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
                 }
-                LogAlert(title, description, source, alertCode, mgmtId, jsonData, devId);
+                LogAlert(title, description, source, alertCode, additionalAlertData.MgmtId, additionalAlertData.JsonData, additionalAlertData.DevId);
             }
             catch (Exception exc)
             {
                 Log.WriteError("Write Alert", $"Could not write Alert for {source}: ", exc);
-                LogAlert(title, description, source, alertCode, mgmtId, jsonData, devId);
+                LogAlert(title, description, source, alertCode, additionalAlertData.MgmtId, additionalAlertData.JsonData, additionalAlertData.DevId);
             }
             return alertId;
         }

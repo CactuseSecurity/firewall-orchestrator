@@ -3,7 +3,7 @@ ALTER TABLE rule_owner
 ADD COLUMN IF NOT EXISTS rule_id bigint,
 ADD COLUMN IF NOT EXISTS created bigint,
 ADD COLUMN IF NOT EXISTS removed bigint,
-ADD COLUMN IF NOT EXISTS owner_mapping_source_id bigint; -- stm_ for source (ip_based, custom_field, name_field, manual) todo
+ADD COLUMN IF NOT EXISTS owner_mapping_source_id smallint; -- stm_ for source (ip_based, custom_field, name_field, manual) todo
 
 -- backfill new columns for existing rows
 DO $$
@@ -68,13 +68,13 @@ BEGIN
     END IF;
 
     IF EXISTS (
-		SELECT 1 FROM information_schema.columns
-		WHERE table_name = 'rule_owner'
-		  AND column_name = 'owner_mapping_source_id'
-		  AND is_nullable = 'YES'
-	) THEN
-		ALTER TABLE rule_owner ALTER COLUMN owner_mapping_source_id SET NOT NULL;
-	END IF;
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'rule_owner'
+          AND column_name = 'owner_mapping_source_id'
+          AND is_nullable = 'YES'
+    ) THEN
+        ALTER TABLE rule_owner ALTER COLUMN owner_mapping_source_id SET NOT NULL;
+    END IF;
 END $$;
 
 -- set primary key
@@ -139,6 +139,21 @@ ALTER TABLE rule_owner DROP CONSTRAINT IF EXISTS rule_owner_owner_mapping_source
 ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_owner_mapping_source_id_stm_owner_mapping_source_foreign_key FOREIGN KEY (owner_mapping_source_id) 
 REFERENCES stm_owner_mapping_source(owner_mapping_source_type_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
+-- shrink owner_mapping_source_id to smallint if it was created as bigint
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'rule_owner'
+          AND column_name = 'owner_mapping_source_id'
+          AND data_type = 'bigint'
+    ) THEN
+        ALTER TABLE rule_owner
+        ALTER COLUMN owner_mapping_source_id TYPE smallint
+        USING owner_mapping_source_id::smallint;
+    END IF;
+END $$;
+
 
 -- import_control 
 -- alter import_control delete unused/exported columns 
@@ -168,12 +183,12 @@ BEGIN
         ALTER TABLE import_control
         ADD COLUMN import_type_id INTEGER;
 
-		UPDATE import_control
-		SET import_type_id = 1
-		WHERE import_type_id IS NULL;
+        UPDATE import_control
+        SET import_type_id = 1
+        WHERE import_type_id IS NULL;
 
-		ALTER TABLE import_control
-		ALTER COLUMN import_type_id SET NOT NULL;
+        ALTER TABLE import_control
+        ALTER COLUMN import_type_id SET NOT NULL;
     END IF;
 END
 $$;
@@ -269,6 +284,3 @@ BEGIN
     END LOOP;
 END
 $$;
-
--- rule_to_owner was intended as a rule–owner link table; replaced by rule_owner
-DROP TABLE IF EXISTS public.rule_to_owner CASCADE;

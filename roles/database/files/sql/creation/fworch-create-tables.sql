@@ -1187,7 +1187,7 @@ create table rule_owner
     rule_id bigint NOT NULL,
     created bigint NOT NULL,
     removed bigint,
-    owner_mapping_source_id bigint NOT NULL,
+    owner_mapping_source_id smallint NOT NULL,
     primary key (rule_id, owner_id, created)
 );
 

@@ -91,7 +91,14 @@ namespace FWO.Middleware.Server.Jobs
         {
             string title = "Supermanagement: " + action.Supermanager;
             lastMgmtAlertId = await AlertHelper.SetAlert(apiConnection, title, action.ActionType ?? "", GlobalConst.kAutodiscovery, AlertCode.Autodiscovery,
-                new AlertHelper.AdditionalAlertData { MgmtId = action.ManagementId, JsonData = action.JsonData?.ToString(), DevId = action.DeviceId, RefAlertId = action.RefAlertId }, true);
+                new AlertHelper.AdditionalAlertData
+                {
+                    MgmtId = action.ManagementId,
+                    JsonData = action.JsonData?.ToString(),
+                    DevId = action.DeviceId,
+                    RefAlertId = action.RefAlertId,
+                    CompareDesc = true
+                });
             return lastMgmtAlertId;
         }
     }

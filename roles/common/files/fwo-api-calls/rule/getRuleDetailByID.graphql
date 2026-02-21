@@ -35,8 +35,13 @@ query RuleDetailById(
         }
         rule_custom_fields
         rule_name
-        rule_create
         rule_last_seen
         rule_action
+        createdImport: import_control {
+            start_time 
+        }
+        rule_metadatum {
+            rule_last_hit
+        }
     }
 }

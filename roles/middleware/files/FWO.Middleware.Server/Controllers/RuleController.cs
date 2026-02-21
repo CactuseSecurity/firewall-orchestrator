@@ -1,9 +1,15 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
+using System.Text;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Data;
 using FWO.Logging;
+using FWO.Report;
+using FWO.Ui.Display;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -28,6 +34,8 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
+                GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+                UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
                 string requestId = HttpContext.Request.Headers["X-Request-Id"].FirstOrDefault()
                                    ?? Guid.NewGuid().ToString();
 
@@ -60,12 +68,15 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
+                GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+                UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+                
                 string requestId = HttpContext.Request.Headers["X-Request-Id"].FirstOrDefault()
                                    ?? Guid.NewGuid().ToString();
 
                 //LogSiemEntry(request, requestId);
 
-                List<RuleDetail> rules = await FilterRules(request.Query.IpAddress, request.Query.Filter.Action, request.Query.Filter.MaxPrefixLength,request.Query.Filter.InField, apiConnection);
+                List<RuleDetail> rules = await FilterRules(request.Query.IpAddress, request.Query.Filter.Action, request.Query.Filter.MaxPrefixLength,request.Query.Filter.InField, apiConnection, userConfig);
 
                 var response = new RulesByAdoItResponse
                 {
@@ -115,44 +126,44 @@ namespace FWO.Middleware.Server.Controllers
                 rule_ids= ruleIds
             };
 
-            var result = await apiConnection.SendQueryAsync<List<RuleItem>>(query, variables);
-
+            var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
+            string notFound = "Not Found in Database";
             return result
                 .Select(r => new RuleDetail
                 {
-                    Uid = r.RuleUid,
-                    Manager = r.MgmId.ToString(),
-                    Source = r.RuleFroms
+                    Uid = r.Uid ?? notFound,
+                    Manager = r.MgmtId.ToString(),
+                    Source = r.Froms
                         .Select(f => new NetworkObjectCopy
                         {
-                            Name = f.Object.ObjName,
-                            Ip = f.Object.ObjIpStart ?? ""
+                            Name = f.Object.Name,
+                            Ip = f.Object.IP
                         })
                         .ToList(),
-                    SourceShort = r.RuleFroms.FirstOrDefault()?.Object.ObjName ?? "",
-                    Destination = r.RuleTos
+                    SourceShort = r.Froms.FirstOrDefault()?.Object.Name ?? "",
+                    Destination = r.Tos
                         .Select(t => new NetworkObjectCopy
                         {
-                            Name = t.Object.ObjName,
-                            Ip = t.Object.ObjIpStart ?? ""
+                            Name = t.Object.Name,
+                            Ip = t.Object.IP
                         })
                         .ToList(),
-                    DestinationShort = r.RuleTos.FirstOrDefault()?.Object.ObjName ?? "",
-                    Service = r.RuleServices
+                    DestinationShort = r.Tos.FirstOrDefault()?.Object.Name ?? "",
+                    Service = r.Services
                         .Select(s => new ServiceObject
                         {
-                            Name = s.Service.SvcName,
-                            Protocol = s.Service.ProtocolName?.Name ?? "Protocol name unavailable",
-                            Port = s.Service.SvcPort ?? 0
+                            Name = s.Content.Name,
+                            Protocol = s.Content.Protocol?.Name ?? notFound,
+                            Port = s.Content.SourcePort ?? -1
                         })
                         .ToList(),
-                    ServiceShort = r.RuleServices.FirstOrDefault()?.Service.SvcName ?? "",
-                    ChangeID = r.RuleCustomFields ?? "",
+                    ServiceShort = r.Services.FirstOrDefault()?.Content.Name ?? "",
+                    ChangeID = r.CustomFields,
                     AdoIT = adoIT.ToString(),
-                    Name = r.RuleName,
-                    CreationDate = r.RuleCreateRaw.ToString(),
-                    LastHitDate = r.RuleLastSeenRaw?.ToString() ?? "",
-                    Action = r.RuleAction
+                    Name = r.Name ?? notFound,
+                    // CreationDate = r.RuleCreateRaw.ToString(),
+                    // LastHitDate = r.RuleLastSeenRaw?.ToString() ?? "",
+                    Action = r.Action
                 })
                 .ToList();
         }
@@ -174,7 +185,7 @@ namespace FWO.Middleware.Server.Controllers
             var variables = new
             {
                 adoIt
-            };;
+            };
 
             var result = await apiConnection.SendQueryAsync<List<RuleOwnerItem>>(query, variables);
 
@@ -183,7 +194,7 @@ namespace FWO.Middleware.Server.Controllers
                 .ToList();
         }
 
-        private async Task<List<RuleDetail>> FilterRules(string ipAddress, string action, int maxPrefix, string inField,ApiConnection apiConnection)
+        private async Task<List<RuleDetail>> FilterRules(string ipAddress, string action, int maxPrefix, string inField,ApiConnection apiConnection, UserConfig userConfig)
         {
             var query = RuleQueries.getRuleDetailsById;
 
@@ -192,26 +203,22 @@ namespace FWO.Middleware.Server.Controllers
                 rule_action= action
             };
 
-            var result = await apiConnection.SendQueryAsync<List<RuleItem>>(query, variables);
-            List<RuleItem> ruleItems = [];
+            var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
+            List<Rule> ruleItems = [];
             foreach (var rule in result)
             {
-                if (rule.RuleId == 2)
-                {
-                    Log.WriteError("uwu");
-                }
-                bool isInRange = false;
+                bool isInRange;
                 switch (inField)
                 {
                     case "source":
-                        isInRange = IsInRange(ipAddress, maxPrefix, rule.RuleFroms.Select(source => source.Object).ToList());
+                        isInRange = IsInRange(ipAddress, maxPrefix, rule.Froms.Select(source => source.Object).ToList());
                         break;
                     case "destination":
-                        isInRange = IsInRange(ipAddress, maxPrefix, rule.RuleTos.Select(dest => dest.Object).ToList());
+                        isInRange = IsInRange(ipAddress, maxPrefix, rule.Tos.Select(dest => dest.Object).ToList());
                         break;
                     case "both": 
-                        bool sourceRange = IsInRange(ipAddress, maxPrefix, rule.RuleFroms.Select(source => source.Object).ToList());
-                        bool destRange = IsInRange(ipAddress, maxPrefix, rule.RuleTos.Select(dest => dest.Object).ToList());
+                        bool sourceRange = IsInRange(ipAddress, maxPrefix, rule.Froms.Select(source => source.Object).ToList());
+                        bool destRange = IsInRange(ipAddress, maxPrefix, rule.Tos.Select(dest => dest.Object).ToList());
                         isInRange = sourceRange || destRange;
                         break;
                     default: throw new NotImplementedException();
@@ -223,59 +230,60 @@ namespace FWO.Middleware.Server.Controllers
                 }
             }
 
-            return ConvertRuleList(ruleItems);
+            return ConvertRuleList(ruleItems, userConfig);
         }
 
-        private static List<RuleDetail> ConvertRuleList(List<RuleItem> inputList)
+        private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig)
         {
             List<RuleDetail> output = new();
+            string notFound = "Not Found in Database";
             foreach (var item in inputList)
             {
                 RuleDetail rule = new();
-                rule.Uid = item.RuleUid;
-                rule.Manager = item.MgmId.ToString();
-                rule.Source = item.RuleFroms
+                rule.Uid = item.Uid ?? notFound;
+                rule.Manager = item.MgmtId.ToString();
+                rule.Source = item.Froms
                     .Select(f => new NetworkObjectCopy
                     {
-                        Name = f.Object.ObjName,
-                        Ip = f.Object.ObjIpStart ?? ""
+                        Name = f.Object.Name,
+                        Ip = f.Object.IP
                     })
                     .ToList();
-                rule.SourceShort = item.RuleFroms.FirstOrDefault()?.Object.ObjName ?? "";
-                rule.Destination = item.RuleTos
+                rule.SourceShort = DisplaySourceOrDestinationPlain( item, true, userConfig);
+                rule.Destination = item.Tos
                     .Select(t => new NetworkObjectCopy
                     {
-                        Name = t.Object.ObjName,
-                        Ip = t.Object.ObjIpStart ?? ""
+                        Name = t.Object.Name,
+                        Ip = t.Object.IP
                     })
                     .ToList();
-                rule.DestinationShort = item.RuleTos.FirstOrDefault()?.Object.ObjName ?? "";
-                rule.Service = item.RuleServices
+                rule.DestinationShort = DisplaySourceOrDestinationPlain( item, false, userConfig);
+                rule.Service = item.Services
                     .Select(s => new ServiceObject
                     {
-                        Name = s.Service.SvcName,
-                        Protocol = s.Service.ProtocolName?.Name ?? "Protocol name unavailable",
-                        Port = s.Service.SvcPort ?? -1
+                        Name = s.Content.Name,
+                        Protocol = s.Content.Protocol?.Name ?? notFound,
+                        Port = s.Content.SourcePort ?? -1
                     })
                     .ToList();
-                rule.ServiceShort = item.RuleServices.FirstOrDefault()?.Service.SvcName ?? "";
-                rule.ChangeID = item.RuleCustomFields ?? "";
-                rule.Name = item.RuleName;
-                rule.CreationDate = item.RuleCreateRaw.ToString();
-                rule.LastHitDate = item.RuleLastSeenRaw?.ToString() ?? "";
-                rule.Action = item.RuleAction;
+                rule.ServiceShort = DisplayServicesPlain(item, userConfig);
+                rule.ChangeID = item.CustomFields;
+                rule.Name = item.Name ?? notFound;
+                rule.CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound;
+                rule.LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound;
+                rule.Action = item.Action;
                 output.Add(rule);
             }
 
             return output;
         }
         
-        private static bool IsInRange(string ipAddress, int maxPrefix, List<NetworkObjectRaw> objects)
+        private static bool IsInRange(string ipAddress, int maxPrefix, List<NetworkObject> objects)
         {
             foreach (var ipObject in objects)
             {
-                bool ipInRange = IsInRange(ipAddress, ipObject.ObjIpStart, ipObject.ObjIpEnd);
-                int rangePrefix = CommonPrefixLength(ipObject.ObjIpStart, ipObject.ObjIpEnd);
+                bool ipInRange = IsInRange(ipAddress, ipObject.IP, ipObject.IpEnd);
+                int rangePrefix = CommonPrefixLength(ipObject.IP, ipObject.IpEnd);
                 if (rangePrefix >= maxPrefix)
                 {
                     if (ipInRange)
@@ -359,6 +367,78 @@ namespace FWO.Middleware.Server.Controllers
 
             int leadingZeros = BitOperations.LeadingZeroCount(diff);
             return leadingZeros;
+        }
+        
+        private static string DisplaySourceOrDestinationPlain(Rule rule, bool isSource, UserConfig userConfig)
+        {
+            var result = new StringBuilder();
+            
+            if ((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
+            {
+                result.AppendLine(userConfig.GetText("negated"));
+            }
+            
+            var networkLocations = isSource ? rule.Froms : rule.Tos;
+
+            string joined = string.Join(Environment.NewLine, Array.ConvertAll(networkLocations, nwLoc => NetworkLocationToPlainText(nwLoc)));
+
+            result.Append(joined);
+
+            return result.ToString();
+        }
+    
+        private static string NetworkLocationToPlainText(NetworkLocation networkLocation)
+        {
+            string userOutput = networkLocation.User.Name;
+
+            string objectOutput= networkLocation.Object.Name;
+
+        
+            string nwLocation = DisplayNetworkLocationPlain(
+                networkLocation,
+                userOutput,
+                objectOutput).ToString();
+        
+            return nwLocation;
+        }
+        
+        private static StringBuilder DisplayNetworkLocationPlain(NetworkLocation userNetworkObject, string userName, string objName)
+        {
+            var result = new StringBuilder();
+            
+            if (userNetworkObject.User.Id > 0)
+            {
+                result.Append($"{userName}@");
+            }
+            
+            result.Append(objName);
+            
+            if (userNetworkObject.Object.Type.Name != ObjectType.Group)
+            {
+                bool showIpinBrackets = true;
+
+                result.Append(
+                    NwObjDisplay.DisplayIp(
+                        userNetworkObject.Object.IP,
+                        userNetworkObject.Object.IpEnd,
+                        userNetworkObject.Object.Type.Name,
+                        showIpinBrackets));
+            }
+            return result;
+        }
+
+        private static string DisplayServicesPlain(Rule rule, UserConfig userConfig)
+        {
+            StringBuilder result = new();
+            if (rule.ServiceNegated)
+            {
+                result.AppendLine(userConfig.GetText("negated") + "<br>");
+            }
+            
+            string joined = string.Join(Environment.NewLine, Array.ConvertAll(rule.Services, service => DisplayBase.DisplayService(service.Content, false, service.Content.Name).ToString()));
+            result.Append(joined);
+
+            return result.ToString();
         }
     }
 }
@@ -452,11 +532,6 @@ public class RuleOwnerItem
 {
     [JsonProperty("rule_id")]
     public int RuleId { get; set; }
-}
-
-public class RuleResultRoot
-{
-    public RuleItem[] Rule { get; set; } = Array.Empty<RuleItem>();
 }
 
 public class RuleItem

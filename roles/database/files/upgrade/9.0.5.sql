@@ -5,6 +5,37 @@ ADD COLUMN IF NOT EXISTS created bigint,
 ADD COLUMN IF NOT EXISTS removed bigint,
 ADD COLUMN IF NOT EXISTS owner_mapping_source_id bigint; -- stm_ for source (ip_based, custom_field, name_field, manual) todo
 
+-- backfill new columns for existing rows
+DO $$
+DECLARE
+    latest_import_id bigint;
+BEGIN
+    SELECT MAX(control_id) INTO latest_import_id FROM import_control;
+
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'rule_owner'
+          AND column_name = 'rule_id'
+    ) THEN
+        UPDATE rule_owner ro
+        SET rule_id = r.rule_id
+        FROM rule_metadata met
+        JOIN rule r ON r.rule_uid = met.rule_uid AND r.mgm_id = met.mgm_id
+        WHERE ro.rule_metadata_id = met.rule_metadata_id
+          AND ro.rule_id IS NULL;
+    END IF;
+
+    IF latest_import_id IS NOT NULL THEN
+        UPDATE rule_owner
+        SET created = latest_import_id
+        WHERE created IS NULL;
+    END IF;
+
+    UPDATE rule_owner
+    SET owner_mapping_source_id = 4
+    WHERE owner_mapping_source_id IS NULL;
+END $$;
+
 
 -- set not null if not done
 DO $$
@@ -49,11 +80,26 @@ END $$;
 -- set primary key
 DO $$
 BEGIN
+    DELETE FROM rule_owner ro
+    USING (
+        SELECT rule_id, owner_id, created, MIN(ctid) AS keep_ctid
+        FROM rule_owner
+        GROUP BY rule_id, owner_id, created
+        HAVING COUNT(*) > 1
+    ) dups
+    WHERE ro.rule_id = dups.rule_id
+      AND ro.owner_id = dups.owner_id
+      AND ro.created = dups.created
+      AND ro.ctid <> dups.keep_ctid;
+
     IF NOT EXISTS (
         SELECT 1
         FROM information_schema.table_constraints
         WHERE table_name = 'rule_owner'
           AND constraint_type = 'PRIMARY KEY'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM rule_owner
+        WHERE rule_id IS NULL OR owner_id IS NULL OR created IS NULL
     ) THEN
         ALTER TABLE rule_owner
         ADD CONSTRAINT pk_rule_owner

@@ -139,3 +139,45 @@
 - name: include upgrade script
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"
+
+- block:
+      - name: Add the OS specific varibles
+        include_vars: "{{ ansible_os_family }}.yml"
+
+      - name: Install the openldap and required Packages
+        package:
+            name: "{{ item }}"
+            state: present
+        loop: "{{ openldap_server_pkgs }}"
+
+      - name: Create directory for ldap pid
+        file:
+            path: "/var/run/slapd"
+            state: directory
+            owner: "{{ openldap_server_user }}"
+            group: "{{ openldap_server_user }}"
+
+      - name: Configure LDAP protocol, URI and port
+        lineinfile:
+            path: /etc/default/slapd
+            regexp: "^SLAPD_SERVICES="
+            line: SLAPD_SERVICES="ldap://{{ openldap_server }}/ ldaps:///"
+
+      - name: Create dir to enable TLS for slapd service
+        file:
+            path: /etc/systemd/system/slapd.service.d
+            recurse: true
+
+      - name: Enable TLS for slapd service
+        template:
+            src: override.conf.j2
+            dest: /etc/systemd/system/slapd.service.d/override.conf
+
+      - name: Start the slapd service
+        systemd:
+            name: slapd
+            state: restarted
+            enabled: true
+            daemon_reload: true
+  become: true
+  when: installation_mode == "upgrade"

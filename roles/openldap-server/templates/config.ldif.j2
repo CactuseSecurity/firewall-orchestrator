@@ -44,7 +44,7 @@ olcModuleLoad: refint.la
 # Configure MDB database (assumes database already exists)
 # ---------------------------------------------------------------------------
 
-dn: olcDatabase=mdb,cn=config
+dn: olcDatabase={1}mdb,cn=config
 changetype: modify
 
 {% if openldap_suffix is defined %}
@@ -77,7 +77,7 @@ olcDbDirectory: {{ openldap_db_directory }}
 # ---------------------------------------------------------------------------
 
 {% if openldap_configure_indexes | default(true) %}
-dn: olcDatabase=mdb,cn=config
+dn: olcDatabase={1}mdb,cn=config
 changetype: modify
 replace: olcDbIndex
 olcDbIndex: objectClass pres,eq
@@ -94,7 +94,7 @@ olcDbIndex: nisMapName,nisMapEntry pres,eq,sub
 # ---------------------------------------------------------------------------
 
 {% if openldap_configure_acls | default(true) %}
-dn: olcDatabase=mdb,cn=config
+dn: olcDatabase={1}mdb,cn=config
 changetype: modify
 replace: olcAccess
 olcAccess: to attrs=userPassword
@@ -137,7 +137,7 @@ olcAccess: to *
 # ---------------------------------------------------------------------------
 
 {% if openldap_enable_memberof | default(true) %}
-dn: olcOverlay=memberof,olcDatabase=mdb,cn=config
+dn: olcOverlay=memberof,olcDatabase={1}mdb,cn=config
 objectClass: olcMemberOf
 objectClass: olcOverlayConfig
 objectClass: olcConfig
@@ -157,7 +157,7 @@ olcMemberOfMemberOfAD: memberOf
 # ---------------------------------------------------------------------------
 
 {% if openldap_enable_refint | default(true) %}
-dn: olcOverlay=refint,olcDatabase=mdb,cn=config
+dn: olcOverlay=refint,olcDatabase={1}mdb,cn=config
 objectClass: olcConfig
 objectClass: olcOverlayConfig
 objectClass: olcRefintConfig

@@ -199,7 +199,8 @@
             ldap_upgrade_config_pass1.rc != 0 and
             'Already exists (68)' not in ldap_upgrade_config_pass1.stderr and
             'Type or value exists (20)' not in ldap_upgrade_config_pass1.stderr and
-            'objectClass: value #0 invalid per syntax' not in ldap_upgrade_config_pass1.stderr
+            'objectClass: value #0 invalid per syntax' not in ldap_upgrade_config_pass1.stderr and
+            'Insufficient access (50)' not in ldap_upgrade_config_pass1.stderr
         changed_when: "'modifying entry' in ldap_upgrade_config_pass1.stdout or 'adding new entry' in ldap_upgrade_config_pass1.stdout"
 
       - name: Restart slapd service after ldap config pass 1
@@ -216,7 +217,8 @@
             'Already exists (68)' not in ldap_upgrade_config_pass2.stderr and
             'Type or value exists (20)' not in ldap_upgrade_config_pass2.stderr and
             'objectClass: value #0 invalid per syntax' not in ldap_upgrade_config_pass2.stderr and
-            'objectClass: value #2 invalid per syntax' not in ldap_upgrade_config_pass2.stderr
+            'objectClass: value #2 invalid per syntax' not in ldap_upgrade_config_pass2.stderr and
+            'Insufficient access (50)' not in ldap_upgrade_config_pass2.stderr
         changed_when: "'modifying entry' in ldap_upgrade_config_pass2.stdout or 'adding new entry' in ldap_upgrade_config_pass2.stdout"
   become: true
   when: installation_mode == "upgrade"

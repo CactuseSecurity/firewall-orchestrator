@@ -36,4 +36,5 @@
     - roles
     - tenant0
     - operators
+  become: true
   # ignore errors only when re-installing on a system

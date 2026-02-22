@@ -112,8 +112,30 @@
             enabled: true
             daemon_reload: true
 
-      - name: Initialize ldap config
-        command: ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f {{ openldap_server_app_path }}/slapd.d/config.ldif
+      - name: Initialize ldap config pass 1
+        command: ldapmodify -Q -Y EXTERNAL -H ldapi:/// -c -f {{ openldap_server_app_path }}/slapd.d/config.ldif
+        register: ldap_new_config_pass1
+        changed_when: "'modifying entry' in ldap_new_config_pass1.stdout or 'adding new entry' in ldap_new_config_pass1.stdout"
+        failed_when: >
+            ldap_new_config_pass1.rc != 0 and
+            'Already exists (68)' not in ldap_new_config_pass1.stderr and
+            'Type or value exists (20)' not in ldap_new_config_pass1.stderr and
+            'objectClass: value #0 invalid per syntax' not in ldap_new_config_pass1.stderr
+
+      - name: Restart slapd service after ldap config pass 1
+        systemd:
+            name: slapd
+            state: restarted
+            daemon_reload: true
+
+      - name: Initialize ldap config pass 2
+        command: ldapmodify -Q -Y EXTERNAL -H ldapi:/// -c -f {{ openldap_server_app_path }}/slapd.d/config.ldif
+        register: ldap_new_config_pass2
+        changed_when: "'modifying entry' in ldap_new_config_pass2.stdout or 'adding new entry' in ldap_new_config_pass2.stdout"
+        failed_when: >
+            ldap_new_config_pass2.rc != 0 and
+            'Already exists (68)' not in ldap_new_config_pass2.stderr and
+            'Type or value exists (20)' not in ldap_new_config_pass2.stderr
 
   become: true
   when: installation_mode == "new"
@@ -168,13 +190,29 @@
             enabled: true
             daemon_reload: true
 
-      - name: Apply ldap config updates during upgrade
+      - name: Apply ldap config updates during upgrade pass 1
         command: ldapmodify -Q -Y EXTERNAL -H ldapi:/// -c -f {{ openldap_server_app_path }}/slapd.d/config.ldif
-        register: ldap_upgrade_config_result
-        changed_when: "'modifying entry' in ldap_upgrade_config_result.stdout or 'adding new entry' in ldap_upgrade_config_result.stdout"
+        register: ldap_upgrade_config_pass1
         failed_when: >
-            ldap_upgrade_config_result.rc != 0 and
-            'Already exists (68)' not in ldap_upgrade_config_result.stderr and
-            'Type or value exists (20)' not in ldap_upgrade_config_result.stderr
+            ldap_upgrade_config_pass1.rc != 0 and
+            'Already exists (68)' not in ldap_upgrade_config_pass1.stderr and
+            'Type or value exists (20)' not in ldap_upgrade_config_pass1.stderr and
+            'objectClass: value #0 invalid per syntax' not in ldap_upgrade_config_pass1.stderr
+        changed_when: "'modifying entry' in ldap_upgrade_config_pass1.stdout or 'adding new entry' in ldap_upgrade_config_pass1.stdout"
+
+      - name: Restart slapd service after ldap config pass 1
+        systemd:
+            name: slapd
+            state: restarted
+            daemon_reload: true
+
+      - name: Apply ldap config updates during upgrade pass 2
+        command: ldapmodify -Q -Y EXTERNAL -H ldapi:/// -c -f {{ openldap_server_app_path }}/slapd.d/config.ldif
+        register: ldap_upgrade_config_pass2
+        failed_when: >
+            ldap_upgrade_config_pass2.rc != 0 and
+            'Already exists (68)' not in ldap_upgrade_config_pass2.stderr and
+            'Type or value exists (20)' not in ldap_upgrade_config_pass2.stderr
+        changed_when: "'modifying entry' in ldap_upgrade_config_pass2.stdout or 'adding new entry' in ldap_upgrade_config_pass2.stdout"
   become: true
   when: installation_mode == "upgrade"

@@ -135,7 +135,9 @@
         failed_when: >
             ldap_new_config_pass2.rc != 0 and
             'Already exists (68)' not in ldap_new_config_pass2.stderr and
-            'Type or value exists (20)' not in ldap_new_config_pass2.stderr
+            'Type or value exists (20)' not in ldap_new_config_pass2.stderr and
+            'objectClass: value #0 invalid per syntax' not in ldap_new_config_pass2.stderr and
+            'objectClass: value #2 invalid per syntax' not in ldap_new_config_pass2.stderr
 
   become: true
   when: installation_mode == "new"
@@ -212,7 +214,9 @@
         failed_when: >
             ldap_upgrade_config_pass2.rc != 0 and
             'Already exists (68)' not in ldap_upgrade_config_pass2.stderr and
-            'Type or value exists (20)' not in ldap_upgrade_config_pass2.stderr
+            'Type or value exists (20)' not in ldap_upgrade_config_pass2.stderr and
+            'objectClass: value #0 invalid per syntax' not in ldap_upgrade_config_pass2.stderr and
+            'objectClass: value #2 invalid per syntax' not in ldap_upgrade_config_pass2.stderr
         changed_when: "'modifying entry' in ldap_upgrade_config_pass2.stdout or 'adding new entry' in ldap_upgrade_config_pass2.stdout"
   become: true
   when: installation_mode == "upgrade"

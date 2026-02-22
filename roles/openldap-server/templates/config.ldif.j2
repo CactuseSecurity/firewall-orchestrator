@@ -27,14 +27,15 @@ dn: cn=module{0},cn=config
 changetype: modify
 
 {% if openldap_enable_memberof | default(true) %}
+-
 add: olcModuleLoad
-olcModuleLoad: memberof.la
+olcModuleLoad: memberof.so
 {% endif %}
 
 {% if openldap_enable_refint | default(true) %}
 -
 add: olcModuleLoad
-olcModuleLoad: refint.la
+olcModuleLoad: refint.so
 {% endif %}
 {% endif %}
 

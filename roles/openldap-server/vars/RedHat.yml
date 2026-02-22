@@ -6,3 +6,4 @@ openldap_server_pkgs:
 
 openldap_server_app_path: "/etc/openldap"
 openldap_server_user: ldap
+openldap_server_module_path: "/usr/lib64/openldap"

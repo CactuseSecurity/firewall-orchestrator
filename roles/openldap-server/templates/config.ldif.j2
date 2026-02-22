@@ -7,7 +7,7 @@ changetype: modify
 replace: olcLogLevel
 olcLogLevel: {{ openldap_loglevel | default('stats') }}
 
-{% if openldap_enable_tls | default(false) %}
+{% if openldap_server_enable_ssl | default(openldap_enable_tls | default(false)) %}
 -
 replace: olcTLSCertificateFile
 olcTLSCertificateFile: {{ openldap_server_cert }}

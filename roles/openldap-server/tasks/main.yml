@@ -145,6 +145,12 @@
             regexp: "^SLAPD_SERVICES="
             line: SLAPD_SERVICES="ldap://{{ openldap_server }}/ ldaps:/// ldapi:///"
 
+      - name: Copy slapd config changes file to system
+        template:
+            src: config.ldif.j2
+            dest: "{{ openldap_server_app_path }}/slapd.d/config.ldif"
+            mode: 0640
+
       - name: Create dir to enable TLS for slapd service
         file:
             path: /etc/systemd/system/slapd.service.d
@@ -161,5 +167,14 @@
             state: restarted
             enabled: true
             daemon_reload: true
+
+      - name: Apply ldap config updates during upgrade
+        command: ldapmodify -Q -Y EXTERNAL -H ldapi:/// -c -f {{ openldap_server_app_path }}/slapd.d/config.ldif
+        register: ldap_upgrade_config_result
+        changed_when: "'modifying entry' in ldap_upgrade_config_result.stdout or 'adding new entry' in ldap_upgrade_config_result.stdout"
+        failed_when: >
+            ldap_upgrade_config_result.rc != 0 and
+            'Already exists (68)' not in ldap_upgrade_config_result.stderr and
+            'Type or value exists (20)' not in ldap_upgrade_config_result.stderr
   become: true
   when: installation_mode == "upgrade"

@@ -138,6 +138,7 @@ olcAccess: to *
 
 {% if openldap_enable_memberof | default(true) %}
 dn: olcOverlay=memberof,olcDatabase={1}mdb,cn=config
+changetype: add
 objectClass: olcMemberOf
 objectClass: olcOverlayConfig
 objectClass: olcConfig
@@ -158,6 +159,7 @@ olcMemberOfMemberOfAD: memberOf
 
 {% if openldap_enable_refint | default(true) %}
 dn: olcOverlay=refint,olcDatabase={1}mdb,cn=config
+changetype: add
 objectClass: olcConfig
 objectClass: olcOverlayConfig
 objectClass: olcRefintConfig

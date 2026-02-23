@@ -97,11 +97,6 @@ namespace FWO.Data
         public static NormalizedRule FromRule(Rule rule)
         {
             DateTime? lastHit = rule.Metadata.LastHit;
-            string? lastHitFormatted = null;
-            if (lastHit.HasValue)
-            {
-                lastHitFormatted = lastHit.Value.ToString("yyyy-MM-ddTHH:mm") + lastHit.Value.ToString("zzz").Replace(":", "");
-            }
 
             return new NormalizedRule
             {
@@ -128,7 +123,7 @@ namespace FWO.Data
                 RuleType = rule.NatRule ? "nat" : "access",
                 RuleLastChangeAdmin = rule.LastChangeAdmin?.Name,
                 ParentRuleUid = rule.ParentRule?.Uid,
-                LastHit = lastHitFormatted,
+                LastHit = lastHit.HasValue ? NormalizedConfig.FormatDatetimeZ(lastHit.Value) : null,
                 RuleComment = rule.Comment,
                 RuleSrcZone = rule.RuleFromZones?.Length > 0 ? string.Join("|", rule.RuleFromZones.Select(z => z.Content.Name).Order()) : null,
                 RuleDstZone = rule.RuleToZones?.Length > 0 ? string.Join("|", rule.RuleToZones.Select(z => z.Content.Name).Order()) : null,

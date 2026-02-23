@@ -1,0 +1,15 @@
+query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
+  time_object(
+    where: {
+      time_obj_uid: { _in: $uids }
+      _or: [
+        { mgm_id: { _eq: $mgmId } }
+        { management: { multi_device_manager_id: { _eq: $mgmId } } }
+      ]
+      removed: { _is_null: true }
+    }
+  ) {
+    time_obj_id
+    time_obj_uid
+  }
+}

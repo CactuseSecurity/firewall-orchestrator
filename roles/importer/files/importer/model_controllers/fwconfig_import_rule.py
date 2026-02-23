@@ -21,6 +21,7 @@ from models.rule_service import RuleService
 from models.rule_to import RuleTo
 from models.rulebase import Rulebase, RulebaseForImport
 from models.serviceobject import ServiceObject
+from models.time_object import TimeObject
 from services.global_state import GlobalState
 from services.group_flats_mapper import GroupFlatsMapper
 from services.service_provider import ServiceProvider
@@ -36,6 +37,7 @@ class RefType(Enum):
     USER_RESOLVED = "rule_user_resolved"
     SRC_ZONE = "rule_from_zone"
     DST_ZONE = "rule_to_zone"
+    TIME = "rule_time"
 
 
 # this class is used for importing rules and rule refs into the FWO API
@@ -307,6 +309,7 @@ class FwConfigImportRule:
             user_resolveds = self.group_flats_mapper.get_user_flats(users)
         from_zones = rule.rule_src_zone.split(fwo_const.LIST_DELIMITER) if rule.rule_src_zone else []
         to_zones = rule.rule_dst_zone.split(fwo_const.LIST_DELIMITER) if rule.rule_dst_zone else []
+        times = rule.rule_time.split(fwo_const.LIST_DELIMITER) if rule.rule_time else []
         return {
             RefType.SRC: froms,
             RefType.DST: tos,
@@ -316,6 +319,7 @@ class FwConfigImportRule:
             RefType.USER_RESOLVED: user_resolveds,
             RefType.SRC_ZONE: from_zones,
             RefType.DST_ZONE: to_zones,
+            RefType.TIME: times,
         }
 
     T = TypeVar("T")
@@ -361,6 +365,9 @@ class FwConfigImportRule:
     def lookup_zone(self, uid: str, previous: bool = False) -> dict[str, Any]:
         return self._lookup_object(uid, previous, lambda cfg: cfg.zone_objects, "zone")
 
+    def lookup_time(self, uid: str, previous: bool = False) -> TimeObject:
+        return self._lookup_object(uid, previous, lambda cfg: cfg.time_objects, "time object")
+
     def is_ref_unchanged(self, ref_type: RefType, ref_uid: tuple[str, str | None] | str) -> bool:
         """
         Check if a reference object is unchanged between previous and current config.
@@ -394,6 +401,8 @@ class FwConfigImportRule:
             return self.lookup_user(ref_uid, previous=True) == self.lookup_user(ref_uid, previous=False)
         if ref_type in (RefType.SRC_ZONE, RefType.DST_ZONE):
             return self.lookup_zone(ref_uid, previous=True) == self.lookup_zone(ref_uid, previous=False)
+        if ref_type == RefType.TIME:
+            return self.lookup_time(ref_uid, previous=True) == self.lookup_time(ref_uid, previous=False)
 
         raise FwoImporterError(f"unknown ref type: {ref_type}")
 
@@ -441,6 +450,13 @@ class FwConfigImportRule:
                 "_and": [
                     {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
                     {"zone_id": {"_eq": self.uid2id_mapper.get_zone_object_id(ref_uid, before_update=True)}},  # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict  # noqa: PGH003
+                ]
+            }
+        if ref_type == RefType.TIME:
+            return {
+                "_and": [
+                    {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
+                    {"time_obj_id": {"_eq": self.uid2id_mapper.get_time_object_id(ref_uid, before_update=True)}},  # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict  # noqa: PGH003
                 ]
             }
         raise FwoImporterError(f"unknown ref type: {ref_type}")
@@ -522,6 +538,7 @@ class FwConfigImportRule:
             "ruleUserResolveds": all_refs_to_remove[RefType.USER_RESOLVED],
             "ruleFromZones": all_refs_to_remove[RefType.SRC_ZONE],
             "ruleToZones": all_refs_to_remove[RefType.DST_ZONE],
+            "ruleTimes": all_refs_to_remove[RefType.TIME],
         }
 
         try:
@@ -603,6 +620,12 @@ class FwConfigImportRule:
                 "zone_id": self.uid2id_mapper.get_zone_object_id(ref_uid),  # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict  # noqa: PGH003
                 "created": import_id,
             }
+        if ref_type == RefType.TIME:
+            return {
+                "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
+                "time_obj_id": self.uid2id_mapper.get_time_object_id(ref_uid),  # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict  # noqa: PGH003
+                "created": import_id,
+            }
         return None
 
     def get_new_refs_to_add(
@@ -673,6 +696,7 @@ class FwConfigImportRule:
             "ruleUserResolveds": all_refs_to_add[RefType.USER_RESOLVED],
             "ruleFromZones": all_refs_to_add[RefType.SRC_ZONE],
             "ruleToZones": all_refs_to_add[RefType.DST_ZONE],
+            "ruleTimes": all_refs_to_add[RefType.TIME],
         }
 
         try:

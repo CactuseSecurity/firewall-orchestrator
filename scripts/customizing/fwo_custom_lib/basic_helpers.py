@@ -38,10 +38,119 @@ class FWOLogger(logging.Logger):
             self.warning(msg, *args, **kwargs)
 
 
-def read_custom_config(config_filename: str, key_to_get: str, logger: FWOLogger) -> Any:
+def _strip_json_comments(config_content: str) -> str:
+    result_chars: list[str] = []
+    in_string: bool = False
+    escaped: bool = False
+    in_line_comment: bool = False
+    in_block_comment: bool = False
+    i: int = 0
+
+    while i < len(config_content):
+        current_char: str = config_content[i]
+        next_char: str = config_content[i + 1] if i + 1 < len(config_content) else ""
+
+        if in_line_comment:
+            if current_char == "\n":
+                in_line_comment = False
+                result_chars.append(current_char)
+            i += 1
+            continue
+
+        if in_block_comment:
+            if current_char == "*" and next_char == "/":
+                in_block_comment = False
+                i += 2
+            else:
+                i += 1
+            continue
+
+        if in_string:
+            result_chars.append(current_char)
+            if escaped:
+                escaped = False
+            elif current_char == "\\":
+                escaped = True
+            elif current_char == '"':
+                in_string = False
+            i += 1
+            continue
+
+        if current_char == '"':
+            in_string = True
+            result_chars.append(current_char)
+            i += 1
+            continue
+        if current_char == "/" and next_char == "/":
+            in_line_comment = True
+            i += 2
+            continue
+        if current_char == "/" and next_char == "*":
+            in_block_comment = True
+            i += 2
+            continue
+        if current_char == "#":
+            in_line_comment = True
+            i += 1
+            continue
+
+        result_chars.append(current_char)
+        i += 1
+
+    return "".join(result_chars)
+
+
+def _strip_trailing_commas(config_content: str) -> str:
+    result_chars: list[str] = []
+    in_string: bool = False
+    escaped: bool = False
+    i: int = 0
+
+    while i < len(config_content):
+        current_char: str = config_content[i]
+
+        if in_string:
+            result_chars.append(current_char)
+            if escaped:
+                escaped = False
+            elif current_char == "\\":
+                escaped = True
+            elif current_char == '"':
+                in_string = False
+            i += 1
+            continue
+
+        if current_char == '"':
+            in_string = True
+            result_chars.append(current_char)
+            i += 1
+            continue
+
+        if current_char == ",":
+            lookahead_index: int = i + 1
+            while lookahead_index < len(config_content) and config_content[lookahead_index].isspace():
+                lookahead_index += 1
+            if lookahead_index < len(config_content) and config_content[lookahead_index] in ("]", "}"):
+                i += 1
+                continue
+
+        result_chars.append(current_char)
+        i += 1
+
+    return "".join(result_chars)
+
+
+def _load_custom_config(config_filename: str) -> dict[str, Any]:
+    with open(config_filename, encoding="utf-8") as custom_config_fh:
+        config_content: str = custom_config_fh.read()
+    commentless_content: str = _strip_json_comments(config_content)
+    sanitized_content: str = _strip_trailing_commas(commentless_content)
+    return json.loads(sanitized_content)
+
+
+def read_custom_config(config_filename: str, key_to_get: str, logger: logging.Logger) -> Any:
     try:
-        with open(config_filename, encoding="utf-8") as custom_config_fh:
-            custom_config: dict[str, Any] = json.loads(custom_config_fh.read())
+        custom_config: dict[str, Any] = _load_custom_config(config_filename)
         return custom_config[key_to_get]
 
     except KeyError:
@@ -55,11 +164,10 @@ def read_custom_config_with_default(
     config_filename: str,
     key_to_get: str,
     default_value: Any,
-    logger: FWOLogger,
+    logger: logging.Logger,
 ) -> Any:
     try:
-        with open(config_filename, encoding="utf-8") as custom_config_fh:
-            custom_config: dict[str, Any] = json.loads(custom_config_fh.read())
+        custom_config: dict[str, Any] = _load_custom_config(config_filename)
         return custom_config.get(key_to_get, default_value)
 
     except Exception:

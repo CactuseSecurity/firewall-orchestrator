@@ -5,6 +5,10 @@ import unittest
 from pathlib import Path
 
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
+from scripts.customizing.fwo_custom_lib.basic_helpers import (
+    read_custom_config,
+    read_custom_config_with_default,
+)
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
@@ -170,6 +174,117 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(str(app_server.ip_start), "10.0.0.0")
             self.assertEqual(str(app_server.ip_end), "10.0.0.3")
             self.assertEqual(app_server.type, "network")
+
+    def test_extract_app_data_from_csv_filters_by_included_owners_column(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,Aktive Firewallregel\n"
+                    "App One,APP-005,user5,false,Ja\n"
+                    "App Two,APP-006,user6,false,Nein\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                included_owners_column="Aktive Firewallregel",
+                include_values=["Ja"],
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].app_id_external, "APP-005")
+
+    def test_extract_app_data_from_csv_filters_by_multiple_include_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,Aktive Firewallregel\n"
+                    "App One,APP-007,user7,false,Ja\n"
+                    "App Two,APP-008,user8,false,Ausnahme\n"
+                    "App Three,APP-009,user9,false,Nein\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                included_owners_column="Aktive Firewallregel",
+                include_values=["Ja", "Ausnahme"],
+            )
+
+            self.assertEqual(len(app_list), 2)
+            self.assertEqual({owner.app_id_external for owner in app_list}, {"APP-007", "APP-008"})
+
+    def test_extract_app_data_from_csv_ignores_filter_if_column_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\n"
+                    "App One,APP-010,user10,false\n"
+                    "App Two,APP-011,user11,false\n"
+                )
+
+            app_list: list[Owner] = []
+            with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+                extract_app_data_from_csv(
+                    "owners.csv",
+                    app_list,
+                    self.ldap_path,
+                    self.import_source,
+                    Owner,
+                    self.logger,
+                    self.debug_level,
+                    base_dir=tmpdir,
+                    included_owners_column="Aktive Firewallregel",
+                    include_values=["Ja"],
+                )
+
+            self.assertEqual(len(app_list), 2)
+            self.assertTrue(any("optional filter column" in message for message in log_context.output))
+
+    def test_read_custom_config_parses_json_with_comments(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """
+                    {
+                      // single line comment
+                      "ldapPath": "CN={USERID}", # hash comment
+                      "csvSeparator": ",",
+                      /* block comment */
+                      "validAppIdPrefixes": ["app-", "com-",],
+                    }
+                    """
+                )
+
+            ldap_path: str = read_custom_config(str(config_path), "ldapPath", self.logger)
+            valid_prefixes: list[str] = read_custom_config_with_default(
+                str(config_path), "validAppIdPrefixes", [], self.logger
+            )
+            missing_with_default: str = read_custom_config_with_default(
+                str(config_path), "missing", "fallback", self.logger
+            )
+
+            self.assertEqual(ldap_path, "CN={USERID}")
+            self.assertEqual(valid_prefixes, ["app-", "com-"])
+            self.assertEqual(missing_with_default, "fallback")
 
 
 if __name__ == "__main__":

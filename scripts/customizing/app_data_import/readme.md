@@ -26,6 +26,11 @@ Adjust `/etc/fworch/secrets/customizingConfig.json` as follows:
 
 You can bypass Git and read from a local folder by providing `--import_from_folder` when running the script.
 
+Owner row import can be filtered via CLI parameters:
+- `--filterColumn` (default: `Aktive Firewallregel`): owner CSV header used for active-rule filtering.
+- `--includeValues` (default: `Ja`): one or more values in that column to include; rows with other values are skipped.
+- Set `--filterColumn ""` to disable this filter.
+
 #### Settings via UI
 
 In the FWORCH Web UI, go to Settings - Further Settings - Modelling and enter the full path to the script (leave out the extension) in "Path and Name of App data import", e.g.:

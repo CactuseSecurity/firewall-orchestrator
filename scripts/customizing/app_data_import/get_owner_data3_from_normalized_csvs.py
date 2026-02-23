@@ -121,6 +121,20 @@ if __name__ == "__main__":
         default=False,
         help="default recertificationActive state for owners without specific data (true|false), default=false",
     )
+    parser.add_argument(
+        "--filterColumn",
+        dest="filter_column",
+        default="Aktive Firewallregel",
+        help='owner CSV column header used for filtering for owners with active rules, default="Aktive Firewallregel"; set to empty string to disable',
+    )
+    parser.add_argument(
+        "--includeValues",
+        "--includeValue",
+        dest="include_values",
+        nargs="+",
+        default=["Ja"],
+        help='list of values in filter column to include, default=["Ja"]',
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -154,6 +168,8 @@ if __name__ == "__main__":
     )
     csv_separator: str = read_custom_config_with_default(args.config, "csvSeparator", ",", logger)
     default_recert_active_state: bool = args.default_recertification_active_state
+    included_owners_column: str | None = args.filter_column.strip() if args.filter_column else None
+    include_values: list[str] = args.include_values
 
     if args.debug:
         debug_level: int = int(args.debug)
@@ -213,6 +229,8 @@ if __name__ == "__main__":
                 default_recert_active_state=default_recert_active_state,
                 column_patterns=owner_header_patterns,
                 valid_app_id_prefixes=valid_app_id_prefixes,
+                included_owners_column=included_owners_column,
+                include_values=include_values,
                 csv_separator=csv_separator,
             )
 

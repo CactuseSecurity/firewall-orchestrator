@@ -2,6 +2,7 @@ import csv
 import logging
 import re
 import sys
+from dataclasses import dataclass
 
 from netaddr import IPAddress, IPNetwork
 
@@ -15,6 +16,49 @@ DEFAULT_OWNER_HEADER_PATTERNS: dict[str, str] = {
     "owner_kwita": r".*?:\s*kwITA",
 }
 DEFAULT_IP_HEADER_PATTERNS: dict[str, str] = {"app_id": r".*?:\s*Alfabet-ID$", "ip": r".*?:\s*IP"}
+
+
+@dataclass(frozen=True)
+class OwnerLineParserContext:
+    app_name_column: int
+    app_id_column: int
+    app_owner_tiso_column: int
+    app_owner_kwita_column: int
+    included_owners_column_no: int
+    include_values: list[str] | None
+    ldap_path: str
+    import_source_string: str
+    owner_cls: type[Owner]
+    valid_app_id_prefixes: list[str]
+    logger: logging.Logger
+    debug_level: int
+
+
+def _is_included_owners_match(line: list[str], context: OwnerLineParserContext) -> bool:
+    if context.included_owners_column_no < 0:
+        return True
+    row_value: str = (
+        line[context.included_owners_column_no].strip() if len(line) > context.included_owners_column_no else ""
+    )
+    allowed_values: set[str] = {value.strip().casefold() for value in (context.include_values or []) if value.strip()}
+    if row_value.casefold() in allowed_values:
+        return True
+    if context.debug_level > 1:
+        context.logger.debug(
+            "ignoring line from csv file as included owners value does not match: found '%s', expected one of %s'",
+            row_value,
+            sorted(allowed_values),
+        )
+    return False
+
+
+def _has_valid_app_id_prefix(app_id: str, context: OwnerLineParserContext) -> bool:
+    return len(context.valid_app_id_prefixes) == 0 or app_id.lower().startswith(tuple(context.valid_app_id_prefixes))
+
+
+def _get_recert_period_days(line: list[str], kwita_column: int) -> int:
+    kwita: str = line[kwita_column] if kwita_column >= 0 else ""
+    return 365 if kwita == "" or kwita.lower() == "false" else 182
 
 
 def build_dn(user_id: str, ldap_path: str, logger: logging.Logger) -> str:
@@ -59,8 +103,9 @@ def read_app_data_from_csv(
     csv_file_name: str,
     logger: logging.Logger,
     column_patterns: dict[str, str] | None = None,
+    included_owners_column: str | None = None,
     csv_separator: str = ",",
-) -> tuple[list[list[str]], int, int, int, int]:
+) -> tuple[list[list[str]], int, int, int, int, int]:
     try:
         header_patterns: dict[str, str] = {**DEFAULT_OWNER_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_file_name, newline="", encoding="utf-8") as csv_file_handle:
@@ -80,57 +125,69 @@ def read_app_data_from_csv(
             app_owner_kwita_column: int = _find_header_index(
                 headers, owner_kwita_pattern, "owner_kwita", csv_file_name, logger, required=False
             )
+            included_owners_column_no: int = -1
+            if included_owners_column:
+                escaped_included_owners_column: str = re.escape(included_owners_column)
+                included_owners_pattern: re.Pattern[str] = re.compile(
+                    rf"^\s*{escaped_included_owners_column}\s*$", re.IGNORECASE
+                )
+                included_owners_column_no = _find_header_index(
+                    headers, included_owners_pattern, "included_owners", csv_file_name, logger, required=False
+                )
+                if included_owners_column_no < 0:
+                    logger.warning(
+                        "optional filter column '%s' not found in %s; proceeding without included owners filtering",
+                        included_owners_column,
+                        csv_file_name,
+                    )
 
             apps_from_csv: list[list[str]] = list(reader)  # Read remaining rows
     except Exception:
         logger.exception("error while trying to read csv file %s", csv_file_name)
         sys.exit(1)
 
-    return apps_from_csv, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column
+    return (
+        apps_from_csv,
+        app_name_column,
+        app_id_column,
+        app_owner_tiso_column,
+        app_owner_kwita_column,
+        included_owners_column_no,
+    )
 
 
 def parse_app_line(
     line: list[str],
-    app_name_column: int,
-    app_id_column: int,
-    app_owner_tiso_column: int,
-    app_owner_kwita_column: int,
-    app_list: list[Owner],
+    context: OwnerLineParserContext,
     count_skips: int,
-    ldap_path: str,
-    import_source_string: str,
-    owner_cls: type[Owner],
-    valid_app_id_prefixes: list[str],
-    logger: logging.Logger,
-    debug_level: int,
+    app_list: list[Owner],
 ) -> int:
-    app_id: str = line[app_id_column]
-    if len(valid_app_id_prefixes) == 0 or app_id.lower().startswith(tuple(valid_app_id_prefixes)):
-        app_name: str = line[app_name_column]
-        app_main_user: str = line[app_owner_tiso_column]
-        main_user_dn: str = build_dn(app_main_user, ldap_path, logger)
-        kwita: str = line[app_owner_kwita_column] if app_owner_kwita_column >= 0 else ""
-        if kwita == "" or kwita.lower() == "false":
-            recert_period_days: int = 365
-        else:
-            recert_period_days = 182
-        if main_user_dn == "" and debug_level > 0:
-            logger.warning("adding app without main user: %s", app_id)
-        app_list.append(
-            owner_cls(
-                app_id_external=app_id,
-                name=app_name,
-                main_user=main_user_dn,
-                recert_period_days=recert_period_days,
-                days_until_first_recert=recert_period_days,
-                recert_active=False,
-                import_source=import_source_string,
-            )
+    if not _is_included_owners_match(line, context):
+        return count_skips + 1
+
+    app_id: str = line[context.app_id_column]
+    if not _has_valid_app_id_prefix(app_id, context):
+        if context.debug_level > 1:
+            context.logger.info("ignoring line from csv file: %s - inconclusive appId", app_id)
+        return count_skips + 1
+
+    app_name: str = line[context.app_name_column]
+    app_main_user: str = line[context.app_owner_tiso_column]
+    main_user_dn: str = build_dn(app_main_user, context.ldap_path, context.logger)
+    recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
+    if main_user_dn == "" and context.debug_level > 0:
+        context.logger.warning("adding app without main user: %s", app_id)
+    app_list.append(
+        context.owner_cls(
+            app_id_external=app_id,
+            name=app_name,
+            main_user=main_user_dn,
+            recert_period_days=recert_period_days,
+            days_until_first_recert=recert_period_days,
+            recert_active=False,
+            import_source=context.import_source_string,
         )
-    else:
-        if debug_level > 1:
-            logger.info("ignoring line from csv file: %s - inconclusive appId", app_id)
-        count_skips += 1
+    )
     return count_skips
 
 
@@ -147,6 +204,8 @@ def extract_app_data_from_csv(
     default_recert_active_state: bool = False,
     column_patterns: dict[str, str] | None = None,
     valid_app_id_prefixes: list[str] | None = None,
+    included_owners_column: str | None = None,
+    include_values: list[str] | None = None,
     csv_separator: str = ",",
 ) -> None:
     if recert_active_app_list is None:
@@ -157,28 +216,39 @@ def extract_app_data_from_csv(
     apps_from_csv: list[list[str]] = []
     csv_file_path: str = base_dir + "/" + csv_file  # add directory to csv files
 
-    apps_from_csv, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column = (
-        read_app_data_from_csv(csv_file_path, logger, column_patterns, csv_separator)
+    (
+        apps_from_csv,
+        app_name_column,
+        app_id_column,
+        app_owner_tiso_column,
+        app_owner_kwita_column,
+        included_owners_column_no,
+    ) = read_app_data_from_csv(
+        csv_file_path,
+        logger,
+        column_patterns,
+        included_owners_column,
+        csv_separator,
+    )
+    parser_context: OwnerLineParserContext = OwnerLineParserContext(
+        app_name_column=app_name_column,
+        app_id_column=app_id_column,
+        app_owner_tiso_column=app_owner_tiso_column,
+        app_owner_kwita_column=app_owner_kwita_column,
+        included_owners_column_no=included_owners_column_no,
+        include_values=include_values,
+        ldap_path=ldap_path,
+        import_source_string=import_source_string,
+        owner_cls=owner_cls,
+        valid_app_id_prefixes=valid_app_id_prefixes,
+        logger=logger,
+        debug_level=debug_level,
     )
 
     count_skips: int = 0
     # append all owners from CSV
     for line in apps_from_csv:
-        count_skips = parse_app_line(
-            line,
-            app_name_column,
-            app_id_column,
-            app_owner_tiso_column,
-            app_owner_kwita_column,
-            app_list,
-            count_skips,
-            ldap_path,
-            import_source_string,
-            owner_cls,
-            valid_app_id_prefixes,
-            logger,
-            debug_level,
-        )
+        count_skips = parse_app_line(line, parser_context, count_skips, app_list)
     if debug_level > 0:
         logger.info("%s: #total lines %s, skipped: %s", csv_file_path, len(apps_from_csv), count_skips)
 

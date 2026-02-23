@@ -218,6 +218,7 @@ namespace FWO.Middleware.Server
                     await NewAppServer(appServer, appId, incomingApp.ImportSource);
                 }
             }
+            await LogOwnerChange(null, appId, 'I', incomingApp.ImportSource);
             return appId;
         }
 
@@ -241,6 +242,7 @@ namespace FWO.Middleware.Server
             await UpdateOwnerResponsibles(existingApp.Id, responsibles);
             await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
             await ImportAppServers(incomingApp, existingApp.Id);
+            await LogOwnerChange(existingApp.Id, existingApp.Id, 'C', incomingApp.ImportSource);
         }
 
         private async Task<bool> DeactivateApp(FwoOwner app)
@@ -256,6 +258,7 @@ namespace FWO.Middleware.Server
                 await AddLogEntry(1, LevelApp, errorText);
                 return false;
             }
+            await LogOwnerChange(app.Id, null, 'D', app.ImportSource);
             return true;
         }
 
@@ -886,6 +889,21 @@ namespace FWO.Middleware.Server
         private async Task AddLogEntry(int severity, string level, string description)
         {
             await AddLogEntry(GlobalConst.kImportAppData, severity, level, description);
+        }
+
+        private async Task LogOwnerChange(long? oldOwnerId, long? newOwnerId, char action, string? sourceId)
+        {
+            var variables = new
+            {
+                control_id = currentControlId, // z.B. für diesen Importlauf
+                old_owner_id = oldOwnerId,
+                new_owner_id = newOwnerId,
+                change_action = action,
+                source_id = sourceId,
+                security_relevant = true
+            };
+
+            await apiConnection.SendQueryAsync<object>("insert_changelog_owner_mutation", variables);
         }
     }
 }

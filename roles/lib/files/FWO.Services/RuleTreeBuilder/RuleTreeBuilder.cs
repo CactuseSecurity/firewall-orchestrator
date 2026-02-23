@@ -300,6 +300,7 @@ namespace FWO.Services.RuleTreeBuilder
             RuleTree.LastAddedItem = RuleTree;
             CreatedOrderNumbersCount = 0;
             OrderedLayerCount = 0;
+            FlattedRules.Clear();
         }
 
 

@@ -81,7 +81,7 @@
         - ansible_facts['distribution'] | lower == 'ubuntu'
         - ansible_facts['distribution_version'] is version('22.04', '>=')
 
-    - name: Add .NET backports PPA on Ubuntu >=22.04
+    - name: Add .NET backports PPA on Ubuntu 22.04
       apt_repository:
         repo: ppa:dotnet/backports
         state: present
@@ -89,6 +89,16 @@
       when:
         - ansible_facts['distribution'] | lower == 'ubuntu'
         - ansible_facts['distribution_version'] is version('22.04', '>=')
+        - ansible_facts['distribution_version'] is version('24.04', '<')
+
+    - name: Remove .NET backports PPA on Ubuntu >=24.04
+      apt_repository:
+        repo: ppa:dotnet/backports
+        state: absent
+        update_cache: true
+      when:
+        - ansible_facts['distribution'] | lower == 'ubuntu'
+        - ansible_facts['distribution_version'] is version('24.04', '>=')
 
     - name: apt update
       apt: update_cache=true

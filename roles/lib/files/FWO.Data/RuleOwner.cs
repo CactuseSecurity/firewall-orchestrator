@@ -9,41 +9,47 @@ namespace FWO.Data
     public class RuleOwner
     {
         [JsonProperty("owner_id"), JsonPropertyName("owner_id")]
-        public int owner_id { get; set; }
+        public int OwnerId { get; set; }
 
         [JsonProperty("rule_metadata_id"), JsonPropertyName("rule_metadata_id")]
-        public long? rule_metadata_id { get; set; }
+        public long? RuleMetadataId { get; set; }
 
         [JsonProperty("rule_id"), JsonPropertyName("rule_id")]
-        public long rule_id { get; set; }
+        public long RuleId { get; set; }
 
         [JsonProperty("created"), JsonPropertyName("created")]
-        public long created { get; set; }
+        public long Created { get; set; }
 
         [JsonProperty("removed"), JsonPropertyName("removed")]
-        public long? removed { get; set; }
+        public long? Removed { get; set; }
 
         [JsonProperty("owner_mapping_source_id"), JsonPropertyName("owner_mapping_source_id")]
-        public long owner_mapping_source_id { get; set; }
+        public int OwnerMappingSourceId { get; set; }
     }
 
 
     public class RuleOwnerMutationWrapper
     {
-        public UpdateRuleOwner? update_rule_owner { get; set; }
+        [JsonProperty("update_rule_owner"), JsonPropertyName("update_rule_owner")]
+        public UpdateRuleOwner? UpdateRuleOwner { get; set; }
 
-        public InsertRuleOwnerResult? insert_rule_owner { get; set; }
+        [JsonProperty("insert_rule_owner"), JsonPropertyName("insert_rule_owner")]
+        public InsertRuleOwnerResult? InsertRuleOwner { get; set; }
     }
 
     public class UpdateRuleOwner
     {
-        public int affected_rows { get; set; }
+        [JsonProperty("affected_rows"), JsonPropertyName("affected_rows")]
+        public int AffectedRows { get; set; }
     }
 
     public class InsertRuleOwnerResult
     {
-        public int affected_rows { get; set; }
-        public List<RuleOwner>? returning { get; set; }
+        [JsonProperty("affected_rows"), JsonPropertyName("affected_rows")]
+        public int AffectedRows { get; set; }
+
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<RuleOwner>? Returning { get; set; }
     }
 
 }

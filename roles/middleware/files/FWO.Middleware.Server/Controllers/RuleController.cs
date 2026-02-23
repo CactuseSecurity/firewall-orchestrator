@@ -22,28 +22,45 @@ namespace FWO.Middleware.Server.Controllers
     [Route("api/[controller]")]
     public class RuleController(ApiConnection apiConnection) : ControllerBase
     {
-        /// <summary>
-        /// Get rules filtered by AdoIT ID
-        /// </summary>
-        /// <param name="request">Request containing AdoIT ID and user context</param>
-        /// <returns>Filtered rules</returns>
-        [HttpPost("GetByAdoIT")]
-        /*[Authorize(Roles = $"{Roles.Auditor}")]*/
-        public async Task<ActionResult<RulesByAdoItResponse>> GetByAdoIT(
-            [FromBody] RulesByAdoItRequest request)
+        [HttpPost("GetRulesByFilter")]
+        public async Task<ActionResult<RulesByFilterResponse>> GetRulesByFilter(
+            [FromBody] RulesByFilterRequest request)
         {
             try
             {
-                GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+                GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
                 UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+
                 string requestId = HttpContext.Request.Headers["X-Request-Id"].FirstOrDefault()
                                    ?? Guid.NewGuid().ToString();
 
                 LogSiemEntry(request, requestId);
 
-                List<RuleDetail> rules = await FetchRulesByAdoIT(request.Query.AdoIT, apiConnection);
+                List<RuleDetail> rules;
 
-                var response = new RulesByAdoItResponse
+
+                if (request.Query.OwnerId is not null)
+                {
+                    rules = await FetchRulesByAdoIT(request.Query.OwnerId ?? -1, apiConnection, userConfig);
+                }
+                else if (!string.IsNullOrWhiteSpace(request.Query.IpAddress))
+                {
+                    var f = request.Query.Filter ?? new RuleFilter();
+                    rules = await FilterRules(
+                        request.Query.IpAddress,
+                        f.Action,
+                        f.MaxPrefixLength,
+                        f.InField,
+                        apiConnection,
+                        userConfig
+                    );
+                }
+                else
+                {
+                    return BadRequest("Either OwnerId or IpAddress must be provided.");
+                }
+
+                var response = new RulesByFilterResponse
                 {
                     Request_Id = requestId,
                     Result = new RuleResult
@@ -57,64 +74,40 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (Exception exception)
             {
-                Log.WriteError("Get Rules By AdoIT", "Error while fetching rules.", exception);
-                return StatusCode(500, "Internal server error");
-            }
-        }
-        
-        [HttpPost("GetByIpAddress")]
-        public async Task<ActionResult<RulesByAdoItResponse>> GetByIpAddress(
-            [FromBody] RulesByIpAddressRequest request)
-        {
-            try
-            {
-                GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
-                
-                string requestId = HttpContext.Request.Headers["X-Request-Id"].FirstOrDefault()
-                                   ?? Guid.NewGuid().ToString();
-
-                //LogSiemEntry(request, requestId);
-
-                List<RuleDetail> rules = await FilterRules(request.Query.IpAddress, request.Query.Filter.Action, request.Query.Filter.MaxPrefixLength,request.Query.Filter.InField, apiConnection, userConfig);
-
-                var response = new RulesByAdoItResponse
-                {
-                    Request_Id = requestId,
-                    Result = new RuleResult
-                    {
-                        Count = rules.Count,
-                        Rules = rules
-                    }
-                };
-
-                return Ok(response);
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError("Get Rules By AdoIT", "Error while fetching rules.", exception);
+                Log.WriteError("Get Rules By Filter", "Error while fetching rules.", exception);
                 return StatusCode(500, "Internal server error");
             }
         }
 
-        private void LogSiemEntry(RulesByAdoItRequest request, string requestId)
+        private void LogSiemEntry(RulesByFilterRequest request, string requestId)
         {
-            // TODO: Implement SIEM logging
-            Log.WriteInfo("portal-application",
-                $"DateTime: {DateTime.Now}, " +
-                $"RequestId: {requestId}, " +
-                $"UserID: {request.RequestContext.UserID}, " +
-                $"UserName: {request.RequestContext.UserName}, " +
-                $"AdoIT: {request.Query.AdoIT}");
+            var info = $"DateTime: {DateTime.Now}, " +
+                       $"RequestId: {requestId}, " +
+                       $"UserID: {request.RequestContext.UserID}, " +
+                       $"UserName: {request.RequestContext.UserName}, ";
+            if (request.Query.OwnerId is not null)
+            {
+                info += $"OwnerId: {request.Query.OwnerId}";
+            } else if (request.Query.IpAddress is not null && request.Query.Filter is not null)
+            {
+                info += $"IpAddress: {request.Query.IpAddress}"
+                        + "Filter: {"
+                        + $"MaxPrefixLength: {request.Query.Filter.MaxPrefixLength}"
+                        + $"InField: {request.Query.Filter.InField}"
+                        + $"Action: {request.Query.Filter.Action}"
+                        + "}";
+
+            }
+            Log.WriteInfo("Log type: portal-application", info);
         }
 
-        private async Task<List<RuleDetail>> FetchRulesByAdoIT(int adoItId, ApiConnection apiConnection)
+        private async Task<List<RuleDetail>> FetchRulesByAdoIT(int adoItId, ApiConnection apiConnection, UserConfig userConfig)
         {
             var ruleIDs = await GetRuleIdsByAdoItAsync(adoItId, apiConnection);
-            return await GetRulesByIdsAsync(ruleIDs, adoItId, apiConnection);
+            return await GetRulesByIdsAsync(ruleIDs, adoItId, apiConnection, userConfig);
         }
         
-        private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds,int adoIT, ApiConnection apiConnection)
+        private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds,int ownerId, ApiConnection apiConnection, UserConfig userConfig)
         {
             if (ruleIds.Count == 0)
                 return new List<RuleDetail>();
@@ -127,45 +120,7 @@ namespace FWO.Middleware.Server.Controllers
             };
 
             var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
-            string notFound = "Not Found in Database";
-            return result
-                .Select(r => new RuleDetail
-                {
-                    Uid = r.Uid ?? notFound,
-                    Manager = r.MgmtId.ToString(),
-                    Source = r.Froms
-                        .Select(f => new NetworkObjectCopy
-                        {
-                            Name = f.Object.Name,
-                            Ip = f.Object.IP
-                        })
-                        .ToList(),
-                    SourceShort = r.Froms.FirstOrDefault()?.Object.Name ?? "",
-                    Destination = r.Tos
-                        .Select(t => new NetworkObjectCopy
-                        {
-                            Name = t.Object.Name,
-                            Ip = t.Object.IP
-                        })
-                        .ToList(),
-                    DestinationShort = r.Tos.FirstOrDefault()?.Object.Name ?? "",
-                    Service = r.Services
-                        .Select(s => new ServiceObject
-                        {
-                            Name = s.Content.Name,
-                            Protocol = s.Content.Protocol?.Name ?? notFound,
-                            Port = s.Content.SourcePort ?? -1
-                        })
-                        .ToList(),
-                    ServiceShort = r.Services.FirstOrDefault()?.Content.Name ?? "",
-                    ChangeID = r.CustomFields,
-                    AdoIT = adoIT.ToString(),
-                    Name = r.Name ?? notFound,
-                    // CreationDate = r.RuleCreateRaw.ToString(),
-                    // LastHitDate = r.RuleLastSeenRaw?.ToString() ?? "",
-                    Action = r.Action
-                })
-                .ToList();
+            return ConvertRuleList(result, userConfig);
         }
 
         private async Task<List<int>> GetRuleIdsByAdoItAsync(int adoIt, ApiConnection apiConnection)
@@ -443,28 +398,24 @@ namespace FWO.Middleware.Server.Controllers
     }
 }
 
-public class RulesByAdoItRequest
+public class RulesByFilterRequest
 {
     public RequestContext RequestContext { get; set; } = new();
-    public RuleQuery Query { get; set; } = new();
+    public RulesByFilterQuery Query { get; set; } = new();
 }
 
-public class RulesByAdoItResponse
+public class RulesByFilterQuery
+{
+    public int? OwnerId { get; set; }
+    public string? IpAddress { get; set; }
+    
+    public RuleFilter? Filter { get; set; }
+}
+
+public class RulesByFilterResponse
 {
     public string Request_Id { get; set; } = "";
     public RuleResult Result { get; set; } = new();
-}
-
-public class RulesByIpAddressRequest
-{
-    public RequestContext RequestContext { get; set; } = new();
-    public IpQuery Query { get; set; } = new();
-}
-
-public class IpQuery
-{
-    public string IpAddress { get; set; } = "";
-    public RuleFilter Filter { get; set; } = new();
 }
 
 public class RuleFilter
@@ -517,115 +468,10 @@ public class RequestContext
     public string UserID { get; set; } = "";
 }
 
-public class RuleQuery
-{
-    public int AdoIT { get; set; }
-}
-
-public class RuleIdResult
-{
-    [JsonProperty("rule_owner")]
-    public List<RuleOwnerItem> RuleOwner { get; set; } = new();
-}
-
 public class RuleOwnerItem
 {
     [JsonProperty("rule_id")]
     public int RuleId { get; set; }
-}
-
-public class RuleItem
-{
-    [JsonProperty("rule_uid")]
-    public string RuleUid { get; set; } = "";
-
-    [JsonProperty("rule_id")]
-    public long RuleId { get; set; }
-
-    [JsonProperty("mgm_id")]
-    public int MgmId { get; set; }
-
-    [JsonProperty("rule_froms")]
-    public List<RuleFrom> RuleFroms { get; set; } = new();
-
-    [JsonProperty("rule_tos")]
-    public List<RuleTo> RuleTos { get; set; } = new();
-
-    [JsonProperty("rule_services")]
-    public List<RuleServiceLink> RuleServices { get; set; } = new();
-
-    [JsonProperty("rule_custom_fields")]
-    public string? RuleCustomFields { get; set; }
-
-    [JsonProperty("rule_name")]
-    public string RuleName { get; set; } = "";
-
-    // In your JSON these are numbers; treat as long and convert later
-    [JsonProperty("rule_create")]
-    public long RuleCreateRaw { get; set; }
-
-    [JsonProperty("rule_last_seen")]
-    public long? RuleLastSeenRaw { get; set; }
-
-    [JsonProperty("rule_action")]
-    public string RuleAction { get; set; } = "";
-}
-
-public class RuleDetailsResult
-{
-    [JsonProperty("rule")]
-    public List<RuleItem> Rule { get; set; } = new();
-}
-
-public class RuleFrom
-{
-    [JsonProperty("object")]
-    public NetworkObjectRaw Object { get; set; } = new();
-}
-
-public class RuleTo
-{
-    [JsonProperty("object")]
-    public NetworkObjectRaw Object { get; set; } = new();
-}
-
-public class NetworkObjectRaw
-{
-    [JsonProperty("obj_name")]
-    public string ObjName { get; set; } = "";
-
-    [JsonProperty("obj_ip")]
-    public string? ObjIpStart { get; set; }
-    
-    [JsonProperty("obj_ip_end")]
-    public string? ObjIpEnd { get; set; }
-}
-
-public class RuleServiceLink
-{
-    [JsonProperty("service")]
-    public ServiceRaw Service { get; set; } = new();
-}
-
-public class ServiceRaw
-{
-    [JsonProperty("svc_name")]
-    public string SvcName { get; set; } = "";
-
-    [JsonProperty("ip_proto_id")]
-    public int? IpProtoId { get; set; }
-
-    [JsonProperty("protocol_name")]
-    public ProtocolName? ProtocolName { get; set; } = new();
-
-    [JsonProperty("svc_port")]
-    public int? SvcPort { get; set; }
-}
-
-public class ProtocolName
-{
-    [JsonProperty("name")]
-    public string Name { get; set; } = "";
 }
 
 

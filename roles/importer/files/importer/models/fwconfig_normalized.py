@@ -5,6 +5,7 @@ from models.gateway import Gateway
 from models.networkobject import NetworkObject
 from models.rulebase import Rulebase
 from models.serviceobject import ServiceObject
+from models.time_object import TimeObject
 from pydantic import BaseModel
 
 
@@ -54,6 +55,7 @@ class FwConfigNormalized(FwConfig):
     service_objects: dict[str, ServiceObject] = {}
     users: dict[str, Any] = {}
     zone_objects: dict[str, Any] = {}
+    time_objects: dict[str, TimeObject] = {}
     rulebases: list[Rulebase] = []
     gateways: list[Gateway] = []
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED

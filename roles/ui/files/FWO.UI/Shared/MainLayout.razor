@@ -3,6 +3,7 @@
 @using FWO.Services.EventMediator
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
+@using FWO.Services
 @using FWO.Ui.Auth
 @using FWO.Ui.Data
 @using FWO.Ui.Services
@@ -422,65 +423,14 @@
 
     public async Task setAlert(string title, string message)
     {
-        try
+        Log.WriteAlert($"source: \"{GlobalConst.kUi}\"",
+            $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
+        AlertHelper.AdditionalAlertData alertData = new()
         {
-            Log.WriteAlert($"source: \"{GlobalConst.kUi}\"",
-                $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
-
-            List<Alert> openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
-
-            var Variables = new
-            {
-                source = GlobalConst.kUi,
-                userId = userConfig.User.DbId,
-                title = title,
-                description = message,
-                alertCode = (int)AlertCode.UiError
-            };
-            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(FWO.Api.Client.Queries.MonitorQueries.addAlert, Variables) ).ReturnIds;
-            if (returnIds != null)
-            {
-                try
-                {
-                    // Acknowledge older alert for same problem
-                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == AlertCode.UiError && x.UserId == userConfig.User.DbId && x.Title == title);
-                    if (existingAlert != null)
-                    {
-                        await AcknowledgeAlert(existingAlert.Id);
-                    }
-                }
-                catch (Exception exc)
-                {
-                    Log.WriteError("Acknowledge Alert", $"Could not auto acknowledge existing alert for user {userConfig.User.DbId}: ", exc);
-                }
-            }
-            else
-            {
-                Log.WriteError("Write Alert", "Log could not be written to database");
-            }
-        }
-        catch (Exception exc)
-        {
-            Log.WriteError("Write Alert", $"Could not write alert for user {userConfig.User.DbId}: ", exc);
-        }
-    }
-
-    public async Task AcknowledgeAlert(long alertId)
-    {
-        try
-        {
-            var Variables = new
-            {
-                id = alertId,
-                ackUser = 0,
-                ackTime = DateTime.Now
-            };
-            await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
-        }
-        catch (Exception exception)
-        {
-            Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for ui: ", exception);
-        }
+            UserId = userConfig.User.DbId,
+            CompareTitle = true
+        };
+        await AlertHelper.SetAlert(apiConnection, title, message, GlobalConst.kUi, AlertCode.UiError, alertData);
     }
 
     public void Dispose()

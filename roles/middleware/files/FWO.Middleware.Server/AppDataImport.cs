@@ -885,26 +885,7 @@ namespace FWO.Middleware.Server
 
         private async Task AddLogEntry(int severity, string level, string description)
         {
-            try
-            {
-                var Variables = new
-                {
-                    user = 0,
-                    source = GlobalConst.kImportAppData,
-                    severity = severity,
-                    suspectedCause = level,
-                    description = description
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    Log.WriteError("Write Log", "Log could not be written to database");
-                }
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Write Log", $"Could not write log: ", exc);
-            }
+            await AddLogEntry(GlobalConst.kImportAppData, severity, level, description);
         }
     }
 }

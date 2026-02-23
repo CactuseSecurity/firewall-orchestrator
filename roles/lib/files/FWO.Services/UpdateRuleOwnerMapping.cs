@@ -239,9 +239,9 @@ namespace FWO.Services
                 var listRuleOwnersToRemove = newRuleOwners
                 .Select(r => new
                 {
-                    rule_id = new { _eq = r.rule_id },
-                    owner_id = new { _eq = r.owner_id },
-                    created = new { _eq = r.created }
+                    rule_id = new { _eq = r.RuleId },
+                    owner_id = new { _eq = r.OwnerId },
+                    created = new { _eq = r.Created }
                 })
                 .ToList();
 
@@ -289,11 +289,11 @@ namespace FWO.Services
                     {
                         newRuleOwners.Add(new RuleOwner
                         {
-                            rule_id = rule.Id,
-                            owner_id = ownerId,
-                            rule_metadata_id = rule.Metadata.Id,
-                            owner_mapping_source_id = OwnerMappingSourceStm.CUSTOM_FIELD,
-                            created = importControlId
+                            RuleId = rule.Id,
+                            OwnerId = ownerId,
+                            RuleMetadataId = rule.Metadata.Id,
+                            OwnerMappingSourceId = OwnerMappingSourceStm.CUSTOM_FIELD,
+                            Created = importControlId
                         });
                     }
                 }

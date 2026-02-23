@@ -89,7 +89,8 @@ namespace FWO.Middleware.Server.Controllers
             if (request.Query.OwnerId is not null)
             {
                 info += $"OwnerId: {request.Query.OwnerId}";
-            } else if (request.Query.IpAddress is not null && request.Query.Filter is not null)
+            }
+            else if (request.Query.IpAddress is not null && request.Query.Filter is not null)
             {
                 info += $"IpAddress: {request.Query.IpAddress}"
                         + "Filter: {"
@@ -97,18 +98,20 @@ namespace FWO.Middleware.Server.Controllers
                         + $"InField: {request.Query.Filter.InField}"
                         + $"Action: {request.Query.Filter.Action}"
                         + "}";
-
             }
+
             Log.WriteInfo("Log type: portal-application", info);
         }
 
-        private async Task<List<RuleDetail>> FetchRulesByAdoIT(int adoItId, ApiConnection apiConnection, UserConfig userConfig)
+        private async Task<List<RuleDetail>> FetchRulesByAdoIT(int adoItId, ApiConnection apiConnection,
+            UserConfig userConfig)
         {
             var ruleIDs = await GetRuleIdsByAdoItAsync(adoItId, apiConnection);
             return await GetRulesByIdsAsync(ruleIDs, adoItId, apiConnection, userConfig);
         }
-        
-        private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds,int ownerId, ApiConnection apiConnection, UserConfig userConfig)
+
+        private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, int ownerId,
+            ApiConnection apiConnection, UserConfig userConfig)
         {
             if (ruleIds.Count == 0)
                 return new List<RuleDetail>();
@@ -117,11 +120,11 @@ namespace FWO.Middleware.Server.Controllers
 
             var variables = new
             {
-                rule_ids= ruleIds
+                rule_ids = ruleIds
             };
 
             var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
-            return ConvertRuleList(result, userConfig);
+            return ConvertRuleList(result, userConfig, ownerId);
         }
 
         private async Task<List<int>> GetRuleIdsByAdoItAsync(int adoIt, ApiConnection apiConnection)
@@ -150,13 +153,14 @@ namespace FWO.Middleware.Server.Controllers
                 .ToList();
         }
 
-        private async Task<List<RuleDetail>> FilterRules(string ipAddress, string action, int maxPrefix, string inField,ApiConnection apiConnection, UserConfig userConfig)
+        private async Task<List<RuleDetail>> FilterRules(string ipAddress, string action, int maxPrefix, string inField,
+            ApiConnection apiConnection, UserConfig userConfig)
         {
             var query = RuleQueries.getRuleDetailsById;
 
             var variables = new
             {
-                rule_action= action
+                rule_action = action
             };
 
             var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
@@ -167,13 +171,15 @@ namespace FWO.Middleware.Server.Controllers
                 switch (inField)
                 {
                     case "source":
-                        isInRange = IsInRange(ipAddress, maxPrefix, rule.Froms.Select(source => source.Object).ToList());
+                        isInRange = IsInRange(ipAddress, maxPrefix,
+                            rule.Froms.Select(source => source.Object).ToList());
                         break;
                     case "destination":
                         isInRange = IsInRange(ipAddress, maxPrefix, rule.Tos.Select(dest => dest.Object).ToList());
                         break;
-                    case "both": 
-                        bool sourceRange = IsInRange(ipAddress, maxPrefix, rule.Froms.Select(source => source.Object).ToList());
+                    case "both":
+                        bool sourceRange = IsInRange(ipAddress, maxPrefix,
+                            rule.Froms.Select(source => source.Object).ToList());
                         bool destRange = IsInRange(ipAddress, maxPrefix, rule.Tos.Select(dest => dest.Object).ToList());
                         isInRange = sourceRange || destRange;
                         break;
@@ -189,7 +195,7 @@ namespace FWO.Middleware.Server.Controllers
             return ConvertRuleList(ruleItems, userConfig);
         }
 
-        private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig)
+        private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig, int ownerId = -1)
         {
             List<RuleDetail> output = new();
             string notFound = "Not Found in Database";
@@ -205,7 +211,7 @@ namespace FWO.Middleware.Server.Controllers
                         Ip = f.Object.IP
                     })
                     .ToList();
-                rule.SourceShort = DisplaySourceOrDestinationPlain( item, true, userConfig);
+                rule.SourceShort = DisplaySourceOrDestinationPlain(item, true, userConfig);
                 rule.Destination = item.Tos
                     .Select(t => new NetworkObjectCopy
                     {
@@ -213,7 +219,7 @@ namespace FWO.Middleware.Server.Controllers
                         Ip = t.Object.IP
                     })
                     .ToList();
-                rule.DestinationShort = DisplaySourceOrDestinationPlain( item, false, userConfig);
+                rule.DestinationShort = DisplaySourceOrDestinationPlain(item, false, userConfig);
                 rule.Service = item.Services
                     .Select(s => new ServiceObject
                     {
@@ -228,31 +234,30 @@ namespace FWO.Middleware.Server.Controllers
                 rule.CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound;
                 rule.LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound;
                 rule.Action = item.Action;
+                rule.AdoIT = ownerId.ToString();
                 output.Add(rule);
             }
 
             return output;
         }
-        
+
         private static bool IsInRange(string ipAddress, int maxPrefix, List<NetworkObject> objects)
         {
             foreach (var ipObject in objects)
             {
                 bool ipInRange = IsInRange(ipAddress, ipObject.IP, ipObject.IpEnd);
                 int rangePrefix = CommonPrefixLength(ipObject.IP, ipObject.IpEnd);
-                if (rangePrefix >= maxPrefix)
+                if (rangePrefix >= maxPrefix && ipInRange)
                 {
-                    if (ipInRange)
-                    {
-                        return true;
-                    }
+                    return true;
                 }
+
                 break;
             }
 
             return false;
         }
-        
+
         private static uint ToUInt32(string ipString)
         {
             ipString = NormalizeIpv4(ipString) ?? String.Empty;
@@ -266,14 +271,13 @@ namespace FWO.Middleware.Server.Controllers
             if (BitConverter.IsLittleEndian)
                 Array.Reverse(bytes);
             return BitConverter.ToUInt32(bytes, 0);
-                
         }
-        
+
         private static string? NormalizeIpv4(string input)
         {
             if (string.IsNullOrEmpty(input.Trim()))
                 return null;
-            
+
             var addrPart = input.Split('/', 2)[0].Trim();
 
             if (!IPAddress.TryParse(addrPart, out var ip))
@@ -281,7 +285,7 @@ namespace FWO.Middleware.Server.Controllers
 
             if (ip.AddressFamily != AddressFamily.InterNetwork)
                 return null;
-            
+
             return ip.ToString();
         }
 
@@ -291,17 +295,20 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return false;
             }
+
             uint addr = ToUInt32(ip);
             uint start = ToUInt32(startIp);
             if (endIp is null)
             {
                 return addr == start;
             }
+
             uint end = ToUInt32(endIp);
             if (start > end)
             {
                 (start, end) = (end, start);
             }
+
             return addr >= start && addr <= end;
         }
 
@@ -311,10 +318,12 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return -1; //start shouldn't ever be null -> abort comparison
             }
+
             if (ipB is null)
             {
                 return 32; // /32 is prefix of a specific IP address
             }
+
             uint a = ToUInt32(ipA);
             uint b = ToUInt32(ipB);
             uint diff = a ^ b;
@@ -324,51 +333,53 @@ namespace FWO.Middleware.Server.Controllers
             int leadingZeros = BitOperations.LeadingZeroCount(diff);
             return leadingZeros;
         }
-        
+
         private static string DisplaySourceOrDestinationPlain(Rule rule, bool isSource, UserConfig userConfig)
         {
             var result = new StringBuilder();
-            
+
             if ((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
             {
                 result.AppendLine(userConfig.GetText("negated"));
             }
-            
+
             var networkLocations = isSource ? rule.Froms : rule.Tos;
 
-            string joined = string.Join(Environment.NewLine, Array.ConvertAll(networkLocations, nwLoc => NetworkLocationToPlainText(nwLoc)));
+            string joined = string.Join(Environment.NewLine,
+                Array.ConvertAll(networkLocations, nwLoc => NetworkLocationToPlainText(nwLoc)));
 
             result.Append(joined);
 
             return result.ToString();
         }
-    
+
         private static string NetworkLocationToPlainText(NetworkLocation networkLocation)
         {
             string userOutput = networkLocation.User.Name;
 
-            string objectOutput= networkLocation.Object.Name;
+            string objectOutput = networkLocation.Object.Name;
 
-        
+
             string nwLocation = DisplayNetworkLocationPlain(
                 networkLocation,
                 userOutput,
                 objectOutput).ToString();
-        
+
             return nwLocation;
         }
-        
-        private static StringBuilder DisplayNetworkLocationPlain(NetworkLocation userNetworkObject, string userName, string objName)
+
+        private static StringBuilder DisplayNetworkLocationPlain(NetworkLocation userNetworkObject, string userName,
+            string objName)
         {
             var result = new StringBuilder();
-            
+
             if (userNetworkObject.User.Id > 0)
             {
                 result.Append($"{userName}@");
             }
-            
+
             result.Append(objName);
-            
+
             if (userNetworkObject.Object.Type.Name != ObjectType.Group)
             {
                 bool showIpinBrackets = true;
@@ -380,6 +391,7 @@ namespace FWO.Middleware.Server.Controllers
                         userNetworkObject.Object.Type.Name,
                         showIpinBrackets));
             }
+
             return result;
         }
 
@@ -390,90 +402,91 @@ namespace FWO.Middleware.Server.Controllers
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }
-            
-            string joined = string.Join(Environment.NewLine, Array.ConvertAll(rule.Services, service => DisplayBase.DisplayService(service.Content, false, service.Content.Name).ToString()));
+
+            string joined = string.Join(Environment.NewLine,
+                Array.ConvertAll(rule.Services,
+                    service => DisplayBase.DisplayService(service.Content, false, service.Content.Name).ToString()));
             result.Append(joined);
 
             return result.ToString();
         }
     }
-}
 
-public class RulesByFilterRequest
-{
-    public RequestContext RequestContext { get; set; } = new();
-    public RulesByFilterQuery Query { get; set; } = new();
-}
 
-public class RulesByFilterQuery
-{
-    public int? OwnerId { get; set; }
-    public string? IpAddress { get; set; }
-    
-    public RuleFilter? Filter { get; set; }
-}
+    public class RulesByFilterRequest
+    {
+        public RequestContext RequestContext { get; set; } = new();
+        public RulesByFilterQuery Query { get; set; } = new();
+    }
 
-public class RulesByFilterResponse
-{
-    public string Request_Id { get; set; } = "";
-    public RuleResult Result { get; set; } = new();
-}
+    public class RulesByFilterQuery
+    {
+        public int? OwnerId { get; set; }
+        public string? IpAddress { get; set; }
 
-public class RuleFilter
-{
-    public int MaxPrefixLength { get; set; }
-    public string InField { get; set; } = "";
-    public string Action { get; set; } = "";
-}
+        public RuleFilter? Filter { get; set; }
+    }
 
-public class RuleResult
-{
-    public int Count { get; set; }
-    public List<RuleDetail> Rules { get; set; } = new();
-}
+    public class RulesByFilterResponse
+    {
+        public string Request_Id { get; set; } = "";
+        public RuleResult Result { get; set; } = new();
+    }
 
-public class RuleDetail
-{
-    public string Uid { get; set; } = "";
-    public string Manager { get; set; } = "";
-    public List<NetworkObjectCopy> Source { get; set; } = new();
-    public string SourceShort { get; set; } = "";
-    public List<NetworkObjectCopy> Destination { get; set; } = new();
-    public string DestinationShort { get; set; } = "";
-    public List<ServiceObject> Service { get; set; } = new();
-    public string ServiceShort { get; set; } = "";
-    public string ChangeID { get; set; } = "";
-    public string AdoIT { get; set; } = "";
-    public string Name { get; set; } = "";
-    public string CreationDate { get; set; } = "";
-    public string LastHitDate { get; set; } = "";
-    public string Action { get; set; } = "";
-}
+    public class RuleFilter
+    {
+        public int MaxPrefixLength { get; set; }
+        public string InField { get; set; } = "";
+        public string Action { get; set; } = "";
+    }
 
-public class NetworkObjectCopy
-{
-    public string Name { get; set; } = "";
-    public string Ip { get; set; } = "";
-}
+    public class RuleResult
+    {
+        public int Count { get; set; }
+        public List<RuleDetail> Rules { get; set; } = new();
+    }
 
-public class ServiceObject
-{
-    public string Name { get; set; } = "";
-    public string Protocol { get; set; } = "";
-    public int Port { get; set; }
-}
+    public class RuleDetail
+    {
+        public string Uid { get; set; } = "";
+        public string Manager { get; set; } = "";
+        public List<NetworkObjectCopy> Source { get; set; } = new();
+        public string SourceShort { get; set; } = "";
+        public List<NetworkObjectCopy> Destination { get; set; } = new();
+        public string DestinationShort { get; set; } = "";
+        public List<ServiceObject> Service { get; set; } = new();
+        public string ServiceShort { get; set; } = "";
+        public string ChangeID { get; set; } = "";
+        public string AdoIT { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string CreationDate { get; set; } = "";
+        public string LastHitDate { get; set; } = "";
+        public string Action { get; set; } = "";
+    }
 
-public class RequestContext
-{
-    public string UserName { get; set; } = "";
-    public string UserID { get; set; } = "";
-}
+    public class NetworkObjectCopy
+    {
+        public string Name { get; set; } = "";
+        public string Ip { get; set; } = "";
+    }
 
-public class RuleOwnerItem
-{
-    [JsonProperty("rule_id")]
-    public int RuleId { get; set; }
-}
+    public class ServiceObject
+    {
+        public string Name { get; set; } = "";
+        public string Protocol { get; set; } = "";
+        public int Port { get; set; }
+    }
 
+    public class RequestContext
+    {
+        public string UserName { get; set; } = "";
+        public string UserID { get; set; } = "";
+    }
+
+    public class RuleOwnerItem
+    {
+        [JsonProperty("rule_id")] public int RuleId { get; set; }
+    }
+}
 
 #pragma warning restore CS1591

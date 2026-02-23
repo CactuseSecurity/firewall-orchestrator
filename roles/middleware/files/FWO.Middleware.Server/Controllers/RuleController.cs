@@ -17,12 +17,13 @@ using Newtonsoft.Json;
 #pragma warning disable CS1591
 namespace FWO.Middleware.Server.Controllers
 {
-    /*[Authorize]*/
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class RuleController(ApiConnection apiConnection) : ControllerBase
     {
         [HttpPost("GetRulesByFilter")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<ActionResult<RulesByFilterResponse>> GetRulesByFilter(
             [FromBody] RulesByFilterRequest request)
         {

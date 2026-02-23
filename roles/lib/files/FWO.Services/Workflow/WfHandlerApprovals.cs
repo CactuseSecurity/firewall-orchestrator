@@ -23,7 +23,7 @@ namespace FWO.Services.Workflow
                 {
                     await AddApproval();
                 }
-                ActApproval = ActReqTask.Approvals.FirstOrDefault(x => x.StateId < ActStateMatrix.LowestEndState) 
+                ActApproval = ActReqTask.Approvals.FirstOrDefault(x => x.StateId < ActStateMatrix.LowestEndState)
                     ?? ActReqTask.Approvals.Last() ?? new();  // todo: select own approvals
             }
         }
@@ -152,9 +152,9 @@ namespace FWO.Services.Workflow
         {
             ActApproval.RecentHandler = ActApproval.CurrentHandler;
             await UpdateActApproval();
-            if(ActionHandler != null)
+            if (ActionHandler != null)
             {
-               await ActionHandler.DoOnAssignmentActions(statefulObject, ActApproval.AssignedGroup);
+                await ActionHandler.DoOnAssignmentActions(statefulObject, ActApproval.AssignedGroup);
             }
             DisplayAssignApprovalMode = false;
         }

@@ -1,6 +1,7 @@
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Test.Mocks;
+using FWO.Api.Client.Queries;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -141,6 +142,40 @@ namespace FWO.Test
             Assert.That(multiple.Compliance == ComplianceViolationType.MultipleViolations);
             Assert.That(singular.ViolationDetails == controlSingular);
             Assert.That(singular.Compliance == ComplianceViolationType.ServiceViolation);
+        }
+
+        [Test]
+        public void CreateQueryVariables_UsesConfiguredRelevantManagementIds()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceCheckRelevantManagements = "9,10"
+            };
+            UserConfig userConfig = new(globalConfig);
+            MockReportCompliance report = new(new(""), userConfig, Basics.ReportType.ComplianceReport);
+
+            Dictionary<string, object> queryVariables = report.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithCurrentViolationsByChunk);
+
+            Assert.That(queryVariables.ContainsKey("mgm_ids"), Is.True);
+            Assert.That((List<int>)queryVariables["mgm_ids"], Is.EqualTo(new List<int> { 9, 10 }));
+        }
+
+        [Test]
+        public void CreateQueryVariables_UsesLoadedManagementIdsWhenNoConfiguredFilter()
+        {
+            MockReportCompliance report = new(new(""), new(), Basics.ReportType.ComplianceReport)
+            {
+                Managements =
+                [
+                    new Management { Id = 3 },
+                    new Management { Id = 4 }
+                ]
+            };
+
+            Dictionary<string, object> queryVariables = report.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithCurrentViolationsByChunk);
+
+            Assert.That(queryVariables.ContainsKey("mgm_ids"), Is.True);
+            Assert.That((List<int>)queryVariables["mgm_ids"], Is.EqualTo(new List<int> { 3, 4 }));
         }
 
         private List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)

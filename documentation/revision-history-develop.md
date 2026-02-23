@@ -352,3 +352,7 @@ A complete 80K lines rework of FWO, including
 - update import_control to allow flexible tracking of different import types
 - create rule_owner mapping for custom_field via button and service/job
 - create changelog_owner table
+- update import_control to allow flexible tracking of different import types
+
+# 9.0.6 - 20.02.2026 DEVELOP
+- add import of time objects

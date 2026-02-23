@@ -70,6 +70,10 @@ namespace FWO.Report
                     zone => zone.Name,
                     NormalizedZoneObject.FromZoneObject
                 ),
+                TimeObjects = managementData.TimeObjects.ToDictionary(
+                    timeObj => timeObj.Uid,
+                    NormalizedTimeObject.FromTimeObject
+                ),
                 Rulebases = [.. managementData.Rulebases.Select(rb => NormalizedRulebase.FromRulebase(rb, managementData.Uid ?? ""))],
                 Gateways = [.. managementData.Devices.Select(NormalizedGateway.FromDevice)]
             };

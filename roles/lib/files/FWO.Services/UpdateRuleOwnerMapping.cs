@@ -41,7 +41,7 @@ namespace FWO.Services
                 case OwnerMappingSourceStm.MANUEL:
                     return false;
                 default:
-                    return false;                   
+                    return false;
             }
         }
 
@@ -104,7 +104,7 @@ namespace FWO.Services
             return true;
         }
 
-        private async Task<bool> RunIncremental() 
+        private async Task<bool> RunIncremental()
         {
             var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
 
@@ -192,13 +192,13 @@ namespace FWO.Services
                     }
             }
 
-            var newRuleOwners = BuildNewRuleOwnersCustomField(rulesToInsert, owners, import.ControlId);            
+            var newRuleOwners = BuildNewRuleOwnersCustomField(rulesToInsert, owners, import.ControlId);
 
             await SetAffectedRuleOwnersRemoved(ruleOwnersToRemove, import.ControlId);
 
             await InsertNewRuleOwners(newRuleOwners);
 
-            await CompleteImportControl(import.ControlId);            
+            await CompleteImportControl(import.ControlId);
         }
 
         private async Task<long> CreateImportControl(long importControlId)
@@ -348,14 +348,16 @@ namespace FWO.Services
         {
             try
             {
-                    await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.updateImportControlForRuleOwnerFull,
-                    new
-                    {
-                        controlId = importControlId,
-                        stopTime = DateTime.UtcNow,
-                        successful = true,
-                        rule_owner_mapping_done = true
-                    });
+                await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.updateImportControlForRuleOwnerFull,
+
+                new
+                {
+                    controlId = importControlId,
+                    stopTime = DateTime.UtcNow,
+                    successful = true,
+                    rule_owner_mapping_done = true
+                });
+
                 Log.WriteInfo(LogMessageTitle, $"Import control {importControlId} completed successfully.");
             }
             catch (Exception ex)

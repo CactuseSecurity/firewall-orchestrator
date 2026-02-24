@@ -267,7 +267,21 @@ namespace FWO.Test
             {"U5103","Delete gateway "},
             {"U7002","Confirm"},
             {"add_device_to_tenant0","Add device to tenant"},
-            {"acknowledge_action","Acknowledge action"}
+            {"acknowledge_action","Acknowledge action"},
+            {"C9021","Not implemented"},
+            {"C9022","Variance found"},
+            {"C9023","Modelling ok"},
+            {"C9024","Implementation ok"},
+            {"C9025","Variance not checked"},
+            {"C9026","Interface decommissioned"},
+            {"C9028","Interface no permission"},
+            {"C9019","Empty service groups (interface)"},
+            {"C9018","Empty service groups"},
+            {"C9020","Documentation only"},
+            {"C9015","Empty app roles (interface)"},
+            {"C9013","Empty app roles"},
+            {"C9016","Deleted objects (interface)"},
+            {"C9014","Deleted objects"}
         };
 
         public override string GetText(string key)

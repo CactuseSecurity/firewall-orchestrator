@@ -1,7 +1,6 @@
 import csv
 import logging
 import re
-import sys
 from dataclasses import dataclass
 
 from netaddr import IPAddress, IPNetwork
@@ -14,6 +13,7 @@ DEFAULT_OWNER_HEADER_PATTERNS: dict[str, str] = {
     "app_id": r".*?:\s*Alfabet-ID$",
     "owner_tiso": r".*?:\s*TISO",
     "owner_kwita": r".*?:\s*kwITA",
+    "owner_lifecycle_state": r"^\s*Lifecycle State\s*$",
 }
 DEFAULT_IP_HEADER_PATTERNS: dict[str, str] = {"app_id": r".*?:\s*Alfabet-ID$", "ip": r".*?:\s*IP"}
 
@@ -24,6 +24,7 @@ class OwnerLineParserContext:
     app_id_column: int
     app_owner_tiso_column: int
     app_owner_kwita_column: int
+    owner_lifecycle_state_column: int
     included_owners_column_no: int
     include_values: list[str] | None
     ldap_path: str
@@ -59,6 +60,15 @@ def _has_valid_app_id_prefix(app_id: str, context: OwnerLineParserContext) -> bo
 def _get_recert_period_days(line: list[str], kwita_column: int) -> int:
     kwita: str = line[kwita_column] if kwita_column >= 0 else ""
     return 365 if kwita == "" or kwita.lower() == "false" else 182
+
+
+def _get_owner_lifecycle_state(line: list[str], owner_lifecycle_state_column: int) -> str:
+    if owner_lifecycle_state_column < 0:
+        return "unknown"
+    owner_lifecycle_state: str = (
+        line[owner_lifecycle_state_column].strip() if len(line) > owner_lifecycle_state_column else ""
+    )
+    return owner_lifecycle_state if owner_lifecycle_state else "unknown"
 
 
 def build_dn(user_id: str, ldap_path: str, logger: logging.Logger) -> str:
@@ -105,7 +115,7 @@ def read_app_data_from_csv(
     column_patterns: dict[str, str] | None = None,
     included_owners_column: str | None = None,
     csv_separator: str = ",",
-) -> tuple[list[list[str]], int, int, int, int, int]:
+) -> tuple[list[list[str]], int, int, int, int, int, int] | None:
     try:
         header_patterns: dict[str, str] = {**DEFAULT_OWNER_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_file_name, newline="", encoding="utf-8") as csv_file_handle:
@@ -116,6 +126,9 @@ def read_app_data_from_csv(
             app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
             owner_tiso_pattern: re.Pattern[str] = re.compile(header_patterns["owner_tiso"], re.IGNORECASE)
             owner_kwita_pattern: re.Pattern[str] = re.compile(header_patterns["owner_kwita"], re.IGNORECASE)
+            owner_lifecycle_state_pattern: re.Pattern[str] = re.compile(
+                header_patterns["owner_lifecycle_state"], re.IGNORECASE
+            )
 
             app_name_column: int = _find_header_index(headers, name_pattern, "name", csv_file_name, logger)
             app_id_column: int = _find_header_index(headers, app_id_pattern, "app_id", csv_file_name, logger)
@@ -124,6 +137,14 @@ def read_app_data_from_csv(
             )
             app_owner_kwita_column: int = _find_header_index(
                 headers, owner_kwita_pattern, "owner_kwita", csv_file_name, logger, required=False
+            )
+            owner_lifecycle_state_column: int = _find_header_index(
+                headers,
+                owner_lifecycle_state_pattern,
+                "owner_lifecycle_state",
+                csv_file_name,
+                logger,
+                required=False,
             )
             included_owners_column_no: int = -1
             if included_owners_column:
@@ -142,9 +163,12 @@ def read_app_data_from_csv(
                     )
 
             apps_from_csv: list[list[str]] = list(reader)  # Read remaining rows
+    except ValueError as err:
+        logger.warning("skipping csv file %s because %s", csv_file_name, err)
+        return None
     except Exception:
         logger.exception("error while trying to read csv file %s", csv_file_name)
-        sys.exit(1)
+        return None
 
     return (
         apps_from_csv,
@@ -152,6 +176,7 @@ def read_app_data_from_csv(
         app_id_column,
         app_owner_tiso_column,
         app_owner_kwita_column,
+        owner_lifecycle_state_column,
         included_owners_column_no,
     )
 
@@ -175,6 +200,7 @@ def parse_app_line(
     app_main_user: str = line[context.app_owner_tiso_column]
     main_user_dn: str = build_dn(app_main_user, context.ldap_path, context.logger)
     recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
+    owner_lifecycle_state: str = _get_owner_lifecycle_state(line, context.owner_lifecycle_state_column)
     if main_user_dn == "" and context.debug_level > 0:
         context.logger.warning("adding app without main user: %s", app_id)
     app_list.append(
@@ -186,6 +212,7 @@ def parse_app_line(
             days_until_first_recert=recert_period_days,
             recert_active=False,
             import_source=context.import_source_string,
+            owner_lifecycle_state=owner_lifecycle_state,
         )
     )
     return count_skips
@@ -213,8 +240,17 @@ def extract_app_data_from_csv(
     if valid_app_id_prefixes is None:
         valid_app_id_prefixes = DEFAULT_VALID_APP_ID_PREFIXES
 
-    apps_from_csv: list[list[str]] = []
     csv_file_path: str = base_dir + "/" + csv_file  # add directory to csv files
+
+    csv_data: tuple[list[list[str]], int, int, int, int, int, int] | None = read_app_data_from_csv(
+        csv_file_path,
+        logger,
+        column_patterns,
+        included_owners_column,
+        csv_separator,
+    )
+    if csv_data is None:
+        return
 
     (
         apps_from_csv,
@@ -222,19 +258,15 @@ def extract_app_data_from_csv(
         app_id_column,
         app_owner_tiso_column,
         app_owner_kwita_column,
+        owner_lifecycle_state_column,
         included_owners_column_no,
-    ) = read_app_data_from_csv(
-        csv_file_path,
-        logger,
-        column_patterns,
-        included_owners_column,
-        csv_separator,
-    )
+    ) = csv_data
     parser_context: OwnerLineParserContext = OwnerLineParserContext(
         app_name_column=app_name_column,
         app_id_column=app_id_column,
         app_owner_tiso_column=app_owner_tiso_column,
         app_owner_kwita_column=app_owner_kwita_column,
+        owner_lifecycle_state_column=owner_lifecycle_state_column,
         included_owners_column_no=included_owners_column_no,
         include_values=include_values,
         ldap_path=ldap_path,
@@ -266,7 +298,7 @@ def read_ip_data_from_csv(
     logger: logging.Logger,
     column_patterns: dict[str, str] | None = None,
     csv_separator: str = ",",
-) -> tuple[list[list[str]], int, int]:
+) -> tuple[list[list[str]], int, int] | None:
     try:
         header_patterns: dict[str, str] = {**DEFAULT_IP_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_filename, newline="", encoding="utf-8") as csv_file:
@@ -280,9 +312,12 @@ def read_ip_data_from_csv(
             ip_column_no: int = _find_header_index(headers, ip_pattern, "ip", csv_filename, logger)
 
             ip_data: list[list[str]] = list(reader)  # Read remaining rows
+    except ValueError as err:
+        logger.warning("skipping csv file %s because %s", csv_filename, err)
+        return None
     except Exception:
         logger.exception("error while trying to read csv file %s", csv_filename)
-        sys.exit(1)
+        return None
 
     return ip_data, app_id_column_no, ip_column_no
 
@@ -378,12 +413,14 @@ def extract_ip_data_from_csv(
     if valid_app_id_prefixes is None:
         valid_app_id_prefixes = DEFAULT_VALID_APP_ID_PREFIXES
 
-    ip_data: list[list[str]] = []
     csv_file_path: str = base_dir + "/" + csv_filename  # add directory to csv files
 
-    ip_data, app_id_column_no, ip_column_no = read_ip_data_from_csv(
+    ip_data_result: tuple[list[list[str]], int, int] | None = read_ip_data_from_csv(
         csv_file_path, logger, column_patterns, csv_separator
     )
+    if ip_data_result is None:
+        return
+    ip_data, app_id_column_no, ip_column_no = ip_data_result
 
     count_skips: int = 0
     for line in ip_data:

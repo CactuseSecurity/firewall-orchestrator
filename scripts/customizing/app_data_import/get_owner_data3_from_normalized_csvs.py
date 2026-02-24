@@ -10,7 +10,7 @@ __version__ = "2026-02-19-01"
 #   - recertificationActive: bool
 # 2026-02-19-01:
 #   - setting fields recertificationActive for all apps to true or false
-#   - importing owner_lifecycle_status from csv file if column pattern is given in config; if not, owner_lifecycle_status will be set to "unknown" for all apps
+#   - importing owner_lifecycle_state from csv file if column pattern is given in config; if not, owner_lifecycle_state will be set to "unknown" for all apps
 #   - enhancing import of owner_responsibles from csv file (allowing for multiple columns for different levels of responsibility)
 #   - importing criticality from csv file if column pattern is given in config; if not, criticality will be set to "unknown" for all apps
 #   - allowing for composite fields with delimiter string to allow concatenation of two columns into one field
@@ -66,6 +66,16 @@ def parse_bool_arg(value: str) -> bool:
     if normalized_value in ("false", "0", "no", "n"):
         return False
     raise argparse.ArgumentTypeError(f"invalid boolean value: {value}")
+
+
+def apply_owner_column_overrides(
+    owner_header_patterns: dict[str, str],
+    lifecycle_state_column: str,
+) -> dict[str, str]:
+    updated_patterns: dict[str, str] = dict(owner_header_patterns)
+    if lifecycle_state_column.strip():
+        updated_patterns["owner_lifecycle_state"] = rf"^\s*{re.escape(lifecycle_state_column.strip())}\s*$"
+    return updated_patterns
 
 
 if __name__ == "__main__":
@@ -135,6 +145,11 @@ if __name__ == "__main__":
         default=["Ja"],
         help='list of values in filter column to include, default=["Ja"]',
     )
+    parser.add_argument(
+        "--lifecycleState",
+        default="Lifecycle State",
+        help='owner CSV column header for lifecycle state import, default="Lifecycle State"',
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -170,6 +185,8 @@ if __name__ == "__main__":
     default_recert_active_state: bool = args.default_recertification_active_state
     included_owners_column: str | None = args.filter_column.strip() if args.filter_column else None
     include_values: list[str] = args.include_values
+    lifecycle_state_column: str = args.lifecycleState
+    owner_header_patterns = apply_owner_column_overrides(owner_header_patterns, lifecycle_state_column)
 
     if args.debug:
         debug_level: int = int(args.debug)

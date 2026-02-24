@@ -17,6 +17,7 @@ class Owner:
         days_until_first_recert: int,
         recert_active: bool = False,
         import_source: str = "defaultSource",
+        owner_lifecycle_state: str = "unknown",
     ) -> None:
         self.name: str = name
         self.app_id_external: str = app_id_external
@@ -27,6 +28,7 @@ class Owner:
         self.recert_active: bool = recert_active
         self.recert_period_days: int = recert_period_days
         self.days_until_first_recert: int = days_until_first_recert
+        self.owner_lifecycle_state: str = owner_lifecycle_state
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -38,6 +40,7 @@ class Owner:
             "recert_active": self.recert_active,
             "recert_period_days": self.recert_period_days,
             "days_until_first_recert": self.days_until_first_recert,
+            "owner_lifecycle_state": self.owner_lifecycle_state,
         }
 
 

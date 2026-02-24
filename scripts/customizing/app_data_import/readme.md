@@ -20,7 +20,7 @@ Adjust `/etc/fworch/secrets/customizingConfig.json` as follows:
 - `gitRepo`, `gitUser`, `gitPassword`: Git repository URL (without protocol), user, and password that host the CSV exports.
 - `csvOwnerFilePattern`: regex for owner/app metadata files (e.g., `NeMo_..._meta.csv`).
 - `csvAppServerFilePattern`: regex for server/IP files (e.g., `NeMo_..._IP.*?.csv`).
-- `csvOwnerColumnPatterns` (optional): JSON object with regexes for the owner CSV headers (`name`, `app_id`, `owner_tiso`, `owner_kwita`); defaults match `col: Name`, `col: Alfabet-ID`, `TISO`, and `kwITA`.
+- `csvOwnerColumnPatterns` (optional): JSON object with regexes for the owner CSV headers (`name`, `app_id`, `owner_tiso`, `owner_kwita`, `owner_lifecycle_state`); defaults match `col: Name`, `col: Alfabet-ID`, `TISO`, `kwITA`, and `Lifecycle State`.
 - `csvIpColumnPatterns` (optional): JSON object with regexes for the IP CSV headers (`app_id`, `ip`); defaults match `col: Alfabet-ID` and `col: IP`.
 - `ldapPath`: DN template containing `{USERID}` to expand main users.
 
@@ -29,6 +29,7 @@ You can bypass Git and read from a local folder by providing `--import_from_fold
 Owner row import can be filtered via CLI parameters:
 - `--filterColumn` (default: `Aktive Firewallregel`): owner CSV header used for active-rule filtering.
 - `--includeValues` (default: `Ja`): one or more values in that column to include; rows with other values are skipped.
+- `--lifecycleState` (default: `Lifecycle State`): owner CSV header used to import `owner_lifecycle_state`.
 - Set `--filterColumn ""` to disable this filter.
 
 #### Settings via UI

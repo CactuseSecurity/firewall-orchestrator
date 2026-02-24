@@ -3756,6 +3756,23 @@
                     ]
                   },
                   "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ]
+                  },
+                  "comment": ""
                 }
               ],
               "select_permissions": [
@@ -7863,6 +7880,7 @@
                     "columns": [
                       "notification_done",
                       "rule_owner_mapping_done",
+                      "security_relevant_changes_counter",
                       "stop_time",
                       "successful_import"
                     ],

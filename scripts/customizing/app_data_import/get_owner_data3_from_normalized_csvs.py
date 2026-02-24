@@ -68,6 +68,34 @@ def parse_bool_arg(value: str) -> bool:
     raise argparse.ArgumentTypeError(f"invalid boolean value: {value}")
 
 
+def parse_criticality_recert_period_mapping(mapping_entries: list[str]) -> dict[str, int]:
+    mapping: dict[str, int] = {}
+    for mapping_entry in mapping_entries:
+        if ":" not in mapping_entry:
+            raise argparse.ArgumentTypeError(
+                f"invalid criticalityRecertPeriodMapping entry '{mapping_entry}', expected PREFIX:DAYS"
+            )
+        criticality_prefix, recert_days_str = mapping_entry.split(":", 1)
+        criticality_prefix = criticality_prefix.strip()
+        recert_days_str = recert_days_str.strip()
+        if criticality_prefix == "" or recert_days_str == "":
+            raise argparse.ArgumentTypeError(
+                f"invalid criticalityRecertPeriodMapping entry '{mapping_entry}', expected PREFIX:DAYS"
+            )
+        try:
+            recert_days: int = int(recert_days_str)
+        except ValueError as err:
+            raise argparse.ArgumentTypeError(
+                f"invalid recertification period '{recert_days_str}' in mapping entry '{mapping_entry}'"
+            ) from err
+        if recert_days < 0:
+            raise argparse.ArgumentTypeError(
+                f"invalid recertification period '{recert_days_str}' in mapping entry '{mapping_entry}'"
+            )
+        mapping[criticality_prefix] = recert_days
+    return mapping
+
+
 def apply_owner_column_overrides(
     owner_header_patterns: dict[str, str],
     lifecycle_state_column: str,
@@ -125,7 +153,6 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--debug", default=0, help="debug level, default=0")
     parser.add_argument(
         "--defaultRecertificationActiveState",
-        "--detauldRecertificationActiveState",
         dest="default_recertification_active_state",
         type=parse_bool_arg,
         default=False,
@@ -168,6 +195,17 @@ if __name__ == "__main__":
         default=None,
         help="list of max lengths per composite id field; values are truncated before joining",
     )
+    parser.add_argument(
+        "--criticalityColumnHeader",
+        default=None,
+        help="owner CSV header used to import criticality; if omitted, criticality is not included in output",
+    )
+    parser.add_argument(
+        "--criticalityRecertPeriodMapping",
+        nargs="+",
+        default=None,
+        help='list of mappings PREFIX:DAYS, e.g. "1:360 2:360 3:180"; if criticality starts with PREFIX, recert_period_days is set to DAYS',
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -207,6 +245,12 @@ if __name__ == "__main__":
     composite_id_fields: tuple[str, ...] | None = tuple(args.compositeIdFields) if args.compositeIdFields else None
     composite_id_fields_delimiter_str: str = args.compositeIdFieldsDelimiterStr
     composite_id_fields_max_length: list[int] | None = args.compositeIdFieldsMaxLength
+    criticality_column_header: str | None = args.criticalityColumnHeader
+    criticality_recert_period_mapping: dict[str, int] | None = (
+        parse_criticality_recert_period_mapping(args.criticalityRecertPeriodMapping)
+        if args.criticalityRecertPeriodMapping
+        else None
+    )
     owner_header_patterns = apply_owner_column_overrides(owner_header_patterns, lifecycle_state_column)
 
     if args.debug:
@@ -273,6 +317,8 @@ if __name__ == "__main__":
                 composite_id_fields=composite_id_fields,
                 composite_id_fields_delimiter_str=composite_id_fields_delimiter_str,
                 composite_id_fields_max_length=composite_id_fields_max_length,
+                criticality_column_header=criticality_column_header,
+                criticality_recert_period_mapping=criticality_recert_period_mapping,
             )
 
     app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)

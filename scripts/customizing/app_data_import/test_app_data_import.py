@@ -6,6 +6,7 @@ from pathlib import Path
 
 from scripts.customizing.app_data_import.get_owner_data3_from_normalized_csvs import (
     apply_owner_column_overrides,
+    parse_criticality_recert_period_mapping,
 )
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 from scripts.customizing.fwo_custom_lib.basic_helpers import (
@@ -58,6 +59,7 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(owner.recert_period_days, 365)
             self.assertEqual(owner.import_source, self.import_source)
             self.assertEqual(owner.owner_lifecycle_state, "unknown")
+            self.assertNotIn("criticality", owner.to_json())
 
     def test_extract_ip_data_from_csv_adds_app_server(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -470,6 +472,88 @@ class AppDataImportTests(unittest.TestCase):
             self.assertTrue(
                 any("compositeIdFields and compositeIdFieldsMaxLength count differ" in m for m in log_context.output)
             )
+
+    def test_extract_app_data_from_csv_imports_criticality_when_header_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,Criticality\n"
+                    "App Critical,APP-014,user14,false,High\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                criticality_column_header="Criticality",
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].to_json().get("criticality"), "High")
+
+    def test_extract_app_data_from_csv_applies_criticality_recert_period_mapping(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,Criticality\n"
+                    "App Critical,APP-015,user15,false,3 High\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                criticality_column_header="Criticality",
+                criticality_recert_period_mapping={"1": 360, "2": 360, "3": 180, "4": 180, "5": 180},
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].recert_period_days, 180)
+            self.assertEqual(app_list[0].days_until_first_recert, 180)
+
+    def test_extract_app_data_from_csv_uses_kwita_when_no_criticality_mapping_match(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,Criticality\n"
+                    "App Critical Fallback,APP-016,user16,true,9 Low\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                criticality_column_header="Criticality",
+                criticality_recert_period_mapping={"1": 360, "2": 360, "3": 180},
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].recert_period_days, 182)
+
+    def test_parse_criticality_recert_period_mapping_parses_entries(self) -> None:
+        mapping: dict[str, int] = parse_criticality_recert_period_mapping(["1:360", "2:360", "3:180"])
+        self.assertEqual(mapping, {"1": 360, "2": 360, "3": 180})
 
 
 if __name__ == "__main__":

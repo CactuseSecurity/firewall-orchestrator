@@ -18,6 +18,7 @@ class Owner:
         recert_active: bool = False,
         import_source: str = "defaultSource",
         owner_lifecycle_state: str = "unknown",
+        criticality: str | None = None,
     ) -> None:
         self.name: str = name
         self.app_id_external: str = app_id_external
@@ -29,9 +30,10 @@ class Owner:
         self.recert_period_days: int = recert_period_days
         self.days_until_first_recert: int = days_until_first_recert
         self.owner_lifecycle_state: str = owner_lifecycle_state
+        self.criticality: str | None = criticality
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        owner_json: dict[str, Any] = {
             "name": self.name,
             "app_id_external": self.app_id_external,
             "main_user": self.main_user,
@@ -42,6 +44,9 @@ class Owner:
             "days_until_first_recert": self.days_until_first_recert,
             "owner_lifecycle_state": self.owner_lifecycle_state,
         }
+        if self.criticality is not None:
+            owner_json["criticality"] = self.criticality
+        return owner_json
 
 
 class Appip:

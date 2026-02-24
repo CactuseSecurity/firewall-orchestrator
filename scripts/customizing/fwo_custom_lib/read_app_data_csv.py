@@ -28,6 +28,8 @@ class OwnerLineParserContext:
     app_owner_tiso_column: int
     app_owner_kwita_column: int
     owner_lifecycle_state_column: int
+    criticality_column: int
+    criticality_recert_period_mapping: dict[str, int] | None
     included_owners_column_no: int
     include_values: list[str] | None
     ldap_path: str
@@ -86,6 +88,24 @@ def _get_owner_lifecycle_state(line: list[str], owner_lifecycle_state_column: in
         line[owner_lifecycle_state_column].strip() if len(line) > owner_lifecycle_state_column else ""
     )
     return owner_lifecycle_state if owner_lifecycle_state else "unknown"
+
+
+def _get_criticality(line: list[str], criticality_column: int) -> str:
+    if criticality_column < 0:
+        return ""
+    return line[criticality_column].strip() if len(line) > criticality_column else ""
+
+
+def _get_recert_period_days_for_criticality(
+    criticality: str,
+    criticality_recert_period_mapping: dict[str, int] | None,
+) -> int | None:
+    if not criticality_recert_period_mapping:
+        return None
+    for criticality_prefix, period_days in criticality_recert_period_mapping.items():
+        if criticality.startswith(criticality_prefix):
+            return period_days
+    return None
 
 
 def build_dn(user_id: str, ldap_path: str, logger: logging.Logger) -> str:
@@ -166,7 +186,8 @@ def read_app_data_from_csv(
     included_owners_column: str | None = None,
     csv_separator: str = ",",
     composite_id_fields: tuple[str, ...] | None = None,
-) -> tuple[list[list[str]], int, int, tuple[int, ...] | None, int, int, int, int] | None:
+    criticality_column_header: str | None = None,
+) -> tuple[list[list[str]], int, int, tuple[int, ...] | None, int, int, int, int, int] | None:
     try:
         header_patterns: dict[str, str] = {**DEFAULT_OWNER_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_file_name, newline="", encoding="utf-8") as csv_file_handle:
@@ -202,6 +223,11 @@ def read_app_data_from_csv(
                 logger,
                 required=False,
             )
+            criticality_column: int = -1
+            if criticality_column_header:
+                criticality_column = _find_required_header_index_by_name(
+                    headers, criticality_column_header, csv_file_name, logger
+                )
             included_owners_column_no: int = -1
             if included_owners_column:
                 escaped_included_owners_column: str = re.escape(included_owners_column)
@@ -234,6 +260,7 @@ def read_app_data_from_csv(
         app_owner_tiso_column,
         app_owner_kwita_column,
         owner_lifecycle_state_column,
+        criticality_column,
         included_owners_column_no,
     )
 
@@ -260,10 +287,19 @@ def parse_app_line(
     app_name: str = line[context.app_name_column]
     app_main_user: str = line[context.app_owner_tiso_column]
     main_user_dn: str = build_dn(app_main_user, context.ldap_path, context.logger)
-    recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
     owner_lifecycle_state: str = _get_owner_lifecycle_state(line, context.owner_lifecycle_state_column)
+    criticality: str = _get_criticality(line, context.criticality_column)
+    recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
+    mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
+        criticality, context.criticality_recert_period_mapping
+    )
+    if mapped_recert_period_days is not None:
+        recert_period_days = mapped_recert_period_days
     if main_user_dn == "" and context.debug_level > 0:
         context.logger.warning("adding app without main user: %s", app_id)
+    owner_kwargs: dict[str, str] = {}
+    if context.criticality_column >= 0:
+        owner_kwargs["criticality"] = criticality
     app_list.append(
         context.owner_cls(
             app_id_external=app_id,
@@ -274,6 +310,7 @@ def parse_app_line(
             recert_active=False,
             import_source=context.import_source_string,
             owner_lifecycle_state=owner_lifecycle_state,
+            **owner_kwargs,
         )
     )
     return count_skips
@@ -298,6 +335,8 @@ def extract_app_data_from_csv(
     composite_id_fields: tuple[str, ...] | None = None,
     composite_id_fields_delimiter_str: str = "",
     composite_id_fields_max_length: list[int] | None = None,
+    criticality_column_header: str | None = None,
+    criticality_recert_period_mapping: dict[str, int] | None = None,
 ) -> None:
     if recert_active_app_list is None:
         recert_active_app_list = []
@@ -327,7 +366,7 @@ def extract_app_data_from_csv(
 
     csv_file_path: str = base_dir + "/" + csv_file  # add directory to csv files
 
-    csv_data: tuple[list[list[str]], int, int, tuple[int, ...] | None, int, int, int, int] | None = (
+    csv_data: tuple[list[list[str]], int, int, tuple[int, ...] | None, int, int, int, int, int] | None = (
         read_app_data_from_csv(
             csv_file_path,
             logger,
@@ -335,6 +374,7 @@ def extract_app_data_from_csv(
             included_owners_column,
             csv_separator,
             composite_id_fields,
+            criticality_column_header,
         )
     )
     if csv_data is None:
@@ -348,6 +388,7 @@ def extract_app_data_from_csv(
         app_owner_tiso_column,
         app_owner_kwita_column,
         owner_lifecycle_state_column,
+        criticality_column,
         included_owners_column_no,
     ) = csv_data
     parser_context: OwnerLineParserContext = OwnerLineParserContext(
@@ -359,6 +400,8 @@ def extract_app_data_from_csv(
         app_owner_tiso_column=app_owner_tiso_column,
         app_owner_kwita_column=app_owner_kwita_column,
         owner_lifecycle_state_column=owner_lifecycle_state_column,
+        criticality_column=criticality_column,
+        criticality_recert_period_mapping=criticality_recert_period_mapping,
         included_owners_column_no=included_owners_column_no,
         include_values=include_values,
         ldap_path=ldap_path,

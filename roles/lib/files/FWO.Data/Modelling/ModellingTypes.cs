@@ -23,7 +23,8 @@ namespace FWO.Data.Modelling
             Implement = 11,
             Reject = 12,
             Decommission = 13,
-            Recertify = 14
+            Recertify = 14,
+            Publish = 15
         }
 
         public enum ModObjectType

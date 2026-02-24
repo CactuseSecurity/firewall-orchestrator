@@ -211,6 +211,15 @@ ALTER TABLE owner_ticket ADD CONSTRAINT owner_ticket_ticket_id_foreign_key FOREI
 ALTER TABLE ext_request ADD CONSTRAINT ext_request_owner_id_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE ext_request ADD CONSTRAINT ext_request_ticket_id_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
+Alter table "time_object" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+Alter table "time_object" add  foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
+Alter table "time_object" add  foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
+
+Alter table "rule_time" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+Alter table "rule_time" add  foreign key ("time_obj_id") references "time_object" ("time_obj_id") on update restrict on delete cascade;
+Alter table "rule_time" add  foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
+Alter table "rule_time" add  foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
+
 --- request.reqtask ---
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_request_ticket_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqtask ADD CONSTRAINT request_reqtask_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;

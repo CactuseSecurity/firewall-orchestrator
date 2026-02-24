@@ -1,5 +1,6 @@
 @using FWO.Data.Middleware
 @using FWO.Data.Workflow
+@using FWO.Services.Workflow
 @using FWO.Middleware.Client
 @using FWO.Report
 @using FWO.ExternalSystems.Tufin.SecureChange
@@ -357,9 +358,18 @@
                 RequestInProcess = true;
                 TaskList = intTicket.Tasks;
                 await SaveTicketId(intTicket.Id);
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
-                    0, $"Initialized Rollout Requests (Ticket {intTicket.Id})", apiConnection, userConfig,
-                    intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = ModellingTypes.ChangeType.InitRequests,
+                    ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
+                    ObjectId = 0,
+                    Text = $"Initialized Rollout Requests (Ticket {intTicket.Id})",
+                    ApiConnection = apiConnection,
+                    UserConfig = userConfig,
+                    ApplicationId = intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
+                    DisplayMessageInUi = DefaultInit.DoNothing,
+                    Requester = intTicket.Requester?.Name
+                });
                 SubscribeTaskChanges();
                 await CreateExtRequests(intTicket);
                 await MarkConnectionsAsRequested(Connections);
@@ -412,9 +422,18 @@
                 Log.WriteDebug("CreateExtRequest", $"External Request for Ticket {intTicket.Id.ToString()} created.");
             }
 
-            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
-                0, $"Initialized Rollout Requests", apiConnection, userConfig,
-                intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
+            await ModellingHandlerBase.LogChange(new LogChangeRequest
+            {
+                ChangeType = ModellingTypes.ChangeType.InitRequests,
+                ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
+                ObjectId = 0,
+                Text = "Initialized Rollout Requests",
+                ApiConnection = apiConnection,
+                UserConfig = userConfig,
+                ApplicationId = intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
+                DisplayMessageInUi = DefaultInit.DoNothing,
+                Requester = intTicket.Requester?.Name
+            });
         }
         catch (Exception exception)
         {

@@ -338,7 +338,7 @@
     {
         List<RuleTreeItem> ruleTreeItems = new();
 
-        if (ruleTreeBuilder.RuleTreeCache.TryGetValue((deviceReport.Id, managementReport.Id), out RuleTreeItem? ruleTreeFromCache))
+        if (ruleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, deviceReport.Id), out RuleTreeItem? ruleTreeFromCache))
         {
             for (int i = 0; i < ruleTreeFromCache.ElementsFlat.Count; i++)
             {

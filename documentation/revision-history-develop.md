@@ -346,3 +346,10 @@ A complete 80K lines rework of FWO, including
 
 ## 9.0.4 - 13.02.2026 DEVELOP
 - maintenance release with explicit 9.0.4 upgrade step
+
+# 9.0.5 - 18.02.2026 DEVELOP
+- update rule_owner table for REST api
+- update import_control to allow flexible tracking of different import types
+
+# 9.0.6 - 20.02.2026 DEVELOP
+- add import of time objects

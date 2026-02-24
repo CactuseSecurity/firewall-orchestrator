@@ -5,7 +5,7 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Report.Filter;
-using FWO.Services;
+using FWO.Services.Modelling;
 using System.Text;
 
 namespace FWO.Report

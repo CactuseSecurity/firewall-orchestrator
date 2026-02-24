@@ -2,6 +2,7 @@
 @using FWO.ExternalSystems
 @using FWO.Data
 @using FWO.Ui.Display
+@using FWO.Services.Workflow
 @using RestSharp
 @using System.Net
 @using System.Linq
@@ -169,7 +170,7 @@
                     DeleteMessage="@appHandler!.Message" DeleteAllowed="appHandler!.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
                 <DecommissionInterfacePopup @bind-Display="appHandler.DecommissionInterfaceMode" ConnHandler="appHandler.ConnHandler"
                     PossibleInterfaces="appHandler.GetInterfaces()" RefreshParent="async () => {await DefaultInit.DoNothing();}" />
-                <InterfaceUsersPopup @bind-Display="appHandler.ShowUsingConnectionsMode" InterfaceName="@(appHandler.InterfaceName)" UsingConnections="appHandler.UsingConnections"/>
+                <InterfaceUsersPopup @bind-Display="appHandler.ShowUsingConnectionsMode" InterfaceName="@(appHandler.InterfaceName)" UsingConnections="appHandler.UsingConnections" App="selectedApp"/>
             }
         </div>
     }
@@ -233,7 +234,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
+        apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         extStateHandler = new(apiConnection);
         await states.Init(apiConnection);
         await InitAppList();
@@ -338,17 +339,7 @@ else
         {
             appSelected = false;
             selectedApp = newApp;
-            bool isOwner = authenticationStateTask!.Result.User.IsInRole(Roles.Modeller) &&
-                IsModellingWriteAllowedForApp(newApp);
-            if (isOwner)
-            {
-                apiConnection.SetRole(Roles.Modeller);
-            }
-            else
-            {
-                apiConnection.SetBestRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor, Roles.Modeller, Roles.Recertifier });
-            }
-            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner)
+            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, IsModellingWriteAllowedForApp(newApp))
             {
                 ActWidth = sidebarLeftWidth,
                 StartCollapsed = firstInit

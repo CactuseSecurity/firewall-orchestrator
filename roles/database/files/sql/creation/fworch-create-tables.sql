@@ -643,10 +643,11 @@ Create table "import_control"
 	"is_initial_import" Boolean NOT NULL Default FALSE,
 	"mgm_id" Integer,
 	"successful_import" Boolean NOT NULL Default FALSE,
-	"policy_changes_found" Boolean NOT NULL Default FALSE, -- rule_changes_found
-	"changes_found" Boolean NOT NULL Default FALSE, -- any_changes_found
+	"policy_changes_found" Boolean NOT NULL Default FALSE, -- old_field: rule_changes_found
+	"changes_found" Boolean NOT NULL Default FALSE, -- old_field: any_changes_found 
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
+	"rule_owner_mapping_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
  primary key ("control_id")
 );
@@ -1064,7 +1065,7 @@ create table rule_owner
     rule_id bigint NOT NULL,
     created bigint NOT NULL,
     removed bigint,
-    owner_mapping_source_id bigint NOT NULL,
+    owner_mapping_source_id smallint NOT NULL,
     primary key (rule_id, owner_id, created)
 );
 
@@ -1154,6 +1155,27 @@ create table ext_request
 	wait_cycles int default 0,
 	attempts int default 0,
 	locked boolean default false
+);
+
+create table time_object
+(
+    time_obj_id BIGSERIAL PRIMARY KEY,
+    mgm_id Integer NOT NULL,
+    time_obj_uid Varchar,
+    time_obj_name Varchar,
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    created BIGINT,
+    removed BIGINT
+);
+
+create table rule_time
+(
+    rule_time_id BIGSERIAL PRIMARY KEY,
+    rule_id BIGINT,
+    time_obj_id BIGINT,
+    created BIGINT,
+    removed BIGINT
 );
 
 -- workflow -------------------------------------------------------

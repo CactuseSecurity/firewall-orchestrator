@@ -111,5 +111,41 @@ namespace FWO.Test
 
             Assert.That(canWrite, Is.False);
         }
+
+        [Test]
+        public void ShowNoRecertifiableOwnersHintReturnsTrueForRecertifierWithoutRecertifiableOwners()
+        {
+            bool showHint = RecertificationOwnerSelection.ShowNoRecertifiableOwnersHint(
+                isAdmin: false,
+                hasRecertifierRole: true,
+                readableOwnerCount: 2,
+                recertifiableOwnerCount: 0);
+
+            Assert.That(showHint, Is.True);
+        }
+
+        [Test]
+        public void ShowNoRecertifiableOwnersHintReturnsFalseForAdmin()
+        {
+            bool showHint = RecertificationOwnerSelection.ShowNoRecertifiableOwnersHint(
+                isAdmin: true,
+                hasRecertifierRole: true,
+                readableOwnerCount: 2,
+                recertifiableOwnerCount: 0);
+
+            Assert.That(showHint, Is.False);
+        }
+
+        [Test]
+        public void ShowNoRecertifiableOwnersHintReturnsFalseWhenNoReadableOwners()
+        {
+            bool showHint = RecertificationOwnerSelection.ShowNoRecertifiableOwnersHint(
+                isAdmin: false,
+                hasRecertifierRole: true,
+                readableOwnerCount: 0,
+                recertifiableOwnerCount: 0);
+
+            Assert.That(showHint, Is.False);
+        }
     }
 }

@@ -71,6 +71,23 @@ def _is_json_trailing_comma(config_content: str, index: int) -> bool:
     return lookahead_index < len(config_content) and config_content[lookahead_index] in ("]", "}")
 
 
+def _consume_json_line_comment_char(current_char: str, result_chars: list[str]) -> bool:
+    if current_char == "\n":
+        result_chars.append(current_char)
+        return False
+    return True
+
+
+def _consume_json_string_content(
+    config_content: str, index: int, current_char: str, escaped: bool
+) -> tuple[int, bool, bool]:
+    was_escaped: bool = escaped
+    step: int
+    step, escaped = _consume_json_string_char(config_content, index, escaped)
+    in_string: bool = not (current_char == '"' and not was_escaped)
+    return step, escaped, in_string
+
+
 def _strip_json_comments(config_content: str) -> str:
     result_chars: list[str] = []
     in_string: bool = False
@@ -84,9 +101,7 @@ def _strip_json_comments(config_content: str) -> str:
         next_char: str = config_content[i + 1] if i + 1 < len(config_content) else ""
 
         if in_line_comment:
-            if current_char == "\n":
-                in_line_comment = False
-                result_chars.append(current_char)
+            in_line_comment = _consume_json_line_comment_char(current_char, result_chars)
             i += 1
             continue
 
@@ -98,11 +113,8 @@ def _strip_json_comments(config_content: str) -> str:
 
         if in_string:
             result_chars.append(current_char)
-            was_escaped: bool = escaped
             step: int
-            step, escaped = _consume_json_string_char(config_content, i, escaped)
-            if current_char == '"' and not was_escaped:
-                in_string = False
+            step, escaped, in_string = _consume_json_string_content(config_content, i, current_char, escaped)
             i += step
             continue
 

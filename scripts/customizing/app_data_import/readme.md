@@ -32,6 +32,7 @@ Owner row import can be filtered via CLI parameters:
 - `--lifecycleState` (default: `Lifecycle State`): owner CSV header used to import `owner_lifecycle_state`.
 - `--compositeIdFields` (optional): list of owner CSV headers used to build `app_id_external` as a composite key.
 - `--compositeIdFieldsDelimiterStr` (default: empty): delimiter string used between composite id field values.
+- `--compositeIdFieldsMaxLength` (optional): list of max lengths per composite field; values are truncated before joining. Length must match `--compositeIdFields`.
 - Set `--filterColumn ""` to disable this filter.
 
 #### Settings via UI

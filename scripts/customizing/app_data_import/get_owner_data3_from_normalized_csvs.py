@@ -161,6 +161,13 @@ if __name__ == "__main__":
         default="",
         help="delimiter string used between composite id field values",
     )
+    parser.add_argument(
+        "--compositeIdFieldsMaxLength",
+        nargs="+",
+        type=int,
+        default=None,
+        help="list of max lengths per composite id field; values are truncated before joining",
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -199,6 +206,7 @@ if __name__ == "__main__":
     lifecycle_state_column: str = args.lifecycleState
     composite_id_fields: tuple[str, ...] | None = tuple(args.compositeIdFields) if args.compositeIdFields else None
     composite_id_fields_delimiter_str: str = args.compositeIdFieldsDelimiterStr
+    composite_id_fields_max_length: list[int] | None = args.compositeIdFieldsMaxLength
     owner_header_patterns = apply_owner_column_overrides(owner_header_patterns, lifecycle_state_column)
 
     if args.debug:
@@ -264,6 +272,7 @@ if __name__ == "__main__":
                 csv_separator=csv_separator,
                 composite_id_fields=composite_id_fields,
                 composite_id_fields_delimiter_str=composite_id_fields_delimiter_str,
+                composite_id_fields_max_length=composite_id_fields_max_length,
             )
 
     app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)

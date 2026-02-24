@@ -24,6 +24,7 @@ class OwnerLineParserContext:
     app_id_column: int
     composite_id_columns: tuple[int, ...] | None
     composite_id_delimiter: str
+    composite_id_max_lengths: tuple[int, ...] | None
     app_owner_tiso_column: int
     app_owner_kwita_column: int
     owner_lifecycle_state_column: int
@@ -61,9 +62,13 @@ def _has_valid_app_id_prefix(app_id: str, context: OwnerLineParserContext) -> bo
 
 def _build_app_id(line: list[str], context: OwnerLineParserContext) -> str:
     if context.composite_id_columns:
-        return context.composite_id_delimiter.join(
-            line[column].strip() if len(line) > column else "" for column in context.composite_id_columns
-        )
+        composite_values: list[str] = []
+        for index, column in enumerate(context.composite_id_columns):
+            value: str = line[column].strip() if len(line) > column else ""
+            if context.composite_id_max_lengths is not None:
+                value = value[: context.composite_id_max_lengths[index]]
+            composite_values.append(value)
+        return context.composite_id_delimiter.join(composite_values)
     if context.app_id_column < 0 or len(line) <= context.app_id_column:
         return ""
     return line[context.app_id_column].strip()
@@ -292,11 +297,33 @@ def extract_app_data_from_csv(
     csv_separator: str = ",",
     composite_id_fields: tuple[str, ...] | None = None,
     composite_id_fields_delimiter_str: str = "",
+    composite_id_fields_max_length: list[int] | None = None,
 ) -> None:
     if recert_active_app_list is None:
         recert_active_app_list = []
     if valid_app_id_prefixes is None:
         valid_app_id_prefixes = DEFAULT_VALID_APP_ID_PREFIXES
+    composite_id_max_lengths: tuple[int, ...] | None = None
+    if composite_id_fields_max_length is not None:
+        if composite_id_fields is None:
+            logger.warning(
+                "ignoring compositeIdFieldsMaxLength because compositeIdFields is not configured for %s",
+                csv_file,
+            )
+        elif len(composite_id_fields_max_length) != len(composite_id_fields):
+            logger.warning(
+                "skipping csv file %s because compositeIdFields and compositeIdFieldsMaxLength count differ",
+                csv_file,
+            )
+            return
+        elif any(value < 0 for value in composite_id_fields_max_length):
+            logger.warning(
+                "skipping csv file %s because compositeIdFieldsMaxLength contains negative values",
+                csv_file,
+            )
+            return
+        else:
+            composite_id_max_lengths = tuple(composite_id_fields_max_length)
 
     csv_file_path: str = base_dir + "/" + csv_file  # add directory to csv files
 
@@ -328,6 +355,7 @@ def extract_app_data_from_csv(
         app_id_column=app_id_column,
         composite_id_columns=composite_id_columns,
         composite_id_delimiter=composite_id_fields_delimiter_str,
+        composite_id_max_lengths=composite_id_max_lengths,
         app_owner_tiso_column=app_owner_tiso_column,
         app_owner_kwita_column=app_owner_kwita_column,
         owner_lifecycle_state_column=owner_lifecycle_state_column,

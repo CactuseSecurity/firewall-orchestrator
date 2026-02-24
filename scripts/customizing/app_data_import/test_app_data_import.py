@@ -417,6 +417,60 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(len(app_list), 1)
             self.assertEqual(app_list[0].app_id_external, "OPS::SRV-01")
 
+    def test_extract_app_data_from_csv_truncates_composite_id_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,bogus: TISO,bogus: kwITA,Typ,ID\n"
+                    "Composite Truncate App,user15,false,APPLICATION,123456\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                composite_id_fields=("Typ", "ID"),
+                composite_id_fields_delimiter_str="-",
+                composite_id_fields_max_length=[3, 4],
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].app_id_external, "APP-1234")
+
+    def test_extract_app_data_from_csv_skips_file_for_invalid_composite_max_length_count(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Name,bogus: TISO,bogus: kwITA,Typ,ID\nComposite App,user16,false,APP,1234\n")
+
+            app_list: list[Owner] = []
+            with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+                extract_app_data_from_csv(
+                    "owners.csv",
+                    app_list,
+                    self.ldap_path,
+                    self.import_source,
+                    Owner,
+                    self.logger,
+                    self.debug_level,
+                    base_dir=tmpdir,
+                    composite_id_fields=("Typ", "ID"),
+                    composite_id_fields_delimiter_str="-",
+                    composite_id_fields_max_length=[3],
+                )
+
+            self.assertEqual(len(app_list), 0)
+            self.assertTrue(
+                any("compositeIdFields and compositeIdFieldsMaxLength count differ" in m for m in log_context.output)
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

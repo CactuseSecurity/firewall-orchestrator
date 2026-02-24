@@ -39,6 +39,20 @@ class FWOLogger(logging.Logger):
 
 
 def _strip_json_comments(config_content: str) -> str:
+    def consume_string_char(index: int, escaped: bool) -> tuple[int, bool]:
+        if escaped:
+            return 1, False
+        current_char: str = config_content[index]
+        if current_char == "\\":
+            return 1, True
+        if current_char == '"':
+            return 1, False
+        return 1, False
+
+    def consume_block_comment(index: int) -> int:
+        next_char: str = config_content[index + 1] if index + 1 < len(config_content) else ""
+        return 2 if config_content[index] == "*" and next_char == "/" else 1
+
     result_chars: list[str] = []
     in_string: bool = False
     escaped: bool = False
@@ -58,26 +72,25 @@ def _strip_json_comments(config_content: str) -> str:
             continue
 
         if in_block_comment:
-            if current_char == "*" and next_char == "/":
+            block_step: int = consume_block_comment(i)
+            if block_step == 2:  # noqa: PLR2004
                 in_block_comment = False
-                i += 2
-            else:
-                i += 1
+            i += block_step
             continue
 
         if in_string:
             result_chars.append(current_char)
-            if escaped:
-                escaped = False
-            elif current_char == "\\":
-                escaped = True
-            elif current_char == '"':
+            was_escaped: bool = escaped
+            step: int
+            step, escaped = consume_string_char(i, escaped)
+            if current_char == '"' and not was_escaped:
                 in_string = False
-            i += 1
+            i += step
             continue
 
         if current_char == '"':
             in_string = True
+            escaped = False
             result_chars.append(current_char)
             i += 1
             continue
@@ -101,6 +114,22 @@ def _strip_json_comments(config_content: str) -> str:
 
 
 def _strip_trailing_commas(config_content: str) -> str:
+    def consume_string_char(index: int, escaped: bool) -> tuple[int, bool]:
+        if escaped:
+            return 1, False
+        current_char: str = config_content[index]
+        if current_char == "\\":
+            return 1, True
+        if current_char == '"':
+            return 1, False
+        return 1, False
+
+    def is_trailing_comma(index: int) -> bool:
+        lookahead_index: int = index + 1
+        while lookahead_index < len(config_content) and config_content[lookahead_index].isspace():
+            lookahead_index += 1
+        return lookahead_index < len(config_content) and config_content[lookahead_index] in ("]", "}")
+
     result_chars: list[str] = []
     in_string: bool = False
     escaped: bool = False
@@ -111,28 +140,24 @@ def _strip_trailing_commas(config_content: str) -> str:
 
         if in_string:
             result_chars.append(current_char)
-            if escaped:
-                escaped = False
-            elif current_char == "\\":
-                escaped = True
-            elif current_char == '"':
+            was_escaped: bool = escaped
+            step: int
+            step, escaped = consume_string_char(i, escaped)
+            if current_char == '"' and not was_escaped:
                 in_string = False
-            i += 1
+            i += step
             continue
 
         if current_char == '"':
             in_string = True
+            escaped = False
             result_chars.append(current_char)
             i += 1
             continue
 
-        if current_char == ",":
-            lookahead_index: int = i + 1
-            while lookahead_index < len(config_content) and config_content[lookahead_index].isspace():
-                lookahead_index += 1
-            if lookahead_index < len(config_content) and config_content[lookahead_index] in ("]", "}"):
-                i += 1
-                continue
+        if current_char == "," and is_trailing_comma(i):
+            i += 1
+            continue
 
         result_chars.append(current_char)
         i += 1

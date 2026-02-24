@@ -15,6 +15,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     read_custom_config_with_default,
 )
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
+    ExtractAppDataCsvOptions,
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
 )
@@ -61,6 +62,28 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(owner.import_source, self.import_source)
             self.assertEqual(owner.owner_lifecycle_state, "unknown")
             self.assertNotIn("criticality", owner.to_json())
+
+    def test_extract_app_data_from_csv_accepts_options_object(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nMy App,APP-001,user1,false\n")
+
+            app_list: list[Owner] = []
+            options: ExtractAppDataCsvOptions = ExtractAppDataCsvOptions(base_dir=tmpdir)
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                options=options,
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].app_id_external, "APP-001")
 
     def test_extract_ip_data_from_csv_adds_app_server(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

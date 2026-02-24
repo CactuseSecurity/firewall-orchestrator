@@ -2,6 +2,7 @@ import csv
 import logging
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from netaddr import IPAddress, IPNetwork
 
@@ -39,6 +40,73 @@ class OwnerLineParserContext:
     valid_app_id_prefixes: list[str]
     logger: logging.Logger
     debug_level: int
+
+
+@dataclass(frozen=True)
+class ExtractAppDataCsvOptions:
+    base_dir: str = "."
+    recert_active_app_list: list[str] | None = None
+    default_recert_active_state: bool = False
+    column_patterns: dict[str, str] | None = None
+    valid_app_id_prefixes: list[str] | None = None
+    included_owners_column: str | None = None
+    include_values: list[str] | None = None
+    csv_separator: str = ","
+    composite_id_fields: tuple[str, ...] | None = None
+    composite_id_fields_delimiter_str: str = ""
+    composite_id_fields_max_length: list[int] | None = None
+    criticality_column_header: str | None = None
+    criticality_recert_period_mapping: dict[str, int] | None = None
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None
+
+
+def _resolve_extract_options(
+    options: ExtractAppDataCsvOptions | None,
+    legacy_kwargs: dict[str, Any],
+) -> ExtractAppDataCsvOptions:
+    if options is None and not legacy_kwargs:
+        return ExtractAppDataCsvOptions()
+
+    valid_keys: set[str] = set(ExtractAppDataCsvOptions.__annotations__.keys())
+    invalid_keys: set[str] = set(legacy_kwargs) - valid_keys
+    if invalid_keys:
+        invalid_keys_list: str = ", ".join(sorted(invalid_keys))
+        raise TypeError(f"unknown extract_app_data_from_csv options: {invalid_keys_list}")
+
+    if options is None:
+        return ExtractAppDataCsvOptions(**legacy_kwargs)
+
+    merged_kwargs: dict[str, Any] = {field_name: getattr(options, field_name) for field_name in valid_keys}
+    merged_kwargs.update(legacy_kwargs)
+    return ExtractAppDataCsvOptions(**merged_kwargs)
+
+
+def _get_composite_id_max_lengths(
+    options: ExtractAppDataCsvOptions,
+    csv_file: str,
+    logger: logging.Logger,
+) -> tuple[int, ...] | None:
+    if options.composite_id_fields_max_length is None:
+        return None
+    if options.composite_id_fields is None:
+        logger.warning(
+            "ignoring compositeIdFieldsMaxLength because compositeIdFields is not configured for %s",
+            csv_file,
+        )
+        return None
+    if len(options.composite_id_fields_max_length) != len(options.composite_id_fields):
+        logger.warning(
+            "skipping csv file %s because compositeIdFields and compositeIdFieldsMaxLength count differ",
+            csv_file,
+        )
+        return None
+    if any(value < 0 for value in options.composite_id_fields_max_length):
+        logger.warning(
+            "skipping csv file %s because compositeIdFieldsMaxLength contains negative values",
+            csv_file,
+        )
+        return None
+    return tuple(options.composite_id_fields_max_length)
 
 
 def _is_included_owners_match(line: list[str], context: OwnerLineParserContext) -> bool:
@@ -396,48 +464,22 @@ def extract_app_data_from_csv(
     owner_cls: type[Owner],
     logger: logging.Logger,
     debug_level: int,
-    base_dir: str = ".",
-    recert_active_app_list: list[str] | None = None,
-    default_recert_active_state: bool = False,
-    column_patterns: dict[str, str] | None = None,
-    valid_app_id_prefixes: list[str] | None = None,
-    included_owners_column: str | None = None,
-    include_values: list[str] | None = None,
-    csv_separator: str = ",",
-    composite_id_fields: tuple[str, ...] | None = None,
-    composite_id_fields_delimiter_str: str = "",
-    composite_id_fields_max_length: list[int] | None = None,
-    criticality_column_header: str | None = None,
-    criticality_recert_period_mapping: dict[str, int] | None = None,
-    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None,
+    options: ExtractAppDataCsvOptions | None = None,
+    **legacy_kwargs: Any,
 ) -> None:
-    if recert_active_app_list is None:
-        recert_active_app_list = []
-    if valid_app_id_prefixes is None:
-        valid_app_id_prefixes = DEFAULT_VALID_APP_ID_PREFIXES
-    composite_id_max_lengths: tuple[int, ...] | None = None
-    if composite_id_fields_max_length is not None:
-        if composite_id_fields is None:
-            logger.warning(
-                "ignoring compositeIdFieldsMaxLength because compositeIdFields is not configured for %s",
-                csv_file,
-            )
-        elif len(composite_id_fields_max_length) != len(composite_id_fields):
-            logger.warning(
-                "skipping csv file %s because compositeIdFields and compositeIdFieldsMaxLength count differ",
-                csv_file,
-            )
-            return
-        elif any(value < 0 for value in composite_id_fields_max_length):
-            logger.warning(
-                "skipping csv file %s because compositeIdFieldsMaxLength contains negative values",
-                csv_file,
-            )
-            return
-        else:
-            composite_id_max_lengths = tuple(composite_id_fields_max_length)
+    resolved_options: ExtractAppDataCsvOptions = _resolve_extract_options(options, legacy_kwargs)
+    valid_app_id_prefixes: list[str] = resolved_options.valid_app_id_prefixes or DEFAULT_VALID_APP_ID_PREFIXES
+    recert_active_app_list: list[str] = resolved_options.recert_active_app_list or []
 
-    csv_file_path: str = base_dir + "/" + csv_file  # add directory to csv files
+    composite_id_max_lengths: tuple[int, ...] | None = _get_composite_id_max_lengths(resolved_options, csv_file, logger)
+    if (
+        resolved_options.composite_id_fields_max_length is not None
+        and resolved_options.composite_id_fields is not None
+        and composite_id_max_lengths is None
+    ):
+        return
+
+    csv_file_path: str = resolved_options.base_dir + "/" + csv_file  # add directory to csv files
 
     csv_data: (
         tuple[
@@ -456,12 +498,12 @@ def extract_app_data_from_csv(
     ) = read_app_data_from_csv(
         csv_file_path,
         logger,
-        column_patterns,
-        included_owners_column,
-        csv_separator,
-        composite_id_fields,
-        criticality_column_header,
-        responsibles_columns_headers,
+        resolved_options.column_patterns,
+        resolved_options.included_owners_column,
+        resolved_options.csv_separator,
+        resolved_options.composite_id_fields,
+        resolved_options.criticality_column_header,
+        resolved_options.responsibles_columns_headers,
     )
     if csv_data is None:
         return
@@ -482,16 +524,16 @@ def extract_app_data_from_csv(
         app_name_column=app_name_column,
         app_id_column=app_id_column,
         composite_id_columns=composite_id_columns,
-        composite_id_delimiter=composite_id_fields_delimiter_str,
+        composite_id_delimiter=resolved_options.composite_id_fields_delimiter_str,
         composite_id_max_lengths=composite_id_max_lengths,
         app_owner_tiso_column=app_owner_tiso_column,
         app_owner_kwita_column=app_owner_kwita_column,
         owner_lifecycle_state_column=owner_lifecycle_state_column,
         criticality_column=criticality_column,
-        criticality_recert_period_mapping=criticality_recert_period_mapping,
+        criticality_recert_period_mapping=resolved_options.criticality_recert_period_mapping,
         responsibles_columns=responsibles_columns,
         included_owners_column_no=included_owners_column_no,
-        include_values=include_values,
+        include_values=resolved_options.include_values,
         ldap_path=ldap_path,
         import_source_string=import_source_string,
         owner_cls=owner_cls,
@@ -509,7 +551,7 @@ def extract_app_data_from_csv(
 
     recert_active_app_set: set[str] = set(recert_active_app_list)
     for app in app_list:
-        app.recert_active = default_recert_active_state
+        app.recert_active = resolved_options.default_recert_active_state
         if app.app_id_external in recert_active_app_set:
             app.recert_active = True
             # Set initial recertification to standard period of days.

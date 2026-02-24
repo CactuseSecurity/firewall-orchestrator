@@ -98,21 +98,46 @@ def parse_criticality_recert_period_mapping(mapping_entries: list[str]) -> dict[
 
 
 def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[str, ...]]:
+    def expand_entries(entries: list[str]) -> list[str]:
+        expanded: list[str] = []
+        entry_value: str
+        for entry_value in entries:
+            if '"' in entry_value or "'" in entry_value:
+                expanded.extend(shlex.split(entry_value))
+            else:
+                expanded.append(entry_value)
+        return expanded
+
+    def parse_level_mapping(entry_value: str) -> tuple[str, str] | None:
+        split_entry: list[str] = entry_value.split(":", 1)
+        if len(split_entry) != 2:  # noqa: PLR2004
+            return None
+        return split_entry[0].strip(), split_entry[1].strip()
+
+    def validate_responsibles_columns(responsibles: dict[str, list[str]]) -> None:
+        if not responsibles:
+            raise argparse.ArgumentTypeError("responsiblesColumns must contain at least one LEVEL:HEADER mapping")
+        level_name: str
+        headers_list: list[str]
+        for level_name, headers_list in responsibles.items():
+            if len(headers_list) == 0:
+                raise argparse.ArgumentTypeError(
+                    f"invalid responsiblesColumns entry for level '{level_name}', expected at least one header"
+                )
+            if any(header == "" for header in headers_list):
+                raise argparse.ArgumentTypeError(
+                    f"invalid responsiblesColumns entry for level '{level_name}', headers must not be empty"
+                )
+
     responsibles_columns: dict[str, list[str]] = {}
     current_level: str | None = None
-    expanded_entries: list[str] = []
+    expanded_entries: list[str] = expand_entries(columns_entries)
     entry: str
-    for entry in columns_entries:
-        if '"' in entry or "'" in entry:
-            expanded_entries.extend(shlex.split(entry))
-        else:
-            expanded_entries.append(entry)
-
     for entry in expanded_entries:
-        split_entry: list[str] = entry.split(":", 1)
-        if len(split_entry) == 2:  # noqa: PLR2004
-            level: str = split_entry[0].strip()
-            first_header: str = split_entry[1].strip()
+        level_mapping: tuple[str, str] | None = parse_level_mapping(entry)
+        if level_mapping is not None:
+            level: str = level_mapping[0]
+            first_header: str = level_mapping[1]
             if level == "":
                 raise argparse.ArgumentTypeError(f"invalid responsiblesColumns entry '{entry}', expected LEVEL:HEADER")
             current_level = level
@@ -124,20 +149,7 @@ def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[st
             raise argparse.ArgumentTypeError(f"invalid responsiblesColumns entry '{entry}', expected LEVEL:HEADER")
         responsibles_columns[current_level].append(entry.strip())
 
-    if not responsibles_columns:
-        raise argparse.ArgumentTypeError("responsiblesColumns must contain at least one LEVEL:HEADER mapping")
-
-    level: str
-    headers: list[str]
-    for level, headers in responsibles_columns.items():
-        if len(headers) == 0:
-            raise argparse.ArgumentTypeError(
-                f"invalid responsiblesColumns entry for level '{level}', expected at least one header"
-            )
-        if any(header == "" for header in headers):
-            raise argparse.ArgumentTypeError(
-                f"invalid responsiblesColumns entry for level '{level}', headers must not be empty"
-            )
+    validate_responsibles_columns(responsibles_columns)
 
     return {level: tuple(headers) for level, headers in responsibles_columns.items()}
 

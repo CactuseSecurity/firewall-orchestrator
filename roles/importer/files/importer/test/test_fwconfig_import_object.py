@@ -1,6 +1,5 @@
 import copy
 from typing import Any
-from unittest.mock import mock_open
 
 import pytest
 from fwo_api_call import FwoApiCall
@@ -2183,7 +2182,6 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
     ):
         # Arrange
         FWOLogger.instance.debug_level = 9
-        m_open = mocker.patch("builtins.open", new_callable=mock_open)
         fwconfig_import_object.import_state.state.lookup_management_id = mocker.Mock(return_value=1)
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
@@ -2232,8 +2230,6 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         assert removed_nwsvc_ids == [{"id": 6}]
         assert removed_user_ids == [{"id": 7}]
         assert removed_zone_ids == [{"id": 8}]
-        expected_path = "/usr/local/fworch/tmp/import/mgm_id_3_query_variables.json"
-        m_open.assert_called_with(expected_path, "w")
 
 
 class TestFwConfigImportObjectUpdateObjectDiffs:

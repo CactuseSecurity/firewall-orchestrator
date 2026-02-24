@@ -50,6 +50,17 @@ query getManagementForNormalizedConfig(
     ) {
       zone_name
     }
+    timeObjects: time_objects(
+      where: {
+        created: { _lte: $import_id }
+        _or: [
+          { removed: { _is_null: true } }
+          { removed: { _gte: $import_id } }
+        ]
+      }
+    ) {
+      ...timeObjectFragment
+    }
     rulebases(
       where: {
         created: { _lte: $import_id }
@@ -116,6 +127,14 @@ fragment userObjectFragment on usr {
   user_member_names
   user_member_refs
   user_comment
+}
+
+fragment timeObjectFragment on time_object {
+  time_obj_id
+  time_obj_uid
+  time_obj_name
+  start_time
+  end_time
 }
 
 fragment rulebaseFragment on rulebase {

@@ -379,7 +379,7 @@ def parse_single_ip_line(
         return 1
 
     app_id: str = line[app_id_column_no]
-    app_id_prefix: str = app_id.split("-")[0].lower() + "-"
+    app_id_prefix: str = app_id.split("-", maxsplit=1)[0].lower() + "-"
     # TODO: deal with apps without prefix'
 
     if len(valid_app_id_prefixes) == 0 or app_id_prefix in valid_app_id_prefixes:

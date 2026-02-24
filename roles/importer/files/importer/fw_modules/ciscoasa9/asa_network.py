@@ -237,7 +237,7 @@ def normalize_network_object_groups(
                 # Add the reference to the member list
                 member_refs.append(network_obj.obj_uid)
 
-            except ValueError as e:
+            except ValueError as e:  # noqa: PERF203
                 FWOLogger.warning(f"Error processing member in network object group '{group.name}': {e}")
 
         group_obj = create_network_group_object(group.name, member_refs, group.description)

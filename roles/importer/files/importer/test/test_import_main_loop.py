@@ -4,11 +4,15 @@ from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoApiLoginFailedError
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
-from pytest_mock import MockerFixture
+from pytest_mock.plugin import MockerFixture
 from test.data.mock_objects import MockObjectsFactory
 from test.utils.test_utils import mock_get_graphql_code, mock_login
 
-from importer.import_main_loop import get_fwo_jwt, import_single_management, wait_with_shutdown_check
+from importer.import_main_loop import (
+    get_fwo_jwt,
+    import_single_management,
+    wait_with_shutdown_check,
+)
 
 
 class TestGetFwoJwt:
@@ -157,11 +161,18 @@ class TestImportSingleManagement:
             force=False,
             fwo_major_version=9,
             sleep_timer=0,
-            is_full_import=True,
         )
 
         # Assert
         mock_wait.assert_called_with(0)
         mock_get_mgm_details.assert_called_once()
-        mock_initialize_import.assert_called_once_with(1, api_call, False, True, False, 9, False, True)  # noqa: FBT003
+        mock_initialize_import.assert_called_once_with(
+            mgm_id=1,
+            api_call=api_call,
+            suppress_cert_warnings=False,
+            ssl_verification=True,
+            force=False,
+            version=9,
+            is_clearing_import=False,
+        )
         mock_register_global_state.assert_called_once_with(import_state_controller)

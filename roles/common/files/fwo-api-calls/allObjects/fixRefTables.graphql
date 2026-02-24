@@ -1,8 +1,8 @@
 mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   update_rule_from(
     where: {
-      removed: { _is_null: true }
       rule: { mgm_id: { _eq: $mgmId } }
+      removed: { _is_null: true }
       _or: [
         { rule: { removed: { _is_null: false } } }
         { object: { removed: { _is_null: false } } }
@@ -14,8 +14,8 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   }
   update_rule_to(
     where: {
-      removed: { _is_null: true }
       rule: { mgm_id: { _eq: $mgmId } }
+      removed: { _is_null: true }
       _or: [
         { rule: { removed: { _is_null: false } } }
         { object: { removed: { _is_null: false } } }
@@ -27,8 +27,8 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   }
   update_rule_nwobj_resolved(
     where: {
-      removed: { _is_null: true }
       rule: { mgm_id: { _eq: $mgmId } }
+      removed: { _is_null: true }
       _or: [
         { rule: { removed: { _is_null: false } } }
         { object: { removed: { _is_null: false } } }
@@ -40,8 +40,8 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   }
   update_rule_service(
     where: {
-      removed: { _is_null: true }
       rule: { mgm_id: { _eq: $mgmId } }
+      removed: { _is_null: true }
       _or: [
         { rule: { removed: { _is_null: false } } }
         { service: { removed: { _is_null: false } } }
@@ -53,8 +53,8 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   }
   update_rule_svc_resolved(
     where: {
-      removed: { _is_null: true }
       rule: { mgm_id: { _eq: $mgmId } }
+      removed: { _is_null: true }
       _or: [
         { rule: { removed: { _is_null: false } } }
         { service: { removed: { _is_null: false } } }
@@ -66,8 +66,8 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   }
   update_rule_user_resolved(
     where: {
-      removed: { _is_null: true }
       rule: { mgm_id: { _eq: $mgmId } }
+      removed: { _is_null: true }
       _or: [
         { rule: { removed: { _is_null: false } } }
         { usr: { removed: { _is_null: false } } }
@@ -79,8 +79,8 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   }
   update_rule_from_zone(
     where: {
-      removed: { _is_null: true }
       rule: { mgm_id: { _eq: $mgmId } }
+      removed: { _is_null: true }
       _or: [
         { rule: { removed: { _is_null: false } } }
         { zone: { removed: { _is_null: false } } }
@@ -92,8 +92,8 @@ mutation fixRefTables($importId: bigint!, $mgmId: Int!) {
   }
   update_rule_to_zone(
     where: {
-      removed: { _is_null: true }
       rule: { mgm_id: { _eq: $mgmId } }
+      removed: { _is_null: true }
       _or: [
         { rule: { removed: { _is_null: false } } }
         { zone: { removed: { _is_null: false } } }

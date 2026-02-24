@@ -88,7 +88,6 @@ def main(
         force,
         fwo_major_version,
         clear_management_data,
-        is_full_import=True,
     )
     register_global_state(import_state)
 

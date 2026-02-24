@@ -59,14 +59,18 @@ namespace FWO.Middleware.Server
             userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
             await InitLdap();
             List<string> failedImports = [];
+            var ownerChangeTracker = new OwnerChangeImportTracker(apiConnection);
+
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
                 if (!RunImportScript(importfilePathAndName + ".py", globalConfig.ImportAppDataScriptArgs))
                 {
                     Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
                 }
-                await ImportSingleSource(importfilePathAndName + ".json", failedImports);
+                await ImportSingleSource(importfilePathAndName + ".json", failedImports, ownerChangeTracker);
             }
+
+            await ownerChangeTracker.CompleteImport(failedImports.Count == 0);        
             return failedImports;
         }
 
@@ -87,7 +91,7 @@ namespace FWO.Middleware.Server
             ownerResponsibleTypeById = responsibleTypes.ToDictionary(type => type.Id, type => type);
         }
 
-        private async Task ImportSingleSource(string importfileName, List<string> failedImports)
+        private async Task ImportSingleSource(string importfileName, List<string> failedImports, OwnerChangeImportTracker ownerChangeTracker)
         {
             try
             {
@@ -96,7 +100,7 @@ namespace FWO.Middleware.Server
                 if (importedOwnerData != null && importedOwnerData.Owners != null)
                 {
                     importedApps = importedOwnerData.Owners;
-                    await ImportApps(importfileName);
+                    await ImportApps(importfileName, ownerChangeTracker);
                 }
             }
             catch (Exception exc)
@@ -108,7 +112,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task ImportApps(string importfileName)
+        private async Task ImportApps(string importfileName, OwnerChangeImportTracker ownerChangeTracker)
         {
             int successCounter = 0;
             int failCounter = 0;
@@ -125,7 +129,7 @@ namespace FWO.Middleware.Server
                 existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                 foreach (var incomingApp in importedApps)
                 {
-                    if (await SaveApp(incomingApp))
+                    if (await SaveApp(incomingApp, ownerChangeTracker))
                     {
                         ++successCounter;
                     }
@@ -141,7 +145,7 @@ namespace FWO.Middleware.Server
                     {
                         if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
                         {
-                            if (await DeactivateApp(existingApp))
+                            if (await DeactivateApp(existingApp, ownerChangeTracker))
                             {
                                 ++deleteCounter;
                             }
@@ -158,7 +162,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task<bool> SaveApp(ModellingImportAppData incomingApp)
+        private async Task<bool> SaveApp(ModellingImportAppData incomingApp, OwnerChangeImportTracker ownerChangeTracker)
         {
             try
             {
@@ -169,11 +173,13 @@ namespace FWO.Middleware.Server
                 if (existingApp == null)
                 {
                     appId = await NewApp(incomingApp, userGroupDn);
+                    await ownerChangeTracker.AddOwnerChange(null, appId, 'I', incomingApp.ImportSource);
                 }
                 else
                 {
                     appId = existingApp.Id;
                     await UpdateApp(incomingApp, existingApp, userGroupDn);
+                    await ownerChangeTracker.AddOwnerChange(existingApp.Id, appId, 'U', incomingApp.ImportSource);
                 }
                 if (incomingApp.MainUser != null && incomingApp.MainUser != "")
                 {
@@ -218,7 +224,6 @@ namespace FWO.Middleware.Server
                     await NewAppServer(appServer, appId, incomingApp.ImportSource);
                 }
             }
-            await LogOwnerChange(null, appId, 'I', incomingApp.ImportSource);
             return appId;
         }
 
@@ -242,14 +247,14 @@ namespace FWO.Middleware.Server
             await UpdateOwnerResponsibles(existingApp.Id, responsibles);
             await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
             await ImportAppServers(incomingApp, existingApp.Id);
-            await LogOwnerChange(existingApp.Id, existingApp.Id, 'C', incomingApp.ImportSource);
         }
 
-        private async Task<bool> DeactivateApp(FwoOwner app)
+        private async Task<bool> DeactivateApp(FwoOwner app, OwnerChangeImportTracker ownerChangeTracker)
         {
             try
             {
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.deactivateOwner, new { id = app.Id });
+                await ownerChangeTracker.AddOwnerChange(app.Id, null, 'D', app.ImportSource);
             }
             catch (Exception exc)
             {
@@ -258,7 +263,6 @@ namespace FWO.Middleware.Server
                 await AddLogEntry(1, LevelApp, errorText);
                 return false;
             }
-            await LogOwnerChange(app.Id, null, 'D', app.ImportSource);
             return true;
         }
 
@@ -889,21 +893,6 @@ namespace FWO.Middleware.Server
         private async Task AddLogEntry(int severity, string level, string description)
         {
             await AddLogEntry(GlobalConst.kImportAppData, severity, level, description);
-        }
-
-        private async Task LogOwnerChange(long? oldOwnerId, long? newOwnerId, char action, string? sourceId)
-        {
-            var variables = new
-            {
-                control_id = currentControlId, // z.B. für diesen Importlauf
-                old_owner_id = oldOwnerId,
-                new_owner_id = newOwnerId,
-                change_action = action,
-                source_id = sourceId,
-                security_relevant = true
-            };
-
-            await apiConnection.SendQueryAsync<object>("insert_changelog_owner_mutation", variables);
         }
     }
 }

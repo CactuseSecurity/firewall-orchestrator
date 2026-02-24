@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Basics;
 
@@ -61,7 +61,7 @@ namespace FWO.Data.Modelling
         }
 
         public ModellingAppServer()
-        {}
+        { }
 
         public ModellingAppServer(ModellingAppServer appServer) : base(appServer)
         {
@@ -74,7 +74,7 @@ namespace FWO.Data.Modelling
             NotImplemented = appServer.NotImplemented;
         }
 
-        public ModellingAppServer(NetworkObject nwObj)  : base(nwObj)
+        public ModellingAppServer(NetworkObject nwObj) : base(nwObj)
         {
             Ip = nwObj.IP;
             IpEnd = nwObj.IpEnd;
@@ -115,7 +115,7 @@ namespace FWO.Data.Modelling
         /// <returns></returns>
         public static List<ModellingAppServerWrapper> Wrap(ModellingAppServer[] appServers)
         {
-            ModellingAppServerWrapper[] wrappedArray = Array.ConvertAll(appServers, appServer => new ModellingAppServerWrapper(){Content = appServer});
+            ModellingAppServerWrapper[] wrappedArray = Array.ConvertAll(appServers, appServer => new ModellingAppServerWrapper() { Content = appServer });
             return wrappedArray.ToList();
         }
     }

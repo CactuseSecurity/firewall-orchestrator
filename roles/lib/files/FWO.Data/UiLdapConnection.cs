@@ -1,17 +1,17 @@
 using FWO.Basics;
 using FWO.Data.Middleware;
 using Newtonsoft.Json;
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 
 namespace FWO.Data
 {
     public class UiLdapConnection : LdapConnectionBase
     {
         private string name = "";
-        
+
         [JsonProperty("ldap_name"), JsonPropertyName("ldap_name")]
-        public string Name 
-        { 
+        public string Name
+        {
             get
             {
                 // for compatibility: take hostname if not filled
@@ -20,11 +20,11 @@ namespace FWO.Data
             set
             {
                 name = value;
-            } 
+            }
         }
 
         public UiLdapConnection()
-        {}
+        { }
 
         public UiLdapConnection(LdapGetUpdateParameters ldapGetUpdateParameters) : base(ldapGetUpdateParameters)
         {

@@ -1,10 +1,12 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Services;
+using FWO.Services.Modelling;
+using FWO.Services.Workflow;
 using FWO.Basics;
 
 namespace FWO.Test
@@ -121,10 +123,10 @@ namespace FWO.Test
         public async Task TestGetSuccessfulRequestState()
         {
             ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-            
+
             ClassicAssert.AreEqual("Last successful: 1967-01-10 08:00:00, Implemented: 2025-06-26 08:00:00, Walter", await varianceAnalysis.GetSuccessfulRequestState());
         }
-        
+
         [Test]
         public async Task TestAnalyseModelledConnectionsForRequest()
         {
@@ -489,7 +491,7 @@ namespace FWO.Test
         {
             List<ModellingConnection> Connections = [Connection1];
             ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-            ModellingFilter modellingFilter = new();
+            ModellingFilter modellingFilter = new() { RulesForDeletedConns = true };
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
@@ -499,11 +501,11 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, reports.Count);
             ClassicAssert.AreEqual(1, reports[0].Devices.Length);
-            ClassicAssert.AreEqual(1, reports[0].Devices[0].Rules?.Length);
-            ClassicAssert.AreEqual("NonModelledRule", reports[0].Devices[0].Rules?[0].Name);
-            ClassicAssert.AreEqual("XXX3", reports[0].Devices[0].Rules?[0].Comment);
-            ClassicAssert.AreEqual(1, reports[0].Devices[0].Rules?[0].Froms.Length);
-            ClassicAssert.AreEqual("AppServerUnchanged", reports[0].Devices[0].Rules?[0].Froms[0].Object.Name);
+            ClassicAssert.AreEqual(1, reports[0].Devices[0].GetRuleList().Count);
+            ClassicAssert.AreEqual("NonModelledRule", reports[0].Devices[0].GetRuleList()?[0].Name);
+            ClassicAssert.AreEqual("XXX3", reports[0].Devices[0].GetRuleList()?[0].Comment);
+            ClassicAssert.AreEqual(1, reports[0].Devices[0].GetRuleList()?[0].Froms.Length);
+            ClassicAssert.AreEqual("AppServerUnchanged", reports[0].Devices[0].GetRuleList()?[0].Froms[0].Object.Name);
         }
 
         [Test]
@@ -614,7 +616,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Conn7", result.RuleDifferences[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules.Count);
             ClassicAssert.AreEqual("FWOC7_mgt3", result.RuleDifferences[0].ImplementedRules[0].Name);
- 
+
             userConfig.ModRolloutNatHeuristic = false;
 
             varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);

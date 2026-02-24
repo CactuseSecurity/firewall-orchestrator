@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -10,7 +10,6 @@
     <PackageReference Include="MailKit" Version="4.14.1" />
     <PackageReference Include="MimeKit" Version="4.14.0" />
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.9" />
-    <PackageReference Include="System.Text.Encodings.Web" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>

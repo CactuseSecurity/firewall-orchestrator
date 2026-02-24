@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics.Exceptions;
 using FWO.Data;
@@ -62,37 +62,37 @@ namespace FWO.Test
 
         }
 
-		[Test]
-		public async Task TestExternalRequestSender()
-		{
-			try
-			{
-				SimulatedSCClient simulatedSCClient = new(ticketSystem);
-				ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig, simulatedSCClient);
-				List<string> FailedRequests = await externalRequestSender.Run();
-				if (FailedRequests.Count > 0)
-				{
-					throw new ProcessingFailedException($"External Request(s) failed: {string.Join(". ", FailedRequests)}.");
-				}
-			}
-			catch (Exception exc)
-			{
-				ExceptionMessage = exc.Message;
-			}
+        [Test]
+        public async Task TestExternalRequestSender()
+        {
+            try
+            {
+                SimulatedSCClient simulatedSCClient = new(ticketSystem);
+                ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig, simulatedSCClient);
+                List<string> FailedRequests = await externalRequestSender.Run();
+                if (FailedRequests.Count > 0)
+                {
+                    throw new ProcessingFailedException($"External Request(s) failed: {string.Join(". ", FailedRequests)}.");
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionMessage = exc.Message;
+            }
 
-			ClassicAssert.AreEqual(true, ExceptionMessage.Contains("External Request(s) failed:"));
-			ClassicAssert.AreEqual(true, ExceptionMessage.Contains("Request Id: 4"));
-			ClassicAssert.AreEqual(true, ExceptionMessage.Contains("Request Id: 5"));
-			ClassicAssert.AreEqual(3, apiConnection.UpdateExtRequestCreation.Count);
-			ClassicAssert.AreEqual(false, apiConnection.UpdateExtRequestCreation[0].Contains("id = 1"));
-			ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestCreation[0].Contains("id = 2"));
-			ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestCreation[1].Contains("id = 3"));
-			ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestCreation[2].Contains("id = 3"));
-			ClassicAssert.AreEqual(2, apiConnection.UpdateExtRequestProcess.Count);
-			ClassicAssert.AreEqual(2, apiConnection.UpdateExtRequestProcess.Count);
-			ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestProcess[0].Contains("id = 4"));
-			ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestProcess[1].Contains("id = 5"));
-			ClassicAssert.AreEqual(3, apiConnection.TriedToGetLdapsForHandleStateChange);
+            ClassicAssert.AreEqual(true, ExceptionMessage.Contains("External Request(s) failed:"));
+            ClassicAssert.AreEqual(true, ExceptionMessage.Contains("Request Id: 4"));
+            ClassicAssert.AreEqual(true, ExceptionMessage.Contains("Request Id: 5"));
+            ClassicAssert.AreEqual(3, apiConnection.UpdateExtRequestCreation.Count);
+            ClassicAssert.AreEqual(false, apiConnection.UpdateExtRequestCreation[0].Contains("id = 1"));
+            ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestCreation[0].Contains("id = 2"));
+            ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestCreation[1].Contains("id = 3"));
+            ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestCreation[2].Contains("id = 3"));
+            ClassicAssert.AreEqual(2, apiConnection.UpdateExtRequestProcess.Count);
+            ClassicAssert.AreEqual(2, apiConnection.UpdateExtRequestProcess.Count);
+            ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestProcess[0].Contains("id = 4"));
+            ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestProcess[1].Contains("id = 5"));
+            ClassicAssert.AreEqual(3, apiConnection.TriedToGetLdapsForHandleStateChange);
         }
     }
 }

@@ -1,17 +1,29 @@
 @using FWO.Data.Middleware
+@using FWO.Config.Api.Data
 @using FWO.Logging
 @using FWO.Middleware.Client
 @using FWO.Recert
+@using FWO.Services.EventMediator.Events
+@using FWO.Ui.Services
 @using RestSharp
+@using System
+@using System.Linq
 @using System.Net
+@using System.Text.Json.Serialization
+@using Newtonsoft.Json
+@using FWO.Services.EventMediator.Interfaces
+@using FWO.Services
 
 @page "/settings/owners"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
+@implements IDisposable
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
+@inject IEventMediator EventMediator
+
 
 @if(InitComplete)
 {
@@ -21,6 +33,26 @@
     </div>
     @(userConfig.GetText("U5216"))
     <hr />
+    <div class="form-group row mt-2 align-items-center">
+        <label class="col-auto col-form-label me-2" for="ownerMappingSourceDropdown">@(userConfig.GetText("U5018"))</label>
+        <div class="col-sm-2">
+            <Dropdown ElementType="OwnerMappingSource" ElementToString="@(x => x.Name)" SelectedElement="@selectedOwnerMappingSources"
+                      SelectedElementChanged="@(src => { selectedOwnerMappingSources = src; StateHasChanged(); })" Elements="ownerMappingSources" Nullable="true" id="ownerMappingSourceDropdown">
+                <ElementTemplate Context="source">
+                    @source.Name
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+        @if (selectedOwnerMappingSources != null && selectedOwnerMappingSources.Id == OwnerMappingSourceStm.CUSTOM_FIELD)
+        {
+            <div class="col-auto">
+                <input type="text" class="form-control form-control-sm" placeholder="Custom Field key" @bind="ownerMappingCustomFieldkey" />
+            </div>                          
+        }
+        <div class="col-auto">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveOwnerMappingSourceConfig" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </div>
+    </div>
     <div class="btn-group m-1">
         @if(userConfig.AllowManualOwnerAdmin)
         {
@@ -28,9 +60,9 @@
         }
         <AuthorizeView Roles="@Roles.Admin" Context="ctx">
             <Authorized>
-                @if (!recertCalcInProgress)
+                @if (!ownerMappingCalcInProgress)
                 {
-                    <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@(RecalcRecerts)">@(userConfig.GetText("recalc_recerts"))</button>
+                    <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@(ownerSourceImportNotifier)">@(userConfig.GetText("U5017"))</button>
                 }
                 else
                 {
@@ -38,7 +70,7 @@
                 }
             </Authorized>
             <NotAuthorized>
-                <button type="button" disabled class="btn btn-sm btn-info">@(userConfig.GetText("recalc_recerts"))</button>
+                <button type="button" disabled class="btn btn-sm btn-info">@(userConfig.GetText("U5017"))</button>
             </NotAuthorized>
         </AuthorizeView>
 
@@ -79,16 +111,14 @@
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("main_responsible"))" Field="@(x => x.Dn)" Sortable="true" Filterable="true" >
-                <Template>
-                    @(new DistName(context.Dn).UserName)
-                </Template>
-            </Column>
-            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("group"))" Field="@(x => x.GroupDn)" Sortable="true" Filterable="true" >
-                <Template>
-                    @(new DistName(context.GroupDn).Group)
-                </Template>
-            </Column>
+            @foreach (OwnerResponsibleType type in ownerResponsibleTypes)
+            {
+                <Column TableItem="FwoOwner" Title="@(GetResponsibleTypeDisplayName(type))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                    <Template>
+                        @FormatOwnerResponsibles(context.GetOwnerResponsiblesByType(type.Id))
+                    </Template>
+                </Column>
+            }
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">
                 <Template>
                     @(context.TenantId != null ? tenants.FirstOrDefault(x => x.Id == context.TenantId)?.Name ?? "" : "" )
@@ -126,38 +156,36 @@
                             </div>
                         </div>
                     </div>
-                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5583"))">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("main_responsible"))*:</label>
-                        @if(Readonly)
-                        {
-                            <label class="col-sm-9 me-auto">@actOwner.Dn</label>
-                        }
-                        else
-                        {
-                            <div class="col-sm-7">
-                                <input type="text" class="form-control form-control-sm" @bind="actOwner.Dn" />
-                            </div>
-                            <div class="col-sm-2">
-                                <button type="button" class="btn btn-sm btn-success form-control form-control-sm" @onclick="() => SearchUser()">@(userConfig.GetText("search"))</button>
-                            </div>
-                        }
-                    </div>
-                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5584"))">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group"))*:</label>
-                        @if(Readonly)
-                        {
-                            <label class="col-sm-9 me-auto">@actOwner.GroupDn</label>
-                        }
-                        else
-                        {
-                            <div class="col-sm-7">
-                                <input type="text" class="form-control form-control-sm" @bind="actOwner.GroupDn" />
-                            </div>
-                            <div class="col-sm-2">
-                                <button type="button" class="btn btn-sm btn-success form-control form-control-sm" @onclick="() => SearchGroup()">@(userConfig.GetText("search"))</button>
-                            </div>
-                        }
-                    </div>
+                    @foreach (OwnerResponsibleType type in ownerResponsibleTypes)
+                    {
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(GetResponsibleTypeTooltip(type))">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@GetResponsibleTypeEditLabel(type):</label>
+                            @if(Readonly)
+                            {
+                                <label class="col-sm-9 me-auto">@FormatOwnerResponsibles(actOwner.GetOwnerResponsiblesByType(type.Id))</label>
+                            }
+                            else
+                            {
+                                <div class="col-sm-9">
+                                    <div class="d-flex gap-1">
+                                        <input type="text" class="form-control form-control-sm" @bind="newOwnerResponsibleDnByType[type.Id]" disabled="@(!type.Active)" />
+                                        <button type="button" class="btn btn-sm btn-success" @onclick="() => AddOwnerResponsible(type.Id)" disabled="@(!type.Active)">@(userConfig.GetText("add"))</button>
+                                        <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchUser(type.Id)" disabled="@(!type.Active)">@(userConfig.GetText("search") + " " + userConfig.GetText("user"))</button>
+                                        <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchGroup(type.Id)" disabled="@(!type.Active)">@(userConfig.GetText("search") + " " + userConfig.GetText("group"))</button>
+                                    </div>
+                                    <div class="mt-1">
+                                        @foreach (string dn in actOwner.GetOwnerResponsiblesByType(type.Id))
+                                        {
+                                            <div class="d-flex align-items-center gap-2">
+                                                <small>@dn</small>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => actOwner.RemoveOwnerResponsible(type.Id, dn)">@(userConfig.GetText("remove"))</button>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
                     <div class="form-group row mt-2">
                         <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5585"))">@(userConfig.GetText("tenant")):</label>
                         @if(Readonly)
@@ -438,15 +466,24 @@ else
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    private ConfigData? configData;    
     private List<FwoOwner> owners = [];
+    private List<OwnerMappingSource> ownerMappingSources = [];
+    private OwnerMappingSource? selectedOwnerMappingSources = null;
+    private string ownerMappingCustomFieldkey = "";
     private List<FwoOwner> sampleOwners = [];
     private FwoOwner actOwner = new();
+    private Dictionary<int, string> newOwnerResponsibleDnByType = [];
     private OwnerLifeCycleState actLifeCycleState = new();
     private Tenant? selectedTenant;
     private OwnerLifeCycleState? selectedOwnerLifeCycleState;
     private DayOfWeek? selectedDayOfWeek;
     private List<Tenant> tenants = [];
     private List<OwnerLifeCycleState> ownerLifeCycleStates = [];
+    private List<OwnerResponsibleType> ownerResponsibleTypes = [];
+    private List<Role> roles = [];
+    private Dictionary<string, string> roleDnByName = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, HashSet<string>> roleUsersByName = new(StringComparer.OrdinalIgnoreCase);
 
     private bool showCleanupButton = false;
     private bool CleanupMode = false;
@@ -460,9 +497,10 @@ else
     private bool DeleteLifeCycleMode = false;
     private bool SearchMode = false;
     private bool UserSearchMode = false;
+    private int searchResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain;
     private bool InitComplete = false;
     private RecertCheckParams actRecCheckParams = new();
-    private bool recertCalcInProgress = false;
+    private bool ownerMappingCalcInProgress = false;
     private bool ManageLifeCyclesMode = false;
     private bool RecertActiveBefore = false;
 
@@ -472,20 +510,56 @@ else
     private List<Rule> actRules = [];
     private List<Rule> rulesToAdd = [];
     private List<Rule> rulesToDelete = [];
+    private class RuleHelper : Rule
+    {
+        [JsonProperty("rule_metadata_id"), JsonPropertyName("rule_metadata_id")]
+        public long MetadataId { get; set; }
 
+        public Rule ToRule()
+        {
+            return new Rule(this) { Metadata = new() { Id = this.MetadataId }};
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            configData = await globalConfig.GetEditableConfig();
+            var updateOwnerRuleMappings = new UpdateRuleOwnerMapping(apiConnection, globalConfig);
+            EventMediator.Subscribe<UpdateRuleOwnerMappingEvent>("UpdateOwnerRuleMappings", evt => _ = updateOwnerRuleMappings.HandleEvent(evt));
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            ownerMappingSources = (await apiConnection.SendQueryAsync<List<OwnerMappingSource>>(StmQueries.getOwnerMappingSources))
+                .Where(oms => oms.Id != OwnerMappingSourceStm.MANUEL)
+                .ToList();
+
+            if (userConfig != null && userConfig.OwnerSoruceMappingID != 0)
+            {
+                selectedOwnerMappingSources = ownerMappingSources
+                    .FirstOrDefault(oms => oms.Id == userConfig.OwnerSoruceMappingID);
+            }
+            if (userConfig != null && !string.IsNullOrWhiteSpace(userConfig.OwnerSourceCustomFieldKey))
+            {
+                ownerMappingCustomFieldkey = userConfig.OwnerSourceCustomFieldKey;
+            }
+
             ownerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(OwnerQueries.getOwnerLifeCycleStates);
+            ownerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            NormalizeResponsibleTypeInputs();
             AnalyseSampleOwners();
+            roles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
+            roleDnByName = roles
+                .Where(r => !string.IsNullOrWhiteSpace(r.Name) && !string.IsNullOrWhiteSpace(r.Dn))
+                .ToDictionary(r => r.Name, r => r.Dn, StringComparer.OrdinalIgnoreCase);
+            roleUsersByName = roles.ToDictionary(
+                r => r.Name,
+                r => new HashSet<string>(r.Users.Select(u => u.Dn), StringComparer.OrdinalIgnoreCase),
+                StringComparer.OrdinalIgnoreCase);
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == null)
             {
-                DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
+                DisplayMessageInUi(null, userConfig!.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
             }
             else
             {
@@ -503,26 +577,86 @@ else
         InitComplete = true;
     }
 
-    private async Task RecalcRecerts()
+    private async Task ownerSourceImportNotifier()
     {
-        recertCalcInProgress = true;
-        if (await RecertRefresh.RecalcRecerts(apiConnection))
+        try
         {
-            DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
-        }
-        recertCalcInProgress = false;
+            var tcs = new TaskCompletionSource<bool>();
 
-        Log.WriteAudit(
-            Title: $"Owners Settings",
-            Text: $"Recertification recalculated",
-            UserName: userConfig.User.Name,
-            UserDN: userConfig.User.Dn);
+            var args = new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true, Completion = tcs };
+            EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
+
+            bool success = await tcs.Task;
+
+            if (!success)   
+            {
+                DisplayMessageInUi(null, "No Rules/Owner or wrong Key-Field", "", true);
+                return;
+            }
+            DisplayMessageInUi(null, "Import successful", "", false);
+        }
+        catch (Exception ex)
+        {
+            DisplayMessageInUi(ex, "Import error", "", true);
+        }
+    }
+
+    private async Task SaveOwnerMappingSourceConfig()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+
+            if (selectedOwnerMappingSources == null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("please_select_owner_mapping_source"), // eigenen Textkey anlege
+                true);
+
+                return;
+            }
+            if (selectedOwnerMappingSources.Id == 2 && string.IsNullOrWhiteSpace(ownerMappingCustomFieldkey))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("custom_field_key_missing"), // eigenen Textkey anlegen
+                    true);
+
+                return;
+            }
+
+            configData.OwnerSoruceMappingID = selectedOwnerMappingSources.Id;
+            configData.OwnerSourceCustomFieldKey = ownerMappingCustomFieldkey;
+
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false); //TODO - message text new                        
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
+        }
+
     }
 
     private void AnalyseSampleOwners()
     {
         sampleOwners = [.. owners.Where(o => o.Name.EndsWith(GlobalConst.k_demo))];
         showCleanupButton = (sampleOwners.Count > 0);
+    }
+
+    private void NormalizeResponsibleTypeInputs()
+    {
+        ownerResponsibleTypes = ownerResponsibleTypes
+            .OrderBy(type => type.SortOrder)
+            .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        foreach (OwnerResponsibleType type in ownerResponsibleTypes)
+        {
+            if (!newOwnerResponsibleDnByType.ContainsKey(type.Id))
+            {
+                newOwnerResponsibleDnByType[type.Id] = "";
+            }
+        }
     }
 
     private async Task AddOwner()
@@ -568,7 +702,7 @@ else
             {
                 if (AddLifeCycleMode)
                 {
-                    await AddLifeCycleInDb();//
+                    await AddLifeCycleInDb();
                 }
                 else
                 {
@@ -644,6 +778,11 @@ else
         try
         {
             actOwner = owner;
+            actOwner.OwnerResponsibles ??= [];
+            foreach (int key in newOwnerResponsibleDnByType.Keys.ToList())
+            {
+                newOwnerResponsibleDnByType[key] = "";
+            }
             RecertActiveBefore = actOwner.RecertActive;
             selectedTenant = tenants.FirstOrDefault(x => x.Id == actOwner.TenantId);
             selectedOwnerLifeCycleState = ownerLifeCycleStates.FirstOrDefault(x => x.Id == actOwner.OwnerLifeCycleStateId);
@@ -657,7 +796,7 @@ else
             else
             {
                 actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(OwnerQueries.getNetworkOwnerships, new { ownerId = actOwner.Id });
-                actRules= await apiConnection.SendQueryAsync<List<Rule>>(OwnerQueries.getRuleOwnerships, new { ownerId = actOwner.Id });
+                actRules = (await apiConnection.SendQueryAsync<List<RuleHelper>>(OwnerQueries.getRuleOwnerships, new { ownerId = actOwner.Id })).ConvertAll(r => r.ToRule());
             }
             ipsToAdd.Clear();
             ipsToDelete.Clear();
@@ -719,8 +858,6 @@ else
         var variables = new
         {
             name = actOwner.Name,
-            dn = actOwner.Dn,
-            groupDn = actOwner.GroupDn,
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
@@ -737,13 +874,15 @@ else
         else
         {
             actOwner.Id = returnIds[0].NewId;
+            await UpdateOwnerResponsiblesInDb(actOwner);
+            await EnsureOwnerResponsibleRolesFromConfig(actOwner);
             await addRuleOwners();
             await addNetworkOwners();
             owners.Add(actOwner);
 
             Log.WriteAudit(
                 Title: $"Owners Settings",
-                Text: $"Added Owner: {actOwner.Name} (DN: {actOwner.Dn})",
+                Text: $"Added Owner: {actOwner.Name} (Responsibles: {FormatOwnerResponsibles(actOwner.GetAllOwnerResponsibles())})",
                 UserName: userConfig.User.Name,
                 UserDN: userConfig.User.Dn);
         }
@@ -756,8 +895,6 @@ else
         {
             id = actOwner.Id,
             name = actOwner.Name,
-            dn = actOwner.Dn,
-            groupDn = actOwner.GroupDn,
             tenantId = actOwner.TenantId,
             recertInterval = actOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
@@ -773,6 +910,8 @@ else
         }
         else
         {
+            await UpdateOwnerResponsiblesInDb(actOwner);
+            await EnsureOwnerResponsibleRolesFromConfig(actOwner);
             await deleteRuleOwners();
             await addRuleOwners();
             await deleteNetworkOwners();
@@ -781,10 +920,111 @@ else
 
             Log.WriteAudit(
                 Title: $"Owners Settings",
-                Text: $"Edited Owner: {actOwner.Name} (DN: {actOwner.Dn})",
+                Text: $"Edited Owner: {actOwner.Name} (Responsibles: {FormatOwnerResponsibles(actOwner.GetAllOwnerResponsibles())})",
                 UserName: userConfig.User.Name,
                 UserDN: userConfig.User.Dn);
         }
+    }
+
+    private async Task UpdateOwnerResponsiblesInDb(FwoOwner owner)
+    {
+        await apiConnection.SendQueryAsync<object>(OwnerQueries.deleteOwnerResponsibles, new { ownerId = owner.Id });
+        List<OwnerResponsible> responsibles = owner.OwnerResponsibles ?? [];
+        if (responsibles.Count == 0)
+        {
+            return;
+        }
+
+        var objects = responsibles.ConvertAll(responsible => new
+        {
+            owner_id = owner.Id,
+            dn = responsible.Dn,
+            responsible_type = responsible.ResponsibleTypeId
+        });
+        await apiConnection.SendQueryAsync<object>(OwnerQueries.newOwnerResponsibles, new { responsibles = objects });
+    }
+
+    private async Task EnsureOwnerResponsibleRolesFromConfig(FwoOwner owner)
+    {
+        List<ConfigItem> configResult = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
+            new { key = "rolesWithAppDataImport" });
+        string rolesJson = configResult.Count > 0 ? configResult[0].Value ?? "[]" : "[]";
+        Dictionary<int, List<string>> rolesByType = ParseRolesWithImport(rolesJson);
+        Dictionary<int, OwnerResponsibleType> typeById = ownerResponsibleTypes.ToDictionary(type => type.Id, type => type);
+
+        foreach (OwnerResponsible responsible in owner.OwnerResponsibles ?? [])
+        {
+            if (!rolesByType.TryGetValue(responsible.ResponsibleTypeId, out List<string>? requiredRoles))
+            {
+                continue;
+            }
+            bool allowModelling = typeById.TryGetValue(responsible.ResponsibleTypeId, out OwnerResponsibleType? type) && type.AllowModelling;
+            bool allowRecertification = typeById.TryGetValue(responsible.ResponsibleTypeId, out type) && type.AllowRecertification;
+            List<string> filteredRoles = OwnerResponsibleRoleHelper.FilterRoles(requiredRoles, allowModelling, allowRecertification);
+            if (filteredRoles.Count == 0)
+            {
+                continue;
+            }
+            foreach (string roleName in filteredRoles)
+            {
+                if (!roleDnByName.TryGetValue(roleName, out string? roleDn))
+                {
+                    continue;
+                }
+                if (roleUsersByName.TryGetValue(roleName, out HashSet<string>? users) && users.Contains(responsible.Dn))
+                {
+                    continue;
+                }
+                await AddRoleToLdap(responsible.Dn, roleDn, roleName);
+            }
+        }
+    }
+
+    private async Task AddRoleToLdap(string dn, string roleDn, string roleName)
+    {
+        RoleAddDeleteUserParameters parameters = new() { Role = roleDn, UserDn = dn };
+        RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
+        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
+            return;
+        }
+        if (!roleUsersByName.TryGetValue(roleName, out HashSet<string>? users))
+        {
+            users = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            roleUsersByName[roleName] = users;
+        }
+        users.Add(dn);
+    }
+
+    private static Dictionary<int, List<string>> ParseRolesWithImport(string rolesJson)
+    {
+        Dictionary<int, List<string>> rolesByType = [];
+        if (string.IsNullOrWhiteSpace(rolesJson))
+        {
+            return rolesByType;
+        }
+
+        string trimmed = rolesJson.TrimStart();
+        if (trimmed.StartsWith("["))
+        {
+            List<string> roles = System.Text.Json.JsonSerializer.Deserialize<List<string>>(rolesJson) ?? [];
+            rolesByType[GlobalConst.kOwnerResponsibleTypeSupporting] = roles;
+            return rolesByType;
+        }
+
+        Dictionary<string, List<string>>? parsed = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, List<string>>>(rolesJson);
+        if (parsed != null)
+        {
+            foreach (var entry in parsed)
+            {
+                if (int.TryParse(entry.Key, out int typeId))
+                {
+                    rolesByType[typeId] = entry.Value;
+                }
+            }
+        }
+        return rolesByType;
     }
 
     private async Task addRuleOwners()
@@ -878,7 +1118,7 @@ else
 
             Log.WriteAudit(
                 Title: $"Owners Settings",
-                Text: $"Deleted Owner: {actOwner.Name} (DN: {actOwner.Dn})",
+                Text: $"Deleted Owner: {actOwner.Name} (Responsibles: {FormatOwnerResponsibles(actOwner.GetAllOwnerResponsibles())})",
                 UserName: userConfig.User.Name,
                 UserDN: userConfig.User.Dn);
         }
@@ -944,7 +1184,7 @@ else
             DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5235"), true);
             return false;
         }
-        if (actOwner.Dn == "" && actOwner.GroupDn == "")
+        if (actOwner.GetAllOwnerResponsibles().Count == 0)
         {
             DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5292"), true);
             return false;
@@ -962,27 +1202,95 @@ else
         return true;
     }
 
-    private void SearchUser()
+    private void SearchUser(int responsibleTypeId)
     {
+        searchResponsibleTypeId = responsibleTypeId;
         UserSearchMode = true;
         SearchMode = true;
     }
 
-    private void SearchGroup()
+    private void SearchGroup(int responsibleTypeId)
     {
+        searchResponsibleTypeId = responsibleTypeId;
         UserSearchMode = false;
         SearchMode = true;
     }
 
     private async Task AddUser(UiUser user)
     {
-        actOwner.Dn = user.Dn;
+        actOwner.AddOwnerResponsible(searchResponsibleTypeId, user.Dn);
         await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
     private async Task AddGroup(string groupDn)
     {
-        actOwner.GroupDn = groupDn;
+        actOwner.AddOwnerResponsible(searchResponsibleTypeId, groupDn);
         await DefaultInit.DoNothing(); // qad avoid compiler warning
+    }
+
+    private void AddOwnerResponsible(int typeId)
+    {
+        if (!newOwnerResponsibleDnByType.TryGetValue(typeId, out string? dn) || string.IsNullOrWhiteSpace(dn))
+        {
+            return;
+        }
+        actOwner.AddOwnerResponsible(typeId, dn);
+        newOwnerResponsibleDnByType[typeId] = "";
+    }
+
+    private static string FormatOwnerResponsibles(IEnumerable<string> dns)
+    {
+        List<string> formatted = [];
+        foreach (string dn in dns.Where(dn => !string.IsNullOrWhiteSpace(dn)))
+        {
+            DistName distName = new(dn);
+            string display = !string.IsNullOrWhiteSpace(distName.UserName) ? distName.UserName : distName.Group;
+            formatted.Add(string.IsNullOrWhiteSpace(display) ? dn : display);
+        }
+        return string.Join(", ", formatted);
+    }
+
+    private string GetResponsibleTypeDisplayName(OwnerResponsibleType type)
+    {
+        string label = type.Name;
+        if (!type.Active)
+        {
+            label += $" ({userConfig.GetText("inactive")})";
+        }
+        return label;
+    }
+
+    private string GetResponsibleTypeEditLabel(OwnerResponsibleType type)
+    {
+        string label = GetResponsibleTypeDisplayName(type);
+        if (IsRequiredResponsibleType(type))
+        {
+            label += "*";
+        }
+        return label;
+    }
+
+    private string GetResponsibleTypeTooltip(OwnerResponsibleType type)
+    {
+        if (type.Id == GlobalConst.kOwnerResponsibleTypeMain)
+        {
+            return userConfig.PureLine("H5583");
+        }
+        if (type.Id == GlobalConst.kOwnerResponsibleTypeSupporting)
+        {
+            return userConfig.PureLine("H5584");
+        }
+        return "";
+    }
+
+    private static bool IsRequiredResponsibleType(OwnerResponsibleType type)
+    {
+        return type.Id == GlobalConst.kOwnerResponsibleTypeMain
+            || type.Id == GlobalConst.kOwnerResponsibleTypeSupporting;
+    }
+
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<UpdateRuleOwnerMappingEvent>("UpdateOwnerRuleMappings");
     }
 }

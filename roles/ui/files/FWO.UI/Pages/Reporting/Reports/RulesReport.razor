@@ -1,45 +1,410 @@
-﻿@inject UserConfig userConfig
+﻿@using FWO.Report
+@using FWO.Report.Data
+@using FWO.Ui.Display
+@using FWO.Services.RuleTreeBuilder
+
+@inject UserConfig userConfig
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @foreach (var management in Managements)
 {
-    @if (management.Devices.Where(device => device.Rules != null && device.Rules.Count() > 0).Count() > 0)
+    @if (management.ContainsRules())
     {
-        management.AssignRuleNumbers();
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-            @foreach (var device in management.Devices)
+            @if(Recertification || SelectedReportType.IsRulebaseReport())
             {
-                @if (device.Rules != null && device.Rules.Length > 0)
+                @foreach(var rulebase in management.Rulebases)
                 {
-                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
-                        <ReportedRules Recertification="Recertification" ReadonlyMode="ReadonlyMode" Rules="device.Rules" RulesPerPage="RulesPerPage" 
-                            SelectedRules="SelectedRules" SelectedRulesChanged="SelectedRulesChanged" SelectedReportType="SelectedReportType"/>
+                    var rulebaseRules = ReportRules.GetRulesByRulebaseId(rulebase.Id, management);
+                    @if(rulebaseRules.Length > 0)
+                    {
+                        <Collapse Title="@rulebase.Name" Style="@("secondary")" StartToggled="true">
+                            <RuleBaseReport Recertification="Recertification" ReadonlyMode="ReadonlyMode" SelectedReportType="SelectedReportType"
+                                Rules="[.. rulebaseRules]" @bind-SelectedRules="SelectedRules" RulesPerPage="RulesPerPage"/>
+                        </Collapse>
+                    }
+                }
+            }
+            else
+            {
+                @foreach (var device in management.Devices)
+                {
+                    @if (device.ContainsRules() && _ruleDisplay != null)
+                    {
+                        <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
+                            <Table SelectedItems="new List<RuleTreeItem>()"
+                                RowClickAction="@(async ruleTreeItem => 
+                                {
+                                    ruleTreeItem.Data?.DeviceName = device.Name ?? ""; 
+
+                                    if (!SelectedRules.Remove(ruleTreeItem.Data!)) 
+                                    {
+                                        SelectedRules.Add(ruleTreeItem.Data!);
+                                    }
+
+                                    await SelectedRulesChanged.InvokeAsync(SelectedRules);
+                                })"
+                                style="font-size:small" 
+                                TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" 
+                                TableItem="RuleTreeItem"
+                                Items="@GetRuleTreeItems(management, device)" 
+                                ShowSearchBar="false"
+                                PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(item => GetTableRowClasses(item.Data!))"
+                                @ref="_reportTable">
+                                
+                                @if (_emptyColumns[0] == false)
+                                {
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(ruleTreeItem => ruleTreeItem.Data!.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            <span style="cursor:pointer; white-space:nowrap;" @onclick="() => OnNumberIconClickToggle(ruleTreeItem.Data!, management, device)">
+                                                @((MarkupString)GetToggleArrow(ruleTreeItem.Data!, management, device))@((MarkupString)RuleDisplayHtml.DisplayNumber(ruleTreeItem.Data!))
+                                            </span>
+                                        </Template>
+                                    </Column>
+                                }
+                                
+                                @if(SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules)
+                                {
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("last_hit"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Metadata.LastHit)" Sortable="false" Filterable="false">
+                                        <Template>
+                                            @((MarkupString)RuleDisplayHtml.DisplayLastHit(ruleTreeItem.Data!.Metadata))
+                                        </Template>
+                                    </Column>
+                                    @if (_showLastModifiedAfterLastHit && _emptyColumns[13] == false)
+                                    {
+                                        <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="LastModified" Field="@(ruleTreeItem => ruleTreeItem.Data!.LastModified)" Sortable="true" Filterable="false" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)RuleDisplayBase.DisplayLastModified(ruleTreeItem.Data!))
+                                            </Template>
+                                        </Column>
+                                    }
+                                }
+                            
+                                @if(SelectedReportType.IsComplianceReport())
+                                {
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="Compliance" Field="@(ruleTreeItem => ruleTreeItem.Data!.Compliance)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)RuleDisplayHtml.DisplayIsCompliant(ruleTreeItem.Data!, GetActLocation()))
+                                        </Template>
+                                    </Column>
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="Violation Details" Field="@(ruleTreeItem => ruleTreeItem.Data!.ViolationDetails)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)RuleDisplayHtml.DisplayViolationDetails(ruleTreeItem.Data!))
+                                        </Template>
+                                    </Column>
+                                }
+
+                            @if (_emptyColumns[1] == false)
+                            {
+                                <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("name"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+
+                            @if (_emptyColumns[2] == false)
+                            {
+                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("source_zone"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.RuleFromZones)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplaySourceZones(ruleTreeItem.Data!))
+                                    </Template>
+                                </Column>
+                            }
+                        
+                            @if (_emptyColumns[3] == false)
+                            {
+                            <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("source"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)_ruleDisplay.DisplaySource(ruleTreeItem.Data!, GetActLocation(), SelectedReportType))
+                                    </Template>
+                                </Column>
+                            }
+   
+                            @if (_emptyColumns[4] == false)
+                            {
+                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("destination_zone"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.RuleToZones)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplayDestinationZones(ruleTreeItem.Data!))
+                                    </Template>
+                                </Column>
+                            }
+ 
+                            @if (_emptyColumns[5] == false)
+                            {
+                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("destination"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)_ruleDisplay.DisplayDestination(ruleTreeItem.Data!, GetActLocation(), SelectedReportType))
+                                    </Template>
+                                </Column>
+                            }
+
+                            @if (_emptyColumns[6] == false)
+                            {
+                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("services"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)_ruleDisplay.DisplayServices(ruleTreeItem.Data!, GetActLocation(), SelectedReportType))
+                                    </Template>
+                                </Column>
+                            }
+
+                            @if(SelectedReportType == ReportType.NatRules)
+                            {
+                                    <Column Class="table-active" TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("trans_source"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                                @((MarkupString)_ruleDisplay.DisplayTranslatedSource(ruleTreeItem.Data!, GetActLocation()))
+                                        </Template>
+                                    </Column>
+                                    <Column Class="table-active" TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("trans_destination"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)_ruleDisplay.DisplayTranslatedDestination(ruleTreeItem.Data!, GetActLocation()))
+                                        </Template>
+                                    </Column>
+                                    <Column Class="table-active" TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("trans_services"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)_ruleDisplay.DisplayTranslatedService(ruleTreeItem.Data!, GetActLocation()))
+                                        </Template>
+                                    </Column>
+                            }
+
+                            @if (_emptyColumns[7] == false && SelectedReportType != ReportType.NatRules)
+                            {
+                                <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("action"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Action)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+
+                            @if (_emptyColumns[8] == false && SelectedReportType != ReportType.NatRules)
+                            {
+                                <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("track"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Track)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+
+                            @if (_emptyColumns[9] == false)
+                            {
+                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("enabled"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Disabled)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplayEnabled(ruleTreeItem.Data!, GetActLocation()))
+                                    </Template>
+                                </Column>
+                            }
+
+                            @if (_emptyColumns[10] == false)
+                            {
+                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("enforcing_devices"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplayEnforcingGateways(ruleTreeItem.Data!, GetActLocation(), SelectedReportType))
+                                    </Template>
+                                </Column>
+                            }
+
+                            @if (_emptyColumns[11] == false)
+                            {
+                                <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("uid"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Uid)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+
+                            @if (_emptyColumns[12] == false)
+                            {
+                                <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("comment"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Comment)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+
+                            @if (_emptyColumns[13] == false)
+                            {
+                                @if (!_showLastModifiedAfterLastHit)
+                                {
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="LastModified" Field="@(ruleTreeItem => ruleTreeItem.Data!.LastModified)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)RuleDisplayBase.DisplayLastModified(ruleTreeItem.Data!))
+                                        </Template>
+                                    </Column>
+                                }
+                            }
+
+                            <DetailTemplate TableItem="RuleTreeItem">
+                                <RuleDetails Rule="context.Data!"/>
+                            </DetailTemplate>
+
+                            <CustomRow TableItem="RuleTreeItem" IsActiveForItem="(ruleTreeItem => !String.IsNullOrEmpty(ruleTreeItem.Data!.SectionHeader))">
+                                <tr>
+                                    <td>                          
+                                        <div style="cursor:pointer; white-space:nowrap;" @onclick="() => OnNumberIconClickToggle(context.Data!, management, device)">
+                                            @((MarkupString)GetToggleArrow(context.Data!, management, device))@((MarkupString)RuleDisplayHtml.DisplayNumber(context.Data!))
+                                        </div>                                        
+                             
+                                    </td>
+
+                                    <td class="bg-light" colspan="@(_reportTable?.Columns.Count)">
+                                        <div class="font-weight-bold">@(context.Data!.SectionHeader)</div>
+                                    </td>
+                                </tr>
+                            </CustomRow>  
+
+                            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                        </Table>
                     </Collapse>
                 }
             }
+        }
         </Collapse>
     }
 }
 
 @code
 {
+    #region Parameters
+
     [Parameter]
-    public bool Recertification { get; set; } = false;
-    
+    public List<ManagementReport> Managements { get; set; } = new ();
+
     [Parameter]
     public bool ReadonlyMode { get; set; } = false;
 
     [Parameter]
-    public ReportType SelectedReportType { get; set; }
-
-    [Parameter]
-    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
-
-    [Parameter]
-    public List<Rule> SelectedRules { get; set; } = [];
+    public bool Recertification { get; set; } = false;
 
     [Parameter]
     public int RulesPerPage { get; set; }
 
     [Parameter]
-    public List<ManagementReport> Managements { get; set; } = [];
+    public ReportType SelectedReportType { get; set; }
+
+    [Parameter]
+    public List<Rule> SelectedRules { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    #endregion
+
+    #region Consts - Private
+
+    private const int ColumnsCount = 14;
+
+    #endregion
+
+    #region Fields
+
+    private ITable<RuleTreeItem>? _reportTable;
+    private bool[] _emptyColumns = new bool[ColumnsCount];
+
+    private NatRuleDisplayHtml? _ruleDisplay;
+    private bool _showLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
+
+    private Rule? _lastClickedRule = null;
+    
+    #endregion
+
+    #region Methods - Overrides
+    
+    protected override void OnInitialized()
+    {
+        _ruleDisplay = new NatRuleDisplayHtml(userConfig);
+        // TODO: are we using NatRuleDisplayHtml for non-NAT rules?
+    }
+
+    #endregion
+
+    #region Methods - Private
+
+    private string GetTableRowClasses(Rule rule)
+    {
+        string classes = "";
+        if(rule.SectionHeader != null)
+        {
+            classes = "hide-all-but-second-child second-child-full-width ";
+        }
+        return classes;
+    }
+
+    private OutputLocation GetActLocation()
+    {
+        return Recertification ? OutputLocation.certification : OutputLocation.report;
+    }
+
+    private IEnumerable<Rule> GetAllInlineRecursive(IEnumerable<Rule> rules, Dictionary<string, List<Rule>> dictRuleInlines)
+    {
+        foreach (var r in rules)
+        {
+            yield return r;
+
+            if (dictRuleInlines.TryGetValue(r.DisplayOrderNumberString, out var children) && children.Count > 0)
+            {
+                foreach (var c in GetAllInlineRecursive(children, dictRuleInlines))
+                    yield return c;
+            }
+        }
+    }
+
+    private RuleTreeItem[] GetRuleTreeItems(ManagementReport managementReport, DeviceReport deviceReport)
+    {
+        List<RuleTreeItem> ruleTreeItems = new();
+
+        if (ruleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, deviceReport.Id), out RuleTreeItem? ruleTreeFromCache))
+        {
+            for (int i = 0; i < ruleTreeFromCache.ElementsFlat.Count; i++)
+            {
+                RuleTreeItem ruleTreeItem = (RuleTreeItem) ruleTreeFromCache.ElementsFlat[i];
+
+                if (ruleTreeItem.IsVisible)
+                {
+                    ruleTreeItems.Add(ruleTreeItem);
+                }   
+            }
+        }
+
+        return ruleTreeItems.ToArray();
+    }
+
+    private string GetToggleArrow(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
+    {
+        // Get corresponding tree item for rule
+
+        RuleTreeItem ruleTree = ruleTreeBuilder.RuleTreeCache[(managementReport.Id, deviceReport.Id)];
+        RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;     
+
+        if (treeItem == null)
+        {
+            throw new Exception("No tree item found for rule");
+        }  
+
+        // Print hidden span for rows (rules or dummy rules for rulebase headers) which are not expandable
+
+        if (!treeItem.Children.Any())
+        {
+            return $"<span style=\"visibility:hidden;\">{Icons.HtmlArrowCollapsed}</span>";
+        }
+
+        // Show correct arrow
+
+        if (treeItem.IsExpanded)
+        {
+            return Icons.HtmlArrowExpanded;
+        }
+        else
+        {
+            return Icons.HtmlArrowCollapsed;
+        }
+    }
+
+    private void OnNumberIconClickToggle(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
+    {
+        // Capture clicked rule
+
+        _lastClickedRule = rule;
+
+        // Get corresponding tree item for rule
+
+        RuleTreeItem ruleTree = ruleTreeBuilder.RuleTreeCache[(managementReport.Id, deviceReport.Id)];
+        RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;
+
+        if (treeItem != null)
+        {
+            // Update exapandable state
+
+            treeItem.IsExpanded = !treeItem.IsExpanded;       
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    #endregion
 }

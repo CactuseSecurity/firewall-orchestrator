@@ -18,12 +18,19 @@
     else
     {
         <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
-        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
-                SelectedElement="ModellingFilter.SelectedOwner" SelectedElementChanged="OwnerChanged" Elements="ownerList">
-            <ElementTemplate Context="owner">
-                @owner.Display(userConfig.GetText("common_service"))
-            </ElementTemplate>
-        </Dropdown>
+        @if(ownerList.Count == 1)
+        {
+            <label class="col-form-label mb-3 text-white">@((MarkupString)ModellingFilter.SelectedOwner.Display(userConfig.GetText("common_service")))</label>
+        }
+        else
+        {
+            <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
+                    SelectedElement="ModellingFilter.SelectedOwner" SelectedElementChanged="OwnerChanged" Elements="ownerList">
+                <ElementTemplate Context="owner">
+                    @owner.Display(userConfig.GetText("common_service"))
+                </ElementTemplate>
+            </Dropdown>
+        }
     }
     @if(ReportType == ReportType.AppRules)
     {
@@ -125,12 +132,16 @@
     private List<FwoOwner> ownerList = [];
     private List<OwnerRecertification> ownerRecerts = [];
     private OwnerRecertification? selectedOwnerRecert;
+    private ModellingFilter prevModellingFilter = new();
+    private ReportType prevReportType = ReportType.Connections;
+    private bool Initialized = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             ownerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask ?? throw new AuthenticationException("Authentication missing"), userConfig, apiConnection, DisplayMessageInUi);
+            Initialized = true;
         }
         catch (Exception exception)
         {
@@ -140,15 +151,20 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if(ReportType == ReportType.OwnerRecertification)
+        if(Initialized && (ModellingFilter != prevModellingFilter || ReportType != prevReportType))
         {
-            ModellingFilter.SelectedOwners = ownerList;
+            prevModellingFilter = ModellingFilter;
+            prevReportType = ReportType;
+            if(ReportType == ReportType.OwnerRecertification)
+            {
+                ModellingFilter.SelectedOwners = ownerList;
+            }
+            else if(ModellingFilter.SelectedOwner.Id == 0)
+            {
+                PickSelectedOwner();
+            }
+            await LoadOwnerRecerts(ModellingFilter.SelectedOwner);
         }
-        else if(ModellingFilter.SelectedOwner.Id == 0)
-        {
-            PickSelectedOwner();
-        }
-        await LoadOwnerRecerts(ModellingFilter.SelectedOwner);
     }
 
     private async Task OwnerChanged(FwoOwner newOwner)

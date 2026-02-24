@@ -20,13 +20,13 @@ namespace FWO.Data.Report
         public DateTime GenerationDateEnd { get; set; }
 
         [JsonProperty("report_template"), JsonPropertyName("report_template")]
-        public ReportTemplate Template { get; set; } = new ();
+        public ReportTemplate Template { get; set; } = new();
 
         [JsonProperty("report_template_id"), JsonPropertyName("report_template_id")]
         public int TemplateId { get; set; }
 
         [JsonProperty("uiuser"), JsonPropertyName("uiuser")]
-        public UiUser ReportOwningUser { get; set; } = new ();
+        public UiUser ReportOwningUser { get; set; } = new();
 
         [JsonProperty("report_owner_id"), JsonPropertyName("report_owner_id")]
         public int OwningUserId { get; set; }

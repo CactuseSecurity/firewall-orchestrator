@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -8,10 +7,13 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Middleware.Server.Controllers;
-using FWO.Middleware.Server.Services;
 using FWO.Report;
 using FWO.Services;
 using Quartz;
+using FWO.Report.Data;
+using FWO.Mail;
+using FWO.Encryption;
+using System.Text.Json;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -26,7 +28,6 @@ namespace FWO.Middleware.Server.Jobs
 
         private readonly ApiConnection apiConnectionScheduler;
         private readonly JwtWriter jwtWriter;
-        private readonly ReportSchedulerState state;
         private readonly string apiServerUri;
 
         /// <summary>
@@ -34,12 +35,10 @@ namespace FWO.Middleware.Server.Jobs
         /// </summary>
         /// <param name="apiConnectionScheduler">API connection used by the scheduler.</param>
         /// <param name="jwtWriter">JWT writer to authorize users.</param>
-        /// <param name="state">Shared scheduler state.</param>
-        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter, ReportSchedulerState state)
+        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter)
         {
             this.apiConnectionScheduler = apiConnectionScheduler;
             this.jwtWriter = jwtWriter;
-            this.state = state;
             apiServerUri = ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup.");
         }
 
@@ -48,45 +47,47 @@ namespace FWO.Middleware.Server.Jobs
         {
             Log.WriteDebug(LogMessageTitle, "Process started");
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
-            ImmutableArray<ReportSchedule> scheduledReports = state.ScheduledReports;
+            List<ReportSchedule> scheduledReports = await apiConnectionScheduler.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
 
-            if (scheduledReports.IsDefaultOrEmpty)
+            if (scheduledReports is null || scheduledReports.Count == 0)
             {
                 return;
             }
 
             await Parallel.ForEachAsync(scheduledReports, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
-                async (reportSchedule, ct) =>
-                {
-                    try
-                    {
-                        if (reportSchedule.Active)
-                        {
-                            // Add schedule interval as long as schedule time is smaller then current time
-                            while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
-                            {
-                                reportSchedule.StartTime = reportSchedule.RepeatInterval switch
-                                {
-                                    SchedulerInterval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
-                                    SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * GlobalConst.kDaysPerWeek),
-                                    SchedulerInterval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
-                                    SchedulerInterval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
-                                    SchedulerInterval.Never => reportSchedule.StartTime.AddYears(42_42),
-                                    _ => throw new NotSupportedException("Time interval is not supported."),
-                                };
-                            }
+                async (reportSchedule, ct) => await ProcessScheduledReport(reportSchedule, dateTimeNowRounded, ct));
+        }
 
-                            if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
-                            {
-                                await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
-                            }
-                        }
-                    }
-                    catch (Exception exception)
+        private async Task ProcessScheduledReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken ct)
+        {
+            try
+            {
+                if (reportSchedule.Active)
+                {
+                    // Add schedule interval as long as schedule time is smaller than current time
+                    while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
                     {
-                        Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
+                        reportSchedule.StartTime = reportSchedule.RepeatInterval switch
+                        {
+                            SchedulerInterval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * GlobalConst.kDaysPerWeek),
+                            SchedulerInterval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Never => reportSchedule.StartTime.AddYears(42_42),
+                            _ => throw new NotSupportedException("Time interval is not supported."),
+                        };
                     }
-                });
+
+                    if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
+                    {
+                        await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
+            }
         }
 
         private async Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken token)
@@ -120,9 +121,23 @@ namespace FWO.Middleware.Server.Jobs
                 if (report != null)
                 {
                     await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
+
                     await WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
-                    await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);
+
                     Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
+
+                    ReportSchedulerConfig reportSchedulerConfig = GetReportSchedulerConfig(reportSchedule.Id, userConfig);
+
+                    if (reportSchedulerConfig.ToArchive)
+                    {
+                        await SaveReportToArchive(reportFile, report.SetDescription(), apiConnectionUserContext);
+                    }
+
+                    if (reportSchedulerConfig.ToEmail)
+                    {
+                        await TrySendReportViaEmail(reportSchedule, reportFile, reportSchedulerConfig, userConfig);
+                    }
+
                 }
                 else
                 {
@@ -146,9 +161,23 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
+        private ReportSchedulerConfig GetReportSchedulerConfig(int reportScheduleID, UserConfig? userConfig = null)
+        {
+            if (userConfig != null)
+            {
+                List<ReportSchedulerConfig> reportSchedulerConfig = JsonSerializer.Deserialize<List<ReportSchedulerConfig>>(userConfig.GlobalConfig!.ReportSchedulerConfig) ?? new();
+                return reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportScheduleID) ?? new();
+            }
+            else
+            {
+                return new();
+            }
+
+        }
+
         private async Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
         {
-            List<Ldap> connectedLdaps = state.ConnectedLdaps.ToList();
+            List<Ldap> connectedLdaps = await apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler);
             string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false, lifetime: TimeSpan.FromDays(365));
             ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
@@ -224,7 +253,7 @@ namespace FWO.Middleware.Server.Jobs
             reportFile.GenerationDateEnd = DateTime.Now;
         }
 
-        private static async Task SaveReport(ReportFile reportFile, string desc, ApiConnection apiConnectionUser)
+        private static async Task SaveReportToArchive(ReportFile reportFile, string desc, ApiConnection apiConnectionUser)
         {
             try
             {
@@ -252,6 +281,92 @@ namespace FWO.Middleware.Server.Jobs
                 throw;
             }
         }
+
+        /// <summary>
+        /// Send Email with compliance report to all recipients defined in compliance settings
+        /// </summary>
+        /// <returns></returns>
+        public async Task TrySendReportViaEmail(ReportSchedule reportSchedule, ReportFile reportFile, ReportSchedulerConfig reportSchedulerConfig, UserConfig? userConfig = null)
+        {
+
+            if (reportSchedulerConfig.ToEmail && userConfig?.GlobalConfig is GlobalConfig globalConfig)
+            {
+                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Report Scheduler", "Could not decrypt mailserver password.");
+
+                EmailConnection emailConnection = new(
+                    globalConfig.EmailServerAddress,
+                    globalConfig.EmailPort,
+                    globalConfig.EmailTls,
+                    globalConfig.EmailUser,
+                    decryptedSecret,
+                    globalConfig.EmailSenderAddress
+                );
+
+                MailData? mail = PrepareEmail(reportSchedule, reportFile, reportSchedulerConfig, userConfig);
+
+                if (mail != null)
+                {
+                    bool emailSend = await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
+                    if (emailSend)
+                    {
+                        Log.WriteInfo(LogMessageTitle, "Report email sent successfully.");
+                    }
+                    else
+                    {
+                        Log.WriteError(LogMessageTitle, "Report email could not be sent.");
+                    }
+                }
+            }
+        }
+
+        private MailData? PrepareEmail(ReportSchedule reportSchedule, ReportFile reportFile, ReportSchedulerConfig reportSchedulerConfig, UserConfig? userConfig = null)
+        {
+            if (userConfig != null)
+            {
+                string subject = reportSchedulerConfig.Subject;
+                string body = reportSchedulerConfig.Body;
+                MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(userConfig, reportSchedulerConfig.Recipients), subject) { Body = body };
+                FormFile? attachment;
+                mailData.Attachments = new FormFileCollection();
+
+                foreach (FileFormat format in reportSchedule.OutputFormat)
+                {
+                    switch (format.Name)
+                    {
+                        case GlobalConst.kCsv:
+                            attachment = EmailHelper.CreateAttachment(reportFile.Csv, GlobalConst.kCsv, subject);
+                            break;
+
+                        case GlobalConst.kHtml:
+                            attachment = EmailHelper.CreateAttachment(reportFile.Html, GlobalConst.kHtml, subject);
+                            break;
+
+                        case GlobalConst.kPdf:
+                            attachment = EmailHelper.CreateAttachment(reportFile.Pdf, GlobalConst.kPdf, subject);
+                            break;
+
+                        case GlobalConst.kJson:
+                            attachment = EmailHelper.CreateAttachment(reportFile.Json, GlobalConst.kJson, subject);
+                            break;
+
+                        default:
+                            throw new NotSupportedException("Output format is not supported.");
+                    }
+
+                    if (attachment != null)
+                    {
+                        ((FormFileCollection)mailData.Attachments).Add(attachment);
+                    }
+                }
+
+                return mailData;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
 
         private static DateTime RoundDown(DateTime dateTime, TimeSpan roundInterval)
         {

@@ -11,6 +11,7 @@ namespace FWO.Middleware.Server.Jobs
     /// <summary>
     /// Quartz Job for import change notifications
     /// </summary>
+    [DisallowConcurrentExecution]
     public class ImportChangeNotifyJob : IJob
     {
         private const string LogMessageTitle = "Import Change Notify";
@@ -38,7 +39,7 @@ namespace FWO.Middleware.Server.Jobs
             }
             catch (Exception exc)
             {
-                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kImportChangeNotify, AlertCode.ImportChangeNotify, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kImportChangeNotify, AlertCode.ImportChangeNotify, exc);
             }
         }
     }

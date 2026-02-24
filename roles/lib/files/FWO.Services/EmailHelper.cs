@@ -7,8 +7,13 @@ using FWO.Data.Workflow;
 using FWO.Mail;
 using FWO.Middleware.Client;
 using Newtonsoft.Json;
+using System;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using System.Text.RegularExpressions;
+using System.Linq;
+using FWO.Basics;
+using FWO.Logging;
 
 namespace FWO.Services
 {
@@ -35,6 +40,7 @@ namespace FWO.Services
         private readonly Action<Exception?, string, string, bool> displayMessageInUi;
         private readonly bool useInMwServer = false;
         private List<UserGroup> ownerGroups = [];
+        private List<OwnerResponsibleType> ownerResponsibleTypes = [];
         private List<UiUser> uiUsers = [];
         private string? ScopedUserTo;
         private string? ScopedUserCc;
@@ -50,21 +56,36 @@ namespace FWO.Services
             this.ownerGroups = ownerGroups ?? [];
         }
 
-        public async Task Init(string? scopedUserTo = null, string? scopedUserCc = null)
+        public virtual async Task Init(string? scopedUserTo = null, string? scopedUserCc = null)
         {
             if (!useInMwServer && middlewareClient != null)
             {
                 ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig, displayMessageInUi, true);
+            }
+            try
+            {
+                ownerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            }
+            catch
+            {
+                ownerResponsibleTypes = [];
             }
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUserEmails);
             ScopedUserTo = scopedUserTo;
             ScopedUserCc = scopedUserCc;
         }
 
-        public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
+        public virtual async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
         {
             List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
             return await SendEmail(await GetRecipients(recOpt, null, owner, null, null), subject, body, requester);
+        }
+
+        public virtual async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, string recipientConfig, bool reqInCc = false, List<string>? otherAddresses = null)
+        {
+            List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
+            List<string> recipients = await GetRecipients(ModellingEmailRecipientSelection.Parse(recipientConfig, GetActiveOwnerResponsibleTypeIds()), owner, otherAddresses);
+            return await SendEmail(recipients, subject, body, requester);
         }
 
         public async Task<bool> SendOwnerEmailFromAction(EmailActionParams emailActionParams, WfStatefulObject statefulObject, FwoOwner? owner)
@@ -84,63 +105,160 @@ namespace FWO.Services
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
             tos = [.. tos.Where(t => t != "")];
+            if (tos.Count == 0)
+            {
+                return false;
+            }
             ccs = ccs?.Where(c => c != "").ToList();
             return await MailKitMailer.SendAsync(new MailData(tos, subject) { Body = body, Cc = ccs ?? [] }, emailConnection, true, new CancellationToken());
         }
 
         public async Task<List<string>> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser, List<string>? otherAddresses)
         {
-            List<string> recipients = [];
-            switch (recipientOption)
+            Dictionary<EmailRecipientOption, Func<Task<List<string>>>> handlers = BuildRecipientHandlers(statefulObject, owner, scopedUser, otherAddresses);
+            if (handlers.TryGetValue(recipientOption, out Func<Task<List<string>>>? handler))
             {
-                case EmailRecipientOption.CurrentHandler:
-                    recipients.Add(GetEmailAddress(statefulObject?.CurrentHandler?.Dn));
-                    break;
-                case EmailRecipientOption.RecentHandler:
-                    recipients.Add(GetEmailAddress(statefulObject?.RecentHandler?.Dn));
-                    break;
-                case EmailRecipientOption.AssignedGroup:
-                    recipients.AddRange(await CollectEmailAddressesFromUserOrGroup(statefulObject?.AssignedGroup));
-                    break;
-                case EmailRecipientOption.OwnerMainResponsible:
-                    recipients.Add(GetEmailAddress(owner?.Dn));
-                    break;
-                case EmailRecipientOption.AllOwnerResponsibles:
-                    recipients.AddRange(await CollectEmailAddressesFromOwner(owner));
-                    break;
-                case EmailRecipientOption.OwnerGroupOnly:
-                    recipients.AddRange(await GetAddressesFromGroup(owner?.GroupDn));
-                    break;
-                case EmailRecipientOption.Requester:
-                case EmailRecipientOption.Approver:
-                case EmailRecipientOption.LastCommenter:
-                    recipients.Add(GetEmailAddress(scopedUser));
-                    break;
-                case EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty:
-                    if (owner is null)
-                        break;
-
-                    List<string> ownerGroupAdresses = await GetAddressesFromGroup(owner.GroupDn);
-
-                    if (ownerGroupAdresses.Count == 0)
-                    {
-                        recipients.Add(GetEmailAddress(owner?.Dn));
-                    }
-                    else
-                    {
-                        recipients.AddRange(ownerGroupAdresses);
-                    }
-                    break;
-                case EmailRecipientOption.OtherAddresses:
-                    if (otherAddresses != null)
-                    {
-                        recipients.AddRange(otherAddresses);
-                    }
-                    break;
-                default:
-                    break;
+                return await handler();
             }
-            return recipients;
+            return [];
+        }
+
+        private Dictionary<EmailRecipientOption, Func<Task<List<string>>>> BuildRecipientHandlers(
+            WfStatefulObject? statefulObject,
+            FwoOwner? owner,
+            string? scopedUser,
+            List<string>? otherAddresses)
+        {
+            Func<Task<List<string>>> scopedUserHandler = () => Task.FromResult(ListWithSingleRecipient(scopedUser));
+            return new Dictionary<EmailRecipientOption, Func<Task<List<string>>>>
+            {
+                { EmailRecipientOption.CurrentHandler, () => Task.FromResult(ListWithSingleRecipient(statefulObject?.CurrentHandler?.Dn)) },
+                { EmailRecipientOption.RecentHandler, () => Task.FromResult(ListWithSingleRecipient(statefulObject?.RecentHandler?.Dn)) },
+                { EmailRecipientOption.AssignedGroup, () => CollectEmailAddressesFromUserOrGroup(statefulObject?.AssignedGroup) },
+                { EmailRecipientOption.OwnerMainResponsible, () => CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeMain) },
+                { EmailRecipientOption.AllOwnerResponsibles, () => CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles()) },
+                { EmailRecipientOption.OwnerGroupOnly, () => CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting) },
+                { EmailRecipientOption.Requester, scopedUserHandler },
+                { EmailRecipientOption.Approver, scopedUserHandler },
+                { EmailRecipientOption.LastCommenter, scopedUserHandler },
+                { EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, () => GetOwnerGroupOrMainResponsibleRecipients(owner) },
+                { EmailRecipientOption.OtherAddresses, () => Task.FromResult(GetOtherAddresses(otherAddresses)) }
+            };
+        }
+
+        private List<string> ListWithSingleRecipient(string? dn)
+        {
+            return [GetEmailAddress(dn)];
+        }
+
+        private async Task<List<string>> CollectOwnerAddressesByType(FwoOwner? owner, int responsibleType)
+        {
+            return await CollectEmailAddressesFromDns(owner?.GetOwnerResponsiblesByType(responsibleType));
+        }
+
+        private static List<string> GetOtherAddresses(List<string>? otherAddresses)
+        {
+            return otherAddresses != null ? [.. otherAddresses] : [];
+        }
+
+        private async Task<List<string>> GetOwnerGroupOrMainResponsibleRecipients(FwoOwner? owner)
+        {
+            if (owner is null)
+            {
+                return [];
+            }
+
+            List<string> ownerGroupAddresses = await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting);
+            List<string> mainResponsibleAddresses = await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeMain);
+            ownerGroupAddresses.AddRange(mainResponsibleAddresses);
+            if (ownerGroupAddresses.Count > 0)
+            {
+                return ownerGroupAddresses;
+            }
+
+            return mainResponsibleAddresses;
+        }
+
+        private async Task<List<string>> GetRecipients(ModellingEmailRecipientSelection selection, FwoOwner owner, List<string>? otherAddresses)
+        {
+            if (!selection.HasAnyRecipientOption())
+            {
+                return [];
+            }
+
+            HashSet<string> recipients = new(StringComparer.OrdinalIgnoreCase);
+            AddOtherAddresses(selection, otherAddresses, recipients);
+            await AddOwnerTypeRecipients(owner, selection.OwnerResponsibleTypeIds.Distinct(), recipients);
+            await AddFallbackRecipients(selection, owner, recipients);
+
+            return recipients.ToList();
+        }
+
+        private static void AddOtherAddresses(ModellingEmailRecipientSelection selection, List<string>? otherAddresses, HashSet<string> recipients)
+        {
+            if (selection.OtherAddresses && otherAddresses != null)
+            {
+                AddAddresses(recipients, otherAddresses);
+            }
+        }
+
+        private async Task AddOwnerTypeRecipients(FwoOwner owner, IEnumerable<int> responsibleTypeIds, HashSet<string> recipients)
+        {
+            foreach (int responsibleTypeId in responsibleTypeIds)
+            {
+                List<string> ownerTypeRecipients = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(responsibleTypeId));
+                AddAddresses(recipients, ownerTypeRecipients);
+            }
+        }
+
+        private async Task AddFallbackRecipients(ModellingEmailRecipientSelection selection, FwoOwner owner, HashSet<string> recipients)
+        {
+            if (!selection.EnsureAtLeastOneNotification || recipients.Count > 0)
+            {
+                return;
+            }
+
+            HashSet<int> selectedTypeIds = selection.OwnerResponsibleTypeIds.ToHashSet();
+            List<int> fallbackTypeIds = ownerResponsibleTypes
+                .Where(type => type.Active && !selectedTypeIds.Contains(type.Id))
+                .OrderByDescending(type => type.SortOrder)
+                .ThenByDescending(type => type.Id)
+                .Select(type => type.Id)
+                .ToList();
+
+            foreach (int responsibleTypeId in fallbackTypeIds)
+            {
+                List<string> ownerTypeRecipients = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(responsibleTypeId));
+                if (ownerTypeRecipients.Count > 0)
+                {
+                    AddAddresses(recipients, ownerTypeRecipients);
+                    break;
+                }
+            }
+        }
+
+        private static void AddAddresses(HashSet<string> recipients, IEnumerable<string>? addresses)
+        {
+            if (addresses == null)
+            {
+                return;
+            }
+
+            foreach (string address in addresses)
+            {
+                if (!string.IsNullOrWhiteSpace(address))
+                {
+                    recipients.Add(address);
+                }
+            }
+        }
+
+        private List<int> GetActiveOwnerResponsibleTypeIds()
+        {
+            return ownerResponsibleTypes
+                .Where(type => type.Active)
+                .Select(type => type.Id)
+                .ToList();
         }
 
         public List<string> GetOwnerMainResponsibleRecipients(List<UserGroup> owners)
@@ -170,52 +288,65 @@ namespace FWO.Services
             return [.. addresslist.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
         }
 
-        private async Task<List<string>> CollectEmailAddressesFromOwner(FwoOwner? owner)
-        {
-            List<string> tos = [GetEmailAddress(owner?.Dn), .. await GetAddressesFromGroup(owner?.GroupDn)];
-            return tos;
-        }
-
         private async Task<List<string>> CollectEmailAddressesFromUserOrGroup(string? dn)
         {
-            List<string> tos = [GetEmailAddress(dn), .. await GetAddressesFromGroup(dn)];
+            return await CollectEmailAddressesFromDns(dn == null ? null : [dn]);
+        }
+
+        private async Task<List<string>> CollectEmailAddressesFromDns(IEnumerable<string>? dns)
+        {
+            List<string> tos = [];
+            List<string> resolvedDns = await ResolveUserDns(dns);
+            foreach (string dn in resolvedDns)
+            {
+                tos.Add(GetEmailAddress(dn));
+            }
             return tos;
         }
 
-        private async Task<List<string>> GetAddressesFromGroup(string? groupDn)
+        private async Task<List<string>> ResolveUserDns(IEnumerable<string>? dns)
         {
-            List<string> tos = [];
-            UserGroup? ownerGroup = ownerGroups.FirstOrDefault(x => x.Dn == groupDn);
-            if (ownerGroup != null)
+            List<string> dnsList = dns?.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+            if (dnsList.Count == 0)
             {
-                foreach (var user in ownerGroup.Users)
-                {
-                    tos.Add(GetEmailAddress(user.Dn));
-                }
+                return [];
             }
-            else if (middlewareClient != null && !string.IsNullOrWhiteSpace(groupDn) && !(new DistName(groupDn).IsInternal()))
+
+            if (middlewareClient != null)
             {
                 try
                 {
-                    var response = await middlewareClient.GetGroupMembers(new GroupMemberGetParameters { GroupDn = groupDn });
+                    var response = await middlewareClient.ResolveGroupMembers(new GroupResolveParameters { Dns = dnsList });
                     if (response.IsSuccessful && response.Data != null)
                     {
-                        foreach (var memberDn in response.Data)
-                        {
-                            tos.Add(GetEmailAddress(memberDn));
-                        }
+                        return response.Data.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
                     }
-                    else
-                    {
-                        displayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-                    }
+
+                    displayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
                 }
                 catch (Exception exception)
                 {
                     displayMessageInUi(exception, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
                 }
             }
-            return tos;
+
+            HashSet<string> resolved = new(StringComparer.OrdinalIgnoreCase);
+            foreach (string dn in dnsList)
+            {
+                UserGroup? ownerGroup = ownerGroups.FirstOrDefault(x => x.Dn == dn);
+                if (ownerGroup != null)
+                {
+                    foreach (var user in ownerGroup.Users)
+                    {
+                        resolved.Add(user.Dn);
+                    }
+                }
+                else
+                {
+                    resolved.Add(dn);
+                }
+            }
+            return resolved.ToList();
         }
 
         private string GetEmailAddress(string? dn)
@@ -230,6 +361,59 @@ namespace FWO.Services
                 return uiuser.Email;
             }
             return "";
+        }
+
+        public static List<string> CollectRecipientsFromConfig(UserConfig userConfig, string configValue)
+        {
+            if (userConfig.UseDummyEmailAddress)
+            {
+                return [userConfig.DummyEmailAddress];
+            }
+            string[] separatingStrings = [",", ";", "|"];
+            return [.. configValue.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
+        }
+
+        public static FormFile? CreateAttachment(string? content, string fileFormat, string subject)
+        {
+            if (content != null)
+            {
+                string fileName = ConstructFileName(subject, fileFormat);
+
+                MemoryStream memoryStream;
+                string contentType;
+
+                if (fileFormat == GlobalConst.kPdf)
+                {
+                    memoryStream = new(Convert.FromBase64String(content));
+                    contentType = "application/octet-stream";
+                }
+                else
+                {
+                    memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
+                    contentType = $"application/{fileFormat}";
+                }
+
+                return new(memoryStream, 0, memoryStream.Length, "FWO-Report-Attachment", fileName)
+                {
+                    Headers = new HeaderDictionary(),
+                    ContentType = contentType
+                };
+            }
+            return null;
+        }
+
+        private static string ConstructFileName(string input, string fileFormat)
+        {
+            try
+            {
+                Regex regex = new(@"\s", RegexOptions.None, TimeSpan.FromMilliseconds(500));
+                return $"{regex.Replace(input, "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                Log.WriteWarning("Construct File Name", "Timeout when constructing file name. Taking input.");
+                return input;
+            }
         }
     }
 }

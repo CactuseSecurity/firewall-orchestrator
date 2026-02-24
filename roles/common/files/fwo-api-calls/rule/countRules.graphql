@@ -1,0 +1,5 @@
+    query countRules($mgm_ids: [Int!]) {
+      rule_aggregate(where: { mgm_id: { _in: $mgm_ids } }) {
+        aggregate { count }
+      }
+    }

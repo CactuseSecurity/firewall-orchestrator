@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Config.Api.Data;
 
 namespace FWO.Test
@@ -14,7 +14,7 @@ namespace FWO.Test
 
         public SimulatedGlobalConfig() : base()
         {
-            LangDict = new(){ { "English", DummyTranslate } };
+            LangDict = new() { { "English", DummyTranslate } };
         }
     }
 
@@ -75,6 +75,11 @@ namespace FWO.Test
             {"until","until"},
             {"C9001","This object was..."},
             {"C9002","This App Server was..."},
+            {"C9003","App disabled"},
+            {"C9004","No connections"},
+            {"C9007","Requested by other owner"},
+            {"C9008","Requested"},
+            {"C9011","Rejected"},
             {"is_in_use","Is in use"},
             {"devices","Devices"},
             {"owners","Owners"},
@@ -91,6 +96,7 @@ namespace FWO.Test
             {"global_common_services","Global Common Services"},
             {"func_reason","Functional Reason"},
             {"interface_description","Interface Description"},
+            {"interface","Interface"},
             {"published","Published"},
             {"fetch_data","Fetch data"},
             {"new_connection","New Connection"},
@@ -146,6 +152,47 @@ namespace FWO.Test
             {"English", "English"},
             {"last_successful", "Last successful"},
             {"common_service", "Common Service"},
+            {"managements", "Managements"},
+            {"enforcing_devices", "enforcing_devices" },
+            {"no_changes_found", "no_changes_found" },
+            {"network_object_added", "network_object_added" },
+            {"network_object_deleted", "network_object_deleted" },
+            {"network_object_modified", "network_object_modified" },
+            {"service_added", "service_added" },
+            {"service_deleted", "service_deleted" },
+            {"service_modified", "service_modified" },
+            {"user_added","user_added" },
+            {"user_deleted","user_deleted" },
+            {"user_modified","user_modified" },
+            {"interface_permission","Interface Permission" },
+            {"Public","Public" },
+            {"edit_connection","Edit Connection" },
+            {"edit_common_service","Edit Common Service" },
+            {"edit_interface","Edit Interface" },
+            {"insert_forbidden","Insert forbidden" },
+            {"replace","Replace" },
+            {"E9017","ErrorText" },
+            {"from_ticket","From Ticket" },
+            {"InterfaceRejected","Interface rejected" },
+            {"interface_requested","Interface requested" },
+            {"ticket","Ticket" },
+            {"U9012","Requested Interface" },
+            {"E9004","Missing Source/Destination or Service" },
+            {"E9005","Source/Destination changed" },
+            {"E9020","Interface in use by other app" },
+            {"E5102","Missing name or reason" },
+            {"E9006","Missing source/destination or service" },
+            {"U9022","Network areas on other side" },
+            {"U9021","Interfaces cannot use areas" },
+            {"U9023","Common areas not allowed" },
+            {"E9015","Insert not allowed" },
+            {"select","Select" },
+            {"E9021","Interface permission required" },
+            {"decomm_interface","Decommission Interface" },
+            {"send_email","Send Email"},
+            {"U9033","Emails sent to @@OK_NUMBER@@ owners."},
+            {"E9019","Email could not be sent to @@FAIL_NUMBER@@ owners."},
+            {"notification","Notification" }
         };
 
         public override string GetText(string key)
@@ -155,10 +202,10 @@ namespace FWO.Test
 
         public static ConfigItem[] GetAsConfigs()
         {
-            List <ConfigItem> configs = [];
+            List<ConfigItem> configs = [];
             foreach (var dictValuePair in DummyTranslate)
             {
-                configs.Add(new(){ Key = dictValuePair.Key, Value = dictValuePair.Value, User = 0});
+                configs.Add(new() { Key = dictValuePair.Key, Value = dictValuePair.Value, User = 0 });
             }
             return [.. configs];
         }

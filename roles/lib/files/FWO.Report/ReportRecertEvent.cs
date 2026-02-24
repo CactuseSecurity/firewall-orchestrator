@@ -5,12 +5,13 @@ using FWO.Config.Api;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report.Filter;
+using FWO.Services.RuleTreeBuilder;
 using System.Text;
 using System.Text.Json;
 
 namespace FWO.Report
 {
-    public class ReportRecertEvent(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportRules(query, userConfig, reportType)
+    public class ReportRecertEvent(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : ReportRules(query, userConfig, reportType, ruleTreeBuilder)
     {
         public override string ExportToHtml()
         {

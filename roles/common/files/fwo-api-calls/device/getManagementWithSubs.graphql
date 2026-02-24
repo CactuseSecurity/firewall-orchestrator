@@ -1,0 +1,13 @@
+query getManagementWithSubs {
+    management(
+        where: {
+        _not: {management: {}}
+        do_not_import: { _eq: false }
+        }
+    ) {
+        id: mgm_id
+        subManager: managementByMultiDeviceManagerId {
+        mgm_id
+        }
+    }
+}

@@ -4,14 +4,16 @@ using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
-using FWO.Services;
+using FWO.Services.Modelling;
 using Quartz;
+using FWO.Services;
 
 namespace FWO.Middleware.Server.Jobs
 {
     /// <summary>
     /// Quartz Job for importing app data and adjusting app server names
     /// </summary>
+    [DisallowConcurrentExecution]
     public class ImportAppDataJob : IJob
     {
         private const string LogMessageTitleImport = "Import App Data";
@@ -33,6 +35,8 @@ namespace FWO.Middleware.Server.Jobs
         /// <inheritdoc />
         public async Task Execute(IJobExecutionContext context)
         {
+            Log.WriteDebug(LogMessageTitleImport, "Process started");
+
             await ImportAppData();
             await AdjustAppServerNames();
         }
@@ -50,7 +54,7 @@ namespace FWO.Middleware.Server.Jobs
             }
             catch (Exception exc)
             {
-                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitleImport, GlobalConst.kImportAppData, AlertCode.ImportAppData, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitleImport, GlobalConst.kImportAppData, AlertCode.ImportAppData, exc);
             }
         }
 
@@ -67,7 +71,7 @@ namespace FWO.Middleware.Server.Jobs
             }
             catch (Exception exc)
             {
-                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitleAdjust, GlobalConst.kAdjustAppServerNames, AlertCode.AdjustAppServerNames, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitleAdjust, GlobalConst.kAdjustAppServerNames, AlertCode.AdjustAppServerNames, exc);
             }
         }
     }

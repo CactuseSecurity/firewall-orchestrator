@@ -1,9 +1,12 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
 using FWO.ExternalSystems.Tufin.SecureChange;
+using FWO.Basics.Exceptions;
+using System.Net;
+using RestSharp;
 
 namespace FWO.Test
 {
@@ -53,7 +56,7 @@ namespace FWO.Test
                 }
             ]
         };
-        
+
         private static WfReqTask ConstructAccTask(int id, string title, int taskNumber, string taskType, string action)
         {
             return new()
@@ -208,14 +211,70 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(AccessFilledTicketText, ticket.TicketText);
         }
-        
+
         [Test]
         public async Task TestSCRemoveTicket()
         {
-            SCTicket ticket = new (ticketSystem);
+            SCTicket ticket = new(ticketSystem);
             await ticket.CreateRequestString(removeReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(RemoveFilledTicketText, ticket.TicketText);
+        }
+
+        [Test]
+        public async Task TestSCLookupRequesterIdSuccess()
+        {
+            ExternalTicketSystem lookupSystem = CreateTicketSystem(true);
+            SimulatedSCClient scClient = new(lookupSystem);
+            scClient.EnqueueResponse("users.json?user_name=alice",
+                new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"users\":{\"user\":[{\"id\":55}]}}" });
+
+            SCTicket ticket = new(lookupSystem, scClient) { Requester = "alice" };
+            await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention);
+
+            ClassicAssert.IsTrue(ticket.TicketText.Contains("\"requester\":\"55\""));
+        }
+
+        [Test]
+        public void TestSCLookupRequesterIdUnknownUserThrows()
+        {
+            ExternalTicketSystem lookupSystem = CreateTicketSystem(true);
+            SimulatedSCClient scClient = new(lookupSystem);
+            scClient.EnqueueResponse("users.json?user_name=unknown",
+                new(new()) { StatusCode = HttpStatusCode.OK, Content = "" });
+
+            SCTicket ticket = new(lookupSystem, scClient) { Requester = "unknown" };
+
+            Assert.ThrowsAsync<ProcessingFailedException>(async () =>
+                await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention));
+        }
+
+        [Test]
+        public void TestSCLookupRequesterIdHttpErrorThrows()
+        {
+            ExternalTicketSystem lookupSystem = CreateTicketSystem(true);
+            SimulatedSCClient scClient = new(lookupSystem);
+            scClient.EnqueueResponse("users.json?user_name=error",
+                new(new()) { StatusCode = HttpStatusCode.BadRequest, Content = "{\"error\":\"bad\"}" });
+
+            SCTicket ticket = new(lookupSystem, scClient) { Requester = "error" };
+
+            Assert.ThrowsAsync<ProcessingFailedException>(async () =>
+                await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention));
+        }
+
+        private ExternalTicketSystem CreateTicketSystem(bool lookupRequesterId)
+        {
+            return new()
+            {
+                Id = ticketSystem.Id,
+                Type = ticketSystem.Type,
+                Authorization = ticketSystem.Authorization,
+                Name = ticketSystem.Name,
+                Url = ticketSystem.Url,
+                LookupRequesterId = lookupRequesterId,
+                Templates = ticketSystem.Templates
+            };
         }
     }
 }

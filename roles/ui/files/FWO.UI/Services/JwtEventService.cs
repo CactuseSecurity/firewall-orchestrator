@@ -1,4 +1,4 @@
-﻿﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Config.Api;
 
 namespace FWO.Ui.Services

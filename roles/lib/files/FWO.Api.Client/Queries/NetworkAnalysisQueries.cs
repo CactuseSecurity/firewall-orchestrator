@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -6,18 +6,22 @@ namespace FWO.Api.Client.Queries
     {
         public static readonly string pathAnalysis;
 
-        static NetworkAnalysisQueries() 
+        static NetworkAnalysisQueries()
         {
             try
             {
                 pathAnalysis =
-                    File.ReadAllText(QueryPath + "networking/analyzePath.graphql");
+                    GetQueryText("networking/analyzePath.graphql");
 
             }
             catch (Exception exception)
             {
-                Log.WriteError("Initialize Api Queries", "Api Object Queries could not be loaded." , exception);
+                Log.WriteError("Initialize Api Queries", "Api Object Queries could not be loaded.", exception);
+#if RELEASE
                 Environment.Exit(-1);
+#else
+                throw;
+#endif
             }
         }
     }

@@ -1,0 +1,18 @@
+query getRuleIdsOfImport(
+  $import_id_start: bigint
+  $import_id_end: bigint
+  $devIds: [Int!]
+) {
+  rule(
+    where: {
+      rule_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+      dev_id: { _in: $devIds }
+    }
+  ) {
+    rule_id
+  }
+}

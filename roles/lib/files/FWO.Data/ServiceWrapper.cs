@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -8,9 +8,4 @@ namespace FWO.Data
         [JsonProperty("service"), JsonPropertyName("service")]
         public NetworkService Content { get; set; } = new NetworkService();
     }
-    // public class ServiceObjectRecursiveWrapper
-    // {
-    //     [JsonProperty("service"), JsonPropertyName("service")]
-    //     public ServiceObjectRecursiveFlatsWrapper Content { get; set; }
-    // }
 }

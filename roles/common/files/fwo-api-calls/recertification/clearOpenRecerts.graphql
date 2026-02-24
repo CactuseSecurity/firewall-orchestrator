@@ -1,0 +1,12 @@
+mutation clearOpenRecerts($ownerId: Int) {
+  delete_recertification(
+    where: {
+      owner_id: { _eq: $ownerId }
+      recert_date: { _is_null: true }
+    }
+  ) {
+    returning {
+      deletedIdLong: id
+    }
+  }
+}

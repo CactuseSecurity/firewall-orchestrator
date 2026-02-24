@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -27,9 +27,12 @@ namespace FWO.Test
                 return new TestScheduler(apiConnection, globalConfig);
             }
 
+            private readonly ApiConnection testApiConnection;
+
             private TestScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
                 : base(apiConnection, globalConfig, ConfigQueries.subscribeExternalRequestConfigChanges, SchedulerInterval.Seconds, "Test")
             {
+                testApiConnection = apiConnection;
                 StartScheduleTimer(1, DateTime.Now);
             }
 
@@ -46,8 +49,8 @@ namespace FWO.Test
             /// </summary>
             protected override async void Process(object? _, ElapsedEventArgs __)
             {
-                await AddLogEntry(1, "cause", $"logDesc {Counter}", "source");
-                await SetAlert("title", $"alertDesc {Counter}", "source", AlertCode.UiError);
+                await AlertHelper.AddLogEntry(testApiConnection, 1, "cause", $"logDesc {Counter}", "source");
+                await AlertHelper.SetAlert(testApiConnection, "title", $"alertDesc {Counter}", "source", AlertCode.UiError, new AlertHelper.AdditionalAlertData());
             }
         }
 
@@ -81,6 +84,8 @@ namespace FWO.Test
             ClassicAssert.AreEqual(true, apiConnection.LogEntries[0].Contains("logDesc 1"));
             ClassicAssert.AreEqual(1, apiConnection.Alerts.Count);
             ClassicAssert.AreEqual(true, apiConnection.Alerts[0].Contains("alertDesc 1"));
+            ClassicAssert.AreEqual(1, apiConnection.AcknowledgedAlerts.Count);
+            ClassicAssert.AreEqual(7, apiConnection.AcknowledgedAlerts[0]);
             ConsoleLogs.Add(logOutput.ToString());
             ClassicAssert.AreEqual(true, ConsoleLogs[1].Contains("RecurringTimer started."));
             Console.SetOut(originalConsoleOut);

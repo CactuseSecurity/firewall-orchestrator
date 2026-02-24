@@ -24,6 +24,7 @@ namespace FWO.Basics
 
         // General
         public const string Locked = "bi bi-lock-fill";
+        public const string Unlocked = "bi bi-unlock-fill";
         public const string Type = "bi bi-list-ul";
         public const string Example = "bi bi-eye-fill";
         public const string Requirement = "bi bi-eye-fill";
@@ -55,6 +56,10 @@ namespace FWO.Basics
         public const string OrderByDesc = "bi bi-caret-down-fill";
         public const string Refresh = "bi bi-arrow-clockwise";
         public const string Undo = "bi bi-arrow-counterclockwise";
+
+        //Actions Html
+        public const string HtmlArrowExpanded = "&#9660;";
+        public const string HtmlArrowCollapsed = "&#9654;";
 
         // Object types: General
         public const string Ldap = "bi bi-journal-bookmark-fill";
@@ -118,6 +123,7 @@ namespace FWO.Basics
 
         // Monitoring
         public const string Alarm = "bi bi-bell-fill";
+        public const string Acknowledge = "bi bi-patch-check-fill";
         public const string Import = "bi bi-download";
         public const string UiMessages = "bi bi-chat-fill";
 

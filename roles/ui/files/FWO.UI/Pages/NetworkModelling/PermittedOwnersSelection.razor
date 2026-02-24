@@ -1,0 +1,67 @@
+﻿@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+@if(Readonly)
+{
+    @foreach(var owner in PermittedOwners)
+    {
+        <div class="list-group-item border">
+            <label>@((MarkupString)owner.Display(userConfig.GetText("common_service")))</label>
+        </div>
+    }
+}
+else
+{
+    <EditList ElementType="FwoOwner" Elements="PermittedOwners.ToArray()" ElementsToAdd="OwnersToAdd" ElementsToDelete="OwnersToDelete" StdLayout="false">
+        <Display>
+            <div class="border bg-transparent">@((MarkupString)context.Display(userConfig.GetText("common_service")))</div>
+        </Display>
+    </EditList>
+    <div class="row col-sm-12 mt-2">
+        <div class="col-sm-11">
+            <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display(userConfig.GetText("common_service")))"
+                        @bind-SelectedElement="SelectedOwner" Elements="AllOwners" Nullable="true">
+                <ElementTemplate Context="app">
+                    @((MarkupString)(app.Display(userConfig.GetText("common_service"))))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+        <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddOwner" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public List<FwoOwner> AllOwners { get; set; } = [];
+
+    [Parameter]
+    public List<FwoOwner> PermittedOwners { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<FwoOwner>> PermittedOwnersChanged { get; set; }
+
+    [Parameter]
+    public bool Readonly { get; set; } = false;
+
+    [Parameter]
+    public List<FwoOwner> OwnersToAdd { get; set; } = [];
+
+    [Parameter]
+    public List<FwoOwner> OwnersToDelete { get; set; } = [];
+
+
+    private FwoOwner? SelectedOwner;
+
+    private void AddOwner()
+    {
+        if (SelectedOwner != null &&
+            !OwnersToAdd.Any(o => o.Id == SelectedOwner.Id) &&
+            !PermittedOwners.Any(o => o.Id == SelectedOwner.Id))
+        {
+            OwnersToAdd.Add(SelectedOwner);
+            SelectedOwner = null;
+        }
+    }
+}

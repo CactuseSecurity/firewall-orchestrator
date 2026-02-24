@@ -69,6 +69,18 @@
                     <NavLink class="nav-link" href="settings/owners">
                         <span class="@Icons.Owner"></span> @(userConfig.GetText("owners"))
                     </NavLink>
+                    <ul class="navbar-nav flex-column ms-3">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="settings/owners/responsibles">
+                                <span class="@Icons.Owner"></span> @(userConfig.GetText("responsibles"))
+                            </NavLink>
+                        </li>
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="settings/owners/appdataimport">
+                                <span class="@Icons.Import"></span> @(userConfig.GetText("import_app_data"))
+                            </NavLink>
+                        </li>
+                    </ul>
                 </li>
                 <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5013"))">
@@ -82,6 +94,11 @@
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/importer">
                         <span class="@Icons.Import"></span> @(userConfig.GetText("importer_settings"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/changetrigger">
+                        <span class="@Icons.Check "></span> @(userConfig.GetText("change_trigger"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
@@ -107,6 +124,11 @@
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/extticketing">
                         <span class="@Icons.Tickets"></span> @(userConfig.GetText("ext_ticketing"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/compliance">
+                        <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">

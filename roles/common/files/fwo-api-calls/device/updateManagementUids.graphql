@@ -1,0 +1,15 @@
+mutation updateManagementUids(
+  $id: Int!
+  $uid: String
+  $domainUid: String
+) {
+  update_management_by_pk(
+    pk_columns: { mgm_id: $id }
+    _set: {
+      mgm_uid: $uid
+      domain_uid: $domainUid
+    }
+  ) {
+    UpdatedId: mgm_id
+  }
+}

@@ -1,0 +1,13 @@
+query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
+  usr(where: {
+    user_uid: {_in: $uids},
+    _or: [
+      {mgm_id: {_eq: $mgmId}},
+      {management: {multi_device_manager_id: {_eq: $mgmId}}}
+    ],
+    removed: {_is_null: true}
+    }) {
+    user_id
+    user_uid
+  }
+}

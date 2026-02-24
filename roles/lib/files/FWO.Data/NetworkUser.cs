@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -27,13 +27,13 @@ namespace FWO.Data
         public int TypeId { get; set; }
 
         [JsonProperty("type"), JsonPropertyName("type")]
-        public NetworkUserType Type { get; set; } = new(){};
+        public NetworkUserType Type { get; set; } = new();
 
         [JsonProperty("user_create"), JsonPropertyName("user_create")]
         public int Create { get; set; }
 
         [JsonProperty("user_create_time"), JsonPropertyName("user_create_time")]
-        public TimeWrapper CreateTime { get; set; } = new(){};
+        public TimeWrapper CreateTime { get; set; } = new();
 
         [JsonProperty("user_last_seen"), JsonPropertyName("user_last_seen")]
         public int LastSeen { get; set; }
@@ -45,10 +45,10 @@ namespace FWO.Data
         public string MemberRefs { get; set; } = "";
 
         [JsonProperty("usergrps"), JsonPropertyName("usergrps")]
-        public Group<NetworkUser>[] UserGroups { get; set; } = new Group<NetworkUser>[]{};
+        public Group<NetworkUser>[] UserGroups { get; set; } = new Group<NetworkUser>[] { };
 
         [JsonProperty("usergrp_flats"), JsonPropertyName("usergrp_flats")]
-        public GroupFlat<NetworkUser>[] UserGroupFlats { get; set; } = new GroupFlat<NetworkUser>[]{};
+        public GroupFlat<NetworkUser>[] UserGroupFlats { get; set; } = new GroupFlat<NetworkUser>[] { };
 
         public override bool Equals(object? obj)
         {

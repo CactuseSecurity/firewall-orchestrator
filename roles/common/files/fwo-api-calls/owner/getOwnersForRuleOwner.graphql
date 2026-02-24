@@ -1,0 +1,9 @@
+
+query getOwnersForRuleOwner {
+  owner (where: { active: { _eq: true } })
+  {
+    id
+    name
+    app_id_external
+  }
+}

@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data.Modelling;
 
 namespace FWO.Data.Report
@@ -11,7 +11,7 @@ namespace FWO.Data.Report
         public List<NetworkService> AllServices { get; set; } = [];
 
         public ConnectionReport()
-        {}
+        { }
 
         public ConnectionReport(ConnectionReport report)
         {
@@ -50,7 +50,7 @@ namespace FWO.Data.Report
         public static void SetSvcNumbers(List<NetworkService> svcList)
         {
             long number = 1;
-            foreach(var svc in svcList)
+            foreach (var svc in svcList)
             {
                 svc.Number = number++;
             }
@@ -59,7 +59,7 @@ namespace FWO.Data.Report
         public static void SetObjectNumbers(List<NetworkObject> objList)
         {
             long number = 1;
-            foreach(var obj in objList)
+            foreach (var obj in objList)
             {
                 obj.Number = number++;
             }
@@ -68,16 +68,16 @@ namespace FWO.Data.Report
         public static List<NetworkService> GetAllServices(List<ModellingConnection> connections, bool resolved = false)
         {
             List<NetworkService> allServices = [];
-            foreach(var conn in connections)
+            foreach (var conn in connections)
             {
                 List<NetworkService> svcList = [];
                 foreach (var svcGrp in conn.ServiceGroups.Select(s => s.Content))
                 {
                     NetworkService serviceGroup = svcGrp.ToNetworkServiceGroup();
                     svcList.Add(svcGrp.ToNetworkServiceGroup());
-                    if(resolved)
+                    if (resolved)
                     {
-                        foreach(var svc in serviceGroup.ServiceGroups.Where(s => s.Object != null))
+                        foreach (var svc in serviceGroup.ServiceGroups.Where(s => s.Object != null))
                         {
                             svcList.Add(svc.Object!);
                         }
@@ -92,7 +92,7 @@ namespace FWO.Data.Report
         public static List<NetworkObject> GetAllNetworkObjects(List<ModellingConnection> connections, bool resolved = false, bool resolveNetworkAreas = false, long dummyARid = 0)
         {
             List<NetworkObject> allObjects = [];
-            foreach(var conn in connections)
+            foreach (var conn in connections)
             {
                 allObjects = [.. allObjects.Union(GetAllNwGrpObjectsFromConn(conn, resolved, resolveNetworkAreas, dummyARid))];
             }
@@ -113,7 +113,7 @@ namespace FWO.Data.Report
         private static List<ModellingAppServer> GetAllAppServers(List<ModellingConnection> connections)
         {
             List<ModellingAppServer> allAppServers = [];
-            foreach(var conn in connections)
+            foreach (var conn in connections)
             {
                 allAppServers = [.. allAppServers.Union([.. ModellingAppServerWrapper.Resolve(conn.SourceAppServers)])];
                 allAppServers = [.. allAppServers.Union([.. ModellingAppServerWrapper.Resolve(conn.DestinationAppServers)])];
@@ -138,9 +138,9 @@ namespace FWO.Data.Report
             foreach (var areaWrapper in areas.Select(a => a.Content))
             {
                 objectList.Add(areaWrapper.ToNetworkObjectGroup(false, resolveNetworkAreas));
-                if(resolved && resolveNetworkAreas)
+                if (resolved && resolveNetworkAreas)
                 {
-                    foreach(var obj in areaWrapper.ToNetworkObjectGroup().ObjectGroups.Where(o => o.Object != null))
+                    foreach (var obj in areaWrapper.ToNetworkObjectGroup().ObjectGroups.Where(o => o.Object != null))
                     {
                         objectList.Add(obj.Object!);
                     }
@@ -153,9 +153,9 @@ namespace FWO.Data.Report
             foreach (var nwGrpWrapper in nwGroups.Select(n => n.Content))
             {
                 objectList.Add(nwGrpWrapper.ToNetworkObjectGroup());
-                if(resolved)
+                if (resolved)
                 {
-                    foreach(var obj in nwGrpWrapper.ToNetworkObjectGroup().ObjectGroups.Where(o => o.Object != null))
+                    foreach (var obj in nwGrpWrapper.ToNetworkObjectGroup().ObjectGroups.Where(o => o.Object != null))
                     {
                         objectList.Add(obj.Object!);
                     }
@@ -168,19 +168,19 @@ namespace FWO.Data.Report
             foreach (var aRWrapper in appRoles.Select(w => w.Content).Where(a => a.Id != dummyARid))
             {
                 objectList.Add(aRWrapper.ToNetworkObjectGroup());
-                if(resolved)
+                if (resolved)
                 {
-                    foreach(var obj in aRWrapper.ToNetworkObjectGroup().ObjectGroups.Where(o => o.Object != null))
+                    foreach (var obj in aRWrapper.ToNetworkObjectGroup().ObjectGroups.Where(o => o.Object != null))
                     {
                         objectList.Add(obj.Object!);
                     }
-                 }
+                }
             }
         }
 
         public static string ListAppServers(List<ModellingAppServer> appServers, List<ModellingAppServer> surplusAppServers, bool diffMode = false, bool forExport = false)
         {
-            if(diffMode)
+            if (diffMode)
             {
                 List<string> allAppServers = [.. appServers.ConvertAll(a => DisplayAppServerWithDiff(a, forExport))];
                 allAppServers.AddRange(surplusAppServers.ConvertAll(a => DisplayAppServerWithDiff(a, forExport, true)));

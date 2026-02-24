@@ -1,0 +1,7 @@
+query countActiveRules($mgm_ids: [Int!]) {
+  rule_aggregate(where: { mgm_id: { _in: $mgm_ids } removed: { _is_null: true } }) {
+    aggregate {
+      count
+    }
+  }
+}

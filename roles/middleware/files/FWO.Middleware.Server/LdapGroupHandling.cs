@@ -3,6 +3,7 @@ using FWO.Data.Middleware;
 using FWO.Encryption;
 using FWO.Logging;
 using Novell.Directory.Ldap;
+using System;
 using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
@@ -27,7 +28,8 @@ namespace FWO.Middleware.Server
         /// <returns>list of groups for the given DN list</returns>
         public async Task<List<string>> GetGroups(List<string> dnList)
         {
-            return await GetMemberships(dnList, GroupSearchPath);
+            string? groupPath = !string.IsNullOrWhiteSpace(GroupSearchPath) ? GroupSearchPath : GroupWritePath;
+            return await GetMemberships(dnList, groupPath);
         }
 
         [GeneratedRegex(@"(\bcn|\bou|\bdc|\bo|\bc|\bst|\bl)=(.*?)(?=,[A-Za-z]+=|$)", RegexOptions.IgnoreCase, "en-US")]
@@ -47,6 +49,37 @@ namespace FWO.Middleware.Server
             });
         }
 
+        /// <summary>
+        /// Build group DNs from group names and a group path.
+        /// </summary>
+        /// <param name="groupNames">List of group names or DNs.</param>
+        /// <param name="groupPath">LDAP path where groups are located.</param>
+        /// <returns>Distinct list of group DNs.</returns>
+        public static List<string> BuildGroupDns(IEnumerable<string> groupNames, string? groupPath)
+        {
+            if (string.IsNullOrWhiteSpace(groupPath))
+            {
+                return [];
+            }
+            HashSet<string> dns = new(StringComparer.OrdinalIgnoreCase);
+            foreach (string name in groupNames)
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+                if (name.Contains('='))
+                {
+                    dns.Add(name);
+                }
+                else
+                {
+                    dns.Add($"cn={name},{groupPath}");
+                }
+            }
+            return dns.ToList();
+        }
+
         private async Task<List<string>> GetMemberships(List<string> dnList, string? searchPath)
         {
             List<string> userMemberships = [];
@@ -58,7 +91,13 @@ namespace FWO.Middleware.Server
                 {
                     using LdapConnection connection = await Connect();
                     // Authenticate as search user
-                    await TryBind(connection, SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
+                    string mainKey = AesEnc.GetMainKey();
+                    if (!AesEnc.TryDecrypt(SearchUserPwd, mainKey, out string decryptedSearchUserPwd))
+                    {
+                        Log.WriteError($"LDAP decrypt {Address}:{Port}", "Failed to decrypt LDAP search user password.");
+                        return userMemberships;
+                    }
+                    await TryBind(connection, SearchUser, decryptedSearchUserPwd);
 
                     // Search for Ldap roles / groups in given directory          
                     int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?
@@ -289,27 +328,106 @@ namespace FWO.Middleware.Server
         {
             List<string> allMembers = [];
 
-            if (!string.IsNullOrEmpty(GroupSearchPath) && groupDn.EndsWith(GroupSearchPath, StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    using LdapConnection connection = await Connect();
-                    // Authenticate as search user
-                    await TryBind(connection, SearchUser, SearchUserPwd);
-                    LdapEntry? entry = await connection.ReadAsync(groupDn);
+            if (string.IsNullOrEmpty(GroupSearchPath) ||
+                !groupDn.EndsWith(GroupSearchPath, StringComparison.OrdinalIgnoreCase))
+                return allMembers;
 
-                    if (entry != null)
-                    {
-                        string[] groupMemberDn = entry.Get(GetMemberKey()).StringValueArray;
-                        allMembers.AddRange(groupMemberDn.Where(currentDn => currentDn != ""));
-                    }
-                }
-                catch (Exception exception)
+            try
+            {
+                using LdapConnection connection = await Connect();
+                await TryBind(connection, SearchUser, SearchUserPwd);
+
+                LdapEntry? entry = await connection.ReadAsync(groupDn);
+                if (entry == null)
                 {
-                    Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while trying to get all group members of group {groupDn}", exception);
+                    Log.WriteDebug("GetGroupMembers", $"Group not found: {groupDn}");
+                    return allMembers;
+                }
+
+                string memberKey = GetMemberKey();
+                if (!entry.GetAttributeSet().ContainsKey(memberKey))
+                {
+                    Log.WriteDebug("GetGroupMembers", $"Group has no members: {groupDn}");
+                    return allMembers;
+                }
+
+                string[] groupMemberDn = entry.Get(memberKey).StringValueArray;
+                allMembers.AddRange(groupMemberDn.Where(m => !string.IsNullOrWhiteSpace(m)));
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while reading members of group {groupDn}", ex);
+            }
+
+            return allMembers;
+        }
+
+        /// <summary>
+        /// Resolve user DNs from a list of user or group DNs, expanding group members recursively.
+        /// </summary>
+        /// <param name="dns">DNs to resolve.</param>
+        /// <returns>List of resolved user DNs.</returns>
+        public async Task<List<string>> ResolveUsersFromDns(IEnumerable<string> dns)
+        {
+            HashSet<string> resolvedUsers = new(StringComparer.OrdinalIgnoreCase);
+            if (dns == null)
+            {
+                return resolvedUsers.ToList();
+            }
+
+            Queue<string> groupQueue = new();
+            HashSet<string> visitedGroups = new(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string dn in dns)
+            {
+                EnqueueGroupOrAddUser(dn, groupQueue, resolvedUsers);
+            }
+
+            while (groupQueue.Count > 0)
+            {
+                string groupDn = groupQueue.Dequeue();
+                if (!visitedGroups.Add(groupDn))
+                {
+                    continue;
+                }
+
+                List<string> members = await GetGroupMembers(groupDn);
+                foreach (string memberDn in members)
+                {
+                    EnqueueGroupOrAddUser(memberDn, groupQueue, resolvedUsers);
                 }
             }
-            return allMembers;
+
+            return resolvedUsers.ToList();
+        }
+
+        private void EnqueueGroupOrAddUser(string dn, Queue<string> groupQueue, HashSet<string> resolvedUsers)
+        {
+            if (string.IsNullOrWhiteSpace(dn))
+            {
+                return;
+            }
+            if (IsGroupDn(dn))
+            {
+                groupQueue.Enqueue(dn);
+                return;
+            }
+            if (IsUserDn(dn) || string.IsNullOrWhiteSpace(UserSearchPath))
+            {
+                resolvedUsers.Add(dn);
+            }
+        }
+
+        private bool IsGroupDn(string dn)
+        {
+            return !string.IsNullOrWhiteSpace(GroupSearchPath)
+                && dn.EndsWith(GroupSearchPath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsUserDn(string dn)
+        {
+            return !string.IsNullOrWhiteSpace(UserSearchPath)
+                && dn.EndsWith(UserSearchPath, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -331,7 +449,7 @@ namespace FWO.Middleware.Server
                 using LdapConnection connection = await Connect();
                 await TryBind(connection, SearchUser, SearchUserPwd);
 
-                // Suchfilter für Benutzer
+                // searchfilter for users
                 string searchFilter = $"(|(cn={userToSearch})(sAMAccountName={userToSearch}))";
 
                 var searchResults = await connection.SearchAsync(

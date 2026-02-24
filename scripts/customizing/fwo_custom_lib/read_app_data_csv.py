@@ -22,6 +22,8 @@ DEFAULT_IP_HEADER_PATTERNS: dict[str, str] = {"app_id": r".*?:\s*Alfabet-ID$", "
 class OwnerLineParserContext:
     app_name_column: int
     app_id_column: int
+    composite_id_columns: tuple[int, ...] | None
+    composite_id_delimiter: str
     app_owner_tiso_column: int
     app_owner_kwita_column: int
     owner_lifecycle_state_column: int
@@ -55,6 +57,16 @@ def _is_included_owners_match(line: list[str], context: OwnerLineParserContext) 
 
 def _has_valid_app_id_prefix(app_id: str, context: OwnerLineParserContext) -> bool:
     return len(context.valid_app_id_prefixes) == 0 or app_id.lower().startswith(tuple(context.valid_app_id_prefixes))
+
+
+def _build_app_id(line: list[str], context: OwnerLineParserContext) -> str:
+    if context.composite_id_columns:
+        return context.composite_id_delimiter.join(
+            line[column].strip() if len(line) > column else "" for column in context.composite_id_columns
+        )
+    if context.app_id_column < 0 or len(line) <= context.app_id_column:
+        return ""
+    return line[context.app_id_column].strip()
 
 
 def _get_recert_period_days(line: list[str], kwita_column: int) -> int:
@@ -109,13 +121,47 @@ def _find_header_index(
     raise ValueError(f"missing required column {column_name}")
 
 
+def _find_required_header_index_by_name(
+    headers: list[str],
+    header_name: str,
+    csv_file_name: str,
+    logger: logging.Logger,
+) -> int:
+    normalized_target: str = header_name.strip().casefold()
+    for i, header in enumerate(headers):
+        if header.strip().casefold() == normalized_target:
+            return i
+    logger.error(
+        "missing required composite id header %s in %s; headers=%s",
+        header_name,
+        csv_file_name,
+        headers,
+    )
+    raise ValueError(f"missing required composite id header {header_name}")
+
+
+def _find_composite_id_columns(
+    headers: list[str],
+    composite_id_fields: tuple[str, ...] | None,
+    csv_file_name: str,
+    logger: logging.Logger,
+) -> tuple[int, ...] | None:
+    if not composite_id_fields:
+        return None
+    return tuple(
+        _find_required_header_index_by_name(headers, header_name, csv_file_name, logger)
+        for header_name in composite_id_fields
+    )
+
+
 def read_app_data_from_csv(
     csv_file_name: str,
     logger: logging.Logger,
     column_patterns: dict[str, str] | None = None,
     included_owners_column: str | None = None,
     csv_separator: str = ",",
-) -> tuple[list[list[str]], int, int, int, int, int, int] | None:
+    composite_id_fields: tuple[str, ...] | None = None,
+) -> tuple[list[list[str]], int, int, tuple[int, ...] | None, int, int, int, int] | None:
     try:
         header_patterns: dict[str, str] = {**DEFAULT_OWNER_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_file_name, newline="", encoding="utf-8") as csv_file_handle:
@@ -131,7 +177,12 @@ def read_app_data_from_csv(
             )
 
             app_name_column: int = _find_header_index(headers, name_pattern, "name", csv_file_name, logger)
-            app_id_column: int = _find_header_index(headers, app_id_pattern, "app_id", csv_file_name, logger)
+            app_id_column: int = _find_header_index(
+                headers, app_id_pattern, "app_id", csv_file_name, logger, required=composite_id_fields is None
+            )
+            composite_id_columns: tuple[int, ...] | None = _find_composite_id_columns(
+                headers, composite_id_fields, csv_file_name, logger
+            )
             app_owner_tiso_column: int = _find_header_index(
                 headers, owner_tiso_pattern, "owner_tiso", csv_file_name, logger
             )
@@ -174,6 +225,7 @@ def read_app_data_from_csv(
         apps_from_csv,
         app_name_column,
         app_id_column,
+        composite_id_columns,
         app_owner_tiso_column,
         app_owner_kwita_column,
         owner_lifecycle_state_column,
@@ -190,7 +242,11 @@ def parse_app_line(
     if not _is_included_owners_match(line, context):
         return count_skips + 1
 
-    app_id: str = line[context.app_id_column]
+    app_id: str = _build_app_id(line, context)
+    if app_id == "":
+        if context.debug_level > 1:
+            context.logger.info("ignoring line from csv file without app_id value")
+        return count_skips + 1
     if not _has_valid_app_id_prefix(app_id, context):
         if context.debug_level > 1:
             context.logger.info("ignoring line from csv file: %s - inconclusive appId", app_id)
@@ -234,6 +290,8 @@ def extract_app_data_from_csv(
     included_owners_column: str | None = None,
     include_values: list[str] | None = None,
     csv_separator: str = ",",
+    composite_id_fields: tuple[str, ...] | None = None,
+    composite_id_fields_delimiter_str: str = "",
 ) -> None:
     if recert_active_app_list is None:
         recert_active_app_list = []
@@ -242,12 +300,15 @@ def extract_app_data_from_csv(
 
     csv_file_path: str = base_dir + "/" + csv_file  # add directory to csv files
 
-    csv_data: tuple[list[list[str]], int, int, int, int, int, int] | None = read_app_data_from_csv(
-        csv_file_path,
-        logger,
-        column_patterns,
-        included_owners_column,
-        csv_separator,
+    csv_data: tuple[list[list[str]], int, int, tuple[int, ...] | None, int, int, int, int] | None = (
+        read_app_data_from_csv(
+            csv_file_path,
+            logger,
+            column_patterns,
+            included_owners_column,
+            csv_separator,
+            composite_id_fields,
+        )
     )
     if csv_data is None:
         return
@@ -256,6 +317,7 @@ def extract_app_data_from_csv(
         apps_from_csv,
         app_name_column,
         app_id_column,
+        composite_id_columns,
         app_owner_tiso_column,
         app_owner_kwita_column,
         owner_lifecycle_state_column,
@@ -264,6 +326,8 @@ def extract_app_data_from_csv(
     parser_context: OwnerLineParserContext = OwnerLineParserContext(
         app_name_column=app_name_column,
         app_id_column=app_id_column,
+        composite_id_columns=composite_id_columns,
+        composite_id_delimiter=composite_id_fields_delimiter_str,
         app_owner_tiso_column=app_owner_tiso_column,
         app_owner_kwita_column=app_owner_kwita_column,
         owner_lifecycle_state_column=owner_lifecycle_state_column,

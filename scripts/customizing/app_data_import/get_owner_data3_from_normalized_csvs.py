@@ -150,6 +150,17 @@ if __name__ == "__main__":
         default="Lifecycle State",
         help='owner CSV column header for lifecycle state import, default="Lifecycle State"',
     )
+    parser.add_argument(
+        "--compositeIdFields",
+        nargs="+",
+        default=None,
+        help="list of owner CSV headers used to build a composite app_id_external",
+    )
+    parser.add_argument(
+        "--compositeIdFieldsDelimiterStr",
+        default="",
+        help="delimiter string used between composite id field values",
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -186,6 +197,8 @@ if __name__ == "__main__":
     included_owners_column: str | None = args.filter_column.strip() if args.filter_column else None
     include_values: list[str] = args.include_values
     lifecycle_state_column: str = args.lifecycleState
+    composite_id_fields: tuple[str, ...] | None = tuple(args.compositeIdFields) if args.compositeIdFields else None
+    composite_id_fields_delimiter_str: str = args.compositeIdFieldsDelimiterStr
     owner_header_patterns = apply_owner_column_overrides(owner_header_patterns, lifecycle_state_column)
 
     if args.debug:
@@ -249,6 +262,8 @@ if __name__ == "__main__":
                 included_owners_column=included_owners_column,
                 include_values=include_values,
                 csv_separator=csv_separator,
+                composite_id_fields=composite_id_fields,
+                composite_id_fields_delimiter_str=composite_id_fields_delimiter_str,
             )
 
     app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)

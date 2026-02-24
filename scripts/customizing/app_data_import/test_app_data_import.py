@@ -366,6 +366,57 @@ class AppDataImportTests(unittest.TestCase):
         self.assertEqual(updated_patterns["name"], r".*?:\s*Name")
         self.assertEqual(updated_patterns["owner_lifecycle_state"], r"^\s*Lifecycle\ Status\s*$")
 
+    def test_get_owner_data3_imports_owner_lifecycle_state_from_override_column(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,Lifecycle Status\n"
+                    "Overridden Lifecycle App,APP-013,user13,false,retired\n"
+                )
+
+            app_list: list[Owner] = []
+            owner_header_patterns: dict[str, str] = apply_owner_column_overrides({}, "Lifecycle Status")
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                column_patterns=owner_header_patterns,
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].owner_lifecycle_state, "retired")
+
+    def test_extract_app_data_from_csv_builds_composite_app_id_external(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,bogus: TISO,bogus: kwITA,Org Unit,System Name\nComposite App,user14,false,OPS,SRV-01\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                composite_id_fields=("Org Unit", "System Name"),
+                composite_id_fields_delimiter_str="::",
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].app_id_external, "OPS::SRV-01")
+
 
 if __name__ == "__main__":
     unittest.main()

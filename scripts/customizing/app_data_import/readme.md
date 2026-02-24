@@ -30,6 +30,8 @@ Owner row import can be filtered via CLI parameters:
 - `--filterColumn` (default: `Aktive Firewallregel`): owner CSV header used for active-rule filtering.
 - `--includeValues` (default: `Ja`): one or more values in that column to include; rows with other values are skipped.
 - `--lifecycleState` (default: `Lifecycle State`): owner CSV header used to import `owner_lifecycle_state`.
+- `--compositeIdFields` (optional): list of owner CSV headers used to build `app_id_external` as a composite key.
+- `--compositeIdFieldsDelimiterStr` (default: empty): delimiter string used between composite id field values.
 - Set `--filterColumn ""` to disable this filter.
 
 #### Settings via UI

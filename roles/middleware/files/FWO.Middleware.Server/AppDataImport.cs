@@ -119,47 +119,43 @@ namespace FWO.Middleware.Server
             int deleteCounter = 0;
             int deleteFailCounter = 0;
 
+            if(!IsOwnerGroupConfigured())
+            {
+                return;
+            }
+
+            existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            foreach (var incomingApp in importedApps)
+            {
+                if (await SaveApp(incomingApp, ownerChangeTracker))
+                {
+                    ++successCounter;
+                }
+                else
+                {
+                    ++failCounter;
+                }
+            }
+            string? importSource = importedApps.FirstOrDefault()?.ImportSource;
+            if (importSource != null)
+            {
+                (deleteCounter, deleteFailCounter) = await DeactivateMissingApps(importSource, existingApps, importedApps, ownerChangeTracker);               
+            }
+            string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
+            Log.WriteInfo(LogMessageTitle, messageText);
+            await AddLogEntry(0, LevelFile, messageText);
+
+        }
+
+        private bool IsOwnerGroupConfigured()
+        {
             if (!(globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppId) ||
                 globalConfig.OwnerLdapGroupNames.Contains(Placeholder.ExternalAppId)))
             {
                 Log.WriteWarning(LogMessageTitle, $"Owner group pattern does not contain any of the placeholders {Placeholder.AppId} or {Placeholder.ExternalAppId}.");
+                return false;
             }
-            else
-            {
-                existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-                foreach (var incomingApp in importedApps)
-                {
-                    if (await SaveApp(incomingApp, ownerChangeTracker))
-                    {
-                        ++successCounter;
-                    }
-                    else
-                    {
-                        ++failCounter;
-                    }
-                }
-                string? importSource = importedApps.FirstOrDefault()?.ImportSource;
-                if (importSource != null)
-                {
-                    foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
-                    {
-                        if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
-                        {
-                            if (await DeactivateApp(existingApp, ownerChangeTracker))
-                            {
-                                ++deleteCounter;
-                            }
-                            else
-                            {
-                                ++deleteFailCounter;
-                            }
-                        }
-                    }
-                }
-                string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
-                Log.WriteInfo(LogMessageTitle, messageText);
-                await AddLogEntry(0, LevelFile, messageText);
-            }
+            return true;
         }
 
         private async Task<bool> SaveApp(ModellingImportAppData incomingApp, OwnerChangeImportTracker ownerChangeTracker)
@@ -247,6 +243,26 @@ namespace FWO.Middleware.Server
             await UpdateOwnerResponsibles(existingApp.Id, responsibles);
             await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
             await ImportAppServers(incomingApp, existingApp.Id);
+        }
+
+        private async Task<(int deleted, int failed)> DeactivateMissingApps(string importSource, IEnumerable<FwoOwner> existingApps, List<ModellingImportAppData> importedApps, OwnerChangeImportTracker ownerChangeTracker)
+        {
+            int deletedCounter = 0, deleteFailCounter = 0;
+            foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
+            {
+                if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
+                {
+                    if (await DeactivateApp(existingApp, ownerChangeTracker))
+                    {
+                        ++deletedCounter;
+                    }
+                    else
+                    {
+                        ++deleteFailCounter;
+                    }
+                }
+            }
+            return (deletedCounter, deleteFailCounter);           
         }
 
         private async Task<bool> DeactivateApp(FwoOwner app, OwnerChangeImportTracker ownerChangeTracker)

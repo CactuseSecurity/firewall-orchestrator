@@ -19,6 +19,7 @@ class Owner:
         import_source: str = "defaultSource",
         owner_lifecycle_state: str = "unknown",
         criticality: str | None = None,
+        responsibles: dict[str, list[str]] | None = None,
     ) -> None:
         self.name: str = name
         self.app_id_external: str = app_id_external
@@ -31,6 +32,7 @@ class Owner:
         self.days_until_first_recert: int = days_until_first_recert
         self.owner_lifecycle_state: str = owner_lifecycle_state
         self.criticality: str | None = criticality
+        self.responsibles: dict[str, list[str]] | None = responsibles
 
     def to_json(self) -> dict[str, Any]:
         owner_json: dict[str, Any] = {
@@ -46,6 +48,8 @@ class Owner:
         }
         if self.criticality is not None:
             owner_json["criticality"] = self.criticality
+        if self.responsibles is not None:
+            owner_json["responsibles"] = self.responsibles
         return owner_json
 
 

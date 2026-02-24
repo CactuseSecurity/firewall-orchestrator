@@ -7,6 +7,7 @@ from pathlib import Path
 from scripts.customizing.app_data_import.get_owner_data3_from_normalized_csvs import (
     apply_owner_column_overrides,
     parse_criticality_recert_period_mapping,
+    parse_responsibles_columns,
 )
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 from scripts.customizing.fwo_custom_lib.basic_helpers import (
@@ -554,6 +555,106 @@ class AppDataImportTests(unittest.TestCase):
     def test_parse_criticality_recert_period_mapping_parses_entries(self) -> None:
         mapping: dict[str, int] = parse_criticality_recert_period_mapping(["1:360", "2:360", "3:180"])
         self.assertEqual(mapping, {"1": 360, "2": 360, "3": 180})
+
+    def test_parse_responsibles_columns_parses_grouped_entries(self) -> None:
+        parsed: dict[str, tuple[str, ...]] = parse_responsibles_columns(
+            ["1:UserId", "UserID Vertreter", "2:UserIDs Mitwirkende", "3:UserID Leiter OE"]
+        )
+        self.assertEqual(
+            parsed,
+            {
+                "1": ("UserId", "UserID Vertreter"),
+                "2": ("UserIDs Mitwirkende",),
+                "3": ("UserID Leiter OE",),
+            },
+        )
+
+    def test_parse_responsibles_columns_parses_quoted_grouped_entries(self) -> None:
+        parsed: dict[str, tuple[str, ...]] = parse_responsibles_columns(
+            ['1:UserID "UserID Vertreter"', '2:"UserIDs Mitwirkende"', '3:"UserID Leiter OE"']
+        )
+        self.assertEqual(
+            parsed,
+            {
+                "1": ("UserID", "UserID Vertreter"),
+                "2": ("UserIDs Mitwirkende",),
+                "3": ("UserID Leiter OE",),
+            },
+        )
+
+    def test_extract_app_data_from_csv_imports_responsibles_when_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,UserId,UserID Vertreter,UserIDs Mitwirkende,UserID Leiter OE\n"
+                    "App Resp,APP-017,user17,false,uid-main,uid-deputy,uid-collab,uid-lead\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                responsibles_columns_headers={
+                    "1": ("UserId", "UserID Vertreter"),
+                    "2": ("UserIDs Mitwirkende",),
+                    "3": ("UserID Leiter OE",),
+                },
+            )
+
+            self.assertEqual(len(app_list), 1)
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertEqual(
+                owner_json.get("responsibles"),
+                {
+                    "1": ["CN=uid-main", "CN=uid-deputy"],
+                    "2": ["CN=uid-collab"],
+                    "3": ["CN=uid-lead"],
+                },
+            )
+
+    def test_extract_app_data_from_csv_splits_multi_user_responsibles_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,UserID,UserID Vertreter,UserIDs Mitwirkende,UserID Leiter OE\n"
+                    'App Resp Split,APP-018,user18,false,K9M4,R2N8,"A7B2,K9M4,X3T8,J5L1,D8R6",R8M4\n'
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                responsibles_columns_headers={
+                    "10": ("UserID", "UserID Vertreter"),
+                    "20": ("UserIDs Mitwirkende",),
+                    "30": ("UserID Leiter OE",),
+                },
+            )
+
+            self.assertEqual(len(app_list), 1)
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertEqual(
+                owner_json.get("responsibles"),
+                {
+                    "10": ["CN=K9M4", "CN=R2N8"],
+                    "20": ["CN=A7B2", "CN=K9M4", "CN=X3T8", "CN=J5L1", "CN=D8R6"],
+                    "30": ["CN=R8M4"],
+                },
+            )
 
 
 if __name__ == "__main__":

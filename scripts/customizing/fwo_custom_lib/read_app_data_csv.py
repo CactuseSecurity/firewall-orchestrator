@@ -30,6 +30,7 @@ class OwnerLineParserContext:
     owner_lifecycle_state_column: int
     criticality_column: int
     criticality_recert_period_mapping: dict[str, int] | None
+    responsibles_columns: dict[str, tuple[int, ...]] | None
     included_owners_column_no: int
     include_values: list[str] | None
     ldap_path: str
@@ -94,6 +95,45 @@ def _get_criticality(line: list[str], criticality_column: int) -> str:
     if criticality_column < 0:
         return ""
     return line[criticality_column].strip() if len(line) > criticality_column else ""
+
+
+def _get_responsibles(line: list[str], responsibles_columns: dict[str, tuple[int, ...]] | None) -> dict[str, list[str]]:
+    if not responsibles_columns:
+        return {}
+    responsibles: dict[str, list[str]] = {}
+    responsible_level: str
+    column_indexes: tuple[int, ...]
+    for responsible_level, column_indexes in responsibles_columns.items():
+        responsibles[responsible_level] = [
+            line[column_index].strip() if len(line) > column_index else "" for column_index in column_indexes
+        ]
+    return responsibles
+
+
+def _build_responsibles_dns(
+    responsibles: dict[str, list[str]],
+    ldap_path: str,
+    logger: logging.Logger,
+) -> dict[str, list[str]]:
+    responsibles_dns: dict[str, list[str]] = {}
+    responsible_level: str
+    user_ids: list[str]
+    for responsible_level, user_ids in responsibles.items():
+        dns: list[str] = []
+        raw_user_value: str
+        for raw_user_value in user_ids:
+            split_user_ids: list[str] = [
+                user_id.strip() for user_id in re.split(r"[,\n;]+", raw_user_value) if user_id.strip()
+            ]
+            if len(split_user_ids) == 0 and raw_user_value.strip():
+                split_user_ids = [raw_user_value.strip()]
+            user_id: str
+            for user_id in split_user_ids:
+                dn: str = build_dn(user_id, ldap_path, logger)
+                if dn:
+                    dns.append(dn)
+        responsibles_dns[responsible_level] = dns
+    return responsibles_dns
 
 
 def _get_recert_period_days_for_criticality(
@@ -179,6 +219,25 @@ def _find_composite_id_columns(
     )
 
 
+def _find_responsibles_columns(
+    headers: list[str],
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None,
+    csv_file_name: str,
+    logger: logging.Logger,
+) -> dict[str, tuple[int, ...]] | None:
+    if not responsibles_columns_headers:
+        return None
+    responsibles_columns: dict[str, tuple[int, ...]] = {}
+    responsible_level: str
+    responsible_headers: tuple[str, ...]
+    for responsible_level, responsible_headers in responsibles_columns_headers.items():
+        responsibles_columns[responsible_level] = tuple(
+            _find_required_header_index_by_name(headers, header_name, csv_file_name, logger)
+            for header_name in responsible_headers
+        )
+    return responsibles_columns
+
+
 def read_app_data_from_csv(
     csv_file_name: str,
     logger: logging.Logger,
@@ -187,7 +246,11 @@ def read_app_data_from_csv(
     csv_separator: str = ",",
     composite_id_fields: tuple[str, ...] | None = None,
     criticality_column_header: str | None = None,
-) -> tuple[list[list[str]], int, int, tuple[int, ...] | None, int, int, int, int, int] | None:
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None,
+) -> (
+    tuple[list[list[str]], int, int, tuple[int, ...] | None, int, int, int, int, dict[str, tuple[int, ...]] | None, int]
+    | None
+):
     try:
         header_patterns: dict[str, str] = {**DEFAULT_OWNER_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_file_name, newline="", encoding="utf-8") as csv_file_handle:
@@ -228,6 +291,9 @@ def read_app_data_from_csv(
                 criticality_column = _find_required_header_index_by_name(
                     headers, criticality_column_header, csv_file_name, logger
                 )
+            responsibles_columns: dict[str, tuple[int, ...]] | None = _find_responsibles_columns(
+                headers, responsibles_columns_headers, csv_file_name, logger
+            )
             included_owners_column_no: int = -1
             if included_owners_column:
                 escaped_included_owners_column: str = re.escape(included_owners_column)
@@ -261,6 +327,7 @@ def read_app_data_from_csv(
         app_owner_kwita_column,
         owner_lifecycle_state_column,
         criticality_column,
+        responsibles_columns,
         included_owners_column_no,
     )
 
@@ -289,6 +356,11 @@ def parse_app_line(
     main_user_dn: str = build_dn(app_main_user, context.ldap_path, context.logger)
     owner_lifecycle_state: str = _get_owner_lifecycle_state(line, context.owner_lifecycle_state_column)
     criticality: str = _get_criticality(line, context.criticality_column)
+    responsibles: dict[str, list[str]] = _build_responsibles_dns(
+        _get_responsibles(line, context.responsibles_columns),
+        context.ldap_path,
+        context.logger,
+    )
     recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
     mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
         criticality, context.criticality_recert_period_mapping
@@ -297,9 +369,8 @@ def parse_app_line(
         recert_period_days = mapped_recert_period_days
     if main_user_dn == "" and context.debug_level > 0:
         context.logger.warning("adding app without main user: %s", app_id)
-    owner_kwargs: dict[str, str] = {}
-    if context.criticality_column >= 0:
-        owner_kwargs["criticality"] = criticality
+    criticality_value: str | None = criticality if context.criticality_column >= 0 else None
+    responsibles_value: dict[str, list[str]] | None = responsibles if context.responsibles_columns is not None else None
     app_list.append(
         context.owner_cls(
             app_id_external=app_id,
@@ -310,7 +381,8 @@ def parse_app_line(
             recert_active=False,
             import_source=context.import_source_string,
             owner_lifecycle_state=owner_lifecycle_state,
-            **owner_kwargs,
+            criticality=criticality_value,
+            responsibles=responsibles_value,
         )
     )
     return count_skips
@@ -337,6 +409,7 @@ def extract_app_data_from_csv(
     composite_id_fields_max_length: list[int] | None = None,
     criticality_column_header: str | None = None,
     criticality_recert_period_mapping: dict[str, int] | None = None,
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None,
 ) -> None:
     if recert_active_app_list is None:
         recert_active_app_list = []
@@ -366,16 +439,29 @@ def extract_app_data_from_csv(
 
     csv_file_path: str = base_dir + "/" + csv_file  # add directory to csv files
 
-    csv_data: tuple[list[list[str]], int, int, tuple[int, ...] | None, int, int, int, int, int] | None = (
-        read_app_data_from_csv(
-            csv_file_path,
-            logger,
-            column_patterns,
-            included_owners_column,
-            csv_separator,
-            composite_id_fields,
-            criticality_column_header,
-        )
+    csv_data: (
+        tuple[
+            list[list[str]],
+            int,
+            int,
+            tuple[int, ...] | None,
+            int,
+            int,
+            int,
+            int,
+            dict[str, tuple[int, ...]] | None,
+            int,
+        ]
+        | None
+    ) = read_app_data_from_csv(
+        csv_file_path,
+        logger,
+        column_patterns,
+        included_owners_column,
+        csv_separator,
+        composite_id_fields,
+        criticality_column_header,
+        responsibles_columns_headers,
     )
     if csv_data is None:
         return
@@ -389,6 +475,7 @@ def extract_app_data_from_csv(
         app_owner_kwita_column,
         owner_lifecycle_state_column,
         criticality_column,
+        responsibles_columns,
         included_owners_column_no,
     ) = csv_data
     parser_context: OwnerLineParserContext = OwnerLineParserContext(
@@ -402,6 +489,7 @@ def extract_app_data_from_csv(
         owner_lifecycle_state_column=owner_lifecycle_state_column,
         criticality_column=criticality_column,
         criticality_recert_period_mapping=criticality_recert_period_mapping,
+        responsibles_columns=responsibles_columns,
         included_owners_column_no=included_owners_column_no,
         include_values=include_values,
         ldap_path=ldap_path,

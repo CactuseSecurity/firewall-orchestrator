@@ -28,6 +28,7 @@ __version__ = "2026-02-19-01"
 import argparse
 import logging
 import re
+import shlex
 from pathlib import Path
 
 import urllib3
@@ -94,6 +95,51 @@ def parse_criticality_recert_period_mapping(mapping_entries: list[str]) -> dict[
             )
         mapping[criticality_prefix] = recert_days
     return mapping
+
+
+def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[str, ...]]:
+    responsibles_columns: dict[str, list[str]] = {}
+    current_level: str | None = None
+    expanded_entries: list[str] = []
+    entry: str
+    for entry in columns_entries:
+        if '"' in entry or "'" in entry:
+            expanded_entries.extend(shlex.split(entry))
+        else:
+            expanded_entries.append(entry)
+
+    for entry in expanded_entries:
+        split_entry: list[str] = entry.split(":", 1)
+        if len(split_entry) == 2:  # noqa: PLR2004
+            level: str = split_entry[0].strip()
+            first_header: str = split_entry[1].strip()
+            if level == "":
+                raise argparse.ArgumentTypeError(f"invalid responsiblesColumns entry '{entry}', expected LEVEL:HEADER")
+            current_level = level
+            responsibles_columns[current_level] = []
+            if first_header != "":
+                responsibles_columns[current_level].append(first_header)
+            continue
+        if current_level is None:
+            raise argparse.ArgumentTypeError(f"invalid responsiblesColumns entry '{entry}', expected LEVEL:HEADER")
+        responsibles_columns[current_level].append(entry.strip())
+
+    if not responsibles_columns:
+        raise argparse.ArgumentTypeError("responsiblesColumns must contain at least one LEVEL:HEADER mapping")
+
+    level: str
+    headers: list[str]
+    for level, headers in responsibles_columns.items():
+        if len(headers) == 0:
+            raise argparse.ArgumentTypeError(
+                f"invalid responsiblesColumns entry for level '{level}', expected at least one header"
+            )
+        if any(header == "" for header in headers):
+            raise argparse.ArgumentTypeError(
+                f"invalid responsiblesColumns entry for level '{level}', headers must not be empty"
+            )
+
+    return {level: tuple(headers) for level, headers in responsibles_columns.items()}
 
 
 def apply_owner_column_overrides(
@@ -206,6 +252,12 @@ if __name__ == "__main__":
         default=None,
         help='list of mappings PREFIX:DAYS, e.g. "1:360 2:360 3:180"; if criticality starts with PREFIX, recert_period_days is set to DAYS',
     )
+    parser.add_argument(
+        "--responsiblesColumns",
+        nargs="+",
+        default=None,
+        help='grouped mapping LEVEL:HEADER [HEADER ...], e.g. 1:"UserId" "UserID Vertreter" 2:"UserIDs Mitwirkende"',
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -250,6 +302,9 @@ if __name__ == "__main__":
         parse_criticality_recert_period_mapping(args.criticalityRecertPeriodMapping)
         if args.criticalityRecertPeriodMapping
         else None
+    )
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = (
+        parse_responsibles_columns(args.responsiblesColumns) if args.responsiblesColumns else None
     )
     owner_header_patterns = apply_owner_column_overrides(owner_header_patterns, lifecycle_state_column)
 
@@ -319,6 +374,7 @@ if __name__ == "__main__":
                 composite_id_fields_max_length=composite_id_fields_max_length,
                 criticality_column_header=criticality_column_header,
                 criticality_recert_period_mapping=criticality_recert_period_mapping,
+                responsibles_columns_headers=responsibles_columns_headers,
             )
 
     app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)

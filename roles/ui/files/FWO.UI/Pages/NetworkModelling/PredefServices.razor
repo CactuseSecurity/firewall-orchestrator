@@ -119,7 +119,7 @@
         HandleServiceGroup(serviceGroup);
     }
 
-    public void HandleServiceGroup(ModellingServiceGroup serviceGroup)
+    private void HandleServiceGroup(ModellingServiceGroup serviceGroup)
     {
         try
         {
@@ -166,8 +166,17 @@
             apiConnection.SetRole(Roles.Admin);
             if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = ActServiceGroup.Id })).AffectedRows > 0)
             {
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.ServiceGroup, ActServiceGroup.Id,
-                    $"Deleted Predefined Service Group: {ActServiceGroup.Display()}", apiConnection, userConfig, null, DisplayMessageInUi);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = ModellingTypes.ChangeType.Delete,
+                    ObjectType = ModellingTypes.ModObjectType.ServiceGroup,
+                    ObjectId = ActServiceGroup.Id,
+                    Text = $"Deleted Predefined Service Group: {ActServiceGroup.Display()}",
+                    ApiConnection = apiConnection,
+                    UserConfig = userConfig,
+                    ApplicationId = null,
+                    DisplayMessageInUi = DisplayMessageInUi
+                });
                 PredefServiceGroups.Remove(ActServiceGroup);
                 DeleteSvcGrpMode = false;
             }

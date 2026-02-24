@@ -1,8 +1,8 @@
 @using FWO.Data.Workflow
-@using FWO.Middleware.Client
 @using FWO.ExternalSystems
 @using FWO.Data
 @using FWO.Ui.Display
+@using FWO.Services.Workflow
 @using RestSharp
 @using System.Net
 @using System.Linq
@@ -12,11 +12,10 @@
 @implements IDisposable
 
 @page "/networkmodelling/{appId?}/{connId?}"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
-@inject MiddlewareClient middlewareClient
 @inject NavigationManager NavigationManager
 @inject GlobalConfig globalConfig
 
@@ -171,7 +170,7 @@
                     DeleteMessage="@appHandler!.Message" DeleteAllowed="appHandler!.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
                 <DecommissionInterfacePopup @bind-Display="appHandler.DecommissionInterfaceMode" ConnHandler="appHandler.ConnHandler"
                     PossibleInterfaces="appHandler.GetInterfaces()" RefreshParent="async () => {await DefaultInit.DoNothing();}" />
-                <InterfaceUsersPopup @bind-Display="appHandler.ShowUsingConnectionsMode" InterfaceName="@(appHandler.InterfaceName)" UsingConnections="appHandler.UsingConnections"/>
+                <InterfaceUsersPopup @bind-Display="appHandler.ShowUsingConnectionsMode" InterfaceName="@(appHandler.InterfaceName)" UsingConnections="appHandler.UsingConnections" App="selectedApp"/>
             }
         </div>
     }
@@ -209,8 +208,6 @@ else
     private ModellingAppHandler? appHandler;
     private List<FwoOwner> apps = new();
     private HashSet<int> recertifiableOwnerIds = [];
-    private List<string> userAndGroupDns = [];
-    private Dictionary<int, OwnerResponsibleType> responsibleTypeById = new();
     private FwoOwner selectedApp = new();
     private bool appSelected = false;
     private bool manualAppServer = false;
@@ -237,7 +234,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
+        apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
         extStateHandler = new(apiConnection);
         await states.Init(apiConnection);
         await InitAppList();
@@ -273,9 +270,6 @@ else
     {
         try
         {
-            List<OwnerResponsibleType> responsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
-            responsibleTypeById = responsibleTypes.ToDictionary(type => type.Id);
-
             bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
             bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
             if (isAdmin)
@@ -290,26 +284,8 @@ else
             }
             else
             {
-                List<string> ownerDns = [userConfig.User.Dn];
-                List<string> ownerGrpDns = await GroupAccess.GetGroupMemberships(middlewareClient, userConfig, DisplayMessageInUi);
-                ownerDns.AddRange(ownerGrpDns);
-                ownerDns = ownerDns
-                    .Where(dn => !string.IsNullOrWhiteSpace(dn))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-                userAndGroupDns = ownerDns;
-
-                apps = ownerDns.Count == 0
-                    ? []
-                    : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                        OwnerQueries.getOwnersForDnsWithConn,
-                        new { dns = ownerDns });
-                List<FwoOwner> recertifiableOwners = ownerDns.Count == 0
-                    ? []
-                    : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                        OwnerQueries.getOwnersForDnsWithRecertification,
-                        new { dns = ownerDns });
-                recertifiableOwnerIds = recertifiableOwners.Select(owner => owner.Id).ToHashSet();
+                apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
+                recertifiableOwnerIds = userConfig.User.RecertOwnerships.ToHashSet();
             }
 
             if (apps.Count == 0)
@@ -363,17 +339,7 @@ else
         {
             appSelected = false;
             selectedApp = newApp;
-            bool isOwner = authenticationStateTask!.Result.User.IsInRole(Roles.Modeller) &&
-                IsModellingWriteAllowedForSelectedApp(newApp);
-            if (isOwner)
-            {
-                apiConnection.SetRole(Roles.Modeller);
-            }
-            else
-            {
-                apiConnection.SetBestRole(authenticationStateTask!.Result.User, new List<string> { Roles.Admin, Roles.Auditor, Roles.Modeller, Roles.Recertifier });
-            }
-            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, isOwner)
+            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, IsModellingWriteAllowedForApp(newApp))
             {
                 ActWidth = sidebarLeftWidth,
                 StartCollapsed = firstInit
@@ -507,10 +473,10 @@ else
 
     private bool IsModellingWriteAllowedForSelectedApp()
     {
-        return IsModellingWriteAllowedForSelectedApp(selectedApp);
+        return IsModellingWriteAllowedForApp(selectedApp);
     }
 
-    private bool IsModellingWriteAllowedForSelectedApp(FwoOwner owner)
+    private bool IsModellingWriteAllowedForApp(FwoOwner owner)
     {
         if (owner.Id <= 0)
         {
@@ -522,35 +488,15 @@ else
             return true;
         }
 
-        return authenticationStateTask.Result.User.IsInRole(Roles.Modeller)
-            && HasOwnerResponsiblePermission(owner, type => type.AllowModelling);
-    }
-
-    private bool HasOwnerResponsiblePermission(FwoOwner owner, Func<OwnerResponsibleType, bool> permissionCheck)
-    {
-        if (owner.OwnerResponsibles == null || owner.OwnerResponsibles.Count == 0 || userAndGroupDns.Count == 0)
+        if (!authenticationStateTask.Result.User.IsInRole(Roles.Modeller))
         {
             return false;
         }
 
-        foreach (OwnerResponsible responsible in owner.OwnerResponsibles)
+        if (userConfig.User.Ownerships.Contains(owner.Id))
         {
-            if (!userAndGroupDns.Contains(responsible.Dn, StringComparer.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (!responsibleTypeById.TryGetValue(responsible.ResponsibleTypeId, out OwnerResponsibleType? responsibleType))
-            {
-                continue;
-            }
-
-            if (responsibleType.Active && permissionCheck(responsibleType))
-            {
-                return true;
-            }
+            return true;
         }
-
         return false;
     }
 

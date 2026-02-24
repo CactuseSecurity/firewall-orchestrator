@@ -7,6 +7,7 @@
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Services
+@using FWO.Services.RuleTreeBuilder
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System
@@ -19,6 +20,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true"
@@ -79,7 +81,7 @@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h3>@(userConfig.GetText("recertification"))</h3>
     <div class="btn-group sticky-marker-60">
-        @if (!readonlyMode)
+        @if (CanWriteSelectedOwner())
         {
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
                 <Authorized>
@@ -102,7 +104,7 @@
         }
     </div>
     <hr />
-    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managementsReport"
+    <RulesReport Recertification="true" ReadonlyMode="@( !CanWriteSelectedOwner() )" Managements="managementsReport"
                  RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"
                  SelectedReportType="ReportType.Recertification" />
 </div>
@@ -157,11 +159,8 @@
 
     private List<ManagementReport> managementsReport = [];
 
-    private bool readonlyMode = false;
     public FwoOwner? selectedOwner = null;
     private List<FwoOwner> ownerList = [];
-    private List<FwoOwner> userOwnerships = [];
-    private List<FwoOwner> groupOwnerships = [];
     private List<FwoOwner> collectedOwnerships = [];
     private HashSet<int> recertifiableOwnerIds = [];
     private DeviceFilter deviceFilter = new();
@@ -201,35 +200,41 @@
 
     private async Task CollectOwnerships()
     {
-        List<string> ownerDns = [userConfig.User.Dn];
-        List<string> ownerGrpDns = await GroupAccess.GetGroupMemberships(middlewareClient, userConfig,
-        DisplayMessageInUi);
-        ownerDns.AddRange(ownerGrpDns);
-        ownerDns = ownerDns
-            .Where(dn => !string.IsNullOrWhiteSpace(dn))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        collectedOwnerships = ownerDns.Count == 0
-            ? []
-            : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                OwnerQueries.getOwnersForDnsWithConn,
-                new { dns = ownerDns });
-        List<FwoOwner> writableOwnerships = ownerDns.Count == 0
-            ? []
-            : await apiConnection.SendQueryAsync<List<FwoOwner>>(
-                OwnerQueries.getOwnersForDnsWithRecertification,
-                new { dns = ownerDns });
-        recertifiableOwnerIds = writableOwnerships.Select(owner => owner.Id).ToHashSet();
-        if (collectedOwnerships.Count > 0)
+        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+        bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
+        if (isAdmin || isAuditor)
         {
-            selectedOwner = collectedOwnerships[0];
+            collectedOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            recertifiableOwnerIds = isAdmin ? collectedOwnerships.Select(owner => owner.Id).ToHashSet() : [];
         }
+        else
+        {
+            List<int> editableOwnerIds = RecertificationOwnerSelection.ResolveOwnerIds(
+                userConfig.User.Ownerships,
+                authenticationStateTask!.Result.User.Claims,
+                "x-hasura-editable-owners");
+            List<int> resolvedRecertOwnerIds = RecertificationOwnerSelection.ResolveOwnerIds(
+                userConfig.User.RecertOwnerships,
+                authenticationStateTask.Result.User.Claims,
+                "x-hasura-recertifiable-owners");
+            List<int> readableOwnerIds = editableOwnerIds
+                .Concat(resolvedRecertOwnerIds)
+                .Distinct()
+                .ToList();
+            collectedOwnerships = readableOwnerIds.Count == 0
+                ? []
+                : await apiConnection.SendQueryAsync<List<FwoOwner>>(
+                    OwnerQueries.getEditableOwners,
+                    new { appIds = readableOwnerIds.ToArray() });
+            recertifiableOwnerIds = resolvedRecertOwnerIds.ToHashSet();
+        }
+
+        selectedOwner = RecertificationOwnerSelection.SelectOwner(collectedOwnerships, recertifiableOwnerIds);
     }
 
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        readonlyMode = !CanWriteSelectedOwner();
         selectedRules.Clear();
 
         try
@@ -242,7 +247,7 @@
             }
 
             currentReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", prepareReportParams()), apiConnection,
-            userConfig, DisplayMessageInUi);
+            userConfig, DisplayMessageInUi, null, ruleTreeBuilder);
             if (currentReport != null)
             {
                 managementsReport = currentReport?.ReportData.ManagementData ?? new();
@@ -431,24 +436,11 @@
         variables)).Count == 0);
     }
 
-    private bool HasRecertWriteAccess()
-    {
-        return authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-            || authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
-    }
-
     private bool CanWriteSelectedOwner()
     {
-        if (!HasRecertWriteAccess() || selectedOwner == null)
-        {
-            return false;
-        }
+        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+        bool hasRecertifierRole = authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
 
-        if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
-        {
-            return true;
-        }
-
-        return recertifiableOwnerIds.Contains(selectedOwner.Id);
+        return RecertificationOwnerSelection.CanWriteSelectedOwner(selectedOwner, isAdmin, hasRecertifierRole, recertifiableOwnerIds);
     }
 }

@@ -20,6 +20,16 @@ namespace FWO.Services.RuleTreeBuilder
         public RuleTreeItem RuleTree { get; set; } = new();
 
         /// <summary>
+        /// Cache for generated rule trees.
+        /// </summary>
+        public Dictionary<(int managementId, int deviceId), RuleTreeItem> RuleTreeCache { get; set; } = new();
+
+        /// <summary>
+        /// Lookup for flat rule lists of rule tree items
+        /// </summary>
+        public Dictionary<RuleTreeItem, Rule[]> FlattedRules { get; set; } = new();
+
+        /// <summary>
         /// The number of order numbers that were created during the process.
         /// </summary>
         public int CreatedOrderNumbersCount { get; set; }
@@ -63,7 +73,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Builds the rule tree and returns the flattened list of rule data.
         /// </summary>
-        public List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links)
+        public List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId)
         {
             Reset(rulebases, links);
             List<int>? trail = null;
@@ -81,13 +91,16 @@ namespace FWO.Services.RuleTreeBuilder
 
             for (int i = 0; i < RuleTree.ElementsFlat.Count; i++)
             {
-                RuleTreeItem treeItem = (RuleTreeItem)RuleTree.ElementsFlat[i];
+                RuleTreeItem treeItem = RuleTree.ElementsFlat[i];
 
-                if ((treeItem.IsRule || treeItem.IsSectionHeader) && treeItem.Data != null)
+                if ((treeItem.IsRule || treeItem.IsSectionHeader || treeItem.IsOrderedLayerHeader) && treeItem.Data != null)
                 {
                     allRules.Add(treeItem.Data);
                 }
             }
+
+            RuleTreeCache[(managementId, deviceId)] = RuleTree;
+            FlattedRules[RuleTree] = allRules.ToArray();
 
             return allRules;
         }
@@ -185,9 +198,15 @@ namespace FWO.Services.RuleTreeBuilder
             orderedLayerItem.Header = rulebase.Name ?? "";
             orderedLayerItem.IsOrderedLayerHeader = true;
             SetParentForTreeItem(orderedLayerItem, link);
+            Rule newRule = new();
+            CreatedOrderNumbersCount++;
+            newRule.OrderNumber = CreatedOrderNumbersCount;
+            newRule.SectionHeader = rulebase.Name;
+            orderedLayerItem.Data = newRule;
             trail.Add(GetOrderLayerCount());
             orderedLayerItem.Position = trail.ToList();
             RuleTree.LastAddedItem = orderedLayerItem;
+            RuleTree.ElementsFlat.Add(orderedLayerItem);
 
             return trail;
         }
@@ -281,6 +300,7 @@ namespace FWO.Services.RuleTreeBuilder
             RuleTree.LastAddedItem = RuleTree;
             CreatedOrderNumbersCount = 0;
             OrderedLayerCount = 0;
+            FlattedRules.Clear();
         }
 
 

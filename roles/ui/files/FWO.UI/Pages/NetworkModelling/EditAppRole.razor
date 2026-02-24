@@ -11,7 +11,7 @@
 @if(AppRoleHandler != null && Display)
 {
     <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
-           Size="@(AppRoleHandler.ReadOnly? PopupSize.Medium: PopupSize.Large)" Show="@Display" OnClose="Close" FooterCssClass="d-flex justify-content-between">
+           Size="PopupSize.Auto" Show="@Display" OnClose="Close" FooterCssClass="d-flex justify-content-between">
         <Body>
             @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {
@@ -130,7 +130,14 @@
                 {
                     @if(AppRoleHandler.IsOwner)
                     {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                        <AuthorizeView Roles="@Roles.Modeller">
+                            <Authorized>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                            </NotAuthorized> 
+                        </AuthorizeView>
                     }
                     else
                     {

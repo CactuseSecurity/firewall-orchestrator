@@ -38,21 +38,40 @@ class FWOLogger(logging.Logger):
             self.warning(msg, *args, **kwargs)
 
 
-def _strip_json_comments(config_content: str) -> str:
-    def consume_string_char(index: int, escaped: bool) -> tuple[int, bool]:
-        if escaped:
-            return 1, False
-        current_char: str = config_content[index]
-        if current_char == "\\":
-            return 1, True
-        if current_char == '"':
-            return 1, False
+def _consume_json_string_char(config_content: str, index: int, escaped: bool) -> tuple[int, bool]:
+    if escaped:
         return 1, False
+    current_char: str = config_content[index]
+    if current_char == "\\":
+        return 1, True
+    if current_char == '"':
+        return 1, False
+    return 1, False
 
-    def consume_block_comment(index: int) -> int:
-        next_char: str = config_content[index + 1] if index + 1 < len(config_content) else ""
-        return 2 if config_content[index] == "*" and next_char == "/" else 1
 
+def _consume_json_block_comment_char(config_content: str, index: int) -> int:
+    next_char: str = config_content[index + 1] if index + 1 < len(config_content) else ""
+    return 2 if config_content[index] == "*" and next_char == "/" else 1
+
+
+def _detect_json_comment_start(current_char: str, next_char: str) -> tuple[bool, bool, int] | None:
+    if current_char == "/" and next_char == "/":
+        return True, False, 2
+    if current_char == "/" and next_char == "*":
+        return False, True, 2
+    if current_char == "#":
+        return True, False, 1
+    return None
+
+
+def _is_json_trailing_comma(config_content: str, index: int) -> bool:
+    lookahead_index: int = index + 1
+    while lookahead_index < len(config_content) and config_content[lookahead_index].isspace():
+        lookahead_index += 1
+    return lookahead_index < len(config_content) and config_content[lookahead_index] in ("]", "}")
+
+
+def _strip_json_comments(config_content: str) -> str:
     result_chars: list[str] = []
     in_string: bool = False
     escaped: bool = False
@@ -72,9 +91,8 @@ def _strip_json_comments(config_content: str) -> str:
             continue
 
         if in_block_comment:
-            block_step: int = consume_block_comment(i)
-            if block_step == 2:  # noqa: PLR2004
-                in_block_comment = False
+            block_step: int = _consume_json_block_comment_char(config_content, i)
+            in_block_comment = block_step != 2  # noqa: PLR2004
             i += block_step
             continue
 
@@ -82,7 +100,7 @@ def _strip_json_comments(config_content: str) -> str:
             result_chars.append(current_char)
             was_escaped: bool = escaped
             step: int
-            step, escaped = consume_string_char(i, escaped)
+            step, escaped = _consume_json_string_char(config_content, i, escaped)
             if current_char == '"' and not was_escaped:
                 in_string = False
             i += step
@@ -94,17 +112,10 @@ def _strip_json_comments(config_content: str) -> str:
             result_chars.append(current_char)
             i += 1
             continue
-        if current_char == "/" and next_char == "/":
-            in_line_comment = True
-            i += 2
-            continue
-        if current_char == "/" and next_char == "*":
-            in_block_comment = True
-            i += 2
-            continue
-        if current_char == "#":
-            in_line_comment = True
-            i += 1
+        comment_start: tuple[bool, bool, int] | None = _detect_json_comment_start(current_char, next_char)
+        if comment_start is not None:
+            in_line_comment, in_block_comment, comment_step = comment_start
+            i += comment_step
             continue
 
         result_chars.append(current_char)
@@ -114,22 +125,6 @@ def _strip_json_comments(config_content: str) -> str:
 
 
 def _strip_trailing_commas(config_content: str) -> str:
-    def consume_string_char(index: int, escaped: bool) -> tuple[int, bool]:
-        if escaped:
-            return 1, False
-        current_char: str = config_content[index]
-        if current_char == "\\":
-            return 1, True
-        if current_char == '"':
-            return 1, False
-        return 1, False
-
-    def is_trailing_comma(index: int) -> bool:
-        lookahead_index: int = index + 1
-        while lookahead_index < len(config_content) and config_content[lookahead_index].isspace():
-            lookahead_index += 1
-        return lookahead_index < len(config_content) and config_content[lookahead_index] in ("]", "}")
-
     result_chars: list[str] = []
     in_string: bool = False
     escaped: bool = False
@@ -142,7 +137,7 @@ def _strip_trailing_commas(config_content: str) -> str:
             result_chars.append(current_char)
             was_escaped: bool = escaped
             step: int
-            step, escaped = consume_string_char(i, escaped)
+            step, escaped = _consume_json_string_char(config_content, i, escaped)
             if current_char == '"' and not was_escaped:
                 in_string = False
             i += step
@@ -155,7 +150,7 @@ def _strip_trailing_commas(config_content: str) -> str:
             i += 1
             continue
 
-        if current_char == "," and is_trailing_comma(i):
+        if current_char == "," and _is_json_trailing_comma(config_content, i):
             i += 1
             continue
 

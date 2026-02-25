@@ -1,4 +1,5 @@
 
+@using FWO.Basics
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
@@ -14,13 +15,12 @@
         <div class="form-group row">
             <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("user")):</label>
             <div class="col-sm-3">
-                <Dropdown ElementType="UiUser" @bind-SelectedElement="actUser" ElementToString="@(u => u.Name)" Elements="uiUsers" >
+                <Dropdown ElementType="UiUser" SelectedElement="selectedUser" SelectedElementChanged="SelectUser" ElementToString="@(u => u.Name)" Elements="uiUsers" >
                     <ElementTemplate Context="user">
                         @user.Name
                     </ElementTemplate>
                 </Dropdown>
             </div>
-            <button type="button" class="btn btn-sm btn-primary col-sm-1" @onclick="SelectUser">@(userConfig.GetText("select"))</button>
         </div>
         <hr />
     }
@@ -57,9 +57,9 @@ else
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private List<LogEntry> logEntrys = new List<LogEntry>();
-    private List<UiUser> uiUsers = new List<UiUser>();
-    private UiUser actUser = new UiUser();
+    private List<LogEntry> logEntrys = [];
+    private List<UiUser> uiUsers = [];
+    private UiUser selectedUser = new();
     private bool seeAllUsers = false;
     private bool InitComplete = false;
 
@@ -74,7 +74,7 @@ else
             {
                 uiUsers.Add(new UiUser(){ DbId = -1, Name = userConfig.GetText("all") });
                 uiUsers.AddRange(await apiConnection.SendQueryAsync<List<UiUser>>(FWO.Api.Client.Queries.AuthQueries.getUsers));
-                actUser = uiUsers.FirstOrDefault(u => u.Name == userConfig.User.Name) ?? uiUsers[0];
+                selectedUser = uiUsers.FirstOrDefault(u => u.Name == userConfig.User.Name) ?? uiUsers[0];
                 await Refresh();
             }
             else
@@ -93,13 +93,13 @@ else
     {
         try
         {
-            if(actUser.DbId == -1)
+            if(selectedUser.DbId == -1)
             {
                 logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getAllUiLogEntrys);
             }
             else
             {
-                logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getUiLogEntrys, new { user = actUser.DbId });
+                logEntrys = await apiConnection.SendQueryAsync<List<LogEntry>>(MonitorQueries.getUiLogEntrys, new { user = selectedUser.DbId });
             }
         }
         catch(Exception exception)
@@ -108,9 +108,13 @@ else
         }
     }
 
-    private async Task SelectUser()
+    private async Task SelectUser(UiUser newUser)
     {
-        await Refresh();
+        if(newUser != selectedUser)
+        {
+            selectedUser = newUser;
+            await Refresh();
+        }
     }
 
     private void UpdatePageSize(int pageSize)

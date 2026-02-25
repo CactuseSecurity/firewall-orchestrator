@@ -11,7 +11,7 @@
     <Table class="@GetTableClass()" TableItem="ModellingConnection"
            Items="Connections" PageSize="PageSize" ColumnReorder="true" TableRowClass="@(con => getTableRowClass(con))"
            SelectedItems="SelectedConns" RowClickAction="@(conn => ToggleSelection(conn))">
-        @if(!SelectInterfaceView && AppHandler != null)
+        @if(!SelectInterfaceView && AppHandler != null && !PopupMode)
         {
             <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
@@ -209,6 +209,9 @@
 
     [Parameter]
     public bool InterfacesPossible { get; set; } = false;
+
+    [Parameter]
+    public bool PopupMode { get; set; } = false;
 
     private int PageSize { get; set; }
 

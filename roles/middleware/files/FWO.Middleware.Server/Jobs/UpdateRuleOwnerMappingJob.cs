@@ -38,7 +38,7 @@ namespace FWO.Middleware.Server.Jobs
             }
             catch (Exception exc)
             {
-                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kImportChangeNotify, AlertCode.ImportChangeNotify, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kImportChangeNotify, AlertCode.ImportChangeNotify, exc);
             }
         }
     }

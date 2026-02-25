@@ -1182,6 +1182,10 @@ INSERT INTO txt VALUES ('load_rules',		    'German', 	'Regeln anzeigen');
 INSERT INTO txt VALUES ('load_rules',		    'English', 	'Show Rules');
 INSERT INTO txt VALUES ('execute_selected',		'German', 	'Ausgew&auml;hlte Aktionen ausf&uuml;hren');
 INSERT INTO txt VALUES ('execute_selected',		'English', 	'Execute Selected Actions');
+INSERT INTO txt VALUES ('no_recertifiable_owners_assigned', 'German', 'Keine rezertifizierbaren Eigent&uuml;mer zugewiesen.');
+INSERT INTO txt VALUES ('no_recertifiable_owners_assigned', 'English', 'No recertifiable owners assigned.');
+INSERT INTO txt VALUES ('recert_action_unavailable_hint', 'German', 'Wenn Regeln sichtbar sind, aber keine Rezertifizierungs-Aktion angezeigt wird, sind dem Benutzer aktuell keine rezertifizierbaren Eigent&uuml;mer zugewiesen.');
+INSERT INTO txt VALUES ('recert_action_unavailable_hint', 'English', 'If rules are visible but no recertification action is shown, no recertifiable owners are currently assigned to the user.');
 INSERT INTO txt VALUES ('missing_owner_id',		'German', 	'Fehlende Eigent&uuml;mer ID');
 INSERT INTO txt VALUES ('missing_owner_id',		'English', 	'missing owner id');
 INSERT INTO txt VALUES ('next_recert_date',		'German', 	'Datum n&auml;chste Rezertifizierung');
@@ -2628,6 +2632,8 @@ INSERT INTO txt VALUES ('modRolloutBundleTasks','German',   'Tasks zusammenfasse
 INSERT INTO txt VALUES ('modRolloutBundleTasks','English',  'Bundle tasks');
 INSERT INTO txt VALUES ('modRolloutNatHeuristic','German',  'NAT Heuristik');
 INSERT INTO txt VALUES ('modRolloutNatHeuristic','English', 'NAT Heuristic');
+INSERT INTO txt VALUES ('modRolloutRemovedAppServers','German','Gel&ouml;schte App Server ausrollen');
+INSERT INTO txt VALUES ('modRolloutRemovedAppServers','English','Rollout removed App Servers');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'German',   'Fehlertext');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'English',  'Error text');
 INSERT INTO txt VALUES ('modelledMarker',       'German',   'Markierung Modelliert');
@@ -2845,6 +2851,10 @@ INSERT INTO txt VALUES ('acknowledge_alert',    'German', 	'Alarm best&auml;tige
 INSERT INTO txt VALUES ('acknowledge_alert',    'English', 	'Acknowledge alert');
 INSERT INTO txt VALUES ('acknowledge_action',   'German', 	'Aktion best&auml;tigen');
 INSERT INTO txt VALUES ('acknowledge_action',   'English', 	'Acknowledge action');
+INSERT INTO txt VALUES ('acknowledge_all',      'German', 	'Alle best&auml;tigen');
+INSERT INTO txt VALUES ('acknowledge_all',      'English', 	'Acknowledge all');
+INSERT INTO txt VALUES ('alerts_acknowledged',  'German', 	'Alarme best&auml;tigt');
+INSERT INTO txt VALUES ('alerts_acknowledged',  'English', 	'alerts acknowledged');
 INSERT INTO txt VALUES ('confirm',              'German', 	'Best&auml;tigen');
 INSERT INTO txt VALUES ('confirm',              'English', 	'Confirm');
 INSERT INTO txt VALUES ('found_by',             'German', 	'Gefunden von');
@@ -3295,6 +3305,8 @@ INSERT INTO txt VALUES ('U7003', 'German',  'L&ouml;scht alle Beispieldaten (auf
 INSERT INTO txt VALUES ('U7003', 'English', 'Deletes all sample data (ending with "_demo"): managements, credentials, gateways, users, tenants, groups, owners');
 INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tigungen');
 INSERT INTO txt VALUES ('U7101', 'English', 'View the past alerts with acknowledgements');
+INSERT INTO txt VALUES ('U7102', 'German',  'Sind sie sicher, dass sie alle offenen Alarme best&auml;tigen wollen?');
+INSERT INTO txt VALUES ('U7102', 'English', 'Are you sure you want to acknowledge all open alerts?');
 INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');
 INSERT INTO txt VALUES ('U7201', 'English', 'View the past importer messages');
 INSERT INTO txt VALUES ('U7301', 'German',  'Archiv der eigenen Nutzernachrichten');
@@ -3655,6 +3667,8 @@ INSERT INTO txt VALUES ('E7013', 'German',  'Letzter erfolgreicher Import zu lan
 INSERT INTO txt VALUES ('E7013', 'English', 'Last successful import too long ago');
 INSERT INTO txt VALUES ('E7014', 'German',  'Es sind nur CSV Dateien erlaubt.');
 INSERT INTO txt VALUES ('E7014', 'English', 'Only CSV Files allowed.');
+INSERT INTO txt VALUES ('E7015', 'German',  'Fehler beim Best&auml;tigen aller offenen Alarme.');
+INSERT INTO txt VALUES ('E7015', 'English', 'Error acknowledging all open alerts.');
 
 INSERT INTO txt VALUES ('E8001', 'German',  'Antrag konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8001', 'English', 'Request could not be created');
@@ -6028,6 +6042,20 @@ INSERT INTO txt VALUES ('H5663', 'German',  'Alle Regeln modelliert erwarten: Al
 INSERT INTO txt VALUES ('H5663', 'English', 'Expect all rules as modelled: All rules associated to the owner have to be modelled.');
 INSERT INTO txt VALUES ('H5664', 'German',  'Produktionsstatus: Gibt an, in welchem Lifecycle Status sich der Eigent&uuml;mer befindet.');
 INSERT INTO txt VALUES ('H5664', 'English', 'Production state: The Owner Lifecycle State assigned to the owner.');
+INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionsstatus');
+INSERT INTO txt VALUES ('H5665', 'English', 'Name: Owner Lifecycle State name');
+INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel k&ouml;nnen die Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden.
+    Produktions-Status definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).
+');
+INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecycle States of owners can be viewed, created, edited, and deleted.
+    Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life).
+');
+INSERT INTO txt VALUES ('H5667', 'German',  'Gel&ouml;schte App Server ausrollen: App Serrver, die nicht mehr im Datenimport geliefert wurden, werden dennoch weiter ausgerollt.
+    Dies kann z.B. zur Stabilisierung der Prozesse bei instabilem Datenimport dienen. Zur Rezertifizierung m&uuml;ssen die betroffenen Verbindungen aber bereinigt sein.
+');
+INSERT INTO txt VALUES ('H5667', 'English', 'Rollout removed App Servers: App servers not delivered anymore in data import are further rolled out.
+    This may e.g. stabilize processes on instable data import. Before recertification the affected connections have to be adjusted.
+');
 INSERT INTO txt VALUES ('H5670', 'German',  'Diese Seite konfiguriert die Importplanung f&uuml;r Eigent&uuml;mer/App-Daten und Subnetze, die Quellpfade sowie die LDAP-Gruppenverwaltung.');
 INSERT INTO txt VALUES ('H5670', 'English', 'This page configures the owner/app data import and subnet import schedules, source paths, and LDAP group handling.');
 INSERT INTO txt VALUES ('H5671', 'German',  'Konfigurieren Sie Importpfade, Startzeiten und Warteintervalle f&uuml;r App-Daten und Subnetzdaten.');
@@ -6040,10 +6068,6 @@ INSERT INTO txt VALUES ('H5674', 'German',  'Verantwortlichkeitsstufen ohne die 
 INSERT INTO txt VALUES ('H5674', 'English', 'Responsible types without the required permission flag cannot assign related roles.');
 INSERT INTO txt VALUES ('H5675', 'German',  'Nur Administratoren k&ouml;nnen &Auml;nderungen speichern.');
 INSERT INTO txt VALUES ('H5675', 'English', 'Only administrators can save changes.');
-INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionsstatus');
-INSERT INTO txt VALUES ('H5665', 'English', 'Name: Owner Lifecycle State name');
-INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel k&ouml;nnen die Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden. Produktions-Status definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
-INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecycle States of owners can be viewed, created, edited, and deleted. Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life).');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

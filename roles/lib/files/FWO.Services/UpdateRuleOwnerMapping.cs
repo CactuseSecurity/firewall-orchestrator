@@ -110,7 +110,6 @@ namespace FWO.Services
 
             if (pendingImports == null || !pendingImports.Any())
             {
-                Log.WriteInfo(LogMessageTitle, "No pending import_controls found.");
                 return false;
             }
 
@@ -205,7 +204,7 @@ namespace FWO.Services
         {
             try
             {
-                var result = await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.addImportFoRuleOwner, new { controlId = importControlId, import_type_id = ImportType.ADMIN_VIA_REINITIALIZE_BTN });
+                var result = await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.addImportForRuleOwner, new { controlId = importControlId, import_type_id = ImportType.ADMIN_VIA_REINITIALIZE_BTN });
                 Log.WriteInfo(LogMessageTitle, $"Created new import control with ID {result.ControlId}.");
                 return result.ControlId;
             }
@@ -239,9 +238,9 @@ namespace FWO.Services
                 var listRuleOwnersToRemove = newRuleOwners
                 .Select(r => new
                 {
-                    rule_id = new { _eq = r.rule_id },
-                    owner_id = new { _eq = r.owner_id },
-                    created = new { _eq = r.created }
+                    rule_id = new { _eq = r.RuleId },
+                    owner_id = new { _eq = r.OwnerId },
+                    created = new { _eq = r.Created }
                 })
                 .ToList();
 
@@ -289,11 +288,11 @@ namespace FWO.Services
                     {
                         newRuleOwners.Add(new RuleOwner
                         {
-                            rule_id = rule.Id,
-                            owner_id = ownerId,
-                            rule_metadata_id = rule.Metadata.Id,
-                            owner_mapping_source_id = OwnerMappingSourceStm.CUSTOM_FIELD,
-                            created = importControlId
+                            RuleId = rule.Id,
+                            OwnerId = ownerId,
+                            RuleMetadataId = rule.Metadata.Id,
+                            OwnerMappingSourceId = OwnerMappingSourceStm.CUSTOM_FIELD,
+                            Created = importControlId
                         });
                     }
                 }

@@ -61,5 +61,22 @@ namespace FWO.Ui.Services
 
             return recertifiableOwnerIds.Contains(selectedOwner.Id);
         }
+
+        /// <summary>
+        /// Determines whether to show a hint that the user currently has no recertifiable owner assignments.
+        /// </summary>
+        public static bool ShowNoRecertifiableOwnersHint(
+            bool isAdmin,
+            bool hasRecertifierRole,
+            int readableOwnerCount,
+            int recertifiableOwnerCount)
+        {
+            if (isAdmin || !hasRecertifierRole || readableOwnerCount <= 0)
+            {
+                return false;
+            }
+
+            return recertifiableOwnerCount == 0;
+        }
     }
 }

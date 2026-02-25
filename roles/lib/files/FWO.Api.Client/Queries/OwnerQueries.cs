@@ -47,6 +47,7 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string newOwnerResponsibleType;
         public static readonly string updateOwnerResponsibleType;
+        public static readonly string updateChangelogOwner;
 
 
         static OwnerQueries()
@@ -94,6 +95,7 @@ namespace FWO.Api.Client.Queries
                 getRuleOwnerToRemove = GetQueryText("owner/getRuleOwnerToRemove.graphql");
                 newOwnerResponsibleType = GetQueryText("owner/newOwnerResponsibleType.graphql");
                 updateOwnerResponsibleType = GetQueryText("owner/updateOwnerResponsibleType.graphql");
+                updateChangelogOwner = GetQueryText("owner/updateChangelogOwner.graphql");
             }
             catch (Exception exception)
             {

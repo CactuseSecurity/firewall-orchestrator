@@ -1,35 +1,34 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Basics;
 using FWO.Config.Api;
-using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Logging;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 
-namespace FWO.Middleware.Server.Jobs
+namespace FWO.Services
 {
-    /// <summary>
-    /// Shared helper functions for Quartz jobs (logging and alerts).
-    /// </summary>
-    internal static class SchedulerJobHelper
+    public static class AlertHelper
     {
-        internal struct AdditionalAlertData
+        public struct AdditionalAlertData
         {
             public int? MgmtId { get; set; }
             public object? JsonData { get; set; }
             public int? DevId { get; set; }
             public long? RefAlertId { get; set; }
+            public int UserId { get; set; }
+            public bool CompareDesc { get; set; }
+            public bool CompareTitle { get; set; }
         }
 
-        internal static async Task LogErrorsWithAlert(ApiConnection apiConnection, GlobalConfig globalConfig, int severity, string title, string source, AlertCode alertCode, Exception exc)
+        public static async Task LogErrorsWithAlert(ApiConnection apiConnection, GlobalConfig globalConfig, int severity, string title, string source, AlertCode alertCode, Exception exc)
         {
             try
             {
                 Log.WriteError(title, "Ran into exception: ", exc);
                 string titletext = $"Error encountered while trying {title}";
-                await AddLogEntry(apiConnection, globalConfig, severity, title, globalConfig.GetText("ran_into_exception") + exc.Message, source);
+                await AddLogEntry(apiConnection, severity, title, globalConfig.GetText("ran_into_exception") + exc.Message, source);
                 await SetAlert(apiConnection, title, titletext, source, alertCode, new AdditionalAlertData());
             }
             catch (Exception exception)
@@ -38,7 +37,7 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        internal static async Task AddLogEntry(ApiConnection apiConnection, GlobalConfig globalConfig, int severity, string cause, string description, string source, int? mgmtId = null)
+        public static async Task AddLogEntry(ApiConnection apiConnection, int severity, string cause, string description, string source, int? mgmtId = null)
         {
             try
             {
@@ -70,8 +69,8 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        internal static async Task<long?> SetAlert(ApiConnection apiConnection, string title, string description, string source, AlertCode alertCode,
-            AdditionalAlertData additionalAlertData, bool compareDesc = false)
+        public static async Task<long?> SetAlert(ApiConnection apiConnection, string title, string description, string source, AlertCode alertCode,
+            AdditionalAlertData additionalAlertData)
         {
             long? alertId = null;
             try
@@ -80,7 +79,7 @@ namespace FWO.Middleware.Server.Jobs
                 var Variables = new
                 {
                     source = source,
-                    userId = 0,
+                    userId = additionalAlertData.UserId,
                     title = title,
                     description = description,
                     mgmId = additionalAlertData.MgmtId,
@@ -92,13 +91,16 @@ namespace FWO.Middleware.Server.Jobs
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
+                    // Acknowledge older alert for same problem
                     alertId = returnIds[0].NewIdLong;
-                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode &&
-                        (x.ManagementId == additionalAlertData.MgmtId || (x.ManagementId == null && additionalAlertData.MgmtId == null))
-                        && (!compareDesc || x.Description == description));
+                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode
+                        && (x.ManagementId == additionalAlertData.MgmtId || (x.ManagementId == null && additionalAlertData.MgmtId == null))
+                        && (additionalAlertData.UserId == 0 || x.UserId == additionalAlertData.UserId)
+                        && (!additionalAlertData.CompareDesc || x.Description == description)
+                        && (!additionalAlertData.CompareTitle || x.Title == title));
                     if (existingAlert != null)
                     {
-                        await AcknowledgeAlert(apiConnection, existingAlert.Id);
+                        await AcknowledgeAlert(apiConnection, existingAlert.Id, additionalAlertData.UserId);
                     }
                 }
                 else
@@ -115,14 +117,14 @@ namespace FWO.Middleware.Server.Jobs
             return alertId;
         }
 
-        private static async Task AcknowledgeAlert(ApiConnection apiConnection, long alertId)
+        public static async Task AcknowledgeAlert(ApiConnection apiConnection, long alertId, int ackUser = 0)
         {
             try
             {
                 var Variables = new
                 {
                     id = alertId,
-                    ackUser = 0,
+                    ackUser = ackUser,
                     ackTime = DateTime.Now
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
@@ -133,12 +135,31 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        private static void LogAlert(string title, string description, string source, AlertCode alertCode, int? mgmtId, object? JsonData, int? devId)
+        public static async Task<int> AcknowledgeAllOpenAlerts(ApiConnection apiConnection, int ackUser = 0)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    ackUser = ackUser,
+                    ackTime = DateTime.Now
+                };
+                return (await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAllOpenAlerts, Variables)).AffectedRows;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Acknowledge Alerts", $"Could not acknowledge all open alerts: ", exception);
+            }
+            return -1;
+        }
+
+        private static void LogAlert(string title, string description, string source, AlertCode alertCode, int? mgmtId, object? jsonData, int? devId)
         {
             string? mgmtIdString = mgmtId?.ToString() ?? "";
             string? devIdString = devId?.ToString() ?? "";
-            string jsonString = JsonData != null ? JsonSerializer.Serialize(JsonData) : "";
-            Log.WriteAlert($"source: \"{source}\"", $"userId: \"0\", title: \"{title}\", description: \"{description}\", mgmId: \"{mgmtIdString}\", devId: \"{devIdString}\", jsonData: \"{jsonString}\", alertCode: \"{alertCode}\"");
+            string jsonString = jsonData != null ? JsonSerializer.Serialize(jsonData) : "";
+            Log.WriteAlert($"source: \"{source}\"", $"userId: \"0\", title: \"{title}\", description: \"{description}\", " +
+                $"mgmId: \"{mgmtIdString}\", devId: \"{devIdString}\", jsonData: \"{jsonString}\", alertCode: \"{alertCode}\"");
         }
     }
 }

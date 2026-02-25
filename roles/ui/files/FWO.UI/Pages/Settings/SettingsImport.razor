@@ -39,64 +39,7 @@
                 <input type="number" min="0" @bind="configData!.FwApiElementsPerFetch" />
             </div>
         </div>
-        <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5483"))">
-            <label for="cbx_change_notify_active" class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_change_notify_active" type="checkbox" class="w-100" @bind="configData!.ImpChangeNotifyActive" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5851"))">
-            <label for="cbx_change_notify_active" class="col-form-label col-sm-4">@(userConfig.GetText("U1004")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_change_notify_active" type="checkbox" class="w-100" @bind="configData!.ImpChangeIncludeObjectChanges" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5484"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyType")):</label>
-            <div class="col-sm-2">
-                <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="selectedImpChgNotType" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                        Elements="NotificationLayoutGroups.ListWithoutCsv()" >
-                    <ElementTemplate Context="type">
-                        @(userConfig.GetText(type.ToString()))
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5485"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySleepTime")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.ImpChangeNotifySleepTime" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5486"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyStartAt")):</label>
-            <div class="col-sm-4">
-                <div class="row">
-                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="startTime" />
-                    <input type="date" class="col-sm-5" @bind="startDate" />
-                </div>
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5487"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyRecipients")):</label>
-            <div class="col-sm-7" data-toggle="tooltip" title="@(userConfig.GetText("U5320"))">
-                <input type="text" @bind="configData!.ImpChangeNotifyRecipients" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5488"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySubject")):</label>
-            <div class="col-sm-7">
-                <input type="text" @bind="configData!.ImpChangeNotifySubject" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5489"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyBody")):</label>
-            <div class="col-sm-7">
-                <textarea rows="6" cols="60" name="text" placeholder=@(userConfig.GetText("impChangeNotifyBody")) @bind="configData!.ImpChangeNotifyBody"></textarea>
-            </div>
-        </div>
-    </form>
+    </form>   
     <hr />
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
@@ -120,19 +63,12 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private Language selectedLanguage = new Language();
-    private NotificationLayout selectedImpChgNotType;
-    private DateTime startDate = DateTime.Today;
-    private DateTime startTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
-            selectedImpChgNotType = (NotificationLayout)configData.ImpChangeNotifyType;
-            startDate = startTime = configData.ImpChangeNotifyStartAt;
         }
         catch (Exception exception)
         {
@@ -146,9 +82,6 @@ else
         {
             if (configData != null)
             {
-                configData.DefaultLanguage = selectedLanguage.Name;
-                configData.ImpChangeNotifyType = (int)selectedImpChgNotType;
-                configData.ImpChangeNotifyStartAt = startDate.Date.Add(startTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

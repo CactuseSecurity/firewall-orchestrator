@@ -170,6 +170,9 @@ def normalize_config(
             zone_objects=convert_list_to_dict(
                 native_and_normalized_config_dict["normalized"]["zone_objects"], "zone_name"
             ),
+            time_objects=convert_list_to_dict(
+                native_and_normalized_config_dict["normalized"]["time_objects"], "time_obj_uid"
+            ),
             rulebases=native_and_normalized_config_dict["normalized"]["policies"],
             gateways=native_and_normalized_config_dict["normalized"]["gateways"],
         )
@@ -223,6 +226,8 @@ def normalize_single_manager_config(
     FWOLogger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(native_config, normalized_config_dict, import_state.import_id)
     FWOLogger.info("completed normalizing service objects")
+    cp_network.normalize_time_objects(native_config, normalized_config_dict)
+    FWOLogger.info("completed normalizing time objects")
     cp_gateway.normalize_gateways(native_config, import_state, normalized_config_dict)
     cp_rule.normalize_rulebases(
         native_config,

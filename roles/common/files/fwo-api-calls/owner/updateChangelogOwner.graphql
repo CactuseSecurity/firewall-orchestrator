@@ -1,0 +1,19 @@
+mutation updateChangelogOwner(
+  $control_id: bigint,
+  $old_owner_id: bigint,
+  $new_owner_id: bigint,
+  $change_action: bpchar,
+  $source_id: String
+) {
+  insert_changelog_owner_one(
+    object: {
+      control_id: $control_id
+      old_owner_id: $old_owner_id
+      new_owner_id: $new_owner_id
+      change_action: $change_action
+      source_id: $source_id
+    }
+  ) {
+    log_owner_id
+  }
+}

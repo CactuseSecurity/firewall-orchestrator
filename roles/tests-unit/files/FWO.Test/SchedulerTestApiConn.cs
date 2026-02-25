@@ -14,6 +14,7 @@ namespace FWO.Test
     {
         public List<string> LogEntries = [];
         public List<string> Alerts = [];
+        public List<long> AcknowledgedAlerts = [];
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
@@ -41,14 +42,22 @@ namespace FWO.Test
                 GraphQLResponse<dynamic> response = new() { Data = ReturnIdWrap };
                 return response.Data;
             }
-            else if (responseType == typeof(List<Alert>))
-            {
-                GraphQLResponse<dynamic> response = new() { Data = new List<Alert>() { new() { AlertCode = AlertCode.UiError } } };
-                return response.Data;
-            }
             else if (responseType == typeof(ReturnId))
             {
-                GraphQLResponse<dynamic> response = new();
+                if (query == MonitorQueries.acknowledgeAlert && variables != null)
+                {
+                    object? rawId = variables.GetType().GetProperty("id")?.GetValue(variables);
+                    if (rawId != null)
+                    {
+                        AcknowledgedAlerts.Add(Convert.ToInt64(rawId));
+                    }
+                }
+                GraphQLResponse<dynamic> response = new() { Data = new ReturnId() };
+                return response.Data;
+            }
+            else if (responseType == typeof(List<Alert>))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<Alert>() { new() { Id = 7, AlertCode = AlertCode.UiError } } };
                 return response.Data;
             }
 

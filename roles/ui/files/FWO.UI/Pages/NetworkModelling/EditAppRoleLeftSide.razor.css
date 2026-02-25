@@ -1,5 +1,5 @@
 .appserver-left-scrollable {
-    height: calc(100vh - 580px);
+    height: calc(50vh - 64px);
     overflow-y: auto;
 }
 

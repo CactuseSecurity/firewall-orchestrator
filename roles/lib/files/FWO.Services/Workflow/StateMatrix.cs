@@ -161,11 +161,18 @@ namespace FWO.Services.Workflow
 
     public class GlobalStateMatrix
     {
+        public static Func<GlobalStateMatrix> Factory { get; set; } = () => new GlobalStateMatrix();
+
+        public static GlobalStateMatrix Create()
+        {
+            return Factory();
+        }
+
         [JsonProperty("config_value"), JsonPropertyName("config_value")]
         public Dictionary<WorkflowPhases, StateMatrix> GlobalMatrix { get; set; } = [];
 
 
-        public async Task Init(ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master, bool reset = false)
+        public virtual async Task Init(ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master, bool reset = false)
         {
             string matrixKey = taskType switch
             {

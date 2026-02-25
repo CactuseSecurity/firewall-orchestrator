@@ -48,8 +48,8 @@ namespace FWO.Data.Workflow
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            ApproverGroup.SanitizeLdapPathOpt(ref shortened);
-            ApproverDn.SanitizeLdapPathOpt(ref shortened);
+            ApproverGroup = ApproverGroup.SanitizeLdapPathOpt(ref shortened);
+            ApproverDn = ApproverDn.SanitizeLdapPathOpt(ref shortened);
             return shortened;
         }
     }

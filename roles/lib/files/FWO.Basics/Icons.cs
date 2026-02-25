@@ -24,6 +24,7 @@ namespace FWO.Basics
 
         // General
         public const string Locked = "bi bi-lock-fill";
+        public const string Unlocked = "bi bi-unlock-fill";
         public const string Type = "bi bi-list-ul";
         public const string Example = "bi bi-eye-fill";
         public const string Requirement = "bi bi-eye-fill";
@@ -122,6 +123,7 @@ namespace FWO.Basics
 
         // Monitoring
         public const string Alarm = "bi bi-bell-fill";
+        public const string Acknowledge = "bi bi-patch-check-fill";
         public const string Import = "bi bi-download";
         public const string UiMessages = "bi bi-chat-fill";
 

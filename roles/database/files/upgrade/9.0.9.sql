@@ -1,11 +1,30 @@
 -- cleanup objects removed in branch clean/remove-stale-v8-code vs develop
 
 -- remove explicit table grants that existed for legacy import staging tables
-REVOKE ALL ON TABLE IF EXISTS import_service FROM "configimporters";
-REVOKE ALL ON TABLE IF EXISTS import_object FROM "configimporters";
-REVOKE ALL ON TABLE IF EXISTS import_user FROM "configimporters";
-REVOKE ALL ON TABLE IF EXISTS import_rule FROM "configimporters";
-REVOKE ALL ON TABLE IF EXISTS import_zone FROM "configimporters";
+DO $$
+DECLARE
+    target_table TEXT;
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'configimporters') THEN
+        FOREACH target_table IN ARRAY ARRAY[
+            'import_service',
+            'import_object',
+            'import_user',
+            'import_rule',
+            'import_zone'
+        ]
+        LOOP
+            IF to_regclass('public.' || target_table) IS NOT NULL THEN
+                EXECUTE format(
+                    'REVOKE ALL ON TABLE public.%I FROM %I;',
+                    target_table,
+                    'configimporters'
+                );
+            END IF;
+        END LOOP;
+    END IF;
+END
+$$;
 
 -- remove foreign keys for removed import staging tables
 ALTER TABLE IF EXISTS import_object DROP CONSTRAINT IF EXISTS import_object_control_id_fkey;

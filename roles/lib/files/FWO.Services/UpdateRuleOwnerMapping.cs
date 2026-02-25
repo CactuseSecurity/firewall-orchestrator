@@ -110,7 +110,6 @@ namespace FWO.Services
 
             if (pendingImports == null || !pendingImports.Any())
             {
-                Log.WriteInfo(LogMessageTitle, "No pending import_controls found.");
                 return false;
             }
 
@@ -205,7 +204,7 @@ namespace FWO.Services
         {
             try
             {
-                var result = await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.addImportFoRuleOwner, new { controlId = importControlId, import_type_id = ImportType.ADMIN_VIA_REINITIALIZE_BTN });
+                var result = await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.addImportForRuleOwner, new { controlId = importControlId, import_type_id = ImportType.ADMIN_VIA_REINITIALIZE_BTN });
                 Log.WriteInfo(LogMessageTitle, $"Created new import control with ID {result.ControlId}.");
                 return result.ControlId;
             }

@@ -976,6 +976,19 @@ Create table "changelog_rule"
  primary key ("log_rule_id")
 );
 
+Create table "changelog_owner"
+(
+	"log_owner_id" BIGSERIAL,
+	"control_id" BIGINT NOT NULL,
+	"new_owner_id" BIGINT Constraint "changelog_owner_new_rule_id_constraint" Check ((change_action='D' AND new_owner_id IS NULL) OR NOT new_owner_id IS NULL),
+	"old_owner_id" BIGINT Constraint "changelog_owner_old_rule_id_constraint" Check ((change_action='I' AND old_owner_id IS NULL) OR NOT old_owner_id IS NULL),
+	"abs_change_id" BIGINT NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
+	"change_action" Char(1) NOT NULL,
+	"source_id" Varchar,
+	"security_relevant" Boolean NOT NULL Default TRUE,
+ primary key ("log_owner_id")
+);
+
 Create table "stm_change_type"
 (
 	"change_type_id" Integer,

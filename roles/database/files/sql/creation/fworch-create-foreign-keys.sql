@@ -19,6 +19,9 @@ Alter table "changelog_rule" add  foreign key ("import_admin") references "uiuse
 Alter table "changelog_rule" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "changelog_rule" add  foreign key ("new_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "changelog_rule" add  foreign key ("old_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+ALTER TABLE "changelog_owner"ADD CONSTRAINT changelog_owner_control_id_import_control_foreign_key FOREIGN KEY ("control_id") REFERENCES "import_control" ("control_id") ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE "changelog_owner" ADD CONSTRAINT changelog_owner_new_owner_id_owner_id_foreign_key FOREIGN KEY ("new_owner_id") REFERENCES "owner" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE "changelog_owner" ADD CONSTRAINT changelog_owner_old_owner_id_owner_id_foreign_key FOREIGN KEY ("old_owner_id") REFERENCES "owner" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
 Alter table "changelog_service" add  foreign key ("change_type_id") references "stm_change_type" ("change_type_id") on update restrict on delete cascade;
 Alter table "changelog_service" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "changelog_service" add  foreign key ("doku_admin") references "uiuser" ("uiuser_id") on update restrict on delete cascade;

@@ -125,15 +125,20 @@ Enable the repo-managed hooks once (per clone) to keep submodules up to date aut
 ```shell
 git config core.hooksPath .githooks
 ```
-The hooks run after `git pull`, `git checkout`, and `git rebase` and execute:
-```shell
-git submodule update --init --recursive
-git submodule update --remote --merge --recursive
-```
+The hooks run after `git pull`, `git checkout`, and `git rebase` and initialize and update the submodules.
 Notes:
 - The hook is quiet if you do not have access to a submodule repository (no error output).
 - The hook checks out the configured submodule branch from `.gitmodules` before updating, to avoid detached HEAD.
 - This intentionally moves submodules to the newest commit on their configured branch, even if the superproject has not updated the pointer yet. Expect the submodule to appear "modified" in `git status`.
+
+### Avoid Advancing the Submodule Pointer
+On the upstream we automatically advance the submodule pointer via automated pull requests.
+To prevent merge conflicts and unintended divergence from upstream, **do not commit or push local changes that advance the submodule reference (commit pointer)** in this repository.
+
+To automatically ignore local submodule pointer changes, run:
+```shell
+git config submodule.agents.ignore all
+```
 
 ### Manual submodule operations
 If you like to manually execute the submodule setup, see the sections below. Otherwise, please refer to the section above.
@@ -148,6 +153,7 @@ git submodule update --init --recursive
 #### Update agents repo manually
 This updates the agents repo manually. Update submodules to the latest commit on their configured remote tracking branch. Execute this command to get the newest version of all submodules from their respective repositories.
 ```shell
+git -C agents checkout main
 git submodule update --remote --merge --recursive
 ```
 

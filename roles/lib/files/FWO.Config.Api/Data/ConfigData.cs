@@ -402,6 +402,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modRolloutNatHeuristic"), JsonPropertyName("modRolloutNatHeuristic")]
         public bool ModRolloutNatHeuristic { get; set; } = false;
 
+        [JsonProperty("modRolloutRemovedAppServers"), JsonPropertyName("modRolloutRemovedAppServers")]
+        public bool ModRolloutRemovedAppServers { get; set; } = false;
+
         [JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
         public string ModRolloutErrorText { get; set; } = "";
 

@@ -359,3 +359,6 @@ A complete 80K lines rework of FWO, including
 # 9.0.7 - 25.02.2026 DEVELOP
 - add import of time objects
 - create changelog_owner table
+
+# 9.0.8 - 25.02.2026 DEVELOP
+- new config value for removed App Server handling

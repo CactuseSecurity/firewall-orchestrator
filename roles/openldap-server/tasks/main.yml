@@ -67,6 +67,22 @@
             openssl_email_address: "{{ openldap_server_email_address }}"
             openssl_cert: "{{ openldap_server_cert }}"
 
+      - name: Allow slapd AppArmor profile to read custom TLS cert path
+        blockinfile:
+            path: /etc/apparmor.d/local/usr.sbin.slapd
+            create: true
+            mode: "0644"
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - FWO LDAP TLS"
+            block: |
+                {{ openldap_server_cert_path }}/** r,
+        when: ansible_facts['distribution'] == "Ubuntu"
+
+      - name: Reload AppArmor after slapd profile update
+        systemd:
+            name: apparmor
+            state: restarted
+        when: ansible_facts['distribution'] == "Ubuntu"
+
       ### Config files
       - name: Create the directory for ldap database
         file:

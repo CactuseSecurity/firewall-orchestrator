@@ -26,6 +26,22 @@
     - ../templates/ldif_files/*.j2
   become: true
 
+- name: wait for ldap listener during initial tree setup
+  wait_for:
+    host: "{{ openldap_server }}"
+    port: "{{ openldap_server_enable_ssl | default(false) | ternary(openldap_port | default(636), (openldap_port | default(389) | int == 636) | ternary(389, openldap_port | default(389))) }}"
+    timeout: 120
+  become: true
+
+- name: verify ldap bind before applying initial tree
+  command: "ldapwhoami {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x"
+  register: ldap_initial_bind_check
+  changed_when: false
+  retries: 12
+  delay: 5
+  until: ldap_initial_bind_check.rc == 0
+  become: true
+
 - name: add tree
   command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{  middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:

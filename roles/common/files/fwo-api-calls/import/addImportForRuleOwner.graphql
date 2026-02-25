@@ -1,4 +1,4 @@
-mutation addImportFoRuleOwner($controlId: bigint!, $import_type_id: Int!) {
+mutation addImportForRuleOwner($controlId: bigint!, $import_type_id: Int!) {
   insert_import_control_one(
     object: {
       control_id: $controlId, import_type_id: $import_type_id

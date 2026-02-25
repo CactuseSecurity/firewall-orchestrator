@@ -3716,6 +3716,194 @@
             },
             {
               "table": {
+                "name": "changelog_owner",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "import_control",
+                  "using": {
+                    "foreign_key_constraint_on": "control_id"
+                  }
+                },
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "new_owner_id"
+                  }
+                },
+                {
+                  "name": "ownerByOldOwnerId",
+                  "using": {
+                    "foreign_key_constraint_on": "old_owner_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_owner_id",
+                      "new_owner_id",
+                      "old_owner_id",
+                      "security_relevant",
+                      "change_action",
+                      "source_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "changelog_rule",
                 "schema": "public"
               },
@@ -6748,6 +6936,12 @@
                   "using": {
                     "foreign_key_constraint_on": "mgm_id"
                   }
+                },
+                {
+                  "name": "stm_import",
+                  "using": {
+                    "foreign_key_constraint_on": "import_type_id"
+                  }
                 }
               ],
               "array_relationships": [
@@ -6758,6 +6952,18 @@
                       "column": "control_id",
                       "table": {
                         "name": "changelog_object",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "changelog_owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "control_id",
+                      "table": {
+                        "name": "changelog_owner",
                         "schema": "public"
                       }
                     }
@@ -7052,6 +7258,18 @@
                   }
                 },
                 {
+                  "name": "ruleTimesByRemoved",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "removed",
+                      "table": {
+                        "name": "rule_time",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "ruleTosByRtLastSeen",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -7154,6 +7372,18 @@
                       "column": "created",
                       "table": {
                         "name": "rule_svc_resolved",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_times",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "created",
+                      "table": {
+                        "name": "rule_time",
                         "schema": "public"
                       }
                     }
@@ -7298,6 +7528,30 @@
                       "column": "import_last_seen",
                       "table": {
                         "name": "svcgrp",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "timeObjectsByRemoved",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "removed",
+                      "table": {
+                        "name": "time_object",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "time_objects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "created",
+                      "table": {
+                        "name": "time_object",
                         "schema": "public"
                       }
                     }
@@ -7674,6 +7928,7 @@
                     "columns": [
                       "notification_done",
                       "rule_owner_mapping_done",
+                      "security_relevant_changes_counter",
                       "stop_time",
                       "successful_import"
                     ],
@@ -11311,6 +11566,30 @@
                       "table": {
                         "name": "change_history",
                         "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "changelogOwnersByOldOwnerId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "old_owner_id",
+                      "table": {
+                        "name": "changelog_owner",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "changelog_owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "new_owner_id",
+                      "table": {
+                        "name": "changelog_owner",
+                        "schema": "public"
                       }
                     }
                   }
@@ -21699,6 +21978,20 @@
                 "name": "stm_import",
                 "schema": "public"
               },
+              "array_relationships": [
+                {
+                  "name": "import_controls",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "import_type_id",
+                      "table": {
+                        "name": "import_control",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",

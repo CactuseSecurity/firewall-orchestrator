@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2026-01-08-01"
+__version__ = "2026-02-19-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -8,6 +8,13 @@ __version__ = "2026-01-08-01"
 # 2025-12-02-01, adding new fields to the interface:
 #   - daysUntilFirstRecertification: int|None (if not set, we assume the same intervals as for normal recertification),
 #   - recertificationActive: bool
+# 2026-02-19-01:
+#   - setting fields recertificationActive for all apps to true or false
+#   - importing owner_lifecycle_state from csv file if column pattern is given in config; if not, owner_lifecycle_state will be set to "unknown" for all apps
+#   - enhancing import of owner_responsibles from csv file (allowing for multiple columns for different levels of responsibility)
+#   - importing criticality from csv file if column pattern is given in config; if not, criticality will be set to "unknown" for all apps
+#   - allowing for composite fields with delimiter string to allow concatenation of two columns into one field
+#   - in UI-Settings: allow passing of multiple script parameters via multiple text fields (should be limited to non-sensitive parameters, as they will be visible to all users with access to the UI-Settings)
 
 # reads the main app data from multiple csv files contained in a git repo
 # users will reside in external ldap groups with standardized names
@@ -21,19 +28,29 @@ __version__ = "2026-01-08-01"
 import argparse
 import logging
 import re
+import shlex
 from pathlib import Path
 
 import urllib3
 
-from scripts.customizing.fwo_custom_lib.app_data_basics import transform_app_list_to_dict, write_owners_to_json
+from scripts.customizing.fwo_custom_lib.app_data_basics import (
+    transform_app_list_to_dict,
+    write_owners_to_json,
+)
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 from scripts.customizing.fwo_custom_lib.basic_helpers import (
     get_logger,
     read_custom_config,
     read_custom_config_with_default,
 )
-from scripts.customizing.fwo_custom_lib.git_helpers import read_file_from_git_repo, update_git_repo
-from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
+from scripts.customizing.fwo_custom_lib.git_helpers import (
+    read_file_from_git_repo,
+    update_git_repo,
+)
+from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
+    extract_app_data_from_csv,
+    extract_ip_data_from_csv,
+)
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"
@@ -41,6 +58,113 @@ app_data_repo_target_dir: str = base_dir_etc + "cmdb-repo"
 recert_repo_target_dir: str = base_dir_etc + "recert-repo"
 default_config_file_name: str = base_dir_etc + "secrets/customizingConfig.json"
 default_import_source_string: str = "tufinRlm"
+
+
+def parse_bool_arg(value: str) -> bool:
+    normalized_value: str = value.strip().lower()
+    if normalized_value in ("true", "1", "yes", "y"):
+        return True
+    if normalized_value in ("false", "0", "no", "n"):
+        return False
+    raise argparse.ArgumentTypeError(f"invalid boolean value: {value}")
+
+
+def parse_criticality_recert_period_mapping(mapping_entries: list[str]) -> dict[str, int]:
+    mapping: dict[str, int] = {}
+    for mapping_entry in mapping_entries:
+        if ":" not in mapping_entry:
+            raise argparse.ArgumentTypeError(
+                f"invalid criticalityRecertPeriodMapping entry '{mapping_entry}', expected PREFIX:DAYS"
+            )
+        criticality_prefix, recert_days_str = mapping_entry.split(":", 1)
+        criticality_prefix = criticality_prefix.strip()
+        recert_days_str = recert_days_str.strip()
+        if criticality_prefix == "" or recert_days_str == "":
+            raise argparse.ArgumentTypeError(
+                f"invalid criticalityRecertPeriodMapping entry '{mapping_entry}', expected PREFIX:DAYS"
+            )
+        try:
+            recert_days: int = int(recert_days_str)
+        except ValueError as err:
+            raise argparse.ArgumentTypeError(
+                f"invalid recertification period '{recert_days_str}' in mapping entry '{mapping_entry}'"
+            ) from err
+        if recert_days < 0:
+            raise argparse.ArgumentTypeError(
+                f"invalid recertification period '{recert_days_str}' in mapping entry '{mapping_entry}'"
+            )
+        mapping[criticality_prefix] = recert_days
+    return mapping
+
+
+def _expand_responsibles_entries(entries: list[str]) -> list[str]:
+    expanded: list[str] = []
+    entry_value: str
+    for entry_value in entries:
+        if '"' in entry_value or "'" in entry_value:
+            expanded.extend(shlex.split(entry_value))
+        else:
+            expanded.append(entry_value)
+    return expanded
+
+
+def _parse_level_mapping(entry_value: str) -> tuple[str, str] | None:
+    split_entry: list[str] = entry_value.split(":", 1)
+    if len(split_entry) != 2:  # noqa: PLR2004
+        return None
+    return split_entry[0].strip(), split_entry[1].strip()
+
+
+def _validate_responsibles_columns(responsibles: dict[str, list[str]]) -> None:
+    if not responsibles:
+        raise argparse.ArgumentTypeError("responsiblesColumns must contain at least one LEVEL:HEADER mapping")
+    level_name: str
+    headers_list: list[str]
+    for level_name, headers_list in responsibles.items():
+        if len(headers_list) == 0:
+            raise argparse.ArgumentTypeError(
+                f"invalid responsiblesColumns entry for level '{level_name}', expected at least one header"
+            )
+        if any(header == "" for header in headers_list):
+            raise argparse.ArgumentTypeError(
+                f"invalid responsiblesColumns entry for level '{level_name}', headers must not be empty"
+            )
+
+
+def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[str, ...]]:
+    responsibles_columns: dict[str, list[str]] = {}
+    current_level: str | None = None
+    expanded_entries: list[str] = _expand_responsibles_entries(columns_entries)
+    entry: str
+    for entry in expanded_entries:
+        level_mapping: tuple[str, str] | None = _parse_level_mapping(entry)
+        if level_mapping is not None:
+            level: str = level_mapping[0]
+            first_header: str = level_mapping[1]
+            if level == "":
+                raise argparse.ArgumentTypeError(f"invalid responsiblesColumns entry '{entry}', expected LEVEL:HEADER")
+            current_level = level
+            responsibles_columns[current_level] = []
+            if first_header != "":
+                responsibles_columns[current_level].append(first_header)
+            continue
+        if current_level is None:
+            raise argparse.ArgumentTypeError(f"invalid responsiblesColumns entry '{entry}', expected LEVEL:HEADER")
+        responsibles_columns[current_level].append(entry.strip())
+
+    _validate_responsibles_columns(responsibles_columns)
+
+    return {level: tuple(headers) for level, headers in responsibles_columns.items()}
+
+
+def apply_owner_column_overrides(
+    owner_header_patterns: dict[str, str],
+    lifecycle_state_column: str,
+) -> dict[str, str]:
+    updated_patterns: dict[str, str] = dict(owner_header_patterns)
+    if lifecycle_state_column.strip():
+        updated_patterns["owner_lifecycle_state"] = rf"^\s*{re.escape(lifecycle_state_column.strip())}\s*$"
+    return updated_patterns
 
 
 if __name__ == "__main__":
@@ -55,8 +179,8 @@ if __name__ == "__main__":
                         sample config file content: \
                         { \
                             "ldapPath": "dc=example,dc=de", \
-                            "gitRepo": "github.example.de/cmdb/app-export", \
-                            "gitUsername": "git-user-1", \
+                            "cmdbGitRepoUrl": "github.example.de/cmdb/app-export", \
+                            "cmdbGitUsername": "git-user-1", \
                             "gitPassword": "gituser-1-pwd", \
                             "csvOwnerFilePattern": "NeMo_???_meta.csv", \
                             "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv", \
@@ -69,10 +193,16 @@ if __name__ == "__main__":
                         ',
     )
     parser.add_argument(
-        "-s", "--suppress_certificate_warnings", action="store_true", default=True, help="suppress certificate warnings"
+        "-s",
+        "--suppress_certificate_warnings",
+        action="store_true",
+        default=True,
+        help="suppress certificate warnings",
     )
     parser.add_argument(
-        "-f", "--import_from_folder", help="if set, will try to read csv files from given folder instead of git repo"
+        "-f",
+        "--import_from_folder",
+        help="if set, will try to read csv files from given folder instead of git repo",
     )
     parser.add_argument(
         "-l",
@@ -82,6 +212,67 @@ if __name__ == "__main__":
         help="The maximal number of returned results per HTTPS Connection; default=50",
     )
     parser.add_argument("-d", "--debug", default=0, help="debug level, default=0")
+    parser.add_argument(
+        "--defaultRecertificationActiveState",
+        dest="default_recertification_active_state",
+        type=parse_bool_arg,
+        default=False,
+        help="default recertificationActive state for owners without specific data (true|false), default=false",
+    )
+    parser.add_argument(
+        "--filterColumn",
+        dest="filter_column",
+        default="Aktive Firewallregel",
+        help='owner CSV column header used for filtering for owners with active rules, default="Aktive Firewallregel"; set to empty string to disable',
+    )
+    parser.add_argument(
+        "--includeValues",
+        "--includeValue",
+        dest="include_values",
+        nargs="+",
+        default=["Ja"],
+        help='list of values in filter column to include, default=["Ja"]',
+    )
+    parser.add_argument(
+        "--lifecycleState",
+        default="Lifecycle State",
+        help='owner CSV column header for lifecycle state import, default="Lifecycle State"',
+    )
+    parser.add_argument(
+        "--compositeIdFields",
+        nargs="+",
+        default=None,
+        help="list of owner CSV headers used to build a composite app_id_external",
+    )
+    parser.add_argument(
+        "--compositeIdFieldsDelimiterStr",
+        default="",
+        help="delimiter string used between composite id field values",
+    )
+    parser.add_argument(
+        "--compositeIdFieldsMaxLength",
+        nargs="+",
+        type=int,
+        default=None,
+        help="list of max lengths per composite id field; values are truncated before joining",
+    )
+    parser.add_argument(
+        "--criticalityColumnHeader",
+        default=None,
+        help="owner CSV header used to import criticality; if omitted, criticality is not included in output",
+    )
+    parser.add_argument(
+        "--criticalityRecertPeriodMapping",
+        nargs="+",
+        default=None,
+        help='list of mappings PREFIX:DAYS, e.g. "1:360 2:360 3:180"; if criticality starts with PREFIX, recert_period_days is set to DAYS',
+    )
+    parser.add_argument(
+        "--responsiblesColumns",
+        nargs="+",
+        default=None,
+        help='grouped mapping LEVEL:HEADER [HEADER ...], e.g. 1:"UserId" "UserID Vertreter" 2:"UserIDs Mitwirkende"',
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -92,9 +283,9 @@ if __name__ == "__main__":
 
     # read config
     ldap_path: str = read_custom_config(args.config, "ldapPath", logger)
-    git_repo_url_without_protocol: str = read_custom_config(args.config, "gitRepo", logger)
-    git_username: str = read_custom_config(args.config, "gitUser", logger)
-    git_password: str = read_custom_config(args.config, "gitPassword", logger)
+    cmdb_git_repo_url_without_protocol: str = read_custom_config(args.config, "cmdbGitRepoUrl", logger)
+    cmdb_git_username: str = read_custom_config(args.config, "cmdbGitUsername", logger)
+    cmdb_git_password: str = read_custom_config(args.config, "cmdbGitPassword", logger)
     csv_owner_file_pattern: str = read_custom_config(args.config, "csvOwnerFilePattern", logger)
     csv_app_server_file_pattern: str = read_custom_config(args.config, "csvAppServerFilePattern", logger)
     recert_active_repo_url: str | None = read_custom_config_with_default(
@@ -114,6 +305,23 @@ if __name__ == "__main__":
         args.config, "validAppIdPrefixes", None, logger
     )
     csv_separator: str = read_custom_config_with_default(args.config, "csvSeparator", ",", logger)
+    default_recert_active_state: bool = args.default_recertification_active_state
+    included_owners_column: str | None = args.filter_column.strip() if args.filter_column else None
+    include_values: list[str] = args.include_values
+    lifecycle_state_column: str = args.lifecycleState
+    composite_id_fields: tuple[str, ...] | None = tuple(args.compositeIdFields) if args.compositeIdFields else None
+    composite_id_fields_delimiter_str: str = args.compositeIdFieldsDelimiterStr
+    composite_id_fields_max_length: list[int] | None = args.compositeIdFieldsMaxLength
+    criticality_column_header: str | None = args.criticalityColumnHeader
+    criticality_recert_period_mapping: dict[str, int] | None = (
+        parse_criticality_recert_period_mapping(args.criticalityRecertPeriodMapping)
+        if args.criticalityRecertPeriodMapping
+        else None
+    )
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = (
+        parse_responsibles_columns(args.responsiblesColumns) if args.responsiblesColumns else None
+    )
+    owner_header_patterns = apply_owner_column_overrides(owner_header_patterns, lifecycle_state_column)
 
     if args.debug:
         debug_level: int = int(args.debug)
@@ -129,7 +337,9 @@ if __name__ == "__main__":
         app_data_repo_target_dir = import_from_folder
     else:
         base_dir = app_data_repo_target_dir
-        app_data_repo_url: str = "https://" + git_username + ":" + git_password + "@" + git_repo_url_without_protocol
+        app_data_repo_url: str = (
+            "https://" + cmdb_git_username + ":" + cmdb_git_password + "@" + cmdb_git_repo_url_without_protocol
+        )
 
         repo_updated: bool = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger)
         if not repo_updated:
@@ -139,7 +349,7 @@ if __name__ == "__main__":
     # 2. get app list with activated recertification
 
     if recert_active_repo_url and recert_active_file_name:
-        recert_repo_url: str = f"https://{git_username}:{git_password}@{recert_active_repo_url}"
+        recert_repo_url: str = f"https://{cmdb_git_username}:{cmdb_git_password}@{recert_active_repo_url}"
         recert_activation_data: str | None = read_file_from_git_repo(
             recert_repo_url,
             recert_repo_target_dir,
@@ -168,9 +378,18 @@ if __name__ == "__main__":
                 debug_level,
                 base_dir=base_dir,
                 recert_active_app_list=recert_active_app_list,
+                default_recert_active_state=default_recert_active_state,
                 column_patterns=owner_header_patterns,
                 valid_app_id_prefixes=valid_app_id_prefixes,
+                included_owners_column=included_owners_column,
+                include_values=include_values,
                 csv_separator=csv_separator,
+                composite_id_fields=composite_id_fields,
+                composite_id_fields_delimiter_str=composite_id_fields_delimiter_str,
+                composite_id_fields_max_length=composite_id_fields_max_length,
+                criticality_column_header=criticality_column_header,
+                criticality_recert_period_mapping=criticality_recert_period_mapping,
+                responsibles_columns_headers=responsibles_columns_headers,
             )
 
     app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)

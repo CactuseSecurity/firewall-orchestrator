@@ -1,0 +1,26 @@
+@page "/help/settings/owners/appdataimport"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("import_app_data"))</h3>
+    <p>
+        @(Html.Raw(userConfig.GetText("H5670")))
+    </p>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5671")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5672")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5673")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5674")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5675")))</li>
+    </ul>
+</div>

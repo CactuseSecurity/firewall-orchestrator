@@ -647,6 +647,7 @@ Create table "import_control"
 	"changes_found" Boolean NOT NULL Default FALSE, -- old_field: any_changes_found 
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
+	"rule_owner_mapping_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
  primary key ("control_id")
 );
@@ -975,6 +976,19 @@ Create table "changelog_rule"
  primary key ("log_rule_id")
 );
 
+Create table "changelog_owner"
+(
+	"log_owner_id" BIGSERIAL,
+	"control_id" BIGINT NOT NULL,
+	"new_owner_id" BIGINT Constraint "changelog_owner_new_rule_id_constraint" Check ((change_action='D' AND new_owner_id IS NULL) OR NOT new_owner_id IS NULL),
+	"old_owner_id" BIGINT Constraint "changelog_owner_old_rule_id_constraint" Check ((change_action='I' AND old_owner_id IS NULL) OR NOT old_owner_id IS NULL),
+	"abs_change_id" BIGINT NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
+	"change_action" Char(1) NOT NULL,
+	"source_id" Varchar,
+	"security_relevant" Boolean NOT NULL Default TRUE,
+ primary key ("log_owner_id")
+);
+
 Create table "stm_change_type"
 (
 	"change_type_id" Integer,
@@ -1143,6 +1157,16 @@ create table owner_responsible
     responsible_type int NOT NULL
 );
 
+create table owner_responsible_type
+(
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL,
+    active boolean default true,
+    sort_order int default 0,
+    allow_modelling boolean default false,
+    allow_recertification boolean default false
+);
+
 CREATE TABLE owner_lifecycle_state (
     id SERIAL PRIMARY KEY,
     name Varchar NOT NULL
@@ -1176,7 +1200,7 @@ create table rule_owner
     rule_id bigint NOT NULL,
     created bigint NOT NULL,
     removed bigint,
-    owner_mapping_source_id bigint NOT NULL,
+    owner_mapping_source_id smallint NOT NULL,
     primary key (rule_id, owner_id, created)
 );
 
@@ -1266,6 +1290,27 @@ create table ext_request
 	wait_cycles int default 0,
 	attempts int default 0,
 	locked boolean default false
+);
+
+create table time_object
+(
+    time_obj_id BIGSERIAL PRIMARY KEY,
+    mgm_id Integer NOT NULL,
+    time_obj_uid Varchar,
+    time_obj_name Varchar,
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    created BIGINT,
+    removed BIGINT
+);
+
+create table rule_time
+(
+    rule_time_id BIGSERIAL PRIMARY KEY,
+    rule_id BIGINT,
+    time_obj_id BIGINT,
+    created BIGINT,
+    removed BIGINT
 );
 
 -- workflow -------------------------------------------------------
@@ -1608,7 +1653,15 @@ create table modelling.connection
 	extra_params Varchar,
 	requested_on_fw boolean default false,
 	removed boolean default false,
-	removal_date timestamp
+	removal_date timestamp,
+	interface_permission Varchar
+);
+
+create table modelling.permitted_owners
+(
+	connection_id int,
+	app_id int,
+	primary key (connection_id, app_id)
 );
 
 create table modelling.selected_objects

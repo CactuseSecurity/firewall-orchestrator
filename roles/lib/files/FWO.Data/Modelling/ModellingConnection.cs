@@ -10,6 +10,7 @@ namespace FWO.Data.Modelling
         InterfaceRequested = 1,
         InterfaceRejected = 2,
         InterfaceDecommissioned = 3,
+        InterfaceNoPermission = 4,
 
         // Interfaces:
         Requested = 11,
@@ -24,6 +25,13 @@ namespace FWO.Data.Modelling
         VarianceChecked = 31,
         NotImplemented = 32,
         VarianceFound = 33
+    }
+
+    public enum InterfacePermissions
+    {
+        Public = 1,
+        Restricted = 2,
+        Private = 3
     }
 
     public class ModellingConnection
@@ -115,12 +123,31 @@ namespace FWO.Data.Modelling
         [JsonProperty("removal_date"), JsonPropertyName("removal_date")]
         public DateTime? RemovalDate { get; set; }
 
+        [JsonProperty("interface_permission"), JsonPropertyName("interface_permission")]
+        public string InterfacePermission
+        {
+            get => interfacePermission;
+            set => interfacePermission = value ?? InterfacePermissions.Public.ToString();
+        }
+
+        [JsonProperty("permitted_owners"), JsonPropertyName("permitted_owners")]
+        public List<PermittedOwnerWrapper> PermittedOwnerWrappers
+        {
+            get => permittedOwnerWrappers;
+            set
+            {
+                permittedOwnerWrappers = value ?? [];
+                permittedOwners = [.. permittedOwnerWrappers.Select(w => w.Owner).Where(o => o != null)];
+            }
+        }
+
 
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
         public bool InterfaceIsRequested { get; set; } = false;
         public bool InterfaceIsRejected { get; set; } = false;
         public bool InterfaceIsDecommissioned { get; set; } = false;
+        public bool InterfaceNoPermission { get; set; } = false;
 
         public int OrderNumber { get; set; } = 0;
         public Dictionary<string, string>? Props { get; set; }
@@ -137,6 +164,15 @@ namespace FWO.Data.Modelling
         }
         public List<ModellingExtraConfig> ExtraConfigsFromInterface { get; set; } = [];
         public bool ProdRuleFound { get; set; } = false;
+        private List<FwoOwner> permittedOwners = [];
+        public List<FwoOwner> PermittedOwners
+        {
+            get => permittedOwners;
+            set => permittedOwners = value ?? [];
+        }
+
+        private string interfacePermission = InterfacePermissions.Public.ToString();
+        private List<PermittedOwnerWrapper> permittedOwnerWrappers = [];
 
 
         public ModellingConnection()
@@ -179,7 +215,11 @@ namespace FWO.Data.Modelling
             InterfaceIsRequested = conn.InterfaceIsRequested;
             InterfaceIsRejected = conn.InterfaceIsRejected;
             InterfaceIsDecommissioned = conn.InterfaceIsDecommissioned;
+            InterfaceNoPermission = conn.InterfaceNoPermission;
             ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
+            InterfacePermission = conn.InterfacePermission;
+            PermittedOwnerWrappers = conn.PermittedOwnerWrappers;
+            PermittedOwners = conn.PermittedOwners;
         }
 
         public int CompareTo(ModellingConnection secondConnection)
@@ -227,14 +267,15 @@ namespace FWO.Data.Modelling
             return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationAreas.Count > 0 || DestinationOtherGroups.Count > 0;
         }
 
-        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId)
+        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId, bool rolloutRemoved = false)
         {
             return !(IsInterface ||
                 GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 GetBoolProperty(ConState.InterfaceRejected.ToString()) ||
                 GetBoolProperty(ConState.InterfaceDecommissioned.ToString()) ||
+                GetBoolProperty(ConState.InterfaceNoPermission.ToString()) || // or not ??
                 EmptyAppRolesFound(dummyAppRoleId) ||
-                DeletedObjectsFound() ||
+                DeletedObjectsFound(rolloutRemoved) ||
                 EmptyServiceGroupsFound());
         }
 
@@ -284,7 +325,7 @@ namespace FWO.Data.Modelling
         }
 
 
-        public void SyncState(long dummyAppRoleId)
+        public void SyncState(long dummyAppRoleId, bool rolloutRemoved = false)
         {
             if (IsInterface)
             {
@@ -294,7 +335,7 @@ namespace FWO.Data.Modelling
             {
                 SyncInterfaceUser();
             }
-            SyncMemberIssues(dummyAppRoleId);
+            SyncMemberIssues(dummyAppRoleId, rolloutRemoved);
             UpdateProperty(ConState.DocumentationOnly.ToString(), IsDocumentationOnly());
         }
 
@@ -318,13 +359,14 @@ namespace FWO.Data.Modelling
             {
                 UpdateProperty(ConState.InterfaceRequested.ToString(), InterfaceIsRequested);
                 UpdateProperty(ConState.InterfaceDecommissioned.ToString(), InterfaceIsDecommissioned);
+                UpdateProperty(ConState.InterfaceNoPermission.ToString(), InterfaceNoPermission);
             }
         }
 
-        private void SyncMemberIssues(long dummyAppRoleId)
+        private void SyncMemberIssues(long dummyAppRoleId, bool rolloutRemoved)
         {
             UpdateProperty(ConState.EmptyAppRoles.ToString(), EmptyAppRolesFound(dummyAppRoleId));
-            UpdateProperty(ConState.DeletedObjects.ToString(), DeletedObjectsFound());
+            UpdateProperty(ConState.DeletedObjects.ToString(), DeletedObjectsFound(rolloutRemoved));
             UpdateProperty(ConState.EmptySvcGrps.ToString(), EmptyServiceGroupsFound());
         }
 
@@ -371,8 +413,13 @@ namespace FWO.Data.Modelling
             return updatableObjectNames;
         }
 
-        public bool DeletedObjectsFound()
+        private bool DeletedObjectsFound(bool rolloutRemoved = false)
         {
+            if(rolloutRemoved)
+            {
+                return SourceAreas.Any(a => a.Content.IsDeleted) ||
+                DestinationAreas.Any(a => a.Content.IsDeleted);
+            }
             return SourceAreas.Any(a => a.Content.IsDeleted) ||
                 DestinationAreas.Any(a => a.Content.IsDeleted) ||
                 SourceAppRoles.Any(aR => aR.Content.AppServers.Any(a => a.Content.IsDeleted)) ||
@@ -481,5 +528,11 @@ namespace FWO.Data.Modelling
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
         }
+    }
+
+    public class PermittedOwnerWrapper
+    {
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public FwoOwner Owner { get; set; } = new();
     }
 }

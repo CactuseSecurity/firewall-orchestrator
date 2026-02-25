@@ -7,17 +7,20 @@
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Services
+@using FWO.Services.RuleTreeBuilder
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 @using System
 @using System.Threading
+@using System.Linq
 @using System.Text.RegularExpressions
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true"
@@ -78,7 +81,7 @@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h3>@(userConfig.GetText("recertification"))</h3>
     <div class="btn-group sticky-marker-60">
-        @if (!readonlyMode)
+        @if (CanWriteSelectedOwner())
         {
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
                 <Authorized>
@@ -100,8 +103,14 @@
             </AuthorizeView>
         }
     </div>
+    @if (ShowNoRecertifiableOwnersHint())
+    {
+        <div class="alert alert-warning mt-2 mb-0" role="alert">
+            @userConfig.GetText("no_recertifiable_owners_assigned")
+        </div>
+    }
     <hr />
-    <RulesReport Recertification="true" ReadonlyMode="readonlyMode" Managements="managementsReport"
+    <RulesReport Recertification="true" ReadonlyMode="@( !CanWriteSelectedOwner() )" Managements="managementsReport"
                  RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"
                  SelectedReportType="ReportType.Recertification" />
 </div>
@@ -156,12 +165,10 @@
 
     private List<ManagementReport> managementsReport = [];
 
-    private bool readonlyMode = false;
     public FwoOwner? selectedOwner = null;
     private List<FwoOwner> ownerList = [];
-    private List<FwoOwner> userOwnerships = [];
-    private List<FwoOwner> groupOwnerships = [];
     private List<FwoOwner> collectedOwnerships = [];
+    private HashSet<int> recertifiableOwnerIds = [];
     private DeviceFilter deviceFilter = new();
     private List<Rule> selectedRules = [];
 
@@ -180,7 +187,7 @@
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Recertifier, Roles.Admin, Roles.Auditor]);
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Recertifier, Roles.Modeller, Roles.Admin, Roles.Auditor]);
             rulesFound = false;
 
             ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
@@ -199,46 +206,41 @@
 
     private async Task CollectOwnerships()
     {
-        // this gets owners for which the user is the main responsible
-        userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser,
-            new
-            {
-                userDns = new List<string> { userConfig.User.Dn }
-            });
-
-        // this gets owners for which the user is member of an owning LOCAL group
-        List<string> ownerGrpDns = await GroupAccess.GetGroupMemberships(middlewareClient, userConfig,
-        DisplayMessageInUi);
-        if (ownerGrpDns.Count > 0)
+        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+        bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
+        if (isAdmin || isAuditor)
         {
-            groupOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersFromGroups,
-                new
-                {
-                    groupDns = ownerGrpDns
-                });
+            collectedOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            recertifiableOwnerIds = isAdmin ? collectedOwnerships.Select(owner => owner.Id).ToHashSet() : [];
+        }
+        else
+        {
+            List<int> editableOwnerIds = RecertificationOwnerSelection.ResolveOwnerIds(
+                userConfig.User.Ownerships,
+                authenticationStateTask!.Result.User.Claims,
+                "x-hasura-editable-owners");
+            List<int> resolvedRecertOwnerIds = RecertificationOwnerSelection.ResolveOwnerIds(
+                userConfig.User.RecertOwnerships,
+                authenticationStateTask.Result.User.Claims,
+                "x-hasura-recertifiable-owners");
+            List<int> readableOwnerIds = editableOwnerIds
+                .Concat(resolvedRecertOwnerIds)
+                .Distinct()
+                .ToList();
+            collectedOwnerships = readableOwnerIds.Count == 0
+                ? []
+                : await apiConnection.SendQueryAsync<List<FwoOwner>>(
+                    OwnerQueries.getEditableOwners,
+                    new { appIds = readableOwnerIds.ToArray() });
+            recertifiableOwnerIds = resolvedRecertOwnerIds.ToHashSet();
         }
 
-        foreach (var owner in userOwnerships)
-        {
-            collectedOwnerships.Add(owner);
-        }
-        foreach (var owner in groupOwnerships)
-        {
-            if (collectedOwnerships.FirstOrDefault(x => x.Id == owner.Id) == null)
-            {
-                collectedOwnerships.Add(owner);
-            }
-        }
-        if (collectedOwnerships.Count > 0)
-        {
-            selectedOwner = collectedOwnerships[0];
-        }
+        selectedOwner = RecertificationOwnerSelection.SelectOwner(collectedOwnerships, recertifiableOwnerIds);
     }
 
     private async Task GenerateRecertificationReport()
     {
         processing = true;
-        readonlyMode = !authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier) || selectedOwner == null;
         selectedRules.Clear();
 
         try
@@ -251,7 +253,7 @@
             }
 
             currentReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", prepareReportParams()), apiConnection,
-            userConfig, DisplayMessageInUi);
+            userConfig, DisplayMessageInUi, null, ruleTreeBuilder);
             if (currentReport != null)
             {
                 managementsReport = currentReport?.ReportData.ManagementData ?? new();
@@ -316,6 +318,11 @@
 
     private void RequestExecuteSelected()
     {
+        if (!CanWriteSelectedOwner())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("C9012"), true);
+            return;
+        }
         AddCommentMode = true;
     }
 
@@ -326,6 +333,11 @@
 
     private async Task ExecuteSelected()
     {
+        if (!CanWriteSelectedOwner())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("C9012"), true);
+            return;
+        }
         bool shortened = false;
         actComment = actComment.SanitizeMand(ref shortened);
         if (shortened)
@@ -428,5 +440,24 @@
         };
         return ((await apiConnection.SendQueryAsync<List<Recertification>>(RecertQueries.getOpenRecertsForRule,
         variables)).Count == 0);
+    }
+
+    private bool CanWriteSelectedOwner()
+    {
+        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+        bool hasRecertifierRole = authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
+
+        return RecertificationOwnerSelection.CanWriteSelectedOwner(selectedOwner, isAdmin, hasRecertifierRole, recertifiableOwnerIds);
+    }
+
+    private bool ShowNoRecertifiableOwnersHint()
+    {
+        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+        bool hasRecertifierRole = authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
+        return RecertificationOwnerSelection.ShowNoRecertifiableOwnersHint(
+            isAdmin,
+            hasRecertifierRole,
+            collectedOwnerships.Count,
+            recertifiableOwnerIds.Count);
     }
 }

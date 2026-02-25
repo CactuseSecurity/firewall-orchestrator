@@ -107,7 +107,15 @@ namespace FWO.Middleware.Server
 
         private async Task<bool> NewImportFound()
         {
-            importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
+            if (userConfig.GlobalConfig!.ImpChangeIncludeObjectChanges)
+            {
+                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotifyForAnyChanges);
+            }
+            else
+            {
+                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
+            }
+
             importedManagements = [];
             foreach (var impMgt in importsToNotify.Select(i => i.MgmtId).Where(m => !importedManagements.Contains(m)))
             {

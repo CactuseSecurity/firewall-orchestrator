@@ -105,6 +105,15 @@ namespace FWO.Config.Api.Data
         [JsonProperty("impChangeNotifyStartAt"), JsonPropertyName("impChangeNotifyStartAt")]
         public DateTime ImpChangeNotifyStartAt { get; set; } = DateTime.Now;
 
+        [JsonProperty("updateRuleOwnerMappingActive"), JsonPropertyName("updateRuleOwnerMappingActive")]
+        public bool UpdateRuleOwnerMappingActive { get; set; } = false;
+
+        [JsonProperty("updateRuleOwnerMappingSleepTime"), JsonPropertyName("updateRuleOwnerMappingSleepTime")]
+        public int UpdateRuleOwnerMappingSleepTime { get; set; } = 60;
+
+        [JsonProperty("updateRuleOwnerMappingStartAt"), JsonPropertyName("updateRuleOwnerMappingStartAt")]
+        public DateTime UpdateRuleOwnerMappingStartAt { get; set; } = DateTime.Now;
+
         [JsonProperty("externalRequestSleepTime"), JsonPropertyName("externalRequestSleepTime")]
         public int ExternalRequestSleepTime { get; set; } = 60;
 
@@ -261,7 +270,6 @@ namespace FWO.Config.Api.Data
         [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
         public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
 
-
         [JsonProperty("allowServerInConn"), JsonPropertyName("allowServerInConn")]
         public bool AllowServerInConn { get; set; } = true;
 
@@ -307,6 +315,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
         public string OwnerLdapGroupNames { get; set; } = GlobalConst.kLdapGroupPattern;
 
+        [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
+        public int OwnerSoruceMappingID { get; set; } = 0;
+
+        [JsonProperty("OwnerSourceCustomFieldKey"), JsonPropertyName("OwnerSourceCustomFieldKey")]
+        public string OwnerSourceCustomFieldKey { get; set; } = "";
+
         [JsonProperty("rolesWithAppDataImport"), JsonPropertyName("rolesWithAppDataImport")]
         public string RolesWithAppDataImport { get; set; } = "[]";
 
@@ -341,10 +355,13 @@ namespace FWO.Config.Api.Data
         public string ModReqInterfaceName { get; set; } = "";
 
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
-        public EmailRecipientOption ModReqEmailReceiver { get; set; } = EmailRecipientOption.None;
+        public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 
         [JsonProperty("modReqEmailRequesterInCc"), JsonPropertyName("modReqEmailRequesterInCc")]
         public bool ModReqEmailRequesterInCc { get; set; } = true;
+
+        [JsonProperty("modReqEmailOtherAddresses"), JsonPropertyName("modReqEmailOtherAddresses")]
+        public string ModReqEmailOtherAddresses { get; set; } = "";
 
         [JsonProperty("modReqEmailSubject"), JsonPropertyName("modReqEmailSubject")]
         public string ModReqEmailSubject { get; set; } = "";
@@ -362,7 +379,10 @@ namespace FWO.Config.Api.Data
         public string ModReqTaskTitle { get; set; } = "";
 
         [JsonProperty("modDecommEmailReceiver"), JsonPropertyName("modDecommEmailReceiver")]
-        public EmailRecipientOption ModDecommEmailReceiver { get; set; } = EmailRecipientOption.None;
+        public string ModDecommEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
+
+        [JsonProperty("modDecommEmailOtherAddresses"), JsonPropertyName("modDecommEmailOtherAddresses")]
+        public string ModDecommEmailOtherAddresses { get; set; } = "";
 
         [JsonProperty("modDecommEmailSubject"), JsonPropertyName("modDecommEmailSubject")]
         public string ModDecommEmailSubject { get; set; } = "";
@@ -381,6 +401,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modRolloutNatHeuristic"), JsonPropertyName("modRolloutNatHeuristic")]
         public bool ModRolloutNatHeuristic { get; set; } = false;
+
+        [JsonProperty("modRolloutRemovedAppServers"), JsonPropertyName("modRolloutRemovedAppServers")]
+        public bool ModRolloutRemovedAppServers { get; set; } = false;
 
         [JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
         public string ModRolloutErrorText { get; set; } = "";

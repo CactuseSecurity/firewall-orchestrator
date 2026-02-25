@@ -60,7 +60,7 @@
     {
         try
         {
-            HandlerBase = new(apiConnection, userConfig, new(), false, DisplayMessageInUi);
+            HandlerBase = new(apiConnection, userConfig, new(), false, DisplayMessageInUi, true, false);
             Owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             if (Owners.Count > 0)
             {

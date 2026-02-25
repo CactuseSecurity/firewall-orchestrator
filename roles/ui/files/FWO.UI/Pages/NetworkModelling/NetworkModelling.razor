@@ -129,7 +129,8 @@
                                     @(DisplayService.DisplayButton(userConfig, "add_connection", Icons.Add))
                                 </button>
                             </div>
-                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
+                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()"
+                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
                         </Tab>
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                             <div class="d-flex justify-content-between">
@@ -147,7 +148,8 @@
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
-                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())"/>
+                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)"
+                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())"/>
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {
@@ -159,7 +161,8 @@
                                         @(DisplayService.DisplayButton(userConfig, "add_common_service", Icons.Add))
                                     </button>
                                </div>
-                                <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
+                                <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetCommonServices()"
+                                    @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
                             </Tab>
                         }
                     </TabSet>

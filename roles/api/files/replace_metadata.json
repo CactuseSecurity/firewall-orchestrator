@@ -12609,8 +12609,9 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "owner_id",
                       "dn",
+                      "id",
+                      "owner_id",
                       "responsible_type"
                     ]
                   },
@@ -12621,8 +12622,9 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "owner_id",
                       "dn",
+                      "id",
+                      "owner_id",
                       "responsible_type"
                     ]
                   },
@@ -12825,20 +12827,6 @@
               ],
               "insert_permissions": [
                 {
-                  "role": "auditor",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "active",
-                      "allow_modelling",
-                      "allow_recertification",
-                      "name",
-                      "sort_order"
-                    ]
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "fw-admin",
                   "permission": {
                     "check": {},
@@ -12846,6 +12834,7 @@
                       "active",
                       "allow_modelling",
                       "allow_recertification",
+                      "id",
                       "name",
                       "sort_order"
                     ]
@@ -12860,6 +12849,7 @@
                       "active",
                       "allow_modelling",
                       "allow_recertification",
+                      "id",
                       "name",
                       "sort_order"
                     ]
@@ -13037,9 +13027,11 @@
                   "role": "reviewer",
                   "permission": {
                     "columns": [
-                      "id",
-                      "name",
                       "active",
+                      "allow_modelling",
+                      "allow_recertification",
+                      "name",
+                      "id",
                       "sort_order"
                     ],
                     "filter": {}
@@ -13048,21 +13040,6 @@
                 }
               ],
               "update_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "active",
-                      "allow_modelling",
-                      "allow_recertification",
-                      "name",
-                      "sort_order"
-                    ],
-                    "filter": {},
-                    "check": null
-                  },
-                  "comment": ""
-                },
                 {
                   "role": "fw-admin",
                   "permission": {

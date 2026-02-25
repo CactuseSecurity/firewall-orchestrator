@@ -81,7 +81,7 @@ namespace FWO.Ui.Services
             foreach (var conn in connections)
             {
                 await ExtractUsedInterface(conn);
-                conn.SyncState(dummyAppRoleId);
+                conn.SyncState(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
             }
 
             if (userConfig.VarianceAnalysisSync)
@@ -182,7 +182,7 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetConnectionsToRequest()
         {
-            return [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(dummyAppRoleId)).OrderByDescending(y => y.IsCommonService)];
+            return [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers)).OrderByDescending(y => y.IsCommonService)];
         }
 
         public bool HasModellingIssues(ModellingConnection conn)

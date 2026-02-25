@@ -122,7 +122,6 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private Language selectedLanguage = new Language();
     private NotificationLayout selectedImpChgNotType;
     private DateTime impChangeNotifyStartDate = DateTime.Today;
     private DateTime impChangeNotifyStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
@@ -134,7 +133,6 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
             selectedImpChgNotType = (NotificationLayout)configData.ImpChangeNotifyType;
             impChangeNotifyStartDate = impChangeNotifyStartTime = configData.ImpChangeNotifyStartAt;
             updateRuleOwnerMappingStartDate = updateRuleOwnerMappingStartTime = configData.UpdateRuleOwnerMappingStartAt;
@@ -151,7 +149,6 @@ else
         {
             if (configData != null)
             {
-                configData.DefaultLanguage = selectedLanguage.Name;
                 configData.ImpChangeNotifyType = (int)selectedImpChgNotType;
                 configData.ImpChangeNotifyStartAt = impChangeNotifyStartDate.Date.Add(impChangeNotifyStartTime.TimeOfDay);
                 configData.UpdateRuleOwnerMappingStartAt = updateRuleOwnerMappingStartDate.Date.Add(updateRuleOwnerMappingStartTime.TimeOfDay);

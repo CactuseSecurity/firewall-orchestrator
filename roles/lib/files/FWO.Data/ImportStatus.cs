@@ -25,6 +25,9 @@ namespace FWO.Data
 
         [JsonProperty("rule_owner_mapping_done"), JsonPropertyName("rule_owner_mapping_done")]
         public bool RuleOwnerMappingDone { get; set; }
+
+        [JsonProperty("changes_found"), JsonPropertyName("changes_found")]
+        public bool ChangesFound { get; set; }
     }
 
     public class ImportStatus

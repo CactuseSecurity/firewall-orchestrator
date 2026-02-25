@@ -267,7 +267,7 @@ namespace FWO.Data.Modelling
             return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationAreas.Count > 0 || DestinationOtherGroups.Count > 0;
         }
 
-        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId)
+        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId, bool rolloutRemoved = false)
         {
             return !(IsInterface ||
                 GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
@@ -275,7 +275,7 @@ namespace FWO.Data.Modelling
                 GetBoolProperty(ConState.InterfaceDecommissioned.ToString()) ||
                 GetBoolProperty(ConState.InterfaceNoPermission.ToString()) || // or not ??
                 EmptyAppRolesFound(dummyAppRoleId) ||
-                DeletedObjectsFound() ||
+                DeletedObjectsFound(rolloutRemoved) ||
                 EmptyServiceGroupsFound());
         }
 
@@ -325,7 +325,7 @@ namespace FWO.Data.Modelling
         }
 
 
-        public void SyncState(long dummyAppRoleId)
+        public void SyncState(long dummyAppRoleId, bool rolloutRemoved = false)
         {
             if (IsInterface)
             {
@@ -335,7 +335,7 @@ namespace FWO.Data.Modelling
             {
                 SyncInterfaceUser();
             }
-            SyncMemberIssues(dummyAppRoleId);
+            SyncMemberIssues(dummyAppRoleId, rolloutRemoved);
             UpdateProperty(ConState.DocumentationOnly.ToString(), IsDocumentationOnly());
         }
 
@@ -363,10 +363,10 @@ namespace FWO.Data.Modelling
             }
         }
 
-        private void SyncMemberIssues(long dummyAppRoleId)
+        private void SyncMemberIssues(long dummyAppRoleId, bool rolloutRemoved)
         {
             UpdateProperty(ConState.EmptyAppRoles.ToString(), EmptyAppRolesFound(dummyAppRoleId));
-            UpdateProperty(ConState.DeletedObjects.ToString(), DeletedObjectsFound());
+            UpdateProperty(ConState.DeletedObjects.ToString(), DeletedObjectsFound(rolloutRemoved));
             UpdateProperty(ConState.EmptySvcGrps.ToString(), EmptyServiceGroupsFound());
         }
 
@@ -413,8 +413,13 @@ namespace FWO.Data.Modelling
             return updatableObjectNames;
         }
 
-        public bool DeletedObjectsFound()
+        private bool DeletedObjectsFound(bool rolloutRemoved = false)
         {
+            if(rolloutRemoved)
+            {
+                return SourceAreas.Any(a => a.Content.IsDeleted) ||
+                DestinationAreas.Any(a => a.Content.IsDeleted);
+            }
             return SourceAreas.Any(a => a.Content.IsDeleted) ||
                 DestinationAreas.Any(a => a.Content.IsDeleted) ||
                 SourceAppRoles.Any(aR => aR.Content.AppServers.Any(a => a.Content.IsDeleted)) ||

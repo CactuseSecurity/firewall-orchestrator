@@ -585,7 +585,7 @@ A complete 80K lines rework of FWO, including
 - database changes to deduplicate rules (rule to gateway mapping now 1:n by introducing rulebase and rulebase_link tables)
 - migrating import module from mixed python/pgsql to pure python
 
-# 9.0.1 - 5.02.2026 DEVELOP
+# 9.0.1 - 07.02.2026 
 - update rule_owner table for REST api
 - update import_control to allow flexible tracking of different import types
 - generalized owner responsibles with configurable responsible types
@@ -597,5 +597,5 @@ A complete 80K lines rework of FWO, including
 # 9.0.4 - 13.02.2026 MAIN
 - maintenance release with explicit 9.0.4 upgrade step
 
-# 9.0.5 - 16.02.2026 DEVELOP
+# 9.0.9 - 25.02.2026 DEVELOP
 - remove stale v8 code

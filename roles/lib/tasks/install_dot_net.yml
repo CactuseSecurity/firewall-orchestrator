@@ -42,6 +42,10 @@
     - name: Install Microsoft package list
       apt:
         deb: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+      register: ms_repo_install
+      failed_when: >
+        (ms_repo_install is failed) and
+        ('A later version is already installed' not in (ms_repo_install.msg | default('')))
 
     - name: Remove package list file
       file:
@@ -104,7 +108,14 @@
       apt: update_cache=true
 
     - name: Install dotnet-sdk-{{ dotnet_version }}
-      package: "name=dotnet-sdk-{{ dotnet_version }} state=present"
+      apt:
+        name: "dotnet-sdk-{{ dotnet_version }}"
+        state: present
+        lock_timeout: 600
+      register: dotnet_sdk_install
+      retries: 3
+      delay: 20
+      until: dotnet_sdk_install is succeeded
       when: ansible_architecture == "x86_64"
 
     - debug: 

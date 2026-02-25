@@ -6,6 +6,7 @@ query RuleDetailById(
         where:{
             rule_id: {_in: $rule_ids}
             rule_action: { _eq: $rule_action}
+            removed: { _is_null: true }
         }
     ) {
         rule_uid

@@ -51,10 +51,10 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conname = 'changelog_owner_new_owner_id_owner_foreign_key'
+        WHERE conname = 'changelog_owner_new_owner_id_owner_id_foreign_key'
     ) THEN
         ALTER TABLE "changelog_owner"
-        ADD CONSTRAINT changelog_owner_new_owner_id_owner_foreign_key
+        ADD CONSTRAINT changelog_owner_new_owner_id_owner_id_foreign_key
         FOREIGN KEY ("new_owner_id")
         REFERENCES "owner" ("id")
         ON UPDATE RESTRICT
@@ -68,10 +68,10 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conname = 'changelog_owner_old_owner_id_owner_foreign_key'
+        WHERE conname = 'changelog_owner_old_owner_id_owner_id_foreign_key'
     ) THEN
         ALTER TABLE "changelog_owner"
-        ADD CONSTRAINT changelog_owner_old_owner_id_owner_foreign_key
+        ADD CONSTRAINT changelog_owner_old_owner_id_owner_id_foreign_key
         FOREIGN KEY ("old_owner_id")
         REFERENCES "owner" ("id")
         ON UPDATE RESTRICT

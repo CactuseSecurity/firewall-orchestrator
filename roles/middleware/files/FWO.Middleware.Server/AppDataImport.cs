@@ -175,7 +175,10 @@ namespace FWO.Middleware.Server
                 {
                     appId = existingApp.Id;
                     await UpdateApp(incomingApp, existingApp, userGroupDn);
-                    await ownerChangeTracker.AddOwnerChange(existingApp.Id, appId, 'U', incomingApp.ImportSource);
+                    if (!existingApp.Active)
+                    {
+                        await ownerChangeTracker.AddOwnerChange(appId, appId, 'C', incomingApp.ImportSource);
+                    }
                 }
                 if (incomingApp.MainUser != null && incomingApp.MainUser != "")
                 {

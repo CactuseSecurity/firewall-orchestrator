@@ -1,0 +1,9 @@
+query getRulesForRuleOwner {
+  rule (where: { removed: { _eq: null } })
+  {
+    rule_id
+    rule_name
+    removed
+    rule_custom_fields
+  }
+}

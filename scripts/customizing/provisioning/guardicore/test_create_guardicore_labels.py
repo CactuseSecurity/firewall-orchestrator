@@ -147,3 +147,33 @@ def test_fetch_existing_guardicore_labels_reads_paginated_list(monkeypatch: Monk
 
     assert pairs == {("AppRole", "Role A"), ("AppZone", "Zone B"), ("AppRole", "Role C")}
     assert len(fake_session.calls) == EXPECTED_FETCH_CALLS
+
+
+def test_build_graphql_query_uses_explicit_vars_not_ownerfilter():
+    module = load_module()
+
+    query = module.build_graphql_query(include_common_services=False, filter_by_app_ids=True)
+
+    assert "ownerFilter" not in query
+    assert "$appIds" in query
+    assert "$groupTypes" in query
+    assert "common_service_possible: { _eq: true }" not in query
+
+
+def test_build_graphql_query_includes_common_services_clause_when_requested():
+    module = load_module()
+
+    query = module.build_graphql_query(include_common_services=True, filter_by_app_ids=False)
+
+    assert "ownerFilter" not in query
+    assert "$appIds" not in query
+    assert "$groupTypes" in query
+    assert "common_service_possible: { _eq: true }" in query
+
+
+def test_build_graphql_variables_contains_explicit_parameters_only():
+    module = load_module()
+
+    variables = module.build_graphql_variables(app_ids=["APP-1"], include_group_types=[20, 21])
+
+    assert variables == {"groupTypes": [20, 21], "appIds": ["APP-1"]}

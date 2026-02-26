@@ -14,10 +14,33 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 import requests
-import urllib3
+
+try:
+    from scripts.customizing.provisioning.guardicore.guardicore_lib import (
+        HTTP_CONTENT_TYPE_JSON,
+        FwoConfig,
+        GuardicoreConfig,
+        apply_ssl_settings,
+        extract_label_items,
+        login_fwo,
+        login_guardicore,
+        resolve_ssl_verification_settings,
+        run_graphql_query,
+    )
+except ModuleNotFoundError:
+    from guardicore_lib import (  # type: ignore[import-not-found]
+        HTTP_CONTENT_TYPE_JSON,
+        FwoConfig,
+        GuardicoreConfig,
+        apply_ssl_settings,
+        extract_label_items,
+        login_fwo,
+        login_guardicore,
+        resolve_ssl_verification_settings,
+        run_graphql_query,
+    )
 
 DEFAULT_GUARDICORE_API_V4_BASE_ENDPOINT: str = "/api/v4.0/"
-DEFAULT_GUARDICORE_AUTH_ENDPOINT: str = "/api/v3.0/authenticate"
 DEFAULT_GUARDICORE_LABELS_BULK_ENDPOINT: str = f"{DEFAULT_GUARDICORE_API_V4_BASE_ENDPOINT}labels/bulk"
 DEFAULT_GUARDICORE_LABELS_LIST_ENDPOINT: str = f"{DEFAULT_GUARDICORE_API_V4_BASE_ENDPOINT}labels"
 DEFAULT_GUARDICORE_LABELS_LIST_FIELDS: str = "id,key,value,dynamic_criteria"
@@ -25,8 +48,6 @@ DEFAULT_GUARDICORE_LABELS_PAGE_SIZE: int = 1000
 DEFAULT_GUARDICORE_FIELD: str = "numeric_ip_addresses"
 DEFAULT_GUARDICORE_KEY_APPZONE: str = "AppZone"
 DEFAULT_GUARDICORE_KEY_APPROLE: str = "AppRole"
-HTTP_CONTENT_TYPE_JSON: str = "application/json"
-HTTP_OK: int = 200
 
 
 def parse_app_ids(value: str) -> list[str]:
@@ -71,11 +92,20 @@ def parse_group_types(value: str) -> list[int]:
     return group_types
 
 
-def build_graphql_query() -> str:
-    """Build GraphQL query using a variable-based owner filter."""
-    return """
-query getARsAndAZs($ownerFilter: owner_bool_exp!) {
-  owner(where: $ownerFilter) {
+def build_graphql_query(include_common_services: bool, filter_by_app_ids: bool) -> str:
+    """Build GraphQL query with explicit variables and hard-coded filter structure."""
+    app_id_clause = "{ app_id_external: { _in: $appIds } }" if filter_by_app_ids else ""
+    base_and_clauses = "{ nwgroups: { group_type: { _in: $groupTypes } } }"
+    if app_id_clause:
+        base_and_clauses += f", {app_id_clause}"
+
+    where_clause = "{ _and: [" + base_and_clauses + "] }"
+    if include_common_services:
+        where_clause = "{ _or: [{ _and: [" + base_and_clauses + "] }, { common_service_possible: { _eq: true } }] }"
+
+    query = """
+query getARsAndAZs($groupTypes: [Int!]!__APPIDS_DECL__) {
+  owner(where: __WHERE_CLAUSE__) {
     app_id_external
     name
     common_service_possible
@@ -94,29 +124,20 @@ query getARsAndAZs($ownerFilter: owner_bool_exp!) {
   }
 }
 """.strip()
+    app_ids_decl = ", $appIds: [String!]" if filter_by_app_ids else ""
+    return query.replace("__APPIDS_DECL__", app_ids_decl).replace("__WHERE_CLAUSE__", where_clause)
 
 
 def build_graphql_variables(
     app_ids: list[str] | None = None,
-    include_common_services: bool = False,
     include_group_types: list[int] | None = None,
 ) -> dict[str, Any]:
-    """Build GraphQL variables for app-id filtering and optional owner scopes."""
-    app_filter: dict[str, Any] = {}
-    if app_ids is not None:
-        app_filter = {"app_id_external": {"_in": app_ids}}
-
+    """Build GraphQL variables for explicit query parameters."""
     group_types = include_group_types if include_group_types is not None else [20, 21]
-    owners_or_clauses: list[dict[str, Any]] = []
-    and_conditions: list[dict[str, Any]] = [{"nwgroups": {"group_type": {"_in": group_types}}}]
-    if app_filter:
-        and_conditions.append(app_filter)
-    owners_or_clauses.append({"_and": and_conditions})
-
-    if include_common_services:
-        owners_or_clauses.append({"common_service_possible": {"_eq": True}})
-
-    return {"ownerFilter": {"_or": owners_or_clauses}}
+    variables: dict[str, Any] = {"groupTypes": group_types}
+    if app_ids is not None:
+        variables["appIds"] = app_ids
+    return variables
 
 
 class GuardicoreProvisioningError(Exception):
@@ -135,23 +156,6 @@ class LabelItem:
     key: str
     value: str
     criteria: list[Criteria]
-
-
-@dataclass(frozen=True)
-class GuardicoreConfig:
-    base_url: str
-    token: str
-    verify_ssl: bool | str
-    timeout_seconds: int
-
-
-@dataclass(frozen=True)
-class FwoConfig:
-    graphql_url: str
-    jwt: str
-    verify_ssl: bool | str
-    timeout_seconds: int
-    role: str
 
 
 def parse_args() -> argparse.Namespace:
@@ -249,78 +253,6 @@ def require_guardicore_fields(args: argparse.Namespace) -> None:
         raise GuardicoreProvisioningError("Missing arguments for Guardicore login: " + ", ".join(missing))
 
 
-def apply_ssl_settings(session: requests.Session, verify_setting: bool | str) -> None:
-    session.verify = verify_setting
-    if verify_setting is False:
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-
-def login_fwo(user: str, password: str, middleware_url: str, verify_ssl: bool | str, timeout: int) -> str:
-    payload: dict[str, str] = {"Username": user, "Password": password}
-    headers: dict[str, str] = {"Content-Type": HTTP_CONTENT_TYPE_JSON}
-    endpoint = middleware_url.rstrip("/") + "/api/AuthenticationToken/Get"
-
-    with requests.Session() as session:
-        apply_ssl_settings(session, verify_ssl)
-        try:
-            response = session.post(endpoint, json=payload, headers=headers, timeout=timeout)
-        except requests.exceptions.RequestException as exc:
-            raise GuardicoreProvisioningError(f"FWO login failed for {endpoint}: {exc}") from exc
-
-    if response.status_code != HTTP_OK:
-        raise GuardicoreProvisioningError(f"FWO login failed with status {response.status_code}: {response.text}")
-    return response.text
-
-
-def login_guardicore(user: str, password: str, base_url: str, verify_ssl: bool | str, timeout: int) -> str:
-    payload: dict[str, str] = {"username": user, "password": password}
-    headers: dict[str, str] = {"Content-Type": HTTP_CONTENT_TYPE_JSON}
-    endpoint = base_url.rstrip("/") + DEFAULT_GUARDICORE_AUTH_ENDPOINT
-
-    with requests.Session() as session:
-        apply_ssl_settings(session, verify_ssl)
-        try:
-            response = session.post(endpoint, json=payload, headers=headers, timeout=timeout)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as exc:
-            raise GuardicoreProvisioningError(f"Guardicore login failed for {endpoint}: {exc}") from exc
-
-    try:
-        result = response.json()
-    except ValueError as exc:
-        raise GuardicoreProvisioningError("Guardicore login response was not valid JSON.") from exc
-
-    for token_key in ("access_token", "token", "jwt", "accessToken"):
-        token = result.get(token_key)
-        if token:
-            return token
-
-    raise GuardicoreProvisioningError(f"Guardicore login response did not include a token: {result}")
-
-
-def run_graphql_query(config: FwoConfig, query: str, variables: dict[str, Any]) -> dict[str, Any]:
-    headers: dict[str, str] = {
-        "Content-Type": HTTP_CONTENT_TYPE_JSON,
-        "Authorization": f"Bearer {config.jwt}",
-        "x-hasura-role": config.role,
-    }
-    payload: dict[str, Any] = {"query": query, "variables": variables}
-
-    with requests.Session() as session:
-        apply_ssl_settings(session, config.verify_ssl)
-        session.headers.update(headers)
-        try:
-            response = session.post(config.graphql_url, json=payload, timeout=config.timeout_seconds)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as exc:
-            raise GuardicoreProvisioningError(f"GraphQL query failed: {exc}") from exc
-
-    result = response.json()
-    if "errors" in result:
-        raise GuardicoreProvisioningError(f"GraphQL returned errors: {result['errors']}")
-    return result
-
-
 def normalize_ip(value: str) -> str:
     return value.split("/")[0]
 
@@ -412,20 +344,7 @@ def to_guardicore_payload(items: list[LabelItem]) -> list[dict[str, Any]]:
 
 def parse_existing_label_pairs(payload: Any) -> set[tuple[str, str]]:
     """Extract existing key/value pairs from Guardicore label list responses."""
-    label_items: list[dict[str, Any]] = []
-    if isinstance(payload, list):
-        payload_list = cast("list[Any]", payload)
-        label_items.extend(cast("dict[str, Any]", item) for item in payload_list if isinstance(item, dict))
-    elif isinstance(payload, dict):
-        payload_dict = cast("dict[str, Any]", payload)
-        for candidate_key in ("objects", "items", "labels", "results", "data"):
-            candidate_value = payload_dict.get(candidate_key)
-            if isinstance(candidate_value, list):
-                candidate_list = cast("list[Any]", candidate_value)
-                label_items.extend(cast("dict[str, Any]", item) for item in candidate_list if isinstance(item, dict))
-                break
-        if not label_items:
-            label_items = [payload_dict]
+    label_items = extract_label_items(payload)
 
     existing_pairs: set[tuple[str, str]] = set()
     for label_item in label_items:
@@ -522,24 +441,6 @@ def post_guardicore_labels(config: GuardicoreConfig, payload: list[dict[str, Any
             raise GuardicoreProvisioningError(f"Guardicore API call failed: {exc}") from exc
 
 
-def resolve_ssl_verification_settings(args: argparse.Namespace) -> tuple[bool | str, bool | str]:
-    verify_ssl = not args.insecure
-    fwo_verify: bool | str = verify_ssl
-    guardicore_verify: bool | str = verify_ssl
-
-    if args.fwo_insecure:
-        fwo_verify = False
-    elif args.fwo_ca_cert:
-        fwo_verify = args.fwo_ca_cert
-
-    if args.guardicore_insecure:
-        guardicore_verify = False
-    elif args.guardicore_ca_cert:
-        guardicore_verify = args.guardicore_ca_cert
-
-    return fwo_verify, guardicore_verify
-
-
 def get_fwo_jwt(args: argparse.Namespace, fwo_verify: bool | str) -> str:
     if args.fwo_jwt:
         return args.fwo_jwt
@@ -549,6 +450,7 @@ def get_fwo_jwt(args: argparse.Namespace, fwo_verify: bool | str) -> str:
         args.fwo_middleware_url,
         fwo_verify,
         args.timeout,
+        GuardicoreProvisioningError,
     )
 
 
@@ -562,12 +464,15 @@ def fetch_labels_from_fwo(args: argparse.Namespace, jwt: str, fwo_verify: bool |
     )
     response = run_graphql_query(
         fwo_config,
-        build_graphql_query(),
+        build_graphql_query(
+            include_common_services=args.include_common_services,
+            filter_by_app_ids=args.app_ids is not None,
+        ),
         build_graphql_variables(
             args.app_ids,
-            include_common_services=args.include_common_services,
             include_group_types=args.include_group_types,
         ),
+        GuardicoreProvisioningError,
     )
     return build_labels_from_response(response, include_empty=args.include_empty)
 
@@ -581,6 +486,7 @@ def build_guardicore_config(args: argparse.Namespace, guardicore_verify: bool | 
             args.guardicore_url,
             guardicore_verify,
             args.timeout,
+            GuardicoreProvisioningError,
         ),
         verify_ssl=guardicore_verify,
         timeout_seconds=args.timeout,

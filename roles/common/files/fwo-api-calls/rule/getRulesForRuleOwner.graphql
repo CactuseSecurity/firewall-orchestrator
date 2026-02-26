@@ -4,6 +4,10 @@ query getRulesForRuleOwner {
     rule_id
     rule_name
     removed
+    rule_uid
+    rule_metadatum {
+      rule_metadata_id
+    }
     rule_custom_fields
   }
 }

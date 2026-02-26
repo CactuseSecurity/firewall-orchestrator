@@ -409,7 +409,7 @@ namespace FWO.Services
             {
                 ruleOwnersToRemoveTmp = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
             }
-            return (rulesToMapTmp, ownersToAdd, ruleOwnersToRemoveTmp);
+            return (rulesToMapTmp, ownersToAdd.Concat(ownersToUpdate).ToList(), ruleOwnersToRemoveTmp);
         }
 
 

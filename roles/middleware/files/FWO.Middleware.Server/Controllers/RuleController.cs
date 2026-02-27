@@ -17,13 +17,13 @@ using Newtonsoft.Json;
 #pragma warning disable CS1591
 namespace FWO.Middleware.Server.Controllers
 {
-    [Authorize]
+    //[Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class RuleController(ApiConnection apiConnection) : ControllerBase
     {
         [HttpPost("GetRulesByFilter")]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        //[Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<ActionResult<RulesByFilterResponse>> GetRulesByFilter(
             [FromBody] RulesByFilterRequest request)
         {
@@ -124,7 +124,7 @@ namespace FWO.Middleware.Server.Controllers
             };
 
             var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
-            return ConvertRuleList(result, userConfig, ownerId);
+            return ConvertRuleList(result, userConfig);
         }
 
         private async Task<List<int>> GetRuleIdsByAdoItAsync(int adoIt, ApiConnection apiConnection)
@@ -172,15 +172,17 @@ namespace FWO.Middleware.Server.Controllers
                 {
                     case "source":
                         isInRange = IsInRange(ipAddress, maxPrefix,
-                            rule.Froms.Select(source => source.Object).ToList());
+                            FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object).ToList()));
                         break;
                     case "destination":
-                        isInRange = IsInRange(ipAddress, maxPrefix, rule.Tos.Select(dest => dest.Object).ToList());
+                        isInRange = IsInRange(ipAddress, maxPrefix, 
+                            FlattenRuleNetworkObjects(rule.Tos.Select(dest => dest.Object).ToList()));
                         break;
                     case "both":
                         bool sourceRange = IsInRange(ipAddress, maxPrefix,
-                            rule.Froms.Select(source => source.Object).ToList());
-                        bool destRange = IsInRange(ipAddress, maxPrefix, rule.Tos.Select(dest => dest.Object).ToList());
+                            FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object).ToList()));
+                        bool destRange = IsInRange(ipAddress, maxPrefix, 
+                            FlattenRuleNetworkObjects(rule.Tos.Select(dest => dest.Object).ToList()));
                         isInRange = sourceRange || destRange;
                         break;
                     default: throw new NotImplementedException();
@@ -195,7 +197,7 @@ namespace FWO.Middleware.Server.Controllers
             return ConvertRuleList(ruleItems, userConfig);
         }
 
-        private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig, int ownerId = -1)
+        private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig)
         {
             List<RuleDetail> output = new();
             string notFound = "Not Found in Database";
@@ -234,17 +236,21 @@ namespace FWO.Middleware.Server.Controllers
                 rule.CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound;
                 rule.LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound;
                 rule.Action = item.Action;
-                rule.AdoIT = ownerId.ToString();
+                rule.AdoIT = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound;
                 output.Add(rule);
             }
 
             return output;
         }
 
-        private static bool IsInRange(string ipAddress, int maxPrefix, List<NetworkObject> objects)
+        private static bool IsInRange(string ipAddress, int maxPrefix, List<NetworkObject?> objects)
         {
             foreach (var ipObject in objects)
             {
+                if (ipObject is null || ipObject.Type.Name == "group")
+                {
+                    continue;
+                }
                 bool ipInRange = IsInRange(ipAddress, ipObject.IP, ipObject.IpEnd);
                 int rangePrefix = CommonPrefixLength(ipObject.IP, ipObject.IpEnd);
                 if (rangePrefix >= maxPrefix && ipInRange)
@@ -411,6 +417,33 @@ namespace FWO.Middleware.Server.Controllers
             result.Append(joined);
 
             return result.ToString();
+        }
+        
+        List<NetworkObject?> FlattenRuleNetworkObjects(List<NetworkObject> list)
+        {
+            var temp1 = list
+                .SelectMany(obj =>                                     
+                    new[] { obj }
+                        .Concat(obj.ObjectGroupFlats
+                            .Select(g => g.Object)
+                        )
+                ).ToList();
+
+            return temp1;
+        }
+        private static object BuildOwnerCondition(int? ownerId)
+        {
+            if (ownerId == null)
+            {
+                return new { };
+            }
+            return new
+            {
+                owner_id = new
+                {
+                    _eq = ownerId.Value
+                }
+            };
         }
     }
 

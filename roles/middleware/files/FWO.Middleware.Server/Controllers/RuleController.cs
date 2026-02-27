@@ -291,14 +291,14 @@ namespace FWO.Middleware.Server.Controllers
 
         private static bool IsInRange(string ip, string? startIp, string? endIp)
         {
-            if (startIp is null)
+            if (string.IsNullOrEmpty(startIp))
             {
                 return false;
             }
 
             uint addr = ToUInt32(ip);
             uint start = ToUInt32(startIp);
-            if (endIp is null)
+            if (string.IsNullOrEmpty(endIp))
             {
                 return addr == start;
             }

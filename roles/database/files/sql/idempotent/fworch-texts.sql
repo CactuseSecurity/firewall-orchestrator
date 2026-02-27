@@ -2504,7 +2504,9 @@ INSERT INTO txt VALUES ('assign_state_to',      'German',   'Status zuordnen zu:
 INSERT INTO txt VALUES ('assign_state_to',      'English',  'Assign state to: ');
 INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
-INSERT INTO txt VALUES ('manage_owner_lc_state','German',   'Produktions-Lifecylce-Status &auml;ndern');
+INSERT INTO txt VALUES ('manage_lifecycles',    'German',   'Produktions-Lifecycle-Status verwalten');
+INSERT INTO txt VALUES ('manage_lifecycles',    'English',  'Manage production lifecycles');
+INSERT INTO txt VALUES ('manage_owner_lc_state','German',   'Produktions-Lifecycle-Status &auml;ndern');
 INSERT INTO txt VALUES ('manage_owner_lc_state','English',  'Manage production lifecycle states');
 INSERT INTO txt VALUES ('add_owner_lc_state',   'German',   'Lifecycle Status hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_owner_lc_state',   'English',  'Add Owner Lifecycle State');
@@ -2584,6 +2586,8 @@ INSERT INTO txt VALUES ('ownerGroupPattern',    'German',   'Namenskonvention f&
 INSERT INTO txt VALUES ('ownerGroupPattern',    'English',  'Naming convention for LDAP owner groups');
 INSERT INTO txt VALUES ('manageGroupsInLdap',   'German',   'Aktive Pflege der Eigent&uuml;mer-LDAP-Gruppen durch FWO');
 INSERT INTO txt VALUES ('manageGroupsInLdap',   'English',  'Active management of owner LDAP groups by FWO');
+INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'German', 'Eigent&uuml;mergruppenbenutzer synchronisieren');
+INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'English', 'Sync owner group users');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'English', 	'Import App data start at');
 INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad und Name von Subnetzdaten-Import (ohne Endung)');
@@ -2955,8 +2959,8 @@ INSERT INTO txt VALUES ('unlock',               'German', 	'Entsperren');
 INSERT INTO txt VALUES ('unlock',               'English', 	'Unlock');
 INSERT INTO txt VALUES ('useCustomLogo',        'German', 	'Benutzerdefiniertes Logo');
 INSERT INTO txt VALUES ('useCustomLogo',        'English', 	'Custom logo');
-INSERT INTO txt VALUES ('app_role_users', 		'German',   'Nutzer von App Rollen');
-INSERT INTO txt VALUES ('app_role_users', 		'English',  'App Role Users');
+INSERT INTO txt VALUES ('object_users', 		'German',   'Nutzer von Objekten');
+INSERT INTO txt VALUES ('object_users', 		'English',  'Object Users');
 INSERT INTO txt VALUES ('scheduler_jobs_title',           'German',   'Scheduler-Jobs');
 INSERT INTO txt VALUES ('scheduler_jobs_title',           'English',  'Scheduler Jobs');
 INSERT INTO txt VALUES ('scheduler_jobs_description',     'German',   'Admin-Benutzer k&ouml;nnen Scheduler-Jobs sofort ausf&uuml;hren.');
@@ -2981,6 +2985,26 @@ INSERT INTO txt VALUES ('scheduler_now', 	              'German',   'Jetzt');
 INSERT INTO txt VALUES ('scheduler_now', 	              'English',  'Now');
 INSERT INTO txt VALUES ('scheduler_interval_description', 'German',   'Alle');
 INSERT INTO txt VALUES ('scheduler_interval_description', 'English',  'Every');
+INSERT INTO txt VALUES ('orphaned_app_roles',   'German', 	'Verwaiste App Regeln');
+INSERT INTO txt VALUES ('orphaned_app_roles',	'English', 	'Orphaned App Roles');
+INSERT INTO txt VALUES ('orphaned_app_servers', 'German',   'Verwaiste App Server');
+INSERT INTO txt VALUES ('orphaned_app_servers', 'English',  'Orphaned App Servers');
+INSERT INTO txt VALUES ('orphaned_network_areas','German',  'Verwaiste Netzwerk-Areas');
+INSERT INTO txt VALUES ('orphaned_network_areas','English', 'Orphaned Network Areas');
+INSERT INTO txt VALUES ('orphaned_view',        'German',   'Nur Verwaiste anzeigen');
+INSERT INTO txt VALUES ('orphaned_view',        'English',  'Show orphaned only');
+INSERT INTO txt VALUES ('remove_all_orphans',   'German',   'Alle Verwaisten entfernen');
+INSERT INTO txt VALUES ('remove_all_orphans',   'English',  'Remove all orphans');
+INSERT INTO txt VALUES ('orphaned_services',    'German', 	'Verwaiste Dienste');
+INSERT INTO txt VALUES ('orphaned_services',	'English', 	'Orphaned Services');
+INSERT INTO txt VALUES ('orphaned_service_groups', 'German', 'Verwaiste Servicegruppen');
+INSERT INTO txt VALUES ('orphaned_service_groups','English','Orphaned Service Groups');
+INSERT INTO txt VALUES ('orphaned_entries_removed', 'German', 'Verwaiste Eintr&auml;ge entfernt');
+INSERT INTO txt VALUES ('orphaned_entries_removed', 'English', 'Orphaned entries removed');
+INSERT INTO txt VALUES ('network_area',         'German',   'Netzwerk-Area');
+INSERT INTO txt VALUES ('network_area',         'English',  'Network Area');
+INSERT INTO txt VALUES ('network_areas',        'German',   'Netzwerk-Areas');
+INSERT INTO txt VALUES ('network_areas',        'English',  'Network Areas');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -3307,6 +3331,8 @@ INSERT INTO txt VALUES ('U7101', 'German',  'Archiv der Alarme mit Best&auml;tig
 INSERT INTO txt VALUES ('U7101', 'English', 'View the past alerts with acknowledgements');
 INSERT INTO txt VALUES ('U7102', 'German',  'Sind sie sicher, dass sie alle offenen Alarme best&auml;tigen wollen?');
 INSERT INTO txt VALUES ('U7102', 'English', 'Are you sure you want to acknowledge all open alerts?');
+INSERT INTO txt VALUES ('U7103', 'German',  'Sind Sie sicher, dass Sie alle verwaisten Eintr&auml;ge aller Owner entfernen wollen?');
+INSERT INTO txt VALUES ('U7103', 'English', 'Are you sure you want to remove all orphaned entries for all owners?');
 INSERT INTO txt VALUES ('U7201', 'German',  'Archiv der Importer-Nachrichten');
 INSERT INTO txt VALUES ('U7201', 'English', 'View the past importer messages');
 INSERT INTO txt VALUES ('U7301', 'German',  'Archiv der eigenen Nutzernachrichten');
@@ -3911,6 +3937,12 @@ INSERT INTO txt VALUES ('C9027', 'German',  'Nicht Berechtigt. Bitte Anbieter ko
 INSERT INTO txt VALUES ('C9027', 'English', 'Not authorized. Please contact the provider.');
 INSERT INTO txt VALUES ('C9028', 'German',  'Nutzung der Schnittstelle nicht (mehr) erlaubt.');
 INSERT INTO txt VALUES ('C9028', 'English', 'Usage of interface not allowed (any more).');
+INSERT INTO txt VALUES ('C9029', 'German',  'Zeigt nur verwaiste Eintr&auml;ge des gew&auml;hlten Owners und blendet die Auswahlfelder aus.
+    Als verwaist gelten Objekte, die in Verbindungen angelegt aber durch eine genutzte Schnittstelle nicht mehr sichtbar sind. Diese Konstellation sollte mit neueren Versionen nicht mehr erzeugt werden k&ouml;nnen.
+');
+INSERT INTO txt VALUES ('C9029', 'English', 'Shows only orphaned entries for the selected owner and hides the selection fields.
+    Orphaned are objects that are appended to connections but not visible any more due to the use of an interface. The creation of this constellation should be suppressed in newer versions.
+');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -6050,7 +6082,7 @@ INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel k&ouml;nnen die P
 INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecycle States of owners can be viewed, created, edited, and deleted.
     Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life).
 ');
-INSERT INTO txt VALUES ('H5667', 'German',  'Gel&ouml;schte App Server ausrollen: App Serrver, die nicht mehr im Datenimport geliefert wurden, werden dennoch weiter ausgerollt.
+INSERT INTO txt VALUES ('H5667', 'German',  'Gel&ouml;schte App Server ausrollen: App Server, die nicht mehr im Datenimport geliefert wurden, werden dennoch weiter ausgerollt.
     Dies kann z.B. zur Stabilisierung der Prozesse bei instabilem Datenimport dienen. Zur Rezertifizierung m&uuml;ssen die betroffenen Verbindungen aber bereinigt sein.
 ');
 INSERT INTO txt VALUES ('H5667', 'English', 'Rollout removed App Servers: App servers not delivered anymore in data import are further rolled out.
@@ -6068,6 +6100,8 @@ INSERT INTO txt VALUES ('H5674', 'German',  'Verantwortlichkeitsstufen ohne die 
 INSERT INTO txt VALUES ('H5674', 'English', 'Responsible types without the required permission flag cannot assign related roles.');
 INSERT INTO txt VALUES ('H5675', 'German',  'Nur Administratoren k&ouml;nnen &Auml;nderungen speichern.');
 INSERT INTO txt VALUES ('H5675', 'English', 'Only administrators can save changes.');
+INSERT INTO txt VALUES ('H5676', 'German',  'Wenn aktiviert, werden Benutzer aus Eigent&uuml;mergruppen entfernt, die nicht im Import enthalten sind. Andernfalls werden nur neue Benutzer hinzugef&uuml;gt.');
+INSERT INTO txt VALUES ('H5676', 'English', 'If enabled, users not listed in the import are removed from owner groups. Otherwise only new users are added.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
@@ -6397,6 +6431,12 @@ INSERT INTO txt VALUES ('H7014', 'German', 'Das Kapitel "Pers&ouml;nlich" ist f&
 INSERT INTO txt VALUES ('H7014', 'English', 'The "Personal" chapter is accessible by all users.
     <a href="/help/monitoring/ui_messages">Ui Messages</a> records all error and success messages of the actual user.
 ');
+INSERT INTO txt VALUES ('H7015', 'German', 'Das Kapitel "Modellierung" zeigt die App Rollen, App Server, Netzwerkbereiche, Service Gruppen und Services pro Owner
+    und bietet die M&ouml;glichkeit, verwaiste Eintr&auml;ge aus Verbindungen zu entfernen.
+');
+INSERT INTO txt VALUES ('H7015', 'English', 'The "Modelling" chapter shows app roles, app servers, network areas, service groups and services per owner
+    and allows removing orphaned entries from connections.
+');
 INSERT INTO txt VALUES ('H7101', 'German', 'Verschiedene Komponenten des Firewall Orchestrator k&ouml;nnen Alarme ausl&ouml;sen, wenn eine &Uuml;berpr&uuml;fung oder ein Eingreifen durch einen Administrator erforderich ist.
     Je nach Alarmtyp werden unter "Details" weitere Informationen oder Handlungsoptionen angeboten. Durch Auswahl der "Best&auml;tigen"-Schaltfl&auml;che verschwindet der Alarm aus der &Uuml;bersicht, der Best&auml;tigende wird mit Zeitstempel im Alarm protokolliert.
     Der Alarm kann dann weiterhin unter "Alle Alarme" eingesehen werden, die Details sind dann aber nicht mehr verf&uuml;gbar. Wird ein Alarm wiederholt ausgel&ouml;st (z.B. bei der <a href="/help/monitoring/autodiscovery">Autodiscovery</a>
@@ -6528,6 +6568,24 @@ INSERT INTO txt VALUES ('H7401', 'German', 'Hier werden alle Nachrichten, die al
 ');
 INSERT INTO txt VALUES ('H7401', 'English', 'All messages are listed here, which have been displayed for the respective user.
     The messages can be seen only by the user itself, except system errors which have raised an alert to be handled by the administrators.
+');
+INSERT INTO txt VALUES ('H7411', 'German', 'Diese Seite zeigt Verbindungen pro Owner und deren App Rollen, App Server, Netzwerkbereiche, Service Gruppen und Services.
+    W&auml;hlen Sie zuerst einen Owner, um die zugeh&ouml;rigen Eintr&auml;ge anzuzeigen.
+');
+INSERT INTO txt VALUES ('H7411', 'English', 'This page shows connections per owner and their app roles, app servers, network areas, service groups and services.
+    Select an owner first to display the related entries.
+');
+INSERT INTO txt VALUES ('H7412', 'German', 'Mit "Nur Verwaiste anzeigen" werden alle verwaisten Eintr&auml;ge des Owners angezeigt.
+    Die Auswahlfelder werden ausgeblendet und nur die betroffene Seite (Quelle oder Ziel) bleibt gef&uuml;llt.
+    Als verwaist gelten Objekte, die in Verbindungen angelegt aber durch eine genutzte Schnittstelle nicht mehr sichtbar sind. Diese Konstellation sollte mit neueren Versionen nicht mehr erzeugt werden k&ouml;nnen.
+');
+INSERT INTO txt VALUES ('H7412', 'English', 'With "Show orphaned only" all orphaned entries of the owner are listed.
+    The selection fields are hidden and only the affected side (source or destination) remains filled.
+    Orphaned are objects that are appended to connections but not visible any more due to the use of an interface. The creation of this constellation should be suppressed in newer versions.
+');
+INSERT INTO txt VALUES ('H7413', 'German', 'Die Tabellen sind in Abschnitte gegliedert. &Uuml;ber die Aktionsspalte k&ouml;nnen verwaiste Eintr&auml;ge aus der Verbindung entfernt werden.
+');
+INSERT INTO txt VALUES ('H7413', 'English', 'The tables are grouped in sections. Use the action column to remove orphaned entries from the connection.
 ');
 
 INSERT INTO txt VALUES ('H8001', 'German',  'Das Workflow-Modul soll die Zusammenarbeit mehrerer beteiligter Akteure bei Arbeitsabl&auml;ufen im Umfeld der Netzwerkadministration unterst&uuml;tzen.

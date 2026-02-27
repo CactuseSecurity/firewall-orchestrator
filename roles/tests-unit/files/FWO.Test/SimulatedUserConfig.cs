@@ -213,6 +213,7 @@ namespace FWO.Test
 			{"network_areas","Network areas"},
 			{"orphaned_network_areas","Orphaned network areas"},
 			{"service_groups","Service groups"},
+			{"services_groups","Service groups"},
 			{"orphaned_service_groups","Orphaned service groups"},
 			{"orphaned_services","Orphaned services"},
 			{"app_role","App role"},

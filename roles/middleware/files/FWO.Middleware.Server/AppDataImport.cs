@@ -169,13 +169,16 @@ namespace FWO.Middleware.Server
                 if (existingApp == null)
                 {
                     appId = await NewApp(incomingApp, userGroupDn);
-                    await ownerChangeTracker.AddOwnerChange(null, appId, 'I', incomingApp.ImportSource);
+                    await ownerChangeTracker.AddOwnerChange(null, appId, ChangelogActionType.INSERT, incomingApp.ImportSource);
                 }
                 else
                 {
                     appId = existingApp.Id;
                     await UpdateApp(incomingApp, existingApp, userGroupDn);
-                    await ownerChangeTracker.AddOwnerChange(existingApp.Id, appId, 'U', incomingApp.ImportSource);
+                    if (!existingApp.Active)
+                    {
+                        await ownerChangeTracker.AddOwnerChange(appId, appId, ChangelogActionType.CHANGE, incomingApp.ImportSource);
+                    }
                 }
                 if (incomingApp.MainUser != null && incomingApp.MainUser != "")
                 {
@@ -270,7 +273,7 @@ namespace FWO.Middleware.Server
             try
             {
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.deactivateOwner, new { id = app.Id });
-                await ownerChangeTracker.AddOwnerChange(app.Id, null, 'D', app.ImportSource);
+                await ownerChangeTracker.AddOwnerChange(app.Id, null, ChangelogActionType.DELETE, app.ImportSource);
             }
             catch (Exception exc)
             {

@@ -189,4 +189,11 @@ namespace FWO.Basics
         public const int ADMIN_VIA_REINITIALIZE_BTN = 3;
     }
 
+    public struct ChangelogActionType
+    {
+        public const Char INSERT = 'I';
+        public const Char CHANGE = 'C';
+        public const Char DELETE = 'D';
+    }
+
 }

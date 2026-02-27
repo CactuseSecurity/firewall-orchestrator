@@ -15,10 +15,10 @@ namespace FWO.Data
         public char ChangeAction { get; set; }
 
         [JsonProperty("old"), JsonPropertyName("old")]
-        public Rule OldOwner { get; set; } = new Rule();
+        public FwoOwner OldOwner { get; set; } = new FwoOwner();
 
         [JsonProperty("new"), JsonPropertyName("new")]
-        public Rule NewOwner { get; set; } = new Rule();
+        public FwoOwner NewOwner { get; set; } = new FwoOwner();
 
         [JsonProperty("source_id"), JsonPropertyName("source_id")]
         public string source_id { get; set; } = "";

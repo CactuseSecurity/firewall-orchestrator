@@ -1,0 +1,13 @@
+query getRulesForRuleOwner {
+  rule (where: { removed: { _eq: null } })
+  {
+    rule_id
+    rule_name
+    removed
+    rule_uid
+    rule_metadatum {
+      rule_metadata_id
+    }
+    rule_custom_fields
+  }
+}

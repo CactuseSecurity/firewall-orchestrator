@@ -25,7 +25,7 @@ namespace FWO.Services
             this.globalConfig = globalConfig;
         }
 
-        protected override async Task<bool> Execute(UpdateRuleOwnerMappingEventArgs? eventArgs = null)  // FullReinitialize like ErrorModel AppServer for overview Data Sucessfull or Error
+        protected override async Task<bool> Execute(UpdateRuleOwnerMappingEventArgs? eventArgs = null)  
         {
             await Task.Delay(1000);
 

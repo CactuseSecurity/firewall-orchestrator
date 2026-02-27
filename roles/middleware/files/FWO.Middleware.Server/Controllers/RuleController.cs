@@ -206,21 +206,20 @@ namespace FWO.Middleware.Server.Controllers
                 RuleDetail rule = new();
                 rule.Uid = item.Uid ?? notFound;
                 rule.Manager = item.MgmtId.ToString();
-                rule.Source = item.Froms
-                    .Select(f => new NetworkObjectCopy
-                    {
-                        Name = f.Object.Name,
-                        Ip = f.Object.IP
-                    })
-                    .ToList();
+                rule.Source = FlattenRuleNetworkObjects(item.Froms.Select(r => r.Object).ToList()).Select(s => new NetworkObjectCopy()
+                {
+                    Name = s?.Name ?? notFound,
+                    Type= s?.Type.Name,
+                    Ip = s?.IP 
+                    
+                }).ToList();
                 rule.SourceShort = DisplaySourceOrDestinationPlain(item, true, userConfig);
-                rule.Destination = item.Tos
-                    .Select(t => new NetworkObjectCopy
-                    {
-                        Name = t.Object.Name,
-                        Ip = t.Object.IP
-                    })
-                    .ToList();
+                rule.Destination = FlattenRuleNetworkObjects(item.Tos.Select(r => r.Object).ToList()).Select(d => new NetworkObjectCopy()
+                {
+                    Name = d?.Name ?? notFound,
+                    Type= d?.Type.Name,
+                    Ip = d?.IP
+                }).ToList();
                 rule.DestinationShort = DisplaySourceOrDestinationPlain(item, false, userConfig);
                 rule.Service = item.Services
                     .Select(s => new ServiceObject
@@ -419,7 +418,7 @@ namespace FWO.Middleware.Server.Controllers
             return result.ToString();
         }
         
-        List<NetworkObject?> FlattenRuleNetworkObjects(List<NetworkObject> list)
+        private static List<NetworkObject?> FlattenRuleNetworkObjects(List<NetworkObject> list)
         {
             var temp1 = list
                 .SelectMany(obj =>                                     
@@ -502,7 +501,8 @@ namespace FWO.Middleware.Server.Controllers
     public class NetworkObjectCopy
     {
         public string Name { get; set; } = "";
-        public string Ip { get; set; } = "";
+        public string? Ip { get; set; } = "";
+        public string? Type {get; set;} = "";
     }
 
     public class ServiceObject

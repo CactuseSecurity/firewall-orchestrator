@@ -251,8 +251,10 @@ namespace FWO.Middleware.Server.Controllers
                 {
                     return true;
                 }
-
-                break;
+                if (rangePrefix < maxPrefix)
+                {
+                    break;
+                }
             }
 
             return false;

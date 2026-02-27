@@ -21,35 +21,16 @@ database_users:
   - fworchimporter
 
 database_groups:
-  - secuadmins
   - dbbackupusers
   - configimporters
-  - reporters
   - fworchadmins
+
 
 database_idempotent_files:
   - fworch-api-funcs.sql
-  - fworch-basic-procs.sql
-  - fworch-grants.sql
-  - fworch-import.sql
-  - fworch-import-main.sql
+  - fworch-backup-grants.sql
   - fworch-encryption.sql
-  - fworch-obj-import.sql
-  - fworch-obj-refs.sql
   - fworch-path-analysis.sql
-  - fworch-qa.sql
-  - fworch-rule-import.sql
   - fworch-rule-recert.sql
-  - fworch-rule-refs.sql
-  - fworch-rule-resolved.sql
-  - fworch-svc-import.sql
-  - fworch-svc-refs.sql
   - fworch-texts.sql
-  - fworch-usr-import.sql
-  - fworch-usr-refs.sql
   - fworch-views-changes.sql
-  - fworch-zone-import.sql
-
-
-  # - fworch-views-recert.sql 
-  # moved to creation because of materialized view taking too long during upgrades

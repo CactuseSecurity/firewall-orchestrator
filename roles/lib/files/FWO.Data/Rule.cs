@@ -88,6 +88,10 @@ namespace FWO.Data
         [SystemTextJsonIgnore]
         [JsonProperty("importControlByRuleLastSeen"), JsonPropertyName("importControlByRuleLastSeen")]
         public ImportControl? LastSeenImport { get; set; }
+        
+        [SystemTextJsonIgnore]
+        [JsonProperty("createdImport"), JsonPropertyName("createdImport")]
+        public ImportControl? CreatedImport { get; set; }
 
         [SystemTextJsonIgnore]
         public DateTime? LastModified => LastSeenImport?.StartTime ?? Metadata?.Created;

@@ -25,7 +25,7 @@ namespace FWO.Services
             this.globalConfig = globalConfig;
         }
 
-        protected override async Task<bool> Execute(UpdateRuleOwnerMappingEventArgs? eventArgs = null)  // FullReinitialize like ErrorModel AppServer for overview Data Sucessfull or Error
+        protected override async Task<bool> Execute(UpdateRuleOwnerMappingEventArgs? eventArgs = null)  
         {
             await Task.Delay(1000);
 
@@ -131,7 +131,7 @@ namespace FWO.Services
 
         private async Task ProcessIncrementalImport(ImportControl import)
         {
-            List<Rule> rulesToInsert = new List<Rule>();
+            List<Rule> rulesToMap = new List<Rule>();
             List<FwoOwner> owners = new List<FwoOwner>();
             List<RuleOwner> ruleOwnersToRemove = new List<RuleOwner>();
 
@@ -139,49 +139,13 @@ namespace FWO.Services
             {
                 case ImportType.RULE:
                     {
-                        var changelogRules = await apiConnection.SendQueryAsync<List<RuleChange>>(RuleQueries.getChangedRulesForRuleOwnerMapping, new { controlId = import.ControlId });
-                        if (changelogRules == null || !changelogRules.Any())
-                        {
-                            Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
-                            break;
-                        }
-
-                        var filteredChanges = changelogRules.Where(rc =>
-                        {
-                            var oldRaw = rc.OldRule?.CustomFields;
-                            var newRaw = rc.NewRule?.CustomFields;
-
-                            var oldFields = !string.IsNullOrWhiteSpace(oldRaw)
-                                ? JsonSerializer.Deserialize<Dictionary<string, string>>(oldRaw.Replace("'", "\""))
-                                : new Dictionary<string, string>();
-
-                            var newFields = !string.IsNullOrWhiteSpace(newRaw)
-                                ? JsonSerializer.Deserialize<Dictionary<string, string>>(newRaw.Replace("'", "\""))
-                                : new Dictionary<string, string>();
-
-                            oldFields ??= new Dictionary<string, string>();
-                            newFields ??= new Dictionary<string, string>();
-
-                            // get keys for check
-                            oldFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var oldValue);
-                            newFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var newValue);
-
-                            return oldValue != newValue;
-                        })
-                        .ToList();
-
-                        rulesToInsert = filteredChanges!.Select(c => c.NewRule).Where(r => r != null).ToList();
-                        var rulesToRemove = filteredChanges!.Select(c => c.OldRule).Where(r => r != null).ToList();
-
-                        owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwner);
-
-                        ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemove, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
+                        (rulesToMap, owners, ruleOwnersToRemove) = await HandleRuleImportCustomField(import);                                                 
                         break;
                     }
 
                 case ImportType.OWNER:
                     {
-                        await RunFullReinitialize();
+                        (rulesToMap, owners, ruleOwnersToRemove) = await HandleOwnerImportCustomField(import);
                         break;
                     }
 
@@ -191,7 +155,7 @@ namespace FWO.Services
                     }
             }
 
-            var newRuleOwners = BuildNewRuleOwnersCustomField(rulesToInsert, owners, import.ControlId);
+            var newRuleOwners = BuildNewRuleOwnersCustomField(rulesToMap, owners, import.ControlId);
 
             await SetAffectedRuleOwnersRemoved(ruleOwnersToRemove, import.ControlId);
 
@@ -228,14 +192,14 @@ namespace FWO.Services
             }
         }
 
-        private async Task SetAffectedRuleOwnersRemoved(List<RuleOwner> newRuleOwners, long importControlId)
+        private async Task SetAffectedRuleOwnersRemoved(List<RuleOwner> ruleOwnersToSetRemoved, long importControlId)
         {
             try
             {
-                if (!newRuleOwners.Any()) return;
+                if (!ruleOwnersToSetRemoved.Any()) return;
 
 
-                var listRuleOwnersToRemove = newRuleOwners
+                var listRuleOwnersToRemove = ruleOwnersToSetRemoved
                 .Select(r => new
                 {
                     rule_id = new { _eq = r.RuleId },
@@ -328,7 +292,7 @@ namespace FWO.Services
         {
             try
             {
-                await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.updateImportControlForRuleOwnerInc, //Zwei verschiedene machen 
+                await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.updateImportControlForRuleOwnerInc, 
                 new
                 {
                     controlId = importControlId,
@@ -342,6 +306,112 @@ namespace FWO.Services
                 Log.WriteError(LogMessageTitle, "Error while updating import control completion status.", ex);
             }
         }
+
+        private async Task<(List<Rule> RulesToMap, List<FwoOwner> owners,List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportCustomField(ImportControl import)
+        {
+            var changelogRules = await apiConnection.SendQueryAsync<List<RuleChange>>(RuleQueries.getChangedRulesForRuleOwnerMapping, new { controlId = import.ControlId });
+            if (changelogRules == null || !changelogRules.Any())
+            {
+                Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
+                return (new List<Rule>(), new List<FwoOwner>(), new List<RuleOwner>());
+            }
+
+            var relevantChanges = changelogRules
+                .Where(IsOwnerSourceFieldChanged)
+                .ToList();
+
+            var rulesToMapTmp = relevantChanges
+                .Select(c => c.NewRule)
+                .Where(r => r != null)
+                .ToList();
+
+            var rulesToRemove = relevantChanges
+                .Select(c => c.OldRule)
+                .Where(r => r != null)
+                .ToList();
+         
+            var ownersTmp = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwner);
+
+            var ruleOwnersToRemoveTmp = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
+
+            return (rulesToMapTmp, ownersTmp, ruleOwnersToRemoveTmp);
+        }
+
+        private bool IsOwnerSourceFieldChanged(RuleChange ruleChange)
+        {
+            var oldFields = DeserializeCustomFields(ruleChange.OldRule?.CustomFields);
+            var newFields = DeserializeCustomFields(ruleChange.NewRule?.CustomFields);
+
+            oldFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var oldValue);
+            newFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var newValue);
+
+            return !string.Equals(oldValue, newValue, StringComparison.Ordinal);
+        }
+
+        private static Dictionary<string, string> DeserializeCustomFields(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return new();
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<Dictionary<string, string>>(raw.Replace("'", "\"")) ?? new();
+            }
+            catch (JsonException)
+            {
+                return new();
+            }         
+        }
+
+        private async Task<(List<Rule> RulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleOwnerImportCustomField(ImportControl import)
+        {
+            var changelogOwners = await apiConnection.SendQueryAsync<List<OwnerChange>>(OwnerQueries.getChangedOwnersForRuleOwnerMapping, new { controlId = import.ControlId });
+            var ownersToAdd = new List<FwoOwner>();
+            var ownersToRemove = new List<FwoOwner>();
+            var ruleOwnersToRemoveTmp = new List<RuleOwner>();
+            var rulesToMapTmp = new List<Rule>();
+            var ownersToUpdate = new List<FwoOwner>(); 
+            if (changelogOwners == null || !changelogOwners.Any())
+            {
+                Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
+                return (new List<Rule>(), new List<FwoOwner>(), new List<RuleOwner>());
+            }
+
+            foreach (var change in changelogOwners)
+            {
+                switch (change.ChangeAction)
+                {
+                    case 'I':
+                        ownersToAdd.Add(change.NewOwner);
+                        break;
+
+                    case 'D':
+                        ownersToRemove.Add(change.OldOwner);
+                        break;
+
+                    case 'C':
+                        ownersToUpdate.Add(change.NewOwner);
+                        break;
+                }
+            }
+
+            if (ownersToAdd.Any())
+            {
+                rulesToMapTmp = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwner);
+            }
+            else if(ownersToUpdate.Any())
+            {
+                rulesToMapTmp = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerByOwnerToUpdate, new { ownerIds = ownersToUpdate.Select(o => o.Id).ToList() });
+            }
+            if (ownersToRemove.Any())
+            {
+                ruleOwnersToRemoveTmp = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
+            }
+            return (rulesToMapTmp, ownersToAdd.Concat(ownersToUpdate).ToList(), ruleOwnersToRemoveTmp);
+        }
+
 
         private async Task CompleteImportControlFullReInit(long importControlId)
         {

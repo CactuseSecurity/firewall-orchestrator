@@ -43,11 +43,12 @@ namespace FWO.Api.Client.Queries
         public static readonly string setAllActiveRuleOwnersRemoved;
         public static readonly string setAffectedRuleOwnersRemoved;
         public static readonly string insertRuleOwners;
-        public static readonly string getRuleOwnerToRemove;
-
+        public static readonly string getRuleOwnerToRemoveByRule;
+        public static readonly string getRuleOwnerToRemoveByOwner;
         public static readonly string newOwnerResponsibleType;
         public static readonly string updateOwnerResponsibleType;
         public static readonly string updateChangelogOwner;
+        public static readonly string getChangedOwnersForRuleOwnerMapping;
 
 
         static OwnerQueries()
@@ -92,10 +93,12 @@ namespace FWO.Api.Client.Queries
                 setAllActiveRuleOwnersRemoved = GetQueryText("owner/setAllActiveRuleOwnersRemoved.graphql");
                 setAffectedRuleOwnersRemoved = GetQueryText("owner/setAffectedRuleOwnersRemoved.graphql");
                 insertRuleOwners = GetQueryText("owner/insertRuleOwners.graphql");
-                getRuleOwnerToRemove = GetQueryText("owner/getRuleOwnerToRemove.graphql");
+                getRuleOwnerToRemoveByRule = GetQueryText("owner/getRuleOwnerToRemoveByRule.graphql");
                 newOwnerResponsibleType = GetQueryText("owner/newOwnerResponsibleType.graphql");
                 updateOwnerResponsibleType = GetQueryText("owner/updateOwnerResponsibleType.graphql");
                 updateChangelogOwner = GetQueryText("owner/updateChangelogOwner.graphql");
+                getChangedOwnersForRuleOwnerMapping = GetQueryText("owner/getChangedOwnersForRuleOwnerMapping.graphql");
+                getRuleOwnerToRemoveByOwner = GetQueryText("owner/getRuleOwnerToRemoveByOwner.graphql");
             }
             catch (Exception exception)
             {

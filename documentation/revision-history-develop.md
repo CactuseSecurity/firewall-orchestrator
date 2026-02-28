@@ -362,3 +362,6 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.8 - 25.02.2026 DEVELOP
 - new config value for removed App Server handling
+
+# 9.0.10 - 28.02.2026 DEVELOP
+- new config value for User synchronization in owner data import

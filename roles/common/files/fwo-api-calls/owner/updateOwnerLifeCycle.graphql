@@ -1,4 +1,4 @@
-mutation updateLifeCycle(
+mutation updateOwnerLifeCycle(
   $id: Int!
   $name: String!
   ) {

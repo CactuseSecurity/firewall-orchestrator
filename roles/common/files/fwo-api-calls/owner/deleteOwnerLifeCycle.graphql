@@ -1,4 +1,4 @@
-mutation deleteLifeCycle($id: Int!) {
+mutation deleteOwnerLifeCycle($id: Int!) {
   delete_owner_lifecycle_state(where: {id: {_eq: $id}}) {
     affected_rows
   }

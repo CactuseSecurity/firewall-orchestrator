@@ -178,7 +178,11 @@ namespace FWO.Data.Modelling
         public ModellingConnection()
         { }
 
-        public ModellingConnection(ModellingConnection conn)
+        public ModellingConnection(ModellingConnection conn) : this(conn, true)
+        {
+        }
+
+        public ModellingConnection(ModellingConnection conn, bool includeLists)
         {
             OrderNumber = conn.OrderNumber;
             Id = conn.Id;
@@ -197,16 +201,6 @@ namespace FWO.Data.Modelling
             CreationDate = conn.CreationDate;
             Properties = conn.Properties;
             ExtraParams = conn.ExtraParams;
-            Services = [.. conn.Services];
-            ServiceGroups = [.. conn.ServiceGroups];
-            SourceAppServers = [.. conn.SourceAppServers];
-            SourceAppRoles = [.. conn.SourceAppRoles];
-            SourceAreas = [.. conn.SourceAreas];
-            SourceOtherGroups = [.. conn.SourceOtherGroups];
-            DestinationAppServers = [.. conn.DestinationAppServers];
-            DestinationAppRoles = [.. conn.DestinationAppRoles];
-            DestinationAreas = [.. conn.DestinationAreas];
-            DestinationOtherGroups = [.. conn.DestinationOtherGroups];
             RequestedOnFw = conn.RequestedOnFw;
             Removed = conn.Removed;
             RemovalDate = conn.RemovalDate;
@@ -216,10 +210,23 @@ namespace FWO.Data.Modelling
             InterfaceIsRejected = conn.InterfaceIsRejected;
             InterfaceIsDecommissioned = conn.InterfaceIsDecommissioned;
             InterfaceNoPermission = conn.InterfaceNoPermission;
-            ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
             InterfacePermission = conn.InterfacePermission;
             PermittedOwnerWrappers = conn.PermittedOwnerWrappers;
             PermittedOwners = conn.PermittedOwners;
+            if (includeLists)
+            {
+                Services = [.. conn.Services];
+                ServiceGroups = [.. conn.ServiceGroups];
+                SourceAppServers = [.. conn.SourceAppServers];
+                SourceAppRoles = [.. conn.SourceAppRoles];
+                SourceAreas = [.. conn.SourceAreas];
+                SourceOtherGroups = [.. conn.SourceOtherGroups];
+                DestinationAppServers = [.. conn.DestinationAppServers];
+                DestinationAppRoles = [.. conn.DestinationAppRoles];
+                DestinationAreas = [.. conn.DestinationAreas];
+                DestinationOtherGroups = [.. conn.DestinationOtherGroups];
+                ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
+            }
         }
 
         public int CompareTo(ModellingConnection secondConnection)

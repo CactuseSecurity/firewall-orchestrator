@@ -57,7 +57,7 @@ namespace FWO.Middleware.Server
                 source_id = importSource
             };
 
-            await apiConnection.SendQueryAsync<OwnerChange>(OwnerQueries.updateChangelogOwner, variables);
+            await apiConnection.SendQueryAsync<object>(OwnerQueries.updateChangelogOwner, variables);
         }
 
         /// <summary>

@@ -1,8 +1,11 @@
 import time
 import traceback
+from datetime import UTC, datetime
 
+from dateutil import parser
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
+from fwo_const import GRAPHQL_QUERY_PATH
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.import_statistics_controller import ImportStatisticsController
@@ -171,15 +174,15 @@ class ImportState:
             )
         except Exception:
             FWOLogger.error(
-                f"import_management - error while getting past import details for mgm={self.state.mgm_details.mgm_id!s}: {traceback.format_exc()!s}"
+                f"import_management - error while getting past import details for mgm={self.mgm_details.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError(f"Error while getting past import details: {traceback.format_exc()!s}")
 
-        if self.state.last_full_import_date != "":
-            self.state.last_successful_import = self.state.last_full_import_date
+        if self.last_full_import_date != "":
+            self.last_successful_import = self.last_full_import_date
 
             # Convert the string to a datetime object
-            past_date = parser.parse(self.state.last_full_import_date)
+            past_date = parser.parse(self.last_full_import_date)
 
             # Ensure "now" is timezone-aware (UTC here)
             now = datetime.now(UTC)
@@ -189,9 +192,9 @@ class ImportState:
 
             difference = now - past_date
 
-            self.state.days_since_last_full_import = difference.days
+            self.days_since_last_full_import = difference.days
         else:
-            self.state.days_since_last_full_import = 0
+            self.days_since_last_full_import = 0
 
     def set_core_data(self):
         self.set_track_map()
@@ -208,7 +211,7 @@ class ImportState:
     def set_action_map(self):
         query = "query getActionMap { stm_action { action_name action_id allowed } }"
         try:
-            result = self.api_call.call(query=query, query_variables={})
+            result = self.fwo_api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_action: {e!s}")
             raise FwoImporterError(f"Error while getting stm_action: {e!s}")
@@ -216,12 +219,12 @@ class ImportState:
         action_map: dict[str, int] = {}
         for action in result["data"]["stm_action"]:
             action_map.update({action["action_name"]: action["action_id"]})
-        self.state.actions = action_map
+        self.actions = action_map
 
     def set_track_map(self):
         query = "query getTrackMap { stm_track { track_name track_id } }"
         try:
-            result = self.api_call.call(query=query, query_variables={})
+            result = self.fwo_api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_track: {e!s}")
             raise FwoImporterError(f"Error while getting stm_track: {e!s}")
@@ -229,12 +232,12 @@ class ImportState:
         track_map: dict[str, int] = {}
         for track in result["data"]["stm_track"]:
             track_map.update({track["track_name"]: track["track_id"]})
-        self.state.tracks = track_map
+        self.tracks = track_map
 
     def set_link_type_map(self):
         query = "query getLinkType { stm_link_type { id name } }"
         try:
-            result = self.api_call.call(query=query, query_variables={})
+            result = self.fwo_api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_link_type: {e!s}")
             raise FwoImporterError(f"Error while getting stm_link_type: {e!s}")
@@ -242,13 +245,13 @@ class ImportState:
         link_map: dict[str, int] = {}
         for track in result["data"]["stm_link_type"]:
             link_map.update({track["name"]: track["id"]})
-        self.state.link_types = link_map
+        self.link_types = link_map
 
     def set_color_ref_map(self):
         get_colors_query = FwoApi.get_graphql_code([GRAPHQL_QUERY_PATH + "stmTables/getColors.graphql"])
 
         try:
-            result = self.api_call.call(query=get_colors_query, query_variables={})
+            result = self.fwo_api_call.call(query=get_colors_query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_color: {e!s}")
             raise FwoImporterError(f"Error while getting stm_color: {e!s}")
@@ -256,12 +259,12 @@ class ImportState:
         color_map: dict[str, int] = {}
         for color in result["data"]["stm_color"]:
             color_map.update({color["color_name"]: color["color_id"]})
-        self.state.color_map = color_map
+        self.color_map = color_map
 
     def set_network_obj_type_map(self):
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
         try:
-            result = self.api_call.call(query=query, query_variables={})
+            result = self.fwo_api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_obj_typ: {e!s}")
             raise FwoImporterError(f"Error while getting stm_obj_typ: {e!s}")
@@ -269,12 +272,12 @@ class ImportState:
         nwobj_type_map: dict[str, int] = {}
         for nw_type in result["data"]["stm_obj_typ"]:
             nwobj_type_map.update({nw_type["obj_typ_name"]: nw_type["obj_typ_id"]})
-        self.state.network_obj_type_map = nwobj_type_map
+        self.network_obj_type_map = nwobj_type_map
 
     def set_service_obj_type_map(self):
         query = "query getServiceObjTypeMap { stm_svc_typ { svc_typ_name svc_typ_id } }"
         try:
-            result = self.api_call.call(query=query, query_variables={})
+            result = self.fwo_api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_svc_typ: {e!s}")
             raise FwoImporterError(f"Error while getting stm_svc_typ: {e!s}")
@@ -282,12 +285,12 @@ class ImportState:
         svc_type_map: dict[str, int] = {}
         for svc_type in result["data"]["stm_svc_typ"]:
             svc_type_map.update({svc_type["svc_typ_name"]: svc_type["svc_typ_id"]})
-        self.state.service_obj_type_map = svc_type_map
+        self.service_obj_type_map = svc_type_map
 
     def set_user_obj_type_map(self):
         query = "query getUserObjTypeMap { stm_usr_typ { usr_typ_name usr_typ_id } }"
         try:
-            result = self.api_call.call(query=query, query_variables={})
+            result = self.fwo_api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_usr_typ: {e!s}")
             raise FwoImporterError(f"Error while getting stm_usr_typ: {e!s}")
@@ -295,12 +298,12 @@ class ImportState:
         user_type_map: dict[str, int] = {}
         for usr_type in result["data"]["stm_usr_typ"]:
             user_type_map.update({usr_type["usr_typ_name"]: usr_type["usr_typ_id"]})
-        self.state.user_obj_type_map = user_type_map
+        self.user_obj_type_map = user_type_map
 
     def set_protocol_map(self):
         query = "query getIpProtocols { stm_ip_proto { ip_proto_id ip_proto_name } }"
         try:
-            result = self.api_call.call(query=query, query_variables={})
+            result = self.fwo_api_call.call(query=query, query_variables={})
         except Exception as e:
             FWOLogger.error(f"Error while getting stm_ip_proto: {e!s}")
             raise FwoImporterError(f"Error while getting stm_ip_proto: {e!s}")
@@ -308,7 +311,7 @@ class ImportState:
         protocol_map: dict[str, int] = {}
         for proto in result["data"]["stm_ip_proto"]:
             protocol_map.update({proto["ip_proto_name"].lower(): proto["ip_proto_id"]})
-        self.state.protocol_map = protocol_map
+        self.protocol_map = protocol_map
 
     # getting all gateways (not limitited to the current mgm_id) to support super managements
     # creates a dict with key = gateway.uid  and value = gateway.id
@@ -324,10 +327,10 @@ class ImportState:
             }
     """
         try:
-            result = self.api_call.call(query=query, query_variables={})
+            result = self.fwo_api_call.call(query=query, query_variables={})
         except Exception:
             FWOLogger.error("Error while getting gateways")
-            self.state.gateway_map = {}
+            self.gateway_map = {}
             raise FwoImporterError("Error while getting gateways")
 
         m = {}
@@ -335,7 +338,7 @@ class ImportState:
             if gw["mgm_id"] not in m:
                 m[gw["mgm_id"]] = {}
             m[gw["mgm_id"]][gw["dev_uid"]] = gw["dev_id"]
-        self.state.gateway_map = m
+        self.gateway_map = m
 
     # getting all managements (not limitited to the current mgm_id) to support super managements
     # creates a dict with key = management.uid  and value = management.id
@@ -353,10 +356,10 @@ class ImportState:
             }
         """
         try:
-            result = self.api_call.call(query=query, query_variables={"mgmId": self.state.mgm_details.mgm_id})
+            result = self.fwo_api_call.call(query=query, query_variables={"mgmId": self.mgm_details.mgm_id})
         except Exception:
             FWOLogger.error("Error while getting managements")
-            self.state.management_map = {}
+            self.management_map = {}
             raise FwoImporterError("Error while getting managements")
 
         m: dict[str, int] = {}
@@ -365,7 +368,7 @@ class ImportState:
         for sub_mgr in mgm["sub_managers"]:
             m.update({sub_mgr["mgm_uid"]: sub_mgr["mgm_id"]})
 
-        self.state.management_map = m
+        self.management_map = m
 
     def delete_import(self):
         delete_import_mutation = """
@@ -374,11 +377,11 @@ class ImportState:
             }"""
 
         try:
-            result = self.api_connection.call(
+            result = self.fwo_api_call.call(
                 delete_import_mutation,
-                query_variables={"importId": self.state.import_id},
+                query_variables={"importId": self.import_id},
             )
             _ = result["data"]["delete_import_control"]["affected_rows"]
-            FWOLogger.info(f"removed import with id {self.state.import_id!s} completely")
+            FWOLogger.info(f"removed import with id {self.import_id!s} completely")
         except Exception:
-            FWOLogger.exception("fwo_api: failed to unlock import for import id " + str(self.state.import_id))
+            FWOLogger.exception("fwo_api: failed to unlock import for import id " + str(self.import_id))

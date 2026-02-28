@@ -377,7 +377,9 @@ namespace FWO.Services.Modelling
                 ActConn.DestinationOtherGroups = [.. interf.DestinationOtherGroups];
                 ActConn.DstFromInterface = true;
             }
+            SvcToDelete.AddRange([.. ModellingServiceWrapper.Resolve(ActConn.Services)]);
             ActConn.Services = [.. interf.Services];
+            SvcGrpToDelete.AddRange([.. ModellingServiceGroupWrapper.Resolve(ActConn.ServiceGroups)]);
             ActConn.ServiceGroups = [.. interf.ServiceGroups];
             ActConn.ExtraConfigsFromInterface = interf.ExtraConfigs;
         }

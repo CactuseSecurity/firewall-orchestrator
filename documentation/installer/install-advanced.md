@@ -335,10 +335,9 @@ enter the address of the database backend server, e.g.
 fworch database hostname              10.5.10.10
 ```
 
-modify /etc/postgresql/x.y/main/pg_hba.conf to allow secuadmins access from web frontend(s), e.g.
+modify /etc/postgresql/x.y/main/pg_hba.conf to allow dbadmin access from web frontend(s), e.g.
 
 ```console
-host    all         +secuadmins         127.0.0.1/32           md5
-host    all         +secuadmins         10.5.5.5/32            md5
+
 host    all         dbadmin             10.5.10.10/32          md5
 ```

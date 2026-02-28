@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
         with:
           fetch-depth: 0 # get full repo history
           submodules: recursive
@@ -54,7 +54,7 @@ jobs:
 
       - name: Create or update pull request
         if: steps.submodule.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@3f3b473b8c148f5a7520efb4d1f9a70eea3d9d1f
         with:
           base: develop # target
           token: ${{ secrets.GITHUB_TOKEN }}

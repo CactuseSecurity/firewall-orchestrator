@@ -1,37 +1,59 @@
 - block:
+    - name: Ensure Debian version is supported for .NET install
+      assert:
+        that:
+          - ansible_facts['distribution_major_version'] is version('10', '>=')
+        fail_msg: "Debian {{ ansible_facts['distribution_version'] }} is not supported. Minimum supported Debian version is 10."
+      when: ansible_facts['distribution'] | lower == 'debian'
 
-    - set_fact: distribution_version="{{ ansible_facts['distribution_major_version'] }}"    
-      when: ansible_facts['distribution']|lower == 'debian'
+    - name: Ensure Ubuntu version is supported for .NET install
+      assert:
+        that:
+          - ansible_facts['distribution_version'] is version('20.04', '>=')
+        fail_msg: "Ubuntu {{ ansible_facts['distribution_version'] }} is not supported. Minimum supported Ubuntu version is 20.04."
+      when: ansible_facts['distribution'] | lower == 'ubuntu'
 
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"    
-      when: ansible_facts['distribution']|lower == 'ubuntu'
+    - name: Set Microsoft package feed version for Debian
+      set_fact:
+        dotnet_ms_repo_version: >-
+          {{
+            ansible_facts['distribution_major_version']
+            if (ansible_facts['distribution_major_version'] | int) <= (debian_testing_version | int)
+            else debian_testing_version
+          }}
+      when: ansible_facts['distribution'] | lower == 'debian'
 
-    - set_fact: distribution_version="{{ debian_testing_version }}"    
-      when: ansible_facts['distribution_release']|lower == debian_testing_release_name
+    - name: Set Microsoft package feed version for Ubuntu
+      set_fact:
+        dotnet_ms_repo_version: >-
+          {{
+            '24.04'
+            if ansible_facts['distribution_version'] is version('24.04', '>=')
+            else ('22.04' if ansible_facts['distribution_version'] is version('22.04', '>=') else '20.04')
+          }}
+      when: ansible_facts['distribution'] | lower == 'ubuntu'
 
-    # for all distros except ubuntu >=22.04 we need to include a package source
-    - block:
+    - name: Get package list from Microsoft {{ dotnet_deb_name }}
+      get_url:
+        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution'] | lower }}/{{ dotnet_ms_repo_version }}/{{ dotnet_deb_name }}"
+        dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+        mode: "0644"
 
-      - name: get package list from ms {{ dotnet_deb_name }}
-        get_url:
-          url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
-          dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
-          mode: "0644"
+    - name: Install Microsoft package list
+      apt:
+        deb: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+      register: ms_repo_install
+      failed_when: >
+        (ms_repo_install is failed) and
+        ('A later version is already installed' not in (ms_repo_install.msg | default('')))
 
-      - name: install ms package list
-        apt:
-          deb: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+    - name: Remove package list file
+      file:
+        dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+        state: absent
 
-      - name: remove package list file
-        file:
-          dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
-          state: absent
-
-      - name: apt update
-        apt: update_cache=true
-
-      when: ansible_facts['distribution']|lower != 'ubuntu' or 
-        (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
+    - name: apt update
+      apt: update_cache=true
 
     # - name: update /etc/apt/preferences for ubuntu >=22 (https://github.com/dotnet/sdk/issues/27129)
     #   blockinfile:
@@ -55,11 +77,45 @@
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present
 
+    - name: Install software-properties-common for apt repositories
+      package:
+        name: software-properties-common
+        state: present
+      when:
+        - ansible_facts['distribution'] | lower == 'ubuntu'
+        - ansible_facts['distribution_version'] is version('22.04', '>=')
+
+    - name: Add .NET backports PPA on Ubuntu 22.04
+      apt_repository:
+        repo: ppa:dotnet/backports
+        state: present
+        update_cache: true
+      when:
+        - ansible_facts['distribution'] | lower == 'ubuntu'
+        - ansible_facts['distribution_version'] is version('22.04', '>=')
+        - ansible_facts['distribution_version'] is version('24.04', '<')
+
+    - name: Remove .NET backports PPA on Ubuntu >=24.04
+      apt_repository:
+        repo: ppa:dotnet/backports
+        state: absent
+        update_cache: true
+      when:
+        - ansible_facts['distribution'] | lower == 'ubuntu'
+        - ansible_facts['distribution_version'] is version('24.04', '>=')
+
     - name: apt update
       apt: update_cache=true
 
     - name: Install dotnet-sdk-{{ dotnet_version }}
-      package: "name=dotnet-sdk-{{ dotnet_version }} state=present"
+      apt:
+        name: "dotnet-sdk-{{ dotnet_version }}"
+        state: present
+        lock_timeout: 600
+      register: dotnet_sdk_install
+      retries: 3
+      delay: 20
+      until: dotnet_sdk_install is succeeded
       when: ansible_architecture == "x86_64"
 
     - debug: 

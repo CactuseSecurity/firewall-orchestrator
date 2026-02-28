@@ -1,54 +1,103 @@
-# global configuration entry
+# ---------------------------------------------------------------------------
+# Global configuration (only optional tunables)
+# ---------------------------------------------------------------------------
+
 dn: cn=config
-objectClass: olcGlobal
-cn: config
-olcArgsFile: /var/run/slapd/slapd.args
-olcPidFile: /var/run/slapd/slapd.pid
-olcLogLevel: stats
+changetype: modify
+replace: olcLogLevel
+olcLogLevel: {{ openldap_loglevel | default('stats') }}
+
+{% if openldap_server_enable_ssl | default(openldap_enable_tls | default(false)) %}
+-
+replace: olcTLSCertificateFile
 olcTLSCertificateFile: {{ openldap_server_cert }}
+-
+replace: olcTLSCertificateKeyFile
 olcTLSCertificateKeyFile: {{ openldap_server_private_key }}
+{% endif %}
 
-# modules that can be loaded
+
+
+# ---------------------------------------------------------------------------
+# Load optional modules (memberof / refint)
+# ---------------------------------------------------------------------------
+
+{% if openldap_enable_memberof | default(true) or openldap_enable_refint | default(true) %}
 dn: cn=module{0},cn=config
-objectClass: olcModuleList
-cn: module{0}
-olcModulePath: /usr/lib/ldap
-olcModuleLoad: {0}back_mdb.la
-olcModuleLoad: {1}memberof.la
-olcModuleLoad: {2}refint.la
+changetype: modify
 
-# internal schema
-dn: cn=schema,cn=config
-objectClass: olcSchemaConfig
-cn: schema
+{% if openldap_enable_memberof | default(true) %}
+-
+add: olcModuleLoad
+olcModuleLoad: memberof.so
+{% endif %}
 
-# include the core schemata
-include: file:///etc/ldap/schema/core.ldif
-include: file:///etc/ldap/schema/cosine.ldif
-include: file:///etc/ldap/schema/inetorgperson.ldif
-include: file:///etc/ldap/schema/nis.ldif
+{% if openldap_enable_refint | default(true) %}
+-
+add: olcModuleLoad
+olcModuleLoad: refint.so
+{% endif %}
+{% endif %}
 
-# configure config database
-dn: olcDatabase=config,cn=config
-objectClass: olcDatabaseConfig
-olcDatabase: config
-olcRootPW: {{ root_password.stdout }}
-olcAccess: to * by * none
 
-# add database
-dn: olcDatabase=mdb,cn=config
-objectClass: olcDatabaseConfig
-objectClass: olcMdbConfig
-olcDatabase: mdb
-olcSuffix: {{ openldap_path }}
-olcDbDirectory: /var/lib/ldap/{{ openldap_server_domain_name }}/
-olcRootDN: {{ openldap_superuser_dn }}
-olcRootPW: {{ root_password.stdout }}
+
+# ---------------------------------------------------------------------------
+# Configure MDB database (assumes database already exists)
+# ---------------------------------------------------------------------------
+
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+
+{% if openldap_suffix is defined %}
+replace: olcSuffix
+olcSuffix: {{ openldap_suffix }}
+{% endif %}
+
+{% if openldap_rootdn is defined %}
+-
+replace: olcRootDN
+olcRootDN: {{ openldap_rootdn }}
+{% endif %}
+
+{% if openldap_rootpw_hash is defined %}
+-
+replace: olcRootPW
+olcRootPW: {{ openldap_rootpw_hash }}
+{% endif %}
+
+{% if openldap_db_directory is defined %}
+-
+replace: olcDbDirectory
+olcDbDirectory: {{ openldap_db_directory }}
+{% endif %}
+
+
+
+# ---------------------------------------------------------------------------
+# Indexes (safe for re-application)
+# ---------------------------------------------------------------------------
+
+{% if openldap_configure_indexes | default(true) %}
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+replace: olcDbIndex
 olcDbIndex: objectClass pres,eq
-olcDbIndex: ou,cn,mail,surname,givenname pres,eq,sub
+olcDbIndex: ou,cn,mail,sn,givenName pres,eq,sub
 olcDbIndex: uidNumber,gidNumber,loginShell pres,eq
 olcDbIndex: uid,memberUid pres,eq,sub
 olcDbIndex: nisMapName,nisMapEntry pres,eq,sub
+{% endif %}
+
+
+
+# ---------------------------------------------------------------------------
+# ACLs
+# ---------------------------------------------------------------------------
+
+{% if openldap_configure_acls | default(true) %}
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+replace: olcAccess
 olcAccess: to attrs=userPassword
     by self write
     by anonymous auth
@@ -80,9 +129,17 @@ olcAccess: to *
     by dn.base="{{ openldap_readonly_user_dn }}" read
     by dn.base="{{ openldap_writer_dn }}" read
     by * none
+{% endif %}
 
-# Backend memberOf overlay
+
+
+# ---------------------------------------------------------------------------
+# memberOf overlay
+# ---------------------------------------------------------------------------
+
+{% if openldap_enable_memberof | default(true) %}
 dn: olcOverlay=memberof,olcDatabase={1}mdb,cn=config
+changetype: add
 objectClass: olcMemberOf
 objectClass: olcOverlayConfig
 objectClass: olcConfig
@@ -93,9 +150,17 @@ olcMemberOfRefInt: TRUE
 olcMemberOfGroupOC: groupOfUniqueNames
 olcMemberOfMemberAD: uniqueMember
 olcMemberOfMemberOfAD: memberOf
+{% endif %}
 
+
+
+# ---------------------------------------------------------------------------
 # Referential integrity overlay
+# ---------------------------------------------------------------------------
+
+{% if openldap_enable_refint | default(true) %}
 dn: olcOverlay=refint,olcDatabase={1}mdb,cn=config
+changetype: add
 objectClass: olcConfig
 objectClass: olcOverlayConfig
 objectClass: olcRefintConfig
@@ -103,3 +168,4 @@ objectClass: top
 olcOverlay: refint
 olcRefintAttribute: memberOf
 olcRefintAttribute: uniqueMember
+{% endif %}

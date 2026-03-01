@@ -144,7 +144,7 @@ def _import_management(
     else:
         # get config
         config_changed_since_last_import, config_normalized = get_config_top_level(
-            import_state, import_state.input_file, gateways
+            global_state, import_state, import_state.input_file, gateways
         )
 
         # write normalized config to file
@@ -203,6 +203,7 @@ def roll_back_exception_handler(
 
 
 def get_config_top_level(
+    global_state: GlobalState,
     import_state: ImportState,
     in_file: str | None = None,
     gateways: list[Gateway] | None = None,
@@ -220,7 +221,7 @@ def get_config_top_level(
             return config_has_changes, config_from_file
         # else we feed the native config back into the importer process for normalization
     ### getting config from firewall manager API ######
-    return get_config_from_api(import_state, config_from_file)
+    return get_config_from_api(global_state, import_state, config_from_file)
 
 
 def import_from_file(import_state: ImportState, file_name: str = "") -> tuple[bool, FwConfigManagerListController]:
@@ -254,7 +255,10 @@ def get_module(import_state: ImportState) -> FwCommon:
 
 
 def get_config_from_api(
-    import_state: ImportState, config_in: FwConfigManagerListController, force_import: bool = False
+    global_state: GlobalState,
+    import_state: ImportState,
+    config_in: FwConfigManagerListController,
+    force_import: bool = False,
 ) -> tuple[bool, FwConfigManagerListController]:
     try:  # pick product-specific importer:
         fw_module = get_module(import_state)

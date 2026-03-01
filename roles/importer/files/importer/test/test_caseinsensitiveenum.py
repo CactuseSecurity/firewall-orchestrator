@@ -1,5 +1,4 @@
 import pytest
-
 from models.rule import RuleAction
 
 
@@ -9,7 +8,7 @@ def test_caseinsensitiveenum_matches_value_and_name_ignoring_case():
 
 
 def test_caseinsensitiveenum_raises_on_unknown_value():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="not a valid RuleAction"):
         RuleAction("unknown-action")
 
 

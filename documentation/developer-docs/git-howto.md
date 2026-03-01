@@ -118,7 +118,6 @@ How to merge fork tpurschke/master into CactuseSecurity/master
         git push -u origin auth_frontend
 
 ## Submodules
-IMPORTANT: Always commit to the submodule first, then commit to the FWO repo (superproject). This avoids the problem that the FWO repo does not point to the newest commit of the submodule (it cant - since it does not exist yet). An addtional commit to the FWO-repo will be necessary to fix this.
 
 ### Automatic submodule sync via repo hooks
 Enable the repo-managed hooks once (per clone) to keep submodules up to date automatically:
@@ -129,7 +128,7 @@ The hooks run after `git pull`, `git checkout`, and `git rebase` and initialize 
 Notes:
 - The hook is quiet if you do not have access to a submodule repository (no error output).
 - The hook checks out the configured submodule branch from `.gitmodules` before updating, to avoid detached HEAD.
-- This intentionally moves submodules to the newest commit on their configured branch, even if the superproject has not updated the pointer yet. Expect the submodule to appear "modified" in `git status`.
+- This intentionally moves submodules to the newest commit on their configured branch, even if the superproject has not updated the pointer yet. Expect the submodule to appear "modified" in `git status`, unless you follow the next subsections advice.
 
 ### Avoid Advancing the Submodule Pointer
 On the upstream we automatically advance the submodule pointer via automated pull requests.
@@ -141,7 +140,7 @@ git config submodule.agents.ignore all
 ```
 
 ### Manual submodule operations
-If you like to manually execute the submodule setup, see the sections below. Otherwise, please refer to the section above.
+If you like to manually execute the submodule setup, see the sections below. Otherwise, please refer to the sections above.
 
 #### Initial update
 Update submodules to the commits recorded in the superproject (safe, reproducible). Initializes them if necessary.

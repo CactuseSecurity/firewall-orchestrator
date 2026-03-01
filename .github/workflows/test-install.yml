@@ -1,4 +1,4 @@
-name: Checks
+name: FWO Test Install
 
 on:
   push:

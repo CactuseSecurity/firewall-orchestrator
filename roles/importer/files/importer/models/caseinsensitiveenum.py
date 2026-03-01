@@ -1,13 +1,7 @@
 from enum import Enum
 
-try:
-    from enum import StrEnum as CaseInsensitiveEnumBase
-except ImportError:
-    class CaseInsensitiveEnumBase(str, Enum):
-        pass
 
-
-class CaseInsensitiveEnum(CaseInsensitiveEnumBase):
+class CaseInsensitiveEnum(str, Enum):
     @classmethod
     def _missing_(cls, value: object) -> object | None:
         if isinstance(value, str):

@@ -6,8 +6,8 @@ from services.uid2id_mapper import Uid2IdMapper
 
 
 class ManagementState:
-    normalized_config: FwConfigNormalized | None
     previous_config: FwConfigNormalized | None
+    normalized_config: FwConfigNormalized | None
     uid2id_mapper: Uid2IdMapper | None
     group_flats_mapper: GroupFlatsMapper | None
 

@@ -21,7 +21,10 @@ class ImportState:
     fwo_api_call: FwoApiCall
 
     super_config: FwConfigNormalized | None
-    previous_global_config: FwConfigNormalized | None
+    previous_super_config: FwConfigNormalized | None
+
+    statistics_controller: ImportStatisticsController
+
     mgm_map: dict[int, dict[str, int]]
     gateway_map: dict[int, dict[str, int]]
     rulebase_map: dict[str, int]
@@ -46,7 +49,7 @@ class ImportState:
         self.fwo_api_call = fwo_api_call
         self.input_file = file
 
-        self.stats: ImportStatisticsController = ImportStatisticsController()
+        self.statistics_controller: ImportStatisticsController = ImportStatisticsController()
         self.start_time: int = int(time.time())
         self.actions: dict[str, int] = {}
         self.tracks: dict[str, int] = {}

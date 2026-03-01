@@ -4,9 +4,8 @@ from typing import Any
 import fwo_const
 from fwo_api_call import FwoApiCall
 from fwo_log import FWOLogger
-from model_controllers.import_statistics_controller import ImportStatisticsController
 from model_controllers.rulebase_link_controller import RulebaseLinkController
-from models.import_state import ImportState
+from states.import_state import ImportState
 
 
 class RuleEnforcedOnGatewayController:
@@ -14,14 +13,12 @@ class RuleEnforcedOnGatewayController:
         self,
         new_rules: list[dict[str, Any]],
         import_state: ImportState,
-        fwo_api_call: FwoApiCall,
-        statistics_controller: ImportStatisticsController,
     ):
         """
         Main function to add new rule-to-gateway references.
         """
         # Step 1: Initialize the RulebaseLinkController
-        rb_link_controller = self.initialize_rulebase_link_controller(import_state, fwo_api_call)
+        rb_link_controller = self.initialize_rulebase_link_controller(import_state)
 
         # Step 2: Prepare rule-to-gateway references
         rule_to_gw_refs = self.prepare_rule_to_gateway_references(import_state, new_rules, rb_link_controller)
@@ -32,16 +29,14 @@ class RuleEnforcedOnGatewayController:
             return
 
         # Step 4: Insert the references into the database
-        self.insert_rule_to_gateway_references(statistics_controller, fwo_api_call, rule_to_gw_refs)
+        self.insert_rule_to_gateway_references(import_state, rule_to_gw_refs)
 
-    def initialize_rulebase_link_controller(
-        self, import_state: ImportState, fwo_api_call: FwoApiCall
-    ) -> RulebaseLinkController:
+    def initialize_rulebase_link_controller(self, import_state: ImportState) -> RulebaseLinkController:
         """
         Initialize the RulebaseLinkController and set the map of enforcing gateways.
         """
         rb_link_controller = RulebaseLinkController()
-        rb_link_controller.set_map_of_all_enforcing_gateway_ids_for_rulebase_id(import_state, fwo_api_call)
+        rb_link_controller.set_map_of_all_enforcing_gateway_ids_for_rulebase_id(import_state)
         return rb_link_controller
 
     def prepare_rule_to_gateway_references(
@@ -110,20 +105,21 @@ class RuleEnforcedOnGatewayController:
 
     def insert_rule_to_gateway_references(
         self,
-        statistics_controller: ImportStatisticsController,
-        fwo_api_call: FwoApiCall,
+        import_state: ImportState,
         rule_to_gw_refs: list[dict[str, Any]],
     ) -> None:
         """
         Insert the rule-to-gateway references into the database.
         """
         try:
-            import_results: dict[str, Any] = self.insert_rules_enforced_on_gateway(fwo_api_call, rule_to_gw_refs)
+            import_results: dict[str, Any] = self.insert_rules_enforced_on_gateway(
+                import_state.fwo_api_call, rule_to_gw_refs
+            )
             if "errors" in import_results:
                 FWOLogger.exception(f"Error in add_new_rule_enforced_on_gateway_refs: {import_results['errors']!s}")
             else:
                 changes = import_results["data"]["insert_rule_enforced_on_gateway"].get("affected_rows", 1)
-                statistics_controller.increment_rule_enforce_change_count(changes)
+                import_state.statistics_controller.increment_rule_enforce_change_count(changes)
         except Exception:
             FWOLogger.exception(f"Failed to write new rules: {format_exc()!s}")
             raise

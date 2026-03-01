@@ -49,7 +49,7 @@ class ImportStateController:
         is_clearing_import: bool,
         is_full_import: bool,
     ):
-        fwo_config = FwoConfigController.from_json(read_config(FWO_CONFIG_FILENAME))
+        fwo_config = FwoConfigController.from_json(read_config(FWO_CONFIG_FILENAME))  # type: ignore  # noqa: F821, PGH003
 
         # set global https connection values
         fwo_globals.set_global_values(

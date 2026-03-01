@@ -11,6 +11,7 @@ import requests
 from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT
 from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
+from models.fwo_config_controller import FwoConfigController
 from query_analyzer import QueryAnalyzer
 
 JSON_CONTENT_TYPE = "application/json"
@@ -151,7 +152,7 @@ class FwoApi:
             FwoImporterError: If request fails or returns error
 
         """
-        url = FwoConfigController().user_management_api_base_url + endpoint.lstrip("/")
+        url = FwoConfigController().fwo_config.fwo_user_mgmt_api_uri + endpoint.lstrip("/")
 
         with requests.Session() as session:
             if fwo_globals.verify_certs is None:

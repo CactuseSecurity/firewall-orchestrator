@@ -158,7 +158,7 @@ class FwoApiCall:
     def unlock_import(self, import_state: "ImportState", success: bool):
         import_id = import_state.import_id
         mgm_id = import_state.mgm_details.mgm_id
-        import_stats = import_state.stats
+        import_stats = import_state.statistics_controller
 
         try:
             query_variables: dict[str, Any] = {
@@ -399,17 +399,21 @@ class FwoApiCall:
             + ")"
             + str(" threw errors," if exception is not None else " successful,")
             + " total change count: "
-            + str(import_state.stats.get_total_change_number())
+            + str(import_state.statistics_controller.get_total_change_number())
             + ", rule change count: "
-            + str(import_state.stats.get_rule_change_number())
+            + str(import_state.statistics_controller.get_rule_change_number())
             + ", duration: "
             + str(int(time.time()) - import_state.start_time)
             + "s"
         )
         import_result += ", ERRORS: " + exception_message if exception_message is not None else ""
 
-        if import_state.stats.get_change_details() != {} and FWOLogger.is_debug_level(4) and exception is None:
-            import_result += ", change details: " + str(import_state.stats.get_change_details())
+        if (
+            import_state.statistics_controller.get_change_details() != {}
+            and FWOLogger.is_debug_level(4)
+            and exception is None
+        ):
+            import_result += ", change details: " + str(import_state.statistics_controller.get_change_details())
 
         if exception is not None:
             self.create_data_issue(severity=1, description=exception_message)

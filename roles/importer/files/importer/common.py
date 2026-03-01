@@ -140,7 +140,7 @@ def _import_management(
     )
 
     if fwo_config.clear:
-        config_normalized = config_importer.clear_management()
+        config_normalized = config_importer.clear_management(import_state=import_state)
     else:
         # get config
         config_changed_since_last_import, config_normalized = get_config_top_level(
@@ -162,7 +162,9 @@ def _import_management(
     # delete data that has passed the retention time
     # TODO: replace by deletion of old data with removed date > retention?
     if not fwo_config.clear and import_state.data_retention_days < import_state.days_since_last_full_import:
-        config_importer.delete_old_imports()  # delete all imports of the current management before the last but one full import
+        config_importer.delete_old_imports(
+            global_state=global_state, import_state=import_state
+        )  # delete all imports of the current management before the last but one full import
 
 
 def handle_unexpected_exception(

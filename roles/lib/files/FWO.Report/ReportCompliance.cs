@@ -114,9 +114,14 @@ namespace FWO.Report
             // Get management and device info for resolving names.
 
             await GetManagementAndDevices(apiConnection);
+
+            List<int> managementIds = Managements.Select(mgmt => mgmt.Id).ToList();
             // Get amount of rules to fetch.
 
-            AggregateCount? result = await apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countRules);
+            AggregateCount? result = await apiConnection.SendQueryAsync<AggregateCount>(
+                RuleQueries.countRules,
+                new { mgm_ids = managementIds }
+            );
             int rulesCount = result?.Aggregate?.Count ?? 0;
 
             // Get data parallelized.
@@ -307,7 +312,7 @@ namespace FWO.Report
 
             if (managements != null)
             {
-                Managements = managements;
+                Managements = managements.Where(m => _relevanteManagementIDs.Count == 0 || _relevanteManagementIDs.Contains(m.Id)).ToList(); // filter managements by relevant managements config value
 
                 _devices = new();
 
@@ -465,7 +470,12 @@ namespace FWO.Report
 
             if (query.Contains("mgm_ids"))
             {
-                queryVariables["mgm_ids"] = _relevanteManagementIDs;
+                List<int> managementIds = _relevanteManagementIDs;
+                if (managementIds.Count == 0)
+                {
+                    managementIds = Managements.Select(mgmt => mgmt.Id).ToList();
+                }
+                queryVariables["mgm_ids"] = managementIds;
             }
 
             return queryVariables;

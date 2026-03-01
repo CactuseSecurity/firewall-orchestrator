@@ -10,7 +10,9 @@ class ImportStatistics:
     user_object_change_count: int = 0
     zone_object_add_count: int = 0
     zone_object_delete_count: int = 0
-    zone_object_change_count: int = 0
+    time_object_add_count: int = 0
+    time_object_delete_count: int = 0
+    time_object_change_count: int = 0
     rule_add_count: int = 0
     rule_delete_count: int = 0
     rule_change_count: int = 0

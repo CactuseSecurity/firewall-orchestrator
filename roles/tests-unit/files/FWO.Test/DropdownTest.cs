@@ -41,8 +41,8 @@ namespace FWO.Test
         }
 
         /// <summary>
-         /// Ensures that a global focus callback tolerates a missing JS runtime after disposal.
-         /// </summary>
+        /// Ensures that a global focus callback tolerates a missing JS runtime after disposal.
+        /// </summary>
         [Test]
         public void OnFocusChanged_DoesNotThrow_WhenJsRuntimeIsNull()
         {

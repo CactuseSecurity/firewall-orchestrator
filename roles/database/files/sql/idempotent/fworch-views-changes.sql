@@ -330,8 +330,3 @@ UNION
       LEFT JOIN rule_from USING (rule_id)
    LEFT JOIN objgrp_flat ON rule_from.obj_id = objgrp_flat.objgrp_flat_id
    LEFT JOIN object ON objgrp_flat.objgrp_flat_member_id = object.obj_id;
-
--- views used for reporters, too
-GRANT SELECT ON TABLE view_reportable_changes TO GROUP secuadmins, reporters;
-GRANT SELECT ON TABLE view_changes TO GROUP secuadmins, reporters;
-GRANT SELECT ON TABLE view_rule_source_or_destination TO GROUP secuadmins, reporters;

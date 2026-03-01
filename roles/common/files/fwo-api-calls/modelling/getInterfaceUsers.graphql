@@ -7,6 +7,7 @@ query getInterfaceUsers ($id: Int){
     owner{
       id
       name
+      app_id_external
     }
   }
 }

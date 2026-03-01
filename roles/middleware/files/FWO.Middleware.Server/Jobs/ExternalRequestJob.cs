@@ -1,10 +1,10 @@
 using FWO.Api.Client;
-using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
+using FWO.Services;
 using Quartz;
 
 namespace FWO.Middleware.Server.Jobs
@@ -52,58 +52,12 @@ namespace FWO.Middleware.Server.Jobs
             catch (Exception exc)
             {
                 Log.WriteError(LogMessageTitle, "Job failed", exc);
-                await LogErrorsWithAlert(exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, "External Request", GlobalConst.kExternalRequest, AlertCode.ExternalRequest, exc);
 
                 // Mark job as failed but don't refire immediately
                 throw new JobExecutionException(exc, refireImmediately: false);
             }
         }
 
-        private async Task LogErrorsWithAlert(Exception exc)
-        {
-            try
-            {
-                Log.WriteError(LogMessageTitle, $"Ran into exception: ", exc);
-                string titletext = $"Error encountered while trying External Request";
-
-                var Variables = new
-                {
-                    source = GlobalConst.kExternalRequest,
-                    discoverUser = 0,
-                    severity = 1,
-                    suspectedCause = "External Request",
-                    description = globalConfig.GetText("ran_into_exception") + exc.Message,
-                    mgmId = (int?)null,
-                    devId = (int?)null,
-                    importId = (long?)null,
-                    objectType = (string?)null,
-                    objectName = (string?)null,
-                    objectUid = (string?)null,
-                    ruleUid = (string?)null,
-                    ruleId = (long?)null
-                };
-
-                await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addLogEntry, Variables);
-
-                var alertVariables = new
-                {
-                    source = GlobalConst.kExternalRequest,
-                    userId = 0,
-                    title = "External Request",
-                    description = titletext,
-                    mgmId = (int?)null,
-                    devId = (int?)null,
-                    alertCode = (int)AlertCode.ExternalRequest,
-                    jsonData = (object?)null,
-                    refAlert = (long?)null
-                };
-
-                await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAlert, alertVariables);
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError(LogMessageTitle, "Could not write alert", exception);
-            }
-        }
     }
 }

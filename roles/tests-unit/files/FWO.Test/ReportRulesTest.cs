@@ -268,9 +268,10 @@ namespace FWO.Test
                 .SetValue(null, new Dictionary<(int, int), Rule[]> { [(device.Id, management.Id)] = rules });
 
             RuleTreeBuilder ruleTreeBuilder = new RuleTreeBuilder();
+            ruleTreeBuilder.Reset(management.Rulebases, device.RulebaseLinks);
             ruleTreeBuilder.RuleTreeCache[(management.Id, device.Id)] = ruleTreeBuilder.RuleTree;
             ruleTreeBuilder.FlattedRules[ruleTreeBuilder.RuleTree] = rules;
-            ruleTreeBuilder.Reset(management.Rulebases, device.RulebaseLinks);
+
             var result = ReportRules.GetAllRulesOfGateway(device, management, ruleTreeBuilder);
 
             Assert.That(result, Has.Length.EqualTo(1));

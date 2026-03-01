@@ -20,8 +20,8 @@ namespace FWO.Services.Modelling
 
 
         public ModellingAppServerListHandler(ApiConnection apiConnection, UserConfig userConfig,
-            Action<Exception?, string, string, bool> displayMessageInUi)
-            : base(apiConnection, userConfig, new FwoOwner(), false, displayMessageInUi)
+            Action<Exception?, string, string, bool> displayMessageInUi, bool readOnly, bool isOwner)
+            : base(apiConnection, userConfig, new FwoOwner(), false, displayMessageInUi, readOnly, isOwner)
         { }
 
         public async Task Init(FwoOwner application)
@@ -59,7 +59,7 @@ namespace FWO.Services.Modelling
         {
             try
             {
-                AppServerHandler = new ModellingAppServerHandler(apiConnection, userConfig, Application, appServer, ManualAppServers, AddAppServerMode, DisplayMessageInUi);
+                AppServerHandler = new ModellingAppServerHandler(apiConnection, userConfig, Application, appServer, ManualAppServers, AddAppServerMode, DisplayMessageInUi, ReadOnly, IsOwner);
                 EditAppServerMode = true;
             }
             catch (Exception exception)
@@ -79,7 +79,10 @@ namespace FWO.Services.Modelling
         {
             try
             {
-                apiConnection.SetRole(Roles.Admin);
+                if (IsOwner)
+                {
+                    apiConnection.SetRole(Roles.Admin);  // usual modeller has no write permission on App Servers
+                }
                 if (await CheckAppServerInUse(actAppServer))
                 {
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = true });
@@ -93,7 +96,10 @@ namespace FWO.Services.Modelling
                 }
                 await AppServerHelper.ReactivateOtherSource(apiConnection, userConfig, actAppServer);
                 await Init(Application);
-                apiConnection.SwitchBack();
+                if (IsOwner)
+                {
+                    apiConnection.SwitchBack();
+                }
                 DeleteAppServerMode = false;
             }
             catch (Exception exception)
@@ -115,10 +121,18 @@ namespace FWO.Services.Modelling
             {
                 if (actAppServer.IsDeleted)
                 {
+                    if (IsOwner)
+                    {
+                        apiConnection.SetRole(Roles.Admin);  // usual modeller has no write permission on App Servers
+                    }
                     await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = false });
                     await LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
                         $"Reactivate App Server: {actAppServer.Display()}", Application.Id);
                     await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, actAppServer);
+                    if (IsOwner)
+                    {
+                        apiConnection.SwitchBack();
+                    }
                     await Init(Application);
                 }
                 ReactivateAppServerMode = false;

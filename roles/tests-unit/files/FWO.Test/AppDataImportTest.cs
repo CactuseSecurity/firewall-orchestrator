@@ -206,6 +206,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildOwnerResponsibles_UsesLegacyWhenResponsiblesDictionaryIsEmpty()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-E2",
+                ExtAppId = "APP-5-2",
+                MainUser = "cn=main,dc=example,dc=com",
+                Responsibles = new Dictionary<string, List<string>>()
+            };
+
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=support,dc=example,dc=com", []);
+
+            Assert.That(result, Has.Count.EqualTo(2));
+            Assert.That(result.Exists(r => r.Dn == "cn=main,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
+            Assert.That(result.Exists(r => r.Dn == "cn=support,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
+        }
+
+        [Test]
         public void BuildOwnerResponsibles_UsesCaseInsensitiveTypeLookup()
         {
             AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -351,6 +370,33 @@ namespace FWO.Test
             Assert.That(groupName, Is.EqualTo("grp-static-name"));
         }
 
+        [Test]
+        public void ParseRolesWithImport_ParsesLegacyArrayIntoSupportingType()
+        {
+            Dictionary<int, List<string>> parsed = InvokeParseRolesWithImport("[\"roleA\",\"roleB\"]");
+
+            Assert.That(parsed.Keys, Is.EquivalentTo(new[] { GlobalConst.kOwnerResponsibleTypeSupporting }));
+            Assert.That(parsed[GlobalConst.kOwnerResponsibleTypeSupporting], Is.EquivalentTo(new[] { "roleA", "roleB" }));
+        }
+
+        [Test]
+        public void ParseRolesWithImport_ParsesTypeMappingAndSkipsInvalidKeys()
+        {
+            Dictionary<int, List<string>> parsed = InvokeParseRolesWithImport("{\"1\":[\"mainRole\"],\"x\":[\"ignored\"],\"2\":[\"supportRole\"]}");
+
+            Assert.That(parsed.Keys, Is.EquivalentTo(new[] { 1, 2 }));
+            Assert.That(parsed[1], Is.EquivalentTo(new[] { "mainRole" }));
+            Assert.That(parsed[2], Is.EquivalentTo(new[] { "supportRole" }));
+        }
+
+        [Test]
+        public void ParseRolesWithImport_ReturnsEmptyForWhitespaceInput()
+        {
+            Dictionary<int, List<string>> parsed = InvokeParseRolesWithImport("   ");
+
+            Assert.That(parsed, Is.Empty);
+        }
+
         private static string InvokeResolveOwnerGroupPath(Ldap ldap)
         {
             MethodInfo method = typeof(AppDataImport).GetMethod(
@@ -412,6 +458,15 @@ namespace FWO.Test
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("GetGroupName helper not found.");
             return (string)method.Invoke(import, [extAppId])!;
+        }
+
+        private static Dictionary<int, List<string>> InvokeParseRolesWithImport(string rolesJson)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "ParseRolesWithImport",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("ParseRolesWithImport helper not found.");
+            return (Dictionary<int, List<string>>)method.Invoke(null, [rolesJson])!;
         }
 
     }

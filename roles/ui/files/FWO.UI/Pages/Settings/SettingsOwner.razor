@@ -70,6 +70,11 @@
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owner_lc_state"))" Field="@(x => x.OwnerLifeCycleStateId)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(OwnerLifeCycleStates.FirstOrDefault(x => x.Id == context.OwnerLifeCycleStateId)?.Name ?? "")
+                </Template>
+            </Column>
             @foreach (OwnerResponsibleType type in OwnerResponsibleTypes)
             {
                 <Column TableItem="FwoOwner" Title="@(GetResponsibleTypeDisplayName(type))" Field="@(x => x.Id)" Sortable="false" Filterable="false">

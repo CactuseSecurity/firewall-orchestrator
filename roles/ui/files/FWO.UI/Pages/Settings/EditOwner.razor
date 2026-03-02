@@ -45,6 +45,36 @@
                         </div>
                     </div>
                 </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5664"))">@(userConfig.GetText("owner_lc_state")):</label>
+                    @if (Readonly)
+                    {
+                        <label class="col-sm-5">@(OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ActOwner.OwnerLifeCycleStateId)?.Name ?? "")</label>
+                    }
+                    else
+                    {
+                        <div class="col-sm-5">
+                            <Dropdown ElementType="OwnerLifeCycleState" ElementToString="@(t => t.Name)" @bind-SelectedElement="SelectedOwnerLifeCycleState" Elements="OwnerLifeCycleStates" Nullable="true">
+                                <ElementTemplate Context="lifecycleState">
+                                    @lifecycleState.Name
+                                </ElementTemplate>
+                            </Dropdown>
+                        </div>
+                    }
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("criticality")):</label>
+                    <div class="col-sm-5">
+                        @if(Readonly)
+                        {
+                            <label>@ActOwner.Criticality</label>
+                        }
+                        else
+                        {
+                            <input type="text" class="form-control form-control-sm" @bind="ActOwner.Criticality" />
+                        }
+                    </div>
+                </div>
                 @foreach (OwnerResponsibleType type in OwnerResponsibleTypes)
                 {
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(GetResponsibleTypeTooltip(type))">
@@ -57,10 +87,10 @@
                         {
                             <div class="col-sm-9">
                                 <div class="d-flex gap-1">
-                                    <input type="text" class="form-control form-control-sm" @bind="NewOwnerResponsibleDnByType[type.Id]" disabled="@(!type.Active)" />
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => AddOwnerResponsible(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchUser(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "search", Icons.Search)) @userConfig.GetText("user")</button>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchGroup(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "search", Icons.Search)) @userConfig.GetText("group")</button>
+                                    <input type="text" class="col-sm-9" @bind="NewOwnerResponsibleDnByType[type.Id]" disabled="@(!type.Active)" />
+                                    <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="() => AddOwnerResponsible(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                                    <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="() => SearchUser(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "search", Icons.Search, "user"))</button>
+                                    <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="() => SearchGroup(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "search", Icons.Search, "group"))</button>
                                 </div>
                                 <div class="mt-1">
                                     @foreach (string dn in ActOwner.GetOwnerResponsiblesByType(type.Id))
@@ -215,23 +245,6 @@
                     </div>
                     <div class="col-sm-12 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5590"))">
                         <IpSelector IpAddresses="ActIpAddresses" @bind-IpsToAdd="IpsToAdd" @bind-IpsToDelete="IpsToDelete" Readonly="Readonly"/>
-                    </div>
-                }
-            </div>
-            <div class="form-group row mt-2">
-                <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5664"))">@(userConfig.GetText("owner_lc_state")):</label>
-                @if (Readonly)
-                {
-                    <label class="col-sm-5">@(OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ActOwner.OwnerLifeCycleStateId)?.Name ?? "")</label>
-                }
-                else
-                {
-                    <div class="col-sm-5">
-                        <Dropdown ElementType="OwnerLifeCycleState" ElementToString="@(t => t.Name)" @bind-SelectedElement="SelectedOwnerLifeCycleState" Elements="OwnerLifeCycleStates" Nullable="true">
-                            <ElementTemplate Context="lifecycleState">
-                                @lifecycleState.Name
-                            </ElementTemplate>
-                        </Dropdown>
                     </div>
                 }
             </div>
@@ -526,6 +539,7 @@
             recertInterval = ActOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(ActOwner.ExtAppId) ? null : ActOwner.ExtAppId,
             recertCheckParams = ActOwner.RecertCheckParamString,
+            criticality = string.IsNullOrWhiteSpace(ActOwner.Criticality) ? null : ActOwner.Criticality,
             commSvcPossible = ActOwner.CommSvcPossible,
             recertActive = ActOwner.RecertActive,
             ownerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId
@@ -561,6 +575,7 @@
             recertInterval = ActOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(ActOwner.ExtAppId) ? null : ActOwner.ExtAppId,
             recertCheckParams = ActOwner.RecertCheckParamString,
+            criticality = string.IsNullOrWhiteSpace(ActOwner.Criticality) ? null : ActOwner.Criticality,
             ownerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId,
             commSvcPossible = ActOwner.CommSvcPossible,
             recertActive = ActOwner.RecertActive

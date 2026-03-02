@@ -36,6 +36,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRulesForSelectedManagements;
         public static readonly string getRulesForOwnerMapping;
         public static readonly string getChangedRulesForRuleOwnerMapping;
+        public static readonly string getRulesForRuleOwner;
+        public static readonly string getRulesForRuleOwnerByOwnerToUpdate;
+        public static readonly string getRuleDetailsById;
 
 
         static RuleQueries()
@@ -111,6 +114,9 @@ namespace FWO.Api.Client.Queries
                 countActiveRules = GetQueryText("rule/countActiveRules.graphql");
                 getRulesForOwnerMapping = GetQueryText("rule/getRulesForOwnerMapping.graphql");
                 getChangedRulesForRuleOwnerMapping = GetQueryText("rule/getChangedRulesForRuleOwnerMapping.graphql");
+                getRulesForRuleOwner = GetQueryText("rule/getRulesForRuleOwner.graphql");
+                getRulesForRuleOwnerByOwnerToUpdate = GetQueryText("rule/getRulesForRuleOwnerByOwnerToUpdate.graphql");
+                getRuleDetailsById = GetQueryText("rule/getRuleDetailByID.graphql");
             }
             catch (Exception exception)
             {

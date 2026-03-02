@@ -11,7 +11,7 @@ from asyncio.log import logger
 from pathlib import Path
 from typing import Any
 
-import git  # apt install python3-git # or: pip install git
+from git import Repo  # apt install python3-git # or: pip install git  # pyright: ignore[reportUnknownVariableType]
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
 
@@ -111,14 +111,14 @@ if __name__ == "__main__":
         # get ipam repo
         if Path(IPAM_GIT_REPO_TARGET_DIR).exists():
             # If the repository already exists, open it and perform a pull
-            repo: Any = git.Repo(IPAM_GIT_REPO_TARGET_DIR)
-            origin: Any = repo.remotes.origin
-            origin.pull()
+            repo = Repo(IPAM_GIT_REPO_TARGET_DIR)  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+            origin = repo.remotes.origin  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+            origin.pull()  # pyright: ignore[reportUnknownMemberType]
         else:
             repo_url: str = (
                 "https://" + ipam_git_user + ":" + urllib.parse.quote(ipam_git_password, safe="") + "@" + ipam_git_repo
             )
-            repo = git.Repo.clone_from(
+            Repo.clone_from(  # pyright: ignore[reportUnknownMemberType]
                 repo_url,
                 IPAM_GIT_REPO_TARGET_DIR,
             )

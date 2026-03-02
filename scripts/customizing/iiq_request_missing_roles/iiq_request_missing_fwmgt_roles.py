@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import git  # apt install python3-git # or: pip install git
+from git import Repo  # apt install python3-git # or: pip install git  # pyright: ignore[reportUnknownVariableType]
 import urllib3
 
 from scripts.customizing.fwo_custom_lib.app_data_basics import (
@@ -152,12 +152,12 @@ def get_git_repo(git_repo_url: str, git_username: str, git_password: str, repo_t
 
     if Path(repo_target_dir).exists():
         # If the repository already exists, open it and perform a pull
-        repo: Any = git.Repo(repo_target_dir)
-        origin: Any = repo.remotes.origin
+        repo = Repo(repo_target_dir)  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+        origin = repo.remotes.origin  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
         # for DEBUG: do not pull
-        origin.pull()
+        origin.pull()  # pyright: ignore[reportUnknownMemberType]
     else:
-        git.Repo.clone_from(repo_url, repo_target_dir)
+        Repo.clone_from(repo_url, repo_target_dir)  # pyright: ignore[reportUnknownMemberType]
 
 
 def request_all_roles(

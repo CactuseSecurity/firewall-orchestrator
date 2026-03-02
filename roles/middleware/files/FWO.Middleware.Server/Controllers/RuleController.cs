@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
@@ -5,6 +6,7 @@ using System.Text;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Comparer;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
@@ -27,6 +29,7 @@ namespace FWO.Middleware.Server.Controllers
     public class RuleController(ApiConnection apiConnection) : ControllerBase
     {
         private const int OwnerMappingIdCustomField = 2;
+        private readonly Dictionary<string, uint> _ipCache = new();
 
         /// <summary>
         /// Returns firewall rules that match the specified filtering options.
@@ -61,15 +64,19 @@ namespace FWO.Middleware.Server.Controllers
                 LogSiemEntry(request, requestId);
 
                 List<RuleDetail> rules;
-
-
+                
                 if (request.Query.OwnerId is not null)
                 {
                     rules = await FetchRulesByOwnerId(request.Query.OwnerId ?? -1, userConfig);
                 }
                 else if (!string.IsNullOrWhiteSpace(request.Query.IpAddress))
                 {
-                    var queryFilter = request.Query.Filter ?? new RuleFilter();
+                    if (!IPAddress.TryParse(request.Query.IpAddress, out IPAddress? ipAddress))
+                    {
+                        return BadRequest(
+                            "The IPAddress must be a valid IPv4 address.");
+                    }
+                    RuleFilter queryFilter = request.Query.Filter ?? new RuleFilter();
                     if (string.IsNullOrEmpty(queryFilter.Action))
                     {
                         return BadRequest(
@@ -88,7 +95,7 @@ namespace FWO.Middleware.Server.Controllers
                             "The field InField must be filled with either \"source\", \"destination\" or \"both\".");
                     }
                     rules = await FilterRules(
-                        request.Query.IpAddress,
+                        ipAddress,
                         queryFilter.Action,
                         queryFilter.MaxPrefixLength,
                         queryFilter.InField,
@@ -182,7 +189,7 @@ namespace FWO.Middleware.Server.Controllers
                 .ToList();
         }
 
-        private async Task<List<RuleDetail>> FilterRules(string ipAddress, string action, int maxPrefix, string inField, UserConfig userConfig)
+        private async Task<List<RuleDetail>> FilterRules(IPAddress ipAddress, string action, int maxPrefix, string inField, UserConfig userConfig)
         {
             var query = RuleQueries.getRuleDetailsById;
 
@@ -275,22 +282,19 @@ namespace FWO.Middleware.Server.Controllers
             return output;
         }
 
-        private static bool IsInRange(string ipAddress, int maxPrefix, List<NetworkObject?> objects)
+        private static bool IsInRange(IPAddress ipAddress, int maxPrefix, List<NetworkObject?> objects)
         {
-            foreach (var ipObject in objects)
+            IEnumerable<NetworkObject> cleanedObjects = objects.OfType<NetworkObject>().Where(ipObject => ipObject.Type.Name != "group");
+            foreach (var ipObject in cleanedObjects)
             {
-                if (ipObject is null || ipObject.Type.Name == "group")
-                {
-                    continue;
-                }
-
-                bool ipInRange = IsInRange(ipAddress, ipObject.IP, ipObject.IpEnd);
-                int rangePrefix = CommonPrefixLength(ipObject.IP, ipObject.IpEnd);
+                _ = IPAddress.TryParse(SanitizeIpString(ipObject.IP),out IPAddress? start);
+                _ = IPAddress.TryParse(SanitizeIpString(ipObject.IpEnd),out IPAddress? end);
+                bool ipInRange = IsInRange(ipAddress, start, end);
+                int rangePrefix = CommonPrefixLength(start, end);
                 if (rangePrefix >= maxPrefix && ipInRange)
                 {
                     return true;
                 }
-
                 if (rangePrefix < maxPrefix)
                 {
                     break;
@@ -300,74 +304,55 @@ namespace FWO.Middleware.Server.Controllers
             return false;
         }
 
-        private static uint ToUInt32(string ipString)
+        private static string SanitizeIpString(string? ipString)
         {
-            ipString = NormalizeIpv4(ipString) ?? String.Empty;
-            if (string.IsNullOrEmpty(ipString))
+            if (ipString is null)
             {
-                return 0;
+                return String.Empty;
             }
+            ipString = ipString.Trim();
 
-            var ip = IPAddress.Parse(ipString);
-            var bytes = ip.GetAddressBytes();
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(bytes);
-            return BitConverter.ToUInt32(bytes, 0);
+            return ipString.Split('/', 2)[0].Trim();
         }
 
-        private static string? NormalizeIpv4(string input)
+        private static bool IsInRange(IPAddress ip, IPAddress? startIp, IPAddress? endIp)
         {
-            if (string.IsNullOrEmpty(input.Trim()))
-                return null;
-
-            var addrPart = input.Split('/', 2)[0].Trim();
-
-            if (!IPAddress.TryParse(addrPart, out var ip))
-                return null;
-
-            if (ip.AddressFamily != AddressFamily.InterNetwork)
-                return null;
-
-            return ip.ToString();
-        }
-
-        private static bool IsInRange(string ip, string? startIp, string? endIp)
-        {
-            if (string.IsNullOrEmpty(startIp))
+            if (startIp is null)
             {
                 return false;
             }
-
-            uint addr = ToUInt32(ip);
-            uint start = ToUInt32(startIp);
-            if (string.IsNullOrEmpty(endIp))
+            
+            if (endIp is null)
             {
-                return addr == start;
+                return startIp.Equals(ip);
             }
-
-            uint end = ToUInt32(endIp);
-            if (start > end)
+            var ipAddressComparer = new IPAdressComparer();
+            if (ipAddressComparer.Compare(startIp, endIp) > 0)
             {
-                (start, end) = (end, start);
+                (startIp, endIp) = (endIp, startIp);
             }
-
-            return addr >= start && addr <= end;
+            bool isAfterStart = ipAddressComparer.Compare(startIp, ip) <= 0;
+            bool isBeforeEnd = ipAddressComparer.Compare(endIp, ip) >= 0;
+            return isAfterStart && isBeforeEnd;
         }
 
-        private static int CommonPrefixLength(string? ipA, string? ipB)
+        
+        private static int CommonPrefixLength(IPAddress? ipA, IPAddress? ipB)
         {
-            if (string.IsNullOrEmpty(ipA))
+            if (ipA is null)
             {
-                return -1; //start shouldn't ever be null -> abort comparison
+                return -1; // start shouldn't ever be null -> abort comparison
             }
 
-            if (string.IsNullOrEmpty(ipB))
+            if (ipB is null)
             {
                 return 32; // /32 is prefix of a specific IP address
             }
 
-            uint a = ToUInt32(ipA);
-            uint b = ToUInt32(ipB);
+            // Get bytes and convert to uint32
+            uint a = BinaryPrimitives.ReadUInt32BigEndian(ipA.GetAddressBytes());
+            uint b = BinaryPrimitives.ReadUInt32BigEndian(ipB.GetAddressBytes());
+    
             uint diff = a ^ b;
             if (diff == 0)
                 return 32;

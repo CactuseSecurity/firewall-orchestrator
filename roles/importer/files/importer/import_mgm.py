@@ -18,17 +18,14 @@ if IMPORTER_BASE_DIR not in sys.path:
     sys.path.append(IMPORTER_BASE_DIR)
 
 
-def get_fwo_jwt(
-    import_user: str, import_pwd: str, user_management_api: str
-) -> str | None:
+def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
     try:
         return FwoApi.login(import_user, import_pwd, user_management_api)
     except FwoApiLoginFailedError as e:
         FWOLogger.error(e.message)
     except Exception:
         FWOLogger.error(
-            "import_main_loop - unspecified error during FWO API login - skipping: "
-            + str(traceback.format_exc())
+            "import_main_loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
         )
 
 
@@ -78,12 +75,8 @@ def main(
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # suppress ssl warnings only
-    verify_certificates = (
-        fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
-    )
-    suppress_certificate_warnings = (
-        fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
-    )
+    verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
 
@@ -111,9 +104,7 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Read configuration from FW management via API calls"
-    )
+    parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(
         "-m",
         "--mgmId",
@@ -201,10 +192,7 @@ if __name__ == "__main__":
         )
     except Exception:
         FWOLogger.error(
-            "import-mgm - error while importing mgmId="
-            + str(args.mgmId)
-            + ": "
-            + str(traceback.format_exc())
+            "import-mgm - error while importing mgmId=" + str(args.mgmId) + ": " + str(traceback.format_exc())
         )
 
     sys.exit()

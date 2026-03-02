@@ -3187,8 +3187,6 @@ INSERT INTO txt VALUES ('U5015', 'German',  'Verwaltung der Workflow-Voreinstell
 INSERT INTO txt VALUES ('U5015', 'English', 'Administration of workflow settings (only by admin)');
 INSERT INTO txt VALUES ('U5016', 'German',  'Verwaltung der externen Auftr&auml;ge (nur f&uuml;r Admin)');
 INSERT INTO txt VALUES ('U5016', 'English', 'Administration of external requests (only by admin)');
-INSERT INTO txt VALUES ('U5017', 'German',  'Regel-Eigent&uuml;mer-Zuordnung neu erstellen');
-INSERT INTO txt VALUES ('U5017', 'English', '(Re)initialize Rule Owner Mapping');
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
 INSERT INTO txt VALUES ('U5102', 'German',  'L&ouml;scht alle Beispielmanagements (auf "_demo" endend) und alle zugeordneten Gateways');
@@ -3689,6 +3687,10 @@ INSERT INTO txt VALUES ('E5502', 'German',  'Keine Regeln/Eigent&uuml;mer gefund
 INSERT INTO txt VALUES ('E5502', 'English', 'No Rules/Owner or wrong Key-Field.');
 INSERT INTO txt VALUES ('E5503', 'German',  'Fehler beim Import.');
 INSERT INTO txt VALUES ('E5503', 'English', 'Import error.');
+INSERT INTO txt VALUES ('E5504', 'German',  'Bitte eine Eigent&uuml;merzuordnungsquelle ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E5504', 'English', 'Please select an owner mapping source.');
+INSERT INTO txt VALUES ('E5505', 'German',  'Bitte den benutzerdefinierten Feldschl&uuml;ssel ausf&uuml;llen.');
+INSERT INTO txt VALUES ('E5505', 'English', 'Please fill the custom field key.');
 
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
 INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');
@@ -7639,3 +7641,11 @@ INSERT INTO txt VALUES ('H5908', 'German',  'Das Deaktivieren einer Verantwortli
 INSERT INTO txt VALUES ('H5908', 'English', 'Deactivation of a responsible type keeps historical owner assignments but removes its effective permissions.');
 INSERT INTO txt VALUES ('H5909', 'German',  'Rollen werden hier nicht konfiguriert. Diese Einstellungen beeinflussen nur die UI-Zugriffs- und Aktionsm&ouml;glichkeiten.');
 INSERT INTO txt VALUES ('H5909', 'English', 'Roles are not configured here. These settings only affect UI access and available actions.');
+INSERT INTO txt VALUES ('H5910', 'German',  'In diesem Kapitel wird die automatische Eigent&uuml;merzuordnung f&uuml;r Regeln konfiguriert und bei Bedarf angestossen.');
+INSERT INTO txt VALUES ('H5910', 'English', 'This chapter configures automatic owner mapping for rules and allows triggering a recalculation when needed.');
+INSERT INTO txt VALUES ('H5911', 'German',  'Quelle ausw&auml;hlen: Legt fest, aus welchem Regelmerkmal die Eigent&uuml;merzuordnung abgeleitet wird (z.B. IP-basiert, Namensfeld oder Custom Field).');
+INSERT INTO txt VALUES ('H5911', 'English', 'Select source: Defines which rule attribute is used to derive owner mapping (e.g. IP-based, name field, or custom field).');
+INSERT INTO txt VALUES ('H5912', 'German',  'Custom-Field-Schl&uuml;ssel: Nur erforderlich bei Quelle "Custom Field". Ohne Schl&uuml;ssel kann die Konfiguration nicht gespeichert werden.');
+INSERT INTO txt VALUES ('H5912', 'English', 'Custom field key: Required only when source is "Custom Field". Configuration cannot be saved without this key.');
+INSERT INTO txt VALUES ('H5913', 'German',  'Neu berechnen: Startet die Aktualisierung der Eigent&uuml;merzuordnung f&uuml;r bestehende Regeln auf Basis der aktuellen Konfiguration.');
+INSERT INTO txt VALUES ('H5913', 'English', 'Recalculate: Starts updating owner mappings for existing rules based on the current configuration.');

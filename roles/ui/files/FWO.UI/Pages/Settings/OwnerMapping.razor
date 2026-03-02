@@ -11,13 +11,13 @@
 
 @implements IDisposable
 
-<PopUp Title="@(userConfig.GetText("owner_mapping"))" Show="@Display" Size=PopupSize.Medium OnClose="Close">
+<PopUp Title="@(userConfig.GetText("owner_mapping"))" HelpPage="settings/owners" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
         @if (Display)
         {
             <div class="form-group row mt-2 align-items-center">
-                <label class="col-sm-3 col-form-label me-2" for="ownerMappingSourceDropdown">@(userConfig.GetText("source"))</label>
-                <div class="col-sm-6">
+                <label class="col-sm-4 col-form-label me-2" for="ownerMappingSourceDropdown">@(userConfig.GetText("source"))</label>
+                <div class="col-sm-5">
                     <Dropdown ElementType="OwnerMappingSourceStm?" ElementToString="GetOwnerMappingSourceText" SelectedElement="@SelectedOwnerMappingSource"
                               SelectedElementChanged="@(src => { SelectedOwnerMappingSource = src; StateHasChanged(); })" Elements="OwnerMappingSources" Nullable="true" id="ownerMappingSourceDropdown">
                         <ElementTemplate Context="source">
@@ -32,8 +32,8 @@
             @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField)
             {
                 <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label me-2">@(userConfig.GetText("custom_field_key"))</label>
-                    <div class="col-sm-6">
+                    <label class="col-sm-4 col-form-label me-2">@(userConfig.GetText("custom_field_key"))</label>
+                    <div class="col-sm-5">
                         <input type="text" class="form-control form-control-sm" @bind="OwnerMappingCustomFieldkey" />
                     </div>
                 </div>
@@ -47,7 +47,7 @@
                     @if (!OwnerMappingCalcInProgress)
                     {
                         <button type="button" class="btn btn-sm btn-info" @onclick="OwnerSourceImportNotifier">
-                            @(DisplayService.DisplayButton(userConfig, "U5017", Icons.Import))
+                            @(DisplayService.DisplayButton(userConfig, "H5913", Icons.Refresh))
                         </button>
                     }
                     else
@@ -57,7 +57,7 @@
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" disabled class="btn btn-sm btn-info">
-                        @(DisplayService.DisplayButton(userConfig, "U5017", Icons.Import))
+                        @(DisplayService.DisplayButton(userConfig, "H5913", Icons.Refresh))
                     </button>
                 </NotAuthorized>
             </AuthorizeView>
@@ -159,13 +159,13 @@
 
             if (SelectedOwnerMappingSource == null)
             {
-                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("please_select_owner_mapping_source"), true);
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5504"), true);
                 return;
             }
 
             if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField && string.IsNullOrWhiteSpace(OwnerMappingCustomFieldkey))
             {
-                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("custom_field_key_missing"), true);
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5505"), true);
                 return;
             }
 

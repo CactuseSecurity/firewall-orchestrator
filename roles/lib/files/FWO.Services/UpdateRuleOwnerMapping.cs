@@ -20,7 +20,6 @@ namespace FWO.Services
 
         public UpdateRuleOwnerMapping(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
-
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
         }
@@ -29,16 +28,15 @@ namespace FWO.Services
         {
             await Task.Delay(1000);
 
-
-            switch (globalConfig.OwnerSoruceMappingID)
+            switch ((OwnerMappingSourceStm)globalConfig.OwnerSoruceMappingID)
             {
-                case OwnerMappingSourceStm.IP_BASED:
+                case OwnerMappingSourceStm.IpBased:
                     return false;
-                case OwnerMappingSourceStm.CUSTOM_FIELD:
+                case OwnerMappingSourceStm.CustomField:
                     return await UpdateRuleOwners(eventArgs);
-                case OwnerMappingSourceStm.NAME_FIELD:
+                case OwnerMappingSourceStm.NameField:
                     return false;
-                case OwnerMappingSourceStm.MANUEL:
+                case OwnerMappingSourceStm.Manual:
                     return false;
                 default:
                     return false;
@@ -255,7 +253,7 @@ namespace FWO.Services
                             RuleId = rule.Id,
                             OwnerId = ownerId,
                             RuleMetadataId = rule.Metadata.Id,
-                            OwnerMappingSourceId = OwnerMappingSourceStm.CUSTOM_FIELD,
+                            OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField,
                             Created = importControlId
                         });
                     }

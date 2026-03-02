@@ -58,16 +58,16 @@
                             <div class="col-sm-9">
                                 <div class="d-flex gap-1">
                                     <input type="text" class="form-control form-control-sm" @bind="NewOwnerResponsibleDnByType[type.Id]" disabled="@(!type.Active)" />
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => AddOwnerResponsible(type.Id)" disabled="@(!type.Active)">@(userConfig.GetText("add"))</button>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchUser(type.Id)" disabled="@(!type.Active)">@(userConfig.GetText("search") + " " + userConfig.GetText("user"))</button>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchGroup(type.Id)" disabled="@(!type.Active)">@(userConfig.GetText("search") + " " + userConfig.GetText("group"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => AddOwnerResponsible(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchUser(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "search", Icons.Search)) @userConfig.GetText("user")</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchGroup(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "search", Icons.Search)) @userConfig.GetText("group")</button>
                                 </div>
                                 <div class="mt-1">
                                     @foreach (string dn in ActOwner.GetOwnerResponsiblesByType(type.Id))
                                     {
                                         <div class="d-flex align-items-center gap-2">
                                             <small>@dn</small>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => ActOwner.RemoveOwnerResponsible(type.Id, dn)">@(userConfig.GetText("remove"))</button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => ActOwner.RemoveOwnerResponsible(type.Id, dn)">@(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
                                         </div>
                                     }
                                 </div>
@@ -243,14 +243,14 @@
             {
                 <AuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="HandleSave">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="HandleSave">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized>
                 </AuthorizeView>
             }
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="HandleCancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="HandleCancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>

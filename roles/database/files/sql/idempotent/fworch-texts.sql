@@ -277,6 +277,14 @@ INSERT INTO txt VALUES ('Restricted',       	'German',	'Beschr&auml;nkt');
 INSERT INTO txt VALUES ('Restricted', 	    	'English',	'Restricted');
 INSERT INTO txt VALUES ('Private',       		'German',	'Privat');
 INSERT INTO txt VALUES ('Private', 	    		'English',	'Private');
+INSERT INTO txt VALUES ('IpBased',              'German',   'IP-basiert');
+INSERT INTO txt VALUES ('IpBased',              'English',  'IP based');
+INSERT INTO txt VALUES ('CustomField',          'German',   'Custom-Feld');
+INSERT INTO txt VALUES ('CustomField',          'English',  'Custom field');
+INSERT INTO txt VALUES ('NameField',            'German',   'Namensfeld');
+INSERT INTO txt VALUES ('NameField',            'English',  'Name field');
+INSERT INTO txt VALUES ('Manual',               'German',   'Manuell');
+INSERT INTO txt VALUES ('Manual',               'English',  'Manual');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -630,10 +638,10 @@ INSERT INTO txt VALUES ('number', 				'German', 	'Nr.');
 INSERT INTO txt VALUES ('number', 				'English', 	'No.');
 INSERT INTO txt VALUES ('name', 				'German', 	'Name');
 INSERT INTO txt VALUES ('name', 				'English', 	'Name');
-INSERT INTO txt VALUES ('user_deleted',		'German', 	'Nutzer gel&ouml;scht');
-INSERT INTO txt VALUES ('user_deleted',		'English', 	'User deleted');
-INSERT INTO txt VALUES ('user_added',		'German', 	'Nutzer hinzugef&uuml;gt');
-INSERT INTO txt VALUES ('user_added',		'English', 	'User added');
+INSERT INTO txt VALUES ('user_deleted',		    'German', 	'Nutzer gel&ouml;scht');
+INSERT INTO txt VALUES ('user_deleted',		    'English', 	'User deleted');
+INSERT INTO txt VALUES ('user_added',		    'German', 	'Nutzer hinzugef&uuml;gt');
+INSERT INTO txt VALUES ('user_added',		    'English', 	'User added');
 INSERT INTO txt VALUES ('user_modified',		'German', 	'Nutzer modifiziert');
 INSERT INTO txt VALUES ('user_modified',		'English', 	'User modified');
 INSERT INTO txt VALUES ('source', 				'German', 	'Quelle');
@@ -684,12 +692,12 @@ INSERT INTO txt VALUES ('no_rules_gtw',		    'German', 	'Anzahl Regeln pro Gatew
 INSERT INTO txt VALUES ('no_rules_gtw',		    'English', 	'Number of Rules per Gateway');
 INSERT INTO txt VALUES ('negated',		        'German', 	'nicht');
 INSERT INTO txt VALUES ('negated',		        'English', 	'not');
-INSERT INTO txt VALUES ('network_object_deleted',		'German', 	'Netzwerkobjekt gel&ouml;scht');
-INSERT INTO txt VALUES ('network_object_deleted',		'English', 	'Network Object deleted');
-INSERT INTO txt VALUES ('network_object_added',		'German', 	'Netzwerkobjekt hinzugef&uuml;gt');
-INSERT INTO txt VALUES ('network_object_added',		'English', 	'Network Object added');
-INSERT INTO txt VALUES ('network_object_modified',		'German', 	'Netzwerkobjekt modifiziert');
-INSERT INTO txt VALUES ('network_object_modified',		'English', 	'Network Object modified');
+INSERT INTO txt VALUES ('network_object_deleted','German', 	'Netzwerkobjekt gel&ouml;scht');
+INSERT INTO txt VALUES ('network_object_deleted','English', 'Network Object deleted');
+INSERT INTO txt VALUES ('network_object_added',	'German', 	'Netzwerkobjekt hinzugef&uuml;gt');
+INSERT INTO txt VALUES ('network_object_added',	'English', 	'Network Object added');
+INSERT INTO txt VALUES ('network_object_modified','German', 'Netzwerkobjekt modifiziert');
+INSERT INTO txt VALUES ('network_object_modified','English','Network Object modified');
 INSERT INTO txt VALUES ('network_object',		'German', 	'Netzwerkobjekt');
 INSERT INTO txt VALUES ('network_object',		'English', 	'Network Object');
 INSERT INTO txt VALUES ('network_objects',		'German', 	'Netzwerkobjekte');
@@ -868,8 +876,8 @@ INSERT INTO txt VALUES ('schedule_owner',		'German', 	'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('schedule_owner',		'English', 	'Owner');
 INSERT INTO txt VALUES ('active', 			    'German',	'Aktiv');
 INSERT INTO txt VALUES ('active', 			    'English',	'Active');
-INSERT INTO txt VALUES ('inactive',            'German',   'Inaktiv');
-INSERT INTO txt VALUES ('inactive',            'English',  'Inactive');
+INSERT INTO txt VALUES ('inactive',             'German',   'Inaktiv');
+INSERT INTO txt VALUES ('inactive',             'English',  'Inactive');
 INSERT INTO txt VALUES ('count', 			    'German',	'Z&auml;hler');
 INSERT INTO txt VALUES ('count', 			    'English',	'Count');
 INSERT INTO txt VALUES ('output_format', 		'German',	'Ausgabeformat');
@@ -1952,10 +1960,12 @@ INSERT INTO txt VALUES ('importer_settings',    'German', 	'FW-Importer-Einstell
 INSERT INTO txt VALUES ('importer_settings',    'English', 	'FW Importer Settings');
 INSERT INTO txt VALUES ('change_trigger',       'German', 	'FW-&Auml;nderungstrigger-Einstellungen');
 INSERT INTO txt VALUES ('change_trigger',       'English', 	'FW Change Trigger Settings');
-INSERT INTO txt VALUES ('change_notification_sub',       'German', 	'Einstellungen f&uuml;r Trigger von &Auml;nderungsbenachrichtigungen');
-INSERT INTO txt VALUES ('change_notification_sub',       'English', 	'Change Notification Event Trigger Settings');
-INSERT INTO txt VALUES ('update_rule_owner_mapping_sub',       'German', 	'Einstellungen f&uuml;r Trigger zur Aktualisierung der Regelverantwortung');
-INSERT INTO txt VALUES ('update_rule_owner_mapping_sub',       'English', 	'Rule Owner Mapping Update Event Trigger Settings');
+INSERT INTO txt VALUES ('change_notification_sub','German', 'Einstellungen f&uuml;r Trigger von &Auml;nderungsbenachrichtigungen');
+INSERT INTO txt VALUES ('change_notification_sub','English','Change Notification Event Trigger Settings');
+INSERT INTO txt VALUES ('owner_mapping',        'German',   'Eigent&uuml;merzuordnung');
+INSERT INTO txt VALUES ('owner_mapping',        'English',  'Owner Mapping');
+INSERT INTO txt VALUES ('custom_field_key',     'German',   'Custom-Feld-Schl&uuml;ssel');
+INSERT INTO txt VALUES ('custom_field_key',     'English',  'Custom Field key');
 INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');
 INSERT INTO txt VALUES ('edit_email',           'English', 	'Edit email settings');
 INSERT INTO txt VALUES ('email_sender',         'German', 	'Email-Absendeadresse');
@@ -2258,11 +2268,11 @@ INSERT INTO txt VALUES ('impChangeNotifySleepTime','German','&Auml;nderungsbenac
 INSERT INTO txt VALUES ('impChangeNotifySleepTime','English','Change notification sleep time (in seconds)');
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenachrichtigungs-Start');
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingActive',    'German', 	'Regelbesitzer zuordnungs aktualisierung aktiv?');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingActive',    'English', 	'Update Rule Owner Mapping active?');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','German','Regelbesitzer zuordnungs aktualisierungs-Intervall (in Sekunden)');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingActive','German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierung aktiv?');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingActive','English', 'Update Rule Owner Mapping active?');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','German','Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','English','Update Rule Owner Mapping sleep time (in seconds)');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingStartAt',  'German','Regelbesitzer zuordnung aktualisierungs-Start');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingStartAt',  'German','Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Start');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingStartAt',  'English','Update Rule Owner Mapping start at');
 INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('externalRequestSleepTime','English','External Request sleep time (in seconds)');
@@ -3177,10 +3187,8 @@ INSERT INTO txt VALUES ('U5015', 'German',  'Verwaltung der Workflow-Voreinstell
 INSERT INTO txt VALUES ('U5015', 'English', 'Administration of workflow settings (only by admin)');
 INSERT INTO txt VALUES ('U5016', 'German',  'Verwaltung der externen Auftr&auml;ge (nur f&uuml;r Admin)');
 INSERT INTO txt VALUES ('U5016', 'English', 'Administration of external requests (only by admin)');
-INSERT INTO txt VALUES ('U5017', 'German',  'Regelbesitzer zuordnung neu erstellen');
+INSERT INTO txt VALUES ('U5017', 'German',  'Regel-Eigent&uuml;mer-Zuordnung neu erstellen');
 INSERT INTO txt VALUES ('U5017', 'English', '(Re)initialize Rule Owner Mapping');
-INSERT INTO txt VALUES ('U5018', 'German',  'Besitzerzuordnungsquelle');
-INSERT INTO txt VALUES ('U5018', 'English', 'Owner Mappings Source');
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
 INSERT INTO txt VALUES ('U5102', 'German',  'L&ouml;scht alle Beispielmanagements (auf "_demo" endend) und alle zugeordneten Gateways');
@@ -3317,6 +3325,8 @@ INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden
 INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');
 INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende Aktion l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5502', 'English', 'Are you sure you want to delete action: ');
+INSERT INTO txt VALUES ('U5503', 'German',  'Import erfolgreich.');
+INSERT INTO txt VALUES ('U5503', 'English', 'Import successful.');
 
 INSERT INTO txt VALUES ('U5601', 'German',  'Sind sie sicher, dass sie das letzte Senden f&uuml;r folgende Benachrichtigung zur&uuml;cksetzen wollen: ');
 INSERT INTO txt VALUES ('U5601', 'English', 'Are you sure you want to reset the last sending for following notification: ');
@@ -3675,6 +3685,10 @@ INSERT INTO txt VALUES ('E5431', 'English', 'Uploaded File exceeds the allowed m
 
 INSERT INTO txt VALUES ('E5501', 'German',  'Die Regel kann nicht doppelt zugewiesen werden.');
 INSERT INTO txt VALUES ('E5501', 'English', 'Rule cannot be assigned twice.');
+INSERT INTO txt VALUES ('E5502', 'German',  'Keine Regeln/Eigent&uuml;mer gefunden oder falsches Schl&uuml;sselfeld.');
+INSERT INTO txt VALUES ('E5502', 'English', 'No Rules/Owner or wrong Key-Field.');
+INSERT INTO txt VALUES ('E5503', 'German',  'Fehler beim Import.');
+INSERT INTO txt VALUES ('E5503', 'English', 'Import error.');
 
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
 INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');
@@ -5480,7 +5494,7 @@ INSERT INTO txt VALUES ('H5483', 'German',  '&Auml;nderungsbenachrichtigung akti
 INSERT INTO txt VALUES ('H5483', 'English', 'Change notification active?: When an import finds security relevant changes, should an email be sent out?
     Default value = "inactive".
 ');
-INSERT INTO txt VALUES ('H5483a', 'German',  'Regelbesitzer zuordnungs aktualisierung aktiv: Wenn sich ein Besitzer oder eine Regel &auml;ndert, wird die Zuordnung automatisch &uuml;berpr&uuml;ft und ggf. eine neue Zuordnung erstellt.
+INSERT INTO txt VALUES ('H5483a', 'German',  'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierung aktiv: Wenn sich ein Eigent&uuml;mer oder eine Regel &auml;ndert, wird die Zuordnung automatisch &uuml;berpr&uuml;ft und ggf. eine neue Zuordnung erstellt.
     Default-Wert = "inaktiv".
 ');
 INSERT INTO txt VALUES ('H5483a', 'English', 'Update Rule Owner Mapping active?: When an owner or a rule changes, the mapping is automatically checked and a new mapping is created if needed.
@@ -5506,12 +5520,14 @@ INSERT INTO txt VALUES ('H5484', 'English', 'Change notification type: Defines h
 ');
 INSERT INTO txt VALUES ('H5485', 'German',  '&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5485', 'English', 'Change notification sleep time (in seconds): Time between the checks for imported changes.');
-INSERT INTO txt VALUES ('H5485a', 'German',  'Regelbesitzer zuordnungs aktualisierungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
-INSERT INTO txt VALUES ('H5485a', 'English', 'Update Rule Owner Mapping sleep time (in seconds): Time between the checks for imported changes.');
+INSERT INTO txt VALUES ('H5485a', 'German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
+INSERT INTO txt VALUES ('H5485a', 'English','Update Rule Owner Mapping sleep time (in seconds): Time between the checks for imported changes.');
 INSERT INTO txt VALUES ('H5486', 'German',  '&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5486', 'English', 'Change notification start at: Start time for the import change checks.');
-INSERT INTO txt VALUES ('H5486a', 'German',  'Regelbesitzer zuordnungs aktualisierungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
-INSERT INTO txt VALUES ('H5486a', 'English', 'Update Rule Owner Mapping start at: Start time for the import change checks.');
+INSERT INTO txt VALUES ('H5486a', 'German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
+INSERT INTO txt VALUES ('H5486a', 'English','Update Rule Owner Mapping start at: Start time for the import change checks.');
+INSERT INTO txt VALUES ('H5486b','German',  'Einstellungen f&uuml;r Trigger zur Aktualisierung der Regelverantwortung');
+INSERT INTO txt VALUES ('H5486b','English', 'Rule Owner Mapping Update Event Trigger Settings');
 INSERT INTO txt VALUES ('H5487', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
     sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".
 ');

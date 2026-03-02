@@ -149,10 +149,10 @@
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save"
-                    @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+                    @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </Authorized>
         <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </NotAuthorized>
     </AuthorizeView>
     <br>
@@ -206,7 +206,7 @@ else
     <Footer>
         <div class="btn-group">
             <button type="button" class="btn btn-sm btn-primary"
-                    @onclick="() => ShowCSVImportPopUp = false">@(userConfig.GetText("ok"))</button>
+                    @onclick="() => ShowCSVImportPopUp = false">@(DisplayService.DisplayButton(userConfig, "ok", Icons.Confirm))</button>
         </div>
     </Footer>
 </PopUp>

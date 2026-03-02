@@ -2,6 +2,7 @@
 @using FWO.Data
 @using FWO.Logging
 @using FWO.Services
+@using FWO.Ui.Services
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -16,7 +17,7 @@
                         <div class="col-sm-12">
                             @if (userConfig.AllowManualOwnerAdmin)
                             {
-                                <button type="button" class="btn btn-sm btn-success" @onclick="AddLifeCycle">@(userConfig.GetText("add_owner_lc_state"))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="AddLifeCycle">@(DisplayService.DisplayButton(userConfig, "add_owner_lc_state", Icons.Add))</button>
                             }
                         </div>
                     </div>
@@ -26,13 +27,13 @@
                                 <div class="btn-group">
                                     @if (userConfig.AllowManualOwnerAdmin)
                                     {
-                                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditLifeCyle(item)">@(userConfig.GetText("edit"))</button>
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditLifeCyle(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                                         <AuthorizeView Roles="@Roles.Admin" Context="ctx">
                                             <Authorized>
-                                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteLifeCycle(item)">@(userConfig.GetText("delete"))</button>
+                                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteLifeCycle(item)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                             </Authorized>
                                             <NotAuthorized>
-                                                <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
+                                                <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                             </NotAuthorized>
                                         </AuthorizeView>
                                     }
@@ -83,14 +84,14 @@
             {
                 <AuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveLifeCycle">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveLifeCycle">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized>
                 </AuthorizeView>
             }
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEditLifeCycle">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEditLifeCycle">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>

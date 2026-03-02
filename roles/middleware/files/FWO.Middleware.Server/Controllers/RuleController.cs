@@ -8,20 +8,43 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
-using FWO.Report;
 using FWO.Ui.Display;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
-#pragma warning disable CS1591
 namespace FWO.Middleware.Server.Controllers
 {
+    /// <summary>
+    /// Provides endpoints for retrieving firewall rules filtered by owner or IP-related criteria.
+    /// </summary>
+    /// <remarks>
+    /// This controller uses the central API connection to expose a filtered rule search meant for administrative overview of existing rules.
+    /// </remarks>
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class RuleController(ApiConnection apiConnection) : ControllerBase
     {
+        private const int OwnerMappingIdCustomField = 2;
+
+        /// <summary>
+        /// Returns firewall rules that match the specified filtering options.
+        /// </summary>
+        /// <remarks>
+        /// Exactly one of <c>OwnerId</c> or <c>IpAddress</c> must be provided in the request query.
+        /// When <c>OwnerId</c> is set, all rules mapped to the given owner are returned.
+        /// When <c>IpAddress</c> is set, rules are filtered by IP range using the supplied <c>Filter</c> fields:
+        /// <list type="bullet">
+        /// <item><description><c>Action</c> must be <c>accept</c>, <c>deny</c> or <c>any</c>.</description></item>
+        /// <item><description><c>MaxPrefixLength</c> must be between 0 and 32 and limits the minimum prefix length of matching ranges.</description></item>
+        /// <item><description><c>InField</c> must be <c>source</c>, <c>destination</c> or <c>both</c> and determines which side of the rule is inspected.</description></item>
+        /// </list>
+        /// </remarks>
+        /// <returns>
+        /// An <see cref="ActionResult{T}"/> containing a <see cref="RulesByFilterResponse"/> on success,
+        /// or a suitable error result on failure.
+        /// </returns>
         [HttpPost("GetRulesByFilter")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<ActionResult<RulesByFilterResponse>> GetRulesByFilter(
@@ -42,17 +65,33 @@ namespace FWO.Middleware.Server.Controllers
 
                 if (request.Query.OwnerId is not null)
                 {
-                    rules = await FetchRulesByAdoIT(request.Query.OwnerId ?? -1, apiConnection, userConfig);
+                    rules = await FetchRulesByOwnerId(request.Query.OwnerId ?? -1, userConfig);
                 }
                 else if (!string.IsNullOrWhiteSpace(request.Query.IpAddress))
                 {
-                    var f = request.Query.Filter ?? new RuleFilter();
+                    var queryFilter = request.Query.Filter ?? new RuleFilter();
+                    if (string.IsNullOrEmpty(queryFilter.Action))
+                    {
+                        return BadRequest(
+                            "The field Action must be filled with either \"accept\", \"deny\" or \"any\".");
+                    }
+
+                    if (queryFilter.MaxPrefixLength < 0 || queryFilter.MaxPrefixLength > 32)
+                    {
+                        return BadRequest(
+                            $"The value for MaxPrefixLength {queryFilter.MaxPrefixLength} must be between 0 and 32.");
+                    }
+
+                    if (string.IsNullOrEmpty(queryFilter.InField))
+                    {
+                        return BadRequest(
+                            "The field InField must be filled with either \"source\", \"destination\" or \"both\".");
+                    }
                     rules = await FilterRules(
                         request.Query.IpAddress,
-                        f.Action,
-                        f.MaxPrefixLength,
-                        f.InField,
-                        apiConnection,
+                        queryFilter.Action,
+                        queryFilter.MaxPrefixLength,
+                        queryFilter.InField,
                         userConfig
                     );
                 }
@@ -103,15 +142,14 @@ namespace FWO.Middleware.Server.Controllers
             Log.WriteInfo("Log type: portal-application", info);
         }
 
-        private async Task<List<RuleDetail>> FetchRulesByAdoIT(int adoItId, ApiConnection apiConnection,
+        private async Task<List<RuleDetail>> FetchRulesByOwnerId(int ownerId,
             UserConfig userConfig)
         {
-            var ruleIDs = await GetRuleIdsByAdoItAsync(adoItId, apiConnection);
-            return await GetRulesByIdsAsync(ruleIDs, adoItId, apiConnection, userConfig);
+            var ruleIDs = await GetRuleIdsByOwnerId(ownerId);
+            return await GetRulesByIdsAsync(ruleIDs, userConfig);
         }
 
-        private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, int ownerId,
-            ApiConnection apiConnection, UserConfig userConfig)
+        private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, UserConfig userConfig)
         {
             if (ruleIds.Count == 0)
                 return new List<RuleDetail>();
@@ -127,23 +165,14 @@ namespace FWO.Middleware.Server.Controllers
             return ConvertRuleList(result, userConfig);
         }
 
-        private async Task<List<int>> GetRuleIdsByAdoItAsync(int adoIt, ApiConnection apiConnection)
+        private async Task<List<int>> GetRuleIdsByOwnerId(int ownerId)
         {
-            var query = @"
-            query GetRuleIdsByAdoIt($adoIt: Int!) {
-              rule_owner(
-                where: {
-                  owner_mapping_source_id: { _eq: 2 }
-                  owner_id: { _eq: $adoIt }
-                }
-              ) {
-                rule_id
-              }
-            }";
+            var query = RuleQueries.getRuleIdsByRuleOwner;
 
             var variables = new
             {
-                adoIt
+                ownerId,
+                owner_mapping_source = OwnerMappingIdCustomField
             };
 
             var result = await apiConnection.SendQueryAsync<List<RuleOwnerItem>>(query, variables);
@@ -153,14 +182,15 @@ namespace FWO.Middleware.Server.Controllers
                 .ToList();
         }
 
-        private async Task<List<RuleDetail>> FilterRules(string ipAddress, string action, int maxPrefix, string inField,
-            ApiConnection apiConnection, UserConfig userConfig)
+        private async Task<List<RuleDetail>> FilterRules(string ipAddress, string action, int maxPrefix, string inField, UserConfig userConfig)
         {
             var query = RuleQueries.getRuleDetailsById;
 
+            string? ruleAction = SanitizeRuleAction(action);
+
             var variables = new
             {
-                rule_action = action
+                rule_action = ruleAction
             };
 
             var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
@@ -175,13 +205,13 @@ namespace FWO.Middleware.Server.Controllers
                             FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object).ToList()));
                         break;
                     case "destination":
-                        isInRange = IsInRange(ipAddress, maxPrefix, 
+                        isInRange = IsInRange(ipAddress, maxPrefix,
                             FlattenRuleNetworkObjects(rule.Tos.Select(dest => dest.Object).ToList()));
                         break;
                     case "both":
                         bool sourceRange = IsInRange(ipAddress, maxPrefix,
                             FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object).ToList()));
-                        bool destRange = IsInRange(ipAddress, maxPrefix, 
+                        bool destRange = IsInRange(ipAddress, maxPrefix,
                             FlattenRuleNetworkObjects(rule.Tos.Select(dest => dest.Object).ToList()));
                         isInRange = sourceRange || destRange;
                         break;
@@ -203,39 +233,42 @@ namespace FWO.Middleware.Server.Controllers
             string notFound = "Not Found in Database";
             foreach (var item in inputList)
             {
-                RuleDetail rule = new();
-                rule.Uid = item.Uid ?? notFound;
-                rule.Manager = item.MgmtId.ToString();
-                rule.Source = FlattenRuleNetworkObjects(item.Froms.Select(r => r.Object).ToList()).Select(s => new NetworkObjectCopy()
+                RuleDetail rule = new()
                 {
-                    Name = s?.Name ?? notFound,
-                    Type= s?.Type.Name,
-                    Ip = s?.IP 
-                    
-                }).ToList();
-                rule.SourceShort = DisplaySourceOrDestinationPlain(item, true, userConfig);
-                rule.Destination = FlattenRuleNetworkObjects(item.Tos.Select(r => r.Object).ToList()).Select(d => new NetworkObjectCopy()
-                {
-                    Name = d?.Name ?? notFound,
-                    Type= d?.Type.Name,
-                    Ip = d?.IP
-                }).ToList();
-                rule.DestinationShort = DisplaySourceOrDestinationPlain(item, false, userConfig);
-                rule.Service = item.Services
-                    .Select(s => new ServiceObject
-                    {
-                        Name = s.Content.Name,
-                        Protocol = s.Content.Protocol?.Name ?? notFound,
-                        Port = s.Content.SourcePort ?? -1
-                    })
-                    .ToList();
-                rule.ServiceShort = DisplayServicesPlain(item, userConfig);
-                rule.ChangeID = item.CustomFields;
-                rule.Name = item.Name ?? notFound;
-                rule.CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound;
-                rule.LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound;
-                rule.Action = item.Action;
-                rule.AdoIT = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound;
+                    Uid = item.Uid ?? notFound,
+                    Manager = item.MgmtId.ToString(),
+                    Source = FlattenRuleNetworkObjects(item.Froms.Select(r => r.Object).ToList()).Select(s =>
+                        new NetworkObjectCopy()
+                        {
+                            Name = s?.Name ?? notFound,
+                            Type = s?.Type.Name,
+                            Ip = s?.IP
+                        }).ToList(),
+                    SourceShort = DisplaySourceOrDestinationPlain(item, true, userConfig),
+                    Destination = FlattenRuleNetworkObjects(item.Tos.Select(r => r.Object).ToList()).Select(d =>
+                        new NetworkObjectCopy()
+                        {
+                            Name = d?.Name ?? notFound,
+                            Type = d?.Type.Name,
+                            Ip = d?.IP
+                        }).ToList(),
+                    DestinationShort = DisplaySourceOrDestinationPlain(item, false, userConfig),
+                    Service = item.Services
+                        .Select(s => new ServiceObject
+                        {
+                            Name = s.Content.Name,
+                            Protocol = s.Content.Protocol?.Name ?? notFound,
+                            Port = s.Content.SourcePort ?? -1
+                        })
+                        .ToList(),
+                    ServiceShort = DisplayServicesPlain(item, userConfig),
+                    ChangeID = item.CustomFields,
+                    Name = item.Name ?? notFound,
+                    CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
+                    LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
+                    Action = item.Action,
+                    AdoIT = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound
+                };
                 output.Add(rule);
             }
 
@@ -250,12 +283,14 @@ namespace FWO.Middleware.Server.Controllers
                 {
                     continue;
                 }
+
                 bool ipInRange = IsInRange(ipAddress, ipObject.IP, ipObject.IpEnd);
                 int rangePrefix = CommonPrefixLength(ipObject.IP, ipObject.IpEnd);
                 if (rangePrefix >= maxPrefix && ipInRange)
                 {
                     return true;
                 }
+
                 if (rangePrefix < maxPrefix)
                 {
                     break;
@@ -353,7 +388,7 @@ namespace FWO.Middleware.Server.Controllers
             var networkLocations = isSource ? rule.Froms : rule.Tos;
 
             string joined = string.Join(Environment.NewLine,
-                Array.ConvertAll(networkLocations, nwLoc => NetworkLocationToPlainText(nwLoc)));
+                Array.ConvertAll(networkLocations, NetworkLocationToPlainText));
 
             result.Append(joined);
 
@@ -389,14 +424,14 @@ namespace FWO.Middleware.Server.Controllers
 
             if (userNetworkObject.Object.Type.Name != ObjectType.Group)
             {
-                bool showIpinBrackets = true;
+                bool showIpInBrackets = true;
 
                 result.Append(
                     NwObjDisplay.DisplayIp(
                         userNetworkObject.Object.IP,
                         userNetworkObject.Object.IpEnd,
                         userNetworkObject.Object.Type.Name,
-                        showIpinBrackets));
+                        showIpInBrackets));
             }
 
             return result;
@@ -417,36 +452,36 @@ namespace FWO.Middleware.Server.Controllers
 
             return result.ToString();
         }
-        
+
         private static List<NetworkObject?> FlattenRuleNetworkObjects(List<NetworkObject> list)
         {
-            var temp1 = list
-                .SelectMany(obj =>                                     
+            return list
+                .SelectMany(obj =>
                     new[] { obj }
                         .Concat(obj.ObjectGroupFlats
                             .Select(g => g.Object)
                         )
                 ).ToList();
-
-            return temp1;
         }
-        private static object BuildOwnerCondition(int? ownerId)
+
+        private static string? SanitizeRuleAction(string action)
         {
-            if (ownerId == null)
+            string? ruleAction = null;
+            switch (action)
             {
-                return new { };
+                case "accept":
+                case "deny":
+                    ruleAction = action;
+                    break;
+                case "any":
+                default: break;
             }
-            return new
-            {
-                owner_id = new
-                {
-                    _eq = ownerId.Value
-                }
-            };
+
+            return ruleAction;
         }
     }
 
-
+#pragma warning disable CS1591
     public class RulesByFilterRequest
     {
         public RequestContext RequestContext { get; set; } = new();
@@ -502,7 +537,7 @@ namespace FWO.Middleware.Server.Controllers
     {
         public string Name { get; set; } = "";
         public string? Ip { get; set; } = "";
-        public string? Type {get; set;} = "";
+        public string? Type { get; set; } = "";
     }
 
     public class ServiceObject
@@ -522,6 +557,5 @@ namespace FWO.Middleware.Server.Controllers
     {
         [JsonProperty("rule_id")] public int RuleId { get; set; }
     }
-}
-
 #pragma warning restore CS1591
+}

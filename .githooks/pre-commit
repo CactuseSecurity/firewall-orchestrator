@@ -1,8 +1,32 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-RUFF_PATH=.venv/bin/ruff
-PYRIGHT_PATH=.venv/bin/pyright
+if [ -d ".venv/Scripts" ]; then
+    VENV_BIN=".venv/Scripts/"
+elif [ -d ".venv/bin" ]; then
+    VENV_BIN=".venv/bin/"
+else
+    VENV_BIN=""
+fi
 
+RUFF_PATH=$VENV_BIN"ruff"
+PYRIGHT_PATH=$VENV_BIN"pyright"
+
+# Assure ruff, pyright and dotnet are available -> otherwise inform user about it
+UNAVAILABLE_DEPENDENCIES=false
+for cmd in "$RUFF_PATH" "$PYRIGHT_PATH" "dotnet"; do
+    command -v "$cmd" >/dev/null 2>&1 || 
+    { 
+     echo "Error: '$cmd' not found. Please install it or activate your environment.";
+     UNAVAILABLE_DEPENDENCIES=true;
+    }
+done
+
+if $UNAVAILABLE_DEPENDENCIES; then
+    exit 1;
+fi
+
+# Checks
 $RUFF_PATH check --fix
 $RUFF_PATH format
 

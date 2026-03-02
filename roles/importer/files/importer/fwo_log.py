@@ -4,7 +4,7 @@ import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from models.import_state import ImportState
+    from states.import_state import ImportState
 
     from importer.services.uid2id_mapper import Uid2IdMapper
 

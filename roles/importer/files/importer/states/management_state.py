@@ -8,8 +8,9 @@ from services.uid2id_mapper import Uid2IdMapper
 class ManagementState:
     previous_config: FwConfigNormalized | None
     normalized_config: FwConfigNormalized | None
-    uid2id_mapper: Uid2IdMapper | None
-    group_flats_mapper: GroupFlatsMapper | None
+    uid2id_mapper: Uid2IdMapper
+    group_flats_mapper: GroupFlatsMapper
+    prev_group_flats_mapper: GroupFlatsMapper
 
     mgm_id: int
     name: str

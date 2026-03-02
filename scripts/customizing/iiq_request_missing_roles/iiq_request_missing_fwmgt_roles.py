@@ -10,8 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from git import Repo  # apt install python3-git # or: pip install git  # pyright: ignore[reportUnknownVariableType]
 import urllib3
+from git import Repo  # apt install python3-git # or: pip install git  # pyright: ignore[reportUnknownVariableType]
 
 from scripts.customizing.fwo_custom_lib.app_data_basics import (
     transform_app_list_to_dict,

@@ -1,0 +1,10 @@
+query getOwnerResponsibleTypes {
+  owner_responsible_type(order_by: { sort_order: asc, name: asc }) {
+    id
+    name
+    active
+    allow_modelling
+    allow_recertification
+    sort_order
+  }
+}

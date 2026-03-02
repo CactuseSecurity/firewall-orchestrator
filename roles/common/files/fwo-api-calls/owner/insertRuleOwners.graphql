@@ -1,0 +1,13 @@
+mutation insertRuleOwners($objects: [rule_owner_insert_input!]!) {
+  insert_rule_owner(objects: $objects) {
+    affected_rows
+    returning {
+      rule_id
+      owner_id
+      removed
+      created
+      rule_metadata_id
+      owner_mapping_source_id
+    }
+  }
+}

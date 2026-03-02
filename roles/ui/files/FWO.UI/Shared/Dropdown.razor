@@ -11,7 +11,7 @@
     <label id="@($"dropdown-input-prepend-{Id}")" class="input-group-text d-flex justify-content-center" style="width: 40px;" for="@($"dropdown-input-{Id}")">
         <span id="@($"dropdown-input-prepend-icon-{Id}")" class="@Icons.CollapseDown"></span>
     </label>
-    <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control" style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onclick="ShowMenu" @onfocus="ClearFilter" @oninput="Filter" @bind="searchValue" />
+    <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control" style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onfocus="ShowMenu" @oninput="Filter" @bind="searchValue" />
     @if (Append != null)
     {
         @Append
@@ -29,7 +29,7 @@
                     <button id="@($"dropdown-menu-selected-{Id + i++}")" type="button" @onclick="async () => await UnselectElement(element)" class="dropdown-item @(Small ? "small" : "")">
                         <div id="@($"dropdown-menu-selected-content-{Id + i++}")" class="d-flex align-items-baseline justify-content-between">
                             @ElementTemplate(element)
-                            @if (( Nullable || Multiselect ))
+                            @if ((Nullable || Multiselect))
                             {
                                 <i id="@($"dropdown-menu-selected-x-{Id + i++}")" class="ms-2 @(Icons.Close)"></i>
                             }
@@ -52,7 +52,8 @@
 {
     private int xPositionDropdown;
     private int yPositionDropdown;
-    private bool JsDisposed { get; set; }
+
+    private bool _disposed;
 
     [Parameter]
     public string Id { get; set; }
@@ -70,7 +71,7 @@
     public int AppendWidth { get; set; } = 0;
 
     [Parameter]
-    public Func<ElementType, string> ElementToString { get; set; } = ( o => o?.ToString() ?? "" );
+    public Func<ElementType, string> ElementToString { get; set; } = (o => o?.ToString() ?? "");
 
     [Parameter]
     public bool Nullable { get; set; }
@@ -107,7 +108,7 @@
         set
         {
             Debug.Assert(!Multiselect, "If the Multiselect option is enabled do not use the property SelectedElement but SelectedElements instead.");
-            if (( SelectedElements.Count() == 0 && value != null ) || !Object.Equals(value, SelectedElements.FirstOrDefault()))
+            if ((SelectedElements.Count() == 0 && value != null) || !Object.Equals(value, SelectedElements.FirstOrDefault()))
             {
                 if (value == null)
                 {
@@ -164,91 +165,76 @@
             DisplaySelection(SelectedElements);
         }
 
-        // Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)
+        // Toggle dropdown if the focus leaves (to avoid positional problems)
         if (!eventService.Initialized && jsRuntime != null)
         {
             await eventService.Initialize(jsRuntime);
         }
-        eventService.OnGlobalResize += OnGlobalResize;
-        eventService.OnGlobalScroll += OnGlobalScroll;
-        eventService.OnGlobalClick += OnGlobalClick;
+        eventService.OnGlobalResize += OnFocusChanged;
+        eventService.OnGlobalScroll += OnFocusChanged;
+        eventService.OnGlobalFocus += OnFocusChanged;
+        eventService.OnGlobalClick += OnFocusChanged;
     }
 
-    private async void OnGlobalResize()
-    {
-        Toggled = true;
-        DisplaySelection(SelectedElements);
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async void OnGlobalScroll(string elementId)
+    private async void OnFocusChanged(string elementId)
     {
         try
         {
-            if(jsRuntime == null || JsDisposed)
+            if (jsRuntime == null || _disposed)
             {
-                throw new ObjectDisposedException(nameof(jsRuntime));                
+                return;
             }
 
-            if(!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") && !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
+            // If element with new focus in not part of the dropdown -> Toggle it
+            if (string.IsNullOrWhiteSpace(elementId) ||
+               !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
+               !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
             {
                 Toggled = true;
                 DisplaySelection(SelectedElements);
                 await InvokeAsync(StateHasChanged);
             }
         }
-        catch(TaskCanceledException ex)
+        catch (Exception exception)
         {
-            Debug.WriteLine(ex.ToString());
-        }
-        catch(JSDisconnectedException ex)
-        {
-            Debug.WriteLine(ex.ToString());
-        }
-        catch(ObjectDisposedException ex)
-        {
-            Debug.WriteLine(ex.ToString());
-        }
-        catch(Exception ex)
-        {
-            Debug.WriteLine(ex.ToString());
-        }       
-    }
-
-    private async void OnGlobalClick(string elementId)
-    {
-        try
-        {
-            if (jsRuntime != null && !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
-                !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
-            {
-                Toggled = true;
-                DisplaySelection(SelectedElements);
-                await InvokeAsync(StateHasChanged);
-            }
-        }
-        catch (Exception)
-        {
+            Log.WriteDebug("Dropdown", $"OnFocusChanged failed for '{elementId}': {exception}");
             Toggled = true;
         }
     }
 
-    private void ShowMenu(MouseEventArgs input)
+    private async Task ShowMenu(FocusEventArgs _)
     {
-        xPositionDropdown = (int)input.ClientX - (int)input.OffsetX;
-        yPositionDropdown = (int)input.ClientY - (int)input.OffsetY + ( Small ? 29 : 37 );
+        ClearFilter();
+        try
+        {
+            IJSRuntime? localJsRuntime = jsRuntime;
+            if (localJsRuntime != null && !_disposed)
+            {
+                int[]? inputPosition = await localJsRuntime.InvokeAsync<int[]>("getElementPosition", $"dropdown-input-{Id}");
+                if (inputPosition != null && inputPosition.Length >= 2)
+                {
+                    xPositionDropdown = inputPosition[0];
+                    yPositionDropdown = inputPosition[1];
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("Dropdown", $"ShowMenu failed: {exception}");
+            Toggled = true;
+        }
         Toggled = false;
     }
 
     private void Filter(ChangeEventArgs input)
     {
-        Filter(( input.Value ?? "" ).ToString() ?? "");
+        Filter((input.Value ?? "").ToString() ?? "");
     }
 
     private void Filter(string filter)
     {
         // case insensitive
-        FilteredElements = Elements.Where(e => ElementToString(e).ToLower().Contains(filter.ToLower()));
+        FilteredElements = Elements.Where(e => ElementToString(e).Contains(filter, StringComparison.OrdinalIgnoreCase));
     }
 
     private void ClearFilter()
@@ -269,21 +255,22 @@
                 searchValue += $", ... (+ {valuesToDisplay.Count() - 1})";
             }
         }
-        //string.Join(", ", valuesToDisplay.Take(3));
-        //foreach(ElementType value in valuesToDisplay)
-        //{
-        //	searchValue += value;  // set search / display field to current value
-        //}
     }
 
     private async Task UnselectElement(ElementType element)
     {
-        if (Multiselect || Nullable)
+        if (Multiselect)
         {
-            SelectedElements = SelectedElements.Where(e => !Object.Equals(e, element));
-            await SelectedElementsChanged.InvokeAsync(SelectedElements);
+            List<ElementType> selectedElements = SelectedElements.Where(e => !Object.Equals(e, element)).ToList();
+            SelectedElements = selectedElements;
+            await SelectedElementsChanged.InvokeAsync(selectedElements);
         }
-        else if (!Multiselect)
+        else if (Nullable)
+        {
+            SelectedElements = Enumerable.Empty<ElementType>();
+            await SelectedElementChanged.InvokeAsync(default);
+        }
+        else
         {
             await SelectedElementChanged.InvokeAsync(element);
         }
@@ -296,18 +283,30 @@
         {
             Debug.Assert(Nullable == true, "The assigned value is null but the Nullable option is not enabled.");
             SelectedElements = Enumerable.Empty<ElementType>();
+            if (Multiselect)
+            {
+                await SelectedElementsChanged.InvokeAsync(SelectedElements);
+            }
+            else
+            {
+                await SelectedElementChanged.InvokeAsync(default);
+            }
         }
         else
         {
             if (Multiselect)
             {
-                SelectedElements = SelectedElements.Append(element);
-                await SelectedElementsChanged.InvokeAsync(SelectedElements);
+                List<ElementType> selectedElements = SelectedElements.ToList();
+                if (!selectedElements.Contains(element))
+                {
+                    selectedElements.Add(element);
+                }
+                SelectedElements = selectedElements;
+                await SelectedElementsChanged.InvokeAsync(selectedElements);
             }
             else
             {
                 SelectedElement = element;
-                await SelectedElementChanged.InvokeAsync(element);
             }
         }
         await CompleteSelectionChange();
@@ -322,19 +321,31 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose()
+    public void Dispose(bool disposing)
     {
-        if(eventService is not null && eventService.Initialized)
+        if (_disposed)
         {
-            eventService.OnGlobalResize -= OnGlobalResize;
-            eventService.OnGlobalScroll -= OnGlobalScroll;
-            eventService.OnGlobalClick -= OnGlobalClick;
+            return;
         }
 
-        if (jsRuntime is not null)
+        if (disposing)
         {
-            jsRuntime = null;
-            JsDisposed = true;
+            if (eventService is not null && eventService.Initialized)
+            {
+                eventService.OnGlobalResize -= OnFocusChanged;
+                eventService.OnGlobalScroll -= OnFocusChanged;
+                eventService.OnGlobalFocus -= OnFocusChanged;
+                eventService.OnGlobalClick -= OnFocusChanged;
+            }
         }
+
+        _disposed = true;
+
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

@@ -5,6 +5,7 @@
 @inject ApiConnection apiConnection
 @inject IJSRuntime jsRuntime
 @inject NavigationManager navigationManager
+@implements IDisposable
 
 @if (InitComplete)
 {
@@ -50,7 +51,7 @@
 					}
 					@if (availableModules.Contains(Module.Recertification) && userConfig.RecertificationMode == RecertificationMode.RuleByRule)
 					{
-						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
+						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
 								<NavLink class="nav-link" href="@("/" + PageName.Certification)">
 									<span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
@@ -82,7 +83,7 @@
 					{
 						<AuthorizeView Roles="@($"{ComplianceRoles()}")">
 							<li class="nav-item px-2">
-								<NavLink class="nav-link" href="/compliance/zones/matrix">
+								<NavLink class="nav-link" href="/compliance/policies">
 									<span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
 								</NavLink>
 							</li>
@@ -212,4 +213,8 @@
         string workflowRoles = userConfig.ReqShowCompliance ? ", " + WorkflowRoles() : "";
         return $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.ReporterViewAll}, {Roles.Reporter}, {Roles.Auditor}{workflowRoles}";
     }
+	public void Dispose()
+	{
+		userConfig.OnChange -= OnChange;
+	}
 }

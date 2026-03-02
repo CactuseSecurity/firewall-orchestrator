@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -12,7 +12,6 @@ namespace FWO.Data.Workflow
         TrafficPathAnalysis = 6,
         ExternalCall = 10,
         SendEmail = 15,
-        // CreateConnection = 20,
         UpdateConnectionOwner = 21,
         UpdateConnectionRelease = 22,
         DisplayConnection = 23,
@@ -66,7 +65,7 @@ namespace FWO.Data.Workflow
 
         public static bool IsReadonlyType(string actionTypeString)
         {
-            if( Enum.TryParse<StateActionTypes>(actionTypeString, out StateActionTypes actionType))
+            if (Enum.TryParse<StateActionTypes>(actionTypeString, out StateActionTypes actionType))
             {
                 return actionType switch
                 {

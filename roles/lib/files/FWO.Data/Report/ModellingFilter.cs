@@ -2,19 +2,19 @@ namespace FWO.Data.Report
 {
     public class ModellingFilter
     {
-        public List<FwoOwner> SelectedOwners {get; set;} = [];
-        public FwoOwner SelectedOwner 
+        public List<FwoOwner> SelectedOwners { get; set; } = [];
+        public FwoOwner SelectedOwner
         {
             get { return SelectedOwners.FirstOrDefault() ?? new(); }
             set { SelectedOwners = [value]; }
         }
 
         public FwoOwner SelectedTemplateOwner { get; set; } = new();
-        public bool ShowSourceMatch {get; set;} = true;
-        public bool ShowDestinationMatch {get; set;} = true;
-        public bool ShowAnyMatch {get; set;} = false;
-        public bool ShowFullRules {get; set;} = false;
-        public bool ShowDropRules {get; set;} = false;
+        public bool ShowSourceMatch { get; set; } = true;
+        public bool ShowDestinationMatch { get; set; } = true;
+        public bool ShowAnyMatch { get; set; } = false;
+        public bool ShowFullRules { get; set; } = false;
+        public bool ShowDropRules { get; set; } = false;
 
         public bool AnalyseRemainingRules { get; set; } = false;
         public bool RulesForDeletedConns { get; set; } = false;

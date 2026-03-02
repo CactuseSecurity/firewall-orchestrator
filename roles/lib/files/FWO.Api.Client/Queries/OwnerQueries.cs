@@ -8,9 +8,13 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getOwnerById;
         public static readonly string getOwners;
+        public static readonly string getOwnersForRuleOwner;
         public static readonly string getOwnersWithConn;
         public static readonly string getEditableOwners;
         public static readonly string getEditableOwnersWithConn;
+        public static readonly string getOwnersForDns;
+        public static readonly string getOwnersForDnsWithConn;
+        public static readonly string getOwnersForDnsWithModellingWithConn;
         public static readonly string newOwner;
         public static readonly string newLifeCycle;
         public static readonly string updateOwner;
@@ -24,6 +28,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string setOwnerLastRecert;
         public static readonly string getOwnersFromGroups;
         public static readonly string getOwnersForUser;
+        public static readonly string getOwnersForDnsWithRecertification;
+        public static readonly string getOwnerResponsibleTypes;
         public static readonly string getNetworkOwnerships;
         public static readonly string newNetworkOwnership;
         public static readonly string deleteNetworkOwnership;
@@ -32,45 +38,71 @@ namespace FWO.Api.Client.Queries
         public static readonly string newRuleOwnership;
         public static readonly string deleteRuleOwnership;
         public static readonly string getOwnerId;
+        public static readonly string newOwnerResponsibles;
+        public static readonly string deleteOwnerResponsibles;
+        public static readonly string setAllActiveRuleOwnersRemoved;
+        public static readonly string setAffectedRuleOwnersRemoved;
+        public static readonly string insertRuleOwners;
+        public static readonly string getRuleOwnerToRemove;
+
+        public static readonly string newOwnerResponsibleType;
+        public static readonly string updateOwnerResponsibleType;
 
 
         static OwnerQueries()
         {
             try
             {
-                ownerDetailsFragment = File.ReadAllText(QueryPath + "owner/fragments/ownerDetails.graphql");
+                ownerDetailsFragment = GetQueryText("owner/fragments/ownerDetails.graphql");
 
-                getOwnerById = File.ReadAllText(QueryPath + "owner/getOwnerById.graphql");
-                getOwners = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwners.graphql");
-                getOwnersWithConn = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwnersWithConn.graphql");
-                getEditableOwners = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getEditableOwners.graphql");
-                getEditableOwnersWithConn = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getEditableOwnersWithConn.graphql");
-                newOwner = File.ReadAllText(QueryPath + "owner/newOwner.graphql");
-                newLifeCycle = File.ReadAllText(QueryPath + "owner/newLifeCycle.graphql");
-                updateOwner = File.ReadAllText(QueryPath + "owner/updateOwner.graphql");
-                updateLifeCycle = File.ReadAllText(QueryPath + "owner/updateLifeCycle.graphql");
-                deactivateOwner = File.ReadAllText(QueryPath + "owner/deactivateOwner.graphql");
-                deleteOwner = File.ReadAllText(QueryPath + "owner/deleteOwner.graphql");
-                deleteLifeCycle = File.ReadAllText(QueryPath + "owner/deleteLifeCycle.graphql");
-                getOwnerLifeCycleStates = File.ReadAllText(QueryPath + "owner/getOwnerLifeCycleStates.graphql");
-                //setDefaultOwner = File.ReadAllText(QueryPath + "owner/setDefaultOwner.graphql");
-                setOwnerLastCheck = File.ReadAllText(QueryPath + "owner/setOwnerLastCheck.graphql");
-                setOwnerLastRecert = File.ReadAllText(QueryPath + "owner/setOwnerLastRecert.graphql");
-                getOwnersFromGroups = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwnersFromGroups.graphql");
-                getOwnersForUser = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getOwnersForUser.graphql");
-                getNetworkOwnerships = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getNetworkOwnerships.graphql");
-                newNetworkOwnership = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/newNetworkOwnership.graphql");
-                deleteNetworkOwnership = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/deleteNetworkOwnership.graphql");
-                deleteAreaIpData = File.ReadAllText(QueryPath + "owner/deleteAreaIpData.graphql");
-                getRuleOwnerships = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getRuleOwnerships.graphql");
-                newRuleOwnership = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/newRuleOwnership.graphql");
-                deleteRuleOwnership = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/deleteRuleOwnership.graphql");
-                getOwnerId = File.ReadAllText(QueryPath + "/owner/getOwnerId.graphql");
+                getOwnerById = GetQueryText("owner/getOwnerById.graphql");
+                getOwners = ownerDetailsFragment + GetQueryText("owner/getOwners.graphql");
+                getOwnersForRuleOwner = GetQueryText("owner/getOwnersForRuleOwner.graphql");
+                getOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersWithConn.graphql");
+                getEditableOwners = ownerDetailsFragment + GetQueryText("owner/getEditableOwners.graphql");
+                getEditableOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getEditableOwnersWithConn.graphql");
+                getOwnersForDns = ownerDetailsFragment + GetQueryText("owner/getOwnersForDns.graphql");
+                getOwnersForDnsWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithConn.graphql");
+                getOwnersForDnsWithModellingWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithModellingWithConn.graphql");
+                newOwner = GetQueryText("owner/newOwner.graphql");
+                newLifeCycle = GetQueryText("owner/newLifeCycle.graphql");
+                updateOwner = GetQueryText("owner/updateOwner.graphql");
+                updateLifeCycle = GetQueryText("owner/updateLifeCycle.graphql");
+                deactivateOwner = GetQueryText("owner/deactivateOwner.graphql");
+                deleteOwner = GetQueryText("owner/deleteOwner.graphql");
+                deleteLifeCycle = GetQueryText("owner/deleteLifeCycle.graphql");
+                getOwnerLifeCycleStates = GetQueryText("owner/getOwnerLifeCycleStates.graphql");
+                setOwnerLastCheck = GetQueryText("owner/setOwnerLastCheck.graphql");
+                setOwnerLastRecert = GetQueryText("owner/setOwnerLastRecert.graphql");
+                getOwnersFromGroups = ownerDetailsFragment + GetQueryText("owner/getOwnersFromGroups.graphql");
+                getOwnersForUser = ownerDetailsFragment + GetQueryText("owner/getOwnersForUser.graphql");
+                getOwnersForDnsWithRecertification = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithRecertification.graphql");
+                getOwnerResponsibleTypes = GetQueryText("owner/getOwnerResponsibleTypes.graphql");
+                getNetworkOwnerships = ownerDetailsFragment + GetQueryText("owner/getNetworkOwnerships.graphql");
+                newNetworkOwnership = ownerDetailsFragment + GetQueryText("owner/newNetworkOwnership.graphql");
+                deleteNetworkOwnership = ownerDetailsFragment + GetQueryText("owner/deleteNetworkOwnership.graphql");
+                deleteAreaIpData = GetQueryText("owner/deleteAreaIpData.graphql");
+                getRuleOwnerships = GetQueryText("owner/getRuleOwnerships.graphql");
+                newRuleOwnership = ownerDetailsFragment + GetQueryText("owner/newRuleOwnership.graphql");
+                deleteRuleOwnership = ownerDetailsFragment + GetQueryText("owner/deleteRuleOwnership.graphql");
+                getOwnerId = GetQueryText("owner/getOwnerId.graphql");
+                newOwnerResponsibles = GetQueryText("owner/newOwnerResponsibles.graphql");
+                deleteOwnerResponsibles = GetQueryText("owner/deleteOwnerResponsibles.graphql");
+                setAllActiveRuleOwnersRemoved = GetQueryText("owner/setAllActiveRuleOwnersRemoved.graphql");
+                setAffectedRuleOwnersRemoved = GetQueryText("owner/setAffectedRuleOwnersRemoved.graphql");
+                insertRuleOwners = GetQueryText("owner/insertRuleOwners.graphql");
+                getRuleOwnerToRemove = GetQueryText("owner/getRuleOwnerToRemove.graphql");
+                newOwnerResponsibleType = GetQueryText("owner/newOwnerResponsibleType.graphql");
+                updateOwnerResponsibleType = GetQueryText("owner/updateOwnerResponsibleType.graphql");
             }
             catch (Exception exception)
             {
                 Log.WriteError("Initialize OwnerQueries", "Api OwnerQueries could not be loaded.", exception);
+#if RELEASE
                 Environment.Exit(-1);
+#else
+                throw;
+#endif
             }
         }
     }

@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data.Workflow
 {
-    public class WfTicketBase: WfStatefulObject
+    public class WfTicketBase : WfStatefulObject
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -63,6 +63,7 @@ namespace FWO.Data.Workflow
             ExternalTicketId = ticket.ExternalTicketId;
             ExternalTicketSource = ticket.ExternalTicketSource;
             Deadline = ticket.Deadline;
+            Priority = ticket.Priority;
         }
 
         public override bool Sanitize()

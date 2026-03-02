@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -19,6 +19,12 @@ namespace FWO.Data
 
         [JsonProperty("import_errors"), JsonPropertyName("import_errors")]
         public string? ImportErrors { get; set; }
+
+        [JsonProperty("import_type_id"), JsonPropertyName("import_type_id")]
+        public int? ImportTypeId { get; set; }
+
+        [JsonProperty("rule_owner_mapping_done"), JsonPropertyName("rule_owner_mapping_done")]
+        public bool RuleOwnerMappingDone { get; set; }
     }
 
     public class ImportStatus
@@ -28,7 +34,7 @@ namespace FWO.Data
 
         [JsonProperty("mgm_name"), JsonPropertyName("mgm_name")]
         public string MgmName { get; set; } = "";
-        
+
         [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
 
@@ -54,7 +60,7 @@ namespace FWO.Data
 
         [JsonProperty("first_import"), JsonPropertyName("first_import")]
         public ImportControl[]? FirstImport { get; set; }
-        
+
         [JsonProperty("erroneous_imports"), JsonPropertyName("erroneous_imports")]
         public ImportControl[]? ErroneousImports { get; set; }
 

@@ -39,6 +39,9 @@ Create index IF NOT EXISTS idx_zone02 on zone (mgm_id); -- needed as mgm_id is n
 CREATE UNIQUE INDEX uidx_import_control_only_one_null_stop_time_per_mgm_when_null ON import_control (mgm_id) WHERE stop_time IS NULL;
 
 CREATE UNIQUE index if not exists only_one_default_owner on owner(is_default) where is_default = true;
+CREATE UNIQUE index if not exists owner_responsible_owner_dn_type_unique on owner_responsible(owner_id, dn, responsible_type);
+CREATE index if not exists owner_responsible_dn_idx on owner_responsible(dn);
+CREATE UNIQUE index if not exists owner_responsible_type_name_unique on owner_responsible_type(name);
 
 -- probably useful:
 Create index "IX_Relationship59" on "import_service" ("control_id");
@@ -121,3 +124,6 @@ where is_default = true;
 Create index IF NOT EXISTS idx_fkey_network_zone_id on compliance.ip_range USING HASH (network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_from on compliance.network_zone_communication USING HASH (from_network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_communication USING HASH (to_network_zone_id);
+
+-- rule_owner
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;

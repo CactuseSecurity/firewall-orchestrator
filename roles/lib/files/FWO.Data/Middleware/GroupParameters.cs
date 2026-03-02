@@ -1,4 +1,4 @@
-﻿namespace FWO.Data.Middleware
+namespace FWO.Data.Middleware
 {
     public class GroupGetParameters
     {
@@ -34,5 +34,16 @@
     public class GroupMemberGetParameters
     {
         public string GroupDn { get; set; } = "";
+    }
+
+    public class GroupMembershipGetParameters
+    {
+        public string UserDn { get; set; } = "";
+        public string UserName { get; set; } = "";
+    }
+
+    public class GroupResolveParameters
+    {
+        public List<string> Dns { get; set; } = new();
     }
 }

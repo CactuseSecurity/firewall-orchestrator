@@ -1,10 +1,14 @@
-﻿namespace FWO.Api.Client
+using FWO.Logging;
+
+namespace FWO.Api.Client
 {
     public abstract class ApiConnection : IDisposable
     {
         private bool disposed = false;
 
         public event EventHandler<string>? OnAuthHeaderChanged;
+
+        public Basics.Interfaces.ILogger Logger = new Logger();
 
         protected List<ApiSubscription> subscriptions = [];
 
@@ -23,15 +27,23 @@
 
         public abstract void SwitchBack();
 
+        /// <summary>
+        /// Sends an API call and returns the deserialized result or throws on errors.
+        /// </summary>
         public abstract Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null);
 
-        public abstract GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, 
+        /// <summary>
+        /// Sends an API call and returns a non-throwing response wrapper containing data or errors.
+        /// </summary>
+        public abstract Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null);
+
+        public abstract GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
             GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null);
 
         protected abstract void Dispose(bool disposing);
         public abstract void DisposeSubscriptions<T>();
 
-        ~ ApiConnection()
+        ~ApiConnection()
         {
             if (disposed) return;
             Dispose(false);

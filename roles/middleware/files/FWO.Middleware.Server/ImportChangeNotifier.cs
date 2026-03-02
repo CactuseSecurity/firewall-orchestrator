@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Basics.Exceptions;
@@ -12,8 +12,8 @@ using FWO.Report;
 using FWO.Services;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {
@@ -107,7 +107,15 @@ namespace FWO.Middleware.Server
 
         private async Task<bool> NewImportFound()
         {
-            importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
+            if (userConfig.GlobalConfig!.ImpChangeIncludeObjectChanges)
+            {
+                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotifyForAnyChanges);
+            }
+            else
+            {
+                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
+            }
+
             importedManagements = [];
             foreach (var impMgt in importsToNotify.Select(i => i.MgmtId).Where(m => !importedManagements.Contains(m)))
             {
@@ -130,7 +138,7 @@ namespace FWO.Middleware.Server
 
         private async Task<ReportParams> SetFilters()
         {
-            deviceFilter.Managements = [.. ( await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)).Where(x => importedManagements.Contains(x.Id))];
+            deviceFilter.Managements = [.. (await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)).Where(x => importedManagements.Contains(x.Id))];
             deviceFilter.ApplyFullDeviceSelection(true);
 
             return new((int)ReportType.Changes, deviceFilter)
@@ -190,7 +198,7 @@ namespace FWO.Middleware.Server
                         break;
                 }
             }
-            MailData mailData = new(CollectRecipients(), subject) { Body = body};
+            MailData mailData = new(CollectRecipients(), subject) { Body = body };
             if (attachment != null)
             {
                 mailData.Attachments = new FormFileCollection() { attachment };

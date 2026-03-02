@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using NetTools;
 
@@ -37,7 +37,7 @@ namespace FWO.Data.Workflow
         public string RequestAction { get; set; } = Workflow.RequestAction.create.ToString();
 
         public NwObjectElement()
-        {}
+        { }
 
         public NwObjectElement(string cidrString, long taskId)
         {
@@ -48,7 +48,7 @@ namespace FWO.Data.Workflow
         public NwObjectElement(IPAddressRange ipAddressRange, long taskId)
         {
             Cidr = new Cidr(ipAddressRange.Begin.ToString());
-            if(ipAddressRange.End != null && ipAddressRange.End != ipAddressRange.Begin)
+            if (ipAddressRange.End != null && ipAddressRange.End != ipAddressRange.Begin)
             {
                 CidrEnd = new Cidr(ipAddressRange.End.ToString());
             }

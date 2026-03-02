@@ -1,0 +1,10 @@
+mutation addViolations($violations: [compliance_violation_insert_input!]!) {
+    insert_compliance_violation(
+        objects: $violations
+    ) {
+        affected_rows
+        returning { id }
+        
+    }
+}
+

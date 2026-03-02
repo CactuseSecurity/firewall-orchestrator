@@ -78,11 +78,7 @@ All the following tables belong to the "public" schema which is not explicitly l
 ## Processes involving DB access
 
 ### Import
-#### Legacy import
-There are still some import modules (e.g. for Barracuda, Juniper) written in perl which 
-connect to the firewall systems via ssh and write the normalized data directly to the database without using the API.
 
-#### API Import
 The standard way to import data from firewalls is via their respective (REST) API.
 The FWORCH import module normalizes the data and passes it to the FWORCH (GraphQL) API.
 

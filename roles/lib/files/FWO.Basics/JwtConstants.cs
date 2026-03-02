@@ -1,4 +1,4 @@
-﻿namespace FWO.Basics
+namespace FWO.Basics
 {
     public class JwtConstants
     {

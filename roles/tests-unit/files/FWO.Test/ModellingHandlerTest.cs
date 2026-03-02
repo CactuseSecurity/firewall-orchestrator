@@ -1,10 +1,11 @@
-using NUnit.Framework;
-using NUnit.Framework.Legacy;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
-using FWO.Ui.Services;
 using FWO.Services;
-using FWO.Basics;
+using FWO.Services.Modelling;
+using FWO.Ui.Services;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace FWO.Test
 {
@@ -25,9 +26,9 @@ namespace FWO.Test
         static readonly bool AddAppRoleMode = false;
         static readonly bool IsOwner = true;
 
-        static readonly ModellingAppServer AppServerInside1 = new(){ Name = "AppServerInside1", Ip = "10.0.0.0", IpEnd = "10.0.0.0" };
-        static readonly ModellingAppServer AppServerInside2 = new(){ Name = "AppServerInside2", Ip = "10.0.0.5", IpEnd = "10.0.0.5"  };
-        static readonly ModellingAppServer AppServerInside3 = new(){ Name = "AppServerInside3", Ip = "11.0.0.1", IpEnd = "11.0.0.1" };
+        static readonly ModellingAppServer AppServerInside1 = new() { Name = "AppServerInside1", Ip = "10.0.0.0", IpEnd = "10.0.0.0" };
+        static readonly ModellingAppServer AppServerInside2 = new() { Name = "AppServerInside2", Ip = "10.0.0.5", IpEnd = "10.0.0.5" };
+        static readonly ModellingAppServer AppServerInside3 = new() { Name = "AppServerInside3", Ip = "11.0.0.1", IpEnd = "11.0.0.1" };
         static readonly List<ModellingAppServer> AvailableAppServers =
         [
             AppServerInside1,
@@ -40,19 +41,34 @@ namespace FWO.Test
             new(){ Ip = "255.255.255.255" }
         ];
 
-        static readonly ModellingNetworkArea TestArea = new(){ Name = "Area1", IdString = "NA50", IpData =
+        static readonly ModellingNetworkArea TestArea = new()
+        {
+            Name = "Area1",
+            IdString = "NA50",
+            IpData =
         [
             new(){ Content = new(){ Name = "TestRange1", Ip = "10.0.0.0", IpEnd = "10.0.0.255" }},
             new(){ Content = new(){ Name = "TestRange2", Ip = "11.0.0.0", IpEnd = "11.0.0.3" }}
-        ]};
+        ]
+        };
 
         static readonly ModellingNamingConvention NamingConvention1 = new()
         {
-            NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 4, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR"
+            NetworkAreaRequired = true,
+            UseAppPart = false,
+            FixedPartLength = 4,
+            FreePartLength = 5,
+            NetworkAreaPattern = "NA",
+            AppRolePattern = "AR"
         };
         static readonly ModellingNamingConvention NamingConvention2 = new()
         {
-            NetworkAreaRequired = true, UseAppPart = true, FixedPartLength = 4, FreePartLength = 3, NetworkAreaPattern = "NA", AppRolePattern = "AR"
+            NetworkAreaRequired = true,
+            UseAppPart = true,
+            FixedPartLength = 4,
+            FreePartLength = 3,
+            NetworkAreaPattern = "NA",
+            AppRolePattern = "AR"
         };
 
         ModellingAppRoleHandler? AppRoleHandler;
@@ -62,8 +78,8 @@ namespace FWO.Test
         [SetUp]
         public void Initialize()
         {
-            AppHandler = new (apiConnection, userConfig, Application, DisplayMessageInUi, IsOwner);
-            AppRoleHandler = new (apiConnection, userConfig, Application, AvailableAppRoles, AppRole,
+            AppHandler = new(apiConnection, userConfig, Application, DisplayMessageInUi, IsOwner);
+            AppRoleHandler = new(apiConnection, userConfig, Application, AvailableAppRoles, AppRole,
                 AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner);
         }
 
@@ -72,7 +88,7 @@ namespace FWO.Test
         [Test]
         public async Task TestExtractUsedSrcInterface()
         {
-            ModellingConnection conn = new(){ Id = 3, UsedInterfaceId = 1 };
+            ModellingConnection conn = new() { Id = 3, UsedInterfaceId = 1 };
             ClassicAssert.AreEqual("Interf1", await AppHandler!.ExtractUsedInterface(conn));
             ClassicAssert.AreEqual(true, conn.SrcFromInterface);
             ClassicAssert.AreEqual(false, conn.DstFromInterface);
@@ -89,7 +105,7 @@ namespace FWO.Test
         [Test]
         public async Task TestExtractUsedDstInterface()
         {
-            ModellingConnection conn = new(){ Id = 4, UsedInterfaceId = 2 };
+            ModellingConnection conn = new() { Id = 4, UsedInterfaceId = 2 };
             ClassicAssert.AreEqual("Interf2", await AppHandler!.ExtractUsedInterface(conn));
             ClassicAssert.AreEqual(false, conn.SrcFromInterface);
             ClassicAssert.AreEqual(true, conn.DstFromInterface);
@@ -110,15 +126,15 @@ namespace FWO.Test
             {
                 UsedInterfaceId = 1,
                 SrcFromInterface = false,
-                SourceAppServers = [new(){ Content = AppServerInside1 }, new(){ Content = AppServerInside2 }],
-                SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1", IdString = "AR5000001", IsDeleted = true }}],
-                SourceOtherGroups = [new(){ Content = TestArea }],
+                SourceAppServers = [new() { Content = AppServerInside1 }, new() { Content = AppServerInside2 }],
+                SourceAppRoles = [new() { Content = new() { Name = "AppRole1", IdString = "AR5000001", IsDeleted = true } }],
+                SourceOtherGroups = [new() { Content = TestArea }],
                 DstFromInterface = true,
-                DestinationAppServers = [new(){ Content = AppServerInside3 }],
+                DestinationAppServers = [new() { Content = AppServerInside3 }],
                 DestinationAppRoles = [],
                 DestinationOtherGroups = [],
-                ServiceGroups = [new(){ Content = new(){ Name = "SvcGroup1", IsGlobal = true}}],
-                Services = [new(){ Content = new(){ Name = "Svc1", Port = 1111, Protocol = new(){ Id = 17, Name = "UDP"}} }]
+                ServiceGroups = [new() { Content = new() { Name = "SvcGroup1", IsGlobal = true } }],
+                Services = [new() { Content = new() { Name = "Svc1", Port = 1111, Protocol = new() { Id = 17, Name = "UDP" } } }]
             };
             List<string> expectedSrc = [$"<span class=\"\"><span class=\"{Icons.NwGroup}\"></span> <span><b><span class=\"\" ><span class=\"\">Area1 (NA50)</span></span></b></span></span>",
                                                   $"<span class=\"\"><span class=\"{Icons.AppRole}\"></span> <span><b><span class=\"text-danger\" ><i><span class=\"\">!AppRole1 (AR5000001)</span></i></span></b></span><span class=\"ps-1 text-danger {Icons.Warning}\"></span></span>",
@@ -133,6 +149,48 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedSrc, ModellingHandlerBase.GetSrcNames(conn, userConfig));
             ClassicAssert.AreEqual(expectedDst, ModellingHandlerBase.GetDstNames(conn, userConfig));
             ClassicAssert.AreEqual(expectedSvc, ModellingHandlerBase.GetSvcNames(conn, userConfig));
+        }
+
+        [Test]
+        public void TestDisplayAppActiveNoConnections()
+        {
+            FwoOwner owner = new()
+            {
+                Name = "App1",
+                Active = true,
+                ConnectionCount = new AggregateCount { Aggregate = new Aggregate { Count = 0 } }
+            };
+
+            string expected = "<span class=\"text-success\" data-toggle=\"tooltip\" title=\"No connections\">*App1</span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayApp(userConfig, owner));
+        }
+
+        [Test]
+        public void TestDisplayAppInactiveWithConnections()
+        {
+            FwoOwner owner = new()
+            {
+                Name = "App2",
+                Active = false,
+                ConnectionCount = new AggregateCount { Aggregate = new Aggregate { Count = 2 } }
+            };
+
+            string expected = "<span class=\"text-danger\" data-toggle=\"tooltip\" title=\"App disabled\"><i>!App2</i></span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayApp(userConfig, owner));
+        }
+
+        [Test]
+        public void TestDisplayReqIntRequestedOtherOwner()
+        {
+            string expected = "<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"Requested by other owner\"><i>Interface requested: (Ticket 123)</i></span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayReqInt(userConfig, 123, true));
+        }
+
+        [Test]
+        public void TestDisplayReqIntRejected()
+        {
+            string expected = "<span class=\"text-danger\" data-toggle=\"tooltip\" title=\"Rejected\"><i>Interface rejected: (Ticket 456)</i></span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayReqInt(userConfig, 456, false, true));
         }
 
 

@@ -1,0 +1,232 @@
+@page "/monitoring/scheduler"
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
+
+@using FWO.Basics
+@using FWO.Data.Middleware
+@using FWO.Middleware.Client
+@using System.Linq
+@inject MiddlewareClient middlewareClient
+@inject UserConfig userConfig
+@implements IDisposable
+
+<div class="input-group">
+    <h3>@userConfig.GetText("scheduler_jobs_title")</h3>
+</div>
+<p>@(userConfig.GetText("scheduler_jobs_description"))</p>
+<hr />
+
+@if (!initComplete)
+{
+    <Loading />
+}
+else
+{
+    @if (jobs.Count == 0)
+    {
+        <div class="d-flex gap-2 mb-3">
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="LoadJobs">
+                <span class="@Icons.Refresh"></span>
+            </button>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-bordered th-bg-secondary table-striped align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Job</th>
+                    <th scope="col">@(userConfig.GetText("scheduler_interval"))</th>
+                    <th scope="col">@(userConfig.GetText("scheduler_last_run"))</th>
+                    <th scope="col">@(userConfig.GetText("scheduler_next_run"))</th>
+                    <th scope="col" class="text-center">@(userConfig.GetText("scheduler_status"))</th>
+                    <th scope="col" class="text-center">@(userConfig.GetText("scheduler_action"))</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (jobs.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6">@(userConfig.GetText("scheduler_no_jobs"))</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (SchedulerJobInfo job in jobs)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-bold">@job.JobName</div>
+                            </td>
+                            <td class="@(string.IsNullOrWhiteSpace(job.IntervalDescription) ? "text-center" : "")">@FormatInterval(job.IntervalDescription)</td>
+                            <td class="@(job.LastFireTimeUtc is null ? "text-center" : "")">@FormatRunTime(job.LastFireTimeUtc, false)</td>
+                            <td class="@(job.NextFireTimeUtc is null ? "text-center" : "")">@FormatRunTime(job.NextFireTimeUtc, true)</td>
+                            <td class="text-center">@FormatExecutionStatus(job)</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-primary" disabled="@(runningJob == job.JobName)"
+                                        @onclick="() => TriggerJob(job.JobName)">
+                                    <span class="@Icons.Schedule"></span>
+                                    @(runningJob == job.JobName ? userConfig.GetText("scheduler_starting") : userConfig.GetText("scheduler_start_now"))
+                                </button>
+                            </td>
+                        </tr>
+                        @if (job.LastExecutionStatus == SchedulerJobExecutionStatus.Failed && !string.IsNullOrWhiteSpace(job.LastExecutionError))
+                        {
+                            <tr>
+                                <td colspan="6" style="background-color: #ffd400d6">
+                                    @((MarkupString)$"<p><span class=\"text-danger {Icons.Warning} px-1\"></span><b>{job.LastExecutionError}</b></p>")
+                                </td>
+                            </tr>
+                        }
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private readonly List<SchedulerJobInfo> jobs = [];
+    private bool initComplete;
+    private string? runningJob;
+
+    private PeriodicTimer? refreshTimer;
+    private CancellationTokenSource? refreshCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadJobs();
+
+        refreshCts = new CancellationTokenSource();
+        refreshTimer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+
+        _ = RefreshLoop(refreshCts.Token);
+    }
+
+    private async Task RefreshLoop(CancellationToken token)
+    {
+        if (refreshTimer == null) return;
+
+        try
+        {
+            while (await refreshTimer.WaitForNextTickAsync(token))
+            {
+                await InvokeAsync(async () =>
+                {
+                    await LoadJobs();
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException) { /* ignore */ }
+    }
+
+    private async Task LoadJobs()
+    {
+        try
+        {
+            RestSharp.RestResponse<List<SchedulerJobInfo>> response = await middlewareClient.GetSchedulerJobs();
+            if (response.IsSuccessful && response.Data != null)
+            {
+                jobs.Clear();
+                jobs.AddRange(response.Data.OrderBy(job => job.JobName));
+            }
+            else
+            {
+                DisplayMessageInUi(new InvalidOperationException(response.ErrorMessage ?? response.StatusDescription ?? "Job fetch failed."),
+                "Fetch scheduler jobs", response.Content ?? string.Empty, true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, "Fetch scheduler jobs", exception.Message, true);
+        }
+        finally
+        {
+            initComplete = true;
+        }
+    }
+
+    private async Task TriggerJob(string jobName)
+    {
+        runningJob = jobName;
+
+        StateHasChanged();
+
+        await Task.Delay(1000);
+
+        try
+        {
+            RestSharp.RestResponse<bool> response = await middlewareClient.RunSchedulerJob(new SchedulerJobTriggerParameters
+            {
+                JobName = jobName
+            });
+
+            if (!response.IsSuccessful || !response.Data)
+            {
+                DisplayMessageInUi(new InvalidOperationException(response.ErrorMessage ?? response.StatusDescription ?? "Job trigger failed."),
+                "Start now", response.Content ?? string.Empty, true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, "Start now", exception.Message, true);
+        }
+        finally
+        {
+            runningJob = null;
+            await LoadJobs();
+        }
+
+        StateHasChanged();
+    }
+
+    private MarkupString FormatInterval(string intervalDescription)
+    {
+        return string.IsNullOrWhiteSpace(intervalDescription) ?
+            (MarkupString)$"<span class=\"text-muted text-center\">—</span>" : (MarkupString)$"{userConfig.GetText("scheduler_interval_description")} {intervalDescription}";
+    }
+
+    private MarkupString FormatRunTime(DateTimeOffset? fireTimeUtc, bool isNextRun)
+    {
+        if (fireTimeUtc == null)
+        {
+            return (MarkupString)$"<span class=\"text-muted\">—</span>";
+        }
+
+        if (isNextRun)
+        {
+            TimeSpan timeUntil = fireTimeUtc.Value - DateTimeOffset.Now;
+            if (timeUntil.TotalSeconds <= 5 && timeUntil.TotalSeconds >= 0)
+            {
+                return (MarkupString)userConfig.GetText("scheduler_now");
+            }
+        }
+
+        DateTime localTime = fireTimeUtc.Value.LocalDateTime;
+
+        return localTime.Second != 0 ?
+           (MarkupString)localTime.ToString("G") :
+           (MarkupString)localTime.ToString("g");
+    }
+
+    private MarkupString FormatExecutionStatus(SchedulerJobInfo job)
+    {
+        return job.LastExecutionStatus switch
+        {
+            SchedulerJobExecutionStatus.Success => (MarkupString)$"<span class=\"text-success {Icons.Check}\"></span>",
+            SchedulerJobExecutionStatus.Failed => (MarkupString)$"<span class=\"text-danger {Icons.Close}\"></span>",
+            _ or SchedulerJobExecutionStatus.None => (MarkupString)$"<span class=\"text-muted\">—</span>"
+        };
+    }
+
+    public void Dispose()
+    {
+        refreshCts?.Cancel();
+        refreshTimer?.Dispose();
+        refreshCts?.Dispose();
+    }
+}

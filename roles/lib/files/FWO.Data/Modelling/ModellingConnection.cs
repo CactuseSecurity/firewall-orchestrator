@@ -1,5 +1,5 @@
 using FWO.Basics;
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Modelling
@@ -10,6 +10,7 @@ namespace FWO.Data.Modelling
         InterfaceRequested = 1,
         InterfaceRejected = 2,
         InterfaceDecommissioned = 3,
+        InterfaceNoPermission = 4,
 
         // Interfaces:
         Requested = 11,
@@ -24,6 +25,13 @@ namespace FWO.Data.Modelling
         VarianceChecked = 31,
         NotImplemented = 32,
         VarianceFound = 33
+    }
+
+    public enum InterfacePermissions
+    {
+        Public = 1,
+        Restricted = 2,
+        Private = 3
     }
 
     public class ModellingConnection
@@ -115,21 +123,40 @@ namespace FWO.Data.Modelling
         [JsonProperty("removal_date"), JsonPropertyName("removal_date")]
         public DateTime? RemovalDate { get; set; }
 
-        
+        [JsonProperty("interface_permission"), JsonPropertyName("interface_permission")]
+        public string InterfacePermission
+        {
+            get => interfacePermission;
+            set => interfacePermission = value ?? InterfacePermissions.Public.ToString();
+        }
+
+        [JsonProperty("permitted_owners"), JsonPropertyName("permitted_owners")]
+        public List<PermittedOwnerWrapper> PermittedOwnerWrappers
+        {
+            get => permittedOwnerWrappers;
+            set
+            {
+                permittedOwnerWrappers = value ?? [];
+                permittedOwners = [.. permittedOwnerWrappers.Select(w => w.Owner).Where(o => o != null)];
+            }
+        }
+
+
         public bool SrcFromInterface { get; set; } = false;
         public bool DstFromInterface { get; set; } = false;
         public bool InterfaceIsRequested { get; set; } = false;
         public bool InterfaceIsRejected { get; set; } = false;
         public bool InterfaceIsDecommissioned { get; set; } = false;
+        public bool InterfaceNoPermission { get; set; } = false;
 
         public int OrderNumber { get; set; } = 0;
         public Dictionary<string, string>? Props { get; set; }
         public List<ModellingExtraConfig> ExtraConfigs
-        {  
+        {
             get => ExtraParams != null && ExtraParams != "" ? System.Text.Json.JsonSerializer.Deserialize<List<ModellingExtraConfig>>(ExtraParams) ?? throw new JsonException("ExtraParams could not be parsed.") : [];
             set
             {
-                if(value != null)
+                if (value != null)
                 {
                     ExtraParams = System.Text.Json.JsonSerializer.Serialize(value) ?? throw new JsonException("value could not be parsed.");
                 }
@@ -137,10 +164,19 @@ namespace FWO.Data.Modelling
         }
         public List<ModellingExtraConfig> ExtraConfigsFromInterface { get; set; } = [];
         public bool ProdRuleFound { get; set; } = false;
+        private List<FwoOwner> permittedOwners = [];
+        public List<FwoOwner> PermittedOwners
+        {
+            get => permittedOwners;
+            set => permittedOwners = value ?? [];
+        }
+
+        private string interfacePermission = InterfacePermissions.Public.ToString();
+        private List<PermittedOwnerWrapper> permittedOwnerWrappers = [];
 
 
         public ModellingConnection()
-        {}
+        { }
 
         public ModellingConnection(ModellingConnection conn)
         {
@@ -179,7 +215,11 @@ namespace FWO.Data.Modelling
             InterfaceIsRequested = conn.InterfaceIsRequested;
             InterfaceIsRejected = conn.InterfaceIsRejected;
             InterfaceIsDecommissioned = conn.InterfaceIsDecommissioned;
+            InterfaceNoPermission = conn.InterfaceNoPermission;
             ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
+            InterfacePermission = conn.InterfacePermission;
+            PermittedOwnerWrappers = conn.PermittedOwnerWrappers;
+            PermittedOwners = conn.PermittedOwners;
         }
 
         public int CompareTo(ModellingConnection secondConnection)
@@ -216,10 +256,10 @@ namespace FWO.Data.Modelling
         {
             return Name + " (" + owner.ExtAppId + ":" + owner.Name + ")";
         }
-        
+
         public bool SourceFilled()
         {
-            return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0  || SourceAreas.Count > 0 || SourceOtherGroups.Count > 0;
+            return SourceAppServers.Count > 0 || SourceAppRoles.Count > 0 || SourceAreas.Count > 0 || SourceOtherGroups.Count > 0;
         }
 
         public bool DestinationFilled()
@@ -233,6 +273,7 @@ namespace FWO.Data.Modelling
                 GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 GetBoolProperty(ConState.InterfaceRejected.ToString()) ||
                 GetBoolProperty(ConState.InterfaceDecommissioned.ToString()) ||
+                GetBoolProperty(ConState.InterfaceNoPermission.ToString()) || // or not ??
                 EmptyAppRolesFound(dummyAppRoleId) ||
                 DeletedObjectsFound() ||
                 EmptyServiceGroupsFound());
@@ -248,7 +289,7 @@ namespace FWO.Data.Modelling
         public void RemoveProperty(string key)
         {
             InitProps();
-            if(Props != null && Props.Count > 0 && Props.ContainsKey(key))
+            if (Props != null && Props.Count > 0 && Props.ContainsKey(key))
             {
                 Props.Remove(key);
             }
@@ -286,11 +327,11 @@ namespace FWO.Data.Modelling
 
         public void SyncState(long dummyAppRoleId)
         {
-            if(IsInterface)
+            if (IsInterface)
             {
                 SyncInterface();
             }
-            else if(UsedInterfaceId != null)
+            else if (UsedInterfaceId != null)
             {
                 SyncInterfaceUser();
             }
@@ -318,6 +359,7 @@ namespace FWO.Data.Modelling
             {
                 UpdateProperty(ConState.InterfaceRequested.ToString(), InterfaceIsRequested);
                 UpdateProperty(ConState.InterfaceDecommissioned.ToString(), InterfaceIsDecommissioned);
+                UpdateProperty(ConState.InterfaceNoPermission.ToString(), InterfaceNoPermission);
             }
         }
 
@@ -341,7 +383,7 @@ namespace FWO.Data.Modelling
                 DestinationAppRoles.Any(a => a.Content.Id != dummyAppRoleId && a.Content.AppServers.Count == 0);
         }
 
-        public bool EmptyServiceGroupsFound() 
+        public bool EmptyServiceGroupsFound()
             => ServiceGroups.Any(_ => _.Content.Services.Count == 0);
 
         public bool IsDocumentationOnly()
@@ -422,11 +464,11 @@ namespace FWO.Data.Modelling
             List<ServiceWrapper> services = [];
             foreach (var svcGrp in ServiceGroups)
             {
-                services.Add(new(){ Content = svcGrp.Content.ToNetworkServiceGroup() });
+                services.Add(new() { Content = svcGrp.Content.ToNetworkServiceGroup() });
             }
             foreach (var svc in Services)
             {
-                services.Add(new(){ Content = ModellingService.ToNetworkService(svc.Content) });
+                services.Add(new() { Content = ModellingService.ToNetworkService(svc.Content) });
             }
 
             return new Rule()
@@ -452,7 +494,7 @@ namespace FWO.Data.Modelling
         private void InitProps()
         {
             Props ??= [];
-            if(Properties != null && Properties != "")
+            if (Properties != null && Properties != "")
             {
                 Props = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Properties) ?? [];
             }
@@ -460,11 +502,11 @@ namespace FWO.Data.Modelling
 
         private static int Compare(bool first, bool second)
         {
-            if(first && !second)
+            if (first && !second)
             {
                 return -1;
             }
-            if(!first && second)
+            if (!first && second)
             {
                 return 1;
             }
@@ -481,5 +523,11 @@ namespace FWO.Data.Modelling
         {
             return Array.ConvertAll(wrappedList.ToArray(), wrapper => wrapper.Content);
         }
+    }
+
+    public class PermittedOwnerWrapper
+    {
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public FwoOwner Owner { get; set; } = new();
     }
 }

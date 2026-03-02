@@ -8,6 +8,16 @@
     "cmdbGitRepoUrl": "xxx",
     "csvOwnerFilePattern": "NeMo_..._meta.csv",
     "csvAppServerFilePattern": "NeMo_..._IP.*?.csv",
+    "csvOwnerColumnPatterns": {
+        "name": ".*?:\\s*Name",
+        "app_id": ".*?:\\s*Alfabet-ID$",
+        "owner_tiso": ".*?:\\s*TISO",
+        "owner_kwita": ".*?:\\s*kwITA"
+    },
+    "csvIpColumnPatterns": {
+        "app_id": ".*?:\\s*Alfabet-ID$",
+        "ip": ".*?:\\s*IP"
+    },
     "iiqAppName": "AD EXAMPLEDE",
     "userPrefix": "USR"
 }

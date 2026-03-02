@@ -118,36 +118,50 @@ How to merge fork tpurschke/master into CactuseSecurity/master
         git push -u origin auth_frontend
 
 ## Submodules
-IMPORTANT: Always commit to the submodule first, then commit to the FWO repo (superproject). This avoids the problem that the FWO repo does not point to the newest commit of the submodule (it cant - since it does not exist yet). An addtional commit to the FWO-repo will be necessary to fix this.
 
 ### Automatic submodule sync via repo hooks
 Enable the repo-managed hooks once (per clone) to keep submodules up to date automatically:
 ```shell
 git config core.hooksPath .githooks
 ```
-The hooks run after `git pull`, `git checkout`, and `git rebase` and execute:
-```shell
-git submodule update --init --recursive
-git submodule update --remote --merge --recursive
-```
+The hooks run after `git pull`, `git checkout`, and `git rebase` and initialize and update the submodules.
 Notes:
 - The hook is quiet if you do not have access to a submodule repository (no error output).
 - The hook checks out the configured submodule branch from `.gitmodules` before updating, to avoid detached HEAD.
-- This intentionally moves submodules to the newest commit on their configured branch, even if the superproject has not updated the pointer yet. Expect the submodule to appear "modified" in `git status`.
+- This intentionally moves submodules to the newest commit on their configured branch, even if the superproject has not updated the pointer yet. Expect the submodule to appear "modified" in `git status`, unless you follow the next subsections advice.
 
-### Manual submodule operations
-If you like to manually execute the submodule setup, see the sections below. Otherwise, please refer to the section above.
+### Avoid Advancing the Submodule Pointer
+On the upstream we automatically advance the submodule pointer via automated pull requests.
+To prevent merge conflicts and unintended divergence from upstream, **do not commit or push local changes that advance the submodule reference (commit pointer)** in this repository. This might happen if you directly commit or stage all files. It should not happen if you use explicit staging of your files in vscode. 
 
-#### Initial update
+To automatically ignore local submodule pointer changes, run:
+```shell
+git config submodule.agents.ignore all
+```
+
+### Trigger hook 
+In order to initially trigger the hook which does the initialisation, we need to do any of the operations (git checkout, git merge, git rewrite)
+
+Here we do a simple checkout of another branch (assuming you are on main branch)
+
+       git checkout develop
+
+Now you should see the submodule in your IDE.
+
+### Manual submodule operations (not necessary when using .githooks)
+If you like to manually execute the submodule setup, see the sections below. Otherwise, please refer to the sections above.
+
+#### Initial update (not necessary when using .githooks)
 Update submodules to the commits recorded in the superproject (safe, reproducible). Initializes them if necessary.
 Execute this command after the initial clone of the fwo repo in the fwo repo root directory:
 ```shell
 git submodule update --init --recursive
 ```
 
-#### Update agents repo manually
+#### Update agents repo manually (not necessary when using .githooks)
 This updates the agents repo manually. Update submodules to the latest commit on their configured remote tracking branch. Execute this command to get the newest version of all submodules from their respective repositories.
 ```shell
+git -C agents checkout main
 git submodule update --remote --merge --recursive
 ```
 

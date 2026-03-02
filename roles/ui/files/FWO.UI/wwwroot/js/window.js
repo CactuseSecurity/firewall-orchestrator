@@ -38,11 +38,15 @@ function initializeEventHandlers(dotNetHelper) {
     observeNavbarHeight(dotNetHelper);
 }
 
-function observeNavbarHeight(dotNetHelper) {
+function observeNavbarHeight(dotNetHelper, attempt = 0) {
     const navbar = document.getElementById("navbar");
 
     if (!navbar) {
-        console.warn("Navbar height observation: Navbar not found");
+        if (attempt < 10) {
+            setTimeout(() => observeNavbarHeight(dotNetHelper, attempt + 1), 100);
+        } else {
+            console.warn("Navbar height observation: Navbar not found");
+        }
         return;
     }
 

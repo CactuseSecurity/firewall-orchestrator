@@ -1,4 +1,4 @@
-query getRuleOwnerToRemove($ruleIds: [bigint!]!) {
+query getRuleOwnerToRemoveByRule($ruleIds: [bigint!]!) {
   rule_owner(
     where: { 
       rule_id: { _in: $ruleIds },

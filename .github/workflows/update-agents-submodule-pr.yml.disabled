@@ -1,0 +1,71 @@
+name: Update agents submodule pointer
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-agents-submodule-pointer
+  cancel-in-progress: true
+
+jobs:
+  update-submodule:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        with:
+          fetch-depth: 0 # get full repo history
+          submodules: recursive
+          token: ${{ secrets.SUBMODULE_READ_TOKEN }} # read-only token for submodules / main repo
+          persist-credentials: true
+
+      - name: Advance agents submodule to configured upstream branch
+        id: submodule
+        run: |
+          set -euo pipefail
+
+          before_sha="$(git ls-tree HEAD agents | awk '{print $3}')"
+          source_branch="$(git config -f .gitmodules --get submodule.agents.branch)"
+          source_url="$(git config -f .gitmodules --get submodule.agents.url)"
+
+          git -C agents fetch origin "$source_branch" --quiet
+          git -C agents checkout --quiet --detach "origin/$source_branch"
+          after_sha="$(git -C agents rev-parse HEAD)"
+
+          echo "before_sha=$before_sha" >> "$GITHUB_OUTPUT"
+          echo "after_sha=$after_sha" >> "$GITHUB_OUTPUT"
+          echo "source_branch=$source_branch" >> "$GITHUB_OUTPUT"
+          echo "source_url=$source_url" >> "$GITHUB_OUTPUT"
+
+          if [ "$before_sha" = "$after_sha" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git add agents
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update pull request
+        if: steps.submodule.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@3f3b473b8c148f5a7520efb4d1f9a70eea3d9d1f
+        with:
+          base: develop # target
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: bot/update-agents-submodule # source
+          delete-branch: true # delete branch after merge
+          commit-message: "Chore(submodule): Update agents to ${{ steps.submodule.outputs.after_sha }}"
+          title: "Chore(submodule): Update agents to ${{ steps.submodule.outputs.after_sha }}"
+          body: |
+            Automated submodule pointer update for `agents`.
+
+            - Previous pointer: `${{ steps.submodule.outputs.before_sha }}`
+            - New pointer: `${{ steps.submodule.outputs.after_sha }}`
+            - Source repository: `${{ steps.submodule.outputs.source_url }}`
+            - Source branch: `${{ steps.submodule.outputs.source_branch }}`

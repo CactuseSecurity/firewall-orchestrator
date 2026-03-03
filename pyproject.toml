@@ -3,6 +3,8 @@ include = [
     "roles/importer/files/importer",
     "scripts"
 ]
+extraPaths = ["roles/importer/files/importer"]
+venv = ".venv"
 exclude = [
     "**/.*",
     "**/node_modules",
@@ -16,6 +18,7 @@ exclude = [
     "scripts/json_pretty_print.py",
     "scripts/release_lock.py"    
 ]
+
 
 
 typeCheckingMode = "strict"

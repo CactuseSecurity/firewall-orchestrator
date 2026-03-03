@@ -3,10 +3,21 @@ set -euo pipefail
 
 if [ -d ".venv/Scripts" ]; then
     VENV_BIN=".venv/Scripts/"
+    echo "Using virtual environment from .venv" Windows
+    activate_script=".venv/Scripts/activate"
 elif [ -d ".venv/bin" ]; then
+    echo "Using virtual environment from .venv" Unix
     VENV_BIN=".venv/bin/"
+    activate_script=".venv/bin/activate"
 else
+    echo "Warning: No virtual environment found. Assuming ruff and pyright are globally available."
     VENV_BIN=""
+    activate_script=""
+fi
+
+if [ -f "$activate_script" ]; then
+    # shellcheck disable=SC1090
+    source "$activate_script"
 fi
 
 RUFF_PATH=$VENV_BIN"ruff"

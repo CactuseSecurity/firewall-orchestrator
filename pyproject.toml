@@ -19,8 +19,6 @@ exclude = [
     "scripts/release_lock.py"    
 ]
 
-
-
 typeCheckingMode = "strict"
 reportMissingImports = false
 reportMissingTypeStubs = true

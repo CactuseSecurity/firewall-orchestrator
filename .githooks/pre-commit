@@ -3,10 +3,10 @@ set -euo pipefail
 
 if [ -d ".venv/Scripts" ]; then
     VENV_BIN=".venv/Scripts/"
-    echo "Using virtual environment from .venv" Windows
+    echo "Using virtual environment from .venv (Windows)"
     activate_script=".venv/Scripts/activate"
 elif [ -d ".venv/bin" ]; then
-    echo "Using virtual environment from .venv" Unix
+    echo "Using virtual environment from .venv (Unix)"
     VENV_BIN=".venv/bin/"
     activate_script=".venv/bin/activate"
 else

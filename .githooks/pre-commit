@@ -16,7 +16,6 @@ else
 fi
 
 if [ -f "$activate_script" ]; then
-    # shellcheck disable=SC1090
     source "$activate_script"
 fi
 

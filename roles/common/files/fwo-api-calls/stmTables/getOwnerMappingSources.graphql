@@ -1,6 +1,0 @@
-query getOwnerMappingSources {
-  stm_owner_mapping_source {
-    owner_mapping_source_type_id
-    owner_mapping_source_type_name
-  }
-}

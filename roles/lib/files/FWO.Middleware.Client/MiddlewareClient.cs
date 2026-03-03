@@ -13,14 +13,14 @@ namespace FWO.Middleware.Client
 
         public async Task<RestResponse<TokenPair>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
         {
-            RestRequest request = new("AuthenticationToken/GetTokenPair", Method.Post);
+            RestRequest request = new("AuthenticationToken/Get", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<TokenPair>(request);
         }
 
         public async Task<RestResponse<TokenPair>> CreateInitialJWT()
         {
-            RestRequest request = new("AuthenticationToken/GetTokenPair", Method.Post);
+            RestRequest request = new("AuthenticationToken/Get", Method.Post);
             request.AddJsonBody(new object());
             return await restClient.ExecuteAsync<TokenPair>(request);
         }

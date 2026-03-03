@@ -47,8 +47,8 @@ namespace FWO.Middleware.Server.Controllers
         /// Cannot be null.</param>
         /// <returns>An <see cref="ActionResult{TokenPair}"/> containing the generated access and refresh tokens if
         /// authentication is successful; otherwise, a bad request result with an error message.</returns>
-        [HttpPost("GetTokenPair")]
-        public async Task<ActionResult<TokenPair>> GetTokenPairAsync([FromBody] AuthenticationTokenGetParameters parameters)
+        [HttpPost("Get")]
+        public async Task<ActionResult<TokenPair>> GetAsync([FromBody] AuthenticationTokenGetParameters parameters)
         {
             try
             {
@@ -80,7 +80,7 @@ namespace FWO.Middleware.Server.Controllers
         }
 
         /// <summary>
-        /// Generates a new token pair for a specified user, using administrator credentials for authorization.
+        /// Generates a new access and refresh token pair for a specified user, using administrator credentials for authorization.
         /// </summary>
         /// <remarks>This endpoint is restricted to users with the admin role. The administrator's
         /// credentials are validated before generating a token pair for the target user. The target user's password is
@@ -90,8 +90,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>An <see cref="ActionResult{TokenPair}"/> containing the generated token pair for the target user if the
         /// operation succeeds; otherwise, a bad request result with an error message.</returns>
         /// <exception cref="AuthenticationException">Thrown if the provided administrator credentials do not correspond to a user with the admin role.</exception>
-        [HttpPost("GetTokenPairForUser")]
-        public async Task<ActionResult<TokenPair>> GetTokenPairForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
+        [HttpPost("GetForUser")]
+        public async Task<ActionResult<TokenPair>> GetForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
         {
             try
             {

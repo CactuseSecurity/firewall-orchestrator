@@ -175,13 +175,14 @@ namespace FWO.Basics
         public const string USER_NAME = "@@USER_NAME@@";
     }
 
-    public struct OwnerMappingSourceStm
+    public enum OwnerMappingSourceStm
     {
-        public const int IP_BASED = 1;
-        public const int CUSTOM_FIELD = 2;
-        public const int NAME_FIELD = 3;
-        public const int MANUEL = 4;
+        IpBased = 1,
+        CustomField = 2,
+        NameField = 3,
+        Manual = 4
     }
+
     public struct ImportType
     {
         public const int RULE = 1;
@@ -195,5 +196,4 @@ namespace FWO.Basics
         public const Char CHANGE = 'C';
         public const Char DELETE = 'D';
     }
-
 }

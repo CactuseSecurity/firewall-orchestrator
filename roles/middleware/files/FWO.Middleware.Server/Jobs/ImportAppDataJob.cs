@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Logging;
 using FWO.Services.Modelling;
 using Quartz;
+using FWO.Services;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -53,7 +54,7 @@ namespace FWO.Middleware.Server.Jobs
             }
             catch (Exception exc)
             {
-                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitleImport, GlobalConst.kImportAppData, AlertCode.ImportAppData, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitleImport, GlobalConst.kImportAppData, AlertCode.ImportAppData, exc);
             }
         }
 
@@ -70,7 +71,7 @@ namespace FWO.Middleware.Server.Jobs
             }
             catch (Exception exc)
             {
-                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitleAdjust, GlobalConst.kAdjustAppServerNames, AlertCode.AdjustAppServerNames, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitleAdjust, GlobalConst.kAdjustAppServerNames, AlertCode.AdjustAppServerNames, exc);
             }
         }
     }

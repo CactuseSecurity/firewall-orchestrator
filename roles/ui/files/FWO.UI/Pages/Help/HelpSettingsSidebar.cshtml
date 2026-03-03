@@ -53,6 +53,9 @@
                 <a class="nav-link" href="/help/settings/importer/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Import"></span> @(userConfig.GetText("importer_settings"))
                 </a>
+                <a class="nav-link" href="/help/settings/changetrigger/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Check"></span> @(userConfig.GetText("change_trigger"))
+                </a>
                 <a class="nav-link" href="/help/settings/defaults/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Settings"></span> @(userConfig.GetText("standards"))
                 </a>

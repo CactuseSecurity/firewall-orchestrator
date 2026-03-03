@@ -4,6 +4,7 @@ include = [
     "scripts"
 ]
 exclude = [
+    "**/.*",
     "**/node_modules",
     "**/__pycache__",
     ".git",
@@ -16,8 +17,6 @@ exclude = [
     "scripts/release_lock.py"    
 ]
 
-venvPath = "."
-venv = ".venv"
 
 typeCheckingMode = "strict"
 reportMissingImports = false
@@ -27,7 +26,7 @@ reportMissingTypeStubs = true
 required-version = "0.14.8"
 line-length = 120
 indent-width = 4
-target-version = "py313"
+target-version = "py310"
 exclude = [
     ".bzr",
     ".direnv",

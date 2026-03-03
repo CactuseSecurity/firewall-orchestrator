@@ -588,11 +588,23 @@ Create table "stm_obj_typ"
  primary key ("obj_typ_id")
 );
 
+CREATE TABLE "stm_owner_mapping_source"
+(
+    "owner_mapping_source_type_id" BIGINT PRIMARY KEY,
+    "owner_mapping_source_type_name" Varchar NOT NULL
+);
+
 Create table "stm_track"
 (
 	"track_id" Integer,
 	"track_name" Varchar NOT NULL,
  primary key ("track_id")
+);
+
+CREATE TABLE "stm_import"
+(
+    "import_type_id" Integer PRIMARY KEY,
+    "import_type_name" Varchar NOT NULL
 );
 
 Create table "stm_ip_proto"
@@ -627,20 +639,16 @@ Create table "import_control"
 	"control_id" BIGSERIAL,
 	"start_time" Timestamp NOT NULL Default now(),
 	"stop_time" Timestamp,
+	"import_type_id" INTEGER NOT NULL,
 	"is_initial_import" Boolean NOT NULL Default FALSE,
-	"delimiter_group" Varchar(3) NOT NULL Default '|',
-	"delimiter_zone" Varchar(3) Default '%',
-	"delimiter_user" Varchar(3) Default '@',
-	"delimiter_list" Varchar(3) Default '|',
-	"mgm_id" Integer NOT NULL,
-	"last_change_in_config" Timestamp,
+	"mgm_id" Integer,
 	"successful_import" Boolean NOT NULL Default FALSE,
-	"any_changes_found" Boolean NOT NULL Default FALSE,
-	"rule_changes_found" Boolean NOT NULL Default FALSE,
+	"policy_changes_found" Boolean NOT NULL Default FALSE, -- old_field: rule_changes_found
+	"changes_found" Boolean NOT NULL Default FALSE, -- old_field: any_changes_found 
 	"import_errors" Varchar,
 	"notification_done" Boolean NOT NULL Default FALSE,
+	"rule_owner_mapping_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
-	"is_full_import" BOOLEAN DEFAULT FALSE,
  primary key ("control_id")
 );
 
@@ -667,128 +675,6 @@ CREATE TABLE IF NOT EXISTS "latest_config" (
     "import_id" bigint NOT NULL,
     "config" jsonb NOT NULL,
     PRIMARY KEY ("mgm_id")
-);
-
--- temporary import tables -------------------------------------
-
-Create table "import_service"
-(
-	"svc_id" BIGSERIAL,
-	"control_id" BIGINT NOT NULL,
-	"svc_typ" Text NOT NULL,
-	"svc_name" Varchar,
-	"svc_comment" Text,
-	"svc_color" Text Default 'black',
-	"ip_proto" Text,
-	"svc_prod_specific" Text,
-	"rpc_nr" Varchar,
-	"svc_uid" Text,
-	"svc_port" Integer,
-	"svc_port_end" Integer,
-	"svc_source_port" Integer,
-	"svc_source_port_end" Integer,
-	"svc_timeout_std" Boolean Default false,
-	"svc_timeout" Integer,
-	"svc_member_names" Text,
-	"svc_member_refs" Text,
-	"last_change_admin" Varchar,
-	"last_change_time" Timestamp,
-	"svc_scope" Varchar,
- primary key ("svc_id","control_id")
-);
-
-Create table "import_object"
-(
-	"obj_id" BIGSERIAL,
-	"obj_zone" Text,
-	"obj_name" Varchar,
-	"obj_typ" Text NOT NULL,
-	"obj_member_names" Text,
-	"obj_member_refs" Text,
-	"obj_member_excludes" Text,
-	"obj_sw" Varchar,
-	"obj_ip" Cidr,
-	"obj_ip_end" Cidr,
-	"obj_color" Text Default 'black',
-	"obj_comment" Text,
-	"obj_location" Text,
-	"control_id" BIGINT NOT NULL,
-	"obj_uid" Text,
-	"last_change_admin" Varchar,
-	"last_change_time" Timestamp,
-	"obj_scope" Varchar,
- primary key ("obj_id","control_id")
-);
-
-Create table "import_user"
-(
-	"user_id" BIGSERIAL,
-	"control_id" BIGINT NOT NULL,
-	"user_color" Text Default 'black',
-	"user_name" Varchar NOT NULL,
-	"user_typ" Text,
-	"user_comment" Text,
-	"user_authmethod" Varchar,
-	"user_valid_from" Text,
-	"user_valid_until" Text,
-	"user_member_names" Text,
-	"user_member_refs" Text,
-	"user_uid" Text,
-	"user_firstname" Text,
-	"user_lastname" Text,
-	"src_restrict" Text,
-	"dst_restrict" Text,
-	"time_restrict" Text,
-	"last_change_admin" Varchar,
-	"last_change_time" Timestamp,
-	"user_scope" Varchar,
- primary key ("user_id","control_id")
-);
-
-Create table "import_rule"
-(
-	"control_id" BIGINT NOT NULL,
-	"rule_id" BIGSERIAL,
-	"rulebase_name" Varchar NOT NULL,
-	"rule_num" Integer NOT NULL,
-	"rule_uid" Text NOT NULL,
-	"rule_ruleid" Varchar,
-	"rule_name" Varchar,
-	"rule_sysid" Varchar,
-	"rule_disabled" Boolean Default false,
-	"rule_src_neg" Boolean Default false,
-	"rule_dst_neg" Boolean Default false,
-	"rule_svc_neg" Boolean Default false,
-	"rule_implied" Boolean Default FALSE,
-	"rule_src" Text NOT NULL,
-	"rule_dst" Text NOT NULL,
-	"rule_from_zone" Text,
-	"rule_to_zone" Text,
-	"rule_svc" Text,
-	"rule_action" Text NOT NULL,
-	"rule_track" Text NOT NULL,
-	"rule_installon" Varchar,
-	"rule_time" Varchar,
-	"rule_comment" Text,
-	"rule_head_text" Text,
-	"last_change_admin" Varchar,
-	"last_change_time" Timestamp,
-	"rule_scope" Varchar,
-	"rule_src_refs" Text,
-	"rule_dst_refs" Text,
-	"rule_svc_refs" Text,
-	"parent_rule_uid" Text,
-	"rule_type" Varchar Default 'access',
-	"last_hit" Timestamp,
-	"rule_custom_fields" JSONB,
- primary key ("control_id","rule_id")
-);
-
-Create table "import_zone"
-(
-	"control_id" BIGINT NOT NULL,
-	"zone_name" Text NOT NULL,
-	"last_change_time" Timestamp
 );
 
 ---------------------------------------------------------------------------------------
@@ -966,6 +852,19 @@ Create table "changelog_rule"
 	"change_time" Timestamp,
 	"unique_name" Varchar,
  primary key ("log_rule_id")
+);
+
+Create table "changelog_owner"
+(
+	"log_owner_id" BIGSERIAL,
+	"control_id" BIGINT NOT NULL,
+	"new_owner_id" BIGINT Constraint "changelog_owner_new_rule_id_constraint" Check ((change_action='D' AND new_owner_id IS NULL) OR NOT new_owner_id IS NULL),
+	"old_owner_id" BIGINT Constraint "changelog_owner_old_rule_id_constraint" Check ((change_action='I' AND old_owner_id IS NULL) OR NOT old_owner_id IS NULL),
+	"abs_change_id" BIGINT NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
+	"change_action" Char(1) NOT NULL,
+	"source_id" Varchar,
+	"security_relevant" Boolean NOT NULL Default TRUE,
+ primary key ("log_owner_id")
 );
 
 Create table "stm_change_type"
@@ -1175,7 +1074,12 @@ create table reqtask_owner
 create table rule_owner
 (
     owner_id int,
-    rule_metadata_id bigint
+    rule_metadata_id bigint,
+    rule_id bigint NOT NULL,
+    created bigint NOT NULL,
+    removed bigint,
+    owner_mapping_source_id smallint NOT NULL,
+    primary key (rule_id, owner_id, created)
 );
 
 create table recertification
@@ -1264,6 +1168,27 @@ create table ext_request
 	wait_cycles int default 0,
 	attempts int default 0,
 	locked boolean default false
+);
+
+create table time_object
+(
+    time_obj_id BIGSERIAL PRIMARY KEY,
+    mgm_id Integer NOT NULL,
+    time_obj_uid Varchar,
+    time_obj_name Varchar,
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    created BIGINT,
+    removed BIGINT
+);
+
+create table rule_time
+(
+    rule_time_id BIGSERIAL PRIMARY KEY,
+    rule_id BIGINT,
+    time_obj_id BIGINT,
+    created BIGINT,
+    removed BIGINT
 );
 
 -- workflow -------------------------------------------------------

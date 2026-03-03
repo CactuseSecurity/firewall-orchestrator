@@ -1,8 +1,12 @@
+@using FWO.Api.Client.Queries
+@using FWO.Data
 @using FWO.Data.Middleware
 @using FWO.Data.Modelling
 @using FWO.Middleware.Client
+@using Newtonsoft.Json
 @using RestSharp
 @using System.Net
+@using System.Text.Json.Serialization
 
 
 @page "/monitoring/modelling"
@@ -13,12 +17,15 @@
 @inject MiddlewareClient middlewareClient
 
 
-<h3>@(userConfig.GetText("modelling"))</h3>
+<div class="input-group">
+    <h3>@(userConfig.GetText("modelling"))</h3>
+    <HelpLink Page="monitoring/modelling" />
+</div>
 @(userConfig.GetText("U5120"))
 <hr />
 
-<h5>@(userConfig.GetText("app_role_users"))</h5>
-<div class="m-2 vheight75">
+<h5>@(userConfig.GetText("object_users"))</h5>
+<div class="m-2">
     <div class="form-group row">
         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
         <div class="col-sm-3">
@@ -29,20 +36,130 @@
                 </ElementTemplate>
             </Dropdown>
         </div>
-        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("app_role")):</label>
         <div class="col-sm-3">
-            <Dropdown ElementType="ModellingAppRole" ElementToString="@(s => s.Display())" Nullable="true"
-                    SelectedElement="@SelectedAppRole" SelectedElementChanged="ARChanged" Elements="AppRoles">
-                <ElementTemplate Context="appRole">
-                    @appRole.Display()
-                </ElementTemplate>
-            </Dropdown>
+            <input id="cbx_orphaned" class="form-check-input" type="checkbox" @bind="orphanedView" @bind:after="OnOrphanedViewChanged">
+            <label for="cbx_orphaned" class="form-check-label" title="@(userConfig.GetText("C9029"))">@(userConfig.GetText("orphaned_view"))</label>
+            @if (orphanedView)
+            {
+                <button type="button" class="btn btn-sm btn-danger ms-2" @onclick="RequestRemoveAllOrphans">
+                    @(userConfig.GetText("remove_all_orphans"))
+                </button>
+            }
         </div>
     </div>
-    <div class="form-group row mt-2">
-        <ConnectionTable Connections="@(FoundConnections)" ShowAppName="true" Readonly="true" InterfacesPossible="true"/>
-    </div>
 </div>
+<Collapse Title="@(userConfig.GetText(orphanedView ? "orphaned_app_roles" : "app_roles"))" StartToggled="true">
+    <div class="m-2 vheight75">
+        @if (!orphanedView)
+        {
+            <div class="form-group row">
+                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("app_role")):</label>
+                <div class="col-sm-3">
+                    <Dropdown ElementType="ModellingAppRole" ElementToString="@(s => s.Display())" Nullable="true"
+                            SelectedElement="@SelectedAppRole" SelectedElementChanged="ARChanged" Elements="AppRoles">
+                        <ElementTemplate Context="appRole">
+                            @appRole.Display()
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        }
+        <div class="form-group row mt-2">
+            <ConnectionTable Connections="@(FoundConnections)" ShowAppName="true" Readonly="true" InterfacesPossible="true"
+                             OrphanedMode="orphanedView" RemoveOrphaned="RemoveOrphanedAppRole" />
+        </div>
+    </div>
+</Collapse>
+<Collapse Title="@(userConfig.GetText(orphanedView ? "orphaned_app_servers" : "app_servers"))" StartToggled="true">
+    <div class="m-2 vheight75">
+        @if (!orphanedView)
+        {
+            <div class="form-group row">
+                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("app_server")):</label>
+                <div class="col-sm-3">
+                    <Dropdown ElementType="ModellingAppServer" ElementToString="@(s => s.Display())" Nullable="true"
+                              SelectedElement="@SelectedAppServer" SelectedElementChanged="AppServerChanged" Elements="AppServers">
+                        <ElementTemplate Context="appServer">
+                            @appServer.Display()
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        }
+        <div class="form-group row mt-2">
+            <ConnectionTable Connections="@(FoundAppServerConnections)" ShowAppName="true" Readonly="true" InterfacesPossible="true"
+                             OrphanedMode="orphanedView" RemoveOrphaned="RemoveOrphanedAppServer" />
+        </div>
+    </div>
+</Collapse>
+<Collapse Title="@(userConfig.GetText(orphanedView ? "orphaned_network_areas" : "network_areas"))" StartToggled="true">
+    <div class="m-2 vheight75">
+        @if (!orphanedView)
+        {
+            <div class="form-group row">
+                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("network_area")):</label>
+                <div class="col-sm-3">
+                    <Dropdown ElementType="ModellingNetworkArea" ElementToString="@(a => a.Display())" Nullable="true"
+                              SelectedElement="@SelectedNetworkArea" SelectedElementChanged="NetworkAreaChanged" Elements="NetworkAreas">
+                        <ElementTemplate Context="networkArea">
+                            @networkArea.Display()
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        }
+        <div class="form-group row mt-2">
+            <ConnectionTable Connections="@(FoundNetworkAreaConnections)" ShowAppName="true" Readonly="true" InterfacesPossible="true"
+                             OrphanedMode="orphanedView" RemoveOrphaned="RemoveOrphanedNetworkArea" />
+        </div>
+    </div>
+</Collapse>
+<Collapse Title="@(userConfig.GetText(orphanedView ? "orphaned_service_groups" : "services_groups"))" StartToggled="true">
+    <div class="m-2 vheight75">
+        @if (!orphanedView)
+        {
+            <div class="form-group row">
+                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("service_group")):</label>
+                <div class="col-sm-3">
+                    <Dropdown ElementType="ModellingServiceGroup" ElementToString="@(s => s.Display())" Nullable="true"
+                              SelectedElement="@SelectedServiceGroup" SelectedElementChanged="ServiceGroupChanged" Elements="ServiceGroups">
+                        <ElementTemplate Context="serviceGroup">
+                            @serviceGroup.Display()
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        }
+        <div class="form-group row mt-2">
+            <ConnectionTable Connections="@(FoundServiceGroupConnections)" ShowAppName="true" Readonly="true" InterfacesPossible="true"
+                             OrphanedMode="orphanedView" RemoveOrphaned="RemoveOrphanedServiceGroup" />
+        </div>
+    </div>
+</Collapse>
+<Collapse Title="@(userConfig.GetText(orphanedView ? "orphaned_services" : "services"))" StartToggled="true">
+    <div class="m-2 vheight75">
+        @if (!orphanedView)
+        {
+            <div class="form-group row">
+                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("service")):</label>
+                <div class="col-sm-3">
+                    <Dropdown ElementType="ModellingService" ElementToString="@(s => s.Display())" Nullable="true"
+                              SelectedElement="@SelectedService" SelectedElementChanged="ServiceChanged" Elements="Services">
+                        <ElementTemplate Context="service">
+                            @service.Display()
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        }
+        <div class="form-group row mt-2">
+            <ConnectionTable Connections="@(FoundServiceConnections)" ShowAppName="true" Readonly="true" InterfacesPossible="true"
+                             OrphanedMode="orphanedView" RemoveOrphaned="RemoveOrphanedService" />
+        </div>
+    </div>
+</Collapse>
+
+<Confirm @bind-Display="RemoveAllOrphansMode" PerformAction="RemoveAllOrphans" Title="@userConfig.GetText("delete")" Message="@userConfig.GetText("U7103")" />
 
 @code
 {
@@ -54,13 +171,27 @@
     private List<ModellingAppRole> AppRoles = [];
     private ModellingAppRole? SelectedAppRole;
     private List<ModellingConnection> FoundConnections = [];
+    private List<ModellingService> Services = [];
+    private ModellingService? SelectedService;
+    private List<ModellingConnection> FoundServiceConnections = [];
+    private List<ModellingServiceGroup> ServiceGroups = [];
+    private ModellingServiceGroup? SelectedServiceGroup;
+    private List<ModellingConnection> FoundServiceGroupConnections = [];
+    private List<ModellingAppServer> AppServers = [];
+    private ModellingAppServer? SelectedAppServer;
+    private List<ModellingConnection> FoundAppServerConnections = [];
+    private List<ModellingNetworkArea> NetworkAreas = [];
+    private ModellingNetworkArea? SelectedNetworkArea;
+    private List<ModellingConnection> FoundNetworkAreaConnections = [];
     ModellingHandlerBase? HandlerBase;
+    private bool orphanedView = false;
+    private bool RemoveAllOrphansMode = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            HandlerBase = new(apiConnection, userConfig, new(), false, DisplayMessageInUi);
+            HandlerBase = new(apiConnection, userConfig, new(), false, DisplayMessageInUi, true, false);
             Owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             if (Owners.Count > 0)
             {
@@ -79,6 +210,21 @@
         {
             SelectedOwner = newOwner;
             AppRoles = (await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = SelectedOwner.Id })).OrderBy(x => x.Id).ToList();
+            AppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersForOwner, new { appId = SelectedOwner.Id });
+            NetworkAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getAreas);
+            ServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = SelectedOwner.Id });
+            Services = await apiConnection.SendQueryAsync<List<ModellingService>>(ModellingQueries.getServicesForApp, new { appId = SelectedOwner.Id });
+
+            if (orphanedView)
+            {
+                await LoadOrphanedAppRoleConnectionsForOwner();
+                await LoadOrphanedAppServerConnectionsForOwner();
+                await LoadOrphanedNetworkAreaConnectionsForOwner();
+                await LoadOrphanedServiceConnectionsForOwner();
+                await LoadOrphanedServiceGroupConnectionsForOwner();
+                return;
+            }
+
             if(AppRoles.Count > 0)
             {
                 await ARChanged(AppRoles[0]);
@@ -88,23 +234,685 @@
                 SelectedAppRole = null;
                 FoundConnections = [];
             }
+            if (AppServers.Count > 0)
+            {
+                await AppServerChanged(AppServers[0]);
+            }
+            else
+            {
+                SelectedAppServer = null;
+                FoundAppServerConnections = [];
+            }
+            if (NetworkAreas.Count > 0)
+            {
+                await NetworkAreaChanged(NetworkAreas[0]);
+            }
+            else
+            {
+                SelectedNetworkArea = null;
+                FoundNetworkAreaConnections = [];
+            }
+            if (ServiceGroups.Count > 0)
+            {
+                await ServiceGroupChanged(ServiceGroups[0]);
+            }
+            else
+            {
+                SelectedServiceGroup = null;
+                FoundServiceGroupConnections = [];
+            }
+            if (Services.Count > 0)
+            {
+                await ServiceChanged(Services[0]);
+            }
+            else
+            {
+                SelectedService = null;
+                FoundServiceConnections = [];
+            }
         }
     }
 
-    private async Task ARChanged(ModellingAppRole newAppRole)
+    private async Task OnOrphanedViewChanged()
     {
-        if(newAppRole != SelectedAppRole)
+        if (orphanedView)
+        {
+            await LoadOrphanedAppRoleConnectionsForOwner();
+            await LoadOrphanedAppServerConnectionsForOwner();
+            await LoadOrphanedNetworkAreaConnectionsForOwner();
+            await LoadOrphanedServiceConnectionsForOwner();
+            await LoadOrphanedServiceGroupConnectionsForOwner();
+        }
+        else
+        {
+            await ARChanged(SelectedAppRole);
+            await AppServerChanged(SelectedAppServer);
+            await NetworkAreaChanged(SelectedNetworkArea);
+            await ServiceChanged(SelectedService);
+            await ServiceGroupChanged(SelectedServiceGroup);
+        }
+    }
+
+    private async Task ARChanged(ModellingAppRole? newAppRole)
+    {
+        try
         {
             SelectedAppRole = newAppRole;
-            List<ModellingConnectionWrapper> FoundConnectionWrappers = await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getConnectionsForNwGroup, new { id = SelectedAppRole.Id });
-            FoundConnections = [.. ModellingConnectionWrapper.Resolve(FoundConnectionWrappers)];
-            foreach(var conn in FoundConnections.Where(x => x.UsedInterfaceId != null))
+            if (orphanedView)
             {
-                if (HandlerBase != null)
+                await LoadOrphanedAppRoleConnectionsForOwner();
+                return;
+            }
+            if(SelectedAppRole == null)
+            {
+                FoundConnections = [];
+            }
+            else
+            {
+                List<ModellingConnectionWrapper> FoundConnectionWrappers = 
+                    await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getConnectionsForNwGroup, new { id = SelectedAppRole.Id });
+                FoundConnections = [.. ModellingConnectionWrapper.Resolve(FoundConnectionWrappers)];
+                if(orphanedView)
                 {
-                    await HandlerBase.ExtractUsedInterface(conn);
+                    FoundConnections = await ExtractOrphanedAppRoles(FoundConnections);
+                }
+                else
+                {
+                    await ApplyUsedInterfaces(FoundConnections);
                 }
             }
         }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select"), "", true);
+        }
+    }
+
+    private async Task AppServerChanged(ModellingAppServer? newAppServer)
+    {
+        try
+        {
+            SelectedAppServer = newAppServer;
+            if (orphanedView)
+            {
+                await LoadOrphanedAppServerConnectionsForOwner();
+                return;
+            }
+            if (SelectedAppServer == null)
+            {
+                FoundAppServerConnections = [];
+            }
+            else
+            {
+                List<ConnectionIdWrapper> connectionIds =
+                    await apiConnection.SendQueryAsync<List<ConnectionIdWrapper>>(ModellingQueries.getConnectionIdsForAppServer, new { id = SelectedAppServer.Id });
+                FoundAppServerConnections = await LoadConnectionsByIds(connectionIds.Select(x => x.ConnectionId));
+                await ApplyUsedInterfaces(FoundAppServerConnections);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select"), "", true);
+        }
+    }
+
+    private async Task NetworkAreaChanged(ModellingNetworkArea? newNetworkArea)
+    {
+        try
+        {
+            SelectedNetworkArea = newNetworkArea;
+            if (orphanedView)
+            {
+                await LoadOrphanedNetworkAreaConnectionsForOwner();
+                return;
+            }
+            if (SelectedNetworkArea == null)
+            {
+                FoundNetworkAreaConnections = [];
+            }
+            else
+            {
+                List<ModellingConnection> connections = await LoadResolvedConnectionsForOwner();
+                FoundNetworkAreaConnections = connections.Where(connection =>
+                        connection.SourceAreas.Any(area => area.Content.Id == SelectedNetworkArea.Id) ||
+                        connection.DestinationAreas.Any(area => area.Content.Id == SelectedNetworkArea.Id))
+                    .ToList();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select"), "", true);
+        }
+    }
+
+    private async Task ServiceGroupChanged(ModellingServiceGroup? newServiceGroup)
+    {
+        try
+        {
+            SelectedServiceGroup = newServiceGroup;
+            if (orphanedView)
+            {
+                await LoadOrphanedServiceGroupConnectionsForOwner();
+                return;
+            }
+            if (SelectedServiceGroup == null)
+            {
+                FoundServiceGroupConnections = [];
+            }
+            else
+            {
+                List<ConnectionIdWrapper> connectionIds =
+                    await apiConnection.SendQueryAsync<List<ConnectionIdWrapper>>(ModellingQueries.getConnectionIdsForServiceGroup, new { serviceGroupId = SelectedServiceGroup.Id });
+                FoundServiceGroupConnections = await LoadConnectionsByIds(connectionIds.Select(x => x.ConnectionId));
+                if (orphanedView)
+                {
+                    FoundServiceGroupConnections = await ExtractOrphanedServices(FoundServiceGroupConnections);
+                }
+                else
+                {
+                    await ApplyUsedInterfaces(FoundServiceGroupConnections);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select"), "", true);
+        }
+    }
+
+    private async Task ServiceChanged(ModellingService? newService)
+    {
+        try
+        {
+            SelectedService = newService;
+            if (orphanedView)
+            {
+                await LoadOrphanedServiceConnectionsForOwner();
+                return;
+            }
+            if (SelectedService == null)
+            {
+                FoundServiceConnections = [];
+            }
+            else
+            {
+                List<ConnectionIdWrapper> connectionIds =
+                    await apiConnection.SendQueryAsync<List<ConnectionIdWrapper>>(ModellingQueries.getConnectionIdsForService, new { serviceId = SelectedService.Id });
+                FoundServiceConnections = await LoadConnectionsByIds(connectionIds.Select(x => x.ConnectionId));
+                if (orphanedView)
+                {
+                    FoundServiceConnections = await ExtractOrphanedServices(FoundServiceConnections);
+                }
+                else
+                {
+                    await ApplyUsedInterfaces(FoundServiceConnections);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("select"), "", true);
+        }
+    }
+
+    private async Task<List<ModellingConnection>> LoadConnectionsByIds(IEnumerable<long> connectionIds)
+    {
+        List<ModellingConnection> connections = [];
+        foreach (long connectionId in connectionIds.Distinct())
+        {
+            List<ModellingConnection> found =
+                await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new { id = connectionId });
+            if (found.Count > 0)
+            {
+                connections.Add(found[0]);
+            }
+        }
+        return connections;
+    }
+
+    private async Task<List<ModellingConnection>> LoadConnectionsForOwner()
+    {
+        if (SelectedOwner == null)
+        {
+            return [];
+        }
+        return await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = SelectedOwner.Id });
+    }
+
+    private async Task<List<ModellingConnection>> LoadResolvedConnectionsForOwner()
+    {
+        if (SelectedOwner == null)
+        {
+            return [];
+        }
+        return await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsResolved, new { appId = SelectedOwner.Id });
+    }
+
+    private async Task ApplyUsedInterfaces(List<ModellingConnection> connections)
+    {
+        if (HandlerBase == null)
+        {
+            return;
+        }
+        foreach (var connection in connections.Where(x => x.UsedInterfaceId != null))
+        {
+            await HandlerBase.ExtractUsedInterface(connection);
+        }
+    }
+
+    private async Task<List<ModellingConnection>> ExtractOrphanedAppRoles(List<ModellingConnection> connections)
+    {
+        FilterAppRoleGroups(connections);
+        return await ExtractOrphanedByField(
+            connections,
+            connection => connection.SourceAppRoles.Count > 0,
+            connection => connection.DestinationAppRoles.Count > 0,
+            (filtered, original) => filtered.SourceAppRoles = original.SourceAppRoles,
+            (filtered, original) => filtered.DestinationAppRoles = original.DestinationAppRoles);
+    }
+
+    private async Task<List<ModellingConnection>> ExtractOrphanedAppServers(List<ModellingConnection> connections)
+        => await ExtractOrphanedByField(
+            connections,
+            connection => connection.SourceAppServers.Count > 0,
+            connection => connection.DestinationAppServers.Count > 0,
+            (filtered, original) => filtered.SourceAppServers = original.SourceAppServers,
+            (filtered, original) => filtered.DestinationAppServers = original.DestinationAppServers);
+
+    private async Task<List<ModellingConnection>> ExtractOrphanedNetworkAreas(List<ModellingConnection> connections)
+        => await ExtractOrphanedByField(
+            connections,
+            connection => connection.SourceAreas.Count > 0,
+            connection => connection.DestinationAreas.Count > 0,
+            (filtered, original) => filtered.SourceAreas = original.SourceAreas,
+            (filtered, original) => filtered.DestinationAreas = original.DestinationAreas);
+
+    private async Task<List<ModellingConnection>> ExtractOrphanedByField(
+        List<ModellingConnection> connections,
+        Func<ModellingConnection, bool> hasSource,
+        Func<ModellingConnection, bool> hasDestination,
+        Action<ModellingConnection, ModellingConnection> applySource,
+        Action<ModellingConnection, ModellingConnection> applyDestination)
+    {
+        List<ModellingConnection> result = [];
+        foreach (var connection in connections)
+        {
+            if (connection.UsedInterfaceId == null || HandlerBase == null)
+            {
+                continue;
+            }
+            ModellingConnection visibleConn = new(connection);
+            await HandlerBase.ExtractUsedInterface(visibleConn);
+            if (visibleConn.SrcFromInterface && hasSource(connection))
+            {
+                ModellingConnection filtered = new(connection, includeLists: false)
+                {
+                    SrcFromInterface = visibleConn.SrcFromInterface,
+                    DstFromInterface = visibleConn.DstFromInterface
+                };
+                applySource(filtered, connection);
+                result.Add(filtered);
+            }
+            else if (visibleConn.DstFromInterface && hasDestination(connection))
+            {
+                ModellingConnection filtered = new(connection, includeLists: false)
+                {
+                    SrcFromInterface = visibleConn.SrcFromInterface,
+                    DstFromInterface = visibleConn.DstFromInterface
+                };
+                applyDestination(filtered, connection);
+                result.Add(filtered);
+            }
+        }
+        return result;
+    }
+
+    private async Task<List<ModellingConnection>> ExtractOrphanedServiceGroups(List<ModellingConnection> connections)
+        => await ExtractOrphanedServiceMembers(connections,
+            connection => connection.ServiceGroups.Count > 0,
+            (filtered, original) => filtered.ServiceGroups = original.ServiceGroups);
+
+    private async Task<List<ModellingConnection>> ExtractOrphanedServices(List<ModellingConnection> connections)
+        => await ExtractOrphanedServiceMembers(connections,
+            connection => connection.Services.Count > 0,
+            (filtered, original) => filtered.Services = original.Services);
+
+    private async Task<List<ModellingConnection>> ExtractOrphanedServiceMembers(
+        List<ModellingConnection> connections,
+        Func<ModellingConnection, bool> hasMembers,
+        Action<ModellingConnection, ModellingConnection> applyMembers)
+    {
+        List<ModellingConnection> result = [];
+        foreach (var connection in connections)
+        {
+            if (connection.UsedInterfaceId == null || !hasMembers(connection))
+            {
+                continue;
+            }
+            ModellingConnection filtered = new(connection, includeLists: false);
+            applyMembers(filtered, connection);
+            result.Add(filtered);
+        }
+        return result;
+    }
+
+    private static void FilterAppRoleGroups(List<ModellingConnection> connections)
+    {
+        int appRoleType = (int)ModellingTypes.ModObjectType.AppRole;
+        foreach (var connection in connections)
+        {
+            connection.SourceAppRoles = [.. connection.SourceAppRoles.Where(role => role.Content.GroupType == appRoleType)];
+            connection.DestinationAppRoles = [.. connection.DestinationAppRoles.Where(role => role.Content.GroupType == appRoleType)];
+        }
+    }
+
+    private async Task LoadOrphanedAppRoleConnectionsForOwner()
+    {
+        List<ModellingConnection> connections = await LoadConnectionsForOwner();
+        FoundConnections = await ExtractOrphanedAppRoles(connections);
+    }
+
+    private async Task LoadOrphanedAppServerConnectionsForOwner()
+    {
+        List<ModellingConnection> connections = await LoadConnectionsForOwner();
+        FoundAppServerConnections = await ExtractOrphanedAppServers(connections);
+    }
+
+    private async Task LoadOrphanedNetworkAreaConnectionsForOwner()
+    {
+        List<ModellingConnection> connections = await LoadResolvedConnectionsForOwner();
+        FoundNetworkAreaConnections = await ExtractOrphanedNetworkAreas(connections);
+    }
+
+    private async Task LoadOrphanedServiceGroupConnectionsForOwner()
+    {
+        List<ModellingConnection> connections = await LoadConnectionsForOwner();
+        FoundServiceGroupConnections = await ExtractOrphanedServiceGroups(connections);
+    }
+
+    private async Task LoadOrphanedServiceConnectionsForOwner()
+    {
+        List<ModellingConnection> connections = await LoadConnectionsForOwner();
+        FoundServiceConnections = await ExtractOrphanedServices(connections);
+    }
+
+    private async Task RemoveOrphanedAppRole(ModellingConnection connection)
+    {
+        await RemoveOrphanedAppRole(connection, reloadAfter: true);
+    }
+
+    private async Task RemoveOrphanedAppServer(ModellingConnection connection)
+    {
+        await RemoveOrphanedAppServer(connection, reloadAfter: true);
+    }
+
+    private async Task RemoveOrphanedNetworkArea(ModellingConnection connection)
+    {
+        await RemoveOrphanedNetworkArea(connection, reloadAfter: true);
+    }
+
+    private async Task RemoveOrphanedServiceGroup(ModellingConnection connection)
+    {
+        await RemoveOrphanedServiceGroup(connection, reloadAfter: true);
+    }
+
+    private async Task RemoveOrphanedService(ModellingConnection connection)
+    {
+        await RemoveOrphanedService(connection, reloadAfter: true);
+    }
+
+    private async Task<int> RemoveOrphanedAppRole(ModellingConnection connection, bool reloadAfter)
+    {
+        try
+        {
+            int removedCount = await RemoveOrphanedAppRolesFromConnections([connection]);
+            if (reloadAfter)
+            {
+                await LoadOrphanedAppRoleConnectionsForOwner();
+            }
+            return removedCount;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete"), "", true);
+            return 0;
+        }
+    }
+
+    private async Task<int> RemoveOrphanedAppServer(ModellingConnection connection, bool reloadAfter)
+    {
+        try
+        {
+            int removedCount = await RemoveOrphanedAppServersFromConnections([connection]);
+            if (reloadAfter)
+            {
+                await LoadOrphanedAppServerConnectionsForOwner();
+            }
+            return removedCount;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete"), "", true);
+            return 0;
+        }
+    }
+
+    private async Task<int> RemoveOrphanedNetworkArea(ModellingConnection connection, bool reloadAfter)
+    {
+        try
+        {
+            int removedCount = await RemoveOrphanedNetworkAreasFromConnections([connection]);
+            if (reloadAfter)
+            {
+                await LoadOrphanedNetworkAreaConnectionsForOwner();
+            }
+            return removedCount;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete"), "", true);
+            return 0;
+        }
+    }
+
+    private async Task<int> RemoveOrphanedServiceGroup(ModellingConnection connection, bool reloadAfter)
+    {
+        try
+        {
+            int removedCount = await RemoveOrphanedServiceGroupsFromConnections([connection]);
+            if (reloadAfter)
+            {
+                await LoadOrphanedServiceGroupConnectionsForOwner();
+            }
+            return removedCount;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete"), "", true);
+            return 0;
+        }
+    }
+
+    private async Task<int> RemoveOrphanedService(ModellingConnection connection, bool reloadAfter)
+    {
+        try
+        {
+            int removedCount = await RemoveOrphanedServicesFromConnections([connection]);
+            if (reloadAfter)
+            {
+                await LoadOrphanedServiceConnectionsForOwner();
+            }
+            return removedCount;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete"), "", true);
+            return 0;
+        }
+    }
+
+    private void RequestRemoveAllOrphans()
+    {
+        RemoveAllOrphansMode = true;
+    }
+
+    private async Task RemoveAllOrphans()
+    {
+        RemoveAllOrphansMode = false;
+        if (Owners.Count == 0)
+        {
+            return;
+        }
+        FwoOwner? originalOwner = SelectedOwner;
+        int removedCount = 0;
+        try
+        {
+            foreach (var owner in Owners)
+            {
+                SelectedOwner = owner;
+                List<ModellingConnection> connections = await LoadConnectionsForOwner();
+                removedCount += await RemoveOrphanedAppRolesFromConnections(await ExtractOrphanedAppRoles(connections));
+                removedCount += await RemoveOrphanedAppServersFromConnections(await ExtractOrphanedAppServers(connections));
+                removedCount += await RemoveOrphanedServiceGroupsFromConnections(await ExtractOrphanedServiceGroups(connections));
+                removedCount += await RemoveOrphanedServicesFromConnections(await ExtractOrphanedServices(connections));
+
+                List<ModellingConnection> resolvedConnections = await LoadResolvedConnectionsForOwner();
+                removedCount += await RemoveOrphanedNetworkAreasFromConnections(await ExtractOrphanedNetworkAreas(resolvedConnections));
+            }
+            DisplayMessageInUi(null, userConfig.GetText("delete"), $"{removedCount} {userConfig.GetText("orphaned_entries_removed")}", false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete"), "", true);
+        }
+        finally
+        {
+            if (originalOwner != null)
+            {
+                await OwnerChanged(originalOwner);
+            }
+        }
+    }
+
+    private async Task<int> RemoveOrphanedAppRolesFromConnections(List<ModellingConnection> connections)
+    {
+        int removedCount = 0;
+        foreach (var connection in connections)
+        {
+            List<ModellingAppRoleWrapper> appRoles = connection.SourceAppRoles.Count > 0
+                ? connection.SourceAppRoles
+                : connection.DestinationAppRoles;
+            ModellingTypes.ConnectionField field = connection.SourceAppRoles.Count > 0
+                ? ModellingTypes.ConnectionField.Source
+                : ModellingTypes.ConnectionField.Destination;
+            foreach (var appRole in appRoles)
+            {
+                var variables = new
+                {
+                    nwGroupId = appRole.Content.Id,
+                    connectionId = connection.Id,
+                    connectionField = (int)field
+                };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, variables);
+                removedCount++;
+            }
+        }
+        return removedCount;
+    }
+
+    private async Task<int> RemoveOrphanedAppServersFromConnections(List<ModellingConnection> connections)
+    {
+        int removedCount = 0;
+        foreach (var connection in connections)
+        {
+            List<ModellingAppServerWrapper> appServers = connection.SourceAppServers.Count > 0
+                ? connection.SourceAppServers
+                : connection.DestinationAppServers;
+            ModellingTypes.ConnectionField field = connection.SourceAppServers.Count > 0
+                ? ModellingTypes.ConnectionField.Source
+                : ModellingTypes.ConnectionField.Destination;
+            foreach (var appServer in appServers)
+            {
+                var variables = new
+                {
+                    nwObjectId = appServer.Content.Id,
+                    connectionId = connection.Id,
+                    connectionField = (int)field
+                };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeAppServerFromConnection, variables);
+                removedCount++;
+            }
+        }
+        return removedCount;
+    }
+
+    private async Task<int> RemoveOrphanedNetworkAreasFromConnections(List<ModellingConnection> connections)
+    {
+        int removedCount = 0;
+        foreach (var connection in connections)
+        {
+            List<ModellingNetworkAreaWrapper> areas = connection.SourceAreas.Count > 0
+                ? connection.SourceAreas
+                : connection.DestinationAreas;
+            ModellingTypes.ConnectionField field = connection.SourceAreas.Count > 0
+                ? ModellingTypes.ConnectionField.Source
+                : ModellingTypes.ConnectionField.Destination;
+            foreach (var area in areas)
+            {
+                var variables = new
+                {
+                    nwGroupId = area.Content.Id,
+                    connectionId = connection.Id,
+                    connectionField = (int)field
+                };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwGroupFromConnection, variables);
+                removedCount++;
+            }
+        }
+        return removedCount;
+    }
+
+    private async Task<int> RemoveOrphanedServiceGroupsFromConnections(List<ModellingConnection> connections)
+    {
+        int removedCount = 0;
+        foreach (var connection in connections)
+        {
+            foreach (var serviceGroup in connection.ServiceGroups)
+            {
+                var variables = new
+                {
+                    serviceGroupId = serviceGroup.Content.Id,
+                    connectionId = connection.Id
+                };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceGroupFromConnection, variables);
+                removedCount++;
+            }
+        }
+        return removedCount;
+    }
+
+    private async Task<int> RemoveOrphanedServicesFromConnections(List<ModellingConnection> connections)
+    {
+        int removedCount = 0;
+        foreach (var connection in connections)
+        {
+            foreach (var service in connection.Services)
+            {
+                var variables = new
+                {
+                    serviceId = service.Content.Id,
+                    connectionId = connection.Id
+                };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeServiceFromConnection, variables);
+                removedCount++;
+            }
+        }
+        return removedCount;
+    }
+
+    private sealed class ConnectionIdWrapper
+    {
+        [JsonProperty("connection_id"), JsonPropertyName("connection_id")]
+        public long ConnectionId { get; set; }
     }
 }

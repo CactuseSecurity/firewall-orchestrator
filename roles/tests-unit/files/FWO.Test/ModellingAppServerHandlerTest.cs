@@ -43,7 +43,9 @@ namespace FWO.Test
                 new ModellingAppServer { Ip = "", CustomType = 1 },
                 [],
                 false,
-                (_, _, message, _) => lastMessage = message
+                (_, _, message, _) => lastMessage = message,
+                false,
+                false
             );
 
             bool result = await handler.Save();
@@ -64,7 +66,9 @@ namespace FWO.Test
                 appServer,
                 [],
                 false,
-                (_, _, message, _) => lastMessage = message
+                (_, _, message, _) => lastMessage = message,
+                false,
+                false
             );
 
             bool result = await handler.Save();
@@ -93,7 +97,9 @@ namespace FWO.Test
                 appServer,
                 available,
                 false,
-                (_, _, _, _) => { }
+                (_, _, _, _) => { },
+                false,
+                false
             );
 
             handler.ActAppServer.Name = "changed";

@@ -88,6 +88,10 @@ namespace FWO.Data
         [SystemTextJsonIgnore]
         [JsonProperty("importControlByRuleLastSeen"), JsonPropertyName("importControlByRuleLastSeen")]
         public ImportControl? LastSeenImport { get; set; }
+        
+        [SystemTextJsonIgnore]
+        [JsonProperty("createdImport"), JsonPropertyName("createdImport")]
+        public ImportControl? CreatedImport { get; set; }
 
         [SystemTextJsonIgnore]
         public DateTime? LastModified => LastSeenImport?.StartTime ?? Metadata?.Created;
@@ -127,6 +131,9 @@ namespace FWO.Data
 
         [JsonProperty("rule_time"), JsonPropertyName("rule_time")]
         public string? Time { get; set; }
+
+        [JsonProperty("rule_times"), JsonPropertyName("rule_times")]
+        public List<RuleTime> RuleTimes { get; set; } = [];
 
         [JsonProperty("violations"), JsonPropertyName("violations")]
         public List<ComplianceViolation> Violations { get; set; } = [];
@@ -204,6 +211,7 @@ namespace FWO.Data
             EnforcingGateways = rule.EnforcingGateways;
             InstallOn = rule.InstallOn;
             Time = rule.Time;
+            RuleTimes = rule.RuleTimes;
             Violations = rule.Violations;
             Rulebase = rule.Rulebase;
             LastChangeAdmin = rule.LastChangeAdmin;

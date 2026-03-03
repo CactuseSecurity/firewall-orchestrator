@@ -69,6 +69,7 @@ builder.Services.AddSingleton<ImportChangeNotifySchedulerService>();
 builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
 builder.Services.AddSingleton<ReportSchedulerService>();
 builder.Services.AddSingleton<ComplianceSchedulerService>();
+builder.Services.AddSingleton<UpdateRuleOwnerMappingSchedulerService>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -149,6 +150,7 @@ app.Services.GetRequiredService<ImportChangeNotifySchedulerService>();
 app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();
 app.Services.GetRequiredService<ReportSchedulerService>();
 app.Services.GetRequiredService<ComplianceSchedulerService>();
+app.Services.GetRequiredService<UpdateRuleOwnerMappingSchedulerService>();
 
 await app.RunAsync();
 

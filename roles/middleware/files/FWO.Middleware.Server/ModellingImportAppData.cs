@@ -59,6 +59,23 @@ namespace FWO.Middleware.Server
         public string? Criticality { get; set; }
 
         /// <summary>
+        /// Owner lifecycle state name
+        /// </summary>
+        [JsonProperty("owner_lifecycle_state"), JsonPropertyName("owner_lifecycle_state")]
+        public string? OwnerLifecycleState { get; set; }
+
+        /// <summary>
+        /// Owner responsibles grouped by responsible type name
+        /// Example:
+        /// "responsibles": {
+        ///   "ownerResponsibleType:Main": ["cn=user1,dc=example,dc=com"],
+        ///   "ownerResponsibleType:Supporting": []
+        /// }
+        /// </summary>
+        [JsonProperty("responsibles"), JsonPropertyName("responsibles")]
+        public Dictionary<string, List<string>>? Responsibles { get; set; } = [];
+
+        /// <summary>
         /// Source of App import
         /// </summary>
         [JsonProperty("import_source"), JsonPropertyName("import_source")]

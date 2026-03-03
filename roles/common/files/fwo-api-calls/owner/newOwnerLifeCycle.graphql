@@ -1,4 +1,4 @@
-mutation newLifeCycle(
+mutation newOwnerLifeCycle(
   $name: String!
   ) {
   insert_owner_lifecycle_state(objects: {

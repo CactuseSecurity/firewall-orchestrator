@@ -324,6 +324,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("rolesWithAppDataImport"), JsonPropertyName("rolesWithAppDataImport")]
         public string RolesWithAppDataImport { get; set; } = "[]";
 
+        [JsonProperty("ownerDataImportSyncUsers"), JsonPropertyName("ownerDataImportSyncUsers")]
+        public bool OwnerDataImportSyncUsers { get; set; } = true;
+
         [JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
         public string ImportSubnetDataPath { get; set; } = "";
 

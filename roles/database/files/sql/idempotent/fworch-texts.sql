@@ -277,6 +277,14 @@ INSERT INTO txt VALUES ('Restricted',       	'German',	'Beschr&auml;nkt');
 INSERT INTO txt VALUES ('Restricted', 	    	'English',	'Restricted');
 INSERT INTO txt VALUES ('Private',       		'German',	'Privat');
 INSERT INTO txt VALUES ('Private', 	    		'English',	'Private');
+INSERT INTO txt VALUES ('IpBased',              'German',   'IP-basiert');
+INSERT INTO txt VALUES ('IpBased',              'English',  'IP based');
+INSERT INTO txt VALUES ('CustomField',          'German',   'Custom-Feld');
+INSERT INTO txt VALUES ('CustomField',          'English',  'Custom field');
+INSERT INTO txt VALUES ('NameField',            'German',   'Namensfeld');
+INSERT INTO txt VALUES ('NameField',            'English',  'Name field');
+INSERT INTO txt VALUES ('Manual',               'German',   'Manuell');
+INSERT INTO txt VALUES ('Manual',               'English',  'Manual');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -630,10 +638,10 @@ INSERT INTO txt VALUES ('number', 				'German', 	'Nr.');
 INSERT INTO txt VALUES ('number', 				'English', 	'No.');
 INSERT INTO txt VALUES ('name', 				'German', 	'Name');
 INSERT INTO txt VALUES ('name', 				'English', 	'Name');
-INSERT INTO txt VALUES ('user_deleted',		'German', 	'Nutzer gel&ouml;scht');
-INSERT INTO txt VALUES ('user_deleted',		'English', 	'User deleted');
-INSERT INTO txt VALUES ('user_added',		'German', 	'Nutzer hinzugef&uuml;gt');
-INSERT INTO txt VALUES ('user_added',		'English', 	'User added');
+INSERT INTO txt VALUES ('user_deleted',		    'German', 	'Nutzer gel&ouml;scht');
+INSERT INTO txt VALUES ('user_deleted',		    'English', 	'User deleted');
+INSERT INTO txt VALUES ('user_added',		    'German', 	'Nutzer hinzugef&uuml;gt');
+INSERT INTO txt VALUES ('user_added',		    'English', 	'User added');
 INSERT INTO txt VALUES ('user_modified',		'German', 	'Nutzer modifiziert');
 INSERT INTO txt VALUES ('user_modified',		'English', 	'User modified');
 INSERT INTO txt VALUES ('source', 				'German', 	'Quelle');
@@ -684,12 +692,12 @@ INSERT INTO txt VALUES ('no_rules_gtw',		    'German', 	'Anzahl Regeln pro Gatew
 INSERT INTO txt VALUES ('no_rules_gtw',		    'English', 	'Number of Rules per Gateway');
 INSERT INTO txt VALUES ('negated',		        'German', 	'nicht');
 INSERT INTO txt VALUES ('negated',		        'English', 	'not');
-INSERT INTO txt VALUES ('network_object_deleted',		'German', 	'Netzwerkobjekt gel&ouml;scht');
-INSERT INTO txt VALUES ('network_object_deleted',		'English', 	'Network Object deleted');
-INSERT INTO txt VALUES ('network_object_added',		'German', 	'Netzwerkobjekt hinzugef&uuml;gt');
-INSERT INTO txt VALUES ('network_object_added',		'English', 	'Network Object added');
-INSERT INTO txt VALUES ('network_object_modified',		'German', 	'Netzwerkobjekt modifiziert');
-INSERT INTO txt VALUES ('network_object_modified',		'English', 	'Network Object modified');
+INSERT INTO txt VALUES ('network_object_deleted','German', 	'Netzwerkobjekt gel&ouml;scht');
+INSERT INTO txt VALUES ('network_object_deleted','English', 'Network Object deleted');
+INSERT INTO txt VALUES ('network_object_added',	'German', 	'Netzwerkobjekt hinzugef&uuml;gt');
+INSERT INTO txt VALUES ('network_object_added',	'English', 	'Network Object added');
+INSERT INTO txt VALUES ('network_object_modified','German', 'Netzwerkobjekt modifiziert');
+INSERT INTO txt VALUES ('network_object_modified','English','Network Object modified');
 INSERT INTO txt VALUES ('network_object',		'German', 	'Netzwerkobjekt');
 INSERT INTO txt VALUES ('network_object',		'English', 	'Network Object');
 INSERT INTO txt VALUES ('network_objects',		'German', 	'Netzwerkobjekte');
@@ -868,8 +876,8 @@ INSERT INTO txt VALUES ('schedule_owner',		'German', 	'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('schedule_owner',		'English', 	'Owner');
 INSERT INTO txt VALUES ('active', 			    'German',	'Aktiv');
 INSERT INTO txt VALUES ('active', 			    'English',	'Active');
-INSERT INTO txt VALUES ('inactive',            'German',   'Inaktiv');
-INSERT INTO txt VALUES ('inactive',            'English',  'Inactive');
+INSERT INTO txt VALUES ('inactive',             'German',   'Inaktiv');
+INSERT INTO txt VALUES ('inactive',             'English',  'Inactive');
 INSERT INTO txt VALUES ('count', 			    'German',	'Z&auml;hler');
 INSERT INTO txt VALUES ('count', 			    'English',	'Count');
 INSERT INTO txt VALUES ('output_format', 		'German',	'Ausgabeformat');
@@ -1952,10 +1960,12 @@ INSERT INTO txt VALUES ('importer_settings',    'German', 	'FW-Importer-Einstell
 INSERT INTO txt VALUES ('importer_settings',    'English', 	'FW Importer Settings');
 INSERT INTO txt VALUES ('change_trigger',       'German', 	'FW-&Auml;nderungstrigger-Einstellungen');
 INSERT INTO txt VALUES ('change_trigger',       'English', 	'FW Change Trigger Settings');
-INSERT INTO txt VALUES ('change_notification_sub',       'German', 	'Einstellungen f&uuml;r Trigger von &Auml;nderungsbenachrichtigungen');
-INSERT INTO txt VALUES ('change_notification_sub',       'English', 	'Change Notification Event Trigger Settings');
-INSERT INTO txt VALUES ('update_rule_owner_mapping_sub',       'German', 	'Einstellungen f&uuml;r Trigger zur Aktualisierung der Regelverantwortung');
-INSERT INTO txt VALUES ('update_rule_owner_mapping_sub',       'English', 	'Rule Owner Mapping Update Event Trigger Settings');
+INSERT INTO txt VALUES ('change_notification_sub','German', 'Einstellungen f&uuml;r Trigger von &Auml;nderungsbenachrichtigungen');
+INSERT INTO txt VALUES ('change_notification_sub','English','Change Notification Event Trigger Settings');
+INSERT INTO txt VALUES ('owner_mapping',        'German',   'Eigent&uuml;merzuordnung');
+INSERT INTO txt VALUES ('owner_mapping',        'English',  'Owner Mapping');
+INSERT INTO txt VALUES ('custom_field_key',     'German',   'Custom-Feld-Schl&uuml;ssel');
+INSERT INTO txt VALUES ('custom_field_key',     'English',  'Custom Field key');
 INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');
 INSERT INTO txt VALUES ('edit_email',           'English', 	'Edit email settings');
 INSERT INTO txt VALUES ('email_sender',         'German', 	'Email-Absendeadresse');
@@ -2258,11 +2268,11 @@ INSERT INTO txt VALUES ('impChangeNotifySleepTime','German','&Auml;nderungsbenac
 INSERT INTO txt VALUES ('impChangeNotifySleepTime','English','Change notification sleep time (in seconds)');
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenachrichtigungs-Start');
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingActive',    'German', 	'Regelbesitzer zuordnungs aktualisierung aktiv?');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingActive',    'English', 	'Update Rule Owner Mapping active?');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','German','Regelbesitzer zuordnungs aktualisierungs-Intervall (in Sekunden)');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingActive','German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierung aktiv?');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingActive','English', 'Update Rule Owner Mapping active?');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','German','Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','English','Update Rule Owner Mapping sleep time (in seconds)');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingStartAt',  'German','Regelbesitzer zuordnung aktualisierungs-Start');
+INSERT INTO txt VALUES ('updateRuleOwnerMappingStartAt',  'German','Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Start');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingStartAt',  'English','Update Rule Owner Mapping start at');
 INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('externalRequestSleepTime','English','External Request sleep time (in seconds)');
@@ -2466,7 +2476,7 @@ INSERT INTO txt VALUES ('recert_settings',      'German', 	'Rezertifizierungsein
 INSERT INTO txt VALUES ('recert_settings',      'English', 	'Recertification Settings');
 INSERT INTO txt VALUES ('save_settings',        'German',   'Einstellungen speichern');
 INSERT INTO txt VALUES ('save_settings',        'English',  'Save settings');
-INSERT INTO txt VALUES ('available_states',     'German',   'Verf&uuml;gbare Stati');
+INSERT INTO txt VALUES ('available_states',     'German',   'Verf&uuml;gbare Status');
 INSERT INTO txt VALUES ('available_states',     'English',  'Available states');
 INSERT INTO txt VALUES ('add_state',            'German',   'Status hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_state',            'English',  'Add state');
@@ -2478,11 +2488,11 @@ INSERT INTO txt VALUES ('delete_state',         'German',   'Status l&ouml;schen
 INSERT INTO txt VALUES ('delete_state',         'English',  'Delete state');
 INSERT INTO txt VALUES ('from_state',           'German',   'Von Status');
 INSERT INTO txt VALUES ('from_state',           'English',  'From state');
-INSERT INTO txt VALUES ('to_states',            'German',   'Nach Stati');
+INSERT INTO txt VALUES ('to_states',            'German',   'Nach Status');
 INSERT INTO txt VALUES ('to_states',            'English',  'To states');
 INSERT INTO txt VALUES ('allowed_transitions',  'German',   'erlaubte &Uuml;berg&auml;nge');
 INSERT INTO txt VALUES ('allowed_transitions',  'English',  'Allowed transitions');
-INSERT INTO txt VALUES ('special_states',       'German',   'Spezielle Stati');
+INSERT INTO txt VALUES ('special_states',       'German',   'Spezielle Status');
 INSERT INTO txt VALUES ('special_states',       'English',  'Special states');
 INSERT INTO txt VALUES ('lowest_input_state',   'German',   'Niedrigster Eingangsstatus');
 INSERT INTO txt VALUES ('lowest_input_state',   'English',  'Lowest input state');
@@ -2492,9 +2502,9 @@ INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgang
 INSERT INTO txt VALUES ('lowest_end_state',     'English',  'Lowest exit state');
 INSERT INTO txt VALUES ('derived_state',        'German',   'Abgeleiteter Status');
 INSERT INTO txt VALUES ('derived_state',        'English',  'Derived state');
-INSERT INTO txt VALUES ('ext_states',           'German',   'Externe Stati');
+INSERT INTO txt VALUES ('ext_states',           'German',   'Externe Status');
 INSERT INTO txt VALUES ('ext_states',           'English',  'External states');
-INSERT INTO txt VALUES ('save_ext_states',      'German',   'Externe Stati speichern');
+INSERT INTO txt VALUES ('save_ext_states',      'German',   'Externe Status speichern');
 INSERT INTO txt VALUES ('save_ext_states',      'English',  'Save external states');
 INSERT INTO txt VALUES ('internal_state_name',  'German', 	'Interner Status-Name');
 INSERT INTO txt VALUES ('internal_state_name',  'English', 	'Internal State Name');
@@ -2530,6 +2540,8 @@ INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertintervall (in
 INSERT INTO txt VALUES ('recert_interval',      'English',  'Recert Interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
 INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
+INSERT INTO txt VALUES ('criticality',          'German',   'Kritikalit&auml;t');
+INSERT INTO txt VALUES ('criticality',          'English',  'Criticality');
 INSERT INTO txt VALUES ('comm_svc_possible',    'German',   'Common Service zugelassen');
 INSERT INTO txt VALUES ('comm_svc_possible',    'English',  'Common Service Possible');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
@@ -3193,10 +3205,6 @@ INSERT INTO txt VALUES ('U5015', 'German',  'Verwaltung der Workflow-Voreinstell
 INSERT INTO txt VALUES ('U5015', 'English', 'Administration of workflow settings (only by admin)');
 INSERT INTO txt VALUES ('U5016', 'German',  'Verwaltung der externen Auftr&auml;ge (nur f&uuml;r Admin)');
 INSERT INTO txt VALUES ('U5016', 'English', 'Administration of external requests (only by admin)');
-INSERT INTO txt VALUES ('U5017', 'German',  'Regelbesitzer zuordnung neu erstellen');
-INSERT INTO txt VALUES ('U5017', 'English', '(Re)initialize Rule Owner Mapping');
-INSERT INTO txt VALUES ('U5018', 'German',  'Besitzerzuordnungsquelle');
-INSERT INTO txt VALUES ('U5018', 'English', 'Owner Mappings Source');
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
 INSERT INTO txt VALUES ('U5102', 'German',  'L&ouml;scht alle Beispielmanagements (auf "_demo" endend) und alle zugeordneten Gateways');
@@ -3333,6 +3341,8 @@ INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden
 INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');
 INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende Aktion l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5502', 'English', 'Are you sure you want to delete action: ');
+INSERT INTO txt VALUES ('U5503', 'German',  'Import erfolgreich.');
+INSERT INTO txt VALUES ('U5503', 'English', 'Import successful.');
 
 INSERT INTO txt VALUES ('U5601', 'German',  'Sind sie sicher, dass sie das letzte Senden f&uuml;r folgende Benachrichtigung zur&uuml;cksetzen wollen: ');
 INSERT INTO txt VALUES ('U5601', 'English', 'Are you sure you want to reset the last sending for following notification: ');
@@ -3693,6 +3703,14 @@ INSERT INTO txt VALUES ('E5431', 'English', 'Uploaded File exceeds the allowed m
 
 INSERT INTO txt VALUES ('E5501', 'German',  'Die Regel kann nicht doppelt zugewiesen werden.');
 INSERT INTO txt VALUES ('E5501', 'English', 'Rule cannot be assigned twice.');
+INSERT INTO txt VALUES ('E5502', 'German',  'Keine Regeln/Eigent&uuml;mer gefunden oder falsches Schl&uuml;sselfeld.');
+INSERT INTO txt VALUES ('E5502', 'English', 'No Rules/Owner or wrong Key-Field.');
+INSERT INTO txt VALUES ('E5503', 'German',  'Fehler beim Import.');
+INSERT INTO txt VALUES ('E5503', 'English', 'Import error.');
+INSERT INTO txt VALUES ('E5504', 'German',  'Bitte eine Eigent&uuml;merzuordnungsquelle ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E5504', 'English', 'Please select an owner mapping source.');
+INSERT INTO txt VALUES ('E5505', 'German',  'Bitte den benutzerdefinierten Feldschl&uuml;ssel ausf&uuml;llen.');
+INSERT INTO txt VALUES ('E5505', 'English', 'Please fill the custom field key.');
 
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
 INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');
@@ -4832,7 +4850,7 @@ INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessibl
     Same for modellers in the <a href="/help/settings/modellingpersonal">Modelling Settings</a>.
 ');
 INSERT INTO txt VALUES ('H5015', 'German',  'Das Kapitel "Workflow" dient dem Administrator, einen Workflow aufzusetzen. Dazu geh&ouml;rt die Definition der angebotenen <a href="/help/settings/stateactions">Aktionen</a>,
-    der verwendeten <a href="/help/settings/statedefinitions">Stati</a> und den Status&uuml;berg&auml;ngen in den zentralen <a href="/help/settings/statematrix">Status-Matrizen</a>.
+    der verwendeten <a href="/help/settings/statedefinitions">Status</a> und den Status&uuml;berg&auml;ngen in den zentralen <a href="/help/settings/statematrix">Status-Matrizen</a>.
     In den <a href="/help/settings/workflowcustomizing">Einstellungen</a> k&ouml;nnen allgemeine Voreinstellungen zu den Workflows vorgenommen werden.
 ');
 INSERT INTO txt VALUES ('H5015', 'English', 'The "Workflow" chapter helps the administrator to set up a workflow. This includes the definition of the offered <a href="/help/settings/stateactions">actions</a>,
@@ -5498,7 +5516,7 @@ INSERT INTO txt VALUES ('H5483', 'German',  '&Auml;nderungsbenachrichtigung akti
 INSERT INTO txt VALUES ('H5483', 'English', 'Change notification active?: When an import finds security relevant changes, should an email be sent out?
     Default value = "inactive".
 ');
-INSERT INTO txt VALUES ('H5483a', 'German',  'Regelbesitzer zuordnungs aktualisierung aktiv: Wenn sich ein Besitzer oder eine Regel &auml;ndert, wird die Zuordnung automatisch &uuml;berpr&uuml;ft und ggf. eine neue Zuordnung erstellt.
+INSERT INTO txt VALUES ('H5483a', 'German',  'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierung aktiv: Wenn sich ein Eigent&uuml;mer oder eine Regel &auml;ndert, wird die Zuordnung automatisch &uuml;berpr&uuml;ft und ggf. eine neue Zuordnung erstellt.
     Default-Wert = "inaktiv".
 ');
 INSERT INTO txt VALUES ('H5483a', 'English', 'Update Rule Owner Mapping active?: When an owner or a rule changes, the mapping is automatically checked and a new mapping is created if needed.
@@ -5524,12 +5542,14 @@ INSERT INTO txt VALUES ('H5484', 'English', 'Change notification type: Defines h
 ');
 INSERT INTO txt VALUES ('H5485', 'German',  '&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5485', 'English', 'Change notification sleep time (in seconds): Time between the checks for imported changes.');
-INSERT INTO txt VALUES ('H5485a', 'German',  'Regelbesitzer zuordnungs aktualisierungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
-INSERT INTO txt VALUES ('H5485a', 'English', 'Update Rule Owner Mapping sleep time (in seconds): Time between the checks for imported changes.');
+INSERT INTO txt VALUES ('H5485a', 'German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');
+INSERT INTO txt VALUES ('H5485a', 'English','Update Rule Owner Mapping sleep time (in seconds): Time between the checks for imported changes.');
 INSERT INTO txt VALUES ('H5486', 'German',  '&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5486', 'English', 'Change notification start at: Start time for the import change checks.');
-INSERT INTO txt VALUES ('H5486a', 'German',  'Regelbesitzer zuordnungs aktualisierungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
-INSERT INTO txt VALUES ('H5486a', 'English', 'Update Rule Owner Mapping start at: Start time for the import change checks.');
+INSERT INTO txt VALUES ('H5486a', 'German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
+INSERT INTO txt VALUES ('H5486a', 'English','Update Rule Owner Mapping start at: Start time for the import change checks.');
+INSERT INTO txt VALUES ('H5486b','German',  'Einstellungen f&uuml;r Trigger zur Aktualisierung der Regelverantwortung');
+INSERT INTO txt VALUES ('H5486b','English', 'Rule Owner Mapping Update Event Trigger Settings');
 INSERT INTO txt VALUES ('H5487', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen: Komma-separierte Liste von Email-Adressen, die bei festgestellter
     sicherheitsrelevanter &Auml;nderung auf einem importierten Management benachrichtigt werden. Default-Wert = "leer".
 ');
@@ -5580,7 +5600,7 @@ INSERT INTO txt VALUES ('H5498', 'German',  'Zertifikatswarnungen unterdr&uuml;c
 INSERT INTO txt VALUES ('H5498', 'English', 'Suppress certificate warnings: Shall warnings about invalid certificates be written to import log? Default value = "inactive".');
 INSERT INTO txt VALUES ('H5499', 'German',  'FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.');
 INSERT INTO txt VALUES ('H5499', 'English', 'FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.');
-INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den Einstellungen definiert werden und k&ouml;nnen dann den jeweiligen Stati zugeordnet werden.
+INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den Einstellungen definiert werden und k&ouml;nnen dann den jeweiligen Status zugeordnet werden.
     Die Aktion wird dann bei Eintreffen der hier definierten Bedingungen angeboten bzw. ausgef&uuml;hrt.
 ');
 INSERT INTO txt VALUES ('H5501', 'English', 'Actions have to be defined first in the customizing settings before they can be assigned to the desired states.
@@ -5588,7 +5608,7 @@ INSERT INTO txt VALUES ('H5501', 'English', 'Actions have to be defined first in
 ');
 INSERT INTO txt VALUES ('H5511', 'German',  'Allgemeine Parameter f&uuml;r alle Aktionstypen: Hier wird definiert, unter welchen Bedingungen eine Aktion ausgel&ouml;st werden soll.');
 INSERT INTO txt VALUES ('H5511', 'English', 'General parameters for all action types: Here it can be defined, under which conditions an action should be performed.');
-INSERT INTO txt VALUES ('H5512', 'German',  'Name: Der Name, unter dem die Aktion den Stati zugeordnet wird (da intern eine Id verarbeitet wird, sind auch doppelt vergebene Namen m&ouml;glich).');
+INSERT INTO txt VALUES ('H5512', 'German',  'Name: Der Name, unter dem die Aktion den Status zugeordnet wird (da intern eine Id verarbeitet wird, sind auch doppelt vergebene Namen m&ouml;glich).');
 INSERT INTO txt VALUES ('H5512', 'English', 'Name: The name to be found in the state assignment (as internally the Id is processed, duplicate names are possible).');
 INSERT INTO txt VALUES ('H5513', 'German',  'Ereignis: Es wird zwischen drei Ereignistypen unterschieden: Bei "Beim Erreichen" wird die Aktion beim Erreichen, bei "Beim Verlassen" beim Verlassen des zugeordneten Status ausgel&ouml;st.
     Bei "Schaltfl&auml;che anbieten" wird eine Schaltfl&auml;che zur manuellen Ausf&uuml;hrung in dem ausgew&auml;hlten Objekttyp eingeblendet, solange der zugeordnete Status besteht. In diesem Fall ist auch der auf der Schaltfl&auml;che erscheinende Text auszuf&uuml;llen.
@@ -5632,22 +5652,22 @@ INSERT INTO txt VALUES ('H5527', 'German',  'Email verschicken: Es kann zwischen
 INSERT INTO txt VALUES ('H5527', 'English', 'Send Email: There are different options for the direct recipients and optionally for the recipients in Cc to be chosen.
     Furtheron subject and body of the email message have to be defined here.
 ');
-INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nne beliebig viele neue Stati angelegt bzw. vorhandene Stati umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Stati sind weitgehend frei w&auml;hlbar.
+INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nnen beliebig viele neue Status angelegt bzw. vorhandene Status umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Status sind weitgehend frei w&auml;hlbar.
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.
     Da intern ausschliesslich die Nummern verarbeitet werden, sind auch doppelt vergebene Status-Namen (technisch) m&ouml;glich.
-    Es werden nur Stati zum L&ouml;schen angeboten, die in keiner Status-Matrix verwendet werden (auch nicht in deaktivierten Phasen oder Aktionen).
+    Es werden nur Status zum L&ouml;schen angeboten, die in keiner Status-Matrix verwendet werden (auch nicht in deaktivierten Phasen oder Aktionen).
 ');
 INSERT INTO txt VALUES ('H5531', 'English', 'An arbitrary number of states can be created, renamed or deleted where appropriate. Names and numbers of the states can be selected freely.
     But it has to be considered, that the numbers fit into the ranges (Input, Started, Exit) of the phases defined in the <a href="/help/settings/statematrix">state matrices</a>.
     As internally solely the numbers are processed, duplicates in state names are (technically) possible.
     Only states are offered for deletion, who are not used in any state matrix (even in deactivated phases or in actions).
 ');
-INSERT INTO txt VALUES ('H5532', 'German',  'Externe Stati: Um interne Stati &uuml;ber Aktionen ansprechen zu k&ouml;nnen, m&uuml;ssen sie vordefinierten, nach aussen sichtbaren Stati zugeordnet werden.');
+INSERT INTO txt VALUES ('H5532', 'German',  'Externe Status: Um interne Status &uuml;ber Aktionen ansprechen zu k&ouml;nnen, m&uuml;ssen sie vordefinierten, nach aussen sichtbaren Status zugeordnet werden.');
 INSERT INTO txt VALUES ('H5532', 'English', 'External States: To be used by actions, internal states have to be assigned to predefined externally visible states.');
-INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Stati pro Phase und Tasktyp festgelegt.
+INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Status pro Phase und Tasktyp festgelegt.
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
     In der Installation sind diese Matrizen bereits vorbelegt, sie k&ouml;nnen aber nahezu beliebig &uuml;berschrieben werden.
-    Zu beachten ist, dass das Speichern der ge&auml;nderten Matrizen jeweils als Ganzes durch t&auml;tigen der "Speichern"-Schaltfl&auml;che erfolgt, einzelne &Auml;nderungen der Stati also bei Abbruch verloren gehen.
+    Zu beachten ist, dass das Speichern der ge&auml;nderten Matrizen jeweils als Ganzes durch t&auml;tigen der "Speichern"-Schaltfl&auml;che erfolgt, einzelne &Auml;nderungen der Status also bei Abbruch verloren gehen.
     Jede einzelne Matrix kann auch als Ganzes durch Bet&auml;tigen der entsprechenden Schaltfl&auml;che auf die Initialeinstellungen zur&uuml;ckgesetzt werden.
     W&auml;hrend die bereits vorhandenen Matrizen bei Software-Upgrades nicht ber&uuml;hrt werden, kann es vorkommen, dass die Initialeinstellungen aktualisiert werden.
 ');
@@ -5658,13 +5678,13 @@ INSERT INTO txt VALUES ('H5541', 'English', 'In the state matrix the usable stat
     Each matrix can also be reset to the default settings as a whole by using the respective button.
     As already existing matrices are not touched with software upgrades, it may happen, that the default settings are updated.
 ');
-INSERT INTO txt VALUES ('H5542', 'German',  'Phasen: Die f&uuml;r die Tickets bzw. den jeweiligen Tasktyp vorgesehenen Bearbeitungsphasen k&ouml;nnen durch setzen der entsprechenden H&auml;kchen in der Status-Matrix festgelegt werden (die Tabelle der Stati klappt dann automatisch ein oder aus).
+INSERT INTO txt VALUES ('H5542', 'German',  'Phasen: Die f&uuml;r die Tickets bzw. den jeweiligen Tasktyp vorgesehenen Bearbeitungsphasen k&ouml;nnen durch setzen der entsprechenden H&auml;kchen in der Status-Matrix festgelegt werden (die Tabelle der Status klappt dann automatisch ein oder aus).
     Die Phasen Verifizieren und Rezertifizieren sind noch nicht implementiert, so dass eine Aktivierung hier folgenlos bleibt.
 ');
 INSERT INTO txt VALUES ('H5542', 'English', 'Phases: The workflow phases provided for the tickets resp. each task type can be defined by setting the check mark in the respective state matrix (the table of used states then appears or disappears automatically).
     The phases Verify and Recertify are not implemented yet, an activation would have no effect.
 ');
-INSERT INTO txt VALUES ('H5543', 'German',  'Status&uuml;berg&auml;nge: F&uuml;r jeden in einer Phase vorkommenden Status muss hier festgelegt werden, in welche Stati von dort beim Speichern gewechselt werden kann.
+INSERT INTO txt VALUES ('H5543', 'German',  'Status&uuml;berg&auml;nge: F&uuml;r jeden in einer Phase vorkommenden Status muss hier festgelegt werden, in welche Status von dort beim Speichern gewechselt werden kann.
     Diese werden dann bei den jeweiligen Aktionen in einer Liste angeboten. Ist nur der &Uuml;bergang zu genau einem Status m&ouml;glich, so wird dieser &Uuml;bergang automatisch ohne R&uuml;ckfrage ausgef&uuml;hrt.
     (z.B. ist in der Standardkonfiguration nur der &Uuml;bergang "Requested" -&amp;gt; "In Approval" eingetragen, so dass beim bet&auml;tigen von "Genehmigung beginnen" automatisch letzterer Status gesetzt wird.)
     Soll eine Aktion, die ein Speichern bewirkt, auch ohne Statuswechsel stattfinden k&ouml;nnen, so ist der Ausgangszustand auch in der Liste der Zielzust&auml;nde aufzunehmen.
@@ -5676,12 +5696,12 @@ INSERT INTO txt VALUES ('H5543', 'English', 'State transitions: For each state a
     If an action leading to a storage should also have the possibility to be performed without state change, the source state has to be added also to the target state list.
     Make sure that all used target states in all transition matrices also appear in the source states.
 ');
-INSERT INTO txt VALUES ('H5544', 'German',  'Abgeleitete Stati: Bei der Behandlung der abgeleiteten Stati wird unterschieden zwischen der Antragstellung und den anschliessenden Phasen:
+INSERT INTO txt VALUES ('H5544', 'German',  'Abgeleitete Status: Bei der Behandlung der abgeleiteten Status wird unterschieden zwischen der Antragstellung und den anschliessenden Phasen:
     Bei der Antragstellung wird zuerst der Status des Tickets gesetzt.
-    Die Stati der zugeordneten Auftr&auml;gen bekommen zun&auml;chst denselben Status wie das Ticket, sofern sie nicht schon in einem h&ouml;heren Status waren (m&ouml;glich durch R&uuml;ckzuweisungen des Tickets z.B. vom Genehmiger).
-    Die Tasktyp-spezifischen Status-Matrizen legen nun anschliessend aus den abgeleiteten Stati fest, welcher Status dem jeweiligen spezifischen Auftrag zugewiesen wird. Dabei k&ouml;nnen z.B. auch Phasen &uuml;bersprungen werden.
-    In den weiteren Phasen werden die abgeleiteten Stati dann umgekehrt interpretiert: Aus den Stati der Genehmigungen und Implementierungs-Auftr&auml;ge wird mittels der Tasktyp-spezifischen Status-Matrizen der Status des fachlichen Auftrags ermittelt.
-    Aus den Stati der fachlichen Auftr&auml;ge wird dann mittels der Master-Matrix der Status f&uuml;r das Ticket abgeleitet.
+    Die Status der zugeordneten Auftr&auml;gen bekommen zun&auml;chst denselben Status wie das Ticket, sofern sie nicht schon in einem h&ouml;heren Status waren (m&ouml;glich durch R&uuml;ckzuweisungen des Tickets z.B. vom Genehmiger).
+    Die Tasktyp-spezifischen Status-Matrizen legen nun anschliessend aus den abgeleiteten Status fest, welcher Status dem jeweiligen spezifischen Auftrag zugewiesen wird. Dabei k&ouml;nnen z.B. auch Phasen &uuml;bersprungen werden.
+    In den weiteren Phasen werden die abgeleiteten Status dann umgekehrt interpretiert: Aus den Status der Genehmigungen und Implementierungs-Auftr&auml;ge wird mittels der Tasktyp-spezifischen Status-Matrizen der Status des fachlichen Auftrags ermittelt.
+    Aus den Status der fachlichen Auftr&auml;ge wird dann mittels der Master-Matrix der Status f&uuml;r das Ticket abgeleitet.
 ');
 INSERT INTO txt VALUES ('H5544', 'English', 'Derived states: Regarding the handling of the derived states, it has to be distinguished between ticket creation and the subsequent phases:
     On ticket creation, first the state of the ticket is set.
@@ -5690,7 +5710,7 @@ INSERT INTO txt VALUES ('H5544', 'English', 'Derived states: Regarding the handl
     In further phases, the derived states are interpreted the other way round: From the states of approval and implementation tasks the state of the request task is computed via the task type specific state matrix.
     From the states of the request tasks now the state of the ticket is derived via the master state matrix.
 ');
-INSERT INTO txt VALUES ('H5545', 'German',  'Spezielle Stati: F&uuml;r jede Phase werden drei Bereiche unterschieden: Eingang, Bearbeitung, Ausgang. Sie werden durch die speziellen Stati markiert:');
+INSERT INTO txt VALUES ('H5545', 'German',  'Spezielle Status: F&uuml;r jede Phase werden drei Bereiche unterschieden: Eingang, Bearbeitung, Ausgang. Sie werden durch die speziellen Status markiert:');
 INSERT INTO txt VALUES ('H5545', 'English', 'Special states: For each phase there are three different ranges to be distinguished: Input, started, exit. They are indicated by special states:');
 INSERT INTO txt VALUES ('H5551', 'German',  '"Niedrigster Eingangsstatus": Ab diesem Status wird der Auftrag f&uuml;r den Bearbeiter dieser Phase sichtbar.');
 INSERT INTO txt VALUES ('H5551', 'English', '"Lowest input state": From this state on the ticket is visible for the actor in the current phase');
@@ -6042,7 +6062,7 @@ INSERT INTO txt VALUES ('H5650', 'English', 'Rule Recognition Options: Defines, 
     Possible criteria are - separated for network objects and services - Name, IP address resp. Port/Protocol, Group Name.
     Additionally it has to be defined, if groups are resolved; then single objects are identified independently from their group membership.
 ');
-INSERT INTO txt VALUES ('H5651', 'German',  'Synchroner Soll-Ist-Abgleich: Wenn aktiviert, werden die Stati der Verbindungen sofort bei Initialisierung der Seite berechnet.
+INSERT INTO txt VALUES ('H5651', 'German',  'Synchroner Soll-Ist-Abgleich: Wenn aktiviert, werden die Status der Verbindungen sofort bei Initialisierung der Seite berechnet.
     Da dies bei gr&ouml;sseren Systemen zu erheblichem Rechenaufwand f&uuml;hrt, kann dies zu einer verz&ouml;gerten Darstellung f&uuml;hren.
     In diesem Fall wird die Nutzung des asynchronen Soll-Ist-Abgleichs empfohlen.
 ');
@@ -6051,7 +6071,7 @@ INSERT INTO txt VALUES ('H5651', 'English', 'Synchroneous Variance Analysis: If 
     In this case the usage of the asynchroneous Variance Analysis is recommended.
 ');
 INSERT INTO txt VALUES ('H5652', 'German',  'Soll-Ist-Abgleich-Intervall (in Minuten): Zeitintervall zwischen zwei Soll-Ist-Abgleich-L&auml;ufen.
-    Dort werden asynchron die Stati zur Darstellung in der Oberfl&auml;che berechnet.
+    Dort werden asynchron die Status zur Darstellung in der Oberfl&auml;che berechnet.
     Ein Wert 0 bedeutet, dass der asynchrone Soll-Ist-Abgleich deaktiviert ist. Default-Wert = 0.
 ');
 INSERT INTO txt VALUES ('H5652', 'English', 'Variance Analysis sleep time (in minutes): Time between two Variance Analysis loops.
@@ -6092,13 +6112,13 @@ INSERT INTO txt VALUES ('H5663', 'German',  'Alle Regeln modelliert erwarten: Al
 INSERT INTO txt VALUES ('H5663', 'English', 'Expect all rules as modelled: All rules associated to the owner have to be modelled.');
 INSERT INTO txt VALUES ('H5664', 'German',  'Produktionsstatus: Gibt an, in welchem Lifecycle Status sich der Eigent&uuml;mer befindet.');
 INSERT INTO txt VALUES ('H5664', 'English', 'Production state: The Owner Lifecycle State assigned to the owner.');
-INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionsstatus');
-INSERT INTO txt VALUES ('H5665', 'English', 'Name: Owner Lifecycle State name');
-INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel k&ouml;nnen die Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden.
-    Produktions-Status definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).
+INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionsstatus. Dieser wird beim Datenimport als m&ouml;glicher Wert ausgewertet.');
+INSERT INTO txt VALUES ('H5665', 'English', 'Name: Owner Lifecycle State name. This is regarded as possible value during data import');
+INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel k&ouml;nnen die Werte des Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden.
+    Der Produktions-Status definiert den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend). Sie werden beim Eigent&uuml;mer-Daten-Import ausgewertet.
 ');
 INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecycle States of owners can be viewed, created, edited, and deleted.
-    Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life).
+    Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life). They are evaluated during Owner Data Import.
 ');
 INSERT INTO txt VALUES ('H5667', 'German',  'Gel&ouml;schte App Server ausrollen: App Server, die nicht mehr im Datenimport geliefert wurden, werden dennoch weiter ausgerollt.
     Dies kann z.B. zur Stabilisierung der Prozesse bei instabilem Datenimport dienen. Zur Rezertifizierung m&uuml;ssen die betroffenen Verbindungen aber bereinigt sein.
@@ -6628,7 +6648,7 @@ INSERT INTO txt VALUES ('H8012', 'German',  '<a href="/help/workflow/phases">Pha
 INSERT INTO txt VALUES ('H8012', 'English', '<a href="/help/workflow/phases">Phases and Roles</a>: Processing of the requests is divided into several phases, which are bound to roles.
     During configuration it has to be defined, which of the phases are used for the respective task types.
 ');
-INSERT INTO txt VALUES ('H8013', 'German',  '<a href="/help/workflow/states">Stati</a>: Bei der Konfiguration des Workflows k&ouml;nnen Stati frei definiert und benannt werden.
+INSERT INTO txt VALUES ('H8013', 'German',  '<a href="/help/workflow/states">Status</a>: Bei der Konfiguration des Workflows k&ouml;nnen Werte f&uuml;r; den Status frei definiert und benannt werden.
     Durch geeignete Wahl der Nummernkreise werden diese in den verschiedenen Phasen sichtbar bzw. bearbeitbar.
 ');
 INSERT INTO txt VALUES ('H8013', 'English', '<a href="/help/workflow/states">States</a>: During configuration of the workflow, states can be defined and named freely.
@@ -6641,7 +6661,7 @@ INSERT INTO txt VALUES ('H8014', 'English', '<a href="/help/workflow/actions">Ac
     This includes automatic state forwarding or the request of further approvals. Also configuration of calls to external components is in preparation.
 ');
 INSERT INTO txt VALUES ('H8101', 'German',  'Das Workflow-Modul operiert mit 4 verschiedenen Objekttypen, welche der Statusbehandlung unterliegen.
-    Entsprechend der Objekthierarchie sind die Stati voneinander abh&auml;ngig.
+    Entsprechend der Objekthierarchie sind die Status voneinander abh&auml;ngig.
 ');
 INSERT INTO txt VALUES ('H8101', 'English', 'The workflow module operates on 4 different object types which are subject to state handling.
     According to the object hierarchy their states are interdependent.
@@ -6650,7 +6670,7 @@ INSERT INTO txt VALUES ('H8111', 'German',  'Ticket: Bildet die Klammer f&uuml;r
 INSERT INTO txt VALUES ('H8111', 'English', 'Ticket: Serves as a clamp around one or more functional (request) tasks. Fields are:');
 INSERT INTO txt VALUES ('H8112', 'German',  'Titel: Pflichtfeld zur Kennzeichnung des Antrags.');
 INSERT INTO txt VALUES ('H8112', 'English', 'Title: Mandatory field to identify the request');
-INSERT INTO txt VALUES ('H8113', 'German',  'Status: Der Ticket-Status wird in der ersten Phase vom Antragssteller gesetzt, in sp&auml;teren Phasen aus den Stati der fachlicher Auftr&auml;ge ermittelt.');
+INSERT INTO txt VALUES ('H8113', 'German',  'Status: Der Ticket-Status wird in der ersten Phase vom Antragssteller gesetzt, in sp&auml;teren Phasen aus den Status der fachlicher Auftr&auml;ge ermittelt.');
 INSERT INTO txt VALUES ('H8113', 'English', 'State: The ticket state is set in the first phase by the requester, in later phases it is computed from the states of the request tasks.');
 INSERT INTO txt VALUES ('H8114', 'German',  'Antragsteller: Wird automatisch beim Anlegen des Tickets auf den erzeugenden Nutzer gesetzt.');
 INSERT INTO txt VALUES ('H8114', 'English', 'Requester: Is automatically set to the requesting user at ticket creation time.');
@@ -6874,12 +6894,12 @@ INSERT INTO txt VALUES ('H8316', 'English', 'Reviews (Role: reviewer), optional:
 ');
 INSERT INTO txt VALUES ('H8317', 'German',  'Weitere Phasen zum Verifizieren und Rezertifizieren sind vorbereitet, aber noch nicht implementiert.');
 INSERT INTO txt VALUES ('H8317', 'English', 'Further phases for verification and recertification are prepared but not implemented yet.');
-INSERT INTO txt VALUES ('H8401', 'German',  'Stati und deren &Uuml;berg&auml;nge bilden die Basis der Workflows. Bei der Konfiguration k&ouml;nnen sie frei definiert und benannt werden (<a href="/help/settings/statedefinitions">Statusdefinitionen</a>).
-    Durch geeignete Wahl der Nummernkreise werden die Stati dann in den verschiedenen Phasen sichtbar bzw. benutzbar, was in den <a href="/help/settings/statematrix">Status-Matrizen</a> definiert wird.
-    In einer Status-Matrix werden pro Phase alle vorkommenden Stati mitsamt den m&ouml;glichen Status&uuml;berg&auml;ngen festgelegt.
+INSERT INTO txt VALUES ('H8401', 'German',  'Status und deren &Uuml;berg&auml;nge bilden die Basis der Workflows. Bei der Konfiguration k&ouml;nnen sie frei definiert und benannt werden (<a href="/help/settings/statedefinitions">Statusdefinitionen</a>).
+    Durch geeignete Wahl der Nummernkreise werden die Status dann in den verschiedenen Phasen sichtbar bzw. benutzbar, was in den <a href="/help/settings/statematrix">Status-Matrizen</a> definiert wird.
+    In einer Status-Matrix werden pro Phase alle vorkommenden Status mitsamt den m&ouml;glichen Status&uuml;berg&auml;ngen festgelegt.
     Ausserdem werden drei Bereiche bestimmt: Eingangs-, Bearbeitungs- und Ausgangsbereich, welche f&uuml;r die Bearbeitbarkeit in der jeweiligen Phase entscheidend sind.
     F&uuml;r das Ticket und jeden einzelnen Tasktypen werden separate Status-Matrizen angelegt, so dass sich deren Workflows unterscheiden k&ouml;nnen.
-    Auch m&uuml;ssen hier die Beziehungen der Stati der verschiedenen Objekttypen zueinander festgelegt werden.
+    Auch m&uuml;ssen hier die Beziehungen der Status der verschiedenen Objekttypen zueinander festgelegt werden.
 ');
 INSERT INTO txt VALUES ('H8401', 'English', 'States and their transitions are the basis of the workflows. During configuration they can be defined and named freely (<a href="/help/settings/statedefinitions">State Definitions</a>).
     Appropriate selection of number ranges make the states visible and usable in the different phases, which is defined in <a href="/help/settings/statematrix">State Matrices</a>.
@@ -6890,7 +6910,7 @@ INSERT INTO txt VALUES ('H8401', 'English', 'States and their transitions are th
 ');
 INSERT INTO txt VALUES ('H8501', 'German',  'Die Aktionen der verschiedenen Typen dienen der Unterst&uuml;tzung und Automatisierung der Bearbeitung der Auftr&auml;ge.
     Dazu geh&ouml;ren automatische Status-Weiterleitungen, das Anfordern weiterer Genehmigungen oder das Ausl&ouml;sen eines Alarms. Auch die Konfiguration f&uuml;r Aufrufe externer Komponenten ist vorgesehen.
-    Aktionen sind an Bedingungen gebunden und werden bestimmten Stati zugewiesen (<a href="/help/settings/stateactions">Aktionen anlegen</a>).
+    Aktionen sind an Bedingungen gebunden und werden bestimmten Status zugewiesen (<a href="/help/settings/stateactions">Aktionen anlegen</a>).
     Sie bewirken bei Eintreffen der Bedingungen entweder eine automatische Ausf&uuml;hrung oder das Aufblenden einer Schaltfl&auml;che zur manuellen Ausf&uuml;hrung.
     Bislang stehen folgende Aktionen zur Auswahl:
 ');
@@ -6940,10 +6960,10 @@ INSERT INTO txt VALUES ('H8601', 'German',  'Zum Aufsetzen eines Workflows empfi
     <ul>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Auswahl der zu verwendenden Tasktypen</li>
         <li><a href="/help/settings/statematrix">Status-Matrizen</a>: Festlegen der Phasen pro Tasktyp</li>
-        <li><a href="/help/settings/statedefinitions">Status-Definitionen</a>: Definition der benutzten Stati</li>
+        <li><a href="/help/settings/statedefinitions">Status-Definitionen</a>: Definition der benutzten Status</li>
         <li><a href="/help/settings/statematrix">Status-Matrizen</a>: Erstellen der Status-Matrizen pro Tasktyp</li>
         <li><a href="/help/settings/stateactions">Aktionen</a>: Definition der Aktionen falls n&ouml;tig</li>
-        <li><a href="/help/settings/statedefinitions">Status-Definitionen</a>: Zuordnung Aktionen zu Stati</li>
+        <li><a href="/help/settings/statedefinitions">Status-Definitionen</a>: Zuordnung Aktionen zu Status</li>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Festlegen der Priorit&auml;ten und Deadlines</li>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Ausw&auml;hlen der Option zum "Autom. Erzeugen von Implementierungs-Auftr&auml;gen", falls Planungsphase deaktiviert</li>
         <li><a href="/help/settings/groups">Gruppen</a>: Nutzergruppen einrichten und Nutzer zuweisen</li>
@@ -6965,8 +6985,8 @@ INSERT INTO txt VALUES ('H8601', 'English', 'For the setup of a workflow it is s
     </ul>
 ');
 INSERT INTO txt VALUES ('H8701', 'German',  'Die folgenden Beispiele sollen ein Schlaglicht auf die verschiedenen Konfigurationsm&ouml;glichkeiten des Workflowmoduls werfen.
-    Sie k&ouml;nnen gleichzeitig oder voneinander unabh&auml;ngig ausprobiert werden (mit Ausnahme von Beispiel 5, welches auf den in Beispiel 4 definierten Stati aufsetzt).
-    Es wurden hier englische Namen f&uuml;r Stati oder Aktionen gew&auml;hlt (wie sie ja auch vorinstalliert sind),
+    Sie k&ouml;nnen gleichzeitig oder voneinander unabh&auml;ngig ausprobiert werden (mit Ausnahme von Beispiel 5, welches auf den in Beispiel 4 definierten Status aufsetzt).
+    Es wurden hier englische Namen f&uuml;r Status oder Aktionen gew&auml;hlt (wie sie ja auch vorinstalliert sind),
     eine beliebige Umbenennung (z. B. &Uuml;bersetzung ins Deutsche) ist nat&uuml;rlich jederzeit und einfach m&ouml;glich.
 ');
 INSERT INTO txt VALUES ('H8701', 'English', 'Following examples are intended to give an idea about the different configuration options of the workflow module.
@@ -7092,7 +7112,7 @@ INSERT INTO txt VALUES ('H8713', 'German',  '<H4>3) Auslassen von Phasen f&uuml;
                 <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "To Implement" ausw&auml;hlen</li>
                 <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "To Implement" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
                 <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Approved" l&ouml;schen (wird nicht mehr ben&ouml;tigt)</li>
-                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "To Implement" ausw&auml;hlen</li>
+                <li>Implementierung: Spezielle Status: Niedrigster Eingangsstatus: "To Implement" ausw&auml;hlen</li>
             </ul>
             -&amp;gt; Statusmatrix: Speichern
         </li>
@@ -7117,7 +7137,7 @@ INSERT INTO txt VALUES ('H8713', 'English', '<H4>3) Skip phase for specific Task
 INSERT INTO txt VALUES ('H8714', 'German',  '<H4>4) Aktion Autom. Weiterleitung</H4>
     Als weitere Option ist es auch m&ouml;glich, eine Aktion vom Typ Autom. Weiterleitung zu nutzen.
     In diesem Beispiel wird beim Reject durch den Implementer (nur zu erreichen nach vorherigem Status "Implementation Trouble") das Ticket automatisch wieder dem Requester zur Best&auml;tigung vorgelegt
-    (der Einfachheit halber werden die vorhandenen Stati soweit m&ouml;glich weiterverwendet, eine Definition weiterer Stati wie "Acknowledge Reject" und "Try again" w&uuml;rde sich aber anbieten):
+    (der Einfachheit halber werden die vorhandenen Status soweit m&ouml;glich weiterverwendet, eine Definition weiterer Status wie "Acknowledge Reject" und "Try again" w&uuml;rde sich aber anbieten):
     <ul>
         <li>Einstellungen -&amp;gt; Statusdefinitionen -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; Eingabe Id: 2, Name "Rejected By Implementer" -&amp;gt; Speichern</li>
         <li>Einstellungen -&amp;gt; Statusaktionen -&amp;gt; Aktion hinzuf&uuml;gen -&amp;gt; Name: "Acknowledge Reject", Aktionstyp: "Autom. Weiterleitung", Ereignis: "Beim Erreichen", Phase: "Implementierung",
@@ -7272,7 +7292,7 @@ INSERT INTO txt VALUES ('H8717', 'German',  '<H4>7) Aktivieren Planungsphase</H4
                 <li>Planung: Phase ausw&auml;hlen (die &Uuml;bergangsmatrix wird eingeblendet)</li>
                 <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Planned" ausw&auml;hlen</li>
                 <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Planned" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
-                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "Planned" ausw&auml;hlen</li>
+                <li>Implementierung: Spezielle Status: Niedrigster Eingangsstatus: "Planned" ausw&auml;hlen</li>
             </ul>
             -&amp;gt; Statusmatrix: Speichern
         </li>
@@ -7281,7 +7301,7 @@ INSERT INTO txt VALUES ('H8717', 'German',  '<H4>7) Aktivieren Planungsphase</H4
                 <li>Planung: Phase ausw&auml;hlen (die &Uuml;bergangsmatrix wird eingeblendet)</li>
                 <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: Status hinzuf&uuml;gen -&amp;gt; "Planned" ausw&auml;hlen</li>
                 <li>Implementierung: Erlaubte &Uuml;berg&auml;nge: "Planned" bearbeiten -&amp;gt; Status hinzuf&uuml;gen -&amp;gt; "In Implementation" ausw&auml;hlen -&amp;gt; Ok</li>
-                <li>Implementierung: Spezielle Stati: Niedrigster Eingangsstatus: "Planned" ausw&auml;hlen</li>
+                <li>Implementierung: Spezielle Status: Niedrigster Eingangsstatus: "Planned" ausw&auml;hlen</li>
             </ul>
             -&amp;gt; Statusmatrix: Speichern
         </li>
@@ -7641,3 +7661,11 @@ INSERT INTO txt VALUES ('H5908', 'German',  'Das Deaktivieren einer Verantwortli
 INSERT INTO txt VALUES ('H5908', 'English', 'Deactivation of a responsible type keeps historical owner assignments but removes its effective permissions.');
 INSERT INTO txt VALUES ('H5909', 'German',  'Rollen werden hier nicht konfiguriert. Diese Einstellungen beeinflussen nur die UI-Zugriffs- und Aktionsm&ouml;glichkeiten.');
 INSERT INTO txt VALUES ('H5909', 'English', 'Roles are not configured here. These settings only affect UI access and available actions.');
+INSERT INTO txt VALUES ('H5910', 'German',  'In diesem Kapitel wird die automatische Eigent&uuml;merzuordnung f&uuml;r Regeln konfiguriert und bei Bedarf angestossen.');
+INSERT INTO txt VALUES ('H5910', 'English', 'This chapter configures automatic owner mapping for rules and allows triggering a recalculation when needed.');
+INSERT INTO txt VALUES ('H5911', 'German',  'Quelle ausw&auml;hlen: Legt fest, aus welchem Regelmerkmal die Eigent&uuml;merzuordnung abgeleitet wird (z.B. IP-basiert, Namensfeld oder Custom Field).');
+INSERT INTO txt VALUES ('H5911', 'English', 'Select source: Defines which rule attribute is used to derive owner mapping (e.g. IP-based, name field, or custom field).');
+INSERT INTO txt VALUES ('H5912', 'German',  'Custom-Field-Schl&uuml;ssel: Nur erforderlich bei Quelle "Custom Field". Ohne Schl&uuml;ssel kann die Konfiguration nicht gespeichert werden.');
+INSERT INTO txt VALUES ('H5912', 'English', 'Custom field key: Required only when source is "Custom Field". Configuration cannot be saved without this key.');
+INSERT INTO txt VALUES ('H5913', 'German',  'Neu berechnen: Startet die Aktualisierung der Eigent&uuml;merzuordnung f&uuml;r bestehende Regeln auf Basis der aktuellen Konfiguration.');
+INSERT INTO txt VALUES ('H5913', 'English', 'Recalculate: Starts updating owner mappings for existing rules based on the current configuration.');

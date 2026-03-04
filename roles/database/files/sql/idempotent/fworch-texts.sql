@@ -2650,6 +2650,8 @@ INSERT INTO txt VALUES ('modRolloutNatHeuristic','German',  'NAT Heuristik');
 INSERT INTO txt VALUES ('modRolloutNatHeuristic','English', 'NAT Heuristic');
 INSERT INTO txt VALUES ('modRolloutRemovedAppServers','German','Gel&ouml;schte App Server ausrollen');
 INSERT INTO txt VALUES ('modRolloutRemovedAppServers','English','Rollout removed App Servers');
+INSERT INTO txt VALUES ('modRequestOnlyOwnObjects','German','Nur eigene Objekte beantragen');
+INSERT INTO txt VALUES ('modRequestOnlyOwnObjects','English','Request only own objects');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'German',   'Fehlertext');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'English',  'Error text');
 INSERT INTO txt VALUES ('modelledMarker',       'German',   'Markierung Modelliert');
@@ -3961,6 +3963,8 @@ INSERT INTO txt VALUES ('C9029', 'German',  'Zeigt nur verwaiste Eintr&auml;ge d
 INSERT INTO txt VALUES ('C9029', 'English', 'Shows only orphaned entries for the selected owner and hides the selection fields.
     Orphaned are objects that are appended to connections but not visible any more due to the use of an interface. The creation of this constellation should be suppressed in newer versions.
 ');
+INSERT INTO txt VALUES ('C9030', 'German',  'Nutzung der Schnittstelle enth&auml;lt Gruppenobjekte anderer Eigent&uuml;mer, die in Produktion nicht gefunden wurden. Beantragung unterdr&uuml;ckt.');
+INSERT INTO txt VALUES ('C9030', 'English', 'Used interface contains group objects of other owners that were not found in production. Request suppressed.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -6108,6 +6112,8 @@ INSERT INTO txt VALUES ('H5667', 'German',  'Gel&ouml;schte App Server ausrollen
 INSERT INTO txt VALUES ('H5667', 'English', 'Rollout removed App Servers: App servers not delivered anymore in data import are further rolled out.
     This may e.g. stabilize processes on instable data import. Before recertification the affected connections have to be adjusted.
 ');
+INSERT INTO txt VALUES ('H5668', 'German',  'Nur eigene Objekte beantragen: In Beantragungen werden nur eigene Gruppenobjekte aus genutzten Schnittstellen ber&uuml;cksichtigt. Falls Gruppenobjekte anderer Eigent&uuml;mer enthalten sind, die in Produktion nicht gefunden wurden, wird die Beantragung der Verbindung unterdr&uuml;ckt.');
+INSERT INTO txt VALUES ('H5668', 'English', 'Request only own objects: Requests include only own group objects from used interfaces. If group objects of other owners are included that are not found in production, the request for that connection is suppressed.');
 INSERT INTO txt VALUES ('H5670', 'German',  'Diese Seite konfiguriert die Importplanung f&uuml;r Eigent&uuml;mer/App-Daten und Subnetze, die Quellpfade sowie die LDAP-Gruppenverwaltung.');
 INSERT INTO txt VALUES ('H5670', 'English', 'This page configures the owner/app data import and subnet import schedules, source paths, and LDAP group handling.');
 INSERT INTO txt VALUES ('H5671', 'German',  'Konfigurieren Sie Importpfade, Startzeiten und Warteintervalle f&uuml;r App-Daten und Subnetzdaten.');

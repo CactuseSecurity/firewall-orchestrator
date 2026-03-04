@@ -21,6 +21,7 @@ namespace FWO.Data.Modelling
         DeletedObjects = 22,
         EmptySvcGrps = 23,
         DocumentationOnly = 24,
+        ForeignNonProdObjects = 25,
 
         VarianceChecked = 31,
         NotImplemented = 32,
@@ -274,9 +275,9 @@ namespace FWO.Data.Modelling
             return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationAreas.Count > 0 || DestinationOtherGroups.Count > 0;
         }
 
-        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId, bool rolloutRemoved = false)
+        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId, bool rolloutRemoved = false, bool withInterfaces = false)
         {
-            return !(IsInterface ||
+            return !((IsInterface && !(withInterfaces && IsPublished)) ||
                 GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 GetBoolProperty(ConState.InterfaceRejected.ToString()) ||
                 GetBoolProperty(ConState.InterfaceDecommissioned.ToString()) ||

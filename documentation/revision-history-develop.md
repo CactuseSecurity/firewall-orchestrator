@@ -365,3 +365,6 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.10 - 28.02.2026 DEVELOP
 - new config value for User synchronization in owner data import
+
+# 9.0.11 - 04.03.2026 DEVELOP
+- new config value for requesting only own objects

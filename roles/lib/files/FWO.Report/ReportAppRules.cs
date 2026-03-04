@@ -20,7 +20,7 @@ namespace FWO.Report
             this.modellingFilter = modellingFilter;
         }
 
-        public ReportAppRules(ReportRules reportRules, ModellingFilter modellingFilter)
+        public ReportAppRules(ReportRules reportRules, ModellingFilter modellingFilter) : base(reportRules.Query, reportRules.userConfig, reportRules.ReportType)
         {
             this.modellingFilter = modellingFilter;
         }

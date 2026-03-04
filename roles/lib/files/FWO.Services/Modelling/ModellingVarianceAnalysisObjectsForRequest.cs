@@ -515,18 +515,7 @@ namespace FWO.Services.Modelling
                 {
                     if (userConfig.ModRolloutResolveServiceGroups)
                     {
-                        foreach (ModellingService svc in ModellingServiceWrapper.Resolve(svcGrp.Services))
-                        {
-                            ReqElements.Add(new()
-                            {
-                                RequestAction = RequestAction.create.ToString(),
-                                Field = ElemFieldType.service.ToString(),
-                                Name = svc.Name,
-                                Port = svc.Port,
-                                PortEnd = svc.PortEnd,
-                                ProtoId = svc.ProtoId
-                            });
-                        }
+                        AddResolvedServiceGroup(svcGrp);
                     }
                     else
                     {
@@ -542,6 +531,22 @@ namespace FWO.Services.Modelling
                         });
                     }
                 }
+            }
+        }
+
+        private void AddResolvedServiceGroup(ModellingServiceGroup svcGrp)
+        {
+            foreach (ModellingService svc in ModellingServiceWrapper.Resolve(svcGrp.Services))
+            {
+                ReqElements.Add(new()
+                {
+                    RequestAction = RequestAction.create.ToString(),
+                    Field = ElemFieldType.service.ToString(),
+                    Name = svc.Name,
+                    Port = svc.Port,
+                    PortEnd = svc.PortEnd,
+                    ProtoId = svc.ProtoId
+                });
             }
         }
 

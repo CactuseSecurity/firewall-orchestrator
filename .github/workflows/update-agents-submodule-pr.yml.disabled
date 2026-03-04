@@ -31,13 +31,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          before_sha="$(git ls-tree HEAD agents | awk '{print $3}')"
+          before_sha="$(git ls-tree HEAD .agents | awk '{print $3}')"
           source_branch="$(git config -f .gitmodules --get submodule.agents.branch)"
           source_url="$(git config -f .gitmodules --get submodule.agents.url)"
 
-          git -C agents fetch origin "$source_branch" --quiet
-          git -C agents checkout --quiet --detach "origin/$source_branch"
-          after_sha="$(git -C agents rev-parse HEAD)"
+          git -C .agents fetch origin "$source_branch" --quiet
+          git -C .agents checkout --quiet --detach "origin/$source_branch"
+          after_sha="$(git -C .agents rev-parse HEAD)"
 
           echo "before_sha=$before_sha" >> "$GITHUB_OUTPUT"
           echo "after_sha=$after_sha" >> "$GITHUB_OUTPUT"
@@ -49,7 +49,7 @@ jobs:
             exit 0
           fi
 
-          git add agents
+          git add .agents
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Create or update pull request

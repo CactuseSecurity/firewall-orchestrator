@@ -139,6 +139,7 @@ insert into config (config_key, config_value, config_user) VALUES ('autoReplaceA
 insert into config (config_key, config_value, config_user) VALUES ('ownerLdapId', '1', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ownerLdapGroupNames', 'ModellerGroup_@@ExternalAppId@@', 0);
 insert into config (config_key, config_value, config_user) VALUES ('manageOwnerLdapGroups', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('ownerDataImportSyncUsers', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarker', 'FWOC', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarkerLocation', 'rulename', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleRecognitionOption', '{"nwRegardIp":true,"nwRegardName":false,"nwRegardGroupName":false,"nwResolveGroup":false,"svcRegardPortAndProt":true,"svcRegardName":false,"svcRegardGroupName":false,"svcResolveGroup":true,"svcSplitPortRanges":false}', 0);

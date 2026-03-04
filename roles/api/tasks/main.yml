@@ -8,6 +8,42 @@
   - api handler
   when: installation_mode == "upgrade"
 
+- name: set default hasura upgrade mode for upgrades
+  set_fact:
+    api_use_existing_hasura_on_upgrade: "{{ api_keep_existing_hasura_on_upgrade | default(false) | bool }}"
+  when: installation_mode == "upgrade"
+
+- name: probe GitHub release access for hasura upgrade
+  uri:
+    url: "https://api.github.com/repos/hasura/graphql-engine/releases/tags/{{ api_hasura_version }}"
+    method: GET
+    return_content: false
+  register: api_hasura_release_access
+  environment: "{{ proxy_env }}"
+  failed_when: false
+  when:
+    - installation_mode == "upgrade"
+    - not api_use_existing_hasura_on_upgrade | bool
+
+- name: fallback to existing hasura when GitHub is not reachable during upgrade
+  set_fact:
+    api_use_existing_hasura_on_upgrade: true
+  when:
+    - installation_mode == "upgrade"
+    - not api_use_existing_hasura_on_upgrade | bool
+    - api_hasura_release_access.status | default(0) != 200
+
+- name: show hasura upgrade fallback decision
+  debug:
+    msg: >-
+      GitHub release lookup failed (HTTP {{ api_hasura_release_access.status | default('unknown') }}),
+      reusing existing Hasura container and upgrading metadata only.
+  when:
+    - installation_mode == "upgrade"
+    - api_use_existing_hasura_on_upgrade | bool
+    - api_hasura_release_access is defined
+    - api_hasura_release_access.status | default(0) != 200
+
 - name: stop MW for upgrading
   ansible.builtin.systemd:
     name: "{{ product_name }}-middleware"
@@ -20,7 +56,7 @@
     name: "{{ api_service_name }}"
     state: stopped
   become: true
-  when: installation_mode == "upgrade"
+  when: installation_mode == "upgrade" and not (api_use_existing_hasura_on_upgrade | default(false) | bool)
   failed_when: false
 
 - name: stop API container for upgrading
@@ -30,7 +66,7 @@
     container_default_behavior: no_defaults
   become: true
   become_user: "{{ fworch_user }}"
-  when: installation_mode == "upgrade"
+  when: installation_mode == "upgrade" and not (api_use_existing_hasura_on_upgrade | default(false) | bool)
   failed_when: false
 
 - name: stop UI for upgrading
@@ -58,6 +94,7 @@
     path: "{{ api_home }}"
     state: absent
   become: true
+  when: installation_mode != "upgrade" or not (api_use_existing_hasura_on_upgrade | default(false) | bool)
 
 - name: create api home
   file:

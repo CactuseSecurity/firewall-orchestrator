@@ -32,6 +32,22 @@ fragment ruleOverview on rule {
   rule_name
   rule_custom_fields
   rule_installon
+  rule_time
+  rule_times {
+    rule_time_id
+    rule_id
+    time_obj_id
+    created
+    removed
+    time_object {
+      time_obj_id
+      time_obj_name
+      time_obj_uid
+      start_time
+      end_time
+      created
+    }
+  }
   access_rule
   nat_rule
   xlate_rule

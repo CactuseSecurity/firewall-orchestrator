@@ -92,5 +92,60 @@ namespace FWO.Test
             Assert.That(viewData.LastModified, Is.EqualTo("2023-01-10"));
         }
 
+        [Test]
+        public void DisplayRuleTime_UsesFirstTimeObjectWithEndTime()
+        {
+            Rule rule = new Rule
+            {
+                RuleTimes =
+                [
+                    new RuleTime { TimeObj = new TimeObject { EndTime = null } },
+                    new RuleTime { TimeObj = new TimeObject { EndTime = new DateTime(2026, 01, 02, 03, 04, 05) } },
+                    new RuleTime { TimeObj = new TimeObject { EndTime = new DateTime(2030, 06, 07, 08, 09, 10) } }
+                ]
+            };
+
+            UserConfig userConfig = new UserConfig();
+            RuleDisplayHtml ruleDisplay = new RuleDisplayHtml(userConfig);
+
+            Assert.That(ruleDisplay.DisplayRuleTime(rule), Is.EqualTo("2026-01-02 03:04:05"));
+        }
+
+        [Test]
+        public void DisplayRuleTime_ReturnsEmpty_WhenNoTimeObjectHasEndTime()
+        {
+            Rule rule = new Rule
+            {
+                RuleTimes =
+                [
+                    new RuleTime { TimeObj = null },
+                    new RuleTime { TimeObj = new TimeObject { EndTime = null } }
+                ]
+            };
+
+            UserConfig userConfig = new UserConfig();
+            RuleDisplayHtml ruleDisplay = new RuleDisplayHtml(userConfig);
+
+            Assert.That(ruleDisplay.DisplayRuleTime(rule), Is.EqualTo(""));
+        }
+
+        [Test]
+        public void RuleViewData_SetsRuleTime_FromDisplayRuleTime()
+        {
+            Rule rule = new Rule
+            {
+                RuleTimes =
+                [
+                    new RuleTime { TimeObj = new TimeObject { EndTime = new DateTime(2026, 12, 24, 11, 22, 33) } }
+                ]
+            };
+
+            UserConfig userConfig = new UserConfig();
+            NatRuleDisplayHtml ruleDisplay = new NatRuleDisplayHtml(userConfig);
+            RuleViewData viewData = new RuleViewData(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.RuleTime, Is.EqualTo("2026-12-24 11:22:33"));
+        }
+
     }
 }

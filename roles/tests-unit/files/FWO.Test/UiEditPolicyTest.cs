@@ -129,7 +129,7 @@ namespace FWO.Test
             {
                 Id = 42,
                 Name = "Policy",
-                Criteria = [ new ComplianceCriterionWrapper { Content = criterion } ]
+                Criteria = [new ComplianceCriterionWrapper { Content = criterion }]
             };
 
             IRenderedComponent<CascadingAuthenticationState> component = context.Render<CascadingAuthenticationState>(parameters => parameters
@@ -166,7 +166,7 @@ namespace FWO.Test
             ComplianceCriterion crit2 = new() { Id = 2, Name = "Crit2" };
             CompliancePolicy policy = new()
             {
-                Criteria = [ new ComplianceCriterionWrapper { Content = crit1 } ]
+                Criteria = [new ComplianceCriterionWrapper { Content = crit1 }]
             };
 
             IRenderedComponent<CascadingAuthenticationState> component = context.Render<CascadingAuthenticationState>(parameters => parameters
@@ -203,10 +203,10 @@ namespace FWO.Test
                 if (query == ComplianceQueries.addPolicy)
                 {
                     AddPolicyCalls++;
-                    ReturnIdWrapper wrapper = new() { ReturnIds = [ new ReturnId { InsertedId = 12 } ] };
+                    ReturnIdWrapper wrapper = new() { ReturnIds = [new ReturnId { InsertedId = 12 }] };
                     return Task.FromResult((QueryResponseType)(object)wrapper);
                 }
-                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [ new ReturnId() ] });
+                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId()] });
             }
 
             if (responseType == typeof(ReturnId))

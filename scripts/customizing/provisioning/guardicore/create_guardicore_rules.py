@@ -8,6 +8,7 @@ import json
 import logging
 import re
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -48,6 +49,7 @@ DEFAULT_GUARDICORE_KEY_APPROLE: str = "AppRole"
 DEFAULT_FWO_ROLE: str = "reporter"
 DEFAULT_TIMEOUT_SECONDS: int = 60
 GUARDICORE_LABELS_PAGE_SIZE: int = 1000
+MAX_GUARDICORE_LABEL_PAGES: int = 10000
 PROTO_ID_ICMP: int = 1
 PROTO_ID_TCP: int = 6
 PROTO_ID_UDP: int = 17
@@ -66,7 +68,29 @@ class RuleBuildResult:
 @dataclass(frozen=True)
 class AppRoleResolution:
     label_ids: list[str]
-    missing_names: list[str]
+    missing_labels: list[str]
+
+
+@dataclass(frozen=True)
+class AppRoleMapStats:
+    total_approle_labels: int
+    unique_label_ids: int
+    unique_full_value_keys: int
+    unique_role_name_keys: int
+    unique_role_id_keys: int
+    unique_map_keys: int
+    pages_fetched: int
+    raw_label_objects_seen: int
+    label_candidates_seen: int
+    approle_candidates_seen: int
+    approle_duplicate_label_id_candidates: int
+    approle_duplicate_full_value_candidates: int
+    role_id_extractions_seen: int
+    role_id_duplicate_candidates: int
+    role_name_extractions_seen: int
+    role_name_duplicate_candidates: int
+    top_repeated_full_values: list[tuple[str, int]]
+    pagination_mode: str
 
 
 def parse_app_ids(value: str) -> list[str]:
@@ -101,9 +125,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fwo-role", default=DEFAULT_FWO_ROLE, help="Hasura role for the GraphQL call")
     parser.add_argument(
         "--app-ids",
-        required=True,
         type=parse_app_ids,
-        help='JSON array of external app IDs used to filter connections, e.g. ["APP-1234","APP-2345"]',
+        help='Optional JSON array of external app IDs used to filter connections, e.g. ["APP-1234","APP-2345"]',
     )
     parser.add_argument(
         "--guardicore-url",
@@ -220,14 +243,15 @@ def get_guardicore_token(args: argparse.Namespace, guardicore_verify: bool | str
     )
 
 
-def build_graphql_query() -> str:
+def build_graphql_query(filter_by_app_ids: bool) -> str:
+    owner_clause = "owner: { app_id_external: { _in: $appIds } }," if filter_by_app_ids else ""
     query = """
-query getConnectionsForGuardicore($appIds: [String!]!) {
+query getConnectionsForGuardicore__APPIDS_DECL__ {
   modelling_connection(
     where: {
       removed: { _eq: false },
       is_interface: { _eq: false },
-      owner: { app_id_external: { _in: $appIds } }
+      __OWNER_CLAUSE__
     },
     order_by: {id: asc}
   ) {
@@ -296,20 +320,23 @@ query getConnectionsForGuardicore($appIds: [String!]!) {
   }
 }
 """.strip()
-    return " ".join(query.splitlines())
+    app_ids_decl = "($appIds: [String!]!)" if filter_by_app_ids else ""
+    return " ".join(query.splitlines()).replace("__APPIDS_DECL__", app_ids_decl).replace("__OWNER_CLAUSE__", owner_clause)
 
 
-def build_graphql_variables(app_ids: list[str]) -> dict[str, Any]:
+def build_graphql_variables(app_ids: list[str] | None) -> dict[str, Any]:
+    if app_ids is None:
+        return {}
     return {"appIds": app_ids}
 
 
 def fetch_connections_from_fwo(
     fwo_config: FwoConfig,
-    app_ids: list[str],
+    app_ids: list[str] | None,
 ) -> list[dict[str, Any]]:
     result = run_graphql_query(
         fwo_config,
-        build_graphql_query(),
+        build_graphql_query(filter_by_app_ids=app_ids is not None),
         build_graphql_variables(app_ids),
         GuardicoreRuleProvisioningError,
     )
@@ -336,70 +363,226 @@ def extract_id_string_from_label_value(label_value: str) -> str | None:
     return id_string if id_string else None
 
 
-def fetch_guardicore_approle_map(config: GuardicoreConfig) -> dict[str, list[str]]:
+def extract_nwgroup_name_from_label_value(label_value: str) -> str | None:
+    id_match = re.search(r"\(([^()]*)\)\s*$", label_value.strip())
+    if not id_match:
+        return None
+
+    value_without_id = label_value[: id_match.start()].strip()
+    if not value_without_id:
+        return None
+
+    if " - " in value_without_id:
+        nwgroup_name = value_without_id.rsplit(" - ", 1)[-1].strip()
+    else:
+        nwgroup_name = value_without_id
+    return nwgroup_name if nwgroup_name else None
+
+
+def normalize_guardicore_label_key(key: str) -> str:
+    normalized = key.strip().rstrip(":").casefold()
+    return "".join(ch for ch in normalized if ch.isalnum())
+
+
+def is_guardicore_approle_key(key: Any) -> bool:
+    if not isinstance(key, str):
+        return False
+    return normalize_guardicore_label_key(key) == normalize_guardicore_label_key(DEFAULT_GUARDICORE_KEY_APPROLE)
+
+
+def is_probable_approle_label(key: Any, label_value: str) -> bool:
+    if is_guardicore_approle_key(key):
+        return True
+    parsed_id_string = extract_id_string_from_label_value(label_value)
+    if not parsed_id_string:
+        return False
+    return parsed_id_string.strip().upper().startswith("AR")
+
+
+def extract_label_id_key_value_candidates(label_item: dict[str, Any]) -> list[tuple[str, str, str]]:
+    candidates: list[tuple[str, str, str]] = []
+    candidate_objects: list[dict[str, Any]] = [label_item]
+
+    nested_label = label_item.get("label")
+    if isinstance(nested_label, dict):
+        candidate_objects.append(cast("dict[str, Any]", nested_label))
+
+    for candidate in candidate_objects:
+        candidate_key = candidate.get("key")
+        candidate_value = candidate.get("value")
+        candidate_id = candidate.get("id")
+        if isinstance(candidate_id, int):
+            candidate_id = str(candidate_id)
+        if not isinstance(candidate_key, str) or not isinstance(candidate_value, str) or not isinstance(candidate_id, str):
+            continue
+        normalized_value = candidate_value.strip()
+        normalized_id = candidate_id.strip()
+        if not normalized_value or not normalized_id:
+            continue
+        candidates.append((normalized_id, candidate_key, normalized_value))
+    return candidates
+
+
+def fetch_guardicore_approle_map(config: GuardicoreConfig) -> tuple[dict[str, list[str]], AppRoleMapStats]:
     endpoint = config.base_url.rstrip("/") + DEFAULT_GUARDICORE_LABELS_LIST_ENDPOINT
     headers = {
         "Authorization": f"Bearer {config.token}",
         "Content-Type": HTTP_CONTENT_TYPE_JSON,
     }
     base_params: dict[str, Any] = {
-        "fields": "id,key,value",
+        "expand": "dynamic_assets",
+        "fields": "id,key,value,dynamic_criteria",
+        "max_results": GUARDICORE_LABELS_PAGE_SIZE,
+        # Keep legacy alias for compatibility with older Guardicore releases.
         "limit": GUARDICORE_LABELS_PAGE_SIZE,
-        "offset": 0,
     }
+    def fetch_with_mode(pagination_mode: str, page_start: int = 0) -> tuple[dict[str, list[str]], AppRoleMapStats]:
+        app_role_map: dict[str, list[str]] = {}
+        full_value_keys: set[str] = set()
+        role_name_keys: set[str] = set()
+        role_id_keys: set[str] = set()
+        label_ids_seen: set[str] = set()
+        approle_full_value_counter: Counter[str] = Counter()
+        role_id_extractions_seen = 0
+        role_name_extractions_seen = 0
+        offset = 0
+        page_number = page_start
+        page_count = 0
+        raw_label_objects_seen = 0
+        label_candidates_seen = 0
+        approle_candidates_seen = 0
+        stagnant_pages = 0
 
-    app_role_map: dict[str, list[str]] = {}
-    offset = 0
+        with requests.Session() as session:
+            apply_ssl_settings(session, config.verify_ssl)
+            session.headers.update(headers)
+            while True:
+                page_count += 1
+                if page_count > MAX_GUARDICORE_LABEL_PAGES:
+                    raise GuardicoreRuleProvisioningError(
+                        "Guardicore label query exceeded maximum page limit; aborting to prevent endless pagination loop."
+                    )
+                previous_unique_label_count = len(label_ids_seen)
 
-    with requests.Session() as session:
-        apply_ssl_settings(session, config.verify_ssl)
-        session.headers.update(headers)
-        while True:
-            params = dict(base_params)
-            params["offset"] = offset
-            try:
-                response = session.get(endpoint, params=params, timeout=config.timeout_seconds)
-                response.raise_for_status()
-            except requests.exceptions.RequestException as exc:
-                raise GuardicoreRuleProvisioningError(f"Guardicore label query failed: {exc}") from exc
+                params = dict(base_params)
+                if pagination_mode == "offset":
+                    params["start_at"] = offset
+                    # Keep legacy alias for compatibility with older Guardicore releases.
+                    params["offset"] = offset
+                elif pagination_mode == "page":
+                    params["page"] = page_number
+                else:
+                    raise GuardicoreRuleProvisioningError(f"Unknown pagination mode: {pagination_mode}")
 
-            result_obj = response.json()
-            labels = parse_existing_labels(result_obj)
-            for label in labels:
-                key = label.get("key")
-                value = label.get("value")
-                label_id = label.get("id")
-                if not isinstance(key, str) or not isinstance(value, str) or not isinstance(label_id, str):
-                    continue
-                if key.strip() != DEFAULT_GUARDICORE_KEY_APPROLE:
-                    continue
-                label_value = value.strip()
-                if not label_value:
-                    continue
-                app_role_map.setdefault(label_value, []).append(label_id)
-                parsed_id_string = extract_id_string_from_label_value(label_value)
-                if parsed_id_string:
-                    app_role_map.setdefault(parsed_id_string, []).append(label_id)
+                try:
+                    response = session.get(endpoint, params=params, timeout=config.timeout_seconds)
+                    response.raise_for_status()
+                except requests.exceptions.RequestException as exc:
+                    raise GuardicoreRuleProvisioningError(f"Guardicore label query failed: {exc}") from exc
 
-            if not isinstance(result_obj, dict):
-                break
-            result = cast("dict[str, Any]", result_obj)
-            objects_obj = result.get("objects")
-            if not isinstance(objects_obj, list):
-                break
-            objects = cast("list[Any]", objects_obj)
-            if len(objects) == 0:
-                break
-            total_count_obj = result.get("total_count")
-            offset += len(objects)
-            if isinstance(total_count_obj, int):
-                if offset >= total_count_obj:
+                result_obj = response.json()
+                labels = parse_existing_labels(result_obj)
+                raw_label_objects_seen += len(labels)
+                for label in labels:
+                    seen_candidate_ids: set[str] = set()
+                    for label_id, key, label_value in extract_label_id_key_value_candidates(label):
+                        label_candidates_seen += 1
+                        if not is_probable_approle_label(key, label_value):
+                            continue
+                        approle_candidates_seen += 1
+                        if label_id in seen_candidate_ids:
+                            continue
+                        seen_candidate_ids.add(label_id)
+                        label_ids_seen.add(label_id)
+                        approle_full_value_counter[label_value] += 1
+                        app_role_map.setdefault(label_value, []).append(label_id)
+                        full_value_keys.add(label_value)
+                        parsed_id_string = extract_id_string_from_label_value(label_value)
+                        if parsed_id_string:
+                            role_id_extractions_seen += 1
+                            app_role_map.setdefault(parsed_id_string, []).append(label_id)
+                            role_id_keys.add(parsed_id_string)
+                        parsed_nwgroup_name = extract_nwgroup_name_from_label_value(label_value)
+                        if parsed_nwgroup_name:
+                            role_name_extractions_seen += 1
+                            app_role_map.setdefault(parsed_nwgroup_name, []).append(label_id)
+                            role_name_keys.add(parsed_nwgroup_name)
+
+                if not isinstance(result_obj, dict):
                     break
-                continue
-            if len(objects) < GUARDICORE_LABELS_PAGE_SIZE:
-                break
+                result = cast("dict[str, Any]", result_obj)
+                objects_obj = result.get("objects")
+                if not isinstance(objects_obj, list):
+                    break
+                objects = cast("list[Any]", objects_obj)
+                if len(objects) == 0:
+                    break
 
-    return app_role_map
+                if len(label_ids_seen) == previous_unique_label_count:
+                    stagnant_pages += 1
+                else:
+                    stagnant_pages = 0
+                if stagnant_pages >= 2:
+                    break
+
+                if pagination_mode == "offset":
+                    total_count_obj = result.get("total_count")
+                    current_offset = offset
+                    next_offset = current_offset + len(objects)
+                    next_offset_obj = result.get("next_offset")
+                    if isinstance(next_offset_obj, int) and next_offset_obj > current_offset:
+                        next_offset = next_offset_obj
+                    offset = next_offset
+                    if isinstance(total_count_obj, int):
+                        if offset >= total_count_obj:
+                            break
+                        continue
+                    if offset <= current_offset:
+                        break
+                else:
+                    page_number += 1
+
+        top_repeated_full_values = [
+            (value, count) for value, count in approle_full_value_counter.most_common(10) if count > 1
+        ]
+        stats = AppRoleMapStats(
+            total_approle_labels=len(label_ids_seen),
+            unique_label_ids=len(label_ids_seen),
+            unique_full_value_keys=len(full_value_keys),
+            unique_role_name_keys=len(role_name_keys),
+            unique_role_id_keys=len(role_id_keys),
+            unique_map_keys=len(app_role_map),
+            pages_fetched=page_count,
+            raw_label_objects_seen=raw_label_objects_seen,
+            label_candidates_seen=label_candidates_seen,
+            approle_candidates_seen=approle_candidates_seen,
+            approle_duplicate_label_id_candidates=max(0, approle_candidates_seen - len(label_ids_seen)),
+            approle_duplicate_full_value_candidates=max(0, approle_candidates_seen - len(full_value_keys)),
+            role_id_extractions_seen=role_id_extractions_seen,
+            role_id_duplicate_candidates=max(0, role_id_extractions_seen - len(role_id_keys)),
+            role_name_extractions_seen=role_name_extractions_seen,
+            role_name_duplicate_candidates=max(0, role_name_extractions_seen - len(role_name_keys)),
+            top_repeated_full_values=top_repeated_full_values,
+            pagination_mode=pagination_mode if pagination_mode == "offset" else f"{pagination_mode}:{page_start}",
+        )
+        return app_role_map, stats
+
+    offset_map, offset_stats = fetch_with_mode("offset")
+    suspicious_offset_pagination = (
+        offset_stats.pages_fetched > 1
+        and offset_stats.approle_candidates_seen > 0
+        and offset_stats.unique_label_ids * 2 < offset_stats.approle_candidates_seen
+    )
+    if not suspicious_offset_pagination:
+        return offset_map, offset_stats
+
+    page0_map, page0_stats = fetch_with_mode("page", page_start=0)
+    page1_map, page1_stats = fetch_with_mode("page", page_start=1)
+    best_map, best_stats = max(
+        [(offset_map, offset_stats), (page0_map, page0_stats), (page1_map, page1_stats)],
+        key=lambda item: item[1].unique_label_ids,
+    )
+    return best_map, best_stats
 
 
 def normalize_protocol_name(protocol_name: str | None) -> str | None:
@@ -571,12 +754,59 @@ def collect_ports_and_protocols_by_protocol(
     return result
 
 
+def format_approle_identifier(name: Any, id_string: Any) -> str | None:
+    name_text = name.strip() if isinstance(name, str) else ""
+    id_text = id_string.strip() if isinstance(id_string, str) else ""
+    if name_text and id_text:
+        return f"{name_text} ({id_text})"
+    if name_text:
+        return name_text
+    if id_text:
+        return f"(id: {id_text})"
+    return None
+
+
+def collect_approle_identifiers(connection_approles: list[dict[str, Any]]) -> list[str]:
+    identifiers: set[str] = set()
+    for connection_approle in connection_approles:
+        nwgroup = connection_approle.get("nwgroup")
+        if not isinstance(nwgroup, dict):
+            continue
+        nwgroup_dict = cast("dict[str, Any]", nwgroup)
+        identifier = format_approle_identifier(nwgroup_dict.get("name"), nwgroup_dict.get("id_string"))
+        if identifier:
+            identifiers.add(identifier)
+    return sorted(identifiers)
+
+
+def build_missing_approle_warning_details(connection: dict[str, Any]) -> str:
+    source_approles_raw = connection.get("source_approles")
+    destination_approles_raw = connection.get("destination_approles")
+    source_approles: list[dict[str, Any]] = []
+    destination_approles: list[dict[str, Any]] = []
+    if isinstance(source_approles_raw, list):
+        source_approles = [cast("dict[str, Any]", item) for item in source_approles_raw if isinstance(item, dict)]
+    if isinstance(destination_approles_raw, list):
+        destination_approles = [
+            cast("dict[str, Any]", item) for item in destination_approles_raw if isinstance(item, dict)
+        ]
+
+    source_identifiers = collect_approle_identifiers(source_approles)
+    destination_identifiers = collect_approle_identifiers(destination_approles)
+    connection_json = json.dumps(connection, sort_keys=True, ensure_ascii=True)
+    return (
+        f"all_source_approles={source_identifiers}, "
+        f"all_destination_approles={destination_identifiers}, "
+        f"connection={connection_json}"
+    )
+
+
 def resolve_approle_labels(
     connection_approles: list[dict[str, Any]],
     approle_id_map: dict[str, list[str]],
 ) -> AppRoleResolution:
     label_ids: set[str] = set()
-    missing_names: set[str] = set()
+    missing_labels: set[str] = set()
 
     for connection_approle in connection_approles:
         nwgroup = connection_approle.get("nwgroup")
@@ -585,20 +815,20 @@ def resolve_approle_labels(
         nwgroup_dict = cast("dict[str, Any]", nwgroup)
         id_string = nwgroup_dict.get("id_string")
         name = nwgroup_dict.get("name")
-        if not isinstance(name, str) or not name.strip():
-            continue
 
         matched_label_ids: list[str] | None = None
         if isinstance(id_string, str) and id_string.strip():
             matched_label_ids = approle_id_map.get(id_string.strip())
-        if not matched_label_ids:
+        if not matched_label_ids and isinstance(name, str) and name.strip():
             matched_label_ids = approle_id_map.get(name.strip())
         if matched_label_ids:
             label_ids.update(matched_label_ids)
         else:
-            missing_names.add(name.strip())
+            identifier = format_approle_identifier(name, id_string)
+            if identifier:
+                missing_labels.add(identifier)
 
-    return AppRoleResolution(label_ids=sorted(label_ids), missing_names=sorted(missing_names))
+    return AppRoleResolution(label_ids=sorted(label_ids), missing_labels=sorted(missing_labels))
 
 
 def to_guardicore_or_labels(label_ids: list[str]) -> list[dict[str, list[str]]]:
@@ -634,12 +864,27 @@ def build_rule_payload(
         approle_id_map,
     )
 
-    missing = source_resolution.missing_names + destination_resolution.missing_names
-    if missing:
-        return RuleBuildResult(payloads=[], skip_reason=f"missing Guardicore AppRole labels: {sorted(set(missing))}")
+    source_missing = source_resolution.missing_labels
+    destination_missing = destination_resolution.missing_labels
+    if source_missing or destination_missing:
+        return RuleBuildResult(
+            payloads=[],
+            skip_reason=(
+                "missing Guardicore AppRole labels: "
+                f"source={source_missing}, destination={destination_missing}"
+            ),
+        )
 
     if not source_resolution.label_ids or not destination_resolution.label_ids:
-        return RuleBuildResult(payloads=[], skip_reason="missing source/destination AppRole labels")
+        source_identifiers = collect_approle_identifiers(source_approles)
+        destination_identifiers = collect_approle_identifiers(destination_approles)
+        return RuleBuildResult(
+            payloads=[],
+            skip_reason=(
+                "missing source/destination AppRole labels: "
+                f"source={source_identifiers}, destination={destination_identifiers}"
+            ),
+        )
 
     services = extract_services(connection)
     ports_by_protocol = collect_ports_and_protocols_by_protocol(services, default_ip_protocol)
@@ -647,26 +892,35 @@ def build_rule_payload(
     connection_id = connection.get("id")
     ruleset_name = f"FWOC{connection_id}"
     payloads: list[dict[str, Any]] = []
+    skipped_protocols: set[str] = set()
     for protocol, (ports, port_ranges) in ports_by_protocol.items():
-        payloads.append(
-            {
-                "ruleset_name": ruleset_name,
-                "ports": ports,
-                "port_ranges": port_ranges,
-                "ip_protocols": [protocol],
-                "action": action,
-                "section_position": section_position,
-                "source": {
-                    "labels": {
-                        "or_labels": to_guardicore_or_labels(source_resolution.label_ids),
-                    }
-                },
-                "destination": {
-                    "labels": {
-                        "or_labels": to_guardicore_or_labels(destination_resolution.label_ids),
-                    }
-                },
-            }
+        if protocol == "ESP":
+            skipped_protocols.add(protocol)
+            continue
+        payload: dict[str, Any] = {
+            "ruleset_name": ruleset_name,
+            "ip_protocols": [protocol],
+            "action": action,
+            "section_position": section_position,
+            "source": {
+                "labels": {
+                    "or_labels": to_guardicore_or_labels(source_resolution.label_ids),
+                }
+            },
+            "destination": {
+                "labels": {
+                    "or_labels": to_guardicore_or_labels(destination_resolution.label_ids),
+                }
+            },
+        }
+        if protocol != "ICMP":
+            payload["ports"] = ports
+            payload["port_ranges"] = port_ranges
+        payloads.append(payload)
+    if not payloads and skipped_protocols:
+        return RuleBuildResult(
+            payloads=[],
+            skip_reason=f"unsupported Guardicore ip_protocols: {sorted(skipped_protocols)}",
         )
     return RuleBuildResult(payloads=payloads, skip_reason=None)
 
@@ -697,11 +951,10 @@ def post_guardicore_revision(config: GuardicoreConfig, rulesets: list[str], comm
         "Authorization": f"Bearer {config.token}",
         "Content-Type": HTTP_CONTENT_TYPE_JSON,
     }
-    payload = {"rulesets": rulesets, "comments": comments}
-
     with requests.Session() as session:
         apply_ssl_settings(session, config.verify_ssl)
         session.headers.update(headers)
+        payload = {"comments": comments}
         try:
             response = session.post(endpoint, json=payload, timeout=config.timeout_seconds)
             response.raise_for_status()
@@ -744,10 +997,42 @@ def main() -> int:
             fwo_config,
             app_ids=args.app_ids,
         )
-        logger.info("Fetched %s filtered FWO connections.", len(connections))
+        if args.app_ids is None:
+            logger.info("Fetched %s FWO connections for all apps.", len(connections))
+        else:
+            logger.info("Fetched %s filtered FWO connections.", len(connections))
 
-        approle_id_map = fetch_guardicore_approle_map(guardicore_config)
-        logger.info("Fetched %s Guardicore AppRole labels.", len(approle_id_map))
+        approle_id_map, approle_map_stats = fetch_guardicore_approle_map(guardicore_config)
+        logger.info(
+            "Fetched Guardicore AppRole labels: total=%s, unique_label_ids=%s, full_value_keys=%s, "
+            "role_name_keys=%s, role_id_keys=%s, total_map_keys=%s, pages_fetched=%s, "
+            "raw_label_objects_seen=%s, label_candidates_seen=%s, approle_candidates_seen=%s, pagination_mode=%s.",
+            approle_map_stats.total_approle_labels,
+            approle_map_stats.unique_label_ids,
+            approle_map_stats.unique_full_value_keys,
+            approle_map_stats.unique_role_name_keys,
+            approle_map_stats.unique_role_id_keys,
+            approle_map_stats.unique_map_keys,
+            approle_map_stats.pages_fetched,
+            approle_map_stats.raw_label_objects_seen,
+            approle_map_stats.label_candidates_seen,
+            approle_map_stats.approle_candidates_seen,
+            approle_map_stats.pagination_mode,
+        )
+        logger.info(
+            "AppRole map diagnostics: non_approle_candidates=%s, duplicate_label_id_candidates=%s, "
+            "duplicate_full_value_candidates=%s, role_id_extractions=%s, duplicate_role_id_candidates=%s, "
+            "role_name_extractions=%s, duplicate_role_name_candidates=%s.",
+            max(0, approle_map_stats.label_candidates_seen - approle_map_stats.approle_candidates_seen),
+            approle_map_stats.approle_duplicate_label_id_candidates,
+            approle_map_stats.approle_duplicate_full_value_candidates,
+            approle_map_stats.role_id_extractions_seen,
+            approle_map_stats.role_id_duplicate_candidates,
+            approle_map_stats.role_name_extractions_seen,
+            approle_map_stats.role_name_duplicate_candidates,
+        )
+        if approle_map_stats.top_repeated_full_values:
+            logger.info("Top repeated AppRole full values: %s", approle_map_stats.top_repeated_full_values)
 
         created = 0
         skipped = 0
@@ -762,12 +1047,21 @@ def main() -> int:
             )
             if not result.payloads:
                 skipped += 1
-                logger.warning(
-                    "Skipping connection id=%s name=%s: %s",
-                    connection.get("id"),
-                    connection.get("name"),
-                    result.skip_reason,
-                )
+                if result.skip_reason and "AppRole" in result.skip_reason:
+                    logger.warning(
+                        "Skipping connection id=%s name=%s: %s; %s",
+                        connection.get("id"),
+                        connection.get("name"),
+                        result.skip_reason,
+                        build_missing_approle_warning_details(connection),
+                    )
+                else:
+                    logger.warning(
+                        "Skipping connection id=%s name=%s: %s",
+                        connection.get("id"),
+                        connection.get("name"),
+                        result.skip_reason,
+                    )
                 continue
 
             for payload in result.payloads:
@@ -784,7 +1078,7 @@ def main() -> int:
         if args.dry_run:
             logger.info(
                 "Dry run publish payload: %s",
-                json.dumps({"rulesets": sorted_rulesets, "comments": args.publish_comments}),
+                json.dumps({"comments": args.publish_comments}),
             )
         else:
             post_guardicore_revision(guardicore_config, sorted_rulesets, args.publish_comments)

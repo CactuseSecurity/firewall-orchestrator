@@ -122,7 +122,7 @@ def test_fetch_existing_guardicore_labels_reads_paginated_list(monkeypatch: Monk
 
         def get(self, endpoint: str, params: dict[str, Any], timeout: int) -> FakeResponse:
             self.calls.append((endpoint, params, timeout))
-            if params["offset"] == 0:
+            if params["start_at"] == 0:
                 return FakeResponse(
                     {
                         "objects": [
@@ -177,3 +177,60 @@ def test_build_graphql_variables_contains_explicit_parameters_only():
     variables = module.build_graphql_variables(app_ids=["APP-1"], include_group_types=[20, 21])
 
     assert variables == {"groupTypes": [20, 21], "appIds": ["APP-1"]}
+
+
+def test_build_graphql_variables_uses_default_group_types_including_23():
+    module = load_module()
+
+    variables = module.build_graphql_variables()
+
+    assert variables == {"groupTypes": [20, 21, 23]}
+
+
+def test_build_label_from_group_maps_type_23_to_networkarea_when_include_empty():
+    module = load_module()
+    owner = {"name": "NeMo", "app_id_external": "APP-5630"}
+    nwgroup = {
+        "name": "NeMo Entwicklung",
+        "id_string": "AREA-1",
+        "group_type": 23,
+        "nwobject_nwgroups": [],
+    }
+
+    label = module.build_label_from_group(owner, nwgroup, include_empty=True)
+
+    assert label is not None
+    assert label.key == "NetworkArea"
+    assert label.value == "NeMo (APP-5630) - NeMo Entwicklung (AREA-1)"
+
+
+def test_build_label_from_group_maps_na_prefix_to_networkarea_without_group_type():
+    module = load_module()
+    owner = {"name": "NeMo", "app_id_external": "APP-5630"}
+    nwgroup = {
+        "name": "NeMo Entwicklung",
+        "id_string": "NA5005630-006",
+        "nwobject_nwgroups": [],
+    }
+
+    label = module.build_label_from_group(owner, nwgroup, include_empty=True)
+
+    assert label is not None
+    assert label.key == "NetworkArea"
+
+
+def test_build_label_from_group_includes_approle_without_criteria_by_default():
+    module = load_module()
+    owner = {"name": "NeMo", "app_id_external": "APP-5630"}
+    nwgroup = {
+        "name": "NeMo Entwicklung",
+        "id_string": "AR5005630-006",
+        "group_type": 20,
+        "nwobject_nwgroups": [],
+    }
+
+    label = module.build_label_from_group(owner, nwgroup, include_empty=False)
+
+    assert label is not None
+    assert label.key == "AppRole"
+    assert label.criteria == []

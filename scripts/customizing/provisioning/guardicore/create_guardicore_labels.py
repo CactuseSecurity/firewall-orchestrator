@@ -7,6 +7,7 @@ import argparse
 import json
 import logging
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -48,6 +49,10 @@ DEFAULT_GUARDICORE_LABELS_PAGE_SIZE: int = 1000
 DEFAULT_GUARDICORE_FIELD: str = "numeric_ip_addresses"
 DEFAULT_GUARDICORE_KEY_APPZONE: str = "AppZone"
 DEFAULT_GUARDICORE_KEY_APPROLE: str = "AppRole"
+DEFAULT_GUARDICORE_KEY_NETWORKAREA: str = "NetworkArea"
+DEFAULT_GROUP_TYPE_APPROLE: int = 20
+DEFAULT_GROUP_TYPE_APPZONE: int = 21
+DEFAULT_GROUP_TYPE_AREA: int = 23
 
 
 def parse_app_ids(value: str) -> list[str]:
@@ -113,6 +118,7 @@ query getARsAndAZs($groupTypes: [Int!]!__APPIDS_DECL__) {
       name
       id_string
       app_id
+      group_type
       nwobject_nwgroups {
         owner_network {
           name
@@ -133,7 +139,11 @@ def build_graphql_variables(
     include_group_types: list[int] | None = None,
 ) -> dict[str, Any]:
     """Build GraphQL variables for explicit query parameters."""
-    group_types = include_group_types if include_group_types is not None else [20, 21]
+    group_types = (
+        include_group_types
+        if include_group_types is not None
+        else [DEFAULT_GROUP_TYPE_APPROLE, DEFAULT_GROUP_TYPE_APPZONE, DEFAULT_GROUP_TYPE_AREA]
+    )
     variables: dict[str, Any] = {"groupTypes": group_types}
     if app_ids is not None:
         variables["appIds"] = app_ids
@@ -202,8 +212,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--include-group-types",
         type=parse_group_types,
-        default=[20, 21],
-        help="JSON array of group types to include, e.g. [20,21] (default: [20,21])",
+        default=[DEFAULT_GROUP_TYPE_APPROLE, DEFAULT_GROUP_TYPE_APPZONE, DEFAULT_GROUP_TYPE_AREA],
+        help="JSON array of group types to include, e.g. [20,21,23] (default: [20,21,23])",
     )
     parser.add_argument("--include-empty", action="store_true", help="Include labels with no criteria")
     parser.add_argument(
@@ -272,9 +282,22 @@ def criteria_from_network(ip: str | None, ip_end: str | None) -> Criteria | None
 def label_key_from_id(id_string: str) -> str | None:
     if id_string.startswith("AZ"):
         return DEFAULT_GUARDICORE_KEY_APPZONE
+    if id_string.startswith("NA"):
+        return DEFAULT_GUARDICORE_KEY_NETWORKAREA
     if id_string.startswith("AR"):
         return DEFAULT_GUARDICORE_KEY_APPROLE
     return None
+
+
+def label_key_from_group(nwgroup: dict[str, Any]) -> str | None:
+    group_type = nwgroup.get("group_type")
+    if group_type == DEFAULT_GROUP_TYPE_APPROLE:
+        return DEFAULT_GUARDICORE_KEY_APPROLE
+    if group_type == DEFAULT_GROUP_TYPE_APPZONE:
+        return DEFAULT_GUARDICORE_KEY_APPZONE
+    if group_type == DEFAULT_GROUP_TYPE_AREA:
+        return DEFAULT_GUARDICORE_KEY_NETWORKAREA
+    return label_key_from_id(str(nwgroup.get("id_string")))
 
 
 def extract_criteria(nwgroup: dict[str, Any]) -> list[Criteria]:
@@ -294,11 +317,13 @@ def build_label_from_group(owner: dict[str, Any], nwgroup: dict[str, Any], inclu
     )
     if not id_string:
         return None
-    key = label_key_from_id(str(nwgroup.get("id_string")))
+    key = label_key_from_group(nwgroup)
     if not key:
         return None
     criteria_list = extract_criteria(nwgroup)
-    if not criteria_list and not include_empty:
+    # AppRole labels are required for policy rule mapping, even when they currently have no criteria.
+    should_include_empty = include_empty or key == DEFAULT_GUARDICORE_KEY_APPROLE
+    if not criteria_list and not should_include_empty:
         return None
     return LabelItem(key=key, value=id_string, criteria=criteria_list)
 
@@ -317,6 +342,25 @@ def build_labels_from_response(
                 labels.append(label)
 
     return labels
+
+
+def count_group_types_from_response(response: dict[str, Any]) -> Counter[int]:
+    counts: Counter[int] = Counter()
+    owners: list[dict[str, Any]] = response.get("data", {}).get("owner", [])
+    for owner in owners:
+        for nwgroup in owner.get("nwgroups", []):
+            group_type = nwgroup.get("group_type")
+            if isinstance(group_type, int):
+                counts[group_type] += 1
+    return counts
+
+
+def count_labels_by_key(labels: list[LabelItem]) -> Counter[str]:
+    return Counter(label.key for label in labels)
+
+
+def count_existing_pairs_by_key(existing_pairs: set[tuple[str, str]]) -> Counter[str]:
+    return Counter(key.strip() for key, _ in existing_pairs if isinstance(key, str))
 
 
 def chunked(items: list[LabelItem], batch_size: int) -> Iterable[list[LabelItem]]:
@@ -369,6 +413,8 @@ def fetch_existing_guardicore_labels(config: GuardicoreConfig) -> set[tuple[str,
     base_params = {
         "expand": "dynamic_assets",
         "fields": DEFAULT_GUARDICORE_LABELS_LIST_FIELDS,
+        "max_results": DEFAULT_GUARDICORE_LABELS_PAGE_SIZE,
+        # Keep legacy alias for compatibility with older Guardicore releases.
         "limit": DEFAULT_GUARDICORE_LABELS_PAGE_SIZE,
     }
     existing_pairs: set[tuple[str, str]] = set()
@@ -379,6 +425,8 @@ def fetch_existing_guardicore_labels(config: GuardicoreConfig) -> set[tuple[str,
         session.headers.update(headers)
         while True:
             params = dict(base_params)
+            params["start_at"] = offset
+            # Keep legacy alias for compatibility with older Guardicore releases.
             params["offset"] = offset
             try:
                 response = session.get(endpoint, params=params, timeout=config.timeout_seconds)
@@ -454,7 +502,9 @@ def get_fwo_jwt(args: argparse.Namespace, fwo_verify: bool | str) -> str:
     )
 
 
-def fetch_labels_from_fwo(args: argparse.Namespace, jwt: str, fwo_verify: bool | str) -> list[LabelItem]:
+def fetch_labels_from_fwo(
+    args: argparse.Namespace, jwt: str, fwo_verify: bool | str
+) -> tuple[list[LabelItem], Counter[int]]:
     fwo_config = FwoConfig(
         graphql_url=args.fwo_graphql_url,
         jwt=jwt,
@@ -474,7 +524,8 @@ def fetch_labels_from_fwo(args: argparse.Namespace, jwt: str, fwo_verify: bool |
         ),
         GuardicoreProvisioningError,
     )
-    return build_labels_from_response(response, include_empty=args.include_empty)
+    labels = build_labels_from_response(response, include_empty=args.include_empty)
+    return labels, count_group_types_from_response(response)
 
 
 def build_guardicore_config(args: argparse.Namespace, guardicore_verify: bool | str) -> GuardicoreConfig:
@@ -498,8 +549,9 @@ def send_labels_in_batches(
     labels_to_create: list[LabelItem],
     guardicore_config: GuardicoreConfig,
     logger: logging.Logger,
-) -> int:
+) -> tuple[int, Counter[str]]:
     total_sent = 0
+    sent_by_key: Counter[str] = Counter()
     for batch in chunked(labels_to_create, args.batch_size):
         payload = to_guardicore_payload(batch)
         if args.dry_run:
@@ -507,7 +559,8 @@ def send_labels_in_batches(
         else:
             post_guardicore_labels(guardicore_config, payload)
         total_sent += len(batch)
-    return total_sent
+        sent_by_key.update(label.key for label in batch)
+    return total_sent, sent_by_key
 
 
 def main() -> int:
@@ -525,7 +578,22 @@ def main() -> int:
     try:
         fwo_verify, guardicore_verify = resolve_ssl_verification_settings(args)
         jwt = get_fwo_jwt(args, fwo_verify)
-        labels = fetch_labels_from_fwo(args, jwt, fwo_verify)
+        labels, fwo_group_type_counts = fetch_labels_from_fwo(args, jwt, fwo_verify)
+        built_by_key = count_labels_by_key(labels)
+        logger.info(
+            "FWO nwgroups summary: total=%s, type20=%s, type21=%s, type23=%s.",
+            sum(fwo_group_type_counts.values()),
+            fwo_group_type_counts.get(DEFAULT_GROUP_TYPE_APPROLE, 0),
+            fwo_group_type_counts.get(DEFAULT_GROUP_TYPE_APPZONE, 0),
+            fwo_group_type_counts.get(DEFAULT_GROUP_TYPE_AREA, 0),
+        )
+        logger.info(
+            "Built labels summary: total=%s, AppRole=%s, AppZone=%s, NetworkArea=%s.",
+            len(labels),
+            built_by_key.get(DEFAULT_GUARDICORE_KEY_APPROLE, 0),
+            built_by_key.get(DEFAULT_GUARDICORE_KEY_APPZONE, 0),
+            built_by_key.get(DEFAULT_GUARDICORE_KEY_NETWORKAREA, 0),
+        )
 
         if not labels:
             logger.info("No labels to send.")
@@ -533,18 +601,42 @@ def main() -> int:
 
         guardicore_config = build_guardicore_config(args, guardicore_verify)
         existing_label_pairs = fetch_existing_guardicore_labels(guardicore_config)
+        existing_by_key = count_existing_pairs_by_key(existing_label_pairs)
+        logger.info(
+            "Existing Guardicore labels summary: total_pairs=%s, AppRole=%s, AppZone=%s, NetworkArea=%s.",
+            len(existing_label_pairs),
+            existing_by_key.get(DEFAULT_GUARDICORE_KEY_APPROLE, 0),
+            existing_by_key.get(DEFAULT_GUARDICORE_KEY_APPZONE, 0),
+            existing_by_key.get(DEFAULT_GUARDICORE_KEY_NETWORKAREA, 0),
+        )
         labels_to_create = filter_missing_labels(labels, existing_label_pairs)
+        to_create_by_key = count_labels_by_key(labels_to_create)
         skipped_existing = len(labels) - len(labels_to_create)
+        skipped_existing_approle = built_by_key.get(DEFAULT_GUARDICORE_KEY_APPROLE, 0) - to_create_by_key.get(
+            DEFAULT_GUARDICORE_KEY_APPROLE, 0
+        )
+        logger.info(
+            "To-create labels summary: total=%s, AppRole=%s, AppZone=%s, NetworkArea=%s, skipped_existing=%s, skipped_existing_approle=%s.",
+            len(labels_to_create),
+            to_create_by_key.get(DEFAULT_GUARDICORE_KEY_APPROLE, 0),
+            to_create_by_key.get(DEFAULT_GUARDICORE_KEY_APPZONE, 0),
+            to_create_by_key.get(DEFAULT_GUARDICORE_KEY_NETWORKAREA, 0),
+            skipped_existing,
+            skipped_existing_approle,
+        )
         if not labels_to_create:
             logger.info("All %s labels already exist. Nothing to create.", len(labels))
             return 0
 
-        total_sent = send_labels_in_batches(args, labels_to_create, guardicore_config, logger)
+        total_sent, sent_by_key = send_labels_in_batches(args, labels_to_create, guardicore_config, logger)
 
         logger.info(
-            "Processed %s label(s): created=%s, skipped_existing=%s.",
+            "Processed %s label(s): created=%s, created_approle=%s, created_appzone=%s, created_networkarea=%s, skipped_existing=%s.",
             len(labels),
             total_sent,
+            sent_by_key.get(DEFAULT_GUARDICORE_KEY_APPROLE, 0),
+            sent_by_key.get(DEFAULT_GUARDICORE_KEY_APPZONE, 0),
+            sent_by_key.get(DEFAULT_GUARDICORE_KEY_NETWORKAREA, 0),
             skipped_existing,
         )
         return 0

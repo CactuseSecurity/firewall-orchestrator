@@ -17,6 +17,24 @@ query RuleDetailById(
                 obj_name
                 obj_ip
                 obj_ip_end
+                objgrp_flats(
+                    where: {
+                        active: { _eq: true }
+                        removed: { _is_null: true }
+                    }
+                ) {
+                    id_flat: objgrp_flat_id
+                    byFlatId: objectByObjgrpFlatMemberId {
+                        obj_id
+                        obj_name
+                        obj_ip
+                        obj_ip_end
+                        obj_member_refs
+                        type: stm_obj_typ {
+                            name: obj_typ_name
+                        }
+                    }
+                }
             }
         }
         rule_tos(order_by: { object: { obj_name: asc } }) {
@@ -24,6 +42,24 @@ query RuleDetailById(
                 obj_name
                 obj_ip
                 obj_ip_end
+                objgrp_flats(
+                    where: {
+                        active: { _eq: true }
+                        removed: { _is_null: true }
+                    }
+                ) {
+                    id_flat: objgrp_flat_id
+                    byFlatId: objectByObjgrpFlatMemberId {
+                        obj_id
+                        obj_name
+                        obj_ip
+                        obj_ip_end
+                        obj_member_refs
+                        type: stm_obj_typ {
+                            name: obj_typ_name
+                        }
+                    }
+                }
             }
         }
         rule_services(order_by: { service: { svc_name: asc } }) {
@@ -41,10 +77,14 @@ query RuleDetailById(
         rule_last_seen
         rule_action
         createdImport: import_control {
-            start_time 
+            start_time
         }
         rule_metadatum {
             rule_last_hit
+        }
+        rule_owners
+        {
+            owner_id
         }
     }
 }

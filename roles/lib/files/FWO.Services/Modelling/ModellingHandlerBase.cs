@@ -241,8 +241,7 @@ namespace FWO.Services.Modelling
                         conn.SrcFromInterface = interf[0].SourceFilled();
                         conn.DstFromInterface = interf[0].DestinationFilled();
                         conn.InterfaceIsDecommissioned = interf[0].GetBoolProperty(ConState.Decommissioned.ToString());
-                        conn.InterfaceNoPermission = !interf[0].PermittedOwnerWrappers.Any(w => w.Owner != null && w.Owner.Id == conn.AppId);
-                        if (interf[0].IsRequested)
+                        conn.InterfaceNoPermission = EvaluateInterfaceNoPermission(interf[0], conn.AppId ?? Application.Id);
                         {
                             conn.InterfaceIsRequested = true;
                             conn.InterfaceIsRejected = interf[0].GetBoolProperty(ConState.Rejected.ToString());
@@ -283,6 +282,16 @@ namespace FWO.Services.Modelling
             conn.ServiceGroups = interf.ServiceGroups;
             conn.ExtraConfigsFromInterface = interf.ExtraConfigs;
             return interf.Name ?? "";
+        }
+
+        protected static bool EvaluateInterfaceNoPermission(ModellingConnection interf, int ownerId)
+        {
+            return interf.InterfacePermission switch
+            {
+                nameof(InterfacePermissions.Private) => interf.AppId != ownerId,
+                nameof(InterfacePermissions.Public) => false,
+                _ => !interf.PermittedOwnerWrappers.Any(w => w.Owner != null && w.Owner.Id == ownerId),
+            };
         }
 
         private static void SetRelevantProps(ModellingConnection conn, ModellingConnection interf)

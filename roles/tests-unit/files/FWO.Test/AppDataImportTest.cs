@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections;
+using System.Linq;
 using System.Reflection;
 using FWO.Basics;
+using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Server;
@@ -79,7 +82,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildOwnerResponsibles_UsesConfiguredTypeNames()
+        public void BuildOwnerResponsibles_UsesSortOrderKeyPositions()
         {
             AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
@@ -92,8 +95,8 @@ namespace FWO.Test
                 ExtAppId = "APP-1",
                 Responsibles = new Dictionary<string, List<string>>
                 {
-                    ["Main"] = ["cn=user1,dc=example,dc=com"],
-                    ["Supporting"] = ["cn=group1,dc=example,dc=com"]
+                    ["1"] = ["cn=user1,dc=example,dc=com"],
+                    ["2"] = ["cn=group1,dc=example,dc=com"]
                 }
             };
 
@@ -105,7 +108,133 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildOwnerResponsibles_SkipsUnknownTypesAndContinues()
+        public void BuildOwnerResponsibles_MapsNumericKeysBySortOrderPosition()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Main"] = 1,
+                ["Supporting"] = 2,
+                ["Escalation"] = 3
+            });
+            SetResponsibleTypes(import,
+            [
+                new OwnerResponsibleType { Id = 2, Name = "Supporting", SortOrder = 1 },
+                new OwnerResponsibleType { Id = 1, Name = "Main", SortOrder = 2 },
+                new OwnerResponsibleType { Id = 3, Name = "Escalation", SortOrder = 3 }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-A1",
+                ExtAppId = "APP-1A",
+                Responsibles = new Dictionary<string, List<string>>
+                {
+                    ["1"] = ["cn=first,dc=example,dc=com"],
+                    ["2"] = ["cn=second,dc=example,dc=com"]
+                }
+            };
+
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+
+            Assert.That(result, Has.Count.EqualTo(2));
+            Assert.That(result.Exists(r => r.Dn == "cn=first,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
+            Assert.That(result.Exists(r => r.Dn == "cn=second,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
+        }
+
+        [Test]
+        public void BuildOwnerResponsibles_MapsNonSequentialNumericKeysByOrder()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Main"] = 1,
+                ["Supporting"] = 2
+            });
+            SetResponsibleTypes(import,
+            [
+                new OwnerResponsibleType { Id = 2, Name = "Supporting", SortOrder = 1 },
+                new OwnerResponsibleType { Id = 1, Name = "Main", SortOrder = 2 }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-A2",
+                ExtAppId = "APP-1B",
+                Responsibles = new Dictionary<string, List<string>>
+                {
+                    ["10"] = ["cn=first,dc=example,dc=com"],
+                    ["20"] = ["cn=second,dc=example,dc=com"]
+                }
+            };
+
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+
+            Assert.That(result, Has.Count.EqualTo(2));
+            Assert.That(result.Exists(r => r.Dn == "cn=first,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
+            Assert.That(result.Exists(r => r.Dn == "cn=second,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
+        }
+
+        [Test]
+        public void BuildOwnerResponsibles_MapsOnlyActiveTypesByOrder()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Main"] = 1,
+                ["Supporting"] = 2
+            });
+            SetResponsibleTypes(import,
+            [
+                new OwnerResponsibleType { Id = 1, Name = "Main", SortOrder = 1, Active = false },
+                new OwnerResponsibleType { Id = 2, Name = "Supporting", SortOrder = 2, Active = true }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-A2-ActiveOnly",
+                ExtAppId = "APP-1B-2",
+                Responsibles = new Dictionary<string, List<string>>
+                {
+                    ["1"] = ["cn=first,dc=example,dc=com"],
+                    ["2"] = ["cn=second,dc=example,dc=com"]
+                }
+            };
+
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+
+            Assert.That(result, Has.Count.EqualTo(1));
+            Assert.That(result.Exists(r => r.Dn == "cn=first,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
+        }
+
+        [Test]
+        public void BuildOwnerResponsibles_OmitsWholeOwnerWhenAnyKeyIsNonNumeric()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Main"] = 1,
+                ["Supporting"] = 2,
+                ["Escalation"] = 3
+            });
+            SetResponsibleTypes(import,
+            [
+                new OwnerResponsibleType { Id = 2, Name = "Supporting", SortOrder = 1 },
+                new OwnerResponsibleType { Id = 1, Name = "Main", SortOrder = 2 },
+                new OwnerResponsibleType { Id = 3, Name = "Escalation", SortOrder = 3 }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-A3",
+                ExtAppId = "APP-1C",
+                Responsibles = new Dictionary<string, List<string>>
+                {
+                    ["10"] = ["cn=first,dc=example,dc=com"],
+                    ["x"] = ["cn=invalid,dc=example,dc=com"],
+                    ["20"] = ["cn=second,dc=example,dc=com"]
+                }
+            };
+
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public void BuildOwnerResponsibles_SkipsUnknownKeysAndContinues()
         {
             AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
@@ -117,8 +246,8 @@ namespace FWO.Test
                 ExtAppId = "APP-2",
                 Responsibles = new Dictionary<string, List<string>>
                 {
-                    ["Unknown"] = ["cn=ignored,dc=example,dc=com"],
-                    ["Known"] = ["cn=kept,dc=example,dc=com"]
+                    ["99"] = ["cn=ignored,dc=example,dc=com"],
+                    ["1"] = ["cn=kept,dc=example,dc=com"]
                 }
             };
 
@@ -142,7 +271,7 @@ namespace FWO.Test
                 ExtAppId = "APP-3",
                 Responsibles = new Dictionary<string, List<string>>
                 {
-                    ["Main"] =
+                    ["1"] =
                     [
                         " cn=user1,dc=example,dc=com ",
                         "cn=user1,dc=example,dc=com",
@@ -161,7 +290,12 @@ namespace FWO.Test
         [Test]
         public void BuildOwnerResponsibles_FallsBackToLegacyWhenResponsiblesMissing()
         {
-            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Main"] = 1,
+                ["Supporting"] = 2,
+                ["Escalation"] = 3
+            });
             ModellingImportAppData incomingApp = new()
             {
                 Name = "App-D",
@@ -176,10 +310,8 @@ namespace FWO.Test
                 "cn=support,dc=example,dc=com",
                 ["cn=optional,dc=example,dc=com"]);
 
-            Assert.That(result, Has.Count.EqualTo(3));
+            Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Exists(r => r.Dn == "cn=main,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
-            Assert.That(result.Exists(r => r.Dn == "cn=support,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
-            Assert.That(result.Exists(r => r.Dn == "cn=optional,dc=example,dc=com" && r.ResponsibleTypeId == 3), Is.True);
         }
 
         [Test]
@@ -196,19 +328,24 @@ namespace FWO.Test
                 MainUser = "cn=main,dc=example,dc=com",
                 Responsibles = new Dictionary<string, List<string>>
                 {
-                    ["Main"] = []
+                    ["1"] = []
                 }
             };
 
             List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=support,dc=example,dc=com", []);
 
-            Assert.That(result, Is.Empty);
+            Assert.That(result, Has.Count.EqualTo(1));
+            Assert.That(result.Exists(r => r.Dn == "cn=main,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
         }
 
         [Test]
         public void BuildOwnerResponsibles_UsesLegacyWhenResponsiblesDictionaryIsEmpty()
         {
-            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Main"] = 1,
+                ["Supporting"] = 2
+            });
             ModellingImportAppData incomingApp = new()
             {
                 Name = "App-E2",
@@ -219,13 +356,39 @@ namespace FWO.Test
 
             List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=support,dc=example,dc=com", []);
 
-            Assert.That(result, Has.Count.EqualTo(2));
+            Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Exists(r => r.Dn == "cn=main,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
-            Assert.That(result.Exists(r => r.Dn == "cn=support,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
         }
 
         [Test]
-        public void BuildOwnerResponsibles_UsesCaseInsensitiveTypeLookup()
+        public void BuildOwnerResponsibles_LegacySkipsInactiveTypes()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
+            SetResponsibleTypes(import,
+            [
+                new OwnerResponsibleType { Id = 1, Name = "Main", SortOrder = 1, Active = false },
+                new OwnerResponsibleType { Id = 2, Name = "Supporting", SortOrder = 2, Active = true },
+                new OwnerResponsibleType { Id = 3, Name = "Escalation", SortOrder = 3, Active = false }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-E3",
+                ExtAppId = "APP-5-3",
+                MainUser = "cn=main,dc=example,dc=com",
+                Responsibles = new Dictionary<string, List<string>>()
+            };
+
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(
+                import,
+                incomingApp,
+                "cn=support,dc=example,dc=com",
+                ["cn=optional,dc=example,dc=com"]);
+
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public void BuildOwnerResponsibles_UsesTrimmedNumericKey()
         {
             AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
@@ -237,7 +400,7 @@ namespace FWO.Test
                 ExtAppId = "APP-6",
                 Responsibles = new Dictionary<string, List<string>>
                 {
-                    ["mAiN"] = ["cn=user1,dc=example,dc=com"]
+                    [" 1 "] = ["cn=user1,dc=example,dc=com"]
                 }
             };
 
@@ -261,8 +424,8 @@ namespace FWO.Test
                 ExtAppId = "APP-7",
                 Responsibles = new Dictionary<string, List<string>>
                 {
-                    ["Main"] = ["cn=user1,dc=example,dc=com"],
-                    ["Supporting"] = ["cn=user1,dc=example,dc=com"]
+                    ["1"] = ["cn=user1,dc=example,dc=com"],
+                    ["2"] = ["cn=user1,dc=example,dc=com"]
                 }
             };
 
@@ -397,6 +560,242 @@ namespace FWO.Test
             Assert.That(parsed, Is.Empty);
         }
 
+        [Test]
+        public async Task ImportApps_ReturnsEarly_WhenOwnerGroupPatternMissingPlaceholders()
+        {
+            AppDataImportFlowTestApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerGroupPattern(import, "grp-static-name");
+            SetImportedApps(import,
+            [
+                new ModellingImportAppData { Name = "A", ExtAppId = "APP-1", ImportSource = "SRC-A" }
+            ]);
+
+            OwnerChangeImportTracker tracker = new(apiConn);
+            await InvokeImportApps(import, "dummy.json", tracker);
+
+            Assert.That(apiConn.GetOwnersCalls, Is.EqualTo(0));
+            Assert.That(apiConn.DeactivateOwnerCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void IsOwnerGroupConfigured_ReturnsTrue_WhenAppIdPlaceholderExists()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
+            SetOwnerGroupPattern(import, $"grp-{Placeholder.AppPrefix}-{Placeholder.AppId}");
+
+            bool result = InvokeIsOwnerGroupConfigured(import);
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public void IsOwnerGroupConfigured_ReturnsFalse_WhenNoKnownPlaceholderExists()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
+            SetOwnerGroupPattern(import, "grp-static-name");
+
+            bool result = InvokeIsOwnerGroupConfigured(import);
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task DeactivateMissingApps_DeactivatesOnlyActiveAppsFromSameSourceThatAreMissingInImport()
+        {
+            AppDataImportFlowTestApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            OwnerChangeImportTracker tracker = new(apiConn);
+            List<FwoOwner> existingApps =
+            [
+                new() { Id = 1, ExtAppId = "APP-1", ImportSource = "SRC-A", Active = true },
+                new() { Id = 2, ExtAppId = "APP-2", ImportSource = "SRC-A", Active = true },
+                new() { Id = 3, ExtAppId = "APP-3", ImportSource = "SRC-A", Active = false },
+                new() { Id = 4, ExtAppId = "APP-4", ImportSource = "SRC-B", Active = true }
+            ];
+            List<ModellingImportAppData> importedApps =
+            [
+                new() { Name = "Imported2", ExtAppId = "APP-2", ImportSource = "SRC-A" }
+            ];
+
+            (int deleted, int failed) = await InvokeDeactivateMissingApps(import, "SRC-A", existingApps, importedApps, tracker);
+
+            Assert.That(deleted, Is.EqualTo(1));
+            Assert.That(failed, Is.EqualTo(0));
+            Assert.That(apiConn.DeactivateOwnerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task DeactivateMissingApps_CountsFailures_WhenDeactivateThrows()
+        {
+            AppDataImportFlowTestApiConn apiConn = new();
+            apiConn.FailDeactivateOwnerIds.Add(2);
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            OwnerChangeImportTracker tracker = new(apiConn);
+            List<FwoOwner> existingApps =
+            [
+                new() { Id = 1, ExtAppId = "APP-1", ImportSource = "SRC-A", Active = true },
+                new() { Id = 2, ExtAppId = "APP-2", ImportSource = "SRC-A", Active = true }
+            ];
+
+            (int deleted, int failed) = await InvokeDeactivateMissingApps(import, "SRC-A", existingApps, [], tracker);
+
+            Assert.That(deleted, Is.EqualTo(1));
+            Assert.That(failed, Is.EqualTo(1));
+            Assert.That(apiConn.DeactivateOwnerCalls, Is.EqualTo(2));
+            Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void CheckResponsibles_ReturnsInsertAndDelete_WhenSyncEnabled()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            SetOwnerDataImportSyncUsers(import, true);
+            List<OwnerResponsible> existingResponsibles =
+            [
+                new() { Dn = "cn=keep,dc=example,dc=com", ResponsibleTypeId = 1 },
+                new() { Dn = "cn=delete,dc=example,dc=com", ResponsibleTypeId = 2 }
+            ];
+            List<OwnerResponsible> incomingResponsibles =
+            [
+                new() { Dn = "cn=keep,dc=example,dc=com", ResponsibleTypeId = 1 },
+                new() { Dn = "cn=insert,dc=example,dc=com", ResponsibleTypeId = 2 }
+            ];
+
+            (List<OwnerResponsible> toInsert, List<OwnerResponsible> toDelete) =
+                InvokeCheckResponsibles(import, existingResponsibles, incomingResponsibles);
+
+            Assert.That(toInsert, Has.Count.EqualTo(1));
+            Assert.That(toInsert[0].Dn, Is.EqualTo("cn=insert,dc=example,dc=com"));
+            Assert.That(toInsert[0].ResponsibleTypeId, Is.EqualTo(2));
+            Assert.That(toDelete, Has.Count.EqualTo(1));
+            Assert.That(toDelete[0].Dn, Is.EqualTo("cn=delete,dc=example,dc=com"));
+            Assert.That(toDelete[0].ResponsibleTypeId, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void CheckResponsibles_ReturnsInsertOnly_WhenSyncDisabled()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            SetOwnerDataImportSyncUsers(import, false);
+            List<OwnerResponsible> existingResponsibles =
+            [
+                new() { Dn = "cn=delete,dc=example,dc=com", ResponsibleTypeId = 2 }
+            ];
+            List<OwnerResponsible> incomingResponsibles =
+            [
+                new() { Dn = "cn=insert,dc=example,dc=com", ResponsibleTypeId = 2 }
+            ];
+
+            (List<OwnerResponsible> toInsert, List<OwnerResponsible> toDelete) =
+                InvokeCheckResponsibles(import, existingResponsibles, incomingResponsibles);
+
+            Assert.That(toInsert, Has.Count.EqualTo(1));
+            Assert.That(toInsert[0].Dn, Is.EqualTo("cn=insert,dc=example,dc=com"));
+            Assert.That(toDelete, Is.Empty);
+        }
+
+        [Test]
+        public async Task UpdateOwnerResponsibles_CallsInsertAndDelete_WhenSyncEnabled()
+        {
+            AppDataImportResponsiblesApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerDataImportSyncUsers(import, true);
+            List<OwnerResponsible> existingResponsibles =
+            [
+                new() { Dn = "cn=keep,dc=example,dc=com", ResponsibleTypeId = 1 },
+                new() { Dn = "cn=delete,dc=example,dc=com", ResponsibleTypeId = 2 }
+            ];
+            List<OwnerResponsible> incomingResponsibles =
+            [
+                new() { Dn = "cn=keep,dc=example,dc=com", ResponsibleTypeId = 1 },
+                new() { Dn = "cn=insert,dc=example,dc=com", ResponsibleTypeId = 2 }
+            ];
+
+            await InvokeUpdateOwnerResponsibles(import, 123, incomingResponsibles, existingResponsibles);
+
+            Assert.That(apiConn.DeleteSpecificOwnerResponsiblesCalls, Is.EqualTo(1));
+            Assert.That(apiConn.NewOwnerResponsiblesCalls, Is.EqualTo(1));
+            Assert.That(apiConn.Deleted, Has.Count.EqualTo(1));
+            Assert.That(apiConn.Deleted[0], Is.EqualTo((123, "cn=delete,dc=example,dc=com", 2)));
+            Assert.That(apiConn.Inserted, Has.Count.EqualTo(1));
+            Assert.That(apiConn.Inserted[0], Is.EqualTo((123, "cn=insert,dc=example,dc=com", 2)));
+        }
+
+        [Test]
+        public async Task UpdateOwnerResponsibles_DoesNothing_WhenNoChanges()
+        {
+            AppDataImportResponsiblesApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerDataImportSyncUsers(import, true);
+            List<OwnerResponsible> existingResponsibles =
+            [
+                new() { Dn = "cn=keep,dc=example,dc=com", ResponsibleTypeId = 1 }
+            ];
+            List<OwnerResponsible> incomingResponsibles =
+            [
+                new() { Dn = "cn=keep,dc=example,dc=com", ResponsibleTypeId = 1 }
+            ];
+
+            await InvokeUpdateOwnerResponsibles(import, 123, incomingResponsibles, existingResponsibles);
+
+            Assert.That(apiConn.DeleteSpecificOwnerResponsiblesCalls, Is.EqualTo(0));
+            Assert.That(apiConn.NewOwnerResponsiblesCalls, Is.EqualTo(0));
+            Assert.That(apiConn.Deleted, Is.Empty);
+            Assert.That(apiConn.Inserted, Is.Empty);
+        }
+
+        [Test]
+        public async Task UpdateOwnerResponsibles_InsertsOnly_WhenSyncDisabled()
+        {
+            AppDataImportResponsiblesApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerDataImportSyncUsers(import, false);
+            List<OwnerResponsible> existingResponsibles =
+            [
+                new() { Dn = "cn=delete,dc=example,dc=com", ResponsibleTypeId = 2 }
+            ];
+            List<OwnerResponsible> incomingResponsibles =
+            [
+                new() { Dn = "cn=insert,dc=example,dc=com", ResponsibleTypeId = 2 }
+            ];
+
+            await InvokeUpdateOwnerResponsibles(import, 123, incomingResponsibles, existingResponsibles);
+
+            Assert.That(apiConn.DeleteSpecificOwnerResponsiblesCalls, Is.EqualTo(0));
+            Assert.That(apiConn.NewOwnerResponsiblesCalls, Is.EqualTo(1));
+            Assert.That(apiConn.Deleted, Is.Empty);
+            Assert.That(apiConn.Inserted, Has.Count.EqualTo(1));
+            Assert.That(apiConn.Inserted[0], Is.EqualTo((123, "cn=insert,dc=example,dc=com", 2)));
+        }
+
+        [Test]
+        public async Task SaveApp_DoesNotImport_WhenOwnerLifecycleStateIsUnknown()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Active"] = 10
+            });
+            SetExistingApps(import, []);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-L4",
+                ExtAppId = "APP-L4",
+                ImportSource = "SRC-L4",
+                OwnerLifecycleState = "UnknownLifecycle"
+            };
+            OwnerChangeImportTracker tracker = new(apiConn);
+
+            bool imported = await InvokeSaveApp(import, incomingApp, tracker);
+
+            Assert.That(imported, Is.False);
+            Assert.That(apiConn.NewOwnerCalls, Is.EqualTo(0));
+            Assert.That(apiConn.UpdateOwnerCalls, Is.EqualTo(0));
+        }
+
         private static string InvokeResolveOwnerGroupPath(Ldap ldap)
         {
             MethodInfo method = typeof(AppDataImport).GetMethod(
@@ -412,7 +811,21 @@ namespace FWO.Test
             FieldInfo field = typeof(AppDataImport).GetField("ownerResponsibleTypeIdByName", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("ownerResponsibleTypeIdByName field not found.");
             field.SetValue(import, typeMap);
+            SetResponsibleTypes(import, [.. typeMap.Select(entry => new OwnerResponsibleType
+            {
+                Id = entry.Value,
+                Name = entry.Key,
+                SortOrder = entry.Value
+            })]);
             return import;
+        }
+
+        private static void SetResponsibleTypes(AppDataImport import, IEnumerable<OwnerResponsibleType> responsibleTypes)
+        {
+            Dictionary<int, OwnerResponsibleType> byId = responsibleTypes.ToDictionary(type => type.Id, type => type);
+            FieldInfo field = typeof(AppDataImport).GetField("ownerResponsibleTypeById", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("ownerResponsibleTypeById field not found.");
+            field.SetValue(import, byId);
         }
 
         private static void SetOwnerLifeCycleMap(AppDataImport import, Dictionary<string, int> stateMap)
@@ -430,13 +843,21 @@ namespace FWO.Test
             globalConfig.OwnerLdapGroupNames = pattern;
         }
 
+        private static void SetOwnerDataImportSyncUsers(AppDataImport import, bool syncUsers)
+        {
+            FieldInfo field = typeof(DataImportBase).GetField("globalConfig", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("globalConfig field not found.");
+            GlobalConfig globalConfig = (GlobalConfig)field.GetValue(import)!;
+            globalConfig.OwnerDataImportSyncUsers = syncUsers;
+        }
+
         private static List<OwnerResponsible> InvokeBuildOwnerResponsibles(AppDataImport import, ModellingImportAppData incomingApp, string userGroupDn, IEnumerable<string> extraDns)
         {
             MethodInfo method = typeof(AppDataImport).GetMethod(
                 "BuildOwnerResponsibles",
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("BuildOwnerResponsibles helper not found.");
-            return (List<OwnerResponsible>)method.Invoke(import, [incomingApp, userGroupDn, extraDns])!;
+            return (List<OwnerResponsible>)method.Invoke(import, [incomingApp])!;
         }
 
         private static (bool ok, int? id) InvokeTryResolveOwnerLifeCycleStateId(AppDataImport import, ModellingImportAppData incomingApp)
@@ -469,5 +890,276 @@ namespace FWO.Test
             return (Dictionary<int, List<string>>)method.Invoke(null, [rolesJson])!;
         }
 
+        private static bool InvokeIsOwnerGroupConfigured(AppDataImport import)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "IsOwnerGroupConfigured",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("IsOwnerGroupConfigured helper not found.");
+            return (bool)method.Invoke(import, null)!;
+        }
+
+        private static async Task InvokeImportApps(AppDataImport import, string importfileName, OwnerChangeImportTracker tracker)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "ImportApps",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("ImportApps helper not found.");
+            await (Task)method.Invoke(import, [importfileName, tracker])!;
+        }
+
+        private static async Task<bool> InvokeSaveApp(AppDataImport import, ModellingImportAppData incomingApp, OwnerChangeImportTracker tracker)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "SaveApp",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("SaveApp helper not found.");
+            return await (Task<bool>)method.Invoke(import, [incomingApp, tracker])!;
+        }
+
+        private static async Task<(int deleted, int failed)> InvokeDeactivateMissingApps(
+            AppDataImport import,
+            string importSource,
+            IEnumerable<FwoOwner> existingApps,
+            List<ModellingImportAppData> importedApps,
+            OwnerChangeImportTracker tracker)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "DeactivateMissingApps",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("DeactivateMissingApps helper not found.");
+            return ((int deleted, int failed))await (Task<(int deleted, int failed)>)method.Invoke(import, [importSource, existingApps, importedApps, tracker])!;
+        }
+
+        private static async Task InvokeUpdateOwnerResponsibles(
+            AppDataImport import,
+            int ownerId,
+            List<OwnerResponsible> responsibles,
+            List<OwnerResponsible> existingResponsibles)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "UpdateOwnerResponsibles",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("UpdateOwnerResponsibles helper not found.");
+            await (Task)method.Invoke(import, [ownerId, responsibles, existingResponsibles])!;
+        }
+
+        private static (List<OwnerResponsible> toInsert, List<OwnerResponsible> toDelete) InvokeCheckResponsibles(
+            AppDataImport import,
+            List<OwnerResponsible> existingResponsibles,
+            List<OwnerResponsible> incomingResponsibles)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "CheckResponsibles",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("CheckResponsibles helper not found.");
+            object result = method.Invoke(import, [existingResponsibles, incomingResponsibles])!;
+
+            Type resultType = result.GetType();
+            List<OwnerResponsible> toInsert = (List<OwnerResponsible>)(resultType.GetField("Item1")?.GetValue(result)
+                ?? throw new InvalidOperationException("CheckResponsibles result Item1 not found."));
+            List<OwnerResponsible> toDelete = (List<OwnerResponsible>)(resultType.GetField("Item2")?.GetValue(result)
+                ?? throw new InvalidOperationException("CheckResponsibles result Item2 not found."));
+
+            return (toInsert, toDelete);
+        }
+
+        private static void SetImportedApps(AppDataImport import, List<ModellingImportAppData> importedApps)
+        {
+            FieldInfo field = typeof(AppDataImport).GetField("importedApps", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("importedApps field not found.");
+            field.SetValue(import, importedApps);
+        }
+
+        private static void SetExistingApps(AppDataImport import, List<FwoOwner> existingApps)
+        {
+            FieldInfo field = typeof(AppDataImport).GetField("existingApps", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("existingApps field not found.");
+            field.SetValue(import, existingApps);
+        }
+
+        private sealed class AppDataImportFlowTestApiConn : SimulatedApiConnection
+        {
+            public int GetOwnersCalls { get; private set; }
+            public int DeactivateOwnerCalls { get; private set; }
+            public int UpdateChangelogOwnerCalls { get; private set; }
+            public HashSet<int> FailDeactivateOwnerIds { get; } = [];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            {
+                if (query == OwnerQueries.getOwners)
+                {
+                    ++GetOwnersCalls;
+                    return Task.FromResult((QueryResponseType)(object)new List<FwoOwner>());
+                }
+
+                if (query == OwnerQueries.deactivateOwner)
+                {
+                    ++DeactivateOwnerCalls;
+                    int ownerId = GetAnonymousInt(variables, "id");
+                    if (FailDeactivateOwnerIds.Contains(ownerId))
+                    {
+                        throw new InvalidOperationException($"Deactivate failed for owner {ownerId}.");
+                    }
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewId = ownerId }]
+                    });
+                }
+
+                if (query == ImportQueries.getLastImportControl)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<ImportControl>());
+                }
+
+                if (query == ImportQueries.addImportForOwner)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ImportControl());
+                }
+
+                if (query == OwnerQueries.updateChangelogOwner)
+                {
+                    ++UpdateChangelogOwnerCalls;
+                    return Task.FromResult((QueryResponseType)(object)new object());
+                }
+
+                if (query == MonitorQueries.addDataImportLogEntry)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewId = 1 }]
+                    });
+                }
+
+                throw new NotImplementedException($"Query not implemented in test api: {query}");
+            }
+
+            private static int GetAnonymousInt(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return 0;
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null)
+                {
+                    return 0;
+                }
+                object? value = property.GetValue(variables);
+                return value is int intValue ? intValue : 0;
+            }
+        }
+
+        private sealed class AppDataImportResponsiblesApiConn : SimulatedApiConnection
+        {
+            public int NewOwnerResponsiblesCalls { get; private set; }
+            public int DeleteSpecificOwnerResponsiblesCalls { get; private set; }
+            public List<(int ownerId, string dn, int responsibleType)> Inserted { get; } = [];
+            public List<(int ownerId, string dn, int responsibleType)> Deleted { get; } = [];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            {
+                if (query == OwnerQueries.newOwnerResponsibles)
+                {
+                    ++NewOwnerResponsiblesCalls;
+                    if (variables != null)
+                    {
+                        object? objects = GetAnonymousValue(variables, "responsibles");
+                        if (objects is IEnumerable enumerable)
+                        {
+                            foreach (object entry in enumerable)
+                            {
+                                Inserted.Add((
+                                    GetAnonymousInt(entry, "owner_id"),
+                                    GetAnonymousString(entry, "dn"),
+                                    GetAnonymousInt(entry, "responsible_type")));
+                            }
+                        }
+                    }
+                    return Task.FromResult((QueryResponseType)(object)new object());
+                }
+
+                if (query == OwnerQueries.deleteSpecificOwnerResponsibles)
+                {
+                    ++DeleteSpecificOwnerResponsiblesCalls;
+                    int ownerId = GetAnonymousInt(variables, "ownerId");
+                    object? objects = GetAnonymousValue(variables, "objects");
+                    if (objects is IEnumerable enumerable)
+                    {
+                        foreach (object entry in enumerable)
+                        {
+                            object? dnObject = GetAnonymousValue(entry, "dn");
+                            object? typeObject = GetAnonymousValue(entry, "responsible_type");
+                            Deleted.Add((
+                                ownerId,
+                                GetAnonymousString(dnObject, "_eq"),
+                                GetAnonymousInt(typeObject, "_eq")));
+                        }
+                    }
+                    return Task.FromResult((QueryResponseType)(object)new object());
+                }
+
+                throw new NotImplementedException($"Query not implemented in responsibles test api: {query}");
+            }
+
+            private static int GetAnonymousInt(object? variables, string propertyName)
+            {
+                object? value = GetAnonymousValue(variables, propertyName);
+                return value is int intValue ? intValue : 0;
+            }
+
+            private static string GetAnonymousString(object? variables, string propertyName)
+            {
+                object? value = GetAnonymousValue(variables, propertyName);
+                return value as string ?? "";
+            }
+
+            private static object? GetAnonymousValue(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return null;
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                return property?.GetValue(variables);
+            }
+        }
+
+        private sealed class AppDataImportSaveAppApiConn : SimulatedApiConnection
+        {
+            public int NewOwnerCalls { get; private set; }
+            public int UpdateOwnerCalls { get; private set; }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            {
+                if (query == OwnerQueries.newOwner)
+                {
+                    ++NewOwnerCalls;
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewId = 1 }]
+                    });
+                }
+
+                if (query == OwnerQueries.updateOwner)
+                {
+                    ++UpdateOwnerCalls;
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewId = 1 }]
+                    });
+                }
+
+                if (query == MonitorQueries.addDataImportLogEntry)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewId = 1 }]
+                    });
+                }
+
+                throw new NotImplementedException($"Query not implemented in save-app test api: {query}");
+            }
+        }
     }
 }

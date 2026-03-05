@@ -242,6 +242,7 @@ namespace FWO.Services.Modelling
                         conn.DstFromInterface = interf[0].DestinationFilled();
                         conn.InterfaceIsDecommissioned = interf[0].GetBoolProperty(ConState.Decommissioned.ToString());
                         conn.InterfaceNoPermission = EvaluateInterfaceNoPermission(interf[0], conn.AppId ?? Application.Id);
+                        if (interf[0].IsRequested)
                         {
                             conn.InterfaceIsRequested = true;
                             conn.InterfaceIsRejected = interf[0].GetBoolProperty(ConState.Rejected.ToString());

@@ -508,7 +508,7 @@ namespace FWO.Basics
             return FromBigInteger(bi, family);
         }
 
-        private static BigInteger ToBigInteger(IPAddress ip)
+        public static BigInteger ToBigInteger(IPAddress ip)
         {
             var bytes = ip.GetAddressBytes(); // big-endian
             var le = bytes.Reverse().Concat(new byte[] { 0 }).ToArray(); // little-endian + unsignd pad

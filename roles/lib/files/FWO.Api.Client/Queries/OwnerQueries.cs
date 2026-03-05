@@ -8,7 +8,8 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getOwnerById;
         public static readonly string getOwners;
-        public static readonly string getOwnersForRuleOwner;
+        public static readonly string getOwnersForRuleOwnerCustomField;
+        public static readonly string getOwnersForRuleOwnerIpBased;
         public static readonly string getOwnersWithConn;
         public static readonly string getEditableOwners;
         public static readonly string getEditableOwnersWithConn;
@@ -48,7 +49,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string newOwnerResponsibleType;
         public static readonly string updateOwnerResponsibleType;
         public static readonly string updateChangelogOwner;
-        public static readonly string getChangedOwnersForRuleOwnerMapping;
+        public static readonly string getChangedOwnersForRuleOwnerMappingCustomField;
+        public static readonly string getChangedOwnersForRuleOwnerMappingIpBased;
 
 
         static OwnerQueries()
@@ -59,7 +61,8 @@ namespace FWO.Api.Client.Queries
 
                 getOwnerById = GetQueryText("owner/getOwnerById.graphql");
                 getOwners = ownerDetailsFragment + GetQueryText("owner/getOwners.graphql");
-                getOwnersForRuleOwner = GetQueryText("owner/getOwnersForRuleOwner.graphql");
+                getOwnersForRuleOwnerCustomField = GetQueryText("owner/getOwnersForRuleOwnerCustomField.graphql");
+                getOwnersForRuleOwnerIpBased = GetQueryText("owner/getOwnersForRuleOwnerIpBased.graphql");
                 getOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersWithConn.graphql");
                 getEditableOwners = ownerDetailsFragment + GetQueryText("owner/getEditableOwners.graphql");
                 getEditableOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getEditableOwnersWithConn.graphql");
@@ -97,7 +100,8 @@ namespace FWO.Api.Client.Queries
                 newOwnerResponsibleType = GetQueryText("owner/newOwnerResponsibleType.graphql");
                 updateOwnerResponsibleType = GetQueryText("owner/updateOwnerResponsibleType.graphql");
                 updateChangelogOwner = GetQueryText("owner/updateChangelogOwner.graphql");
-                getChangedOwnersForRuleOwnerMapping = GetQueryText("owner/getChangedOwnersForRuleOwnerMapping.graphql");
+                getChangedOwnersForRuleOwnerMappingCustomField = GetQueryText("owner/getChangedOwnersForRuleOwnerMappingCustomField.graphql");
+                getChangedOwnersForRuleOwnerMappingIpBased = GetQueryText("owner/getChangedOwnersForRuleOwnerMappingIpBased.graphql");
                 getRuleOwnerToRemoveByOwner = GetQueryText("owner/getRuleOwnerToRemoveByOwner.graphql");
             }
             catch (Exception exception)

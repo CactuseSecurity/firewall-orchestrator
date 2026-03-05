@@ -128,6 +128,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestCheckExistingAppZone_FoundWithoutVariance()
+        {
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            await varianceAnalysis.AnalyseModelledConnectionsForRequest([]);
+
+            (bool appZoneFound, List<ModellingAppZone?> mgtsWithVariance) = await varianceAnalysis.CheckExistingAppZone();
+
+            ClassicAssert.IsTrue(appZoneFound);
+            ClassicAssert.AreEqual(0, mgtsWithVariance.Count);
+        }
+
+        [Test]
         public async Task TestAnalyseModelledConnectionsForRequest()
         {
             List<ModellingConnection> Connections = [Connection1, Connection6];
@@ -302,6 +314,221 @@ namespace FWO.Test
             ClassicAssert.AreEqual("service", TaskList[3].Elements[0].Field);
             ClassicAssert.AreEqual("create", TaskList[3].Elements[0].RequestAction);
             userConfig.ModRolloutResolveServiceGroups = true;
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_ContainsNetworkAreaElementsInAccessTask()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 72,
+                Name = "Conn72",
+                SourceAreas = [new() { Content = new() { Id = 72, Name = "AreaSrc72", IdString = "NA5072-001" } }],
+                DestinationAreas = [new() { Content = new() { Id = 73, Name = "AreaDst72", IdString = "NA5072-002" } }],
+                Services = [new() { Content = Svc1 }]
+            };
+
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest([connection]);
+            WfReqTask? accessTask = taskList.FirstOrDefault(t => t.GetAddInfoValue(AdditionalInfoKeys.ConnId) == "72");
+
+            ClassicAssert.IsNotNull(accessTask);
+            ClassicAssert.IsNotNull(accessTask!.Elements.FirstOrDefault(e =>
+                e.Field == ElemFieldType.source.ToString() &&
+                e.GroupName == "NA5072-001" &&
+                e.RequestAction == RequestAction.create.ToString()));
+            ClassicAssert.IsNotNull(accessTask.Elements.FirstOrDefault(e =>
+                e.Field == ElemFieldType.destination.ToString() &&
+                e.GroupName == "NA5072-002" &&
+                e.RequestAction == RequestAction.create.ToString()));
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_ContainsAppServerElementsInAccessTask()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 73,
+                Name = "Conn73",
+                SourceAppServers = [new() { Content = new() { Id = 731, Name = "Src73", Ip = "10.73.0.1", IpEnd = "10.73.0.1" } }],
+                DestinationAppServers = [new() { Content = new() { Id = 732, Name = "Dst73", Ip = "10.73.0.2", IpEnd = "10.73.0.2" } }],
+                Services = [new() { Content = Svc1 }]
+            };
+
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest([connection]);
+            WfReqTask? accessTask = taskList.FirstOrDefault(t => t.GetAddInfoValue(AdditionalInfoKeys.ConnId) == "73");
+
+            ClassicAssert.IsNotNull(accessTask);
+            ClassicAssert.IsNotNull(accessTask!.Elements.FirstOrDefault(e =>
+                e.Field == ElemFieldType.source.ToString() &&
+                e.Name == "Src73" &&
+                e.IpString == "10.73.0.1"));
+            ClassicAssert.IsNotNull(accessTask.Elements.FirstOrDefault(e =>
+                e.Field == ElemFieldType.destination.ToString() &&
+                e.Name == "Dst73" &&
+                e.IpString == "10.73.0.2"));
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_DeleteRuleContainsModelledElementsFromDeletedConn()
+        {
+            ModellingConnection dokuConn = new()
+            {
+                Id = 5,
+                Name = "DokuConn5",
+                SourceAreas = [new() { Content = new() { Id = 81, Name = "AreaSrc5", IdString = "NA5005-001" } }],
+                DestinationAreas = [new() { Content = new() { Id = 82, Name = "AreaDst5", IdString = "NA5005-002" } }],
+                SourceAppRoles = [new() { Content = new() { Id = 91, Name = "RoleSrc5", IdString = "AR5005-001", AppServers = [new() { Content = AS1 }] } }],
+                DestinationAppRoles = [new() { Content = new() { Id = 92, Name = "RoleDst5", IdString = "AR5005-002", AppServers = [new() { Content = AS1 }] } }],
+                SourceAppServers = [new() { Content = new() { Id = 93, Name = "Src5", Ip = "10.5.0.1", IpEnd = "10.5.0.1" } }],
+                DestinationAppServers = [new() { Content = new() { Id = 94, Name = "Dst5", Ip = "10.5.0.2", IpEnd = "10.5.0.2" } }],
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs =
+                [
+                    new() { ExtraConfigType = "Doku_Reason", ExtraConfigText = "doc only" },
+                    new() { ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObjX" },
+                    new() { ExtraConfigType = "updatable_nwobj", ExtraConfigText = "ObjY" }
+                ]
+            };
+
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest([Connection1, dokuConn]);
+            WfReqTask? deleteTask = taskList.FirstOrDefault(t => t.Title == "Delete Rule: FWOC5");
+
+            ClassicAssert.IsNotNull(deleteTask);
+            ClassicAssert.IsNotNull(deleteTask!.Elements.FirstOrDefault(e =>
+                e.Field == ElemFieldType.modelled_source.ToString() &&
+                e.GroupName == "NA5005-001" &&
+                e.RequestAction == RequestAction.unchanged.ToString()));
+            ClassicAssert.IsNotNull(deleteTask.Elements.FirstOrDefault(e =>
+                e.Field == ElemFieldType.modelled_destination.ToString() &&
+                e.GroupName == "NA5005-002" &&
+                e.RequestAction == RequestAction.unchanged.ToString()));
+            ClassicAssert.IsNotNull(deleteTask.Elements.FirstOrDefault(e =>
+                e.Field == ElemFieldType.modelled_source.ToString() &&
+                e.Name == "Src5" &&
+                e.IpString == "10.5.0.1" &&
+                e.RequestAction == RequestAction.unchanged.ToString()));
+            ClassicAssert.IsNotNull(deleteTask.Elements.FirstOrDefault(e =>
+                e.Field == ElemFieldType.modelled_destination.ToString() &&
+                e.Name == "Dst5" &&
+                e.IpString == "10.5.0.2" &&
+                e.RequestAction == RequestAction.unchanged.ToString()));
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_RequestOnlyOwnObjectsFiltersForeignGroups()
+        {
+            userConfig.ModRequestOnlyOwnObjects = true;
+            try
+            {
+                ModellingConnection connection = new()
+                {
+                    Id = 67,
+                    AppId = 1,
+                    UsedInterfaceId = 101,
+                    Name = "Conn67",
+                    SourceAppRoles =
+                    [
+                        new() { Content = new() { Name = "OwnAppRole", IdString = "OWN-AR", AppId = 1 } },
+                        new() { Content = new() { Name = "ForeignAppRole", IdString = "AZ4711", AppId = 2 } }
+                    ],
+                    DestinationAppServers = [new() { Content = AS1 }],
+                    Services = [new() { Content = Svc1 }]
+                };
+
+                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest([connection]);
+                WfReqTask? accessTask = taskList.FirstOrDefault(t => t.GetAddInfoValue(AdditionalInfoKeys.ConnId) == "67");
+
+                ClassicAssert.IsNotNull(accessTask);
+                List<string> sourceGroups = accessTask!.Elements
+                    .Where(e => e.Field == ElemFieldType.source.ToString() && !string.IsNullOrEmpty(e.GroupName))
+                    .Select(e => e.GroupName!)
+                    .ToList();
+                CollectionAssert.Contains(sourceGroups, "OWN-AR");
+                CollectionAssert.DoesNotContain(sourceGroups, "AZ4711");
+                ClassicAssert.IsFalse(connection.GetBoolProperty(ConState.ForeignNonProdObjects.ToString()));
+            }
+            finally
+            {
+                userConfig.ModRequestOnlyOwnObjects = false;
+            }
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_RequestOnlyOwnObjectsAnalysesInterfaceAppRoles()
+        {
+            userConfig.ModRequestOnlyOwnObjects = true;
+            userConfig.CreateAppZones = false;
+            try
+            {
+                ModellingAppRole ownAppRole = new() { Id = 2, Name = "AppRole2", IdString = "AR504711-002", AppId = 1, AppServers = [new() { Content = AS3 }] };
+                ModellingConnection interfaceConnection = new()
+                {
+                    Id = 68,
+                    AppId = 1,
+                    IsInterface = true,
+                    IsPublished = true,
+                    Name = "Interface68",
+                    SourceAppRoles = [new() { Content = ownAppRole }]
+                };
+
+                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest([interfaceConnection]);
+
+                WfReqTask? appRoleCreateTask = taskList.FirstOrDefault(t =>
+                    t.TaskType == WfTaskType.group_create.ToString() &&
+                    t.Title == "New AppRole: AR504711-002");
+
+                ClassicAssert.IsNotNull(appRoleCreateTask);
+            }
+            finally
+            {
+                userConfig.CreateAppZones = true;
+                userConfig.ModRequestOnlyOwnObjects = false;
+            }
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_RequestOnlyOwnObjectsAvoidsDuplicateInterfaceAppRoleTasks()
+        {
+            userConfig.ModRequestOnlyOwnObjects = true;
+            userConfig.CreateAppZones = false;
+            try
+            {
+                ModellingAppRole ownAppRole = new() { Id = 2, Name = "AppRole2", IdString = "AR504711-002", AppId = 1, AppServers = [new() { Content = AS3 }] };
+                ModellingConnection interfaceConn1 = new()
+                {
+                    Id = 70,
+                    AppId = 1,
+                    IsInterface = true,
+                    IsPublished = true,
+                    Name = "Interface70",
+                    SourceAppRoles = [new() { Content = ownAppRole }]
+                };
+
+                ModellingConnection interfaceConn2 = new()
+                {
+                    Id = 71,
+                    AppId = 1,
+                    IsInterface = true,
+                    IsPublished = true,
+                    Name = "Interface71",
+                    DestinationAppRoles = [new() { Content = ownAppRole }]
+                };
+
+                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest([interfaceConn1, interfaceConn2]);
+
+                ClassicAssert.AreEqual(1, taskList.Count(t => t.Title == "New AppRole: AR504711-002"));
+            }
+            finally
+            {
+                userConfig.CreateAppZones = true;
+                userConfig.ModRequestOnlyOwnObjects = false;
+            }
         }
 
         [Test]

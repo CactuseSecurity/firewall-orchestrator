@@ -351,7 +351,7 @@ namespace FWO.Services.Modelling
             ActConn.InterfaceIsRequested = interf.IsRequested;
             ActConn.InterfaceIsRejected = interf.GetBoolProperty(ConState.Rejected.ToString());
             ActConn.InterfaceIsDecommissioned = interf.GetBoolProperty(ConState.Decommissioned.ToString());
-            ActConn.InterfaceNoPermission = interf.PermittedOwnerWrappers.Any(w => w.Owner != null && w.Owner.Id == ActConn.AppId);
+            ActConn.InterfaceNoPermission = EvaluateInterfaceNoPermission(interf, ActConn.AppId ?? Application.Id);
             ActConn.TicketId = interf.TicketId;
             if (SrcReadOnly)
             {

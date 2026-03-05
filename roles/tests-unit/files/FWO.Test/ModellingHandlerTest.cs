@@ -120,6 +120,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestExtractUsedInterface_InterfaceNoPermissionDependsOnPermissionMode()
+        {
+            ModellingConnection connRestrictedAllowed = new() { Id = 31, AppId = 1, UsedInterfaceId = 3 };
+            await AppHandler!.ExtractUsedInterface(connRestrictedAllowed);
+            ClassicAssert.IsFalse(connRestrictedAllowed.InterfaceNoPermission);
+
+            ModellingConnection connRestrictedDenied = new() { Id = 32, AppId = 1, UsedInterfaceId = 4 };
+            await AppHandler!.ExtractUsedInterface(connRestrictedDenied);
+            ClassicAssert.IsTrue(connRestrictedDenied.InterfaceNoPermission);
+
+            ModellingConnection connPrivate = new() { Id = 33, AppId = 1, UsedInterfaceId = 5 };
+            await AppHandler!.ExtractUsedInterface(connPrivate);
+            ClassicAssert.IsFalse(connPrivate.InterfaceNoPermission);
+
+            ModellingConnection connPublic = new() { Id = 34, AppId = 1, UsedInterfaceId = 6 };
+            await AppHandler!.ExtractUsedInterface(connPublic);
+            ClassicAssert.IsFalse(connPublic.InterfaceNoPermission);
+
+            ModellingConnection connPrivateForeign = new() { Id = 35, AppId = 1, UsedInterfaceId = 7 };
+            await AppHandler!.ExtractUsedInterface(connPrivateForeign);
+            ClassicAssert.IsTrue(connPrivateForeign.InterfaceNoPermission);
+        }
+
+        [Test]
+        public async Task TestExtractUsedInterface_InterfaceNoPermissionUnknownPermissionDefaultsToTrue()
+        {
+            ModellingConnection connUnknown = new() { Id = 36, AppId = 1, UsedInterfaceId = 8 };
+            await AppHandler!.ExtractUsedInterface(connUnknown);
+            ClassicAssert.IsTrue(connUnknown.InterfaceNoPermission);
+        }
+
+        [Test]
         public void TestGetSrcDstSvcNames()
         {
             ModellingConnection conn = new()

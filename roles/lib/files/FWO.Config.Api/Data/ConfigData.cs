@@ -408,6 +408,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modRolloutRemovedAppServers"), JsonPropertyName("modRolloutRemovedAppServers")]
         public bool ModRolloutRemovedAppServers { get; set; } = false;
 
+        [JsonProperty("modRequestOnlyOwnObjects"), JsonPropertyName("modRequestOnlyOwnObjects")]
+        public bool ModRequestOnlyOwnObjects { get; set; } = false;
+
         [JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
         public string ModRolloutErrorText { get; set; } = "";
 

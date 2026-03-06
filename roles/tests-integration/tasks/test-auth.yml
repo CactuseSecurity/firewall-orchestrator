@@ -27,28 +27,13 @@
 - ansible.builtin.debug:
       var: sample_jwt
 
-# --- JWT header decode (base64url -> json) ---
-- name: extract raw jwt header and payload segments
-  ansible.builtin.set_fact:
-      jwt_header_raw: "{{ sample_jwt.content.split('.')[0] }}"
-      jwt_payload_raw: "{{ sample_jwt.content.split('.')[1] }}"
-
-# pad and translate base64url for header
-- name: normalize/pad base64url header
-  ansible.builtin.set_fact:
-      jwt_header_b64: >-
-          {{ jwt_header_raw
-             | regex_replace('-', '+')
-             | regex_replace('_', '/')
-             ~ ('=' * ((4 - (jwt_header_raw | length % 4)) % 4)) }}
-
-- ansible.builtin.debug: { var: jwt_header_b64 }
-
-- name: decode + parse header json
-  ansible.builtin.set_fact:
-      jwt_header: "{{ jwt_header_b64 | b64decode | from_json }}"
+- name: Extract JWT header and payload
+  set_fact:
+    jwt_header: "{{ (sample_jwt.json.AccessToken.split('.')[0] | b64decode | from_json) }}"
+    jwt_payload_raw: "{{ sample_jwt.json.AccessToken.split('.')[1] }}"
 
 - ansible.builtin.debug: { var: jwt_header }
+- ansible.builtin.debug: { var: jwt_payload_raw }
 
 - name: pick header 'typ'
   ansible.builtin.set_fact:
@@ -61,21 +46,13 @@
       msg: "ERROR unexpected jwt test result (jwt_type does not match 'JWT'): {{ jwt_type }}"
   when: "jwt_type is not match('JWT')"
 
-# --- JWT payload decode (base64url -> json) ---
-- name: normalize/pad base64url payload
-  ansible.builtin.set_fact:
-      jwt_payload_b64: >-
-          {{ jwt_payload_raw
-             | regex_replace('-', '+')
-             | regex_replace('_', '/')
-             ~ ('=' * ((4 - (jwt_payload_raw | length % 4)) % 4)) }}
+- name: Add padding to payload for base64 decoding
+  set_fact:
+    jwt_payload_padded: "{{ jwt_payload_raw }}{{ '=' * ((4 - (jwt_payload_raw | length) % 4) % 4) }}"
 
-- ansible.builtin.debug:
-      var: jwt_payload_b64
-
-- name: decode + parse payload json
-  ansible.builtin.set_fact:
-      jwt_payload: "{{ jwt_payload_b64 | b64decode | from_json }}"
+- name: Decode JWT payload
+  set_fact:
+    jwt_payload: "{{ (jwt_payload_padded | b64decode | from_json) }}"
 
 - name: show jwt decoded payload
   ansible.builtin.debug:
@@ -111,7 +88,9 @@
 - ansible.builtin.debug:
       var: sample_jwt
 
-- name: middleware get jwt test wrong creds output
-  ansible.builtin.debug:
-      msg: "ERROR unexpected jwt test result (not equal 'error: Invalid credentials.'): {{ sample_jwt.content }}"
-  when: sample_jwt.content is not match(".*error.*Invalid\\scredentials\\..*")
+- name: middleware validate jwt test wrong creds response
+  ansible.builtin.assert:
+      that:
+          - sample_jwt.content is match(".*A0002.*Invalid\\scredentials.*")
+      fail_msg: "ERROR: Expected 'A0002 Invalid credentials' but got: {{ sample_jwt.content }}"
+      success_msg: "PASS: Received expected error 'A0002 Invalid credentials'"

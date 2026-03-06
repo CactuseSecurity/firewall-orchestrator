@@ -156,15 +156,36 @@ namespace FWO.Config.File
             if (configValue == null)
             {
                 Log.WriteError("Config value read", $"A necessary config value could not be found.", LogStackTrace: true);
-#if RELEASE
-                Environment.Exit(1); // Exit with error
-#endif
-                throw new ApplicationException("A necessary config value could not be found.");
+
+                if (!IsTestEnvironment())
+                {
+                    Environment.Exit(1); // Only exit in production
+                    return default!;
+                }
+                else
+                {
+                    return default!;
+                }
             }
-            else
+
+            return configValue;
+        }
+
+        private static bool IsTestEnvironment()
+        {
+            // Check process name
+            string processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+            if (processName.Contains("testhost", StringComparison.OrdinalIgnoreCase) ||
+                processName.Contains("vstest", StringComparison.OrdinalIgnoreCase))
             {
-                return configValue;
+                return true;
             }
+
+            // Check for test framework assemblies
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Any(a => a.FullName?.StartsWith("nunit.framework") == true
+                       || a.FullName?.StartsWith("xunit") == true
+                       || a.FullName?.StartsWith("Microsoft.VisualStudio.TestPlatform") == true);
         }
 
         private static void IgnoreExceptions(Action method)

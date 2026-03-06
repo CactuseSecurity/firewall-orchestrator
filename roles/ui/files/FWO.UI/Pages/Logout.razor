@@ -20,14 +20,11 @@
 {
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await ((AuthStateProvider)AuthService).Deauthenticate();
+
         // Dispose unmanaged ressources
         apiConnection.Dispose();
         middlewareClient.Dispose();
-
-        // Clear the jwt and deauthenticate
-        await sessionStorage.DeleteAsync("jwt");
-        ((AuthStateProvider)AuthService).Deauthenticate();
-        JwtEventService.RemoveJwtTimers(userConfig.User.Dn);
 
         // Write an audit log that the user logged out
         UiUser user = userConfig.User;

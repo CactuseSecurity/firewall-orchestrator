@@ -234,3 +234,20 @@ def test_build_label_from_group_includes_approle_without_criteria_by_default():
     assert label is not None
     assert label.key == "AppRole"
     assert label.criteria == []
+
+
+def test_build_label_from_group_includes_networkarea_without_criteria_by_default():
+    module = load_module()
+    owner = {"name": "NeMo", "app_id_external": "APP-5630"}
+    nwgroup = {
+        "name": "NeMo Entwicklung",
+        "id_string": "NA5005630-006",
+        "group_type": 23,
+        "nwobject_nwgroups": [],
+    }
+
+    label = module.build_label_from_group(owner, nwgroup, include_empty=False)
+
+    assert label is not None
+    assert label.key == "NetworkArea"
+    assert label.criteria == []

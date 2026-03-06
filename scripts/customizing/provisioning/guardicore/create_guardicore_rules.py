@@ -266,7 +266,7 @@ query getConnectionsForGuardicore__APPIDS_DECL__ {
     source_approles: nwgroup_connections(
       where: {
         connection_field: { _eq: 1 },
-        nwgroup: { group_type: { _eq: 20 }, is_deleted: { _eq: false } }
+        nwgroup: { group_type: { _in: [20, 23] }, is_deleted: { _eq: false } }
       }
     ) {
       nwgroup {
@@ -278,13 +278,69 @@ query getConnectionsForGuardicore__APPIDS_DECL__ {
     destination_approles: nwgroup_connections(
       where: {
         connection_field: { _eq: 2 },
-        nwgroup: { group_type: { _eq: 20 }, is_deleted: { _eq: false } }
+        nwgroup: { group_type: { _in: [20, 23] }, is_deleted: { _eq: false } }
       }
     ) {
       nwgroup {
         id
         name
         id_string
+      }
+    }
+    used_interface: connection {
+      source_approles: nwgroup_connections(
+        where: {
+          connection_field: { _eq: 1 },
+          nwgroup: { group_type: { _in: [20, 23] }, is_deleted: { _eq: false } }
+        }
+      ) {
+        nwgroup {
+          id
+          name
+          id_string
+        }
+      }
+      destination_approles: nwgroup_connections(
+        where: {
+          connection_field: { _eq: 2 },
+          nwgroup: { group_type: { _in: [20, 23] }, is_deleted: { _eq: false } }
+        }
+      ) {
+        nwgroup {
+          id
+          name
+          id_string
+        }
+      }
+      services: service_connections {
+        service {
+          id
+          name
+          proto_id
+          port
+          port_end
+          protocol: stm_ip_proto {
+            id: ip_proto_id
+            name: ip_proto_name
+          }
+        }
+      }
+      service_groups: service_group_connections {
+        service_group {
+          services: service_service_groups {
+            service {
+              id
+              name
+              proto_id
+              port
+              port_end
+              protocol: stm_ip_proto {
+                id: ip_proto_id
+                name: ip_proto_name
+              }
+            }
+          }
+        }
       }
     }
     services: service_connections {
@@ -680,7 +736,67 @@ def extract_services(connection: dict[str, Any]) -> list[dict[str, Any]]:
                 if isinstance(service, dict):
                     services.append(cast("dict[str, Any]", service))
 
+    if services:
+        return services
+
+    used_interface = connection.get("used_interface")
+    if isinstance(used_interface, dict):
+        used_interface_dict = cast("dict[str, Any]", used_interface)
+        interface_services = used_interface_dict.get("services")
+        if isinstance(interface_services, list):
+            interface_services_list = cast("list[Any]", interface_services)
+            for direct_service in interface_services_list:
+                if not isinstance(direct_service, dict):
+                    continue
+                direct_service_dict = cast("dict[str, Any]", direct_service)
+                service = direct_service_dict.get("service")
+                if isinstance(service, dict):
+                    services.append(cast("dict[str, Any]", service))
+
+        interface_service_groups = used_interface_dict.get("service_groups")
+        if isinstance(interface_service_groups, list):
+            interface_service_groups_list = cast("list[Any]", interface_service_groups)
+            for service_group_wrapper in interface_service_groups_list:
+                if not isinstance(service_group_wrapper, dict):
+                    continue
+                service_group_wrapper_dict = cast("dict[str, Any]", service_group_wrapper)
+                service_group = service_group_wrapper_dict.get("service_group")
+                if not isinstance(service_group, dict):
+                    continue
+                service_group_dict = cast("dict[str, Any]", service_group)
+                grouped_services = service_group_dict.get("services", [])
+                if not isinstance(grouped_services, list):
+                    continue
+                grouped_services_list = cast("list[Any]", grouped_services)
+                for grouped_service_wrapper in grouped_services_list:
+                    if not isinstance(grouped_service_wrapper, dict):
+                        continue
+                    grouped_service_wrapper_dict = cast("dict[str, Any]", grouped_service_wrapper)
+                    service = grouped_service_wrapper_dict.get("service")
+                    if isinstance(service, dict):
+                        services.append(cast("dict[str, Any]", service))
+
     return services
+
+
+def extract_connection_approles(connection: dict[str, Any], field_name: str) -> list[dict[str, Any]]:
+    approles_raw = connection.get(field_name)
+    approles: list[dict[str, Any]] = []
+    if isinstance(approles_raw, list):
+        approles_list = cast("list[Any]", approles_raw)
+        approles = [cast("dict[str, Any]", item) for item in approles_list if isinstance(item, dict)]
+    if approles:
+        return approles
+
+    used_interface = connection.get("used_interface")
+    if not isinstance(used_interface, dict):
+        return []
+    used_interface_dict = cast("dict[str, Any]", used_interface)
+    interface_approles_raw = used_interface_dict.get(field_name)
+    if not isinstance(interface_approles_raw, list):
+        return []
+    interface_approles_list = cast("list[Any]", interface_approles_raw)
+    return [cast("dict[str, Any]", item) for item in interface_approles_list if isinstance(item, dict)]
 
 
 def collect_ports_and_protocols(
@@ -780,16 +896,8 @@ def collect_approle_identifiers(connection_approles: list[dict[str, Any]]) -> li
 
 
 def build_missing_approle_warning_details(connection: dict[str, Any]) -> str:
-    source_approles_raw = connection.get("source_approles")
-    destination_approles_raw = connection.get("destination_approles")
-    source_approles: list[dict[str, Any]] = []
-    destination_approles: list[dict[str, Any]] = []
-    if isinstance(source_approles_raw, list):
-        source_approles = [cast("dict[str, Any]", item) for item in source_approles_raw if isinstance(item, dict)]
-    if isinstance(destination_approles_raw, list):
-        destination_approles = [
-            cast("dict[str, Any]", item) for item in destination_approles_raw if isinstance(item, dict)
-        ]
+    source_approles = extract_connection_approles(connection, "source_approles")
+    destination_approles = extract_connection_approles(connection, "destination_approles")
 
     source_identifiers = collect_approle_identifiers(source_approles)
     destination_identifiers = collect_approle_identifiers(destination_approles)
@@ -835,6 +943,34 @@ def to_guardicore_or_labels(label_ids: list[str]) -> list[dict[str, list[str]]]:
     return [{"and_labels": [label_id]} for label_id in label_ids]
 
 
+def strip_app_id_prefix(app_id_external: str) -> str:
+    app_id = app_id_external.strip()
+    if not app_id:
+        return ""
+    first_digit_match = re.search(r"\d", app_id)
+    if first_digit_match:
+        return app_id[first_digit_match.start() :]
+    return app_id
+
+
+def build_guardicore_ruleset_name(connection: dict[str, Any]) -> str:
+    connection_id = connection.get("id")
+    default_ruleset_name = f"FWOC{connection_id}"
+    owner = connection.get("owner")
+    if not isinstance(owner, dict):
+        return default_ruleset_name
+
+    owner_dict = cast("dict[str, Any]", owner)
+    app_id_external = owner_dict.get("app_id_external")
+    if not isinstance(app_id_external, str) or not app_id_external.strip():
+        return default_ruleset_name
+
+    normalized_app_id = strip_app_id_prefix(app_id_external)
+    if not normalized_app_id:
+        return default_ruleset_name
+    return f"FWOA{normalized_app_id} {default_ruleset_name}"
+
+
 def build_rule_payload(
     connection: dict[str, Any],
     approle_id_map: dict[str, list[str]],
@@ -842,18 +978,8 @@ def build_rule_payload(
     action: str,
     section_position: str,
 ) -> RuleBuildResult:
-    source_approles_raw = connection.get("source_approles")
-    destination_approles_raw = connection.get("destination_approles")
-    source_approles: list[dict[str, Any]] = []
-    destination_approles: list[dict[str, Any]] = []
-    if isinstance(source_approles_raw, list):
-        source_approles_list = cast("list[Any]", source_approles_raw)
-        source_approles = [cast("dict[str, Any]", item) for item in source_approles_list if isinstance(item, dict)]
-    if isinstance(destination_approles_raw, list):
-        destination_approles_list = cast("list[Any]", destination_approles_raw)
-        destination_approles = [
-            cast("dict[str, Any]", item) for item in destination_approles_list if isinstance(item, dict)
-        ]
+    source_approles = extract_connection_approles(connection, "source_approles")
+    destination_approles = extract_connection_approles(connection, "destination_approles")
 
     source_resolution = resolve_approle_labels(
         source_approles,
@@ -889,8 +1015,7 @@ def build_rule_payload(
     services = extract_services(connection)
     ports_by_protocol = collect_ports_and_protocols_by_protocol(services, default_ip_protocol)
 
-    connection_id = connection.get("id")
-    ruleset_name = f"FWOC{connection_id}"
+    ruleset_name = build_guardicore_ruleset_name(connection)
     payloads: list[dict[str, Any]] = []
     skipped_protocols: set[str] = set()
     for protocol, (ports, port_ranges) in ports_by_protocol.items():

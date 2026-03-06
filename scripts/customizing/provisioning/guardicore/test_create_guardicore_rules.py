@@ -49,6 +49,7 @@ def test_build_rule_payload_collects_ports_ranges_and_protocols():
     module = load_module()
     connection = {
         "id": 101,
+        "owner": {"app_id_external": "APP-101", "name": "NeMo"},
         "source_approles": [{"nwgroup": {"name": "SrcRole", "id_string": "AR-SRC"}}],
         "destination_approles": [{"nwgroup": {"name": "DstRole", "id_string": "AR-DST"}}],
         "services": [
@@ -102,8 +103,8 @@ def test_build_rule_payload_collects_ports_ranges_and_protocols():
     tcp_payload = payload_by_protocol["TCP"]
     udp_payload = payload_by_protocol["UDP"]
 
-    assert tcp_payload["ruleset_name"] == "FWOC101"
-    assert udp_payload["ruleset_name"] == "FWOC101"
+    assert tcp_payload["ruleset_name"] == "FWOA101 FWOC101"
+    assert udp_payload["ruleset_name"] == "FWOA101 FWOC101"
     assert tcp_payload["ports"] == [80]
     assert tcp_payload["port_ranges"] == [{"start": 2000, "end": 3000}]
     assert udp_payload["ports"] == [53]
@@ -149,6 +150,93 @@ def test_build_rule_payload_omits_ports_for_icmp():
     assert payload["ip_protocols"] == ["ICMP"]
     assert "ports" not in payload
     assert "port_ranges" not in payload
+
+
+def test_build_guardicore_ruleset_name_falls_back_without_owner():
+    module = load_module()
+
+    ruleset_name = module.build_guardicore_ruleset_name({"id": 42})
+
+    assert ruleset_name == "FWOC42"
+
+
+def test_strip_app_id_prefix_removes_leading_prefix_until_first_digit():
+    module = load_module()
+
+    assert module.strip_app_id_prefix("APP-5630") == "5630"
+    assert module.strip_app_id_prefix("A_42") == "42"
+    assert module.strip_app_id_prefix("5630") == "5630"
+
+
+def test_extract_connection_approles_uses_used_interface_when_direct_list_is_empty():
+    module = load_module()
+    connection = {
+        "source_approles": [],
+        "used_interface": {
+            "source_approles": [{"nwgroup": {"name": "SrcRole", "id_string": "AR-SRC"}}],
+        },
+    }
+
+    source_approles = module.extract_connection_approles(connection, "source_approles")
+
+    assert source_approles == [{"nwgroup": {"name": "SrcRole", "id_string": "AR-SRC"}}]
+
+
+def test_extract_services_uses_used_interface_when_direct_lists_are_empty():
+    module = load_module()
+    connection = {
+        "services": [],
+        "service_groups": [],
+        "used_interface": {
+            "services": [{"service": {"name": "HTTPS", "port": 443, "port_end": 443}}],
+            "service_groups": [
+                {"service_group": {"services": [{"service": {"name": "DNS", "port": 53, "port_end": 53}}]}}
+            ],
+        },
+    }
+
+    services = module.extract_services(connection)
+
+    assert services == [
+        {"name": "HTTPS", "port": 443, "port_end": 443},
+        {"name": "DNS", "port": 53, "port_end": 53},
+    ]
+
+
+def test_build_rule_payload_uses_used_interface_for_empty_connection_objects():
+    module = load_module()
+    connection = {
+        "id": 301,
+        "source_approles": [],
+        "destination_approles": [{"nwgroup": {"name": "DstRole", "id_string": "AR-DST"}}],
+        "services": [],
+        "service_groups": [],
+        "used_interface": {
+            "source_approles": [{"nwgroup": {"name": "SrcRole", "id_string": "AR-SRC"}}],
+            "services": [{"service": {"port": 443, "port_end": 443, "protocol": {"name": "tcp"}}}],
+            "service_groups": [],
+        },
+    }
+    approle_map = {
+        "AR-SRC": ["src-id"],
+        "AR-DST": ["dst-id"],
+    }
+
+    result = module.build_rule_payload(
+        connection=connection,
+        approle_id_map=approle_map,
+        default_ip_protocol="TCP",
+        action="ALLOW",
+        section_position="ALLOW",
+    )
+
+    assert result.skip_reason is None
+    assert len(result.payloads) == 1
+    payload = result.payloads[0]
+    assert payload["ip_protocols"] == ["TCP"]
+    assert payload["ports"] == [443]
+    assert payload["source"]["labels"]["or_labels"] == [{"and_labels": ["src-id"]}]
+    assert payload["destination"]["labels"]["or_labels"] == [{"and_labels": ["dst-id"]}]
 
 
 def test_build_rule_payload_skips_esp_protocol():
@@ -276,6 +364,8 @@ def test_build_graphql_query_hardcodes_filters_and_uses_appids_variable():
 
     assert "removed: { _eq: false }" in query
     assert "is_interface: { _eq: false }" in query
+    assert "group_type: { _in: [20, 23] }" in query
+    assert "used_interface: connection" in query
     assert "$appIds" in query
     assert "owner: { app_id_external: { _in: $appIds } }" in query
     assert "id_string" in query
@@ -290,6 +380,8 @@ def test_build_graphql_query_omits_owner_filter_when_no_app_ids_provided():
 
     assert "removed: { _eq: false }" in query
     assert "is_interface: { _eq: false }" in query
+    assert "group_type: { _in: [20, 23] }" in query
+    assert "used_interface: connection" in query
     assert "$appIds" not in query
     assert "owner: { app_id_external: { _in: $appIds } }" not in query
     assert variables == {}

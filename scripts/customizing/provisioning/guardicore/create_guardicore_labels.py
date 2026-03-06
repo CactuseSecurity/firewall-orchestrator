@@ -321,8 +321,11 @@ def build_label_from_group(owner: dict[str, Any], nwgroup: dict[str, Any], inclu
     if not key:
         return None
     criteria_list = extract_criteria(nwgroup)
-    # AppRole labels are required for policy rule mapping, even when they currently have no criteria.
-    should_include_empty = include_empty or key == DEFAULT_GUARDICORE_KEY_APPROLE
+    # AppRole and NetworkArea labels are required for policy rule mapping, even when they currently have no criteria.
+    should_include_empty = include_empty or key in {
+        DEFAULT_GUARDICORE_KEY_APPROLE,
+        DEFAULT_GUARDICORE_KEY_NETWORKAREA,
+    }
     if not criteria_list and not should_include_empty:
         return None
     return LabelItem(key=key, value=id_string, criteria=criteria_list)

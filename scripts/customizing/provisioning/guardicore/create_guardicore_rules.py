@@ -46,6 +46,7 @@ DEFAULT_GUARDICORE_REVISIONS_CREATE_ENDPOINT: str = (
     f"{DEFAULT_GUARDICORE_API_V4_BASE_ENDPOINT}visibility/policy/revisions"
 )
 DEFAULT_GUARDICORE_KEY_APPROLE: str = "AppRole"
+DEFAULT_GUARDICORE_KEY_NETWORKAREA: str = "NetworkArea"
 DEFAULT_FWO_ROLE: str = "reporter"
 DEFAULT_TIMEOUT_SECONDS: int = 60
 GUARDICORE_LABELS_PAGE_SIZE: int = 1000
@@ -266,7 +267,19 @@ query getConnectionsForGuardicore__APPIDS_DECL__ {
     source_approles: nwgroup_connections(
       where: {
         connection_field: { _eq: 1 },
-        nwgroup: { group_type: { _in: [20, 23] }, is_deleted: { _eq: false } }
+        nwgroup: { group_type: { _eq: 20 }, is_deleted: { _eq: false } }
+      }
+    ) {
+      nwgroup {
+        id
+        name
+        id_string
+      }
+    }
+    source_areas: nwgroup_connections(
+      where: {
+        connection_field: { _eq: 1 },
+        nwgroup: { group_type: { _eq: 23 }, is_deleted: { _eq: false } }
       }
     ) {
       nwgroup {
@@ -278,7 +291,19 @@ query getConnectionsForGuardicore__APPIDS_DECL__ {
     destination_approles: nwgroup_connections(
       where: {
         connection_field: { _eq: 2 },
-        nwgroup: { group_type: { _in: [20, 23] }, is_deleted: { _eq: false } }
+        nwgroup: { group_type: { _eq: 20 }, is_deleted: { _eq: false } }
+      }
+    ) {
+      nwgroup {
+        id
+        name
+        id_string
+      }
+    }
+    destination_areas: nwgroup_connections(
+      where: {
+        connection_field: { _eq: 2 },
+        nwgroup: { group_type: { _eq: 23 }, is_deleted: { _eq: false } }
       }
     ) {
       nwgroup {
@@ -291,7 +316,19 @@ query getConnectionsForGuardicore__APPIDS_DECL__ {
       source_approles: nwgroup_connections(
         where: {
           connection_field: { _eq: 1 },
-          nwgroup: { group_type: { _in: [20, 23] }, is_deleted: { _eq: false } }
+          nwgroup: { group_type: { _eq: 20 }, is_deleted: { _eq: false } }
+        }
+      ) {
+        nwgroup {
+          id
+          name
+          id_string
+        }
+      }
+      source_areas: nwgroup_connections(
+        where: {
+          connection_field: { _eq: 1 },
+          nwgroup: { group_type: { _eq: 23 }, is_deleted: { _eq: false } }
         }
       ) {
         nwgroup {
@@ -303,7 +340,19 @@ query getConnectionsForGuardicore__APPIDS_DECL__ {
       destination_approles: nwgroup_connections(
         where: {
           connection_field: { _eq: 2 },
-          nwgroup: { group_type: { _in: [20, 23] }, is_deleted: { _eq: false } }
+          nwgroup: { group_type: { _eq: 20 }, is_deleted: { _eq: false } }
+        }
+      ) {
+        nwgroup {
+          id
+          name
+          id_string
+        }
+      }
+      destination_areas: nwgroup_connections(
+        where: {
+          connection_field: { _eq: 2 },
+          nwgroup: { group_type: { _eq: 23 }, is_deleted: { _eq: false } }
         }
       ) {
         nwgroup {
@@ -440,19 +489,24 @@ def normalize_guardicore_label_key(key: str) -> str:
     return "".join(ch for ch in normalized if ch.isalnum())
 
 
-def is_guardicore_approle_key(key: Any) -> bool:
+def is_guardicore_policy_label_key(key: Any) -> bool:
     if not isinstance(key, str):
         return False
-    return normalize_guardicore_label_key(key) == normalize_guardicore_label_key(DEFAULT_GUARDICORE_KEY_APPROLE)
+    normalized_key = normalize_guardicore_label_key(key)
+    return normalized_key in {
+        normalize_guardicore_label_key(DEFAULT_GUARDICORE_KEY_APPROLE),
+        normalize_guardicore_label_key(DEFAULT_GUARDICORE_KEY_NETWORKAREA),
+    }
 
 
-def is_probable_approle_label(key: Any, label_value: str) -> bool:
-    if is_guardicore_approle_key(key):
+def is_probable_policy_label(key: Any, label_value: str) -> bool:
+    if is_guardicore_policy_label_key(key):
         return True
     parsed_id_string = extract_id_string_from_label_value(label_value)
     if not parsed_id_string:
         return False
-    return parsed_id_string.strip().upper().startswith("AR")
+    normalized_id = parsed_id_string.strip().upper()
+    return normalized_id.startswith("AR") or normalized_id.startswith("NA")
 
 
 def extract_label_id_key_value_candidates(label_item: dict[str, Any]) -> list[tuple[str, str, str]]:
@@ -543,7 +597,7 @@ def fetch_guardicore_approle_map(config: GuardicoreConfig) -> tuple[dict[str, li
                     seen_candidate_ids: set[str] = set()
                     for label_id, key, label_value in extract_label_id_key_value_candidates(label):
                         label_candidates_seen += 1
-                        if not is_probable_approle_label(key, label_value):
+                        if not is_probable_policy_label(key, label_value):
                             continue
                         approle_candidates_seen += 1
                         if label_id in seen_candidate_ids:
@@ -779,24 +833,29 @@ def extract_services(connection: dict[str, Any]) -> list[dict[str, Any]]:
     return services
 
 
-def extract_connection_approles(connection: dict[str, Any], field_name: str) -> list[dict[str, Any]]:
-    approles_raw = connection.get(field_name)
-    approles: list[dict[str, Any]] = []
-    if isinstance(approles_raw, list):
-        approles_list = cast("list[Any]", approles_raw)
-        approles = [cast("dict[str, Any]", item) for item in approles_list if isinstance(item, dict)]
-    if approles:
-        return approles
+def extract_connection_policy_groups(connection: dict[str, Any], side: str) -> list[dict[str, Any]]:
+    group_fields = [f"{side}_approles", f"{side}_areas"]
+    groups: list[dict[str, Any]] = []
+    for field_name in group_fields:
+        groups_raw = connection.get(field_name)
+        if not isinstance(groups_raw, list):
+            continue
+        groups_list = cast("list[Any]", groups_raw)
+        groups.extend(cast("dict[str, Any]", item) for item in groups_list if isinstance(item, dict))
+    if groups:
+        return groups
 
     used_interface = connection.get("used_interface")
     if not isinstance(used_interface, dict):
         return []
     used_interface_dict = cast("dict[str, Any]", used_interface)
-    interface_approles_raw = used_interface_dict.get(field_name)
-    if not isinstance(interface_approles_raw, list):
-        return []
-    interface_approles_list = cast("list[Any]", interface_approles_raw)
-    return [cast("dict[str, Any]", item) for item in interface_approles_list if isinstance(item, dict)]
+    for field_name in group_fields:
+        interface_groups_raw = used_interface_dict.get(field_name)
+        if not isinstance(interface_groups_raw, list):
+            continue
+        interface_groups_list = cast("list[Any]", interface_groups_raw)
+        groups.extend(cast("dict[str, Any]", item) for item in interface_groups_list if isinstance(item, dict))
+    return groups
 
 
 def collect_ports_and_protocols(
@@ -896,8 +955,8 @@ def collect_approle_identifiers(connection_approles: list[dict[str, Any]]) -> li
 
 
 def build_missing_approle_warning_details(connection: dict[str, Any]) -> str:
-    source_approles = extract_connection_approles(connection, "source_approles")
-    destination_approles = extract_connection_approles(connection, "destination_approles")
+    source_approles = extract_connection_policy_groups(connection, "source")
+    destination_approles = extract_connection_policy_groups(connection, "destination")
 
     source_identifiers = collect_approle_identifiers(source_approles)
     destination_identifiers = collect_approle_identifiers(destination_approles)
@@ -978,8 +1037,8 @@ def build_rule_payload(
     action: str,
     section_position: str,
 ) -> RuleBuildResult:
-    source_approles = extract_connection_approles(connection, "source_approles")
-    destination_approles = extract_connection_approles(connection, "destination_approles")
+    source_approles = extract_connection_policy_groups(connection, "source")
+    destination_approles = extract_connection_policy_groups(connection, "destination")
 
     source_resolution = resolve_approle_labels(
         source_approles,
@@ -996,7 +1055,7 @@ def build_rule_payload(
         return RuleBuildResult(
             payloads=[],
             skip_reason=(
-                "missing Guardicore AppRole labels: "
+                "missing Guardicore AppRole/NetworkArea labels: "
                 f"source={source_missing}, destination={destination_missing}"
             ),
         )
@@ -1007,7 +1066,7 @@ def build_rule_payload(
         return RuleBuildResult(
             payloads=[],
             skip_reason=(
-                "missing source/destination AppRole labels: "
+                "missing source/destination AppRole/NetworkArea labels: "
                 f"source={source_identifiers}, destination={destination_identifiers}"
             ),
         )
@@ -1129,7 +1188,7 @@ def main() -> int:
 
         approle_id_map, approle_map_stats = fetch_guardicore_approle_map(guardicore_config)
         logger.info(
-            "Fetched Guardicore AppRole labels: total=%s, unique_label_ids=%s, full_value_keys=%s, "
+            "Fetched Guardicore AppRole/NetworkArea labels: total=%s, unique_label_ids=%s, full_value_keys=%s, "
             "role_name_keys=%s, role_id_keys=%s, total_map_keys=%s, pages_fetched=%s, "
             "raw_label_objects_seen=%s, label_candidates_seen=%s, approle_candidates_seen=%s, pagination_mode=%s.",
             approle_map_stats.total_approle_labels,
@@ -1145,7 +1204,7 @@ def main() -> int:
             approle_map_stats.pagination_mode,
         )
         logger.info(
-            "AppRole map diagnostics: non_approle_candidates=%s, duplicate_label_id_candidates=%s, "
+            "Policy label map diagnostics: non_approle_candidates=%s, duplicate_label_id_candidates=%s, "
             "duplicate_full_value_candidates=%s, role_id_extractions=%s, duplicate_role_id_candidates=%s, "
             "role_name_extractions=%s, duplicate_role_name_candidates=%s.",
             max(0, approle_map_stats.label_candidates_seen - approle_map_stats.approle_candidates_seen),
@@ -1157,7 +1216,7 @@ def main() -> int:
             approle_map_stats.role_name_duplicate_candidates,
         )
         if approle_map_stats.top_repeated_full_values:
-            logger.info("Top repeated AppRole full values: %s", approle_map_stats.top_repeated_full_values)
+            logger.info("Top repeated policy-label full values: %s", approle_map_stats.top_repeated_full_values)
 
         created = 0
         skipped = 0

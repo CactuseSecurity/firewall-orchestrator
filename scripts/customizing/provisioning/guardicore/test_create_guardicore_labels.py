@@ -3,7 +3,10 @@ from __future__ import annotations
 import sys
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
+
+import pytest
 
 if TYPE_CHECKING:
     from types import ModuleType, TracebackType
@@ -90,6 +93,47 @@ def test_post_guardicore_labels_skips_http_call_for_empty_payload(monkeypatch: M
     module.post_guardicore_labels(config, [])
 
 
+def test_post_guardicore_labels_raises_when_response_reports_failed_items(monkeypatch: MonkeyPatch):
+    module = load_module()
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, Any]:
+            return {"failed_items": [{"key": "NetworkArea", "value": "Bad Label"}]}
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.headers: dict[str, Any] = {}
+            self.verify = True
+
+        def __enter__(self) -> Self:
+            return self
+
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            return None
+
+        def post(self, endpoint: str, json: list[dict[str, Any]], timeout: int) -> FakeResponse:
+            return FakeResponse()
+
+    monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
+    config = module.GuardicoreConfig(
+        base_url="https://gc.local",
+        token=_get_test_token(),
+        verify_ssl=True,
+        timeout_seconds=5,
+    )
+
+    with pytest.raises(module.GuardicoreProvisioningError):
+        module.post_guardicore_labels(config, [{"key": "NetworkArea", "value": "NeMo (APP-1) - A (NA-1)"}])
+
+
 def test_fetch_existing_guardicore_labels_reads_paginated_list(monkeypatch: MonkeyPatch):
     module = load_module()
 
@@ -171,6 +215,16 @@ def test_build_graphql_query_includes_common_services_clause_when_requested():
     assert "common_service_possible: { _eq: true }" in query
 
 
+def test_build_ownerless_areas_graphql_query_targets_modelling_nwgroup_type_23_without_owner():
+    module = load_module()
+
+    query = module.build_ownerless_areas_graphql_query()
+
+    assert "modelling_nwgroup" in query
+    assert "group_type: { _eq: 23 }" in query
+    assert "app_id: { _is_null: true }" in query
+
+
 def test_build_graphql_variables_contains_explicit_parameters_only():
     module = load_module()
 
@@ -217,6 +271,103 @@ def test_build_label_from_group_maps_na_prefix_to_networkarea_without_group_type
 
     assert label is not None
     assert label.key == "NetworkArea"
+
+
+def test_build_label_from_group_maps_na_prefix_to_networkarea_even_with_group_type_20():
+    module = load_module()
+    owner = {"name": "NeMo", "app_id_external": "APP-5630"}
+    nwgroup = {
+        "name": "NeMo Entwicklung",
+        "id_string": "NA5005630-006",
+        "group_type": 20,
+        "nwobject_nwgroups": [],
+    }
+
+    label = module.build_label_from_group(owner, nwgroup, include_empty=True)
+
+    assert label is not None
+    assert label.key == "NetworkArea"
+
+
+def test_build_label_from_group_without_owner_uses_compact_value_format():
+    module = load_module()
+    nwgroup = {
+        "name": "NeMo Entwicklung",
+        "id_string": "NA5005630-006",
+        "group_type": 23,
+        "nwobject_nwgroups": [],
+    }
+
+    label = module.build_label_from_group({}, nwgroup, include_empty=True)
+
+    assert label is not None
+    assert label.key == "NetworkArea"
+    assert label.value == "NeMo Entwicklung (NA5005630-006)"
+
+
+def test_fetch_labels_from_fwo_merges_ownerless_type_23_groups(monkeypatch: MonkeyPatch):
+    module = load_module()
+    args = SimpleNamespace(
+        fwo_graphql_url="https://fwo/graphql",
+        timeout=5,
+        fwo_role="reporter",
+        include_common_services=False,
+        app_ids=None,
+        include_group_types=[20, 21, 23],
+        include_empty=False,
+    )
+
+    def fake_run_graphql_query(
+        config: Any,
+        query: str,
+        variables: dict[str, Any],
+        error_cls: type[Exception],
+    ) -> dict[str, Any]:
+        if "owner(where:" in query:
+            return {
+                "data": {
+                    "owner": [
+                        {
+                            "name": "NeMo",
+                            "app_id_external": "APP-5630",
+                            "nwgroups": [
+                                {
+                                    "name": "Role A",
+                                    "id_string": "AR5005630-001",
+                                    "group_type": 20,
+                                    "nwobject_nwgroups": [],
+                                }
+                            ],
+                        }
+                    ]
+                }
+            }
+        if "modelling_nwgroup" in query:
+            return {
+                "data": {
+                    "modelling_nwgroup": [
+                        {
+                            "name": "NeMo Entwicklung",
+                            "id_string": "NA5005630-006",
+                            "group_type": 23,
+                            "nwobject_nwgroups": [],
+                        }
+                    ]
+                }
+            }
+        raise AssertionError(f"Unexpected query: {query}")
+
+    monkeypatch.setattr(module, "run_graphql_query", fake_run_graphql_query)
+
+    labels, group_type_counts = module.fetch_labels_from_fwo(args, jwt="token", fwo_verify=True)
+
+    keys = [label.key for label in labels]
+    values = [label.value for label in labels]
+    assert "AppRole" in keys
+    assert "NetworkArea" in keys
+    assert "NeMo Entwicklung (NA5005630-006)" in values
+    assert group_type_counts[20] == 1
+    assert group_type_counts[23] == 1
 
 
 def test_build_label_from_group_includes_approle_without_criteria_by_default():

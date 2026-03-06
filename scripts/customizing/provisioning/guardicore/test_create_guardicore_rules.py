@@ -168,18 +168,23 @@ def test_strip_app_id_prefix_removes_leading_prefix_until_first_digit():
     assert module.strip_app_id_prefix("5630") == "5630"
 
 
-def test_extract_connection_approles_uses_used_interface_when_direct_list_is_empty():
+def test_extract_connection_policy_groups_uses_used_interface_when_direct_lists_are_empty():
     module = load_module()
     connection = {
         "source_approles": [],
+        "source_areas": [],
         "used_interface": {
             "source_approles": [{"nwgroup": {"name": "SrcRole", "id_string": "AR-SRC"}}],
+            "source_areas": [{"nwgroup": {"name": "Area A", "id_string": "NA-1"}}],
         },
     }
 
-    source_approles = module.extract_connection_approles(connection, "source_approles")
+    source_groups = module.extract_connection_policy_groups(connection, "source")
 
-    assert source_approles == [{"nwgroup": {"name": "SrcRole", "id_string": "AR-SRC"}}]
+    assert source_groups == [
+        {"nwgroup": {"name": "SrcRole", "id_string": "AR-SRC"}},
+        {"nwgroup": {"name": "Area A", "id_string": "NA-1"}},
+    ]
 
 
 def test_extract_services_uses_used_interface_when_direct_lists_are_empty():
@@ -236,6 +241,37 @@ def test_build_rule_payload_uses_used_interface_for_empty_connection_objects():
     assert payload["ip_protocols"] == ["TCP"]
     assert payload["ports"] == [443]
     assert payload["source"]["labels"]["or_labels"] == [{"and_labels": ["src-id"]}]
+    assert payload["destination"]["labels"]["or_labels"] == [{"and_labels": ["dst-id"]}]
+
+
+def test_build_rule_payload_uses_source_areas_for_networkarea_labels():
+    module = load_module()
+    connection = {
+        "id": 302,
+        "source_approles": [],
+        "source_areas": [{"nwgroup": {"name": "Area Src", "id_string": "NA-SRC"}}],
+        "destination_approles": [{"nwgroup": {"name": "DstRole", "id_string": "AR-DST"}}],
+        "destination_areas": [],
+        "services": [{"service": {"port": 443, "port_end": 443, "protocol": {"name": "tcp"}}}],
+        "service_groups": [],
+    }
+    approle_map = {
+        "NA-SRC": ["src-na-id"],
+        "AR-DST": ["dst-id"],
+    }
+
+    result = module.build_rule_payload(
+        connection=connection,
+        approle_id_map=approle_map,
+        default_ip_protocol="TCP",
+        action="ALLOW",
+        section_position="ALLOW",
+    )
+
+    assert result.skip_reason is None
+    assert len(result.payloads) == 1
+    payload = result.payloads[0]
+    assert payload["source"]["labels"]["or_labels"] == [{"and_labels": ["src-na-id"]}]
     assert payload["destination"]["labels"]["or_labels"] == [{"and_labels": ["dst-id"]}]
 
 
@@ -297,7 +333,7 @@ def test_build_rule_payload_skips_when_approle_label_is_missing():
     assert result.payloads == []
     assert (
         result.skip_reason
-        == "missing Guardicore AppRole labels: source=[], destination=['MissingRole (AR-MISSING)']"
+        == "missing Guardicore AppRole/NetworkArea labels: source=[], destination=['MissingRole (AR-MISSING)']"
     )
 
 
@@ -321,7 +357,7 @@ def test_build_rule_payload_skips_with_source_destination_identifiers_when_label
     )
 
     assert result.payloads == []
-    assert result.skip_reason == "missing Guardicore AppRole labels: source=['SrcRole (AR-SRC)'], destination=[]"
+    assert result.skip_reason == "missing Guardicore AppRole/NetworkArea labels: source=['SrcRole (AR-SRC)'], destination=[]"
 
 
 def test_build_missing_approle_warning_details_contains_all_approles_and_connection_json():
@@ -364,7 +400,10 @@ def test_build_graphql_query_hardcodes_filters_and_uses_appids_variable():
 
     assert "removed: { _eq: false }" in query
     assert "is_interface: { _eq: false }" in query
-    assert "group_type: { _in: [20, 23] }" in query
+    assert "source_areas: nwgroup_connections" in query
+    assert "destination_areas: nwgroup_connections" in query
+    assert "group_type: { _eq: 20 }" in query
+    assert "group_type: { _eq: 23 }" in query
     assert "used_interface: connection" in query
     assert "$appIds" in query
     assert "owner: { app_id_external: { _in: $appIds } }" in query
@@ -380,7 +419,10 @@ def test_build_graphql_query_omits_owner_filter_when_no_app_ids_provided():
 
     assert "removed: { _eq: false }" in query
     assert "is_interface: { _eq: false }" in query
-    assert "group_type: { _in: [20, 23] }" in query
+    assert "source_areas: nwgroup_connections" in query
+    assert "destination_areas: nwgroup_connections" in query
+    assert "group_type: { _eq: 20 }" in query
+    assert "group_type: { _eq: 23 }" in query
     assert "used_interface: connection" in query
     assert "$appIds" not in query
     assert "owner: { app_id_external: { _in: $appIds } }" not in query
@@ -521,13 +563,15 @@ def test_fetch_guardicore_approle_map_reads_nested_label_shape(monkeypatch: Monk
     assert stats.approle_candidates_seen == 1
 
 
-def test_is_guardicore_approle_key_accepts_spacing_and_case_variants():
+def test_is_guardicore_policy_label_key_accepts_spacing_and_case_variants():
     module = load_module()
 
-    assert module.is_guardicore_approle_key("AppRole")
-    assert module.is_guardicore_approle_key(" app role ")
-    assert module.is_guardicore_approle_key("APP_ROLE:")
-    assert not module.is_guardicore_approle_key("AppZone")
+    assert module.is_guardicore_policy_label_key("AppRole")
+    assert module.is_guardicore_policy_label_key(" app role ")
+    assert module.is_guardicore_policy_label_key("APP_ROLE:")
+    assert module.is_guardicore_policy_label_key("NetworkArea")
+    assert module.is_guardicore_policy_label_key(" network area ")
+    assert not module.is_guardicore_policy_label_key("AppZone")
 
 
 def test_fetch_guardicore_approle_map_accepts_spaced_approle_key(monkeypatch: MonkeyPatch):
@@ -583,11 +627,65 @@ def test_fetch_guardicore_approle_map_accepts_spaced_approle_key(monkeypatch: Mo
     assert stats.total_approle_labels == 1
 
 
-def test_is_probable_approle_label_accepts_ar_suffix_when_key_is_not_approle():
+def test_is_probable_policy_label_accepts_ar_or_na_suffix_when_key_is_not_policy_key():
     module = load_module()
 
-    assert module.is_probable_approle_label("AppZone", "NeMo (APP-5630) - NeMo Entwicklung (AR5005630-006)")
-    assert not module.is_probable_approle_label("AppZone", "NeMo (APP-5630) - NeMo Zone (AZ5005630-001)")
+    assert module.is_probable_policy_label("AppZone", "NeMo (APP-5630) - NeMo Entwicklung (AR5005630-006)")
+    assert module.is_probable_policy_label("AppZone", "NeMo (APP-5630) - NeMo Entwicklung (NA5005630-006)")
+    assert not module.is_probable_policy_label("AppZone", "NeMo (APP-5630) - NeMo Zone (AZ5005630-001)")
+
+
+def test_fetch_guardicore_approle_map_accepts_networkarea_key(monkeypatch: MonkeyPatch):
+    module = load_module()
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, Any]:
+            return {
+                "objects": [
+                    {
+                        "id": "label-na-1",
+                        "key": "NetworkArea",
+                        "value": "NeMo (APP-5630) - NeMo Entwicklung (NA5005630-006)",
+                    }
+                ],
+                "total_count": 1,
+            }
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.headers: dict[str, Any] = {}
+            self.verify = True
+
+        def __enter__(self) -> Self:
+            return self
+
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            return None
+
+        def get(self, endpoint: str, params: dict[str, Any], timeout: int) -> FakeResponse:
+            return FakeResponse()
+
+    monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
+    config = module.GuardicoreConfig(
+        base_url="https://gc.local",
+        token=TEST_GUARDICORE_TOKEN,
+        verify_ssl=True,
+        timeout_seconds=5,
+    )
+
+    approle_map, stats = module.fetch_guardicore_approle_map(config)
+
+    assert approle_map["NA5005630-006"] == ["label-na-1"]
+    assert approle_map["NeMo Entwicklung"] == ["label-na-1"]
+    assert stats.total_approle_labels == 1
 
 
 def test_fetch_guardicore_approle_map_paginates_without_total_count(monkeypatch: MonkeyPatch):

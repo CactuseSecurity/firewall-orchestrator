@@ -134,6 +134,32 @@ query getARsAndAZs($groupTypes: [Int!]!__APPIDS_DECL__) {
     return query.replace("__APPIDS_DECL__", app_ids_decl).replace("__WHERE_CLAUSE__", where_clause)
 
 
+def build_ownerless_areas_graphql_query() -> str:
+    return """
+query getOwnerlessAreas {
+  modelling_nwgroup(
+    where: {
+      group_type: { _eq: 23 },
+      is_deleted: { _eq: false },
+      app_id: { _is_null: true }
+    }
+  ) {
+    name
+    id_string
+    app_id
+    group_type
+    nwobject_nwgroups {
+      owner_network {
+        name
+        ip
+        ip_end
+      }
+    }
+  }
+}
+""".strip()
+
+
 def build_graphql_variables(
     app_ids: list[str] | None = None,
     include_group_types: list[int] | None = None,
@@ -290,6 +316,12 @@ def label_key_from_id(id_string: str) -> str | None:
 
 
 def label_key_from_group(nwgroup: dict[str, Any]) -> str | None:
+    id_string = nwgroup.get("id_string")
+    if isinstance(id_string, str):
+        id_based_key = label_key_from_id(id_string)
+        if id_based_key == DEFAULT_GUARDICORE_KEY_NETWORKAREA:
+            return id_based_key
+
     group_type = nwgroup.get("group_type")
     if group_type == DEFAULT_GROUP_TYPE_APPROLE:
         return DEFAULT_GUARDICORE_KEY_APPROLE
@@ -312,9 +344,19 @@ def extract_criteria(nwgroup: dict[str, Any]) -> list[Criteria]:
 
 
 def build_label_from_group(owner: dict[str, Any], nwgroup: dict[str, Any], include_empty: bool) -> LabelItem | None:
-    id_string = (
-        f"{owner.get('name')} ({owner.get('app_id_external')}) - {nwgroup.get('name')} ({nwgroup.get('id_string')})"
-    )
+    nwgroup_name = nwgroup.get("name")
+    nwgroup_id_string = nwgroup.get("id_string")
+    if not isinstance(nwgroup_name, str) or not nwgroup_name.strip():
+        return None
+    if not isinstance(nwgroup_id_string, str) or not nwgroup_id_string.strip():
+        return None
+
+    owner_name = owner.get("name")
+    owner_app_id = owner.get("app_id_external")
+    if isinstance(owner_name, str) and owner_name.strip() and isinstance(owner_app_id, str) and owner_app_id.strip():
+        id_string = f"{owner_name} ({owner_app_id}) - {nwgroup_name} ({nwgroup_id_string})"
+    else:
+        id_string = f"{nwgroup_name} ({nwgroup_id_string})"
     if not id_string:
         return None
     key = label_key_from_group(nwgroup)
@@ -347,6 +389,26 @@ def build_labels_from_response(
     return labels
 
 
+def build_labels_from_ownerless_areas_response(
+    response: dict[str, Any],
+    include_empty: bool = False,
+) -> list[LabelItem]:
+    nwgroups_obj = response.get("data", {}).get("modelling_nwgroup", [])
+    if not isinstance(nwgroups_obj, list):
+        return []
+
+    labels: list[LabelItem] = []
+    nwgroups = cast("list[Any]", nwgroups_obj)
+    for nwgroup_obj in nwgroups:
+        if not isinstance(nwgroup_obj, dict):
+            continue
+        nwgroup = cast("dict[str, Any]", nwgroup_obj)
+        label = build_label_from_group({}, nwgroup, include_empty)
+        if label:
+            labels.append(label)
+    return labels
+
+
 def count_group_types_from_response(response: dict[str, Any]) -> Counter[int]:
     counts: Counter[int] = Counter()
     owners: list[dict[str, Any]] = response.get("data", {}).get("owner", [])
@@ -355,6 +417,21 @@ def count_group_types_from_response(response: dict[str, Any]) -> Counter[int]:
             group_type = nwgroup.get("group_type")
             if isinstance(group_type, int):
                 counts[group_type] += 1
+    return counts
+
+
+def count_group_types_from_ownerless_areas_response(response: dict[str, Any]) -> Counter[int]:
+    counts: Counter[int] = Counter()
+    nwgroups_obj: Any = response.get("data", {}).get("modelling_nwgroup", [])
+    if not isinstance(nwgroups_obj, list):
+        return counts
+    for nwgroup_obj in cast("list[Any]", nwgroups_obj):
+        if not isinstance(nwgroup_obj, dict):
+            continue
+        nwgroup = cast("dict[str, Any]", nwgroup_obj)
+        group_type = nwgroup.get("group_type")
+        if isinstance(group_type, int):
+            counts[group_type] += 1
     return counts
 
 
@@ -387,6 +464,18 @@ def to_guardicore_payload(items: list[LabelItem]) -> list[dict[str, Any]]:
         }
         for item in items
     ]
+
+
+def deduplicate_labels(labels: list[LabelItem]) -> list[LabelItem]:
+    unique_labels: list[LabelItem] = []
+    seen_pairs: set[tuple[str, str]] = set()
+    for label in labels:
+        pair = (label.key.strip(), label.value.strip())
+        if pair in seen_pairs:
+            continue
+        seen_pairs.add(pair)
+        unique_labels.append(label)
+    return unique_labels
 
 
 def parse_existing_label_pairs(payload: Any) -> set[tuple[str, str]]:
@@ -490,6 +579,19 @@ def post_guardicore_labels(config: GuardicoreConfig, payload: list[dict[str, Any
             response.raise_for_status()
         except requests.exceptions.RequestException as exc:
             raise GuardicoreProvisioningError(f"Guardicore API call failed: {exc}") from exc
+        try:
+            result = response.json()
+        except ValueError:
+            # Some versions may return no/invalid JSON on success.
+            return
+
+        if isinstance(result, dict):
+            for error_key in ["errors", "failed", "failed_items", "rejected", "invalid_labels"]:
+                errors_obj = result.get(error_key)
+                if isinstance(errors_obj, list) and errors_obj:
+                    raise GuardicoreProvisioningError(
+                        f"Guardicore bulk label call reported {len(errors_obj)} rejected item(s) in '{error_key}'."
+                    )
 
 
 def get_fwo_jwt(args: argparse.Namespace, fwo_verify: bool | str) -> str:
@@ -528,7 +630,22 @@ def fetch_labels_from_fwo(
         GuardicoreProvisioningError,
     )
     labels = build_labels_from_response(response, include_empty=args.include_empty)
-    return labels, count_group_types_from_response(response)
+    group_type_counts = count_group_types_from_response(response)
+
+    include_group_types = set(args.include_group_types)
+    if DEFAULT_GROUP_TYPE_AREA in include_group_types:
+        ownerless_area_response = run_graphql_query(
+            fwo_config,
+            build_ownerless_areas_graphql_query(),
+            {},
+            GuardicoreProvisioningError,
+        )
+        labels.extend(
+            build_labels_from_ownerless_areas_response(ownerless_area_response, include_empty=args.include_empty)
+        )
+        group_type_counts.update(count_group_types_from_ownerless_areas_response(ownerless_area_response))
+
+    return deduplicate_labels(labels), group_type_counts
 
 
 def build_guardicore_config(args: argparse.Namespace, guardicore_verify: bool | str) -> GuardicoreConfig:

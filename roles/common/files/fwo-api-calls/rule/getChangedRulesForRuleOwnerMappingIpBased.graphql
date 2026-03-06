@@ -7,7 +7,7 @@ query getChangedRulesForRuleOwnerMappingIpBased($controlId: bigint!) {
 
     change_action
 
-    old: ruleByOldRuleId(where: { removed: { _is_null: true } }) {
+    old: ruleByOldRuleId {
       rule_id
       rule_name
 
@@ -36,7 +36,7 @@ query getChangedRulesForRuleOwnerMappingIpBased($controlId: bigint!) {
       }
     }
 
-    new: rule(where: { removed: { _is_null: true } }) {
+    new: rule {
       rule_id
       rule_name
 

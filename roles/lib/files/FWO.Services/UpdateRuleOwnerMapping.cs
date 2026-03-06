@@ -13,6 +13,7 @@ using Org.BouncyCastle.Asn1.Crmf;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Security.AccessControl;
 using System.Text.Json;
 
@@ -326,7 +327,7 @@ namespace FWO.Services
             }
         }
 
-        private List<RuleOwner> BuildNewRuleOwnersCustomField(List<Rule> rulesToMap, List<FwoOwner> ownersToMap, long importControlId)
+        public List<RuleOwner> BuildNewRuleOwnersCustomField(List<Rule> rulesToMap, List<FwoOwner> ownersToMap, long importControlId)
         {
             // create a dictionary for owner name to id mapping for faster lookup
             var ownerNameToIdMap = ownersToMap.Where(o => !string.IsNullOrWhiteSpace(o.ExtAppId))
@@ -365,7 +366,7 @@ namespace FWO.Services
             return newRuleOwners;
         }
 
-        private List<RuleOwner> BuildNewRuleOwnersIpBased(List<Rule> rulesToMap, List<FwoOwner> ownersToMap, long importControlId)
+        public List<RuleOwner> BuildNewRuleOwnersIpBased(List<Rule> rulesToMap, List<FwoOwner> ownersToMap, long importControlId)
         {
             var newRuleOwners = new List<RuleOwner>();
 
@@ -508,7 +509,7 @@ namespace FWO.Services
                               n.Object.IpEnd == oldEntry.Object.IpEnd));
         }
 
-        private bool IsOwnerSourceFieldChanged(RuleChange ruleChange)
+        public bool IsOwnerSourceFieldChanged(RuleChange ruleChange)
         {
             var oldFields = DeserializeCustomFields(ruleChange.OldRule?.CustomFields);
             var newFields = DeserializeCustomFields(ruleChange.NewRule?.CustomFields);
@@ -519,7 +520,7 @@ namespace FWO.Services
             return !string.Equals(oldValue, newValue, StringComparison.Ordinal);
         }
 
-        private static Dictionary<string, string> DeserializeCustomFields(string? raw)
+        public static Dictionary<string, string> DeserializeCustomFields(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw))
             {
@@ -670,7 +671,7 @@ namespace FWO.Services
             }
         }
 
-        private static (IPAddressRange? range, AddressFamily? ipVersion) GetIpRangeAndVersion(string ipStart, string ipEnd)
+        public static (IPAddressRange? range, AddressFamily? ipVersion) GetIpRangeAndVersion(string ipStart, string ipEnd)
         {
             var start = ipStart.StripOffUnnecessaryNetmask();
             var end = ipEnd.StripOffUnnecessaryNetmask();
@@ -719,7 +720,7 @@ namespace FWO.Services
             return (range, range.Begin.AddressFamily);
         }
 
-        private List<OwnerNetworkPrepared> PrepareOwnerNetworks(List<FwoOwner> ownersToMap)
+        public List<OwnerNetworkPrepared> PrepareOwnerNetworks(List<FwoOwner> ownersToMap)
         {
             return ownersToMap
                     .Where(o => o.OwnerNetworks != null && o.OwnerNetworks.Any())
@@ -755,7 +756,7 @@ namespace FWO.Services
                     .ToList();
         }
 
-        private static HashSet<int> GetMatchingOwnerIds(Rule rule, List<OwnerNetworkPrepared> ownerNetworksPrepared)
+        public static HashSet<int> GetMatchingOwnerIds(Rule rule, List<OwnerNetworkPrepared> ownerNetworksPrepared)
         {
             var matchedOwnerIds = new HashSet<int>();
             var ruleNetworks = rule.Froms.Concat(rule.Tos).Where(n => n?.Object != null).Select(n => n.Object).ToList();
@@ -788,18 +789,15 @@ namespace FWO.Services
                     .Select(owner => owner.OwnerId));
             }
             return matchedOwnerIds;
-
         }
 
-
-
-        private sealed class OwnerNetworkPrepared
+        public class OwnerNetworkPrepared
         {
             public int OwnerId { get; set; }
             public List<OwnerRange?> Ranges { get; set; } = new List<OwnerRange?>();
         }
 
-        private sealed class OwnerRange
+        public class OwnerRange
         {
             public IPAddressRange Range { get; set; } = default!;
             public AddressFamily? IpVersion { get; set; }

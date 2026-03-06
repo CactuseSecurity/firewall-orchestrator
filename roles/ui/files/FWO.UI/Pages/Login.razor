@@ -5,7 +5,6 @@
 @using FWO.Ui.Auth
 @using FWO.Ui.Services
 @using Microsoft.AspNetCore.Components.Server.Circuits;
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
 @using System.Net
 @using System.Security.Cryptography
@@ -13,12 +12,12 @@
 @using System.Web
 
 @inject MiddlewareClient middlewareClient
-@inject ProtectedSessionStorage sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject ApiConnection ApiConnection
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
 @inject CircuitHandler circuitHandler
+@inject TokenService tokenService
 
 @if (showLoginForm)
 {
@@ -41,83 +40,85 @@
                         <input type="text" class="form-control @InputClass" id="UsernameInput"
                                placeholder="@(globalConfig.GetText("username"))" value="@Username" @oninput="OnUsernameInput"
                                @ref="usernameInput">
-                        </div>
-                        <div class="form-group mt-3">
-                            <input type="password" class="form-control @InputClass" id="PasswordInput"
-                                   placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
-                            </div>
-                            @if (loginInProgress == false)
-                            {
-                                <button type="submit" class="btn btn-block btn-primary mt-3" @onclick:preventDefault="true"
-                                        @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
-                                @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="@Icons.Login"></div></button> *@
-                            }
-                            else
-                            {
-                                <div class="spinner-border text-primary align-self-center mt-3" role="status"></div>
-                            }
-                            @if (!string.IsNullOrEmpty(errorMessage))
-                            {
-                                <label class="m-2">@errorMessage</label>
-                            }
-                        </form>
                     </div>
-                </div>
-                <div class="col-xl col-lg col-md col-sm col"></div>
-            </div>
-            @if (ShowWelcomeMessage)
-            {
-                <div class="row mt-4">
-                    <div class="col-lg-4 col-md-3 col-sm-2">
+                    <div class="form-group mt-3">
+                        <input type="password" class="form-control @InputClass" id="PasswordInput"
+                               placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
                     </div>
-                    <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12">
-                        <div class="alert alert-primary" role="alert">
-                            <span>@((MarkupString)@SanitizedWelcomeMessage)</span>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-3 col-sm-2">
-                    </div>
-                </div>
-            }
-        }
-
-        @if (showPasswordChangeForm)
-        {
-            <div class="row m-4 justify-content-center">
-                <h2 class="text-center"> @(userConfig.GetText("change_password")) </h2>
-                <div class="shadow-sm card p-3" style="width: 250px;">
-                    <form class="d-flex flex-column">
-                        <div class="form-group">
-                            <input type="password" class="form-control @InputClass" id="OldPasswordInput"
-                                   placeholder="@(userConfig.GetText("old_password"))" value="@oldPassword"
-                                   @oninput="OnOldPasswordInput">
-                            </div>
-                            <div class="form-group mt-2">
-                                <input type="password" class="form-control @InputClass" id="NewPasswordInput1"
-                                       placeholder="@(userConfig.GetText("new_password"))" value="@newPassword1"
-                                       @oninput="OnNewPassword1Input">
-                                </div>
-                                <div class="form-group mt-2">
-                                    <input type="password" class="form-control @InputClass" id="NewPasswordInput2"
-                                           placeholder="@(userConfig.GetText("new_password"))" value="@newPassword2"
-                                           @oninput="OnNewPassword2Input">
-                                    </div>
-                                    @if (passwordChangeInProgress == false)
-                                    {
-                                        <button type="button" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true"
-                                                @onclick="ChangePassword">
-                                            <div class="@Icons.Login"></div>
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <div class="spinner-border text-primary align-self-center" role="status"></div>
-                                    }
-                                    <label class="m-2">@chgPwErrorMessage</label>
-                                </form>
-                            </div>
-                        </div>
+                    @if (!loginInProgress)
+                    {
+                        <button type="submit" class="btn btn-block btn-primary mt-3" @onclick:preventDefault="true"
+                                @onclick="LoginSubmit">
+                            @(globalConfig.GetText("login"))
+                        </button>
+                        @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="@Icons.Login"></div></button> *@
                     }
+                    else
+                    {
+                        <div class="spinner-border text-primary align-self-center mt-3" role="status"></div>
+                    }
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <label class="m-2">@errorMessage</label>
+                    }
+                </form>
+            </div>
+        </div>
+        <div class="col-xl col-lg col-md col-sm col"></div>
+    </div>
+    @if (ShowWelcomeMessage)
+    {
+        <div class="row mt-4">
+            <div class="col-lg-4 col-md-3 col-sm-2">
+            </div>
+            <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12">
+                <div class="alert alert-primary" role="alert">
+                    <span>@((MarkupString)@SanitizedWelcomeMessage)</span>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-3 col-sm-2">
+            </div>
+        </div>
+    }
+}
+
+@if (showPasswordChangeForm)
+{
+    <div class="row m-4 justify-content-center">
+        <h2 class="text-center"> @(userConfig.GetText("change_password")) </h2>
+        <div class="shadow-sm card p-3" style="width: 250px;">
+            <form class="d-flex flex-column">
+                <div class="form-group">
+                    <input type="password" class="form-control @InputClass" id="OldPasswordInput"
+                           placeholder="@(userConfig.GetText("old_password"))" value="@oldPassword"
+                           @oninput="OnOldPasswordInput">
+                </div>
+                <div class="form-group mt-2">
+                    <input type="password" class="form-control @InputClass" id="NewPasswordInput1"
+                           placeholder="@(userConfig.GetText("new_password"))" value="@newPassword1"
+                           @oninput="OnNewPassword1Input">
+                </div>
+                <div class="form-group mt-2">
+                    <input type="password" class="form-control @InputClass" id="NewPasswordInput2"
+                           placeholder="@(userConfig.GetText("new_password"))" value="@newPassword2"
+                           @oninput="OnNewPassword2Input">
+                </div>
+                @if (!passwordChangeInProgress)
+                {
+                    <button type="button" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true"
+                            @onclick="ChangePassword">
+                        <div class="@Icons.Login"></div>
+                    </button>
+                }
+                else
+                {
+                    <div class="spinner-border text-primary align-self-center" role="status"></div>
+                }
+                <label class="m-2">@chgPwErrorMessage</label>
+            </form>
+        </div>
+    </div>
+}
 
 @code
 {
@@ -153,32 +154,19 @@
 
         if (firstRender)
         {
-            // This might be a reconnect. Check if there is a jwt in session storage.
-            ProtectedBrowserStorageResult<string> jwtLoadRequest = new();
-            try
-            {
-                jwtLoadRequest = await sessionStorage.GetAsync<string>("jwt");
-            }
-            catch (CryptographicException ex)
-            {
-                // Old/corrupted protected storage data can no longer be decrypted after key rotation.
-                Log.WriteWarning("Session Restore", $"Invalid protected session payload for jwt. Removing it. Details: {ex.Message}");
-                await sessionStorage.DeleteAsync("jwt");
-            }
-            catch (Exception ex)
-            {
-                Log.WriteError("Session Restore", "Could not read jwt from protected session storage.", ex);
-            }
+            string? jwt = await tokenService.GetAccessTokenAsync();
 
-            if (jwtLoadRequest.Success) // reconnect
+            if (!string.IsNullOrWhiteSpace(jwt))
             {
                 try
                 {
-                    await ((AuthStateProvider)AuthService).Authenticate(jwtLoadRequest.Value ?? throw new AccessViolationException("Jwt from protected storage is null"),
-                        ApiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler), sessionStorage);
+                    await ((AuthStateProvider)AuthService)
+                        .Authenticate(jwt, ApiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler));
+
                     return;
                 }
-                catch (Exception ex) { Log.WriteError("Session Restore", "Session restore unsuccessful.", ex); }
+                catch (Exception) { }
+
             }
 
             if (!string.IsNullOrWhiteSpace(globalConfig.WelcomeMessage))
@@ -224,17 +212,16 @@
         InputClass = "";
     }
 
-
     private async Task LoginSubmit()
     {
-        if (loginInProgress == false)
+        if (!loginInProgress)
         {
             loginInProgress = true;
 
             try
             {
-                RestResponse<string> authResponse = await ((AuthStateProvider)AuthService)
-                .Authenticate(Username, Password, ApiConnection, middlewareClient, globalConfig, userConfig, sessionStorage,
+                RestResponse<TokenPair> authResponse = await ((AuthStateProvider)AuthService)
+                    .Authenticate(Username, Password, ApiConnection, middlewareClient, globalConfig, userConfig,
 ((CircuitHandlerService)circuitHandler));
 
                 if (authResponse.StatusCode == HttpStatusCode.OK)
@@ -249,11 +236,11 @@
                 else
                 {
                     // There was an error trying to authenticate the user. Probably invalid credentials or the middleware server is
-                    // unreachable
-                    if (authResponse.Data != null)
+                    //unreachable
+                    if (authResponse.Content != null)
                     {
                         // Probably invalid credentials
-                        errorMessage = userConfig.GetApiText(authResponse.Data);
+                        errorMessage = userConfig.GetApiText(authResponse.Content);
                         // Visualisize the error by making border of all inputboxes red
                         InputClass = "is-invalid";
                         Log.WriteInfo("Login", $"Login of user {Username} failed: " + errorMessage);
@@ -279,7 +266,7 @@
             {
                 errorMessage = userConfig.GetText("E0012");
                 Log.WriteError("Login error", $"An unexpected exception was thrown during the log in process for user: \"{Username}\".",
-exception);
+                exception);
             }
 
             loginInProgress = false;
@@ -296,13 +283,13 @@ exception);
 
     private async Task ChangePassword()
     {
-        if (passwordChangeInProgress == false)
+        if (!passwordChangeInProgress)
         {
             passwordChangeInProgress = true;
             try
             {
                 chgPwErrorMessage = await (new PasswordChanger(middlewareClient)).ChangePassword(oldPassword, newPassword1,
-newPassword2, userConfig, globalConfig);
+                newPassword2, userConfig, globalConfig);
                 if (chgPwErrorMessage == "")
                 {
                     showPasswordChangeForm = false;

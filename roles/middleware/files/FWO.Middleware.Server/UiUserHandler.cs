@@ -1,13 +1,16 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Logging;
-using FWO.Config.File;
 using FWO.Basics;
-using FWO.Data;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json;
 using FWO.Config.Api.Data;
+using FWO.Config.File;
+using FWO.Data;
+using FWO.Logging;
+using Newtonsoft.Json;
 using System;
+using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
@@ -36,21 +39,51 @@ namespace FWO.Middleware.Server
         /// Get the configurated value for the session timeout.
         /// </summary>
         /// <returns>session timeout value in minutes</returns>
-        public static async Task<int> GetExpirationTime(ApiConnection apiConnection)
+        public static async Task<int> GetExpirationTime(ApiConnection apiConnection, string lifetimeKey)
         {
             int expirationTime = GlobalConst.kSessionExpirationTimeDefault;
+
+            PropertyInfo? property = typeof(ConfigData).GetProperty(lifetimeKey);
+            JsonPropertyAttribute? jsonPropertyAttr = property?.GetCustomAttribute<JsonPropertyAttribute>();
+
+            if (jsonPropertyAttr == null)
+            {
+                return expirationTime;
+            }
+
             try
             {
-                List<ConfExpirationTime> resultList = await apiConnection.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = "sessionTimeout" });
+                string? lifetimeKeyDBName = jsonPropertyAttr.PropertyName;
+
+                if (string.IsNullOrEmpty(lifetimeKeyDBName))
+                {
+                    throw new ArgumentException("Lifetime key DB name is null or empty");
+                }
+
+                List<ConfExpirationTime> resultList = await apiConnection.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = lifetimeKeyDBName });
+
                 if (resultList.Count > 0)
                 {
-                    expirationTime = resultList[0].ExpirationValue;
+                    return resultList[0].ExpirationValue;
+                }
+                else
+                {
+                    ConfigData defaultConfigValue = new();
+
+                    //if no value is set in DB, take the default from config file and if that is not set, take the hardcoded constant
+                    return lifetimeKey switch
+                    {
+                        nameof(ConfigData.AccessTokenLifetimeHours) => (defaultConfigValue.AccessTokenLifetimeHours > 0) ? defaultConfigValue.AccessTokenLifetimeHours : expirationTime,
+                        nameof(ConfigData.RefreshTokenLifetimeDays) => (defaultConfigValue.RefreshTokenLifetimeDays > 0) ? defaultConfigValue.RefreshTokenLifetimeDays : expirationTime,
+                        _ => expirationTime,
+                    };
                 }
             }
             catch (Exception exeption)
             {
                 Log.WriteError("Get ExpirationTime Error", $"Error while trying to find config value in database. Taking default value", exeption);
             }
+
             return expirationTime;
         }
 
@@ -92,8 +125,6 @@ namespace FWO.Middleware.Server
             return user;
         }
 
-
-
         /// <summary>
         /// add the ownerships to the given user
         /// </summary>
@@ -131,7 +162,7 @@ namespace FWO.Middleware.Server
                     }
                 }
 
-                foreach (var group in groupsOfUser)
+                foreach (string group in groupsOfUser)
                 {
                     string groupName = new DistName(group).Group;
                     if (!MatchesNamingConvention(groupName, namingConvention))
@@ -203,7 +234,7 @@ namespace FWO.Middleware.Server
         }
         private static FwoOwner? FindOwnerWithMatchingGroupName(string groupName, List<FwoOwner> apps)
         {
-            foreach (var app in apps)
+            foreach (FwoOwner app in apps)
             {
                 foreach (string dn in app.GetAllOwnerResponsibles())
                 {

@@ -11,13 +11,10 @@ using Microsoft.OpenApi;
 using Quartz;
 using System.Reflection;
 
-// Implicitly call static constructor so background lock process is started
-// (static constructor is only called after class is used in any way)
-Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
-
 object changesLock = new(); // LOCK
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
 
 // Create Token Generator
@@ -156,3 +153,21 @@ app.Services.GetRequiredService<ComplianceSchedulerService>();
 app.Services.GetRequiredService<UpdateRuleOwnerMappingSchedulerService>();
 
 await app.RunAsync();
+
+namespace FWO.Middleware.ServerTest
+{
+    /// <summary>
+    /// Entry point for the FWO Middleware Server application to make it accessible for testing
+    /// </summary>
+    public partial class Program
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Program"/> class.
+        /// Protected constructor to allow partial class for testing.
+        /// </summary>
+        protected Program()
+        {
+
+        }
+    }
+}

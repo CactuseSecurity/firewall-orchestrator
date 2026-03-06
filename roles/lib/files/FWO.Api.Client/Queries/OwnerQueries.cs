@@ -13,6 +13,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getEditableOwners;
         public static readonly string getEditableOwnersWithConn;
         public static readonly string getOwnersForDns;
+        public static readonly string getOwnersForResponsibleType;
         public static readonly string getOwnersForDnsWithConn;
         public static readonly string getOwnersForDnsWithModellingWithConn;
         public static readonly string newOwner;
@@ -48,6 +49,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRuleOwnerToRemoveByOwner;
         public static readonly string newOwnerResponsibleType;
         public static readonly string updateOwnerResponsibleType;
+        public static readonly string deleteOwnerResponsibleType;
         public static readonly string updateChangelogOwner;
         public static readonly string getChangedOwnersForRuleOwnerMapping;
 
@@ -65,6 +67,7 @@ namespace FWO.Api.Client.Queries
                 getEditableOwners = ownerDetailsFragment + GetQueryText("owner/getEditableOwners.graphql");
                 getEditableOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getEditableOwnersWithConn.graphql");
                 getOwnersForDns = ownerDetailsFragment + GetQueryText("owner/getOwnersForDns.graphql");
+                getOwnersForResponsibleType = GetQueryText("owner/getOwnersForResponsibleType.graphql");
                 getOwnersForDnsWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithConn.graphql");
                 getOwnersForDnsWithModellingWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithModellingWithConn.graphql");
                 newOwner = GetQueryText("owner/newOwner.graphql");
@@ -98,6 +101,7 @@ namespace FWO.Api.Client.Queries
                 getRuleOwnerToRemoveByRule = GetQueryText("owner/getRuleOwnerToRemoveByRule.graphql");
                 newOwnerResponsibleType = GetQueryText("owner/newOwnerResponsibleType.graphql");
                 updateOwnerResponsibleType = GetQueryText("owner/updateOwnerResponsibleType.graphql");
+                deleteOwnerResponsibleType = GetQueryText("owner/deleteOwnerResponsibleType.graphql");
                 updateChangelogOwner = GetQueryText("owner/updateChangelogOwner.graphql");
                 getChangedOwnersForRuleOwnerMapping = GetQueryText("owner/getChangedOwnersForRuleOwnerMapping.graphql");
                 getRuleOwnerToRemoveByOwner = GetQueryText("owner/getRuleOwnerToRemoveByOwner.graphql");

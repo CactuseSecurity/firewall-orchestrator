@@ -501,39 +501,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetGroupName_UsesExternalAppIdPlaceholder()
-        {
-            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
-            SetOwnerGroupPattern(import, $"grp-{Placeholder.ExternalAppId}");
-
-            string groupName = InvokeGetGroupName(import, "ABC-123");
-
-            Assert.That(groupName, Is.EqualTo("grp-ABC-123"));
-        }
-
-        [Test]
-        public void GetGroupName_UsesAppPrefixAndAppIdPlaceholders()
-        {
-            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
-            SetOwnerGroupPattern(import, $"grp-{Placeholder.AppPrefix}-{Placeholder.AppId}");
-
-            string groupName = InvokeGetGroupName(import, "APP-4711");
-
-            Assert.That(groupName, Is.EqualTo("grp-APP-4711"));
-        }
-
-        [Test]
-        public void GetGroupName_ReturnsPatternUnchangedWhenNoKnownPlaceholderExists()
-        {
-            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
-            SetOwnerGroupPattern(import, "grp-static-name");
-
-            string groupName = InvokeGetGroupName(import, "APP-9999");
-
-            Assert.That(groupName, Is.EqualTo("grp-static-name"));
-        }
-
-        [Test]
         public void ParseRolesWithImport_ParsesLegacyArrayIntoSupportingType()
         {
             Dictionary<int, List<string>> parsed = InvokeParseRolesWithImport("[\"roleA\",\"roleB\"]");
@@ -558,6 +525,207 @@ namespace FWO.Test
             Dictionary<int, List<string>> parsed = InvokeParseRolesWithImport("   ");
 
             Assert.That(parsed, Is.Empty);
+        }
+
+        [Test]
+        public async Task ApplyRolesToResponsibles_Skips_WhenNoRolesConfiguredForType()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Main"] = 1
+            });
+            SetInternalLdap(import, null);
+            List<OwnerResponsible> responsibles =
+            [
+                new() { Dn = "cn=user1,dc=example,dc=com", ResponsibleTypeId = 1 }
+            ];
+            Dictionary<int, List<string>> rolesByType = new()
+            {
+                [2] = ["anyRole"]
+            };
+
+            Assert.DoesNotThrowAsync(async () => await InvokeApplyRolesToResponsibles(import, responsibles, rolesByType));
+        }
+
+        [Test]
+        public async Task ApplyRolesToResponsibles_Skips_WhenFilteringRemovesAllRoles()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Main"] = 1
+            });
+            SetResponsibleTypes(import,
+            [
+                new OwnerResponsibleType { Id = 1, Name = "Main", SortOrder = 1, Active = true, AllowModelling = false, AllowRecertification = false }
+            ]);
+            SetInternalLdap(import, null);
+            List<OwnerResponsible> responsibles =
+            [
+                new() { Dn = "cn=user2,dc=example,dc=com", ResponsibleTypeId = 1 }
+            ];
+            Dictionary<int, List<string>> rolesByType = new()
+            {
+                [1] = [Roles.Modeller, Roles.Recertifier]
+            };
+
+            Assert.DoesNotThrowAsync(async () => await InvokeApplyRolesToResponsibles(import, responsibles, rolesByType));
+        }
+
+        [Test]
+        public void ApplyRolesToResponsibles_CallsUpdateRoles_WhenFilteredRolesRemain()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Main"] = 1
+            });
+            SetResponsibleTypes(import,
+            [
+                new OwnerResponsibleType { Id = 1, Name = "Main", SortOrder = 1, Active = true, AllowModelling = false, AllowRecertification = false }
+            ]);
+            SetInternalLdap(import, null);
+            List<OwnerResponsible> responsibles =
+            [
+                new() { Dn = "cn=user3,dc=example,dc=com", ResponsibleTypeId = 1 }
+            ];
+            Dictionary<int, List<string>> rolesByType = new()
+            {
+                [1] = ["ReadOnlyRole"]
+            };
+
+            Assert.ThrowsAsync<NullReferenceException>(async () => await InvokeApplyRolesToResponsibles(import, responsibles, rolesByType));
+        }
+
+        [Test]
+        public void GetRolesForType_ReturnsConfiguredRoles_AndEmptyWhenMissing()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
+            SetRolesByType(import, new Dictionary<int, List<string>>
+            {
+                [7] = ["roleA", "roleB"]
+            });
+
+            List<string> existing = InvokeGetRolesForType(import, 7);
+            List<string> missing = InvokeGetRolesForType(import, 8);
+
+            Assert.That(existing, Is.EquivalentTo(new[] { "roleA", "roleB" }));
+            Assert.That(missing, Is.Empty);
+        }
+
+        [Test]
+        public void IsResponsibleTypeActive_ReturnsTrueOnlyForActiveType()
+        {
+            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
+            SetResponsibleTypes(import,
+            [
+                new OwnerResponsibleType { Id = 1, Name = "Main", SortOrder = 1, Active = true },
+                new OwnerResponsibleType { Id = 2, Name = "Supporting", SortOrder = 2, Active = false }
+            ]);
+
+            bool active = InvokeIsResponsibleTypeActive(import, 1);
+            bool inactive = InvokeIsResponsibleTypeActive(import, 2);
+            bool missing = InvokeIsResponsibleTypeActive(import, 3);
+
+            Assert.That(active, Is.True);
+            Assert.That(inactive, Is.False);
+            Assert.That(missing, Is.False);
+        }
+
+        [Test]
+        public async Task AddAllResponsiblesToUiUser_IgnoresWhitespaceAndDuplicates_WhenNoLdapsConfigured()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            SetConnectedLdaps(import, []);
+            List<OwnerResponsible> responsibles =
+            [
+                new() { Dn = "cn=user1,dc=example,dc=com" },
+                new() { Dn = " cn=user1,dc=example,dc=com " },
+                new() { Dn = "   " },
+                new() { Dn = "" }
+            ];
+
+            Assert.DoesNotThrowAsync(async () => await InvokeAddAllResponsiblesToUiUser(import, responsibles));
+        }
+
+        [Test]
+        public async Task AddResponsibleDnToUiUser_DoesNothing_WhenNoConnectedLdaps()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            SetConnectedLdaps(import, []);
+            HashSet<string> handledUserDns = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> handledGroupDnsByLdap = new(StringComparer.OrdinalIgnoreCase);
+
+            await InvokeAddResponsibleDnToUiUser(import, "cn=group1,dc=example,dc=com", handledUserDns, handledGroupDnsByLdap);
+
+            Assert.That(handledUserDns, Is.Empty);
+            Assert.That(handledGroupDnsByLdap, Is.Empty);
+        }
+
+        [Test]
+        public async Task AddResponsibleDnToUiUser_SkipsGroupProcessing_WhenGroupKeyAlreadyHandled()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            SetConnectedLdaps(import,
+            [
+                new Ldap
+                {
+                    Id = 5,
+                    UserSearchPath = "ou=users,dc=example,dc=com"
+                }
+            ]);
+            HashSet<string> handledUserDns = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> handledGroupDnsByLdap = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "5|cn=group1,dc=example,dc=com"
+            };
+
+            await InvokeAddResponsibleDnToUiUser(import, "cn=group1,dc=example,dc=com", handledUserDns, handledGroupDnsByLdap);
+
+            Assert.That(handledUserDns, Is.Empty);
+            Assert.That(handledGroupDnsByLdap.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TryUpsertUiUser_ReturnsEarly_WhenDnAlreadyHandled()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            HashSet<string> handledUserDns = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "cn=user1,dc=example,dc=com"
+            };
+
+            await InvokeTryUpsertUiUser(import, "cn=user1,dc=example,dc=com", handledUserDns);
+
+            Assert.That(handledUserDns.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TryUpsertUiUser_AddsDn_WhenNotHandledAndUserCannotBeResolved()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            SetConnectedLdaps(import, []);
+            HashSet<string> handledUserDns = new(StringComparer.OrdinalIgnoreCase);
+
+            await InvokeTryUpsertUiUser(import, "cn=user2,dc=example,dc=com", handledUserDns);
+
+            Assert.That(handledUserDns.Contains("cn=user2,dc=example,dc=com"), Is.True);
+        }
+
+        [Test]
+        public async Task ConvertLdapToUiUser_ReturnsNull_WhenNoUserSearchPathMatchesDn()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            SetConnectedLdaps(import,
+            [
+                new Ldap
+                {
+                    Id = 7,
+                    UserSearchPath = "ou=users,dc=example,dc=com"
+                }
+            ]);
+
+            UiUser? uiUser = await InvokeConvertLdapToUiUser(import, "cn=user3,ou=other,dc=example,dc=com");
+
+            Assert.That(uiUser, Is.Null);
         }
 
         [Test]
@@ -851,6 +1019,27 @@ namespace FWO.Test
             globalConfig.OwnerDataImportSyncUsers = syncUsers;
         }
 
+        private static void SetRolesByType(AppDataImport import, Dictionary<int, List<string>> rolesByType)
+        {
+            FieldInfo field = typeof(AppDataImport).GetField("rolesToSetByType", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("rolesToSetByType field not found.");
+            field.SetValue(import, rolesByType);
+        }
+
+        private static void SetInternalLdap(AppDataImport import, Ldap? ldap)
+        {
+            FieldInfo field = typeof(AppDataImport).GetField("internalLdap", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("internalLdap field not found.");
+            field.SetValue(import, ldap);
+        }
+
+        private static void SetConnectedLdaps(AppDataImport import, List<Ldap> ldaps)
+        {
+            FieldInfo field = typeof(AppDataImport).GetField("connectedLdaps", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("connectedLdaps field not found.");
+            field.SetValue(import, ldaps);
+        }
+
         private static List<OwnerResponsible> InvokeBuildOwnerResponsibles(AppDataImport import, ModellingImportAppData incomingApp, string userGroupDn, IEnumerable<string> extraDns)
         {
             MethodInfo method = typeof(AppDataImport).GetMethod(
@@ -872,15 +1061,6 @@ namespace FWO.Test
             return (ok, (int?)args[1]);
         }
 
-        private static string InvokeGetGroupName(AppDataImport import, string extAppId)
-        {
-            MethodInfo method = typeof(AppDataImport).GetMethod(
-                "GetGroupName",
-                BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new InvalidOperationException("GetGroupName helper not found.");
-            return (string)method.Invoke(import, [extAppId])!;
-        }
-
         private static Dictionary<int, List<string>> InvokeParseRolesWithImport(string rolesJson)
         {
             MethodInfo method = typeof(AppDataImport).GetMethod(
@@ -897,6 +1077,76 @@ namespace FWO.Test
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("IsOwnerGroupConfigured helper not found.");
             return (bool)method.Invoke(import, null)!;
+        }
+
+        private static async Task InvokeApplyRolesToResponsibles(
+            AppDataImport import,
+            List<OwnerResponsible> responsibles,
+            Dictionary<int, List<string>> rolesByType)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "ApplyRolesToResponsibles",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("ApplyRolesToResponsibles helper not found.");
+            await (Task)method.Invoke(import, [responsibles, rolesByType])!;
+        }
+
+        private static bool InvokeIsResponsibleTypeActive(AppDataImport import, int typeId)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "IsResponsibleTypeActive",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("IsResponsibleTypeActive helper not found.");
+            return (bool)method.Invoke(import, [typeId])!;
+        }
+
+        private static List<string> InvokeGetRolesForType(AppDataImport import, int typeId)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "GetRolesForType",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("GetRolesForType helper not found.");
+            return (List<string>)method.Invoke(import, [typeId])!;
+        }
+
+        private static async Task InvokeAddAllResponsiblesToUiUser(AppDataImport import, IEnumerable<OwnerResponsible> responsibles)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "AddAllResponsiblesToUiUser",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("AddAllResponsiblesToUiUser helper not found.");
+            await (Task)method.Invoke(import, [responsibles])!;
+        }
+
+        private static async Task InvokeAddResponsibleDnToUiUser(
+            AppDataImport import,
+            string responsibleDn,
+            HashSet<string> handledUserDns,
+            HashSet<string> handledGroupDnsByLdap)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "AddResponsibleDnToUiUser",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("AddResponsibleDnToUiUser helper not found.");
+            await (Task)method.Invoke(import, [responsibleDn, handledUserDns, handledGroupDnsByLdap])!;
+        }
+
+        private static async Task InvokeTryUpsertUiUser(AppDataImport import, string userDn, HashSet<string> handledUserDns)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "TryUpsertUiUser",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("TryUpsertUiUser helper not found.");
+            await (Task)method.Invoke(import, [userDn, handledUserDns])!;
+        }
+
+        private static async Task<UiUser?> InvokeConvertLdapToUiUser(AppDataImport import, string userDn)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "ConvertLdapToUiUser",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("ConvertLdapToUiUser helper not found.");
+            return await (Task<UiUser?>)method.Invoke(import, [userDn])!;
         }
 
         private static async Task InvokeImportApps(AppDataImport import, string importfileName, OwnerChangeImportTracker tracker)

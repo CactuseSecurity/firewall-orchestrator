@@ -200,18 +200,19 @@ namespace FWO.Middleware.Server
                     await AddLogEntry(1, LevelApp, errorText);
                     return false;
                 }
+                List<OwnerResponsible> responsibles = BuildOwnerResponsibles(incomingApp);
 
                 FwoOwner? existingApp = existingApps.FirstOrDefault(x => x.ExtAppId == incomingApp.ExtAppId);
 
                 if (existingApp == null)
                 {
-                    appId = await NewApp(incomingApp, ownerLifeCycleStateId);
+                    appId = await NewApp(incomingApp, ownerLifeCycleStateId, responsibles);
                     await ownerChangeTracker.AddOwnerChange(null, appId, ChangelogActionType.INSERT, incomingApp.ImportSource);
                 }
                 else
                 {
                     appId = existingApp.Id;
-                    await UpdateApp(incomingApp, existingApp, ownerLifeCycleStateId);
+                    await UpdateApp(incomingApp, existingApp, ownerLifeCycleStateId, responsibles);
                     if (!existingApp.Active)
                     {
                         await ownerChangeTracker.AddOwnerChange(appId, appId, ChangelogActionType.CHANGE, incomingApp.ImportSource);
@@ -221,8 +222,8 @@ namespace FWO.Middleware.Server
                 {
                     await UpdateRoles(incomingApp.MainUser, GetRolesForType(GlobalConst.kOwnerResponsibleTypeMain));
                 }
-                // in order to store email addresses of users in the group in UiUser for email notification:
-                // Todo: do we need this ??? await AddAllGroupMembersToUiUser(userGroupDn);
+                // Store users from all imported responsibles in uiuser for email notifications.
+                await AddAllResponsiblesToUiUser(responsibles);
                 await InitRecert(incomingApp, existingApp, appId);
             }
             catch (Exception exc)
@@ -235,7 +236,7 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task<int> NewApp(ModellingImportAppData incomingApp, int? ownerLifeCycleStateId)
+        private async Task<int> NewApp(ModellingImportAppData incomingApp, int? ownerLifeCycleStateId, List<OwnerResponsible> responsibles)
         {
             int appId = 0;
             var variables = new
@@ -253,7 +254,6 @@ namespace FWO.Middleware.Server
             if (returnIds != null)
             {
                 appId = returnIds[0].NewId;
-                List<OwnerResponsible> responsibles = BuildOwnerResponsibles(incomingApp);
                 await UpdateOwnerResponsibles(appId, responsibles, []);
                 await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
                 foreach (var appServer in incomingApp.AppServers)
@@ -264,7 +264,7 @@ namespace FWO.Middleware.Server
             return appId;
         }
 
-        private async Task UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp, int? ownerLifeCycleStateId)
+        private async Task UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp, int? ownerLifeCycleStateId, List<OwnerResponsible> responsibles)
         {
             var Variables = new
             {
@@ -278,7 +278,6 @@ namespace FWO.Middleware.Server
                 recertActive = incomingApp.RecertActive || existingApp.RecertActive
             };
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.updateOwner, Variables);
-            List<OwnerResponsible> responsibles = BuildOwnerResponsibles(incomingApp);
             await UpdateOwnerResponsibles(existingApp.Id, responsibles, existingApp.OwnerResponsibles ?? []);
             await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
             await ImportAppServers(incomingApp, existingApp.Id);
@@ -326,24 +325,6 @@ namespace FWO.Middleware.Server
             List<OwnerResponsible> responsibles = [];
             HashSet<string> seenTypeDn = new(StringComparer.OrdinalIgnoreCase);
 
-            void TryAddResponsible(string dn, int responsibleTypeId)
-            {
-                if (string.IsNullOrWhiteSpace(dn))
-                {
-                    return;
-                }
-                string normalizedDn = dn.Trim();
-                string dedupKey = $"{responsibleTypeId}|{normalizedDn}";
-                if (seenTypeDn.Add(dedupKey))
-                {
-                    responsibles.Add(new OwnerResponsible
-                    {
-                        Dn = normalizedDn,
-                        ResponsibleTypeId = responsibleTypeId
-                    });
-                }
-            }
-
             if (incomingApp.Responsibles != null && incomingApp.Responsibles.Count > 0)
             {
                 if (!AreResponsibleKeysNumeric(incomingApp.Responsibles))
@@ -365,16 +346,34 @@ namespace FWO.Middleware.Server
                         }
                         foreach (string dn in dns.Where(dn => !string.IsNullOrWhiteSpace(dn)))
                         {
-                            TryAddResponsible(dn, responsibleTypeId);
+                            TryAddResponsible(responsibles, seenTypeDn, dn, responsibleTypeId);
                         }
                     }
                 }
             }
             if (IsResponsibleTypeActive(GlobalConst.kOwnerResponsibleTypeMain))
             {
-                TryAddResponsible(incomingApp.MainUser ?? "", GlobalConst.kOwnerResponsibleTypeMain);
+                TryAddResponsible(responsibles, seenTypeDn, incomingApp.MainUser ?? "", GlobalConst.kOwnerResponsibleTypeMain);
             }
             return responsibles;
+        }
+
+        private static void TryAddResponsible(List<OwnerResponsible> responsibles, HashSet<string> seenTypeDn, string dn, int responsibleTypeId)
+        {
+            if (string.IsNullOrWhiteSpace(dn))
+            {
+                return;
+            }
+            string normalizedDn = dn.Trim();
+            string dedupKey = $"{responsibleTypeId}|{normalizedDn}";
+            if (seenTypeDn.Add(dedupKey))
+            {
+                responsibles.Add(new OwnerResponsible
+                {
+                    Dn = normalizedDn,
+                    ResponsibleTypeId = responsibleTypeId
+                });
+            }
         }
 
         private static bool AreResponsibleKeysNumeric(Dictionary<string, List<string>> incomingResponsibles)
@@ -517,36 +516,6 @@ namespace FWO.Middleware.Server
             return false;
         }
 
-        private string GetGroupName(string extAppIdString)
-        {
-            // hard-coded GlobalConst.kAppIdSeparator could be moved to settings
-            if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.ExternalAppId))
-            {
-                return globalConfig.OwnerLdapGroupNames.Replace(Placeholder.ExternalAppId, extAppIdString);
-            }
-
-            if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppPrefix) &&
-                globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppId))
-            {
-                string[] parts = extAppIdString.Split(GlobalConst.kAppIdSeparator);
-                string appPrefix = parts.Length > 0 ? parts[0] : "";
-                string appId = parts.Length > 1 ? parts[1] : "";
-                return globalConfig.OwnerLdapGroupNames.Replace(Placeholder.AppPrefix, appPrefix).Replace(Placeholder.AppId, appId);
-            }
-            Log.WriteInfo(LogMessageTitle, $"Could not find ayn placeholders in group name pattern \"{globalConfig.OwnerLdapGroupNames}\" " +
-                $"({Placeholder.ExternalAppId}, {Placeholder.AppPrefix}, {Placeholder.AppId} ");
-            return globalConfig.OwnerLdapGroupNames;
-        }
-
-        private string GetGroupDn(string extAppIdString)
-        {
-            if (string.IsNullOrWhiteSpace(ownerGroupLdapPath))
-            {
-                throw new ArgumentNullException(nameof(ownerGroupLdapPath));
-            }
-            return $"cn={GetGroupName(extAppIdString)},{ownerGroupLdapPath}";
-        }
-
         private static string ResolveOwnerGroupPath(Ldap ownerGroupLdap)
         {
             if (!string.IsNullOrWhiteSpace(ownerGroupLdap.GroupWritePath))
@@ -604,22 +573,60 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// for each user of a remote ldap group create a user in uiuser
-        /// this is necessary in order to get details like email address for users
-        /// which have never logged in but who need to be notified via email
+        /// For every imported responsible DN (user or group), ensure all referenced users exist in uiuser.
+        /// This is necessary to resolve email addresses for users who have never logged in.
         /// </summary>
-        private async Task AddAllGroupMembersToUiUser(string userGroupDn)
+        private async Task AddAllResponsiblesToUiUser(IEnumerable<OwnerResponsible> responsibles)
+        {
+            HashSet<string> handledUserDns = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> handledGroupDnsByLdap = new(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string responsibleDn in responsibles
+                .Where(responsible => !string.IsNullOrWhiteSpace(responsible.Dn))
+                .Select(responsible => responsible.Dn.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                await AddResponsibleDnToUiUser(responsibleDn, handledUserDns, handledGroupDnsByLdap);
+            }
+        }
+
+        private async Task AddResponsibleDnToUiUser(string responsibleDn, HashSet<string> handledUserDns, HashSet<string> handledGroupDnsByLdap)
         {
             foreach (Ldap ldap in connectedLdaps)
             {
-                foreach (string memberDn in await ldap.GetGroupMembers(userGroupDn))
+                bool isUserDn = !string.IsNullOrEmpty(ldap.UserSearchPath)
+                    && responsibleDn.Contains(ldap.UserSearchPath, StringComparison.OrdinalIgnoreCase);
+                if (isUserDn)
                 {
-                    UiUser? uiUser = await ConvertLdapToUiUser(memberDn);
-                    if (uiUser != null)
+                    await TryUpsertUiUser(responsibleDn, handledUserDns);
+                    continue;
+                }
+
+                string groupKey = $"{ldap.Id}|{responsibleDn}";
+                if (!handledGroupDnsByLdap.Add(groupKey))
+                {
+                    continue;
+                }
+                foreach (string memberDn in await ldap.GetGroupMembers(responsibleDn))
+                {
+                    if (!string.IsNullOrWhiteSpace(memberDn))
                     {
-                        await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
+                        await TryUpsertUiUser(memberDn, handledUserDns);
                     }
                 }
+            }
+        }
+
+        private async Task TryUpsertUiUser(string userDn, HashSet<string> handledUserDns)
+        {
+            if (!handledUserDns.Add(userDn))
+            {
+                return;
+            }
+            UiUser? uiUser = await ConvertLdapToUiUser(userDn);
+            if (uiUser != null)
+            {
+                await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
             }
         }
 

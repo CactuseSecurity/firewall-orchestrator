@@ -74,7 +74,7 @@ namespace FWO.Middleware.Server
                 await ImportSingleSource(importfilePathAndName + ".json", failedImports, ownerChangeTracker);
             }
 
-            await ownerChangeTracker.CompleteImport(failedImports.Count == 0);        
+            await ownerChangeTracker.CompleteImport(failedImports.Count == 0);
             return failedImports;
         }
 
@@ -148,7 +148,7 @@ namespace FWO.Middleware.Server
             int deleteCounter = 0;
             int deleteFailCounter = 0;
 
-            if(!IsOwnerGroupConfigured())
+            if (!IsOwnerGroupConfigured())
             {
                 return;
             }
@@ -168,7 +168,7 @@ namespace FWO.Middleware.Server
             string? importSource = importedApps.FirstOrDefault()?.ImportSource;
             if (importSource != null)
             {
-                (deleteCounter, deleteFailCounter) = await DeactivateMissingApps(importSource, existingApps, importedApps, ownerChangeTracker);               
+                (deleteCounter, deleteFailCounter) = await DeactivateMissingApps(importSource, existingApps, importedApps, ownerChangeTracker);
             }
             string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
             Log.WriteInfo(LogMessageTitle, messageText);
@@ -302,7 +302,7 @@ namespace FWO.Middleware.Server
                     }
                 }
             }
-            return (deletedCounter, deleteFailCounter);           
+            return (deletedCounter, deleteFailCounter);
         }
 
         private async Task<bool> DeactivateApp(FwoOwner app, OwnerChangeImportTracker ownerChangeTracker)

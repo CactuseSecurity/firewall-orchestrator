@@ -32,13 +32,13 @@
                         @if (userConfig.AllowManualOwnerAdmin)
                         {
                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditResponsibleType(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                            @if (context.Active)
+                            @if (!context.Active)
                             {
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestToggleActive(context)">@(DisplayService.DisplayButton(userConfig, "deactivate", Icons.Delete))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="async () => await ReactivateResponsibleType(context)">@(DisplayService.DisplayButton(userConfig, "reactivate", Icons.Add))</button>
                             }
                             else
                             {
-                                <button type="button" class="btn btn-sm btn-success" @onclick="() => RequestToggleActive(context)">@(DisplayService.DisplayButton(userConfig, "reactivate", Icons.Add))</button>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteResponsibleType(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                             }
                         }
                     </div>
@@ -112,7 +112,7 @@
         </Footer>
     </PopUp>
 
-    <Confirm @bind-Display="ToggleActiveMode" PerformAction="ToggleActive" Title="@(userConfig.GetText("responsibles"))" Message="@toggleMessage" AllowedRoles="@($"{Roles.Admin}, {Roles.Auditor}")" />
+    <ConfirmDelete @bind-Display="DeleteTypeMode" PerformAction="DeleteResponsibleType" Title="@userConfig.GetText("responsibles")" DeleteMessage="@deleteTypeMessage" AllowedRoles="@($"{Roles.Admin}, {Roles.Auditor}")" />
 }
 else
 {
@@ -129,8 +129,8 @@ else
     private bool initComplete = false;
     private bool EditMode = false;
     private bool AddMode = false;
-    private bool ToggleActiveMode = false;
-    private string toggleMessage = "";
+    private bool DeleteTypeMode = false;
+    private string deleteTypeMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -247,37 +247,99 @@ else
         }
     }
 
-    private void RequestToggleActive(OwnerResponsibleType type)
+    private async Task RequestDeleteResponsibleType(OwnerResponsibleType type)
     {
         actType = type;
-        toggleMessage = $"{userConfig.GetText(type.Active ? "deactivate" : "reactivate")} {type.Name}?";
-        ToggleActiveMode = true;
+        List<FwoOwner> ownersUsingType = await apiConnection.SendQueryAsync<List<FwoOwner>>(
+            OwnerQueries.getOwnersForResponsibleType,
+            new { responsibleTypeId = type.Id });
+        deleteTypeMessage = ownersUsingType.Count > 0 && type.Active
+            ? $"{userConfig.GetText("deactivate")} {type.Name}?"
+            : $"{userConfig.GetText("delete")} {type.Name}?";
+        DeleteTypeMode = true;
     }
 
-    private async Task ToggleActive()
+    private async Task DeleteResponsibleType()
     {
         try
         {
-            actType.Active = !actType.Active;
-            var variables = new
+            List<FwoOwner> ownersUsingType = await apiConnection.SendQueryAsync<List<FwoOwner>>(
+                OwnerQueries.getOwnersForResponsibleType,
+                new { responsibleTypeId = actType.Id });
+
+            if (ownersUsingType.Count > 0)
             {
-                id = actType.Id,
-                name = actType.Name,
-                active = actType.Active,
-                sort_order = actType.SortOrder,
-                allow_modelling = actType.AllowModelling,
-                allow_recertification = actType.AllowRecertification
+                await DeactivateResponsibleType(actType);
+            }
+            else
+            {
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(
+                    OwnerQueries.deleteOwnerResponsibleType, new { id = actType.Id })).ReturnIds;
+                if (returnIds == null || returnIds.Length == 0)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("delete"), userConfig.GetText("E5291"), true);
+                    return;
+                }
+                responsibleTypes.RemoveAll(type => type.Id == actType.Id);
+                Log.WriteAudit(Title: "Responsible Types Settings", Text: $"Deleted responsible type: {actType.Name}");
+            }
+            await LoadTypes();
+            DeleteTypeMode = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete"), "", true);
+        }
+    }
+
+    private async Task DeactivateResponsibleType(OwnerResponsibleType type)
+    {
+        if (type.Active)
+        {
+            var updateVariables = new
+            {
+                id = type.Id,
+                name = type.Name,
+                active = false,
+                sort_order = type.SortOrder,
+                allow_modelling = type.AllowModelling,
+                allow_recertification = type.AllowRecertification
             };
-            int updatedId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwnerResponsibleType, variables)).UpdatedId;
-            if (updatedId != actType.Id)
+            int updatedId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwnerResponsibleType, updateVariables)).UpdatedId;
+            if (updatedId == type.Id)
+            {
+                Log.WriteAudit(Title: "Responsible Types Settings", Text: $"Deactivated responsible type (still in use): {type.Name}");
+            }
+            else
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_responsible_type"), userConfig.GetText("E5291"), true);
+            }
+        }
+    }
+
+    private async Task ReactivateResponsibleType(OwnerResponsibleType type)
+    {
+        try
+        {
+            var updateVariables = new
+            {
+                id = type.Id,
+                name = type.Name,
+                active = true,
+                sort_order = type.SortOrder,
+                allow_modelling = type.AllowModelling,
+                allow_recertification = type.AllowRecertification
+            };
+            int updatedId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwnerResponsibleType, updateVariables)).UpdatedId;
+            if (updatedId != type.Id)
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_responsible_type"), userConfig.GetText("E5291"), true);
                 return;
             }
+            Log.WriteAudit(Title: "Responsible Types Settings", Text: $"Reactivated responsible type: {type.Name}");
             await LoadTypes();
-            ToggleActiveMode = false;
             await InvokeAsync(StateHasChanged);
-            Log.WriteAudit(Title: "Responsible Types Settings", Text: $"{(actType.Active ? "Activated" : "Deactivated")} responsible type: {actType.Name}");
         }
         catch (Exception exception)
         {

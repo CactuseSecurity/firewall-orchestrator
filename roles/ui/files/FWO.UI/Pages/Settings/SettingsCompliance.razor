@@ -244,7 +244,7 @@
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("H5846"))</label>
                 <div class="col-sm-7">
-                    <button class="btn btn-primary" @onclick="DeleteAllViolations">@(userConfig.GetText("H5847"))</button>
+                    <button class="btn btn-primary" @onclick="DeleteAllViolations">@(userConfig.GetText("delete"))</button>
                 </div>
             </div>
         </Authorized>
@@ -252,7 +252,7 @@
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("H5846"))</label>
                 <div class="col-sm-7">
-                    <button class="btn btn-primary" disabled>@(userConfig.GetText("H5847"))</button>
+                    <button class="btn btn-primary" disabled>@(userConfig.GetText("delete"))</button>
                 </div>
             </div>
         </NotAuthorized>

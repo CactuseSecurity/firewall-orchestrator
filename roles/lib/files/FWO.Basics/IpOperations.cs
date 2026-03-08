@@ -1,7 +1,6 @@
 using System.Net.Sockets;
 using System.Net;
 using NetTools;
-using System;
 using System.Numerics;
 using DnsClient;
 
@@ -109,12 +108,11 @@ namespace FWO.Basics
                     return false;
                 }
 
-                if (strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
+                if (strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork &&
+                    ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork &&
+                    (!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd)))
                 {
-                    if (!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
 
                 if (!ipStartOK || !ipEndOK)
@@ -154,12 +152,11 @@ namespace FWO.Basics
                     return false;
                 }
 
-                if (strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
+                if (strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork &&
+                    ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork &&
+                    (!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd)))
                 {
-                    if (!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
 
                 if (!ipStartOK || !ipEndOK)
@@ -409,7 +406,7 @@ namespace FWO.Basics
                 int sourceMask = source.Begin.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
                 sourceNetwork.Add(IPNetwork2.Parse(source.ToString(), (byte)sourceMask));
             }
-            else if (IPNetwork2.TryParseRange(source.ToString(), out IEnumerable<IPNetwork2> parsedSourceRange))
+            else if (IPNetwork2.TryParseRange(source.ToString(), out IEnumerable<IPNetwork2>? parsedSourceRange))
             {
                 sourceNetwork.AddRange(parsedSourceRange);
             }
@@ -421,7 +418,7 @@ namespace FWO.Basics
                     int rangeMask = source.Begin.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
                     subtractorNetwork.Add(IPNetwork2.Parse(range.ToString(), (byte)rangeMask));
                 }
-                else if (IPNetwork2.TryParseRange(range.ToString(), out IEnumerable<IPNetwork2> parsedSubtractorRange))
+                else if (IPNetwork2.TryParseRange(range.ToString(), out IEnumerable<IPNetwork2>? parsedSubtractorRange))
                 {
                     subtractorNetwork.AddRange(parsedSubtractorRange);
                 }
@@ -437,8 +434,8 @@ namespace FWO.Basics
             this IEnumerable<IPNetwork2> source,
             IEnumerable<IPNetwork2> subtract)
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (subtract == null) throw new ArgumentNullException(nameof(subtract));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(subtract);
 
             var result = source.ToList();
 
@@ -455,14 +452,15 @@ namespace FWO.Basics
 
         public static List<IPAddressRange> ToMergedRanges(this IEnumerable<IPNetwork2> networks, bool includeNetworkAndBroadcast = true)
         {
-            var list = networks?.ToList() ?? new List<IPNetwork2>();
-            if (list.Count == 0) return new List<IPAddressRange>();
+            if (!networks.Any()) return [];
 
             // 1) in [start,end] (inklusive) umwandeln
-            var intervals = list.Select(n =>
+            List<(IPAddress start, IPAddress end)> intervals = networks.Select(n =>
             {
-                var start = includeNetworkAndBroadcast ? n.Network : n.FirstUsable;
-                var end = includeNetworkAndBroadcast ? n.Broadcast : n.LastUsable;
+                IPAddress network = n.Network;
+                // IPNetwork2 annotates usable endpoints as nullable, so normalize them before merging.
+                IPAddress start = includeNetworkAndBroadcast ? network : n.FirstUsable ?? network;
+                IPAddress end = includeNetworkAndBroadcast ? n.Broadcast ?? start : n.LastUsable ?? start;
                 return (start, end);
             }).ToList();
 
@@ -476,26 +474,26 @@ namespace FWO.Basics
 
             // 3) zusammenführen (merge), wenn überlappend ODER direkt benachbart
             var merged = new List<(IPAddress start, IPAddress end)>();
-            (IPAddress s, IPAddress e) cur = intervals[0];
+            (IPAddress start, IPAddress end) currentInterval = intervals[0];
 
-            foreach (var (s, e) in intervals.Skip(1))
+            foreach ((IPAddress start, IPAddress end) in intervals.Skip(1))
             {
                 // Wenn s <= cur.e + 1  => zusammenlegen
-                var nextToCurEndPlusOne = CompareIpValues(s, AddIp(cur.e, 1)) <= 0;
+                var nextToCurEndPlusOne = CompareIpValues(start, AddIp(currentInterval.end, 1)) <= 0;
                 if (nextToCurEndPlusOne)
                 {
-                    if (CompareIpValues(e, cur.e) > 0) cur.e = e;
+                    if (CompareIpValues(end, currentInterval.end) > 0) currentInterval.end = end;
                 }
                 else
                 {
-                    merged.Add(cur);
-                    cur = (s, e);
+                    merged.Add(currentInterval);
+                    currentInterval = (start, end);
                 }
             }
-            merged.Add(cur);
+            merged.Add(currentInterval);
 
             // 4) in IPAddressRange (inklusive) umwandeln
-            return merged.Select(t => new IPAddressRange(t.start, t.end)).ToList();
+            return [.. merged.Select(interval => new IPAddressRange(interval.start, interval.end))];
         }
 
         private static IPAddress AddIp(IPAddress ip, long delta)

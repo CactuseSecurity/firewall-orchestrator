@@ -261,25 +261,25 @@ namespace FWO.Test
                 if (query == ModellingQueries.setAppServerDeletedState)
                 {
                     SetDeletedCalls++;
-                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [ new ReturnId() ] });
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId()] });
                 }
 
                 if (query == ModellingQueries.updateNwObjectInNwGroup)
                 {
                     ReplaceInGroupCalls++;
-                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [ new ReturnId() ] });
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId()] });
                 }
 
                 if (query == ModellingQueries.updateNwObjectInConnection)
                 {
                     ReplaceInConnectionCalls++;
-                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [ new ReturnId() ] });
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId()] });
                 }
 
                 if (query == ModellingQueries.addHistoryEntry)
                 {
                     HistoryEntryCalls++;
-                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [ new ReturnId() ] });
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId()] });
                 }
             }
 

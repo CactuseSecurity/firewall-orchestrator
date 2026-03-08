@@ -1,45 +1,65 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+VENV_BIN=""
+
+# Load config file
+CONFIG_FILE=".githooks/tooling.env"
+set -a
+source "$CONFIG_FILE"
+set +a
+
 if [ -d ".venv/Scripts" ]; then
+    # Using virtual environment from .venv (Windows)
     VENV_BIN=".venv/Scripts/"
-  echo "Using virtual environment from .venv (Windows)"
-    activate_script=".venv/Scripts/activate"
+    source ".venv/Scripts/activate"
 elif [ -d ".venv/bin" ]; then
-    echo "Using virtual environment from .venv (Unix)"
+    # Using virtual environment from .venv (Unix)
     VENV_BIN=".venv/bin/"
-    activate_script=".venv/bin/activate"
-else
+    source ".venv/bin/activate"
+elif command -v conda >/dev/null 2>&1; then
+    # Using conda
+    CONDA_BASE="$(conda info --base)"
+    source "$CONDA_BASE/etc/profile.d/conda.sh"
+    conda activate "$CONDA_ENV"
+    if [ -d "$CONDA_PREFIX/Scripts" ]; then
+        # Conda Windows
+        VENV_BIN="$CONDA_PREFIX/Scripts/"
+    else
+        # Conda Unix
+        VENV_BIN="$CONDA_PREFIX/bin/"
+    fi
+fi
+
+if [ -z "$VENV_BIN" ]; then
     echo "Warning: No virtual environment found. Assuming ruff and pyright are globally available."
-    VENV_BIN=""
-    activate_script=""
 fi
 
-if [ -f "$activate_script" ]; then
-    source "$activate_script"
-fi
-
-RUFF_PATH=$VENV_BIN"ruff"
-PYRIGHT_PATH=$VENV_BIN"pyright"
+RUFF_PATH="$(command -v ruff)"
+PYRIGHT_PATH="$(command -v pyright)"
 
 # Assure ruff, pyright and dotnet are available -> otherwise inform user about it
 UNAVAILABLE_DEPENDENCIES=false
 for cmd in "$RUFF_PATH" "$PYRIGHT_PATH" "dotnet"; do
-    command -v "$cmd" >/dev/null 2>&1 || 
-    { 
-     echo "Error: '$cmd' not found. Please install it or activate your environment.";
-     UNAVAILABLE_DEPENDENCIES=true;
+    command -v "$cmd" >/dev/null 2>&1 || {
+        echo "Error: '$cmd' not found. Please install it or activate your environment."
+        UNAVAILABLE_DEPENDENCIES=true
     }
 done
-
 if $UNAVAILABLE_DEPENDENCIES; then
     exit 1;
 fi
 
 # Checks
-$RUFF_PATH check --fix
-$RUFF_PATH format
-
-$PYRIGHT_PATH
-
+"$RUFF_PATH" check --fix
+"$RUFF_PATH" format
+"$PYRIGHT_PATH"
 dotnet format roles
+
+# Prevent committing submodule pointer updates (auto-unstage)
+for submodule in $CHECK_SUBMODULE_POINTERS; do
+    if ! git diff --cached --quiet --ignore-submodules=none -- "$submodule"; then
+        echo "Info: Unstaging '$submodule' submodule pointer change (not allowed in commits)."
+        git restore --staged -- "$submodule" >/dev/null 2>&1
+    fi
+done

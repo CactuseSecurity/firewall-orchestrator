@@ -413,8 +413,8 @@ namespace FWO.Test
         {
             // Arrange
             List<IPNetwork2> nets = new List<IPNetwork2>();
-            if (IPNetwork2.TryParseRange("192.168.10.0-192.168.10.127", out IEnumerable<IPNetwork2> a)) nets.AddRange(a);
-            if (IPNetwork2.TryParseRange("192.168.10.128-192.168.10.255", out IEnumerable<IPNetwork2> b)) nets.AddRange(b);
+            if (IPNetwork2.TryParseRange("192.168.10.0-192.168.10.127", out IEnumerable<IPNetwork2>? a)) nets.AddRange(a);
+            if (IPNetwork2.TryParseRange("192.168.10.128-192.168.10.255", out IEnumerable<IPNetwork2>? b)) nets.AddRange(b);
 
             // Act
             List<IPAddressRange> merged = IpOperations.ToMergedRanges(nets);

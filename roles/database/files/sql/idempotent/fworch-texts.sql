@@ -3814,6 +3814,8 @@ INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externe
 INSERT INTO txt VALUES ('E9102', 'English', 'Error at changing the external ticket state.');
 INSERT INTO txt VALUES ('E9103', 'German',  'Fehler beim Schliessen des Tickets.');
 INSERT INTO txt VALUES ('E9103', 'English', 'Error closing ticket.');
+INSERT INTO txt VALUES ('E9104', 'German',  'Sie haben nicht die ben&ouml;tigte Rolle.');
+INSERT INTO txt VALUES ('E9104', 'English', 'You do not have the necessary role.');
 
 INSERT INTO txt VALUES ('E9201', 'German',  'Fehler beim L&ouml;schen der existierenden App Zonen Objekte');
 INSERT INTO txt VALUES ('E9201', 'English', 'Error deleting existing app zone objects');

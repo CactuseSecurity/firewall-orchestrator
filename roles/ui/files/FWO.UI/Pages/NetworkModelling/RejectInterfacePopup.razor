@@ -90,7 +90,13 @@
             try
             {
                 ConnHandler.ActConn.AddProperty(ConState.Rejected.ToString());
-                await ConnHandler.Save(true);
+                bool saved = AllowAdminReject
+                    ? await ConnHandler.SavePropertiesOnly()
+                    : await ConnHandler.Save(true);
+                if (!saved)
+                {
+                    return;
+                }
                 await ConnHandler.RemoveFromAllSelections();
                 await RejectInTicket();
                 await RefreshParent();

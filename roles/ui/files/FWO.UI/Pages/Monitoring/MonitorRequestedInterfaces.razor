@@ -180,7 +180,10 @@ else
     private WfHandler wfHandler = new();
     private WfStateDict states = new();
     private bool WorkInProgress = false;
-    private List<long> OpenRemovedTicketIds => [.. RequestedInterfaceRows
+    private List<RequestedInterfaceRow> OpenRemovedRequestedRows => [.. FilteredRequestedInterfaces
+        .Where(row => row.Connection.Removed && row.IsOpen && row.TicketId != null)];
+
+    private List<long> OpenRemovedTicketIds => [.. OpenRemovedRequestedRows
         .Where(row => row.Connection.Removed && row.IsOpen && row.TicketId != null)
         .Select(row => row.TicketId!.Value)
         .Distinct()];
@@ -382,13 +385,9 @@ else
             List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
                 ModellingQueries.getInterfaceUsers, new { id = requestedInterface.Id });
             List<int> usingConnectionIds = usingConnections
-                .Select(connection => connection.Id)
-                .Distinct()
-                .OrderBy(id => id)
-                .ToList();
+                .Select(connection => connection.Id).Distinct().OrderBy(id => id).ToList();
             UsedByConnectionIdsByInterfaceId[requestedInterface.Id] = usingConnectionIds.Count > 0
-                ? string.Join(", ", usingConnectionIds)
-                : "-";
+                ? string.Join(", ", usingConnectionIds) : "-";
         }
     }
 
@@ -402,24 +401,25 @@ else
         }
         application ??= new();
         DisplayConnHandler = new ModellingConnectionHandler(
-            apiConnection,
-            userConfig,
-            application,
-            RequestedInterfaces,
-            connection,
-            false,
-            true,
-            DisplayMessageInUi,
-            DefaultInit.DoNothing,
-            false);
+            apiConnection, userConfig, application, RequestedInterfaces, connection,
+            false, true, DisplayMessageInUi, DefaultInit.DoNothing, false);
         await DisplayConnHandler.Init();
         ShowDisplayPopup = true;
     }
 
     private bool CanRejectInterface(ModellingConnection connection)
     {
-        return TicketStateIdByConnectionId.TryGetValue(connection.Id, out int stateId)
+        bool ticketOpen = TicketStateIdByConnectionId.TryGetValue(connection.Id, out int stateId)
             && stateId < NewInterfaceStateMatrix.LowestEndState;
+        if (!ticketOpen)
+        {
+            return false;
+        }
+
+        // Reject is only allowed when no connection currently uses the interface.
+        return !UsedByConnectionIdsByInterfaceId.TryGetValue(connection.Id, out string? usingConnectionIds)
+            || string.IsNullOrWhiteSpace(usingConnectionIds)
+            || usingConnectionIds == "-";
     }
 
     private async Task RejectInterface(ModellingConnection connection)
@@ -432,16 +432,8 @@ else
         }
         application ??= new();
         RejectConnHandler = new ModellingConnectionHandler(
-            apiConnection,
-            userConfig,
-            application,
-            RequestedInterfaces,
-            connection,
-            false,
-            false,
-            DisplayMessageInUi,
-            DefaultInit.DoNothing,
-            false);
+            apiConnection, userConfig, application, RequestedInterfaces, connection,
+            false, false, DisplayMessageInUi, DefaultInit.DoNothing, false);
         await RejectConnHandler.Init();
         ShowRejectPopup = true;
     }
@@ -451,18 +443,23 @@ else
         try
         {
             WorkInProgress = true;
-            TicketCreator ticketCreator = new(
-                apiConnection,
-                userConfig,
-                authenticationStateTask!.Result.User,
-                middlewareClient,
-                WorkflowPhases.implementation);
+            Dictionary<long, RequestedInterfaceRow> rowByTicketId = OpenRemovedRequestedRows
+                .Where(row => row.TicketId != null)
+                .GroupBy(row => row.TicketId!.Value)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            TicketCreator ticketCreator = new( apiConnection, userConfig, authenticationStateTask!.Result.User,
+                middlewareClient, WorkflowPhases.implementation);
             int rejectedCount = 0;
             foreach (long ticketId in OpenRemovedTicketIds)
             {
                 if (await ticketCreator.PromoteNewInterfaceImplTask(ticketId, ExtStates.Rejected, RejectRemovedTicketsReason))
                 {
                     rejectedCount++;
+                    if (rowByTicketId.TryGetValue(ticketId, out RequestedInterfaceRow? rowForTicket))
+                    {
+                        await SaveRejectedStateAndRemoveSelections(rowForTicket);
+                    }
                 }
             }
             DisplayMessageInUi(null, userConfig.GetText("reject_tickets"), $"{userConfig.GetText("U9018")} ({rejectedCount}/{OpenRemovedTicketIds.Count})", false);
@@ -479,6 +476,25 @@ else
         }
     }
 
+    private async Task SaveRejectedStateAndRemoveSelections(RequestedInterfaceRow rowForTicket)
+    {
+        ModellingConnection connection = rowForTicket.Connection;
+        FwoOwner? application = connection.App;
+        if ((application == null || application.Id <= 0) && connection.AppId != null &&
+            OwnersById.TryGetValue(connection.AppId.Value, out FwoOwner? resolvedOwner))
+        {
+            application = resolvedOwner;
+        }
+        application ??= new();
+
+        ModellingConnectionHandler connHandler = new(
+            apiConnection, userConfig, application, RequestedInterfaces, connection,
+            false, false, DisplayMessageInUi, DefaultInit.DoNothing, false);
+        connHandler.ActConn.AddProperty(ConState.Rejected.ToString());
+        await connHandler.SavePropertiesOnly();
+        await connHandler.RemoveFromAllSelections();
+    }
+
     private async Task DisplayTicket(ModellingConnection connection)
     {
         if (connection.TicketId == null)
@@ -488,13 +504,8 @@ else
 
         WorkInProgress = true;
         await states.Init(apiConnection);
-        wfHandler = new(
-            DisplayMessageInUi,
-            userConfig,
-            authenticationStateTask!.Result.User,
-            apiConnection,
-            middlewareClient,
-            WorkflowPhases.request) { };
+        wfHandler = new(DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User,
+            apiConnection, middlewareClient, WorkflowPhases.request) { };
         wfHandler.ReadOnlyMode = true;
         await wfHandler.Init();
         WfTicket? ticket = await wfHandler.ResolveTicket((long)connection.TicketId);

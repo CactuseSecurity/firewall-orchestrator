@@ -195,13 +195,13 @@ namespace FWO.Services.Modelling
         {
             if (!IsOwner)
             {
-                DisplayMessageInUi(null, userConfig.GetText("delete_connection"), userConfig.GetText("C9012"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_connection"), userConfig.GetText("E9104"), true);
                 return false;
             }
 
             try
             {
-                if (ConnToDelete.RequestedOnFw || ConnToDelete.IsPublished)
+                if (ConnToDelete.RequestedOnFw || ConnToDelete.IsPublished || ConnToDelete.TicketId != null)
                 {
                     if ((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionRemove, new { id = ConnToDelete.Id, removalDate = DateTime.Now })).UpdatedId == ConnToDelete.Id)
                     {

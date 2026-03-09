@@ -64,32 +64,21 @@ namespace FWO.Services
             }
         }
 
+        private static async Task<bool> UpdateRuleOwners(Func<Task<bool>> fullReinitFunc, Func<Task<bool>> incrementalFunc, bool isFullReInitialize)
+        {
+            return isFullReInitialize ? await fullReinitFunc() : await incrementalFunc();
+        }
+
         public async Task<bool> UpdateRuleOwnersCustomField(UpdateRuleOwnerMappingEventArgs? eventArgs = null)
         {
             bool isFullReInitialize = eventArgs?.isFullReInitialize ?? false;
-
-            if (isFullReInitialize)
-            {
-                return await RunFullReinitializeCustomField();
-            }
-            else
-            {
-                return await RunIncrementalCustomField();
-            }
+            return await UpdateRuleOwners(RunFullReinitializeCustomField, RunIncrementalCustomField, isFullReInitialize);
         }
 
         public async Task<bool> UpdateRuleOwnersIpBased(UpdateRuleOwnerMappingEventArgs? eventArgs = null)
         {
             bool isFullReInitialize = eventArgs?.isFullReInitialize ?? false;
-
-            if (isFullReInitialize)
-            {
-                return await RunFullReinitializeIpBased();
-            }
-            else
-            {
-                return await RunIncrementalIpBased();
-            }
+            return await UpdateRuleOwners(RunFullReinitializeIpBased, RunIncrementalIpBased, isFullReInitialize);
         }
 
         private async Task<bool> RunFullReinitializeCustomField()

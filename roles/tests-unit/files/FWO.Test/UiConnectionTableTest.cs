@@ -400,7 +400,7 @@ namespace FWO.Test
             {
                 InterfacePermission = InterfacePermissions.Restricted.ToString(),
                 App = new FwoOwner { Id = 2 },
-                PermittedOwners = [ new FwoOwner { Id = 3 } ]
+                PermittedOwners = [new FwoOwner { Id = 3 }]
             };
 
             MethodInfo isVisibleToOwner = GetInstanceMethod("IsVisibleToOwner", typeof(ModellingConnection));

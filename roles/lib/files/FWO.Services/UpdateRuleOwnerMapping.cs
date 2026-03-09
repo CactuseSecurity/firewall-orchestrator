@@ -3,18 +3,11 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Services.EventMediator.Events;
-using FWO.Services.EventMediator.Interfaces;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using NetTools;
-using Org.BouncyCastle.Asn1.Crmf;
-using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
-using System.Security.AccessControl;
 using System.Text.Json;
 
 namespace FWO.Services
@@ -81,20 +74,39 @@ namespace FWO.Services
             return await UpdateRuleOwners(RunFullReinitializeIpBased, RunIncrementalIpBased, isFullReInitialize);
         }
 
-        private async Task<bool> RunFullReinitializeCustomField()
+        private Task<bool> RunFullReinitializeCustomField()
         {
+            return RunFullReinitialize(
+                () => apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForOwnerMappingCustomField),
+                () => apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerCustomField),
+                BuildNewRuleOwnersCustomField
+            );
+        }
+
+        private Task<bool> RunFullReinitializeIpBased()
+        {
+            return RunFullReinitialize(
+                () => apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForOwnerMappingIpBased),
+                () => apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerIpBased),
+                BuildNewRuleOwnersIpBased
+            );
+        }
+
+        private async Task<bool> RunFullReinitialize(Func<Task<List<Rule>>> getRulesFunc, Func<Task<List<FwoOwner>>> getOwnersFunc, Func<List<Rule>, List<FwoOwner>, long, List<RuleOwner>> buildNewRuleOwnersFunc)
+        {
+            // Letzten ImportControl holen
             var lastImportControl = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getLastImportControl);
             var lastControl = lastImportControl.FirstOrDefault() ?? throw new InvalidOperationException("No import_control found.");
 
             long newControlId = lastControl.ControlId + 1;
 
-            var rulesTask = apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForOwnerMappingCustomField);
-            var ownersTask = apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerCustomField);
+            var rulesTask = getRulesFunc();
+            var ownersTask = getOwnersFunc();
             await Task.WhenAll(rulesTask, ownersTask);
             var rules = rulesTask.Result;
             var owners = ownersTask.Result;
 
-            var newRuleOwners = BuildNewRuleOwnersCustomField(rules, owners, newControlId);
+            var newRuleOwners = buildNewRuleOwnersFunc(rules, owners, newControlId);
 
             if (!newRuleOwners.Any())
             {
@@ -103,7 +115,6 @@ namespace FWO.Services
             }
 
             long importControlId = await CreateImportControl(newControlId);
-
             await SetAllActiveRuleOwnersRemoved(importControlId);
             await InsertNewRuleOwners(newRuleOwners);
             await CompleteImportControlFullReInit(importControlId);
@@ -112,50 +123,18 @@ namespace FWO.Services
             return true;
         }
 
-        private async Task<bool> RunFullReinitializeIpBased()
-        {
-            var lastImportControl = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getLastImportControl);
-            var lastControl = lastImportControl.FirstOrDefault() ?? throw new InvalidOperationException("No import_control found.");
-
-            long newControlId = lastControl.ControlId + 1;
-
-            var rulesTask = apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForOwnerMappingIpBased);
-            var ownersTask = apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerIpBased);
-            await Task.WhenAll(rulesTask, ownersTask);
-            var rules = rulesTask.Result;
-            var owners = ownersTask.Result;
-
-            var newRuleOwners = BuildNewRuleOwnersIpBased(rules, owners, newControlId);
-
-            if (!newRuleOwners.Any())
-            {
-                Log.WriteInfo(LogMessageTitle, "No new rule owners to insert. Aborting import.");
-                return false;
-            }
-
-            long importControlId = await CreateImportControl(newControlId);
-
-            await SetAllActiveRuleOwnersRemoved(importControlId);
-            await InsertNewRuleOwners(newRuleOwners);
-            await CompleteImportControlFullReInit(importControlId);
-
-            Log.WriteInfo(LogMessageTitle, "FULL rule_owner reinitialize completed.");
-            return true;
-        }
-        private async Task<bool> RunIncrementalCustomField()
+        private async Task<bool> RunIncremental(Func<ImportControl, Task> processImportFunc)
         {
             var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
 
             if (pendingImports == null || !pendingImports.Any())
-            {
                 return false;
-            }
 
             foreach (var import in pendingImports.OrderBy(i => i.ControlId))
             {
                 try
                 {
-                    await ProcessIncrementalImportCustomField(import);
+                    await processImportFunc(import);
                 }
                 catch (Exception ex)
                 {
@@ -166,30 +145,18 @@ namespace FWO.Services
 
             return true;
         }
-        private async Task<bool> RunIncrementalIpBased()
+
+        private Task<bool> RunIncrementalCustomField()
         {
-            var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
-
-            if (pendingImports == null || !pendingImports.Any())
-            {
-                return false;
-            }
-
-            foreach (var import in pendingImports.OrderBy(i => i.ControlId))
-            {
-                try
-                {
-                    await ProcessIncrementalImportIpBased(import);
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteError(LogMessageTitle, $"Error while processing import_control {import.ControlId}. ", ex);
-                    break;
-                }
-            }
-
-            return true;
+            return RunIncremental(ProcessIncrementalImportCustomField);
         }
+
+        private Task<bool> RunIncrementalIpBased()
+        {
+            return RunIncremental(ProcessIncrementalImportIpBased);
+        }
+
+
         private async Task ProcessIncrementalImportCustomField(ImportControl import)
         {
             List<Rule> rulesToMap = new List<Rule>();

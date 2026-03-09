@@ -119,7 +119,7 @@ def test_post_guardicore_labels_raises_when_response_reports_failed_items(monkey
         ) -> None:
             return None
 
-        def post(self, endpoint: str, json: list[dict[str, Any]], timeout: int) -> FakeResponse:
+        def post(self, _endpoint: str, **_kwargs: Any) -> FakeResponse:
             return FakeResponse()
 
     monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
@@ -243,8 +243,8 @@ def test_build_graphql_variables_uses_default_group_types_including_23():
 
 def test_build_label_from_group_maps_type_23_to_networkarea_when_include_empty():
     module = load_module()
-    owner = {"name": "NeMo", "app_id_external": "APP-5630"}
-    nwgroup = {
+    owner: dict[str, Any] = {"name": "NeMo", "app_id_external": "APP-5630"}
+    nwgroup: dict[str, Any] = {
         "name": "NeMo Entwicklung",
         "id_string": "AREA-1",
         "group_type": 23,
@@ -260,8 +260,8 @@ def test_build_label_from_group_maps_type_23_to_networkarea_when_include_empty()
 
 def test_build_label_from_group_maps_na_prefix_to_networkarea_without_group_type():
     module = load_module()
-    owner = {"name": "NeMo", "app_id_external": "APP-5630"}
-    nwgroup = {
+    owner: dict[str, Any] = {"name": "NeMo", "app_id_external": "APP-5630"}
+    nwgroup: dict[str, Any] = {
         "name": "NeMo Entwicklung",
         "id_string": "NA5005630-006",
         "nwobject_nwgroups": [],
@@ -275,8 +275,8 @@ def test_build_label_from_group_maps_na_prefix_to_networkarea_without_group_type
 
 def test_build_label_from_group_maps_na_prefix_to_networkarea_even_with_group_type_20():
     module = load_module()
-    owner = {"name": "NeMo", "app_id_external": "APP-5630"}
-    nwgroup = {
+    owner: dict[str, Any] = {"name": "NeMo", "app_id_external": "APP-5630"}
+    nwgroup: dict[str, Any] = {
         "name": "NeMo Entwicklung",
         "id_string": "NA5005630-006",
         "group_type": 20,
@@ -291,7 +291,7 @@ def test_build_label_from_group_maps_na_prefix_to_networkarea_even_with_group_ty
 
 def test_build_label_from_group_without_owner_uses_compact_value_format():
     module = load_module()
-    nwgroup = {
+    nwgroup: dict[str, Any] = {
         "name": "NeMo Entwicklung",
         "id_string": "NA5005630-006",
         "group_type": 23,
@@ -318,10 +318,10 @@ def test_fetch_labels_from_fwo_merges_ownerless_type_23_groups(monkeypatch: Monk
     )
 
     def fake_run_graphql_query(
-        config: Any,
+        _config: Any,
         query: str,
-        variables: dict[str, Any],
-        error_cls: type[Exception],
+        _variables: dict[str, Any],
+        _error_cls: type[Exception],
     ) -> dict[str, Any]:
         if "owner(where:" in query:
             return {
@@ -372,8 +372,8 @@ def test_fetch_labels_from_fwo_merges_ownerless_type_23_groups(monkeypatch: Monk
 
 def test_build_label_from_group_includes_approle_without_criteria_by_default():
     module = load_module()
-    owner = {"name": "NeMo", "app_id_external": "APP-5630"}
-    nwgroup = {
+    owner: dict[str, Any] = {"name": "NeMo", "app_id_external": "APP-5630"}
+    nwgroup: dict[str, Any] = {
         "name": "NeMo Entwicklung",
         "id_string": "AR5005630-006",
         "group_type": 20,
@@ -389,8 +389,8 @@ def test_build_label_from_group_includes_approle_without_criteria_by_default():
 
 def test_build_label_from_group_includes_networkarea_without_criteria_by_default():
     module = load_module()
-    owner = {"name": "NeMo", "app_id_external": "APP-5630"}
-    nwgroup = {
+    owner: dict[str, Any] = {"name": "NeMo", "app_id_external": "APP-5630"}
+    nwgroup: dict[str, Any] = {
         "name": "NeMo Entwicklung",
         "id_string": "NA5005630-006",
         "group_type": 23,

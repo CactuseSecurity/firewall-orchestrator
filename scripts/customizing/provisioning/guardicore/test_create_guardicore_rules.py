@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 EXPECTED_PROTOCOL_PAYLOADS = 2
 EXPECTED_PUBLISH_TIMEOUT = 15
+EXPECTED_SECOND_OFFSET = 2
+EXPECTED_PAGINATED_LABEL_COUNT = 3
 TEST_GUARDICORE_TOKEN = "guardicore_token_for_tests"  # This is a dummy token for testing purposes only. It does not grant any access. #NOQA: S105
 
 
@@ -170,7 +172,7 @@ def test_strip_app_id_prefix_removes_leading_prefix_until_first_digit():
 
 def test_extract_connection_policy_groups_uses_used_interface_when_direct_lists_are_empty():
     module = load_module()
-    connection = {
+    connection: dict[str, Any] = {
         "source_approles": [],
         "source_areas": [],
         "used_interface": {
@@ -189,7 +191,7 @@ def test_extract_connection_policy_groups_uses_used_interface_when_direct_lists_
 
 def test_extract_services_uses_used_interface_when_direct_lists_are_empty():
     module = load_module()
-    connection = {
+    connection: dict[str, Any] = {
         "services": [],
         "service_groups": [],
         "used_interface": {
@@ -357,7 +359,10 @@ def test_build_rule_payload_skips_with_source_destination_identifiers_when_label
     )
 
     assert result.payloads == []
-    assert result.skip_reason == "missing Guardicore AppRole/NetworkArea labels: source=['SrcRole (AR-SRC)'], destination=[]"
+    assert (
+        result.skip_reason
+        == "missing Guardicore AppRole/NetworkArea labels: source=['SrcRole (AR-SRC)'], destination=[]"
+    )
 
 
 def test_build_missing_approle_warning_details_contains_all_approles_and_connection_json():
@@ -480,7 +485,7 @@ def test_fetch_guardicore_approle_map_adds_name_and_id_aliases(monkeypatch: Monk
         ) -> None:
             return None
 
-        def get(self, endpoint: str, params: dict[str, Any], timeout: int) -> FakeResponse:
+        def get(self, _endpoint: str, **_kwargs: Any) -> FakeResponse:
             return FakeResponse()
 
     monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
@@ -542,7 +547,7 @@ def test_fetch_guardicore_approle_map_reads_nested_label_shape(monkeypatch: Monk
         ) -> None:
             return None
 
-        def get(self, endpoint: str, params: dict[str, Any], timeout: int) -> FakeResponse:
+        def get(self, _endpoint: str, **_kwargs: Any) -> FakeResponse:
             return FakeResponse()
 
     monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
@@ -609,7 +614,7 @@ def test_fetch_guardicore_approle_map_accepts_spaced_approle_key(monkeypatch: Mo
         ) -> None:
             return None
 
-        def get(self, endpoint: str, params: dict[str, Any], timeout: int) -> FakeResponse:
+        def get(self, _endpoint: str, **_kwargs: Any) -> FakeResponse:
             return FakeResponse()
 
     monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
@@ -670,7 +675,7 @@ def test_fetch_guardicore_approle_map_accepts_networkarea_key(monkeypatch: Monke
         ) -> None:
             return None
 
-        def get(self, endpoint: str, params: dict[str, Any], timeout: int) -> FakeResponse:
+        def get(self, _endpoint: str, **_kwargs: Any) -> FakeResponse:
             return FakeResponse()
 
     monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
@@ -717,7 +722,8 @@ def test_fetch_guardicore_approle_map_paginates_without_total_count(monkeypatch:
         ) -> None:
             return None
 
-        def get(self, endpoint: str, params: dict[str, Any], timeout: int) -> FakeResponse:
+        def get(self, _endpoint: str, **kwargs: Any) -> FakeResponse:
+            params = kwargs["params"]
             offset = params["start_at"]
             if offset == 0:
                 return FakeResponse(
@@ -728,7 +734,7 @@ def test_fetch_guardicore_approle_map_paginates_without_total_count(monkeypatch:
                         ]
                     }
                 )
-            if offset == 2:
+            if offset == EXPECTED_SECOND_OFFSET:
                 return FakeResponse(
                     {
                         "objects": [
@@ -752,13 +758,13 @@ def test_fetch_guardicore_approle_map_paginates_without_total_count(monkeypatch:
     assert approle_map["AR-2"] == ["label-2"]
     assert approle_map["AR-3"] == ["label-3"]
     assert approle_map["Role C"] == ["label-3"]
-    assert stats.total_approle_labels == 3
-    assert stats.unique_role_name_keys == 3
-    assert stats.unique_role_id_keys == 3
-    assert stats.pages_fetched == 3
-    assert stats.raw_label_objects_seen == 3
-    assert stats.label_candidates_seen == 3
-    assert stats.approle_candidates_seen == 3
+    assert stats.total_approle_labels == EXPECTED_PAGINATED_LABEL_COUNT
+    assert stats.unique_role_name_keys == EXPECTED_PAGINATED_LABEL_COUNT
+    assert stats.unique_role_id_keys == EXPECTED_PAGINATED_LABEL_COUNT
+    assert stats.pages_fetched == EXPECTED_PAGINATED_LABEL_COUNT
+    assert stats.raw_label_objects_seen == EXPECTED_PAGINATED_LABEL_COUNT
+    assert stats.label_candidates_seen == EXPECTED_PAGINATED_LABEL_COUNT
+    assert stats.approle_candidates_seen == EXPECTED_PAGINATED_LABEL_COUNT
 
 
 def test_collect_ports_and_protocols_by_protocol_uses_proto_id_fallback_for_udp():

@@ -51,6 +51,7 @@ DEFAULT_FWO_ROLE: str = "reporter"
 DEFAULT_TIMEOUT_SECONDS: int = 60
 GUARDICORE_LABELS_PAGE_SIZE: int = 1000
 MAX_GUARDICORE_LABEL_PAGES: int = 10000
+MAX_STAGNANT_PAGES: int = 2
 PROTO_ID_ICMP: int = 1
 PROTO_ID_TCP: int = 6
 PROTO_ID_UDP: int = 17
@@ -426,7 +427,9 @@ query getConnectionsForGuardicore__APPIDS_DECL__ {
 }
 """.strip()
     app_ids_decl = "($appIds: [String!]!)" if filter_by_app_ids else ""
-    return " ".join(query.splitlines()).replace("__APPIDS_DECL__", app_ids_decl).replace("__OWNER_CLAUSE__", owner_clause)
+    return (
+        " ".join(query.splitlines()).replace("__APPIDS_DECL__", app_ids_decl).replace("__OWNER_CLAUSE__", owner_clause)
+    )
 
 
 def build_graphql_variables(app_ids: list[str] | None) -> dict[str, Any]:
@@ -477,10 +480,7 @@ def extract_nwgroup_name_from_label_value(label_value: str) -> str | None:
     if not value_without_id:
         return None
 
-    if " - " in value_without_id:
-        nwgroup_name = value_without_id.rsplit(" - ", 1)[-1].strip()
-    else:
-        nwgroup_name = value_without_id
+    nwgroup_name = value_without_id.rsplit(" - ", 1)[-1].strip() if " - " in value_without_id else value_without_id
     return nwgroup_name if nwgroup_name else None
 
 
@@ -506,7 +506,7 @@ def is_probable_policy_label(key: Any, label_value: str) -> bool:
     if not parsed_id_string:
         return False
     normalized_id = parsed_id_string.strip().upper()
-    return normalized_id.startswith("AR") or normalized_id.startswith("NA")
+    return normalized_id.startswith(("AR", "NA"))
 
 
 def extract_label_id_key_value_candidates(label_item: dict[str, Any]) -> list[tuple[str, str, str]]:
@@ -523,7 +523,11 @@ def extract_label_id_key_value_candidates(label_item: dict[str, Any]) -> list[tu
         candidate_id = candidate.get("id")
         if isinstance(candidate_id, int):
             candidate_id = str(candidate_id)
-        if not isinstance(candidate_key, str) or not isinstance(candidate_value, str) or not isinstance(candidate_id, str):
+        if (
+            not isinstance(candidate_key, str)
+            or not isinstance(candidate_value, str)
+            or not isinstance(candidate_id, str)
+        ):
             continue
         normalized_value = candidate_value.strip()
         normalized_id = candidate_id.strip()
@@ -546,6 +550,7 @@ def fetch_guardicore_approle_map(config: GuardicoreConfig) -> tuple[dict[str, li
         # Keep legacy alias for compatibility with older Guardicore releases.
         "limit": GUARDICORE_LABELS_PAGE_SIZE,
     }
+
     def fetch_with_mode(pagination_mode: str, page_start: int = 0) -> tuple[dict[str, list[str]], AppRoleMapStats]:
         app_role_map: dict[str, list[str]] = {}
         full_value_keys: set[str] = set()
@@ -632,7 +637,7 @@ def fetch_guardicore_approle_map(config: GuardicoreConfig) -> tuple[dict[str, li
                     stagnant_pages += 1
                 else:
                     stagnant_pages = 0
-                if stagnant_pages >= 2:
+                if stagnant_pages >= MAX_STAGNANT_PAGES:
                     break
 
                 if pagination_mode == "offset":

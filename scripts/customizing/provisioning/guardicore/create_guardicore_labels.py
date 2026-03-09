@@ -440,7 +440,7 @@ def count_labels_by_key(labels: list[LabelItem]) -> Counter[str]:
 
 
 def count_existing_pairs_by_key(existing_pairs: set[tuple[str, str]]) -> Counter[str]:
-    return Counter(key.strip() for key, _ in existing_pairs if isinstance(key, str))
+    return Counter(key.strip() for key, _ in existing_pairs)
 
 
 def chunked(items: list[LabelItem], batch_size: int) -> Iterable[list[LabelItem]]:
@@ -586,11 +586,13 @@ def post_guardicore_labels(config: GuardicoreConfig, payload: list[dict[str, Any
             return
 
         if isinstance(result, dict):
+            result_dict = cast("dict[str, Any]", result)
             for error_key in ["errors", "failed", "failed_items", "rejected", "invalid_labels"]:
-                errors_obj = result.get(error_key)
-                if isinstance(errors_obj, list) and errors_obj:
+                errors_value = result_dict.get(error_key)
+                if isinstance(errors_value, list) and errors_value:
+                    error_items = cast("list[Any]", errors_value)
                     raise GuardicoreProvisioningError(
-                        f"Guardicore bulk label call reported {len(errors_obj)} rejected item(s) in '{error_key}'."
+                        f"Guardicore bulk label call reported {len(error_items)} rejected item(s) in '{error_key}'."
                     )
 
 

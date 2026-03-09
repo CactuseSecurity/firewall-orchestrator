@@ -738,6 +738,8 @@ INSERT INTO txt VALUES ('expand_all',	        'German', 	'Alles ausklappen');
 INSERT INTO txt VALUES ('expand_all',		    'English', 	'Expand all');
 INSERT INTO txt VALUES ('all',		            'German', 	'Alle');
 INSERT INTO txt VALUES ('all',		            'English', 	'All');
+INSERT INTO txt VALUES ('all_open',             'German',   'Alle offenen');
+INSERT INTO txt VALUES ('all_open',             'English',  'All open');
 INSERT INTO txt VALUES ('rule',		            'German', 	'Regel');
 INSERT INTO txt VALUES ('rule',		            'English', 	'Rule');
 INSERT INTO txt VALUES ('objects',		        'German', 	'Objekte');
@@ -1586,6 +1588,12 @@ INSERT INTO txt VALUES ('request_interface',    'German',	'Schnittstelle anforde
 INSERT INTO txt VALUES ('request_interface',    'English',	'Request Interface');
 INSERT INTO txt VALUES ('requested_interface',  'German',	'Angeforderte Schnittstelle');
 INSERT INTO txt VALUES ('requested_interface',  'English',	'Requested Interface');
+INSERT INTO txt VALUES ('requested_interfaces', 'German',   'Angeforderte Schnittstellen');
+INSERT INTO txt VALUES ('requested_interfaces', 'English',  'Requested Interfaces');
+INSERT INTO txt VALUES ('requested_app',        'German',   'Angeforderte Anwendung');
+INSERT INTO txt VALUES ('requested_app',        'English',  'Requested App');
+INSERT INTO txt VALUES ('requesting_app',       'German',   'Anfordernde Anwendung');
+INSERT INTO txt VALUES ('requesting_app',       'English',  'Requesting App');
 INSERT INTO txt VALUES ('interface_requested',  'German',	'Schnittstelle angefordert');
 INSERT INTO txt VALUES ('interface_requested',  'English',	'Interface requested');
 INSERT INTO txt VALUES ('update_interf_user',   'German', 	'Schnittstellen-Nutzer aktualisieren');
@@ -2540,6 +2548,14 @@ INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertintervall (in
 INSERT INTO txt VALUES ('recert_interval',      'English',  'Recert Interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
 INSERT INTO txt VALUES ('ext_app_id',           'English',  'External Application Id');
+INSERT INTO txt VALUES ('requested_ext_app_id', 'German',   'Angeforderte externe Anwendungs-Id');
+INSERT INTO txt VALUES ('requested_ext_app_id', 'English',  'Requested External Application Id');
+INSERT INTO txt VALUES ('requesting_ext_app_id','German',   'Anfordernde externe Anwendungs-Id');
+INSERT INTO txt VALUES ('requesting_ext_app_id','English',  'Requesting External Application Id');
+INSERT INTO txt VALUES ('used_in_connection_ids','German',  'Genutzt in Verbindungs-ID(s)');
+INSERT INTO txt VALUES ('used_in_connection_ids','English', 'Used In Connection ID(s)');
+INSERT INTO txt VALUES ('show_removed_requested_interfaces','German', 'Gel&ouml;schte angeforderte Schnittstellen anzeigen');
+INSERT INTO txt VALUES ('show_removed_requested_interfaces','English', 'Show removed requested interfaces');
 INSERT INTO txt VALUES ('criticality',          'German',   'Kritikalit&auml;t');
 INSERT INTO txt VALUES ('criticality',          'English',  'Criticality');
 INSERT INTO txt VALUES ('comm_svc_possible',    'German',   'Common Service zugelassen');
@@ -2592,12 +2608,6 @@ INSERT INTO txt VALUES ('importAppDataScriptArgs', 'German', 'Skriptparameter (o
 INSERT INTO txt VALUES ('importAppDataScriptArgs', 'English', 'Script parameters (optional)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','German', 	'Import Appdaten-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('importAppDataSleepTime','English', 'Import App data sleep time (in hours)');
-INSERT INTO txt VALUES ('ownerGroupLdap',       'German',   'LDAP f&uuml;r Eigent&uuml;mergruppen');
-INSERT INTO txt VALUES ('ownerGroupLdap',       'English',  'LDAP for owner groups');
-INSERT INTO txt VALUES ('ownerGroupPattern',    'German',   'Namenskonvention f&uuml;r Eigent&uuml;mer-LDAP-Gruppen');
-INSERT INTO txt VALUES ('ownerGroupPattern',    'English',  'Naming convention for LDAP owner groups');
-INSERT INTO txt VALUES ('manageGroupsInLdap',   'German',   'Aktive Pflege der Eigent&uuml;mer-LDAP-Gruppen durch FWO');
-INSERT INTO txt VALUES ('manageGroupsInLdap',   'English',  'Active management of owner LDAP groups by FWO');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'German', 'App-Verantwortliche synchronisieren');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'English', 'Sync owner responsibles');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
@@ -2963,6 +2973,8 @@ INSERT INTO txt VALUES ('reinit_ext_request',   'German',   'Externe Auftr&auml;
 INSERT INTO txt VALUES ('reinit_ext_request',   'English',  'Reinit External Requests');
 INSERT INTO txt VALUES ('reject_ticket',        'German',   'Auftrag als abgelehnt schliessen');
 INSERT INTO txt VALUES ('reject_ticket',        'English',  'Close Ticket as rejected');
+INSERT INTO txt VALUES ('reject_tickets',       'German',   'Auftr&auml;ge als abgelehnt schliessen');
+INSERT INTO txt VALUES ('reject_tickets',       'English',  'Close Tickets as rejected');
 INSERT INTO txt VALUES ('wait_cycles',          'German',   'Wartezyklen');
 INSERT INTO txt VALUES ('wait_cycles',          'English',  'Wait cycles');
 INSERT INTO txt VALUES ('attempts',             'German',   'Versuche');
@@ -3429,6 +3441,8 @@ INSERT INTO txt VALUES ('U9034', 'German',  'Es ist noch ein Firewall-&Auml;nder
 INSERT INTO txt VALUES ('U9034', 'English', 'A Firewall Change request is running!');
 INSERT INTO txt VALUES ('U9035', 'German',  'Sind sie sicher, dass sie folgende Schnittstelle stillegen wollen: ');
 INSERT INTO txt VALUES ('U9035', 'English', 'Are you sure you want to decommission following interface: ');
+INSERT INTO txt VALUES ('U9036', 'German',  'Zur&uuml;ckgewiesen durch Admin');
+INSERT INTO txt VALUES ('U9036', 'English', 'Rejected by Admin');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -6020,8 +6034,6 @@ INSERT INTO txt VALUES ('H5638', 'German',  'Hier wird der Anweisungstext f&uuml
 INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configurations.');
 INSERT INTO txt VALUES ('H5639', 'German',  'Hier wird der Meldungstext f&uuml;r Fehler im externen Beantragungsprozess eingetragen.');
 INSERT INTO txt VALUES ('H5639', 'English', 'Insert customized text for errors in requests to external ticket system.');
-INSERT INTO txt VALUES ('H5640', 'German',  'Auswahl des LDAP-Systems, in dem die Eigent&uuml;mergruppen gepflegt werden.');
-INSERT INTO txt VALUES ('H5640', 'English', 'Select LDAP system for storing owner groups.');
 INSERT INTO txt VALUES ('H5643', 'German',  'DNS-Suche: Wenn gesetzt, werden App-Server-Namen aus dem DNS erg&auml;nzt und sind nicht manuell editierbar. Falls kein Name aufgel&ouml;st werden kann, wird er aus Pr&auml;fix und IP-Adresse konstruiert.');
 INSERT INTO txt VALUES ('H5643', 'English', 'DNS Look-up: When set, App Server names are resolved from DNS and are not manually editable. If no name can be resolved, it is constructed from prefix and IP address.');
 INSERT INTO txt VALUES ('H5644', 'German',  'Existierende Namen &uuml;berschreiben: Wenn gesetzt, werden bereits existierende Namen auch &uuml;berschrieben, wenn sie nicht im DNS aufgel&ouml;st werden k&ouml;nnen.');
@@ -6114,8 +6126,6 @@ INSERT INTO txt VALUES ('H5670', 'German',  'Diese Seite konfiguriert die Import
 INSERT INTO txt VALUES ('H5670', 'English', 'This page configures the owner/app data import and subnet import schedules, source paths, and LDAP group handling.');
 INSERT INTO txt VALUES ('H5671', 'German',  'Konfigurieren Sie Importpfade, Startzeiten und Warteintervalle f&uuml;r App-Daten und Subnetzdaten.');
 INSERT INTO txt VALUES ('H5671', 'English', 'Configure import paths, start times and sleep intervals for app data and subnet data.');
-INSERT INTO txt VALUES ('H5672', 'German',  'W&auml;hlen Sie die LDAP-Verbindung f&uuml;r die Eigent&uuml;mergruppen-Verwaltung.');
-INSERT INTO txt VALUES ('H5672', 'English', 'Select the LDAP connection used for owner group management.');
 INSERT INTO txt VALUES ('H5673', 'German',  'Legen Sie Rollen pro Verantwortlichkeitsstufe fest, um zu steuern, welche Rollen beim Import gesetzt werden.');
 INSERT INTO txt VALUES ('H5673', 'English', 'Use role assignment per responsible type to control which roles are set during import.');
 INSERT INTO txt VALUES ('H5674', 'German',  'Verantwortlichkeitsstufen ohne die erforderliche Berechtigungs-Flagge k&ouml;nnen die zugeh&ouml;rigen Rollen nicht zuweisen.');

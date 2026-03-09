@@ -1,0 +1,12 @@
+query getRequestedInterfaces($showRemoved: Boolean!){
+  modelling_connection (
+    where: {
+      is_interface: { _eq: true },
+      is_requested: { _eq: true },
+      removed: { _eq: $showRemoved }
+    },
+    order_by: { name: asc }
+  ){
+    ...connectionDetails
+  }
+}

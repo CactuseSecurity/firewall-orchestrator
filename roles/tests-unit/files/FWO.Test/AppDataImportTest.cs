@@ -25,63 +25,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ResolveOwnerGroupPathPrefersWritePath()
-        {
-            Ldap ldap = new()
-            {
-                GroupWritePath = "ou=groups,dc=example,dc=com",
-                GroupSearchPath = "ou=search,dc=example,dc=com"
-            };
-
-            string resolved = InvokeResolveOwnerGroupPath(ldap);
-
-            Assert.That(resolved, Is.EqualTo("ou=groups,dc=example,dc=com"));
-        }
-
-        [Test]
-        public void ResolveOwnerGroupPathFallsBackToSearchPath()
-        {
-            Ldap ldap = new()
-            {
-                GroupWritePath = "",
-                GroupSearchPath = "ou=search,dc=example,dc=com"
-            };
-
-            string resolved = InvokeResolveOwnerGroupPath(ldap);
-
-            ClassicAssert.That(resolved, Is.EqualTo("ou=search,dc=example,dc=com"));
-        }
-
-        [Test]
-        public void ResolveOwnerGroupPathSkipsWhitespaceWritePath()
-        {
-            Ldap ldap = new()
-            {
-                GroupWritePath = "   ",
-                GroupSearchPath = "ou=search,dc=example,dc=com"
-            };
-
-            string resolved = InvokeResolveOwnerGroupPath(ldap);
-
-            Assert.That(resolved, Is.EqualTo("ou=search,dc=example,dc=com"));
-        }
-
-        [Test]
-        public void ResolveOwnerGroupPathThrowsWhenMissing()
-        {
-            Ldap ldap = new()
-            {
-                GroupWritePath = "",
-                GroupSearchPath = ""
-            };
-
-            Assert.That(
-                () => InvokeResolveOwnerGroupPath(ldap),
-                Throws.TypeOf<TargetInvocationException>()
-                    .With.InnerException.TypeOf<InvalidOperationException>());
-        }
-
-        [Test]
         public void BuildOwnerResponsibles_UsesSortOrderKeyPositions()
         {
             AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -729,46 +672,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ImportApps_ReturnsEarly_WhenOwnerGroupPatternMissingPlaceholders()
-        {
-            AppDataImportFlowTestApiConn apiConn = new();
-            AppDataImport import = new(apiConn, new GlobalConfig());
-            SetOwnerGroupPattern(import, "grp-static-name");
-            SetImportedApps(import,
-            [
-                new ModellingImportAppData { Name = "A", ExtAppId = "APP-1", ImportSource = "SRC-A" }
-            ]);
-
-            OwnerChangeImportTracker tracker = new(apiConn);
-            await InvokeImportApps(import, "dummy.json", tracker);
-
-            Assert.That(apiConn.GetOwnersCalls, Is.EqualTo(0));
-            Assert.That(apiConn.DeactivateOwnerCalls, Is.EqualTo(0));
-        }
-
-        [Test]
-        public void IsOwnerGroupConfigured_ReturnsTrue_WhenAppIdPlaceholderExists()
-        {
-            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
-            SetOwnerGroupPattern(import, $"grp-{Placeholder.AppPrefix}-{Placeholder.AppId}");
-
-            bool result = InvokeIsOwnerGroupConfigured(import);
-
-            Assert.That(result, Is.True);
-        }
-
-        [Test]
-        public void IsOwnerGroupConfigured_ReturnsFalse_WhenNoKnownPlaceholderExists()
-        {
-            AppDataImport import = CreateImportWithTypeMap(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
-            SetOwnerGroupPattern(import, "grp-static-name");
-
-            bool result = InvokeIsOwnerGroupConfigured(import);
-
-            Assert.That(result, Is.False);
-        }
-
-        [Test]
         public async Task DeactivateMissingApps_DeactivatesOnlyActiveAppsFromSameSourceThatAreMissingInImport()
         {
             AppDataImportFlowTestApiConn apiConn = new();
@@ -964,15 +867,6 @@ namespace FWO.Test
             Assert.That(apiConn.UpdateOwnerCalls, Is.EqualTo(0));
         }
 
-        private static string InvokeResolveOwnerGroupPath(Ldap ldap)
-        {
-            MethodInfo method = typeof(AppDataImport).GetMethod(
-                "ResolveOwnerGroupPath",
-                BindingFlags.NonPublic | BindingFlags.Static)
-                ?? throw new InvalidOperationException("ResolveOwnerGroupPath helper not found.");
-            return (string)method.Invoke(null, [ldap])!;
-        }
-
         private static AppDataImport CreateImportWithTypeMap(Dictionary<string, int> typeMap)
         {
             AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
@@ -1001,14 +895,6 @@ namespace FWO.Test
             FieldInfo field = typeof(AppDataImport).GetField("ownerLifeCycleStateIdsByName", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("ownerLifeCycleStateIdsByName field not found.");
             field.SetValue(import, stateMap);
-        }
-
-        private static void SetOwnerGroupPattern(AppDataImport import, string pattern)
-        {
-            FieldInfo field = typeof(DataImportBase).GetField("globalConfig", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new InvalidOperationException("globalConfig field not found.");
-            GlobalConfig globalConfig = (GlobalConfig)field.GetValue(import)!;
-            globalConfig.OwnerLdapGroupNames = pattern;
         }
 
         private static void SetOwnerDataImportSyncUsers(AppDataImport import, bool syncUsers)
@@ -1068,15 +954,6 @@ namespace FWO.Test
                 BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException("ParseRolesWithImport helper not found.");
             return (Dictionary<int, List<string>>)method.Invoke(null, [rolesJson])!;
-        }
-
-        private static bool InvokeIsOwnerGroupConfigured(AppDataImport import)
-        {
-            MethodInfo method = typeof(AppDataImport).GetMethod(
-                "IsOwnerGroupConfigured",
-                BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new InvalidOperationException("IsOwnerGroupConfigured helper not found.");
-            return (bool)method.Invoke(import, null)!;
         }
 
         private static async Task InvokeApplyRolesToResponsibles(

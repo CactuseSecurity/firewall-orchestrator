@@ -27,11 +27,8 @@ namespace FWO.Middleware.Server
         private List<ModellingAppServer> existingAppServers = [];
 
         private Ldap internalLdap = new();
-        private Ldap ownerGroupLdap = new();
 
         private List<Ldap> connectedLdaps = [];
-        private string? ownerGroupLdapPath;
-        private List<GroupGetReturnParameters> allGroups = [];
         private Dictionary<int, List<string>> rolesToSetByType = [];
         private Dictionary<int, OwnerResponsibleType> ownerResponsibleTypeById = [];
         private Dictionary<string, int> ownerResponsibleTypeIdByName = new(StringComparer.OrdinalIgnoreCase);
@@ -82,14 +79,6 @@ namespace FWO.Middleware.Server
         {
             connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new KeyNotFoundException("No internal Ldap with group handling found.");
-            ownerGroupLdap = connectedLdaps.FirstOrDefault(x => x.Id == globalConfig.OwnerLdapId) ?? throw new KeyNotFoundException("Ldap with group handling not found.");
-            ownerGroupLdapPath = ResolveOwnerGroupPath(ownerGroupLdap);
-            allGroups = globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId ?
-                await internalLdap.GetAllInternalGroups() :
-                await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.
-                    Replace(Placeholder.AppId, "*").
-                    Replace(Placeholder.ExternalAppId, "*").
-                    Replace(Placeholder.AppPrefix, "*"));
             rolesToSetByType = ParseRolesWithImport(globalConfig.RolesWithAppDataImport);
         }
 
@@ -149,11 +138,6 @@ namespace FWO.Middleware.Server
             int deleteCounter = 0;
             int deleteFailCounter = 0;
 
-            if (!IsOwnerGroupConfigured())
-            {
-                return;
-            }
-
             existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             foreach (var incomingApp in importedApps)
             {
@@ -175,17 +159,6 @@ namespace FWO.Middleware.Server
             Log.WriteInfo(LogMessageTitle, messageText);
             await AddLogEntry(0, LevelFile, messageText);
 
-        }
-
-        private bool IsOwnerGroupConfigured()
-        {
-            if (!(globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppId) ||
-                globalConfig.OwnerLdapGroupNames.Contains(Placeholder.ExternalAppId)))
-            {
-                Log.WriteWarning(LogMessageTitle, $"Owner group pattern does not contain any of the placeholders {Placeholder.AppId} or {Placeholder.ExternalAppId}.");
-                return false;
-            }
-            return true;
         }
 
         private async Task<bool> SaveApp(ModellingImportAppData incomingApp, OwnerChangeImportTracker ownerChangeTracker)
@@ -514,22 +487,6 @@ namespace FWO.Middleware.Server
                 return true;
             }
             return false;
-        }
-
-        private static string ResolveOwnerGroupPath(Ldap ownerGroupLdap)
-        {
-            if (!string.IsNullOrWhiteSpace(ownerGroupLdap.GroupWritePath))
-            {
-                return ownerGroupLdap.GroupWritePath;
-            }
-
-            if (!string.IsNullOrWhiteSpace(ownerGroupLdap.GroupSearchPath))
-            {
-                Log.WriteWarning(LogMessageTitle, "Owner LDAP group write path not set; falling back to group search path.");
-                return ownerGroupLdap.GroupSearchPath;
-            }
-
-            throw new InvalidOperationException("Owner LDAP group write path is missing and no group search path is configured.");
         }
 
         private string GetRoleDn(string role)

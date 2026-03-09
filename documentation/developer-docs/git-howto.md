@@ -161,14 +161,14 @@ git submodule update --init --recursive
 #### Update agents repo manually (not necessary when using .githooks)
 This updates the agents repo manually. Update submodules to the latest commit on their configured remote tracking branch. Execute this command to get the newest version of all submodules from their respective repositories.
 ```shell
-git -C agents checkout main
+git -C .agents checkout main
 git submodule update --remote --merge --recursive
 ```
 
 ### Check correct file state
 ```shell
-tim@acantha24:~/dev/tim/fwo$ git ls-tree HEAD agents
-160000 commit 73cfbb4efad58dd569c0c0ab4d7ecebc63d23ddd  agents
+tim@acantha24:~/dev/tim/fwo$ git ls-tree HEAD .agents
+160000 commit 73cfbb4efad58dd569c0c0ab4d7ecebc63d23ddd  .agents
 tim@acantha24:~/dev/tim/fwo$ git ls-tree HEAD AGENTS.md
 120000 blob 95e38a6a9ddf012aae10a06a19b6d8c1a65ec8b8    AGENTS.md
 tim@acantha24:~/dev/tim/fwo$ 

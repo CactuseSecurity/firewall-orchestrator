@@ -105,6 +105,7 @@ insert into config (config_key, config_value, config_user) VALUES ('modRolloutRe
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutBundleTasks', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutNatHeuristic', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutRemovedAppServers', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRequestOnlyOwnObjects', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutErrorText', 'Error during external request', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRecertActive', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRecertExpectAllModelled', 'false', 0);

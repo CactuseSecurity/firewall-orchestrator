@@ -74,7 +74,7 @@ namespace FWO.Middleware.Server
                 await ImportSingleSource(importfilePathAndName + ".json", failedImports, ownerChangeTracker);
             }
 
-            await ownerChangeTracker.CompleteImport(failedImports.Count == 0);        
+            await ownerChangeTracker.CompleteImport(failedImports.Count == 0);
             return failedImports;
         }
 
@@ -148,12 +148,12 @@ namespace FWO.Middleware.Server
             int deleteCounter = 0;
             int deleteFailCounter = 0;
 
-            if(!IsOwnerGroupConfigured())
+            if (!IsOwnerGroupConfigured())
             {
                 return;
             }
 
-            existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithNetworks);
             foreach (var incomingApp in importedApps)
             {
                 if (await SaveApp(incomingApp, ownerChangeTracker))
@@ -168,7 +168,7 @@ namespace FWO.Middleware.Server
             string? importSource = importedApps.FirstOrDefault()?.ImportSource;
             if (importSource != null)
             {
-                (deleteCounter, deleteFailCounter) = await DeactivateMissingApps(importSource, existingApps, importedApps, ownerChangeTracker);               
+                (deleteCounter, deleteFailCounter) = await DeactivateMissingApps(importSource, existingApps, importedApps, ownerChangeTracker);
             }
             string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
             Log.WriteInfo(LogMessageTitle, messageText);
@@ -212,7 +212,7 @@ namespace FWO.Middleware.Server
                 {
                     appId = existingApp.Id;
                     await UpdateApp(incomingApp, existingApp, userGroupDn, ownerLifeCycleStateId);
-                    if (!existingApp.Active)
+                    if (!AreNetworksIdentical(existingApp.OwnerNetworks, incomingApp.AppServers))
                     {
                         await ownerChangeTracker.AddOwnerChange(appId, appId, ChangelogActionType.CHANGE, incomingApp.ImportSource);
                     }
@@ -302,7 +302,7 @@ namespace FWO.Middleware.Server
                     }
                 }
             }
-            return (deletedCounter, deleteFailCounter);           
+            return (deletedCounter, deleteFailCounter);
         }
 
         private async Task<bool> DeactivateApp(FwoOwner app, OwnerChangeImportTracker ownerChangeTracker)
@@ -1015,6 +1015,30 @@ namespace FWO.Middleware.Server
         private async Task AddLogEntry(int severity, string level, string description)
         {
             await AddLogEntry(GlobalConst.kImportAppData, severity, level, description);
+        }
+
+        private static bool AreNetworksIdentical(IEnumerable<OwnerNetwork> existingNetworks, IEnumerable<ModellingImportAppServer> incomingNetworks)
+        {
+            var existingList = existingNetworks
+                    .Where(e => e != null)
+                    .Select(e => IpOperations.GetIPAdressRange($"{e.IP.StripOffUnnecessaryNetmask()}-{e.IpEnd.StripOffUnnecessaryNetmask()}"))
+                    .ToList();
+
+            var incomingList = incomingNetworks
+                .Where(n => n != null)
+                .Select(n => IpOperations.GetIPAdressRange($"{n.Ip.StripOffUnnecessaryNetmask()}-{n.IpEnd.StripOffUnnecessaryNetmask()}"))
+                .ToList();
+
+
+            if (existingList.Count != incomingList.Count)
+            {
+                return false;
+            }
+
+            return existingList.All(oldRange =>
+                    incomingList.Any(newRange =>
+                        oldRange.Begin.Equals(newRange.Begin) &&
+                        oldRange.End.Equals(newRange.End)));
         }
     }
 }

@@ -555,15 +555,15 @@ namespace FWO.Services
             {
                 switch (change.ChangeAction)
                 {
-                    case 'I':
+                    case ChangelogActionType.INSERT:
                         ownersToAdd.Add(change.NewOwner);
                         break;
 
-                    case 'D':
+                    case ChangelogActionType.DELETE:
                         ownersToRemove.Add(change.OldOwner);
                         break;
 
-                    case 'C':
+                    case ChangelogActionType.CHANGE:
                         ownersToUpdate.Add(change.NewOwner);
                         break;
                 }
@@ -588,9 +588,9 @@ namespace FWO.Services
             var changelogOwners = await apiConnection.SendQueryAsync<List<OwnerChange>>(OwnerQueries.getChangedOwnersForRuleOwnerMappingIpBased, new { controlId = import.ControlId });
             var ownersToAdd = new List<FwoOwner>();
             var ownersToRemove = new List<FwoOwner>();
-            var ruleOwnersToRemoveTmp = new List<RuleOwner>();
-            var rulesToMapTmp = new List<Rule>();
-            var ownersToUpdate = new List<FwoOwner>();
+            var ruleOwnersToRemove = new List<RuleOwner>();
+            var rulesToMap = new List<Rule>();
+
             if (changelogOwners == null || !changelogOwners.Any())
             {
                 Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
@@ -601,33 +601,31 @@ namespace FWO.Services
             {
                 switch (change.ChangeAction)
                 {
-                    case 'I':
+                    case ChangelogActionType.INSERT:
                         ownersToAdd.Add(change.NewOwner);
                         break;
 
-                    case 'D':
+                    case ChangelogActionType.DELETE:
                         ownersToRemove.Add(change.OldOwner);
                         break;
 
-                    case 'C':
-                        ownersToUpdate.Add(change.NewOwner);
+                    case ChangelogActionType.CHANGE:
+                        ownersToAdd.Add(change.NewOwner);
+                        ownersToRemove.Add(change.NewOwner);
                         break;
                 }
             }
 
             if (ownersToAdd.Any())
             {
-                rulesToMapTmp = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerIpBased);
+                rulesToMap = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerIpBased);
             }
-            else if (ownersToUpdate.Any())
-            {
-                rulesToMapTmp = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerByOwnerToUpdateIpBased, new { ownerIds = ownersToUpdate.Select(o => o.Id).ToList() });
-            }
+
             if (ownersToRemove.Any())
             {
-                ruleOwnersToRemoveTmp = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
+                ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
             }
-            return (rulesToMapTmp, ownersToAdd.Concat(ownersToUpdate).ToList(), ruleOwnersToRemoveTmp);
+            return (rulesToMap, ownersToAdd, ruleOwnersToRemove);
         }
 
         private async Task CompleteImportControl(long importControlId)

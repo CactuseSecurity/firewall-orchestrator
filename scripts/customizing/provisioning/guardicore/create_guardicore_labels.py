@@ -21,6 +21,8 @@ try:
         HTTP_CONTENT_TYPE_JSON,
         FwoConfig,
         GuardicoreConfig,
+        JsonDict,
+        JsonList,
         apply_ssl_settings,
         extract_label_items,
         login_fwo,
@@ -33,6 +35,8 @@ except ModuleNotFoundError:
         HTTP_CONTENT_TYPE_JSON,
         FwoConfig,
         GuardicoreConfig,
+        JsonDict,
+        JsonList,
         apply_ssl_settings,
         extract_label_items,
         login_fwo,
@@ -163,14 +167,14 @@ query getOwnerlessAreas {
 def build_graphql_variables(
     app_ids: list[str] | None = None,
     include_group_types: list[int] | None = None,
-) -> dict[str, Any]:
+) -> JsonDict:
     """Build GraphQL variables for explicit query parameters."""
     group_types = (
         include_group_types
         if include_group_types is not None
         else [DEFAULT_GROUP_TYPE_APPROLE, DEFAULT_GROUP_TYPE_APPZONE, DEFAULT_GROUP_TYPE_AREA]
     )
-    variables: dict[str, Any] = {"groupTypes": group_types}
+    variables: JsonDict = {"groupTypes": group_types}
     if app_ids is not None:
         variables["appIds"] = app_ids
     return variables
@@ -315,7 +319,7 @@ def label_key_from_id(id_string: str) -> str | None:
     return None
 
 
-def label_key_from_group(nwgroup: dict[str, Any]) -> str | None:
+def label_key_from_group(nwgroup: JsonDict) -> str | None:
     id_string = nwgroup.get("id_string")
     if isinstance(id_string, str):
         id_based_key = label_key_from_id(id_string)
@@ -332,7 +336,7 @@ def label_key_from_group(nwgroup: dict[str, Any]) -> str | None:
     return label_key_from_id(str(nwgroup.get("id_string")))
 
 
-def extract_criteria(nwgroup: dict[str, Any]) -> list[Criteria]:
+def extract_criteria(nwgroup: JsonDict) -> list[Criteria]:
     criteria_set: dict[tuple[str, str, str], Criteria] = {}
     for nwobject in nwgroup.get("nwobject_nwgroups", []):
         owner_network = nwobject.get("owner_network", {})
@@ -343,7 +347,7 @@ def extract_criteria(nwgroup: dict[str, Any]) -> list[Criteria]:
     return list(criteria_set.values())
 
 
-def build_label_from_group(owner: dict[str, Any], nwgroup: dict[str, Any], include_empty: bool) -> LabelItem | None:
+def build_label_from_group(owner: JsonDict, nwgroup: JsonDict, include_empty: bool) -> LabelItem | None:
     nwgroup_name = nwgroup.get("name")
     nwgroup_id_string = nwgroup.get("id_string")
     if not isinstance(nwgroup_name, str) or not nwgroup_name.strip():
@@ -374,10 +378,10 @@ def build_label_from_group(owner: dict[str, Any], nwgroup: dict[str, Any], inclu
 
 
 def build_labels_from_response(
-    response: dict[str, Any],
+    response: JsonDict,
     include_empty: bool = False,
 ) -> list[LabelItem]:
-    owners: list[dict[str, Any]] = response.get("data", {}).get("owner", [])
+    owners: list[JsonDict] = response.get("data", {}).get("owner", [])
     labels: list[LabelItem] = []
 
     for owner in owners:
@@ -390,7 +394,7 @@ def build_labels_from_response(
 
 
 def build_labels_from_ownerless_areas_response(
-    response: dict[str, Any],
+    response: JsonDict,
     include_empty: bool = False,
 ) -> list[LabelItem]:
     nwgroups_obj = response.get("data", {}).get("modelling_nwgroup", [])
@@ -398,20 +402,20 @@ def build_labels_from_ownerless_areas_response(
         return []
 
     labels: list[LabelItem] = []
-    nwgroups = cast("list[Any]", nwgroups_obj)
+    nwgroups = cast("JsonList", nwgroups_obj)
     for nwgroup_obj in nwgroups:
         if not isinstance(nwgroup_obj, dict):
             continue
-        nwgroup = cast("dict[str, Any]", nwgroup_obj)
+        nwgroup = cast("JsonDict", nwgroup_obj)
         label = build_label_from_group({}, nwgroup, include_empty)
         if label:
             labels.append(label)
     return labels
 
 
-def count_group_types_from_response(response: dict[str, Any]) -> Counter[int]:
+def count_group_types_from_response(response: JsonDict) -> Counter[int]:
     counts: Counter[int] = Counter()
-    owners: list[dict[str, Any]] = response.get("data", {}).get("owner", [])
+    owners: list[JsonDict] = response.get("data", {}).get("owner", [])
     for owner in owners:
         for nwgroup in owner.get("nwgroups", []):
             group_type = nwgroup.get("group_type")
@@ -420,15 +424,15 @@ def count_group_types_from_response(response: dict[str, Any]) -> Counter[int]:
     return counts
 
 
-def count_group_types_from_ownerless_areas_response(response: dict[str, Any]) -> Counter[int]:
+def count_group_types_from_ownerless_areas_response(response: JsonDict) -> Counter[int]:
     counts: Counter[int] = Counter()
     nwgroups_obj: Any = response.get("data", {}).get("modelling_nwgroup", [])
     if not isinstance(nwgroups_obj, list):
         return counts
-    for nwgroup_obj in cast("list[Any]", nwgroups_obj):
+    for nwgroup_obj in cast("JsonList", nwgroups_obj):
         if not isinstance(nwgroup_obj, dict):
             continue
-        nwgroup = cast("dict[str, Any]", nwgroup_obj)
+        nwgroup = cast("JsonDict", nwgroup_obj)
         group_type = nwgroup.get("group_type")
         if isinstance(group_type, int):
             counts[group_type] += 1
@@ -448,7 +452,7 @@ def chunked(items: list[LabelItem], batch_size: int) -> Iterable[list[LabelItem]
         yield items[i : i + batch_size]
 
 
-def to_guardicore_payload(items: list[LabelItem]) -> list[dict[str, Any]]:
+def to_guardicore_payload(items: list[LabelItem]) -> list[JsonDict]:
     return [
         {
             "key": item.key,
@@ -478,6 +482,14 @@ def deduplicate_labels(labels: list[LabelItem]) -> list[LabelItem]:
     return unique_labels
 
 
+def _extract_nested_label_pair(label_item: JsonDict) -> tuple[Any, Any]:
+    nested_label_value = label_item.get("label")
+    if not isinstance(nested_label_value, dict):
+        return None, None
+    nested_label = cast("JsonDict", nested_label_value)
+    return nested_label.get("key"), nested_label.get("value")
+
+
 def parse_existing_label_pairs(payload: Any) -> set[tuple[str, str]]:
     """Extract existing key/value pairs from Guardicore label list responses."""
     label_items = extract_label_items(payload)
@@ -486,14 +498,31 @@ def parse_existing_label_pairs(payload: Any) -> set[tuple[str, str]]:
     for label_item in label_items:
         key = label_item.get("key")
         value = label_item.get("value")
-        nested_label_value = label_item.get("label")
-        if (not isinstance(key, str) or not isinstance(value, str)) and isinstance(nested_label_value, dict):
-            nested_label = cast("dict[str, Any]", nested_label_value)
-            key = nested_label.get("key")
-            value = nested_label.get("value")
+        if not isinstance(key, str) or not isinstance(value, str):
+            key, value = _extract_nested_label_pair(label_item)
         if isinstance(key, str) and isinstance(value, str):
             existing_pairs.add((key.strip(), value.strip()))
     return existing_pairs
+
+
+def _extract_label_result_page(result: Any) -> tuple[JsonDict | None, list[JsonDict]]:
+    if not isinstance(result, dict):
+        return None, []
+    result_dict = cast("JsonDict", result)
+    objects_value = result_dict.get("objects")
+    if not isinstance(objects_value, list):
+        return result_dict, []
+    objects_list = cast("JsonList", objects_value)
+    objects = [cast("JsonDict", obj) for obj in objects_list if isinstance(obj, dict)]
+    return result_dict, objects
+
+
+def _has_next_label_page(result_dict: JsonDict, object_count: int, offset: int) -> bool:
+    total_count = result_dict.get("total_count")
+    next_offset = offset + object_count
+    if isinstance(total_count, int):
+        return next_offset < total_count
+    return object_count >= DEFAULT_GUARDICORE_LABELS_PAGE_SIZE
 
 
 def fetch_existing_guardicore_labels(config: GuardicoreConfig) -> set[tuple[str, str]]:
@@ -532,26 +561,13 @@ def fetch_existing_guardicore_labels(config: GuardicoreConfig) -> set[tuple[str,
                 raise GuardicoreProvisioningError("Guardicore label query response was not valid JSON.") from exc
 
             existing_pairs.update(parse_existing_label_pairs(result))
-            if not isinstance(result, dict):
+            result_dict, objects = _extract_label_result_page(result)
+            if result_dict is None or not objects:
                 break
 
-            result_dict = cast("dict[str, Any]", result)
-            objects_value = result_dict.get("objects")
-            objects: list[dict[str, Any]] = []
-            if isinstance(objects_value, list):
-                objects_list = cast("list[Any]", objects_value)
-                objects.extend(cast("dict[str, Any]", obj) for obj in objects_list if isinstance(obj, dict))
-            if len(objects) == 0:
+            if not _has_next_label_page(result_dict, len(objects), offset):
                 break
-
-            total_count = result_dict.get("total_count")
             offset += len(objects)
-            if isinstance(total_count, int) and offset >= total_count:
-                break
-            if isinstance(total_count, int):
-                continue
-            if len(objects) < DEFAULT_GUARDICORE_LABELS_PAGE_SIZE:
-                break
 
     return existing_pairs
 
@@ -561,7 +577,7 @@ def filter_missing_labels(labels: list[LabelItem], existing_pairs: set[tuple[str
     return [label for label in labels if (label.key.strip(), label.value.strip()) not in existing_pairs]
 
 
-def post_guardicore_labels(config: GuardicoreConfig, payload: list[dict[str, Any]]) -> None:
+def post_guardicore_labels(config: GuardicoreConfig, payload: list[JsonDict]) -> None:
     if not payload:
         return
 
@@ -586,11 +602,11 @@ def post_guardicore_labels(config: GuardicoreConfig, payload: list[dict[str, Any
             return
 
         if isinstance(result, dict):
-            result_dict = cast("dict[str, Any]", result)
+            result_dict = cast("JsonDict", result)
             for error_key in ["errors", "failed", "failed_items", "rejected", "invalid_labels"]:
                 errors_value = result_dict.get(error_key)
                 if isinstance(errors_value, list) and errors_value:
-                    error_items = cast("list[Any]", errors_value)
+                    error_items = cast("JsonList", errors_value)
                     raise GuardicoreProvisioningError(
                         f"Guardicore bulk label call reported {len(error_items)} rejected item(s) in '{error_key}'."
                     )

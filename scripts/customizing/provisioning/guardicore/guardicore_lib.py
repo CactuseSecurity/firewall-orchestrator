@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, TypeAlias, cast
 
 import requests
 import urllib3
@@ -11,6 +11,8 @@ import urllib3
 HTTP_CONTENT_TYPE_JSON: str = "application/json"
 HTTP_OK: int = 200
 DEFAULT_GUARDICORE_AUTH_ENDPOINT: str = "/api/v3.0/authenticate"
+JsonDict: TypeAlias = dict[str, Any]
+JsonList: TypeAlias = list[Any]
 
 
 @dataclass(frozen=True)
@@ -33,7 +35,11 @@ class FwoConfig:
 def apply_ssl_settings(session: requests.Session, verify_setting: bool | str) -> None:
     session.verify = verify_setting
     if verify_setting is False:
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        urllib3_module = cast("Any", urllib3)
+        urllib3_exceptions = urllib3_module.exceptions
+        disable_warnings = urllib3_module.disable_warnings
+        insecure_warning = getattr(urllib3_exceptions, "InsecureRequestWarning", Warning)
+        disable_warnings(insecure_warning)
 
 
 def resolve_ssl_verification_settings(args: Any) -> tuple[bool | str, bool | str]:
@@ -114,16 +120,16 @@ def login_guardicore(
 def run_graphql_query(
     config: FwoConfig,
     query: str,
-    variables: dict[str, Any],
+    variables: JsonDict,
     error_cls: type[Exception],
-) -> dict[str, Any]:
+) -> JsonDict:
     headers: dict[str, str] = {
         "Content-Type": HTTP_CONTENT_TYPE_JSON,
         "Authorization": f"Bearer {config.jwt}",
         "x-hasura-role": config.role,
     }
     payload_query = " ".join(query.splitlines())
-    payload: dict[str, Any] = {"query": payload_query, "variables": variables}
+    payload: JsonDict = {"query": payload_query, "variables": variables}
 
     with requests.Session() as session:
         apply_ssl_settings(session, config.verify_ssl)
@@ -137,22 +143,22 @@ def run_graphql_query(
     result = response.json()
     if not isinstance(result, dict):
         raise error_cls("GraphQL response was not a JSON object.")
-    result = cast("dict[str, Any]", result)
+    result = cast("JsonDict", result)
     if "errors" in result:
         raise error_cls(f"GraphQL returned errors: {result['errors']}")
     return result
 
 
-def extract_label_items(payload: Any) -> list[dict[str, Any]]:
+def extract_label_items(payload: Any) -> list[JsonDict]:
     if isinstance(payload, list):
-        payload_list = cast("list[Any]", payload)
-        return [cast("dict[str, Any]", item) for item in payload_list if isinstance(item, dict)]
+        payload_list = cast("JsonList", payload)
+        return [cast("JsonDict", item) for item in payload_list if isinstance(item, dict)]
     if isinstance(payload, dict):
-        payload_dict = cast("dict[str, Any]", payload)
+        payload_dict = cast("JsonDict", payload)
         for key in ("objects", "items", "labels", "results", "data"):
             candidate = payload_dict.get(key)
             if isinstance(candidate, list):
-                candidate_list = cast("list[Any]", candidate)
-                return [cast("dict[str, Any]", item) for item in candidate_list if isinstance(item, dict)]
+                candidate_list = cast("JsonList", candidate)
+                return [cast("JsonDict", item) for item in candidate_list if isinstance(item, dict)]
         return [payload_dict]
     return []

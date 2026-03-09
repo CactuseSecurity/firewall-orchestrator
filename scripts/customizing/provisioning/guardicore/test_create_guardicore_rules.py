@@ -18,6 +18,50 @@ EXPECTED_PAGINATED_LABEL_COUNT = 3
 TEST_GUARDICORE_TOKEN = "guardicore_token_for_tests"  # This is a dummy token for testing purposes only. It does not grant any access. #NOQA: S105
 
 
+class StaticJsonResponse:
+    def __init__(self, payload: dict[str, Any] | None = None) -> None:
+        self.payload = payload or {}
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict[str, Any]:
+        return self.payload
+
+
+class SessionStub:
+    def __init__(
+        self,
+        get_handler: Any = None,
+        post_handler: Any = None,
+    ) -> None:
+        self.headers: dict[str, Any] = {}
+        self.verify = True
+        self._get_handler = get_handler
+        self._post_handler = post_handler
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        return None
+
+    def get(self, _endpoint: str, **kwargs: Any) -> StaticJsonResponse:
+        if self._get_handler is None:
+            return StaticJsonResponse()
+        return self._get_handler(kwargs)
+
+    def post(self, endpoint: str, json: dict[str, Any], timeout: int) -> StaticJsonResponse:
+        if self._post_handler is None:
+            return StaticJsonResponse()
+        return self._post_handler(endpoint, json, timeout)
+
+
 def load_module() -> ModuleType:
     module_path = Path(__file__).with_name("create_guardicore_rules.py")
     spec = spec_from_file_location("create_guardicore_rules", module_path)
@@ -27,6 +71,69 @@ def load_module() -> ModuleType:
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def install_session_stub(
+    monkeypatch: MonkeyPatch,
+    module: ModuleType,
+    *,
+    get_handler: Any = None,
+    post_handler: Any = None,
+) -> SessionStub:
+    session = SessionStub(get_handler=get_handler, post_handler=post_handler)
+    monkeypatch.setattr(module.requests, "Session", lambda: session)
+    return session
+
+
+def build_guardicore_config(module: ModuleType, timeout_seconds: int = 5) -> Any:
+    return module.GuardicoreConfig(
+        base_url="https://gc.local",
+        token=TEST_GUARDICORE_TOKEN,
+        verify_ssl=True,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+def build_label_list_payload(*objects: dict[str, Any]) -> dict[str, Any]:
+    return {"objects": list(objects), "total_count": len(objects)}
+
+
+def assert_single_label_map_result(
+    stats: Any,
+    approle_map: dict[str, list[str]],
+    *,
+    role_id: str,
+    role_name: str,
+    label_id: str,
+    include_full_value_key: bool = False,
+) -> None:
+    assert approle_map[role_id] == [label_id]
+    assert approle_map[role_name] == [label_id]
+    assert stats.total_approle_labels == 1
+    assert stats.unique_role_name_keys == 1
+    assert stats.unique_role_id_keys == 1
+    assert stats.approle_candidates_seen == 1
+    if include_full_value_key:
+        assert stats.unique_full_value_keys == 1
+        assert stats.pages_fetched == 1
+        assert stats.raw_label_objects_seen == 1
+        assert stats.label_candidates_seen == 1
+
+
+def fetch_approle_map_for_payload(
+    monkeypatch: MonkeyPatch,
+    module: ModuleType,
+    *objects: dict[str, Any],
+) -> tuple[dict[str, list[str]], Any]:
+    def get_handler(_kwargs: dict[str, Any]) -> StaticJsonResponse:
+        return StaticJsonResponse(build_label_list_payload(*objects))
+
+    install_session_stub(
+        monkeypatch,
+        module,
+        get_handler=get_handler,
+    )
+    return module.fetch_guardicore_approle_map(build_guardicore_config(module))
 
 
 def test_resolve_approle_labels_returns_ids_and_missing_labels():
@@ -452,120 +559,47 @@ def test_extract_nwgroup_name_from_label_value_parses_fwo_style_value():
 
 def test_fetch_guardicore_approle_map_adds_name_and_id_aliases(monkeypatch: MonkeyPatch):
     module = load_module()
-
-    class FakeResponse:
-        def raise_for_status(self) -> None:
-            return None
-
-        def json(self) -> dict[str, Any]:
-            return {
-                "objects": [
-                    {
-                        "id": "label-1",
-                        "key": "AppRole",
-                        "value": "My App (APP-1) - NeMo-All_Nemo_Servers (AR-1234)",
-                    }
-                ],
-                "total_count": 1,
-            }
-
-    class FakeSession:
-        def __init__(self) -> None:
-            self.headers: dict[str, Any] = {}
-            self.verify = True
-
-        def __enter__(self) -> Self:
-            return self
-
-        def __exit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc: BaseException | None,
-            tb: TracebackType | None,
-        ) -> None:
-            return None
-
-        def get(self, _endpoint: str, **_kwargs: Any) -> FakeResponse:
-            return FakeResponse()
-
-    monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
-    config = module.GuardicoreConfig(
-        base_url="https://gc.local",
-        token=TEST_GUARDICORE_TOKEN,
-        verify_ssl=True,
-        timeout_seconds=5,
+    approle_map, stats = fetch_approle_map_for_payload(
+        monkeypatch,
+        module,
+        {
+            "id": "label-1",
+            "key": "AppRole",
+            "value": "My App (APP-1) - NeMo-All_Nemo_Servers (AR-1234)",
+        },
     )
 
-    approle_map, stats = module.fetch_guardicore_approle_map(config)
-
-    assert approle_map["AR-1234"] == ["label-1"]
-    assert approle_map["NeMo-All_Nemo_Servers"] == ["label-1"]
-    assert stats.total_approle_labels == 1
-    assert stats.unique_full_value_keys == 1
-    assert stats.unique_role_name_keys == 1
-    assert stats.unique_role_id_keys == 1
-    assert stats.pages_fetched == 1
-    assert stats.raw_label_objects_seen == 1
-    assert stats.label_candidates_seen == 1
-    assert stats.approle_candidates_seen == 1
+    assert_single_label_map_result(
+        stats,
+        approle_map,
+        role_id="AR-1234",
+        role_name="NeMo-All_Nemo_Servers",
+        label_id="label-1",
+        include_full_value_key=True,
+    )
 
 
 def test_fetch_guardicore_approle_map_reads_nested_label_shape(monkeypatch: MonkeyPatch):
     module = load_module()
-
-    class FakeResponse:
-        def raise_for_status(self) -> None:
-            return None
-
-        def json(self) -> dict[str, Any]:
-            return {
-                "objects": [
-                    {
-                        "label": {
-                            "id": "label-2",
-                            "key": "AppRole:",
-                            "value": "NeMo (APP-5630) - NeMo Entwicklung (AR5005630-006)",
-                        }
-                    }
-                ],
-                "total_count": 1,
+    approle_map, stats = fetch_approle_map_for_payload(
+        monkeypatch,
+        module,
+        {
+            "label": {
+                "id": "label-2",
+                "key": "AppRole:",
+                "value": "NeMo (APP-5630) - NeMo Entwicklung (AR5005630-006)",
             }
-
-    class FakeSession:
-        def __init__(self) -> None:
-            self.headers: dict[str, Any] = {}
-            self.verify = True
-
-        def __enter__(self) -> Self:
-            return self
-
-        def __exit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc: BaseException | None,
-            tb: TracebackType | None,
-        ) -> None:
-            return None
-
-        def get(self, _endpoint: str, **_kwargs: Any) -> FakeResponse:
-            return FakeResponse()
-
-    monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
-    config = module.GuardicoreConfig(
-        base_url="https://gc.local",
-        token=TEST_GUARDICORE_TOKEN,
-        verify_ssl=True,
-        timeout_seconds=5,
+        },
     )
 
-    approle_map, stats = module.fetch_guardicore_approle_map(config)
-
-    assert approle_map["AR5005630-006"] == ["label-2"]
-    assert approle_map["NeMo Entwicklung"] == ["label-2"]
-    assert stats.total_approle_labels == 1
-    assert stats.unique_role_name_keys == 1
-    assert stats.unique_role_id_keys == 1
-    assert stats.approle_candidates_seen == 1
+    assert_single_label_map_result(
+        stats,
+        approle_map,
+        role_id="AR5005630-006",
+        role_name="NeMo Entwicklung",
+        label_id="label-2",
+    )
 
 
 def test_is_guardicore_policy_label_key_accepts_spacing_and_case_variants():
@@ -581,55 +615,23 @@ def test_is_guardicore_policy_label_key_accepts_spacing_and_case_variants():
 
 def test_fetch_guardicore_approle_map_accepts_spaced_approle_key(monkeypatch: MonkeyPatch):
     module = load_module()
-
-    class FakeResponse:
-        def raise_for_status(self) -> None:
-            return None
-
-        def json(self) -> dict[str, Any]:
-            return {
-                "objects": [
-                    {
-                        "id": "label-3",
-                        "key": "App Role",
-                        "value": "NeMo (APP-5630) - NeMo Entwicklung (AR5005630-006)",
-                    }
-                ],
-                "total_count": 1,
-            }
-
-    class FakeSession:
-        def __init__(self) -> None:
-            self.headers: dict[str, Any] = {}
-            self.verify = True
-
-        def __enter__(self) -> Self:
-            return self
-
-        def __exit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc: BaseException | None,
-            tb: TracebackType | None,
-        ) -> None:
-            return None
-
-        def get(self, _endpoint: str, **_kwargs: Any) -> FakeResponse:
-            return FakeResponse()
-
-    monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
-    config = module.GuardicoreConfig(
-        base_url="https://gc.local",
-        token=TEST_GUARDICORE_TOKEN,
-        verify_ssl=True,
-        timeout_seconds=5,
+    approle_map, stats = fetch_approle_map_for_payload(
+        monkeypatch,
+        module,
+        {
+            "id": "label-3",
+            "key": "App Role",
+            "value": "NeMo (APP-5630) - NeMo Entwicklung (AR5005630-006)",
+        },
     )
 
-    approle_map, stats = module.fetch_guardicore_approle_map(config)
-
-    assert approle_map["AR5005630-006"] == ["label-3"]
-    assert approle_map["NeMo Entwicklung"] == ["label-3"]
-    assert stats.total_approle_labels == 1
+    assert_single_label_map_result(
+        stats,
+        approle_map,
+        role_id="AR5005630-006",
+        role_name="NeMo Entwicklung",
+        label_id="label-3",
+    )
 
 
 def test_is_probable_policy_label_accepts_ar_or_na_suffix_when_key_is_not_policy_key():
@@ -642,117 +644,52 @@ def test_is_probable_policy_label_accepts_ar_or_na_suffix_when_key_is_not_policy
 
 def test_fetch_guardicore_approle_map_accepts_networkarea_key(monkeypatch: MonkeyPatch):
     module = load_module()
-
-    class FakeResponse:
-        def raise_for_status(self) -> None:
-            return None
-
-        def json(self) -> dict[str, Any]:
-            return {
-                "objects": [
-                    {
-                        "id": "label-na-1",
-                        "key": "NetworkArea",
-                        "value": "NeMo (APP-5630) - NeMo Entwicklung (NA5005630-006)",
-                    }
-                ],
-                "total_count": 1,
-            }
-
-    class FakeSession:
-        def __init__(self) -> None:
-            self.headers: dict[str, Any] = {}
-            self.verify = True
-
-        def __enter__(self) -> Self:
-            return self
-
-        def __exit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc: BaseException | None,
-            tb: TracebackType | None,
-        ) -> None:
-            return None
-
-        def get(self, _endpoint: str, **_kwargs: Any) -> FakeResponse:
-            return FakeResponse()
-
-    monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
-    config = module.GuardicoreConfig(
-        base_url="https://gc.local",
-        token=TEST_GUARDICORE_TOKEN,
-        verify_ssl=True,
-        timeout_seconds=5,
+    approle_map, stats = fetch_approle_map_for_payload(
+        monkeypatch,
+        module,
+        {
+            "id": "label-na-1",
+            "key": "NetworkArea",
+            "value": "NeMo (APP-5630) - NeMo Entwicklung (NA5005630-006)",
+        },
     )
 
-    approle_map, stats = module.fetch_guardicore_approle_map(config)
-
-    assert approle_map["NA5005630-006"] == ["label-na-1"]
-    assert approle_map["NeMo Entwicklung"] == ["label-na-1"]
-    assert stats.total_approle_labels == 1
+    assert_single_label_map_result(
+        stats,
+        approle_map,
+        role_id="NA5005630-006",
+        role_name="NeMo Entwicklung",
+        label_id="label-na-1",
+    )
 
 
 def test_fetch_guardicore_approle_map_paginates_without_total_count(monkeypatch: MonkeyPatch):
     module = load_module()
 
-    class FakeResponse:
-        def __init__(self, payload: dict[str, Any]) -> None:
-            self.payload = payload
+    def get_handler(kwargs: dict[str, Any]) -> StaticJsonResponse:
+        params = kwargs["params"]
+        offset = params["start_at"]
+        if offset == 0:
+            return StaticJsonResponse(
+                {
+                    "objects": [
+                        {"id": "label-1", "key": "AppRole", "value": "App A (APP-1) - Role A (AR-1)"},
+                        {"id": "label-2", "key": "AppRole", "value": "App B (APP-2) - Role B (AR-2)"},
+                    ]
+                }
+            )
+        if offset == EXPECTED_SECOND_OFFSET:
+            return StaticJsonResponse(
+                {
+                    "objects": [
+                        {"id": "label-3", "key": "AppRole", "value": "App C (APP-3) - Role C (AR-3)"},
+                    ]
+                }
+            )
+        return StaticJsonResponse({"objects": []})
 
-        def raise_for_status(self) -> None:
-            return None
-
-        def json(self) -> dict[str, Any]:
-            return self.payload
-
-    class FakeSession:
-        def __init__(self) -> None:
-            self.headers: dict[str, Any] = {}
-            self.verify = True
-
-        def __enter__(self) -> Self:
-            return self
-
-        def __exit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc: BaseException | None,
-            tb: TracebackType | None,
-        ) -> None:
-            return None
-
-        def get(self, _endpoint: str, **kwargs: Any) -> FakeResponse:
-            params = kwargs["params"]
-            offset = params["start_at"]
-            if offset == 0:
-                return FakeResponse(
-                    {
-                        "objects": [
-                            {"id": "label-1", "key": "AppRole", "value": "App A (APP-1) - Role A (AR-1)"},
-                            {"id": "label-2", "key": "AppRole", "value": "App B (APP-2) - Role B (AR-2)"},
-                        ]
-                    }
-                )
-            if offset == EXPECTED_SECOND_OFFSET:
-                return FakeResponse(
-                    {
-                        "objects": [
-                            {"id": "label-3", "key": "AppRole", "value": "App C (APP-3) - Role C (AR-3)"},
-                        ]
-                    }
-                )
-            return FakeResponse({"objects": []})
-
-    monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
-    config = module.GuardicoreConfig(
-        base_url="https://gc.local",
-        token=TEST_GUARDICORE_TOKEN,
-        verify_ssl=True,
-        timeout_seconds=5,
-    )
-
-    approle_map, stats = module.fetch_guardicore_approle_map(config)
+    install_session_stub(monkeypatch, module, get_handler=get_handler)
+    approle_map, stats = module.fetch_guardicore_approle_map(build_guardicore_config(module))
 
     assert approle_map["AR-1"] == ["label-1"]
     assert approle_map["AR-2"] == ["label-2"]
@@ -810,53 +747,23 @@ def test_post_guardicore_revision_skips_http_call_for_empty_rulesets(monkeypatch
             raise AssertionError("requests.Session() must not be called for empty rulesets")
 
     monkeypatch.setattr(module.requests, "Session", FailingSessionFactory())
-    config = module.GuardicoreConfig(
-        base_url="https://gc.local",
-        token=TEST_GUARDICORE_TOKEN,
-        verify_ssl=True,
-        timeout_seconds=5,
-    )
-
-    module.post_guardicore_revision(config, [], "comment")
+    module.post_guardicore_revision(build_guardicore_config(module), [], "comment")
 
 
 def test_post_guardicore_revision_posts_once_with_comment_only(monkeypatch: MonkeyPatch):
     module = load_module()
     captured_calls: list[dict[str, Any]] = []
 
-    class FakeResponse:
-        def raise_for_status(self) -> None:
-            return None
+    def post_handler(endpoint: str, json: dict[str, Any], timeout: int) -> StaticJsonResponse:
+        captured_calls.append({"endpoint": endpoint, "json": json, "timeout": timeout})
+        return StaticJsonResponse()
 
-    class FakeSession:
-        def __init__(self) -> None:
-            self.headers: dict[str, Any] = {}
-            self.verify = True
-
-        def __enter__(self) -> Self:
-            return self
-
-        def __exit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc: BaseException | None,
-            tb: TracebackType | None,
-        ) -> None:
-            return None
-
-        def post(self, endpoint: str, json: dict[str, Any], timeout: int) -> FakeResponse:
-            captured_calls.append({"endpoint": endpoint, "json": json, "timeout": timeout})
-            return FakeResponse()
-
-    monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
-    config = module.GuardicoreConfig(
-        base_url="https://gc.local",
-        token=TEST_GUARDICORE_TOKEN,
-        verify_ssl=True,
-        timeout_seconds=EXPECTED_PUBLISH_TIMEOUT,
+    install_session_stub(monkeypatch, module, post_handler=post_handler)
+    module.post_guardicore_revision(
+        build_guardicore_config(module, timeout_seconds=EXPECTED_PUBLISH_TIMEOUT),
+        ["FWOC3", "FWOC4"],
+        "published rules by NeMo",
     )
-
-    module.post_guardicore_revision(config, ["FWOC3", "FWOC4"], "published rules by NeMo")
 
     assert len(captured_calls) == 1
     assert captured_calls[0]["endpoint"] == "https://gc.local/api/v4.0/visibility/policy/revisions"

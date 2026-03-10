@@ -18,6 +18,12 @@ namespace FWO.Test
         static readonly Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
         static readonly FwoOwner Application = new() { Id = 1, Name = "TestApp" };
 
+        [OneTimeSetUp]
+        public void EnsureRequiredTranslationKeys()
+        {
+            SimulatedUserConfig.DummyTranslate.TryAdd("save_connection", "Save Connection");
+        }
+
         [Test]
         public void CalcVisibility_InterfaceWithDestinationFilled_ReadonlyFlags()
         {
@@ -145,9 +151,60 @@ namespace FWO.Test
             ClassicAssert.IsTrue(handler.ActConn.PermittedOwners.Any(o => o.Id == 2));
         }
 
+        [Test]
+        public async Task SavePropertiesOnly_UpdatesMatchingConnectionAndReturnsTrue()
+        {
+            SavePropertiesOnlyTestApiConn apiConnection = new();
+            ModellingConnection listedConnection = new() { Id = 100, Properties = "{\"old\":true}" };
+            ModellingConnection actConnection = new() { Id = 100, Properties = "{\"new\":true}" };
+            ModellingConnectionHandler handler = CreateHandler(actConnection, [listedConnection], apiConnection);
+
+            bool result = await handler.SavePropertiesOnly();
+
+            ClassicAssert.IsTrue(result);
+            ClassicAssert.IsTrue(apiConnection.UpdateConnectionPropertiesCalled);
+            ClassicAssert.AreEqual(100, GetVariable<int>(apiConnection.LastVariables, "id"));
+            ClassicAssert.AreEqual("{\"new\":true}", GetVariable<string>(apiConnection.LastVariables, "connProp"));
+            ClassicAssert.AreEqual("{\"new\":true}", listedConnection.Properties);
+        }
+
+        [Test]
+        public async Task SavePropertiesOnly_WithoutMatchingConnection_ReturnsTrueWithoutListUpdate()
+        {
+            SavePropertiesOnlyTestApiConn apiConnection = new();
+            ModellingConnection listedConnection = new() { Id = 101, Properties = "{\"old\":true}" };
+            ModellingConnection actConnection = new() { Id = 999, Properties = "{\"new\":true}" };
+            ModellingConnectionHandler handler = CreateHandler(actConnection, [listedConnection], apiConnection);
+
+            bool result = await handler.SavePropertiesOnly();
+
+            ClassicAssert.IsTrue(result);
+            ClassicAssert.IsTrue(apiConnection.UpdateConnectionPropertiesCalled);
+            ClassicAssert.AreEqual("{\"old\":true}", listedConnection.Properties);
+        }
+
+        [Test]
+        public async Task SavePropertiesOnly_OnApiException_ReturnsFalseAndKeepsListUnchanged()
+        {
+            SavePropertiesOnlyTestApiConn apiConnection = new() { ThrowOnUpdateConnectionProperties = true };
+            ModellingConnection listedConnection = new() { Id = 102, Properties = "{\"old\":true}" };
+            ModellingConnection actConnection = new() { Id = 102, Properties = "{\"new\":true}" };
+            ModellingConnectionHandler handler = CreateHandler(actConnection, [listedConnection], apiConnection);
+
+            bool result = await handler.SavePropertiesOnly();
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual("{\"old\":true}", listedConnection.Properties);
+        }
+
         private static ModellingConnectionHandler CreateHandler(ModellingConnection connection)
         {
             return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
+        }
+
+        private static ModellingConnectionHandler CreateHandler(ModellingConnection actConnection, List<ModellingConnection> connections, SimulatedApiConnection apiConnection)
+        {
+            return new ModellingConnectionHandler(apiConnection, userConfig, Application, connections, actConnection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
         }
 
         private static void InvokePrivateVoid(ModellingConnectionHandler handler, string methodName)
@@ -165,6 +222,34 @@ namespace FWO.Test
         private static ModellingServiceWrapper WrapService(int id, string name)
         {
             return new ModellingServiceWrapper { Content = new ModellingService { Id = id, Name = name } };
+        }
+
+        private static T GetVariable<T>(object? variables, string name)
+        {
+            object? value = variables?.GetType().GetProperty(name)?.GetValue(variables);
+            return value == null ? default! : (T)value;
+        }
+
+        private sealed class SavePropertiesOnlyTestApiConn : SimulatedApiConnection
+        {
+            public bool ThrowOnUpdateConnectionProperties { get; set; }
+            public bool UpdateConnectionPropertiesCalled { get; private set; }
+            public object? LastVariables { get; private set; }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            {
+                if (query == FWO.Api.Client.Queries.ModellingQueries.updateConnectionProperties && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    UpdateConnectionPropertiesCalled = true;
+                    LastVariables = variables;
+                    if (ThrowOnUpdateConnectionProperties)
+                    {
+                        throw new InvalidOperationException("Simulated update failure.");
+                    }
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
+                }
+                throw new NotImplementedException($"Unhandled query: {query}");
+            }
         }
     }
 }

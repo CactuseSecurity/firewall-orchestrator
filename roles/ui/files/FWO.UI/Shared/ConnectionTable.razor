@@ -31,10 +31,13 @@
                                         @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
                                     </button>
                                 }
-                                <button type="button" class="btn btn-sm btn-danger" disabled="@Readonly" @onclick="async () =>
-                                    { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                                    @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
-                                </button>
+                                @if (ShowDeleteButton(context))
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" disabled="@Readonly" @onclick="async () =>
+                                        { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                                        @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                                    </button>
+                                }
                                 @if(context.IsInterface)
                                 {
                                     <button type="button" class="btn btn-sm btn-secondary" @onclick="async () =>
@@ -276,6 +279,12 @@
             return $"<span class=\"text-secondary\">{content}</span>";
         }
         return content;
+    }
+
+    private bool ShowDeleteButton(ModellingConnection conn)
+    {
+        // Requested interfaces are handled in monitoring/request workflow, not deleted in-place.
+        return !(conn.IsInterface && conn.IsRequested && conn.TicketId != null);
     }
 
     public string DisplayModState(ModellingConnection connection)

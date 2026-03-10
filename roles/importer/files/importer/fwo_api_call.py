@@ -92,7 +92,7 @@ class FwoApiCall:
         try:  # set import lock
             last_control_id_query = FwoApi.get_graphql_code(
                 [fwo_const.GRAPHQL_QUERY_PATH + "import/getLastImportControl.graphql"]
-            )
+            )  # get last import control id to determine new id for lock entry
             last_control_result = self.api.call(last_control_id_query)
             rows = last_control_result["data"]["import_control"]
             if rows:

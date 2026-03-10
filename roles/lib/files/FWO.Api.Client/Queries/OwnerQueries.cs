@@ -8,6 +8,7 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getOwnerById;
         public static readonly string getOwners;
+        public static readonly string getOwnersForRuleOwner;
         public static readonly string getOwnersWithConn;
         public static readonly string getEditableOwners;
         public static readonly string getEditableOwnersWithConn;
@@ -15,12 +16,12 @@ namespace FWO.Api.Client.Queries
         public static readonly string getOwnersForDnsWithConn;
         public static readonly string getOwnersForDnsWithModellingWithConn;
         public static readonly string newOwner;
-        public static readonly string newLifeCycle;
+        public static readonly string newOwnerLifeCycle;
         public static readonly string updateOwner;
-        public static readonly string updateLifeCycle;
+        public static readonly string updateOwnerLifeCycle;
         public static readonly string deactivateOwner;
         public static readonly string deleteOwner;
-        public static readonly string deleteLifeCycle;
+        public static readonly string deleteOwnerLifeCycle;
         public static readonly string getOwnerLifeCycleStates;
         // public static readonly string setDefaultOwner;
         public static readonly string setOwnerLastCheck;
@@ -39,8 +40,15 @@ namespace FWO.Api.Client.Queries
         public static readonly string getOwnerId;
         public static readonly string newOwnerResponsibles;
         public static readonly string deleteOwnerResponsibles;
+        public static readonly string setAllActiveRuleOwnersRemoved;
+        public static readonly string setAffectedRuleOwnersRemoved;
+        public static readonly string insertRuleOwners;
+        public static readonly string getRuleOwnerToRemoveByRule;
+        public static readonly string getRuleOwnerToRemoveByOwner;
         public static readonly string newOwnerResponsibleType;
         public static readonly string updateOwnerResponsibleType;
+        public static readonly string updateChangelogOwner;
+        public static readonly string getChangedOwnersForRuleOwnerMapping;
 
 
         static OwnerQueries()
@@ -51,6 +59,7 @@ namespace FWO.Api.Client.Queries
 
                 getOwnerById = GetQueryText("owner/getOwnerById.graphql");
                 getOwners = ownerDetailsFragment + GetQueryText("owner/getOwners.graphql");
+                getOwnersForRuleOwner = GetQueryText("owner/getOwnersForRuleOwner.graphql");
                 getOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersWithConn.graphql");
                 getEditableOwners = ownerDetailsFragment + GetQueryText("owner/getEditableOwners.graphql");
                 getEditableOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getEditableOwnersWithConn.graphql");
@@ -58,12 +67,12 @@ namespace FWO.Api.Client.Queries
                 getOwnersForDnsWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithConn.graphql");
                 getOwnersForDnsWithModellingWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersForDnsWithModellingWithConn.graphql");
                 newOwner = GetQueryText("owner/newOwner.graphql");
-                newLifeCycle = GetQueryText("owner/newLifeCycle.graphql");
+                newOwnerLifeCycle = GetQueryText("owner/newOwnerLifeCycle.graphql");
                 updateOwner = GetQueryText("owner/updateOwner.graphql");
-                updateLifeCycle = GetQueryText("owner/updateLifeCycle.graphql");
+                updateOwnerLifeCycle = GetQueryText("owner/updateOwnerLifeCycle.graphql");
                 deactivateOwner = GetQueryText("owner/deactivateOwner.graphql");
                 deleteOwner = GetQueryText("owner/deleteOwner.graphql");
-                deleteLifeCycle = GetQueryText("owner/deleteLifeCycle.graphql");
+                deleteOwnerLifeCycle = GetQueryText("owner/deleteOwnerLifeCycle.graphql");
                 getOwnerLifeCycleStates = GetQueryText("owner/getOwnerLifeCycleStates.graphql");
                 setOwnerLastCheck = GetQueryText("owner/setOwnerLastCheck.graphql");
                 setOwnerLastRecert = GetQueryText("owner/setOwnerLastRecert.graphql");
@@ -81,8 +90,15 @@ namespace FWO.Api.Client.Queries
                 getOwnerId = GetQueryText("owner/getOwnerId.graphql");
                 newOwnerResponsibles = GetQueryText("owner/newOwnerResponsibles.graphql");
                 deleteOwnerResponsibles = GetQueryText("owner/deleteOwnerResponsibles.graphql");
+                setAllActiveRuleOwnersRemoved = GetQueryText("owner/setAllActiveRuleOwnersRemoved.graphql");
+                setAffectedRuleOwnersRemoved = GetQueryText("owner/setAffectedRuleOwnersRemoved.graphql");
+                insertRuleOwners = GetQueryText("owner/insertRuleOwners.graphql");
+                getRuleOwnerToRemoveByRule = GetQueryText("owner/getRuleOwnerToRemoveByRule.graphql");
                 newOwnerResponsibleType = GetQueryText("owner/newOwnerResponsibleType.graphql");
                 updateOwnerResponsibleType = GetQueryText("owner/updateOwnerResponsibleType.graphql");
+                updateChangelogOwner = GetQueryText("owner/updateChangelogOwner.graphql");
+                getChangedOwnersForRuleOwnerMapping = GetQueryText("owner/getChangedOwnersForRuleOwnerMapping.graphql");
+                getRuleOwnerToRemoveByOwner = GetQueryText("owner/getRuleOwnerToRemoveByOwner.graphql");
             }
             catch (Exception exception)
             {

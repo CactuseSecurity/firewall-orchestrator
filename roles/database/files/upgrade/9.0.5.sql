@@ -1,92 +1,286 @@
-CREATE INDEX IF NOT EXISTS idx_rule_dev_active_access
-    ON rule (dev_id, rule_num_numeric)
-    WHERE active = true AND access_rule = true AND rule_disabled = false AND rule_head_text IS NULL;
+-- rule_owner table
+ALTER TABLE rule_owner
+ADD COLUMN IF NOT EXISTS rule_id bigint,
+ADD COLUMN IF NOT EXISTS created bigint,
+ADD COLUMN IF NOT EXISTS removed bigint,
+ADD COLUMN IF NOT EXISTS owner_mapping_source_id smallint; -- stm_ for source (ip_based, custom_field, name_field, manual) todo
 
-CREATE INDEX IF NOT EXISTS idx_rule_from_rule_obj
-    ON rule_from (rule_id, obj_id);
+-- backfill new columns for existing rows
+DO $$
+DECLARE
+    latest_import_id bigint;
+BEGIN
+    SELECT MAX(control_id) INTO latest_import_id FROM import_control;
 
-CREATE INDEX IF NOT EXISTS idx_rule_to_rule_obj
-    ON rule_to (rule_id, obj_id);
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'rule_owner'
+          AND column_name = 'rule_id'
+    ) THEN
+        UPDATE rule_owner ro
+        SET rule_id = r.rule_id
+        FROM rule_metadata met
+        JOIN rule r ON r.rule_uid = met.rule_uid AND r.mgm_id = met.mgm_id
+        WHERE ro.rule_metadata_id = met.rule_metadata_id
+          AND ro.rule_id IS NULL;
+    END IF;
 
-CREATE INDEX IF NOT EXISTS idx_objgrp_flat_flat_member
-    ON objgrp_flat (objgrp_flat_id, objgrp_flat_member_id);
+    IF latest_import_id IS NOT NULL THEN
+        UPDATE rule_owner
+        SET created = latest_import_id
+        WHERE created IS NULL;
+    END IF;
 
-CREATE INDEX IF NOT EXISTS idx_tenant_network_tenant
-    ON tenant_network (tenant_id);
+    UPDATE rule_owner
+    SET owner_mapping_source_id = 4
+    WHERE owner_mapping_source_id IS NULL;
+END $$;
 
-CREATE INDEX IF NOT EXISTS idx_tenant_to_management_lookup
-    ON tenant_to_management (management_id, tenant_id, shared);
 
-CREATE INDEX IF NOT EXISTS idx_tenant_to_device_lookup
-    ON tenant_to_device (device_id, tenant_id, shared);
+-- set not null if not done
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'rule_owner'
+          AND column_name = 'rule_id'
+          AND is_nullable = 'YES'
+    ) THEN
+        ALTER TABLE rule_owner ALTER COLUMN rule_id SET NOT NULL;
+    END IF;
 
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'rule_owner'
+          AND column_name = 'created'
+          AND is_nullable = 'YES'
+    ) THEN
+        ALTER TABLE rule_owner ALTER COLUMN created SET NOT NULL;
+    END IF;
 
-CREATE INDEX IF NOT EXISTS idx_rule_name_trgm_active_access
-    ON rule USING gin (rule_name gin_trgm_ops)
-    WHERE active = true AND access_rule = true AND rule_disabled = false AND rule_head_text IS NULL;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'rule_owner'
+          AND column_name = 'owner_id'
+          AND is_nullable = 'YES'
+    ) THEN
+        ALTER TABLE rule_owner ALTER COLUMN owner_id SET NOT NULL;
+    END IF;
 
-CREATE INDEX IF NOT EXISTS idx_rule_comment_trgm_active_access
-    ON rule USING gin (rule_comment gin_trgm_ops)
-    WHERE active = true AND access_rule = true AND rule_disabled = false AND rule_head_text IS NULL;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'rule_owner'
+          AND column_name = 'owner_mapping_source_id'
+          AND is_nullable = 'YES'
+    ) THEN
+        ALTER TABLE rule_owner ALTER COLUMN owner_mapping_source_id SET NOT NULL;
+    END IF;
+END $$;
 
-CREATE OR REPLACE FUNCTION get_rules_for_tenant(device_row device, tenant integer, hasura_session json)
-RETURNS SETOF rule AS $$
-    DECLARE
-        t_id integer;
-    BEGIN
-        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
-        IF t_id IS NULL THEN
-            RAISE EXCEPTION 'No tenant id found in hasura session';
-        ELSIF t_id != 1 AND t_id != tenant THEN
-            RAISE EXCEPTION 'A non-tenant-0 user was trying to generate a report for another tenant.';
-        ELSIF tenant = 1 THEN
-            RAISE EXCEPTION 'Tenant0 cannot be simulated.';
-        ELSE
-            IF rulebase_fully_visible_to_tenant(device_row.dev_id, tenant)
-            THEN
-                RETURN QUERY
-                    SELECT *
-                    FROM rule
-                    WHERE dev_id = device_row.dev_id;
-            ELSE
-                RETURN QUERY
-                    WITH visible_from AS (
-                        SELECT DISTINCT rf.rule_id
-                        FROM rule_from rf
-                        JOIN rule r ON r.rule_id = rf.rule_id
-                        LEFT JOIN objgrp_flat rf_of ON rf.obj_id = rf_of.objgrp_flat_id
-                        LEFT JOIN object rf_o ON rf_of.objgrp_flat_member_id = rf_o.obj_id
-                        JOIN tenant_network tn ON
-                            tn.tenant_id = tenant
-                            AND ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tn.tenant_net_ip, tn.tenant_net_ip_end, rf.negated != r.rule_src_neg)
-                        WHERE r.dev_id = device_row.dev_id
-                            AND r.rule_head_text IS NULL
-                    ),
-                    visible_to AS (
-                        SELECT DISTINCT rt.rule_id
-                        FROM rule_to rt
-                        JOIN rule r ON r.rule_id = rt.rule_id
-                        LEFT JOIN objgrp_flat rt_of ON rt.obj_id = rt_of.objgrp_flat_id
-                        LEFT JOIN object rt_o ON rt_of.objgrp_flat_member_id = rt_o.obj_id
-                        JOIN tenant_network tn ON
-                            tn.tenant_id = tenant
-                            AND ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tn.tenant_net_ip, tn.tenant_net_ip_end, rt.negated != r.rule_dst_neg)
-                        WHERE r.dev_id = device_row.dev_id
-                            AND r.rule_head_text IS NULL
-                    ),
-                    visible_rules AS (
-                        SELECT rule_id FROM visible_from
-                        UNION
-                        SELECT rule_id FROM visible_to
-                    )
-                    SELECT r.*
-                    FROM rule r
-                    JOIN visible_rules vr ON vr.rule_id = r.rule_id
-                    WHERE r.dev_id = device_row.dev_id
-                        AND r.rule_head_text IS NULL
-                    ORDER BY r.rule_name;
-            END IF;
-        END IF;
-    END;
-$$ LANGUAGE 'plpgsql' STABLE;
+-- set primary key
+DO $$
+BEGIN
+    DELETE FROM rule_owner ro
+    USING (
+        SELECT rule_id, owner_id, created, MIN(ctid) AS keep_ctid
+        FROM rule_owner
+        GROUP BY rule_id, owner_id, created
+        HAVING COUNT(*) > 1
+    ) dups
+    WHERE ro.rule_id = dups.rule_id
+      AND ro.owner_id = dups.owner_id
+      AND ro.created = dups.created
+      AND ro.ctid <> dups.keep_ctid;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.table_constraints
+        WHERE table_name = 'rule_owner'
+          AND constraint_type = 'PRIMARY KEY'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM rule_owner
+        WHERE rule_id IS NULL OR owner_id IS NULL OR created IS NULL
+    ) THEN
+        ALTER TABLE rule_owner
+        ADD CONSTRAINT pk_rule_owner
+        PRIMARY KEY (rule_id, owner_id, created);
+    END IF;
+END $$;
+
+-- owner source table
+CREATE TABLE if not EXISTS stm_owner_mapping_source
+(
+    "owner_mapping_source_type_id" BIGINT PRIMARY KEY,
+    "owner_mapping_source_type_name" Varchar NOT NULL
+);
+-- add owner source
+INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name)
+VALUES
+    (1, 'ip_based'),
+    (2, 'custom_field'),
+    (3, 'name_field'),
+    (4, 'manual')
+ON CONFLICT (owner_mapping_source_type_id) DO NOTHING;
+
+-- just one "active" (rule_id, owner_id) + performance
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;
+
+-- create fks
+ALTER TABLE rule_owner DROP CONSTRAINT IF EXISTS rule_owner_rule_foreign_key;
+ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_rule_foreign_key FOREIGN KEY (rule_id) REFERENCES rule(rule_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE rule_owner DROP CONSTRAINT IF EXISTS rule_owner_created_import_control_foreign_key;
+ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_created_import_control_foreign_key FOREIGN KEY (created) REFERENCES import_control(control_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE rule_owner DROP CONSTRAINT IF EXISTS rule_owner_removed_import_control_foreign_key;
+ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_removed_import_control_foreign_key FOREIGN KEY (removed) REFERENCES import_control(control_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE rule_owner DROP CONSTRAINT IF EXISTS rule_owner_owner_mapping_source_id_stm_owner_mapping_source_foreign_key;
+ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_owner_mapping_source_id_stm_owner_mapping_source_foreign_key FOREIGN KEY (owner_mapping_source_id) 
+REFERENCES stm_owner_mapping_source(owner_mapping_source_type_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+-- shrink owner_mapping_source_id to smallint if it was created as bigint
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'rule_owner'
+          AND column_name = 'owner_mapping_source_id'
+          AND data_type = 'bigint'
+    ) THEN
+        ALTER TABLE rule_owner
+        ALTER COLUMN owner_mapping_source_id TYPE smallint
+        USING owner_mapping_source_id::smallint;
+    END IF;
+END $$;
+
+
+-- import_control 
+-- alter import_control delete unused/exported columns 
+-- owner source table
+CREATE TABLE if not EXISTS stm_import
+(
+    "import_type_id" Integer PRIMARY KEY,
+    "import_type_name" Varchar NOT NULL
+);
+
+INSERT INTO stm_import (import_type_id, import_type_name)
+VALUES
+    (1, 'rule'),
+    (2, 'owner'),
+    (3, 'admin via reinitialize button')
+ON CONFLICT (import_type_id) DO NOTHING;
+
+-- Set all imports to rule import - if import_type_id null
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name='import_control' 
+          AND column_name='import_type_id'
+    ) THEN
+        ALTER TABLE import_control
+        ADD COLUMN import_type_id INTEGER;
+
+        UPDATE import_control
+        SET import_type_id = 1
+        WHERE import_type_id IS NULL;
+
+        ALTER TABLE import_control
+        ALTER COLUMN import_type_id SET NOT NULL;
+    END IF;
+END
+$$;
+
+-- change name of fields
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='import_control'
+          AND column_name='rule_changes_found'
+    ) THEN
+        ALTER TABLE import_control RENAME COLUMN rule_changes_found TO changes_found;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='import_control'
+          AND column_name='any_changes_found'
+    ) THEN
+        ALTER TABLE import_control RENAME COLUMN any_changes_found TO policy_changes_found;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'import_control'
+          AND column_name = 'rule_owner_mapping_done'
+    ) THEN
+        ALTER TABLE import_control
+        ADD COLUMN rule_owner_mapping_done BOOLEAN NOT NULL DEFAULT FALSE;
+    END IF;
+END$$;
+
+-- mgm_id now nullable
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'import_control'
+          AND column_name = 'mgm_id'
+          AND is_nullable = 'NO'
+    ) THEN
+        ALTER TABLE import_control
+        ALTER COLUMN mgm_id DROP NOT NULL;
+    END IF;
+END
+$$;
+
+-- constraint mgm_id not null, if import_type_id = 1
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'import_control_mgm_id_required_for_import_type_1'
+    ) THEN
+        ALTER TABLE import_control
+        ADD CONSTRAINT import_control_mgm_id_required_for_import_type_1
+        CHECK (
+            import_type_id <> 1
+            OR mgm_id IS NOT NULL
+        );
+    END IF;
+END
+$$;
+
+-- runs without problems in pgadmin - drops "old / unused" fields
+DO $$
+DECLARE
+    col RECORD;
+BEGIN
+    FOR col IN
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'import_control'
+          AND column_name IN (
+              'delimiter_group',
+              'delimiter_zone',
+              'delimiter_user',
+              'delimiter_list',
+              'last_change_in_config',
+              'is_full_import'
+          )
+    LOOP
+        EXECUTE format(
+            'ALTER TABLE import_control DROP COLUMN IF EXISTS %I',
+            col.column_name
+        );
+    END LOOP;
+END
+$$;

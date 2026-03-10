@@ -351,7 +351,7 @@ namespace FWO.Services.Modelling
             ActConn.InterfaceIsRequested = interf.IsRequested;
             ActConn.InterfaceIsRejected = interf.GetBoolProperty(ConState.Rejected.ToString());
             ActConn.InterfaceIsDecommissioned = interf.GetBoolProperty(ConState.Decommissioned.ToString());
-            ActConn.InterfaceNoPermission = interf.PermittedOwnerWrappers.Any(w => w.Owner != null && w.Owner.Id == ActConn.AppId);
+            ActConn.InterfaceNoPermission = EvaluateInterfaceNoPermission(interf, ActConn.AppId ?? Application.Id);
             ActConn.TicketId = interf.TicketId;
             if (SrcReadOnly)
             {
@@ -377,7 +377,9 @@ namespace FWO.Services.Modelling
                 ActConn.DestinationOtherGroups = [.. interf.DestinationOtherGroups];
                 ActConn.DstFromInterface = true;
             }
+            SvcToDelete.AddRange([.. ModellingServiceWrapper.Resolve(ActConn.Services)]);
             ActConn.Services = [.. interf.Services];
+            SvcGrpToDelete.AddRange([.. ModellingServiceGroupWrapper.Resolve(ActConn.ServiceGroups)]);
             ActConn.ServiceGroups = [.. interf.ServiceGroups];
             ActConn.ExtraConfigsFromInterface = interf.ExtraConfigs;
         }

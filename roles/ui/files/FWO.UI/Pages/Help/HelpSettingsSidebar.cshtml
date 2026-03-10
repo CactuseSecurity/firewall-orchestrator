@@ -36,14 +36,16 @@
                 <a class="nav-link" href="/help/settings/roles/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Role"></span> @(userConfig.GetText("roles"))
                 </a>
+                <p></p>
+                <h5>@(userConfig.GetText("owners"))</h5>
                 <a class="nav-link" href="/help/settings/owners/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Owner"></span> @(userConfig.GetText("owners"))
                 </a>
-                <a class="nav-link" href="/help/settings/owners/appdataimport/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Import"></span> @(userConfig.GetText("import_app_data"))
-                </a>
                 <a class="nav-link" href="/help/settings/responsibles/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Owner"></span> @(userConfig.GetText("responsibles"))
+                </a>
+                <a class="nav-link" href="/help/settings/owners/appdataimport/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Import"></span> @(userConfig.GetText("import_app_data"))
                 </a>
                 <p></p>
                 <h5>@(userConfig.GetText("defaults"))</h5>
@@ -52,6 +54,9 @@
                 </a>
                 <a class="nav-link" href="/help/settings/importer/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Import"></span> @(userConfig.GetText("importer_settings"))
+                </a>
+                <a class="nav-link" href="/help/settings/changetrigger/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Check"></span> @(userConfig.GetText("change_trigger"))
                 </a>
                 <a class="nav-link" href="/help/settings/defaults/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Settings"></span> @(userConfig.GetText("standards"))

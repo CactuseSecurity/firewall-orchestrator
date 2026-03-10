@@ -21,6 +21,7 @@ namespace FWO.Data.Modelling
         DeletedObjects = 22,
         EmptySvcGrps = 23,
         DocumentationOnly = 24,
+        ForeignNonProdObjects = 25,
 
         VarianceChecked = 31,
         NotImplemented = 32,
@@ -178,7 +179,11 @@ namespace FWO.Data.Modelling
         public ModellingConnection()
         { }
 
-        public ModellingConnection(ModellingConnection conn)
+        public ModellingConnection(ModellingConnection conn) : this(conn, true)
+        {
+        }
+
+        public ModellingConnection(ModellingConnection conn, bool includeLists)
         {
             OrderNumber = conn.OrderNumber;
             Id = conn.Id;
@@ -197,16 +202,6 @@ namespace FWO.Data.Modelling
             CreationDate = conn.CreationDate;
             Properties = conn.Properties;
             ExtraParams = conn.ExtraParams;
-            Services = [.. conn.Services];
-            ServiceGroups = [.. conn.ServiceGroups];
-            SourceAppServers = [.. conn.SourceAppServers];
-            SourceAppRoles = [.. conn.SourceAppRoles];
-            SourceAreas = [.. conn.SourceAreas];
-            SourceOtherGroups = [.. conn.SourceOtherGroups];
-            DestinationAppServers = [.. conn.DestinationAppServers];
-            DestinationAppRoles = [.. conn.DestinationAppRoles];
-            DestinationAreas = [.. conn.DestinationAreas];
-            DestinationOtherGroups = [.. conn.DestinationOtherGroups];
             RequestedOnFw = conn.RequestedOnFw;
             Removed = conn.Removed;
             RemovalDate = conn.RemovalDate;
@@ -216,10 +211,23 @@ namespace FWO.Data.Modelling
             InterfaceIsRejected = conn.InterfaceIsRejected;
             InterfaceIsDecommissioned = conn.InterfaceIsDecommissioned;
             InterfaceNoPermission = conn.InterfaceNoPermission;
-            ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
             InterfacePermission = conn.InterfacePermission;
             PermittedOwnerWrappers = conn.PermittedOwnerWrappers;
             PermittedOwners = conn.PermittedOwners;
+            if (includeLists)
+            {
+                Services = [.. conn.Services];
+                ServiceGroups = [.. conn.ServiceGroups];
+                SourceAppServers = [.. conn.SourceAppServers];
+                SourceAppRoles = [.. conn.SourceAppRoles];
+                SourceAreas = [.. conn.SourceAreas];
+                SourceOtherGroups = [.. conn.SourceOtherGroups];
+                DestinationAppServers = [.. conn.DestinationAppServers];
+                DestinationAppRoles = [.. conn.DestinationAppRoles];
+                DestinationAreas = [.. conn.DestinationAreas];
+                DestinationOtherGroups = [.. conn.DestinationOtherGroups];
+                ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
+            }
         }
 
         public int CompareTo(ModellingConnection secondConnection)
@@ -267,15 +275,15 @@ namespace FWO.Data.Modelling
             return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationAreas.Count > 0 || DestinationOtherGroups.Count > 0;
         }
 
-        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId)
+        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId, bool rolloutRemoved = false, bool withInterfaces = false)
         {
-            return !(IsInterface ||
+            return !((IsInterface && !(withInterfaces && IsPublished)) ||
                 GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
                 GetBoolProperty(ConState.InterfaceRejected.ToString()) ||
                 GetBoolProperty(ConState.InterfaceDecommissioned.ToString()) ||
                 GetBoolProperty(ConState.InterfaceNoPermission.ToString()) || // or not ??
                 EmptyAppRolesFound(dummyAppRoleId) ||
-                DeletedObjectsFound() ||
+                DeletedObjectsFound(rolloutRemoved) ||
                 EmptyServiceGroupsFound());
         }
 
@@ -325,7 +333,7 @@ namespace FWO.Data.Modelling
         }
 
 
-        public void SyncState(long dummyAppRoleId)
+        public void SyncState(long dummyAppRoleId, bool rolloutRemoved = false)
         {
             if (IsInterface)
             {
@@ -335,7 +343,7 @@ namespace FWO.Data.Modelling
             {
                 SyncInterfaceUser();
             }
-            SyncMemberIssues(dummyAppRoleId);
+            SyncMemberIssues(dummyAppRoleId, rolloutRemoved);
             UpdateProperty(ConState.DocumentationOnly.ToString(), IsDocumentationOnly());
         }
 
@@ -363,10 +371,10 @@ namespace FWO.Data.Modelling
             }
         }
 
-        private void SyncMemberIssues(long dummyAppRoleId)
+        private void SyncMemberIssues(long dummyAppRoleId, bool rolloutRemoved)
         {
             UpdateProperty(ConState.EmptyAppRoles.ToString(), EmptyAppRolesFound(dummyAppRoleId));
-            UpdateProperty(ConState.DeletedObjects.ToString(), DeletedObjectsFound());
+            UpdateProperty(ConState.DeletedObjects.ToString(), DeletedObjectsFound(rolloutRemoved));
             UpdateProperty(ConState.EmptySvcGrps.ToString(), EmptyServiceGroupsFound());
         }
 
@@ -413,8 +421,13 @@ namespace FWO.Data.Modelling
             return updatableObjectNames;
         }
 
-        public bool DeletedObjectsFound()
+        private bool DeletedObjectsFound(bool rolloutRemoved = false)
         {
+            if (rolloutRemoved)
+            {
+                return SourceAreas.Any(a => a.Content.IsDeleted) ||
+                DestinationAreas.Any(a => a.Content.IsDeleted);
+            }
             return SourceAreas.Any(a => a.Content.IsDeleted) ||
                 DestinationAreas.Any(a => a.Content.IsDeleted) ||
                 SourceAppRoles.Any(aR => aR.Content.AppServers.Any(a => a.Content.IsDeleted)) ||

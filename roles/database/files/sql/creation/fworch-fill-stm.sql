@@ -104,6 +104,8 @@ insert into config (config_key, config_value, config_user) VALUES ('modRolloutAc
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutResolveServiceGroups', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutBundleTasks', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutNatHeuristic', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRolloutRemovedAppServers', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRequestOnlyOwnObjects', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutErrorText', 'Error during external request', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRecertActive', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRecertExpectAllModelled', 'false', 0);
@@ -138,6 +140,7 @@ insert into config (config_key, config_value, config_user) VALUES ('autoReplaceA
 insert into config (config_key, config_value, config_user) VALUES ('ownerLdapId', '1', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ownerLdapGroupNames', 'ModellerGroup_@@ExternalAppId@@', 0);
 insert into config (config_key, config_value, config_user) VALUES ('manageOwnerLdapGroups', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('ownerDataImportSyncUsers', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarker', 'FWOC', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarkerLocation', 'rulename', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleRecognitionOption', '{"nwRegardIp":true,"nwRegardName":false,"nwRegardGroupName":false,"nwResolveGroup":false,"svcRegardPortAndProt":true,"svcRegardName":false,"svcRegardGroupName":false,"svcResolveGroup":true,"svcSplitPortRanges":false}', 0);
@@ -560,3 +563,12 @@ insert into stm_link_type (id, name) VALUES (5, 'domain');
 -- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (2, 'broadcast address');
 -- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (3, 'DHCP IP undefined address');
 -- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (4, 'dynamic internet address');
+
+INSERT INTO stm_import (import_type_id, import_type_name) VALUES (1, 'rule');
+INSERT INTO stm_import (import_type_id, import_type_name) VALUES (2, 'owner');
+INSERT INTO stm_import (import_type_id, import_type_name) VALUES (3, 'admin via reinitialize button');
+
+INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name) VALUES (1, 'ip_based');
+INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name) VALUES (2, 'custom_field');
+INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name) VALUES (3, 'name_field');
+INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name) VALUES (4, 'manual');

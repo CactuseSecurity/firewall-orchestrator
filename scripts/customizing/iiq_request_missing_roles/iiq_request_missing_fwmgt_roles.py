@@ -10,8 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import git  # apt install python3-git # or: pip install git
 import urllib3
+from git import Repo  # apt install python3-git # or: pip install git  # pyright: ignore[reportUnknownVariableType]
 
 from scripts.customizing.fwo_custom_lib.app_data_basics import (
     transform_app_list_to_dict,
@@ -139,7 +139,7 @@ def get_tisos_from_owner_dict(app_dict: dict[str, Owner]) -> dict[str, str]:
         if owner.main_user != "":
             tiso: str = owner.main_user.replace("CN=", "")  # remove possible CN= prefix
             if "," in tiso:
-                tiso = tiso.split(",")[0]  # take only the user name part before any comma
+                tiso = tiso.split(",", maxsplit=1)[0]  # take only the user name part before any comma
             tisos[f"{app_id}"] = tiso
         else:
             logger.warning("owner %s has no main user, cannot get TISO", owner.name)
@@ -152,12 +152,12 @@ def get_git_repo(git_repo_url: str, git_username: str, git_password: str, repo_t
 
     if Path(repo_target_dir).exists():
         # If the repository already exists, open it and perform a pull
-        repo: Any = git.Repo(repo_target_dir)
-        origin: Any = repo.remotes.origin
+        repo = Repo(repo_target_dir)  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+        origin = repo.remotes.origin  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
         # for DEBUG: do not pull
-        origin.pull()
+        origin.pull()  # pyright: ignore[reportUnknownMemberType]
     else:
-        git.Repo.clone_from(repo_url, repo_target_dir)
+        Repo.clone_from(repo_url, repo_target_dir)  # pyright: ignore[reportUnknownMemberType]
 
 
 def request_all_roles(

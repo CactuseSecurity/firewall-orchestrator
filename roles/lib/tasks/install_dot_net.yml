@@ -9,6 +9,10 @@
     - set_fact: distribution_version="{{ debian_testing_version }}"    
       when: ansible_facts['distribution_release']|lower == debian_testing_release_name
 
+    - name: set dotnet package name
+      set_fact:
+        dotnet_package_name: "dotnet-sdk-{{ dotnet_version }}"
+
     # for all distros except ubuntu >=22.04 we need to include a package source
     - block:
 
@@ -17,10 +21,21 @@
           url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
           dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
           mode: "0644"
+        register: dotnet_ms_repo_download
+        until: dotnet_ms_repo_download is succeeded
+        retries: 3
+        delay: 5
+
+      - name: check ms package list status
+        command: dpkg-query -W -f='${Status}' packages-microsoft-prod
+        register: dotnet_ms_repo_pkg_status
+        changed_when: false
+        failed_when: false
 
       - name: install ms package list
         apt:
           deb: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+        when: "'install ok installed' not in dotnet_ms_repo_pkg_status.stdout"
 
       - name: remove package list file
         file:
@@ -28,39 +43,128 @@
           state: absent
 
       - name: apt update
-        apt: update_cache=true
+        apt:
+          update_cache: true
 
       when: ansible_facts['distribution']|lower != 'ubuntu' or 
         (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
-
-    # - name: update /etc/apt/preferences for ubuntu >=22 (https://github.com/dotnet/sdk/issues/27129)
-    #   blockinfile:
-    #     path: /etc/apt/preferences
-    #     create: true
-    #     block: |
-    #       Package: dotnet-* aspnetcore-* netstandard-*
-    #       Pin: origin packages.microsoft.com
-    #       Pin-Priority: 999
-    #   when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
-
-    # - name: make sure to use the ubuntu version of dotnet sdk on ubuntu >=22
-    #   file:
-    #     path: /etc/apt/sources.list.d/{{ item }}
-    #     state: absent
-    #   loop:
-    #     - "{{ dotnet_deb_name }}"
-    #     - microsoft-prod.list
-    #   when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] is version('22', '>=')
 
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present
 
     - name: apt update
-      apt: update_cache=true
+      apt:
+        update_cache: true
 
-    - name: Install dotnet-sdk-{{ dotnet_version }}
-      package: "name=dotnet-sdk-{{ dotnet_version }} state=present"
-      when: ansible_architecture == "x86_64"
+    - block:
+      - name: Install {{ dotnet_package_name }} from current apt sources
+        package:
+          name: "{{ dotnet_package_name }}"
+          state: present
+      rescue:
+        - name: get package list from ms {{ dotnet_deb_name }} (ubuntu fallback)
+          get_url:
+            url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
+            dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+            mode: "0644"
+          register: dotnet_ms_repo_download_ubuntu_fallback
+          until: dotnet_ms_repo_download_ubuntu_fallback is succeeded
+          retries: 3
+          delay: 5
+
+        - name: check ms package list status (ubuntu fallback)
+          command: dpkg-query -W -f='${Status}' packages-microsoft-prod
+          register: dotnet_ms_repo_pkg_status_ubuntu_fallback
+          changed_when: false
+          failed_when: false
+
+        - name: install ms package list (ubuntu fallback)
+          apt:
+            deb: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+          when: "'install ok installed' not in dotnet_ms_repo_pkg_status_ubuntu_fallback.stdout"
+
+        - name: check for microsoft apt signing keyring (ubuntu fallback)
+          stat:
+            path: /usr/share/keyrings/microsoft-prod.gpg
+          register: dotnet_ms_keyring_ubuntu_fallback
+
+        - name: ensure microsoft apt repo for dotnet on ubuntu fallback
+          apt_repository:
+            repo: "deb [arch={{ linux_architecture }} signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/{{ distribution_version }}/prod {{ ansible_facts['distribution_release'] | lower }} main"
+            filename: microsoft-prod
+            state: present
+          when: dotnet_ms_keyring_ubuntu_fallback.stat.exists
+
+        - name: ensure microsoft apt repo for dotnet on ubuntu fallback (no keyring path)
+          apt_repository:
+            repo: "deb [arch={{ linux_architecture }}] https://packages.microsoft.com/ubuntu/{{ distribution_version }}/prod {{ ansible_facts['distribution_release'] | lower }} main"
+            filename: microsoft-prod
+            state: present
+          when: not dotnet_ms_keyring_ubuntu_fallback.stat.exists
+
+        - name: remove package list file (ubuntu fallback)
+          file:
+            dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+            state: absent
+
+        - name: prefer microsoft packages for dotnet on ubuntu fallback
+          blockinfile:
+            path: /etc/apt/preferences.d/fworch-dotnet
+            create: true
+            mode: "0644"
+            block: |
+              Package: dotnet-* aspnetcore-* netstandard-*
+              Pin: origin packages.microsoft.com
+              Pin-Priority: 999
+
+        - name: apt update after microsoft repo fallback
+          apt:
+            update_cache: true
+
+        - block:
+            - name: Install {{ dotnet_package_name }} after microsoft repo fallback
+              package:
+                name: "{{ dotnet_package_name }}"
+                state: present
+          rescue:
+            - name: download dotnet-install script (ubuntu fallback)
+              get_url:
+                url: https://dot.net/v1/dotnet-install.sh
+                dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
+                mode: "0755"
+              register: dotnet_install_script_download
+              until: dotnet_install_script_download is succeeded
+              retries: 3
+              delay: 5
+
+            - name: install dotnet sdk {{ dotnet_version }} with dotnet-install script (ubuntu fallback)
+              command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir /usr/share/dotnet"
+
+            - name: ensure dotnet symlink exists (ubuntu fallback)
+              file:
+                src: /usr/share/dotnet/dotnet
+                dest: /usr/bin/dotnet
+                state: link
+                force: true
+
+            - name: verify dotnet sdk {{ dotnet_version }} is installed (ubuntu fallback)
+              command: /usr/share/dotnet/dotnet --list-sdks
+              register: dotnet_sdks_after_script_install
+              changed_when: false
+              failed_when: dotnet_version not in dotnet_sdks_after_script_install.stdout
+      when:
+        - ansible_facts['distribution']|lower == 'ubuntu'
+        - ansible_facts['distribution_major_version'] is version('22', '>=')
+        - ansible_architecture == "x86_64"
+
+    - name: Install dotnet-sdk-{{ dotnet_version }} on distro defaults
+      package:
+        name: "{{ dotnet_package_name }}"
+        state: present
+      when:
+        - ansible_architecture == "x86_64"
+        - ansible_facts['distribution']|lower != 'ubuntu' or
+          (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
 
     - debug: 
         msg:

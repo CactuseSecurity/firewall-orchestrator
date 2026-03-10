@@ -34,6 +34,8 @@ namespace FWO.Middleware.Server
         private List<GroupGetReturnParameters> allGroups = [];
         private Dictionary<int, List<string>> rolesToSetByType = [];
         private Dictionary<int, OwnerResponsibleType> ownerResponsibleTypeById = [];
+        private Dictionary<string, int> ownerResponsibleTypeIdByName = new(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, int> ownerLifeCycleStateIdsByName = new(StringComparer.OrdinalIgnoreCase);
         private ModellingNamingConvention NamingConvention = new();
         private UserConfig userConfig = new();
         private const string LogMessageTitle = "Import App Data";
@@ -58,15 +60,21 @@ namespace FWO.Middleware.Server
             userConfig.User.Name = Roles.MiddlewareServer;
             userConfig.AutoReplaceAppServer = globalConfig.AutoReplaceAppServer;
             await InitLdap();
+            await InitResponsibleTypes();
+            await InitOwnerLifeCycleStates();
             List<string> failedImports = [];
+            var ownerChangeTracker = new OwnerChangeImportTracker(apiConnection);
+
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
                 if (!RunImportScript(importfilePathAndName + ".py", globalConfig.ImportAppDataScriptArgs))
                 {
                     Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
                 }
-                await ImportSingleSource(importfilePathAndName + ".json", failedImports);
+                await ImportSingleSource(importfilePathAndName + ".json", failedImports, ownerChangeTracker);
             }
+
+            await ownerChangeTracker.CompleteImport(failedImports.Count == 0);
             return failedImports;
         }
 
@@ -83,11 +91,36 @@ namespace FWO.Middleware.Server
                     Replace(Placeholder.ExternalAppId, "*").
                     Replace(Placeholder.AppPrefix, "*"));
             rolesToSetByType = ParseRolesWithImport(globalConfig.RolesWithAppDataImport);
-            List<OwnerResponsibleType> responsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
-            ownerResponsibleTypeById = responsibleTypes.ToDictionary(type => type.Id, type => type);
         }
 
-        private async Task ImportSingleSource(string importfileName, List<string> failedImports)
+        private async Task InitResponsibleTypes()
+        {
+            List<OwnerResponsibleType> responsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            ownerResponsibleTypeById = responsibleTypes.ToDictionary(type => type.Id, type => type);
+            ownerResponsibleTypeIdByName = new(StringComparer.OrdinalIgnoreCase);
+            foreach (OwnerResponsibleType type in responsibleTypes)
+            {
+                if (!string.IsNullOrWhiteSpace(type.Name))
+                {
+                    ownerResponsibleTypeIdByName[type.Name.Trim()] = type.Id;
+                }
+            }
+        }
+
+        private async Task InitOwnerLifeCycleStates()
+        {
+            List<OwnerLifeCycleState> lifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(OwnerQueries.getOwnerLifeCycleStates);
+            ownerLifeCycleStateIdsByName = new(StringComparer.OrdinalIgnoreCase);
+            foreach (OwnerLifeCycleState state in lifeCycleStates)
+            {
+                if (!string.IsNullOrWhiteSpace(state.Name))
+                {
+                    ownerLifeCycleStateIdsByName[state.Name] = state.Id;
+                }
+            }
+        }
+
+        private async Task ImportSingleSource(string importfileName, List<string> failedImports, OwnerChangeImportTracker ownerChangeTracker)
         {
             try
             {
@@ -96,7 +129,7 @@ namespace FWO.Middleware.Server
                 if (importedOwnerData != null && importedOwnerData.Owners != null)
                 {
                     importedApps = importedOwnerData.Owners;
-                    await ImportApps(importfileName);
+                    await ImportApps(importfileName, ownerChangeTracker);
                 }
             }
             catch (Exception exc)
@@ -108,72 +141,81 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task ImportApps(string importfileName)
+        private async Task ImportApps(string importfileName, OwnerChangeImportTracker ownerChangeTracker)
         {
             int successCounter = 0;
             int failCounter = 0;
             int deleteCounter = 0;
             int deleteFailCounter = 0;
 
+            if (!IsOwnerGroupConfigured())
+            {
+                return;
+            }
+
+            existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            foreach (var incomingApp in importedApps)
+            {
+                if (await SaveApp(incomingApp, ownerChangeTracker))
+                {
+                    ++successCounter;
+                }
+                else
+                {
+                    ++failCounter;
+                }
+            }
+            string? importSource = importedApps.FirstOrDefault()?.ImportSource;
+            if (importSource != null)
+            {
+                (deleteCounter, deleteFailCounter) = await DeactivateMissingApps(importSource, existingApps, importedApps, ownerChangeTracker);
+            }
+            string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
+            Log.WriteInfo(LogMessageTitle, messageText);
+            await AddLogEntry(0, LevelFile, messageText);
+
+        }
+
+        private bool IsOwnerGroupConfigured()
+        {
             if (!(globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppId) ||
                 globalConfig.OwnerLdapGroupNames.Contains(Placeholder.ExternalAppId)))
             {
                 Log.WriteWarning(LogMessageTitle, $"Owner group pattern does not contain any of the placeholders {Placeholder.AppId} or {Placeholder.ExternalAppId}.");
+                return false;
             }
-            else
-            {
-                existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-                foreach (var incomingApp in importedApps)
-                {
-                    if (await SaveApp(incomingApp))
-                    {
-                        ++successCounter;
-                    }
-                    else
-                    {
-                        ++failCounter;
-                    }
-                }
-                string? importSource = importedApps.FirstOrDefault()?.ImportSource;
-                if (importSource != null)
-                {
-                    foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
-                    {
-                        if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
-                        {
-                            if (await DeactivateApp(existingApp))
-                            {
-                                ++deleteCounter;
-                            }
-                            else
-                            {
-                                ++deleteFailCounter;
-                            }
-                        }
-                    }
-                }
-                string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
-                Log.WriteInfo(LogMessageTitle, messageText);
-                await AddLogEntry(0, LevelFile, messageText);
-            }
+            return true;
         }
 
-        private async Task<bool> SaveApp(ModellingImportAppData incomingApp)
+        private async Task<bool> SaveApp(ModellingImportAppData incomingApp, OwnerChangeImportTracker ownerChangeTracker)
         {
             try
             {
                 int appId;
+                if (!TryResolveOwnerLifeCycleStateId(incomingApp, out int? ownerLifeCycleStateId))
+                {
+                    string errorText = $"App {incomingApp.Name} could not be processed because owner lifecycle state \"{incomingApp.OwnerLifecycleState}\" is missing.";
+                    Log.WriteWarning(LogMessageTitle, errorText);
+                    await AddLogEntry(1, LevelApp, errorText);
+                    return false;
+                }
+
                 FwoOwner? existingApp = existingApps.FirstOrDefault(x => x.ExtAppId == incomingApp.ExtAppId);
                 string userGroupDn = await CreateOrUpdateUserGroup(incomingApp, existingApp);
 
                 if (existingApp == null)
                 {
-                    appId = await NewApp(incomingApp, userGroupDn);
+                    appId = await NewApp(incomingApp, userGroupDn, ownerLifeCycleStateId);
+                    await ownerChangeTracker.AddOwnerChange(null, appId, ChangelogActionType.INSERT, incomingApp.ImportSource);
                 }
                 else
                 {
                     appId = existingApp.Id;
-                    await UpdateApp(incomingApp, existingApp, userGroupDn);
+                    await UpdateApp(incomingApp, existingApp, userGroupDn, ownerLifeCycleStateId);
+                    if (!existingApp.Active)
+                    {
+                        await ownerChangeTracker.AddOwnerChange(appId, appId, ChangelogActionType.CHANGE, incomingApp.ImportSource);
+                    }
                 }
                 if (incomingApp.MainUser != null && incomingApp.MainUser != "")
                 {
@@ -193,7 +235,7 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task<int> NewApp(ModellingImportAppData incomingApp, string userGroupDn)
+        private async Task<int> NewApp(ModellingImportAppData incomingApp, string userGroupDn, int? ownerLifeCycleStateId)
         {
             int appId = 0;
             var variables = new
@@ -202,6 +244,7 @@ namespace FWO.Middleware.Server
                 appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
+                ownerLifeCycleStateId,
                 importSource = incomingApp.ImportSource,
                 commSvcPossible = false,
                 recertActive = false
@@ -210,7 +253,7 @@ namespace FWO.Middleware.Server
             if (returnIds != null)
             {
                 appId = returnIds[0].NewId;
-                List<OwnerResponsible> responsibles = BuildOwnerResponsibles(incomingApp.MainUser, userGroupDn, []);
+                List<OwnerResponsible> responsibles = BuildOwnerResponsibles(incomingApp, userGroupDn, []);
                 await UpdateOwnerResponsibles(appId, responsibles);
                 await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
                 foreach (var appServer in incomingApp.AppServers)
@@ -221,7 +264,7 @@ namespace FWO.Middleware.Server
             return appId;
         }
 
-        private async Task UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp, string userGroupDn)
+        private async Task UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp, string userGroupDn, int? ownerLifeCycleStateId)
         {
             var Variables = new
             {
@@ -230,24 +273,44 @@ namespace FWO.Middleware.Server
                 appIdExternal = string.IsNullOrEmpty(incomingApp.ExtAppId) ? null : incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
+                ownerLifeCycleStateId,
                 commSvcPossible = existingApp.CommSvcPossible,
                 recertActive = incomingApp.RecertActive || existingApp.RecertActive
             };
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.updateOwner, Variables);
-            List<OwnerResponsible> responsibles = BuildOwnerResponsibles(
-                incomingApp.MainUser,
-                userGroupDn,
+            List<OwnerResponsible> responsibles = BuildOwnerResponsibles(incomingApp, userGroupDn,
                 existingApp.GetOwnerResponsiblesByType(GlobalConst.kOwnerResponsibleTypeOptionalEscalation));
             await UpdateOwnerResponsibles(existingApp.Id, responsibles);
             await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
             await ImportAppServers(incomingApp, existingApp.Id);
         }
 
-        private async Task<bool> DeactivateApp(FwoOwner app)
+        private async Task<(int deleted, int failed)> DeactivateMissingApps(string importSource, IEnumerable<FwoOwner> existingApps, List<ModellingImportAppData> importedApps, OwnerChangeImportTracker ownerChangeTracker)
+        {
+            int deletedCounter = 0, deleteFailCounter = 0;
+            foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
+            {
+                if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
+                {
+                    if (await DeactivateApp(existingApp, ownerChangeTracker))
+                    {
+                        ++deletedCounter;
+                    }
+                    else
+                    {
+                        ++deleteFailCounter;
+                    }
+                }
+            }
+            return (deletedCounter, deleteFailCounter);
+        }
+
+        private async Task<bool> DeactivateApp(FwoOwner app, OwnerChangeImportTracker ownerChangeTracker)
         {
             try
             {
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.deactivateOwner, new { id = app.Id });
+                await ownerChangeTracker.AddOwnerChange(app.Id, null, ChangelogActionType.DELETE, app.ImportSource);
             }
             catch (Exception exc)
             {
@@ -259,7 +322,54 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private static List<OwnerResponsible> BuildOwnerResponsibles(string? mainUserDn, string userGroupDn, IEnumerable<string> extraDns)
+        private List<OwnerResponsible> BuildOwnerResponsibles(ModellingImportAppData incomingApp, string userGroupDn, IEnumerable<string> extraDns)
+        {
+            if (incomingApp.Responsibles != null && incomingApp.Responsibles.Count > 0)
+            {
+                List<OwnerResponsible> responsibles = [];
+                HashSet<string> seenTypeDn = new(StringComparer.OrdinalIgnoreCase);
+                foreach ((string rawTypeKey, List<string> dns) in incomingApp.Responsibles)
+                {
+                    if (!TryResolveResponsibleTypeId(rawTypeKey, incomingApp, out int responsibleTypeId))
+                    {
+                        continue;
+                    }
+                    foreach (string dn in dns.Where(dn => !string.IsNullOrWhiteSpace(dn)))
+                    {
+                        string normalizedDn = dn.Trim();
+                        string dedupKey = $"{responsibleTypeId}|{normalizedDn}";
+                        if (seenTypeDn.Add(dedupKey))
+                        {
+                            responsibles.Add(new OwnerResponsible
+                            {
+                                Dn = normalizedDn,
+                                ResponsibleTypeId = responsibleTypeId
+                            });
+                        }
+                    }
+                }
+                return responsibles;
+            }
+
+            return BuildOwnerResponsiblesLegacy(incomingApp.MainUser, userGroupDn, extraDns);
+        }
+
+        private bool TryResolveResponsibleTypeId(string rawTypeKey, ModellingImportAppData incomingApp, out int typeId)
+        {
+            typeId = 0;
+            string typeName = string.IsNullOrWhiteSpace(rawTypeKey) ? "" : rawTypeKey.Trim();
+            if (ownerResponsibleTypeIdByName.TryGetValue(typeName, out int resolvedTypeId))
+            {
+                typeId = resolvedTypeId;
+                return true;
+            }
+
+            Log.WriteWarning(LogMessageTitle,
+                $"Unknown owner responsible type \"{typeName}\" (key \"{rawTypeKey}\") for app \"{incomingApp.Name}\" ({incomingApp.ExtAppId}). Skipping responsibles of this type.");
+            return false;
+        }
+
+        private static List<OwnerResponsible> BuildOwnerResponsiblesLegacy(string? mainUserDn, string userGroupDn, IEnumerable<string> extraDns)
         {
             List<OwnerResponsible> responsibles = [];
             if (!string.IsNullOrWhiteSpace(mainUserDn))
@@ -311,6 +421,22 @@ namespace FWO.Middleware.Server
                 }
                 await UpdateRoles(responsible.Dn, filteredRoles);
             }
+        }
+
+        private bool TryResolveOwnerLifeCycleStateId(ModellingImportAppData incomingApp, out int? ownerLifeCycleStateId)
+        {
+            ownerLifeCycleStateId = null;
+            if (string.IsNullOrWhiteSpace(incomingApp.OwnerLifecycleState))
+            {
+                return true;
+            }
+            string stateKey = incomingApp.OwnerLifecycleState.Trim();
+            if (ownerLifeCycleStateIdsByName.TryGetValue(stateKey, out int resolvedId))
+            {
+                ownerLifeCycleStateId = resolvedId;
+                return true;
+            }
+            return false;
         }
 
         private string GetGroupName(string extAppIdString)
@@ -533,12 +659,15 @@ namespace FWO.Middleware.Server
             List<string> existingMembers = (allGroups.FirstOrDefault(x => x.GroupDn == groupDn) ?? throw new KeyNotFoundException($"Group with DN '{groupDn}' could not be found.")).Members;
             await AddUsersToGroup(incomingApp.Modellers, existingMembers, groupDn);
             await AddUsersToGroup(incomingApp.ModellerGroups, existingMembers, groupDn);
-            foreach (var member in existingMembers)
+            if (globalConfig.OwnerDataImportSyncUsers)
             {
-                if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null)
-                    && (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null))
+                foreach (var member in existingMembers)
                 {
-                    await internalLdap.RemoveUserFromEntry(member, groupDn);
+                    if ((incomingApp.Modellers == null || incomingApp.Modellers.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null)
+                        && (incomingApp.ModellerGroups == null || incomingApp.ModellerGroups.FirstOrDefault(x => x.Equals(member, StringComparison.OrdinalIgnoreCase)) == null))
+                    {
+                        await internalLdap.RemoveUserFromEntry(member, groupDn);
+                    }
                 }
             }
             await UpdateRoles(groupDn, GetRolesForType(GlobalConst.kOwnerResponsibleTypeSupporting));
@@ -885,26 +1014,7 @@ namespace FWO.Middleware.Server
 
         private async Task AddLogEntry(int severity, string level, string description)
         {
-            try
-            {
-                var Variables = new
-                {
-                    user = 0,
-                    source = GlobalConst.kImportAppData,
-                    severity = severity,
-                    suspectedCause = level,
-                    description = description
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    Log.WriteError("Write Log", "Log could not be written to database");
-                }
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Write Log", $"Could not write log: ", exc);
-            }
+            await AddLogEntry(GlobalConst.kImportAppData, severity, level, description);
         }
     }
 }

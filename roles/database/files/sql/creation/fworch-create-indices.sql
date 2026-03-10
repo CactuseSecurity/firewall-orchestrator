@@ -57,12 +57,6 @@ CREATE UNIQUE index if not exists owner_responsible_owner_dn_type_unique on owne
 CREATE index if not exists owner_responsible_dn_idx on owner_responsible(dn);
 CREATE UNIQUE index if not exists owner_responsible_type_name_unique on owner_responsible_type(name);
 
--- probably useful:
-Create index "IX_Relationship59" on "import_service" ("control_id");
-Create index "IX_Relationship61" on "import_rule" ("control_id");
-Create index "IX_Relationship62" on "import_user" ("control_id");
-Create index "IX_Relationship132" on "import_zone" ("control_id");
-
 Create index "IX_Relationship68" on "changelog_object" ("control_id");
 Create index "IX_Relationship76" on "changelog_service" ("control_id");
 Create index "IX_Relationship77" on "changelog_user" ("control_id");
@@ -138,3 +132,6 @@ where is_default = true;
 Create index IF NOT EXISTS idx_fkey_network_zone_id on compliance.ip_range USING HASH (network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_from on compliance.network_zone_communication USING HASH (from_network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_communication USING HASH (to_network_zone_id);
+
+-- rule_owner
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;

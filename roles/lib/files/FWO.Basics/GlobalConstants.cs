@@ -174,4 +174,26 @@ namespace FWO.Basics
         public const string TYPE = "@@TYPE@@";
         public const string USER_NAME = "@@USER_NAME@@";
     }
+
+    public enum OwnerMappingSourceStm
+    {
+        IpBased = 1,
+        CustomField = 2,
+        NameField = 3,
+        Manual = 4
+    }
+
+    public struct ImportType
+    {
+        public const int RULE = 1;
+        public const int OWNER = 2;
+        public const int ADMIN_VIA_REINITIALIZE_BTN = 3;
+    }
+
+    public struct ChangelogActionType
+    {
+        public const Char INSERT = 'I';
+        public const Char CHANGE = 'C';
+        public const Char DELETE = 'D';
+    }
 }

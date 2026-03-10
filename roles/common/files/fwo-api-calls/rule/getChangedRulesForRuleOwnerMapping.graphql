@@ -1,0 +1,26 @@
+
+query getChangedRulesForRuleOwnerMapping($controlId: bigint!) {
+  changelog_rule(where: { control_id: { _eq: $controlId } }) {
+    import: import_control {
+      control_id
+      import_type_id
+    }
+    change_action
+    old: ruleByOldRuleId  {
+      rule_id
+      rule_name
+      rule_metadatum {
+        rule_metadata_id
+      }
+      rule_custom_fields
+    }
+    new: rule {
+      rule_id
+      rule_name
+      rule_metadatum {
+        rule_metadata_id
+      }
+      rule_custom_fields
+    }
+  }
+}

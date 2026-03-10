@@ -19,16 +19,16 @@
                     <div class="modal-body">
                         @Body
                     </div>
-                </div>
-                @if (Size != PopupSize.XSmall)
-                {
-                    <div class="custom-modal-footer">
-                        <hr>
-                        <div class="@FooterCssClass">
-                            @Footer
+                    @if (Size != PopupSize.XSmall)
+                    {
+                        <div class="custom-modal-footer">
+                            <hr>
+                            <div class="@FooterCssClass">
+                                @Footer
+                            </div>
                         </div>
-                    </div>
-                }
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -62,11 +62,12 @@
 
     [Parameter]
     public string FooterCssClass { get; set; } = "modal-footer";
-        
+
     private string SizeClass()
     {
         switch (Size)
         {
+            case PopupSize.Auto: return "custom-modal-auto";
             case PopupSize.FullScreen: return "custom-modal-fs";
             case PopupSize.XLarge: return "custom-modal-xl";
             case PopupSize.Large: return "custom-modal-lg";
@@ -74,13 +75,15 @@
             case PopupSize.Small: return "custom-modal-sm";
             case PopupSize.XSmall: return "custom-modal-xs";
             default: return "custom-modal-sm";
-        };
+        }
+        ;
     }
 
     private string SizeClassContent()
     {
         switch (Size)
         {
+            case PopupSize.Auto: return ""; // Auto size doesn't have a specific class for content and should just take the size of its content
             case PopupSize.FullScreen: return "custom-modal-content-fs";
             case PopupSize.XLarge: return "custom-modal-content-xl";
             case PopupSize.Large: return "custom-modal-content-lg ";
@@ -88,7 +91,8 @@
             case PopupSize.Small: return "custom-modal-content-sm";
             case PopupSize.XSmall: return "custom-modal-content-xs";
             default: return "custom-modal-content-sm";
-        };
+        }
+        ;
     }
 
     private void Close()

@@ -60,7 +60,6 @@ namespace FWO.Ui.Services
 
                 await PrepareConnections(Connections);
 
-                ConnToDelete = Connections.FirstOrDefault() ?? new ModellingConnection();
                 OverviewConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, new(), true,
                     false, DisplayMessageInUi, ReInit, IsOwner)
                 {
@@ -81,7 +80,7 @@ namespace FWO.Ui.Services
             foreach (var conn in connections)
             {
                 await ExtractUsedInterface(conn);
-                conn.SyncState(dummyAppRoleId);
+                conn.SyncState(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
             }
 
             if (userConfig.VarianceAnalysisSync)
@@ -182,7 +181,9 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetConnectionsToRequest()
         {
-            return [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(dummyAppRoleId)).OrderByDescending(y => y.IsCommonService)];
+            return [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(dummyAppRoleId,
+                userConfig.ModRolloutRemovedAppServers, userConfig.ModRequestOnlyOwnObjects))
+                .OrderByDescending(y => y.IsCommonService)];
         }
 
         public bool HasModellingIssues(ModellingConnection conn)

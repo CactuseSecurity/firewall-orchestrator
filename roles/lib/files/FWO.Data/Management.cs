@@ -87,6 +87,9 @@ namespace FWO.Data
         [JsonProperty("zoneObjects"), JsonPropertyName("zoneObjects")]
         public NetworkZone[] Zones { get; set; } = [];
 
+        [JsonProperty("timeObjects"), JsonPropertyName("timeObjects")]
+        public TimeObject[] TimeObjects { get; set; } = [];
+
         [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; } = new();
 

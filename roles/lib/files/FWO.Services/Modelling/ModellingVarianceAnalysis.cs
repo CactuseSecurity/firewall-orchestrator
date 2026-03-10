@@ -56,9 +56,11 @@ namespace FWO.Services.Modelling
         {
             connections = [.. connections.Where(x => !x.IsDocumentationOnly())];
             varianceResult = await AnalyseRulesVsModelledConnections(connections, new(), false);
+            await GetNwObjectsProductionState();
             foreach (var conn in connections)
             {
                 conn.AddProperty(ConState.VarianceChecked.ToString());
+                conn.UpdateProperty(ConState.ForeignNonProdObjects.ToString(), HasForeignNonProdObjects(conn));
                 if (varianceResult.ConnsNotImplemented.FirstOrDefault(c => c.Id == conn.Id) != null)
                 {
                     conn.AddProperty(ConState.NotImplemented.ToString());
@@ -76,6 +78,41 @@ namespace FWO.Services.Modelling
                     conn.RemoveProperty(ConState.VarianceFound.ToString());
                 }
             }
+        }
+
+        private bool HasForeignNonProdObjects(ModellingConnection conn)
+        {
+            if (!userConfig.ModRequestOnlyOwnObjects || conn.IsInterface || conn.UsedInterfaceId == null)
+            {
+                return false;
+            }
+
+            foreach (Management mgt in RelevantManagements)
+            {
+                if (HasForeignNonProdObjects(conn, mgt))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool HasForeignNonProdObjects(ModellingConnection conn, Management mgt)
+        {
+            List<ModellingAppRole> foreignAppRoles =
+            [
+                .. ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).Where(ar => ar.AppId != owner.Id),
+                .. ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).Where(ar => ar.AppId != owner.Id)
+            ];
+
+            foreach (ModellingAppRole foreignAppRole in foreignAppRoles)
+            {
+                if (ResolveProdAppRole(foreignAppRole, mgt) == null)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public async Task<bool> AnalyseConnsForStatusAsync(List<ModellingConnection> connections)
@@ -195,9 +232,18 @@ namespace FWO.Services.Modelling
                         AnalyseAppServersForRequest(conn);
                         AnalyseServiceGroupsForRequest(conn, mgt);
                         AnalyseServicesForRequest(conn);
-                        if (ReqElements.Count > 0) // NOSONAR: populated via side effects in Analyse*ForRequest methods
+                        if (!conn.IsInterface && ReqElements.Count > 0) // NOSONAR: populated via side effects in Analyse*ForRequest methods
                         {
-                            AnalyseConnectionForRequest(mgt, conn);
+                            ReqElements = [];
+                            AnalyseNetworkAreasForRequest(conn);
+                            AnalyseAppRolesForRequest(conn, mgt);
+                            AnalyseAppServersForRequest(conn);
+                            AnalyseServiceGroupsForRequest(conn, mgt);
+                            AnalyseServicesForRequest(conn);
+                            if (ReqElements.Count > 0) // NOSONAR: populated via side effects in Analyse*ForRequest methods
+                            {
+                                AnalyseConnectionForRequest(mgt, conn);
+                            }
                         }
                     }
                     AnalyseDeletedConnsForRequest(mgt, [.. connections.Where(c => c.IsDocumentationOnly())]);

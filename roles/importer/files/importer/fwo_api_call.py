@@ -94,8 +94,17 @@ class FwoApiCall:
                 [fwo_const.GRAPHQL_QUERY_PATH + "import/getLastImportControl.graphql"]
             )
             last_control_result = self.api.call(last_control_id_query)
-            last_id = last_control_result["data"]["import_control"][0]["control_id"]
-            next_id = last_id + 1
+            if last_control_result:
+                last_id = last_control_result["data"]["import_control"][0]["control_id"]
+                next_id = last_id + 1
+            elif is_initial_import == 1:
+                next_id = 1
+            else:
+                raise FwoApiFailedLockImportError(
+                    "fwo_api: failed to get last import control id for management id "
+                    + str(mgm_id)
+                    + ", cannot set import lock"
+                )
 
             lock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImportForMgm.graphql"])
             lock_result = self.api.call(

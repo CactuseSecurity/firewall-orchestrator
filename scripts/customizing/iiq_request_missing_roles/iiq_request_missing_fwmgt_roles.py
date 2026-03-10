@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Any
 
 import urllib3
-from git import Repo  # apt install python3-git # or: pip install git  # pyright: ignore[reportUnknownVariableType]
 
 from scripts.customizing.fwo_custom_lib.app_data_basics import (
     transform_app_list_to_dict,
@@ -23,6 +22,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     read_custom_config,
     read_custom_config_with_default,
 )
+from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
@@ -150,14 +150,9 @@ def get_git_repo(git_repo_url: str, git_username: str, git_password: str, repo_t
     encoded_password: str = urllib.parse.quote(git_password, safe="")
     repo_url: str = f"https://{git_username}:{encoded_password}@{git_repo_url}"
 
-    if Path(repo_target_dir).exists():
-        # If the repository already exists, open it and perform a pull
-        repo = Repo(repo_target_dir)  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
-        origin = repo.remotes.origin  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
-        # for DEBUG: do not pull
-        origin.pull()  # pyright: ignore[reportUnknownMemberType]
-    else:
-        Repo.clone_from(repo_url, repo_target_dir)  # pyright: ignore[reportUnknownMemberType]
+    repo_updated: bool = update_git_repo(repo_url, repo_target_dir, logger)
+    if not repo_updated:
+        sys.exit(1)
 
 
 def request_all_roles(

@@ -154,6 +154,7 @@ namespace FWO.Test
             {"last_successful", "Last successful"},
             {"common_service", "Common Service"},
             {"managements", "Managements"},
+            {"load_rules", "Load Rules"},
             {"enforcing_devices", "enforcing_devices" },
             {"no_changes_found", "no_changes_found" },
             {"network_object_added", "network_object_added" },

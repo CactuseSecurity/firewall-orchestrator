@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 Create index IF NOT EXISTS idx_changelog_object01 on changelog_object (change_type_id);
 Create index IF NOT EXISTS idx_changelog_object02 on changelog_object (mgm_id);
 Create index IF NOT EXISTS idx_changelog_rule01 on changelog_rule (change_type_id);
@@ -8,6 +10,9 @@ Create index IF NOT EXISTS idx_changelog_service02 on changelog_service (mgm_id)
 Create index IF NOT EXISTS idx_changelog_user01 on changelog_user (change_type_id);
 Create index IF NOT EXISTS idx_changelog_user02 on changelog_user (mgm_id);
 Create index IF NOT EXISTS idx_import_control01 on import_control (control_id);
+Create index IF NOT EXISTS idx_import_object01 on import_object (control_id);
+Create index IF NOT EXISTS idx_import_object02 on import_object (obj_id);
+Create index IF NOT EXISTS idx_import_rule01 on import_rule (rule_id);
 Create index IF NOT EXISTS idx_object01 on object (mgm_id);
 Create index IF NOT EXISTS idx_object02 on object (obj_name,mgm_id,zone_id,active);
 Create index IF NOT EXISTS idx_object03 on object (obj_uid,mgm_id,zone_id,active);
@@ -19,9 +24,11 @@ Create index IF NOT EXISTS idx_rule02 on rule (mgm_id,rule_id,rule_uid,dev_id);
 Create index IF NOT EXISTS idx_rule03 on rule (dev_id);
 Create index IF NOT EXISTS idx_rule04 on rule (action_id);
 Create index IF NOT EXISTS idx_rule_from01 on rule_from (rule_id);
+Create index IF NOT EXISTS idx_rule_from_rule_obj on rule_from (rule_id, obj_id);
 Create index IF NOT EXISTS idx_rule_service01 on rule_service (rule_id);
 Create index IF NOT EXISTS idx_rule_service02 on rule_service (svc_id);
 Create index IF NOT EXISTS idx_rule_to01 on rule_to (rule_id);
+Create index IF NOT EXISTS idx_rule_to_rule_obj on rule_to (rule_id, obj_id);
 Create index IF NOT EXISTS idx_service01 on service (mgm_id);
 Create index IF NOT EXISTS idx_service02 on service (svc_color_id);
 Create index IF NOT EXISTS idx_svcgrp_flat01 on svcgrp_flat (svcgrp_flat_id);
@@ -34,6 +41,16 @@ Create index IF NOT EXISTS idx_zone02 on zone (mgm_id); -- needed as mgm_id is n
 
 -- make sure a maximum of one stop_time=null entry exists per mgm_id (only one running import per mgm):
 CREATE UNIQUE INDEX uidx_import_control_only_one_null_stop_time_per_mgm_when_null ON import_control (mgm_id) WHERE stop_time IS NULL;
+Create index IF NOT EXISTS idx_rule_dev_active_access on rule (dev_id, rule_num_numeric)
+    where active = true and access_rule = true and rule_disabled = false and rule_head_text IS NULL;
+Create index IF NOT EXISTS idx_rule_name_trgm_active_access on rule using gin (rule_name gin_trgm_ops)
+    where active = true and access_rule = true and rule_disabled = false and rule_head_text IS NULL;
+Create index IF NOT EXISTS idx_rule_comment_trgm_active_access on rule using gin (rule_comment gin_trgm_ops)
+    where active = true and access_rule = true and rule_disabled = false and rule_head_text IS NULL;
+Create index IF NOT EXISTS idx_objgrp_flat_flat_member on objgrp_flat (objgrp_flat_id, objgrp_flat_member_id);
+Create index IF NOT EXISTS idx_tenant_network_tenant on tenant_network (tenant_id);
+Create index IF NOT EXISTS idx_tenant_to_management_lookup on tenant_to_management (management_id, tenant_id, shared);
+Create index IF NOT EXISTS idx_tenant_to_device_lookup on tenant_to_device (device_id, tenant_id, shared);
 
 CREATE UNIQUE index if not exists only_one_default_owner on owner(is_default) where is_default = true;
 CREATE UNIQUE index if not exists owner_responsible_owner_dn_type_unique on owner_responsible(owner_id, dn, responsible_type);

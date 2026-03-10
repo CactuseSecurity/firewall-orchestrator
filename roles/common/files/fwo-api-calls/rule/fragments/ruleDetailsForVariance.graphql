@@ -1,0 +1,64 @@
+fragment ruleDetailsForVariance on rule {
+  rule_uid
+  mgm_id
+  rule_action
+  rule_comment
+  rule_disabled
+  rule_src_neg
+  rule_dst_neg
+  rule_name
+  rule_custom_fields
+  rule_froms(
+    where: {
+      active: { _eq: $active }
+      rf_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+    }
+  ) {
+    usr {
+      ...userDetailsForVariance
+    }
+    object {
+      ...networkObjectDetailsForVariance
+    }
+  }
+  rule_tos(
+    where: {
+      active: { _eq: $active }
+      rt_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+    }
+  ) {
+    usr {
+      ...userDetailsForVariance
+    }
+    object {
+      ...networkObjectDetailsForVariance
+    }
+  }
+  rule_services(
+    where: {
+      active: { _eq: $active }
+      rs_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+    }
+  ) {
+    service {
+      ...networkServiceDetailsForVariance
+    }
+  }
+  rule_enforced_on_gateways(order_by: { device: { dev_name: asc } }) {
+    device {
+      id: dev_id
+    }
+  }
+}

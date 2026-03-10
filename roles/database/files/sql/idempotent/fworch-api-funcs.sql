@@ -475,25 +475,45 @@ RETURNS SETOF rule AS $$
         ELSE
             IF rulebase_fully_visible_to_tenant(device_row.dev_id, tenant)
             THEN
-              RETURN QUERY SELECT * FROM rule WHERE dev_id=device_row.dev_id;
-                  ELSE
-              RETURN QUERY
-                SELECT r.* FROM rule r
-                  LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
-                  LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
-                  LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
-                  LEFT JOIN tenant_network ON
-                    (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
-                WHERE r.dev_id = device_row.dev_id AND tenant_id = tenant AND rule_head_text IS NULL
-                UNION
-                SELECT r.* FROM rule r
-                  LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
-                  LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
-                  LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
-                  LEFT JOIN tenant_network ON
-                    (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
-                WHERE r.dev_id = device_row.dev_id AND tenant_id = tenant AND rule_head_text IS NULL
-                ORDER BY rule_name;
+                RETURN QUERY
+                    SELECT *
+                    FROM rule
+                    WHERE dev_id = device_row.dev_id;
+            ELSE
+                RETURN QUERY
+                    WITH visible_from AS (
+                        SELECT DISTINCT rf.rule_id
+                        FROM rule_from rf
+                        JOIN rule r ON r.rule_id = rf.rule_id
+                        LEFT JOIN objgrp_flat rf_of ON rf.obj_id = rf_of.objgrp_flat_id
+                        LEFT JOIN object rf_o ON rf_of.objgrp_flat_member_id = rf_o.obj_id
+                        JOIN tenant_network tn ON tn.tenant_id = tenant
+                        WHERE r.dev_id = device_row.dev_id
+                            AND r.rule_head_text IS NULL
+                            AND ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, tn.tenant_net_ip, tn.tenant_net_ip_end, rf.negated != r.rule_src_neg)
+                    ),
+                    visible_to AS (
+                        SELECT DISTINCT rt.rule_id
+                        FROM rule_to rt
+                        JOIN rule r ON r.rule_id = rt.rule_id
+                        LEFT JOIN objgrp_flat rt_of ON rt.obj_id = rt_of.objgrp_flat_id
+                        LEFT JOIN object rt_o ON rt_of.objgrp_flat_member_id = rt_o.obj_id
+                        JOIN tenant_network tn ON tn.tenant_id = tenant
+                        WHERE r.dev_id = device_row.dev_id
+                            AND r.rule_head_text IS NULL
+                            AND ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, tn.tenant_net_ip, tn.tenant_net_ip_end, rt.negated != r.rule_dst_neg)
+                    ),
+                    visible_rules AS (
+                        SELECT rule_id FROM visible_from
+                        UNION
+                        SELECT rule_id FROM visible_to
+                    )
+                    SELECT r.*
+                    FROM rule r
+                    JOIN visible_rules vr ON vr.rule_id = r.rule_id
+                    WHERE r.dev_id = device_row.dev_id
+                        AND r.rule_head_text IS NULL
+                    ORDER BY r.rule_name;
             END IF;
         END IF;
     END;

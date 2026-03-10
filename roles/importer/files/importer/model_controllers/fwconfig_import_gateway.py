@@ -4,6 +4,7 @@ from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.gateway import Gateway
+from models.import_state import ImportState
 from models.rulebase_link import (  # TODO: check if we need RulebaseLinkUidBased as well
     RulebaseLink,
     RulebaseLinkUidBased,
@@ -34,11 +35,9 @@ class FwConfigImportGateway:
     def get_global_state(self) -> GlobalState:
         return self._global_state
 
-    def update_gateway_diffs(self):
+    def update_gateway_diffs(self, import_state: ImportState):
         # add gateway details:
-        self._rb_link_controller.get_rulebase_links(
-            self._global_state.import_state.state, self._global_state.import_state.api_call
-        )
+        self._rb_link_controller.get_rulebase_links(import_state)
         if (
             self._global_state.import_state.state.is_clearing_import
             and self._global_state.normalized_config is not None

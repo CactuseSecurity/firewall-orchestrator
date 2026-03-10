@@ -87,7 +87,7 @@ class RuleEnforcedOnGatewayController:
             return
 
         for gw_uid in rule_installon.split(fwo_const.LIST_DELIMITER):
-            gw_id = import_state.lookup_gateway_id(gw_uid)
+            gw_id = import_state.lookup_gateway_id(gw_uid, import_state.mgm_details.mgm_id)
             rule_to_gw_refs.append(self.create_rule_to_gateway_reference(import_state, rule, gw_id))
 
     def create_rule_to_gateway_reference(

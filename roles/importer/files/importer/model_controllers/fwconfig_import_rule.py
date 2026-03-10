@@ -1224,7 +1224,13 @@ class FwConfigImportRule:
         changelog_rule_insert_objects.extend(
             [
                 change_logger.create_changelog_import_object(
-                    "rule", self.import_details.state, "I", change_typ, import_time, rule_id
+                    "rule",
+                    self.import_details.state.import_id,
+                    self.import_details.state.mgm_details.mgm_id,
+                    "I",
+                    change_typ,
+                    import_time,
+                    rule_id,
                 )
                 for rule_id in added_rules_ids
             ]
@@ -1233,7 +1239,13 @@ class FwConfigImportRule:
         changelog_rule_insert_objects.extend(
             [
                 change_logger.create_changelog_import_object(
-                    "rule", self.import_details.state, "D", change_typ, import_time, rule_id
+                    "rule",
+                    self.import_details.state.import_id,
+                    self.import_details.state.mgm_details.mgm_id,
+                    "D",
+                    change_typ,
+                    import_time,
+                    rule_id,
                 )
                 for rule_id in removed_rules_ids
             ]
@@ -1242,7 +1254,14 @@ class FwConfigImportRule:
         changelog_rule_insert_objects.extend(
             [
                 change_logger.create_changelog_import_object(
-                    "rule", self.import_details.state, "C", change_typ, import_time, new_rule_id, old_rule_id
+                    "rule",
+                    self.import_details.state.import_id,
+                    self.import_details.state.mgm_details.mgm_id,
+                    "C",
+                    change_typ,
+                    import_time,
+                    new_rule_id,
+                    old_rule_id,
                 )
                 for old_rule_id, new_rule_id in self._changed_rule_id_map.items()
             ]

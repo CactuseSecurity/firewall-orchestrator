@@ -12,6 +12,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
+from states.global_state import GlobalState
 from states.import_state import ImportState
 from states.management_state import ManagementState
 
@@ -757,6 +758,7 @@ class FwConfigImportObject:
 
     def prepare_changelog_objects(
         self,
+        global_state: GlobalState,
         import_state: ImportState,
         nw_obj_ids_added: list[dict[str, int]],
         svc_obj_ids_added: list[dict[str, int]],
@@ -776,13 +778,15 @@ class FwConfigImportObject:
         change_typ = 3  # standard
         change_logger = ChangeLogger()
 
-        if import_state.is_initial_import or import_state.is_clearing_import:
+        if import_state.is_initial_import or global_state.fwo_config_controller.fwo_config.clear:
             change_typ = 2  # initial - to be ignored in change reports
 
         # Write changelog for network objects.
 
         nw_objs = [
-            change_logger.create_changelog_import_object("obj", import_state, "I", change_typ, import_time, nw_obj_id)
+            change_logger.create_changelog_import_object(
+                "obj", import_state.import_id, import_state.mgm_details.mgm_id, "I", change_typ, import_time, nw_obj_id
+            )
             for nw_obj_id in [nw_obj_ids_added_item["obj_id"] for nw_obj_ids_added_item in nw_obj_ids_added]
         ]
 
@@ -790,7 +794,8 @@ class FwConfigImportObject:
             [
                 change_logger.create_changelog_import_object(
                     "obj",
-                    import_state,
+                    import_state.import_id,
+                    import_state.mgm_details.mgm_id,
                     "D",
                     change_typ,
                     import_time,
@@ -804,7 +809,8 @@ class FwConfigImportObject:
             nw_objs.append(
                 change_logger.create_changelog_import_object(
                     "obj",
-                    import_state,
+                    import_state.import_id,
+                    import_state.mgm_details.mgm_id,
                     "C",
                     change_typ,
                     import_time,
@@ -817,14 +823,18 @@ class FwConfigImportObject:
 
         svc_objs.extend(
             [
-                change_logger.create_changelog_import_object("svc", import_state, "I", change_typ, import_time, svc_id)
+                change_logger.create_changelog_import_object(
+                    "svc", import_state.import_id, import_state.mgm_details.mgm_id, "I", change_typ, import_time, svc_id
+                )
                 for svc_id in [svc_ids_added_item["svc_id"] for svc_ids_added_item in svc_obj_ids_added]
             ]
         )
 
         svc_objs.extend(
             [
-                change_logger.create_changelog_import_object("svc", import_state, "D", change_typ, import_time, svc_id)
+                change_logger.create_changelog_import_object(
+                    "svc", import_state.import_id, import_state.mgm_details.mgm_id, "D", change_typ, import_time, svc_id
+                )
                 for svc_id in [svc_ids_removed_item["svc_id"] for svc_ids_removed_item in svc_obj_ids_removed]
             ]
         )
@@ -833,7 +843,8 @@ class FwConfigImportObject:
             svc_objs.append(
                 change_logger.create_changelog_import_object(
                     "svc",
-                    import_state,
+                    import_state.import_id,
+                    import_state.mgm_details.mgm_id,
                     "C",
                     change_typ,
                     import_time,

@@ -1,4 +1,19 @@
-mutation addImportForMgm($mgmId: Int!, $isInitialImport: Boolean!, $importTypeId: Int!) { 
-    insert_import_control(objects: {mgm_id: $mgmId, is_initial_import: $isInitialImport, import_type_id: $importTypeId}) 
-    { returning { control_id } } 
+mutation addImportForMgm(
+  $controlId: bigint!
+  $mgmId: Int!
+  $isInitialImport: Boolean!
+  $importTypeId: Int!
+) {
+  insert_import_control(
+    objects: {
+      control_id: $controlId
+      mgm_id: $mgmId
+      is_initial_import: $isInitialImport
+      import_type_id: $importTypeId
+    }
+  ) {
+    returning {
+      control_id
+    }
+  }
 }

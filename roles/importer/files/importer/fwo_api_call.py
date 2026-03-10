@@ -90,10 +90,18 @@ class FwoApiCall:
         import_id = -1
         mgm_id = mgm_details.mgm_id
         try:  # set import lock
+            last_control_id_query = FwoApi.get_graphql_code(
+                [fwo_const.GRAPHQL_QUERY_PATH + "import/getLastImportControl.graphql"]
+            )
+            last_control_result = self.api.call(last_control_id_query)
+            last_id = last_control_result["data"]["import_control"][0]["control_id"]
+            next_id = last_id + 1
+
             lock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImportForMgm.graphql"])
             lock_result = self.api.call(
                 lock_mutation,
                 query_variables={
+                    "controlId": next_id,
                     "mgmId": mgm_id,
                     "importTypeId": 1,
                     "isInitialImport": is_initial_import,

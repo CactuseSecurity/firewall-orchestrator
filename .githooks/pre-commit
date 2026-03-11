@@ -57,11 +57,26 @@ for python_tool in ruff pyright; do
     fi
 done
 
-# Checks
+# Python Checks
 "$PYTHON_PATH" -m ruff check --fix
 "$PYTHON_PATH" -m ruff format
 "$PYTHON_PATH" -m pyright
-dotnet format roles
+
+# Determine changed Dotnet files
+STAGED_ROLES_DOTNET_FORMAT_FILES=()
+while IFS= read -r -d '' staged_file; do
+    case "$staged_file" in
+        roles/*.cs|roles/*.razor|roles/*.cshtml)
+            STAGED_ROLES_DOTNET_FORMAT_FILES+=("${staged_file#roles/}")
+            ;;
+    esac
+done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.cs' '*.razor' '*.cshtml')
+
+# If any Dontet files have been changed run
+# Dotnet checks
+if [ "${#STAGED_ROLES_DOTNET_FORMAT_FILES[@]}" -gt 0 ]; then
+    dotnet format roles --no-restore --include "${STAGED_ROLES_DOTNET_FORMAT_FILES[@]}"
+fi
 
 # Prevent committing submodule pointer updates (auto-unstage)
 for submodule in $CHECK_SUBMODULE_POINTERS; do

@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Logging;
 
 namespace FWO.Middleware.Server
 {
@@ -32,11 +33,15 @@ namespace FWO.Middleware.Server
                 return _importControlId;
             }
 
-            var lastImportControl = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getLastImportControl);
-            var lastControlId = lastImportControl.FirstOrDefault()?.ControlId ?? 0;
-            _importControlId = lastControlId + 1;
+            var result = await apiConnection.SendQueryAsync<InsertImportControl>(ImportQueries.addImportForOwner, new { importTypeId = ImportType.OWNER });
 
-            await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.addImportForOwner, new { controlId = _importControlId, import_type_id = ImportType.OWNER });
+            var firstControl = result.Returning.FirstOrDefault();
+            if (firstControl == null)
+            {
+                throw new InvalidOperationException("Failed to create ImportControl. Returning list empty.");
+            }
+
+            _importControlId = firstControl.ControlId;
 
             return _importControlId;
         }

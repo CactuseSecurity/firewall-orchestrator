@@ -77,7 +77,7 @@
             </Column>
             @foreach (OwnerResponsibleType type in OwnerResponsibleTypes)
             {
-                <Column TableItem="FwoOwner" Title="@(GetResponsibleTypeDisplayName(type))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                <Column TableItem="FwoOwner" Title="@(type.Name)" Field="@(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
                         @FormatOwnerResponsibles(context.GetOwnerResponsiblesByType(type.Id))
                     </Template>
@@ -134,8 +134,7 @@ else
         {
             Owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             OwnerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(OwnerQueries.getOwnerLifeCycleStates);
-            OwnerResponsibleTypes = (await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes))
-                .OrderBy(type => type.SortOrder).ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            OwnerResponsibleTypes = OrderActiveResponsibleTypes(await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes));
             AnalyseSampleOwners();
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
@@ -266,13 +265,12 @@ else
         return string.Join(", ", formatted);
     }
 
-    private string GetResponsibleTypeDisplayName(OwnerResponsibleType type)
+    private List<OwnerResponsibleType> OrderActiveResponsibleTypes(IEnumerable<OwnerResponsibleType> ownerResponsibleTypes)
     {
-        string label = type.Name;
-        if (!type.Active)
-        {
-            label += $" ({userConfig.GetText("inactive")})";
-        }
-        return label;
+        return ownerResponsibleTypes
+            .Where(type => type.Active)
+            .OrderBy(type => type.SortOrder)
+            .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 }

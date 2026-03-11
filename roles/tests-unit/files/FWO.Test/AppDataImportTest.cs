@@ -1134,14 +1134,15 @@ namespace FWO.Test
                     });
                 }
 
-                if (query == ImportQueries.getLastImportControl)
-                {
-                    return Task.FromResult((QueryResponseType)(object)new List<ImportControl>());
-                }
-
                 if (query == ImportQueries.addImportForOwner)
                 {
-                    return Task.FromResult((QueryResponseType)(object)new ImportControl());
+                    return Task.FromResult((QueryResponseType)(object)new InsertImportControl
+                    {
+                        Returning = new List<ImportControl>
+                        {
+                            new ImportControl { ControlId = 123 }
+                        }
+                    });
                 }
 
                 if (query == OwnerQueries.updateChangelogOwner)

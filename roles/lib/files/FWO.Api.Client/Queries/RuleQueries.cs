@@ -40,6 +40,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRulesForRuleOwnerByOwnerToUpdate;
         public static readonly string getRuleDetailsById;
         public static readonly string getTimeBasedRulesByOwner;
+        public static readonly string getRuleIdsByRuleOwner;
 
 
         static RuleQueries()
@@ -119,6 +120,7 @@ namespace FWO.Api.Client.Queries
                 getRulesForRuleOwnerByOwnerToUpdate = GetQueryText("rule/getRulesForRuleOwnerByOwnerToUpdate.graphql");
                 getRuleDetailsById = GetQueryText("rule/getRuleDetailByID.graphql");
                 getTimeBasedRulesByOwner = GetQueryText("rule/getTimeBasedRulesByOwner.graphql");
+                getRuleIdsByRuleOwner =  GetQueryText("rule/getRuleIdsByRuleOwner.graphql");
             }
             catch (Exception exception)
             {

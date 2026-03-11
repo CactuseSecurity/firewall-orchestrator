@@ -61,6 +61,9 @@
                 <a class="nav-link" href="/help/settings/defaults/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Settings"></span> @(userConfig.GetText("standards"))
                 </a>
+                <a class="nav-link" href="/help/settings/notifications/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Email"></span> @(userConfig.GetText("notifications"))
+                </a>
                 <a class="nav-link" href="/help/settings/reportgeneral/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
                 </a>

@@ -342,7 +342,7 @@
 
     private IEnumerable<EmailRecipientOption> OfferedAdressOptions()
     {
-        if(Client == NotificationClient.InterfaceRequest)
+        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer)
         {
             return EmailRecipientGroups.GetModellingOptions();
         }
@@ -351,7 +351,7 @@
 
     private IEnumerable<NotificationLayout> OfferedLayoutOptions()
     {
-        if(Client == NotificationClient.InterfaceRequest)
+        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer)
         {
             return NotificationLayoutGroups.WithoutAttachments();
         }

@@ -721,14 +721,14 @@ class FwConfigImportObject:
         prev_member_uids: list[str],
         prev_config_objects: dict[str, Any],
     ):
-        added_tuples: set[tuple[int, int]] = set()
+        added_member_ids: set[int] = set()
         for member_uid in member_uids:
             if member_uid in prev_member_uids and prev_config_objects[member_uid] == current_config_objects[member_uid]:
                 continue  # member was not added or changed
             member_id = self.get_id(obj_type, member_uid)
-            if (member_id, group_id) in added_tuples:
+            if member_id in added_member_ids:
                 continue  # avoid duplicate entries for same member and group (e.g. if same member is contained twice)
-            added_tuples.add((member_id, group_id))
+            added_member_ids.add(member_id)
             new_group_members.append(
                 {
                     f"{prefix}_id": group_id,

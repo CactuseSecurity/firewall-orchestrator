@@ -33,7 +33,7 @@ namespace FWO.Middleware.Server
                 return _importControlId;
             }
 
-            var result = await apiConnection.SendQueryAsync<InsertImportControl>(ImportQueries.addImportForType, new { importTypeId = ImportType.OWNER });
+            var result = await apiConnection.SendQueryAsync<InsertImportControl>(ImportQueries.addImportForOwner, new { importTypeId = ImportType.OWNER });
 
             var firstControl = result.Returning.FirstOrDefault();
             if (firstControl == null)

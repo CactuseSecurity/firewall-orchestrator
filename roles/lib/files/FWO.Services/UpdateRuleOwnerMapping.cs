@@ -5,10 +5,6 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
 using FWO.Services.EventMediator.Events;
-using FWO.Services.EventMediator.Interfaces;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Org.BouncyCastle.Asn1.Crmf;
-using System.Security.AccessControl;
 using System.Text.Json;
 
 namespace FWO.Services
@@ -172,7 +168,7 @@ namespace FWO.Services
         {
             try
             {
-                var result = await apiConnection.SendQueryAsync<InsertImportControl>(ImportQueries.addImportForType, new { importTypeId = ImportType.ADMIN_VIA_REINITIALIZE_BTN });
+                var result = await apiConnection.SendQueryAsync<InsertImportControl>(ImportQueries.addImportForRuleOwner, new { importTypeId = ImportType.ADMIN_VIA_REINITIALIZE_BTN });
 
                 var firstControl = result.Returning.FirstOrDefault();
 

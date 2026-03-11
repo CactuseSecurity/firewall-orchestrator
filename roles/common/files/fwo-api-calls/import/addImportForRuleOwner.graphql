@@ -1,4 +1,4 @@
-mutation addImportForType($importTypeId: Int!) {
+mutation addImportForRuleOwner($importTypeId: Int!) {
   insert_import_control(objects: { import_type_id: $importTypeId }) {
     returning {
       control_id

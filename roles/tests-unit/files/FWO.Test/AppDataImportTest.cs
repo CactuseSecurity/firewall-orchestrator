@@ -1134,7 +1134,7 @@ namespace FWO.Test
                     });
                 }
 
-                if (query == ImportQueries.addImportForType)
+                if (query == ImportQueries.addImportForRuleOwner)
                 {
                     return Task.FromResult((QueryResponseType)(object)new InsertImportControl
                     {

@@ -69,4 +69,10 @@ namespace FWO.Data
 
         public int ErrorCount = 0;
     }
+
+    public class InsertImportControl
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<ImportControl> Returning { get; set; } = new();
+    }
 }

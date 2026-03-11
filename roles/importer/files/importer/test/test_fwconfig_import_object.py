@@ -782,9 +782,9 @@ class TestFwConfigImportObjectAddGroupMemberships:
         prev_config = fwconfig_builder.build_empty_config()
         group_uid, member_uid = list(fwconfig_import_object.normalized_config.network_objects.keys())[:2]
         fwconfig_import_object.normalized_config.network_objects[group_uid].obj_typ = "group"
-        fwconfig_import_object.normalized_config.network_objects[group_uid].obj_member_refs = (
-            f"{member_uid}{LIST_DELIMITER}{member_uid}"
-        )
+        fwconfig_import_object.normalized_config.network_objects[
+            group_uid
+        ].obj_member_refs = f"{member_uid}{LIST_DELIMITER}{member_uid}"
         fwconfig_import_object.normalized_config.network_objects[member_uid].obj_typ = "host"
 
         def fake_get_id(uid: str, _before_update: bool = False):

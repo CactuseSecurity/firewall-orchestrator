@@ -76,18 +76,13 @@ namespace FWO.Services
 
         private async Task<bool> RunFullReinitializeCustomField()
         {
-            var lastImportControl = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getLastImportControl);
-            var lastControl = lastImportControl.FirstOrDefault() ?? throw new InvalidOperationException("No import_control found.");
-
-            long newControlId = lastControl.ControlId + 1;
-
             var rulesTask = apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForOwnerMappingCustomField);
             var ownersTask = apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerCustomField);
             await Task.WhenAll(rulesTask, ownersTask);
             var rules = rulesTask.Result;
             var owners = ownersTask.Result;
 
-            var newRuleOwners = BuildNewRuleOwnersCustomField(rules, owners, newControlId);
+            var newRuleOwners = BuildNewRuleOwnersCustomField(rules, owners);
 
             if (!newRuleOwners.Any())
             {
@@ -95,7 +90,12 @@ namespace FWO.Services
                 return false;
             }
 
-            long importControlId = await CreateImportControl(newControlId);
+            long importControlId = await CreateImportControl();
+
+            foreach( RuleOwner ruleOwner in newRuleOwners)
+            {
+                ruleOwner.Created = importControlId;
+            }
 
             await SetAllActiveRuleOwnersRemoved(importControlId);
             await InsertNewRuleOwners(newRuleOwners);
@@ -208,7 +208,12 @@ namespace FWO.Services
                     }
             }
 
-            var newRuleOwners = BuildNewRuleOwnersCustomField(rulesToMap, owners, import.ControlId);
+            var newRuleOwners = BuildNewRuleOwnersCustomField(rulesToMap, owners);
+
+            foreach (RuleOwner ruleOwner in newRuleOwners)
+            {
+                ruleOwner.Created = import.ControlId;
+            }
 
             await SetAffectedRuleOwnersRemoved(ruleOwnersToRemove, import.ControlId);
 
@@ -251,13 +256,22 @@ namespace FWO.Services
             await CompleteImportControl(import.ControlId);
         }
 
-        private async Task<long> CreateImportControl(long importControlId)
+        private async Task<long> CreateImportControl()
         {
             try
             {
-                var result = await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.addImportForRuleOwner, new { controlId = importControlId, import_type_id = ImportType.ADMIN_VIA_REINITIALIZE_BTN });
-                Log.WriteInfo(LogMessageTitle, $"Created new import control with ID {result.ControlId}.");
-                return result.ControlId;
+                var result = await apiConnection.SendQueryAsync<InsertImportControl>(ImportQueries.addImportForRuleOwner, new { importTypeId = ImportType.ADMIN_VIA_REINITIALIZE_BTN });
+
+                var firstControl = result.Returning.FirstOrDefault();
+
+                if (firstControl == null)
+                {
+                    Log.WriteError(LogMessageTitle, "No ImportControl returned. Mutation may have failed.");
+                    throw new InvalidOperationException("Failed to create ImportControl. Returning list empty.");
+                }
+
+                Log.WriteInfo(LogMessageTitle, $"Created new import control with ID { firstControl.ControlId }.");
+                return firstControl.ControlId;
             }
             catch (Exception exception)
             {
@@ -309,7 +323,7 @@ namespace FWO.Services
             }
         }
 
-        public List<RuleOwner> BuildNewRuleOwnersCustomField(List<Rule> rulesToMap, List<FwoOwner> ownersToMap, long importControlId)
+        private List<RuleOwner> BuildNewRuleOwnersCustomField(List<Rule> rulesToMap, List<FwoOwner> ownersToMap)
         {
             // create a dictionary for owner name to id mapping for faster lookup
             var ownerNameToIdMap = ownersToMap.Where(o => !string.IsNullOrWhiteSpace(o.ExtAppId))
@@ -335,8 +349,7 @@ namespace FWO.Services
                             RuleId = rule.Id,
                             OwnerId = ownerId,
                             RuleMetadataId = rule.Metadata.Id,
-                            OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField,
-                            Created = importControlId
+                            OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField
                         });
                     }
                 }

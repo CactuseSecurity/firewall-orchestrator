@@ -1,10 +1,8 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Data.Middleware;
 using FWO.Data.Modelling;
 using FWO.Logging;
 using FWO.Recert;
@@ -12,7 +10,6 @@ using FWO.Services;
 using FWO.Services.Modelling;
 using Novell.Directory.Ldap;
 using System.Data;
-using System.Linq;
 using System.Text.Json;
 
 namespace FWO.Middleware.Server

@@ -423,7 +423,7 @@ namespace FWO.Data.Modelling
 
         private bool DeletedObjectsFound(bool rolloutRemoved = false)
         {
-            if(rolloutRemoved)
+            if (rolloutRemoved)
             {
                 return SourceAreas.Any(a => a.Content.IsDeleted) ||
                 DestinationAreas.Any(a => a.Content.IsDeleted);

@@ -52,9 +52,7 @@ namespace FWO.Basics
         public const string k_demo = "_demo";
 
         public const string kPlaceholderMarker = "@@";
-        public const char kAppIdSeparator = '-'; // hard-coded could be moved to settings
         public const string kModellerGroup = "ModellerGroup_";
-        public const string kLdapGroupPattern = kModellerGroup + Placeholder.AppId;
         public const string kImportChangeNotify = "importChangeNotify";
         public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";
@@ -124,10 +122,6 @@ namespace FWO.Basics
 
     public struct Placeholder
     {
-        public const string ExternalAppId = "@@ExternalAppId@@";
-        public const string AppId = "@@AppId@@";
-        public const string AppPrefix = "@@AppPrefix@@";
-
         public const string APPNAME = "@@APPNAME@@";
         public const string APPID = "@@APPID@@";
 

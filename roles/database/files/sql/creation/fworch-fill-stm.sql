@@ -137,9 +137,7 @@ insert into config (config_key, config_value, config_user) VALUES ('welcomeMessa
 insert into config (config_key, config_value, config_user) VALUES ('dnsLookup', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('overwriteExistingNames', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoReplaceAppServer', 'False', 0);
-insert into config (config_key, config_value, config_user) VALUES ('ownerLdapId', '1', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ownerLdapGroupNames', 'ModellerGroup_@@ExternalAppId@@', 0);
-insert into config (config_key, config_value, config_user) VALUES ('manageOwnerLdapGroups', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ownerDataImportSyncUsers', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarker', 'FWOC', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarkerLocation', 'rulename', 0);

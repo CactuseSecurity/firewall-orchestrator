@@ -33,6 +33,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getConnectionIdsForAppServer;
 
         public static readonly string getPublishedInterfaces;
+        public static readonly string getRequestedInterfaces;
         public static readonly string getConnectionById;
         public static readonly string getConnections;
         public static readonly string getConnectionsResolved;
@@ -151,6 +152,7 @@ namespace FWO.Api.Client.Queries
                 getConnectionIdsForAppServer = GetQueryText("modelling/getConnectionIdsForAppServer.graphql");
 
                 getPublishedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getPublishedInterfaces.graphql");
+                getRequestedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getRequestedInterfaces.graphql");
                 getConnectionById = connectionDetailsFragment + GetQueryText("modelling/getConnectionById.graphql");
                 getConnections = connectionDetailsFragment + GetQueryText("modelling/getConnections.graphql");
                 getConnectionsResolved = connectionResolvedDetailsFragment + GetQueryText("modelling/getConnectionsResolved.graphql");

@@ -293,7 +293,7 @@ namespace FWO.Services.Modelling
         {
             if (!IsOwner)
             {
-                DisplayMessageInUi(null, userConfig.GetText("save_connection"), userConfig.GetText("C9012"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_connection"), userConfig.GetText("E9104"), true);
                 return false;
             }
 
@@ -338,6 +338,25 @@ namespace FWO.Services.Modelling
                 DisplayMessageInUi(exception, userConfig.GetText("save_connection"), "", true);
             }
             return false;
+        }
+
+        public async Task<bool> SavePropertiesOnly()
+        {
+            try
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, new { id = ActConn.Id, connProp = ActConn.Properties });
+                int connIndex = Connections.FindIndex(x => x.Id == ActConn.Id);
+                if (connIndex >= 0)
+                {
+                    Connections[connIndex].Properties = ActConn.Properties;
+                }
+                return true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("save_connection"), "", true);
+                return false;
+            }
         }
 
         private async Task UpdateConnection()

@@ -31,10 +31,13 @@
                                         @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
                                     </button>
                                 }
-                                <button type="button" class="btn btn-sm btn-danger" disabled="@Readonly" @onclick="async () =>
-                                    { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                                    @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
-                                </button>
+                                @if (ShowDeleteButton(context))
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" disabled="@Readonly" @onclick="async () =>
+                                        { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                                        @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                                    </button>
+                                }
                                 @if(context.IsInterface)
                                 {
                                     <button type="button" class="btn btn-sm btn-secondary" @onclick="async () =>
@@ -278,6 +281,12 @@
         return content;
     }
 
+    private bool ShowDeleteButton(ModellingConnection conn)
+    {
+        // Requested interfaces are handled in monitoring/request workflow, not deleted in-place.
+        return !(conn.IsInterface && conn.IsRequested && conn.TicketId != null);
+    }
+
     public string DisplayModState(ModellingConnection connection)
     {
         List<string> modellingProps = CollectModellingProps(connection);
@@ -351,6 +360,9 @@
                         break;
                     case nameof(ConState.DocumentationOnly):
                         relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9020")}\">{Exclamation()}</span>");
+                        break;
+                    case nameof(ConState.ForeignNonProdObjects):
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9030")}\">{Exclamation()}</span>");
                         break;
                     default:
                         break;

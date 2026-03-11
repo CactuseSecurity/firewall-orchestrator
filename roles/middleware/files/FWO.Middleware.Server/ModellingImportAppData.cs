@@ -36,21 +36,10 @@ namespace FWO.Middleware.Server
 
         /// <summary>
         /// Main User (Dn)
+        /// legacy: is now imported as responsible with type MainUser
         /// </summary>
         [JsonProperty("main_user"), JsonPropertyName("main_user")]
         public string? MainUser { get; set; } = "";
-
-        /// <summary>
-        /// List of allowed modellers (Dn)
-        /// </summary>
-        [JsonProperty("modellers"), JsonPropertyName("modellers")]
-        public List<string>? Modellers { get; set; } = [];
-
-        /// <summary>
-        /// List of Ldap Groups of allowed modellers (Dn): (currently handled same as modellers)
-        /// </summary>
-        [JsonProperty("modeller_groups"), JsonPropertyName("modeller_groups")]
-        public List<string>? ModellerGroups { get; set; } = [];
 
         /// <summary>
         /// Criticality of App
@@ -65,11 +54,14 @@ namespace FWO.Middleware.Server
         public string? OwnerLifecycleState { get; set; }
 
         /// <summary>
-        /// Owner responsibles grouped by responsible type name
+        /// Owner responsibles grouped by responsible type key.
+        /// Keys must be numeric.
+        /// Incoming keys are sorted numerically and assigned to responsible types
+        /// sorted by sort_order (lowest key -> first type by sort_order, next key -> next type).
         /// Example:
         /// "responsibles": {
-        ///   "ownerResponsibleType:Main": ["cn=user1,dc=example,dc=com"],
-        ///   "ownerResponsibleType:Supporting": []
+        ///   "1": ["cn=user1,dc=example,dc=com"],
+        ///   "2": []
         /// }
         /// </summary>
         [JsonProperty("responsibles"), JsonPropertyName("responsibles")]

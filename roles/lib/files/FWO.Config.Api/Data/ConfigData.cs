@@ -306,15 +306,6 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
         public DateTime ImportAppDataStartAt { get; set; } = DateTime.Now;
 
-        [JsonProperty("ownerLdapId"), JsonPropertyName("ownerLdapId")]
-        public int OwnerLdapId { get; set; } = GlobalConst.kLdapInternalId;
-
-        [JsonProperty("manageOwnerLdapGroups"), JsonPropertyName("manageOwnerLdapGroups")]
-        public bool ManageOwnerLdapGroups { get; set; } = true;
-
-        [JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
-        public string OwnerLdapGroupNames { get; set; } = GlobalConst.kLdapGroupPattern;
-
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;
 
@@ -407,6 +398,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modRolloutRemovedAppServers"), JsonPropertyName("modRolloutRemovedAppServers")]
         public bool ModRolloutRemovedAppServers { get; set; } = false;
+
+        [JsonProperty("modRequestOnlyOwnObjects"), JsonPropertyName("modRequestOnlyOwnObjects")]
+        public bool ModRequestOnlyOwnObjects { get; set; } = false;
 
         [JsonProperty("modRolloutErrorText"), JsonPropertyName("modRolloutErrorText")]
         public string ModRolloutErrorText { get; set; } = "";

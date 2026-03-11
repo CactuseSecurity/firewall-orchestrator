@@ -125,6 +125,69 @@ namespace FWO.Test
         }
 
         [Test]
+        public void InterfaceToConn_SetsInterfaceNoPermission_ByPermissionMode()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 33,
+                AppId = 1,
+                SourceAppServers = [WrapAppServer(1, "AS")]
+            };
+
+            ModellingConnectionHandler handlerRestrictedAllowed = CreateHandler(new(connection));
+            handlerRestrictedAllowed.InterfaceToConn(new()
+            {
+                Id = 34,
+                InterfacePermission = InterfacePermissions.Restricted.ToString(),
+                PermittedOwnerWrappers = [new() { Owner = new FwoOwner { Id = 1 } }],
+                SourceAppServers = [WrapAppServer(2, "AS2")]
+            });
+            ClassicAssert.IsFalse(handlerRestrictedAllowed.ActConn.InterfaceNoPermission);
+
+            ModellingConnectionHandler handlerRestrictedDenied = CreateHandler(new(connection));
+            handlerRestrictedDenied.InterfaceToConn(new()
+            {
+                Id = 35,
+                InterfacePermission = InterfacePermissions.Restricted.ToString(),
+                PermittedOwnerWrappers = [new() { Owner = new FwoOwner { Id = 2 } }],
+                SourceAppServers = [WrapAppServer(2, "AS2")]
+            });
+            ClassicAssert.IsTrue(handlerRestrictedDenied.ActConn.InterfaceNoPermission);
+
+            ModellingConnectionHandler handlerPublic = CreateHandler(new(connection));
+            handlerPublic.InterfaceToConn(new()
+            {
+                Id = 36,
+                InterfacePermission = InterfacePermissions.Public.ToString(),
+                PermittedOwnerWrappers = [],
+                SourceAppServers = [WrapAppServer(2, "AS2")]
+            });
+            ClassicAssert.IsFalse(handlerPublic.ActConn.InterfaceNoPermission);
+
+            ModellingConnectionHandler handlerPrivate = CreateHandler(new(connection));
+            handlerPrivate.InterfaceToConn(new()
+            {
+                Id = 37,
+                InterfacePermission = InterfacePermissions.Private.ToString(),
+                AppId = 1,
+                PermittedOwnerWrappers = [new() { Owner = new FwoOwner { Id = 1 } }],
+                SourceAppServers = [WrapAppServer(2, "AS2")]
+            });
+            ClassicAssert.IsFalse(handlerPrivate.ActConn.InterfaceNoPermission);
+
+            ModellingConnectionHandler handlerPrivateForeign = CreateHandler(new(connection));
+            handlerPrivateForeign.InterfaceToConn(new()
+            {
+                Id = 38,
+                InterfacePermission = InterfacePermissions.Private.ToString(),
+                AppId = 2,
+                PermittedOwnerWrappers = [new() { Owner = new FwoOwner { Id = 1 } }],
+                SourceAppServers = [WrapAppServer(2, "AS2")]
+            });
+            ClassicAssert.IsTrue(handlerPrivateForeign.ActConn.InterfaceNoPermission);
+        }
+
+        [Test]
         public void RemoveInterf_ClearsInterfaceState()
         {
             ModellingConnection connection = new()

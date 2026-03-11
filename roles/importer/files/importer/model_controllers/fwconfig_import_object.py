@@ -459,14 +459,14 @@ class FwConfigImportObject:
             return prev_config.service_objects, self.normalized_config.service_objects
         return prev_config.users, self.normalized_config.users
 
-    def get_id(self, typ: Type, uid: str, before_update: bool = False) -> int | None:
+    def get_id(self, typ: Type, uid: str, before_update: bool = False) -> int:
         if typ == Type.NETWORK_OBJECT:
             return self.uid2id_mapper.get_network_object_id(uid, before_update)
         if typ == Type.SERVICE_OBJECT:
             return self.uid2id_mapper.get_service_object_id(uid, before_update)
         return self.uid2id_mapper.get_user_id(uid, before_update)
 
-    def get_local_id(self, typ: Type, uid: str, before_update: bool = False) -> int | None:
+    def get_local_id(self, typ: Type, uid: str, before_update: bool = False) -> int:
         if typ == Type.NETWORK_OBJECT:
             return self.uid2id_mapper.get_network_object_id(uid, before_update, local_only=True)
         if typ == Type.SERVICE_OBJECT:
@@ -496,14 +496,14 @@ class FwConfigImportObject:
             )
         return refs.split(fwo_const.LIST_DELIMITER) if refs else []
 
-    def get_flats(self, typ: Type, uid: str) -> list[str]:
+    def get_flats(self, typ: Type, uid: str) -> set[str]:
         if typ == Type.NETWORK_OBJECT:
             return self.group_flats_mapper.get_network_object_flats([uid])
         if typ == Type.SERVICE_OBJECT:
             return self.group_flats_mapper.get_service_object_flats([uid])
         return self.group_flats_mapper.get_user_flats([uid])
 
-    def get_prev_flats(self, typ: Type, uid: str) -> list[str]:
+    def get_prev_flats(self, typ: Type, uid: str) -> set[str]:
         if typ == Type.NETWORK_OBJECT:
             return self.prev_group_flats_mapper.get_network_object_flats([uid])
         if typ == Type.SERVICE_OBJECT:
@@ -648,16 +648,13 @@ class FwConfigImportObject:
                 continue
             member_uids = self.get_members(obj_type, self.get_refs(obj_type, current_config_objects[uid]))
             prev_member_uids = []  # all members need to be added if group added or changed
-            prev_flat_member_uids = []
+            prev_flat_member_uids: set[str] = set()
             if uid in prev_config_objects and current_config_objects[uid] == prev_config_objects[uid]:
                 # group not changed -> check for changes in members
                 prev_member_uids = self.get_members(obj_type, self.get_refs(obj_type, prev_config_objects[uid]))
                 prev_flat_member_uids = self.get_prev_flats(obj_type, uid)
 
             group_id = self.get_id(obj_type, uid)
-            if group_id is None:
-                FWOLogger.error(f"failed to add group memberships: no id found for group uid '{uid}'")
-                continue
 
             self.collect_group_members(
                 group_id,
@@ -691,13 +688,13 @@ class FwConfigImportObject:
         group_id: int,
         current_config_objects: dict[str, Any],
         new_group_member_flats: list[dict[str, Any]],
-        flat_member_uids: list[str],
+        flat_member_uids: set[str],
         obj_type: Type,
         prefix: str,
-        prev_flat_member_uids: list[str],
+        prev_flat_member_uids: set[str],
         prev_config_objects: dict[str, Any],
     ):
-        for flat_member_uid in flat_member_uids:
+        for flat_member_uid in sorted(flat_member_uids):  # deterministic order for better debugging and testing
             if (
                 flat_member_uid in prev_flat_member_uids
                 and prev_config_objects[flat_member_uid] == current_config_objects[flat_member_uid]
@@ -724,10 +721,14 @@ class FwConfigImportObject:
         prev_member_uids: list[str],
         prev_config_objects: dict[str, Any],
     ):
+        added_tuples: set[tuple[int, int]] = set()
         for member_uid in member_uids:
             if member_uid in prev_member_uids and prev_config_objects[member_uid] == current_config_objects[member_uid]:
                 continue  # member was not added or changed
             member_id = self.get_id(obj_type, member_uid)
+            if (member_id, group_id) in added_tuples:
+                continue  # avoid duplicate entries for same member and group (e.g. if same member is contained twice)
+            added_tuples.add((member_id, group_id))
             new_group_members.append(
                 {
                     f"{prefix}_id": group_id,

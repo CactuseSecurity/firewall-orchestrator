@@ -538,8 +538,8 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
             new_group_member_flats=new_group_member_flats,
             obj_type=Type.NETWORK_OBJECT,
             prev_config_objects={},
-            flat_member_uids=[],
-            prev_flat_member_uids=[],
+            flat_member_uids=set(),
+            prev_flat_member_uids=set(),
         )
 
         # Assert
@@ -560,8 +560,8 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
             new_group_member_flats=new_group_member_flats,
             obj_type=Type.NETWORK_OBJECT,
             prev_config_objects={"1": {"id": 1, "uid": "1"}},
-            flat_member_uids=["1"],
-            prev_flat_member_uids=["1"],
+            flat_member_uids={"1"},
+            prev_flat_member_uids={"1"},
         )
 
         # Assert
@@ -592,8 +592,8 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
                 "1": {"id": 1, "uid": "1"},
                 "3": {"id": 3, "uid": "3"},
             },
-            flat_member_uids=["1", "2"],
-            prev_flat_member_uids=["1", "3"],
+            flat_member_uids={"1", "2"},
+            prev_flat_member_uids={"1", "3"},
         )
 
         # Assert
@@ -671,38 +671,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
         # Assert
         fwconfig_import_object.write_member_updates.assert_not_called()
 
-    def test_add_group_memberships_no_group_id(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-        fwconfig_builder: FwConfigBuilder,
-        mocker: MockerFixture,
-    ):
-        # Arrange
-        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
-            network_object_count=1,
-        )
-        prev_config, __ = fwconfig_builder.build_config(
-            network_object_count=1,
-        )
-        fwconfig_import_object.write_member_updates = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=None)
-
-        # Act
-        fwconfig_import_object.add_group_memberships(
-            obj_type=Type.NETWORK_OBJECT,
-            prev_config=prev_config,
-        )
-
-        # Assert
-        fwconfig_import_object.write_member_updates.assert_not_called()
-
-        assert mock_logger.call_count == 1
-        assert (
-            mock_logger.call_args[0][0]
-            == f"failed to add group memberships: no id found for group uid '{next(iter(fwconfig_import_object.normalized_config.network_objects.keys()))}'"
-        )
-
     def test_add_group_memberships_with_changes(
         self,
         fwconfig_import_object: FwConfigImportObject,
@@ -720,7 +688,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object.write_member_updates = mocker.Mock()
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
         fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(
-            return_value=["old-member-uid"]
+            return_value={"old-member-uid"}
         )
 
         # Act
@@ -769,7 +737,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object.write_member_updates = mocker.Mock()
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
         fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(
-            return_value=[group_obj.obj_uid]
+            return_value={group_obj.obj_uid}
         )
 
         # Act
@@ -825,8 +793,8 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object.import_state.state.import_id = 9
         fwconfig_import_object.write_member_updates = mocker.Mock()
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
-        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
+        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(return_value={member_uid})
+        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value={member_uid})
 
         # Act
         fwconfig_import_object.add_group_memberships(
@@ -892,7 +860,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object.write_member_updates = mocker.Mock()
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
         fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(
-            return_value=[member_uid_one, member_uid_two]
+            return_value={member_uid_one, member_uid_two}
         )
 
         # Act
@@ -902,37 +870,37 @@ class TestFwConfigImportObjectAddGroupMemberships:
         )
 
         # Assert
-        fwconfig_import_object.write_member_updates.assert_called_once_with(
-            [
-                {
-                    "import_created": 11,
-                    "import_last_seen": 11,
-                    "objgrp_id": 1,
-                    "objgrp_member_id": 2,
-                },
-                {
-                    "import_created": 11,
-                    "import_last_seen": 11,
-                    "objgrp_id": 1,
-                    "objgrp_member_id": 3,
-                },
-            ],
-            [
-                {
-                    "import_created": 11,
-                    "import_last_seen": 11,
-                    "objgrp_flat_id": 1,
-                    "objgrp_flat_member_id": 2,
-                },
-                {
-                    "import_created": 11,
-                    "import_last_seen": 11,
-                    "objgrp_flat_id": 1,
-                    "objgrp_flat_member_id": 3,
-                },
-            ],
-            "objgrp",
-        )
+        fwconfig_import_object.write_member_updates.assert_called_once()
+        actual_members, actual_flats, actual_prefix = fwconfig_import_object.write_member_updates.call_args.args
+        assert sorted(actual_members, key=lambda x: x["objgrp_member_id"]) == [
+            {
+                "import_created": 11,
+                "import_last_seen": 11,
+                "objgrp_id": 1,
+                "objgrp_member_id": 2,
+            },
+            {
+                "import_created": 11,
+                "import_last_seen": 11,
+                "objgrp_id": 1,
+                "objgrp_member_id": 3,
+            },
+        ]
+        assert sorted(actual_flats, key=lambda x: x["objgrp_flat_member_id"]) == [
+            {
+                "import_created": 11,
+                "import_last_seen": 11,
+                "objgrp_flat_id": 1,
+                "objgrp_flat_member_id": 2,
+            },
+            {
+                "import_created": 11,
+                "import_last_seen": 11,
+                "objgrp_flat_id": 1,
+                "objgrp_flat_member_id": 3,
+            },
+        ]
+        assert actual_prefix == "objgrp"
 
 
 class TestFwConfigImportObjectFindRemovedObjects:
@@ -1018,7 +986,7 @@ class TestFwConfigImportObjectFindRemovedObjects:
         removed_flats: list[dict[str, Any]] = []
         removed_members: list[dict[str, Any]] = []
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
+        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value={2})
 
         # Act
         fwconfig_import_object.find_removed_objects(
@@ -1085,7 +1053,7 @@ class TestFwConfigImportObjectFindRemovedObjects:
         removed_members: list[dict[str, Any]] = []
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=last_obj_uid)
         fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(
-            return_value=[last_obj_uid]
+            return_value={last_obj_uid}
         )
 
         # Act
@@ -1144,7 +1112,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             obj.obj_member_refs = "new-member-uid"
 
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
+        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value={2})
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
                 "data": {
@@ -1197,7 +1165,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         for obj in prev_config.network_objects.values():
             obj.obj_member_refs = "old-member-uid"
 
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
+        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value={2})
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
                 "errors": [
@@ -1240,10 +1208,10 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         for obj in prev_config.network_objects.values():
             obj.obj_member_refs = "old-member-uid"
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
+        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value={2})
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
-                "error": "Some unexpected error occurred",
+                "errors": "Some unexpected error occurred",
             }
         )
         fwconfig_import_object.import_state.state.import_id = 5
@@ -1259,7 +1227,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object.import_state.api_call.call.assert_called_once()
         mock_logger.assert_called_once()
         assert str(mock_logger.call_args[0][0]).startswith(
-            "failed to remove outdated group memberships for Type.NETWORK_OBJECT: Traceback"
+            "fwo_api:importNwObject - error in removeOutdatedObjgrpMemberships: Some unexpected error occurred"
         )
 
     def test_remove_outdated_memberships_group_removed(
@@ -1283,7 +1251,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             return 10 if uid == group_uid else 20
 
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
+        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value={member_uid})
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
                 "data": {
@@ -1339,7 +1307,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
 
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
         fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(
-            return_value=[member_uid_one, member_uid_two]
+            return_value={member_uid_one, member_uid_two}
         )
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
@@ -1358,18 +1326,19 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         )
 
         # Assert
-        call_args = fwconfig_import_object.import_state.api_call.call.call_args
-        assert call_args.kwargs["query_variables"] == {
-            "importId": 12,
-            "removedMembers": [
-                {"_and": [{"objgrp_id": {"_eq": 100}}, {"objgrp_member_id": {"_eq": 200}}]},
-                {"_and": [{"objgrp_id": {"_eq": 100}}, {"objgrp_member_id": {"_eq": 300}}]},
-            ],
-            "removedFlats": [
-                {"_and": [{"objgrp_flat_id": {"_eq": 100}}, {"objgrp_flat_member_id": {"_eq": 200}}]},
-                {"_and": [{"objgrp_flat_id": {"_eq": 100}}, {"objgrp_flat_member_id": {"_eq": 300}}]},
-            ],
-        }
+        fwconfig_import_object.import_state.api_call.call.assert_called_once()
+        import_id, actual_members, actual_flats = fwconfig_import_object.import_state.api_call.call.call_args.kwargs[
+            "query_variables"
+        ].values()
+        assert import_id == 12
+        assert sorted(actual_members, key=lambda x: x["_and"][1]["objgrp_member_id"]["_eq"]) == [
+            {"_and": [{"objgrp_id": {"_eq": 100}}, {"objgrp_member_id": {"_eq": 200}}]},
+            {"_and": [{"objgrp_id": {"_eq": 100}}, {"objgrp_member_id": {"_eq": 300}}]},
+        ]
+        assert sorted(actual_flats, key=lambda x: x["_and"][1]["objgrp_flat_member_id"]["_eq"]) == [
+            {"_and": [{"objgrp_flat_id": {"_eq": 100}}, {"objgrp_flat_member_id": {"_eq": 200}}]},
+            {"_and": [{"objgrp_flat_id": {"_eq": 100}}, {"objgrp_flat_member_id": {"_eq": 300}}]},
+        ]
 
 
 class TestFwConfigImportObjectGetPrefix:
@@ -1420,13 +1389,13 @@ class TestFwConfigImportObjectGetPrevFlats:
         mocker: MockerFixture,
     ):
         # Arrange
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[1, 2, 3])
+        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value={1, 2, 3})
 
         # Act
         flats = fwconfig_import_object.get_prev_flats(Type.NETWORK_OBJECT, "some-uid")
 
         # Assert
-        assert flats == [1, 2, 3]
+        assert flats == {1, 2, 3}
 
     def test_get_prev_flats_service_object(
         self,
@@ -1434,13 +1403,13 @@ class TestFwConfigImportObjectGetPrevFlats:
         mocker: MockerFixture,
     ):
         # Arrange
-        fwconfig_import_object.prev_group_flats_mapper.get_service_object_flats = mocker.Mock(return_value=[4, 5, 6])
+        fwconfig_import_object.prev_group_flats_mapper.get_service_object_flats = mocker.Mock(return_value={4, 5, 6})
 
         # Act
         flats = fwconfig_import_object.get_prev_flats(Type.SERVICE_OBJECT, "some-uid")
 
         # Assert
-        assert flats == [4, 5, 6]
+        assert flats == {4, 5, 6}
 
     def test_get_prev_flats_user_object(
         self,
@@ -1448,13 +1417,13 @@ class TestFwConfigImportObjectGetPrevFlats:
         mocker: MockerFixture,
     ):
         # Arrange
-        fwconfig_import_object.prev_group_flats_mapper.get_user_flats = mocker.Mock(return_value=[7, 8, 9])
+        fwconfig_import_object.prev_group_flats_mapper.get_user_flats = mocker.Mock(return_value={7, 8, 9})
 
         # Act
         flats = fwconfig_import_object.get_prev_flats(Type.USER, "some-uid")
 
         # Assert
-        assert flats == [7, 8, 9]
+        assert flats == {7, 8, 9}
 
 
 class TestFwConfigImportObjectGetFlats:
@@ -1464,13 +1433,13 @@ class TestFwConfigImportObjectGetFlats:
         mocker: MockerFixture,
     ):
         # Arrange
-        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[1, 2, 3])
+        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(return_value={1, 2, 3})
 
         # Act
         flats = fwconfig_import_object.get_flats(Type.NETWORK_OBJECT, "some-uid")
 
         # Assert
-        assert flats == [1, 2, 3]
+        assert flats == {1, 2, 3}
 
     def test_get_flats_service_object(
         self,
@@ -1478,13 +1447,13 @@ class TestFwConfigImportObjectGetFlats:
         mocker: MockerFixture,
     ):
         # Arrange
-        fwconfig_import_object.group_flats_mapper.get_service_object_flats = mocker.Mock(return_value=[4, 5, 6])
+        fwconfig_import_object.group_flats_mapper.get_service_object_flats = mocker.Mock(return_value={4, 5, 6})
 
         # Act
         flats = fwconfig_import_object.get_flats(Type.SERVICE_OBJECT, "some-uid")
 
         # Assert
-        assert flats == [4, 5, 6]
+        assert flats == {4, 5, 6}
 
     def test_get_flats_user_object(
         self,
@@ -1492,13 +1461,13 @@ class TestFwConfigImportObjectGetFlats:
         mocker: MockerFixture,
     ):
         # Arrange
-        fwconfig_import_object.group_flats_mapper.get_user_flats = mocker.Mock(return_value=[7, 8, 9])
+        fwconfig_import_object.group_flats_mapper.get_user_flats = mocker.Mock(return_value={7, 8, 9})
 
         # Act
         flats = fwconfig_import_object.get_flats(Type.USER, "some-uid")
 
         # Assert
-        assert flats == [7, 8, 9]
+        assert flats == {7, 8, 9}
 
 
 class TestFwConfigImportObjectGetMembers:

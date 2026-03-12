@@ -230,6 +230,32 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(owner.owner_lifecycle_state, "active")
             self.assertEqual(owner.to_json()["owner_lifecycle_state"], "active")
 
+    def test_extract_app_data_from_csv_uses_fallback_owner_lifecycle_without_column(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nFallback Lifecycle,APP-012,user12,false\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                column_patterns=apply_owner_column_overrides({}, ""),
+                fallback_owner_lifecycle="retired",
+            )
+
+            owner: Owner = app_list[0]
+            self.assertEqual(owner.owner_lifecycle_state, "retired")
+            self.assertEqual(owner.to_json()["owner_lifecycle_state"], "retired")
+
     def test_extract_app_data_from_csv_filters_by_included_owners_column(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
@@ -642,6 +668,54 @@ class AppDataImportTests(unittest.TestCase):
                 },
             )
 
+    def test_extract_app_data_from_csv_leaves_responsibles_empty_when_not_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nFallback App,APP-017,user17,false\n")
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+            )
+
+            self.assertEqual(len(app_list), 1)
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertIsNone(owner_json.get("responsibles"))
+
+    def test_extract_app_data_from_csv_uses_custom_level_two_responsible_pattern(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nFallback App,APP-018,user18,false\n")
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                level_two_responsible_pattern="ROLE_@@AppId@@_@@AppPrefix@@",
+            )
+
+            self.assertEqual(len(app_list), 1)
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertEqual(
+                owner_json.get("responsibles"),
+                {"1": ["CN=user18"], "2": ["ROLE_018_APP"]},
+            )
+
     def test_extract_app_data_from_csv_splits_multi_user_responsibles_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
@@ -677,6 +751,32 @@ class AppDataImportTests(unittest.TestCase):
                     "20": ["CN=A7B2", "CN=K9M4", "CN=X3T8", "CN=J5L1", "CN=D8R6"],
                     "30": ["CN=R8M4"],
                 },
+            )
+
+    def test_extract_app_data_from_csv_uses_custom_level_two_pattern_without_separator(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nFallback App,APP017,user18,false\n")
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                level_two_responsible_pattern="A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT",
+            )
+
+            self.assertEqual(len(app_list), 1)
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertEqual(
+                owner_json.get("responsibles"),
+                {"1": ["CN=user18"], "2": ["A_APP_017_FW_RULEMGT"]},
             )
 
 

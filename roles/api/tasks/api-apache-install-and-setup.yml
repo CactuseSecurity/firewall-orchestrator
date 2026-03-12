@@ -51,12 +51,28 @@
       command: "a2ensite {{ product_name }}-api"
       when: ansible_os_family == "Debian"
 
-    - name: add port to apache
+    - name: remove legacy api listen lines on Debian
+      lineinfile:
+        path: "{{ apache_ports_config_file }}"
+        regexp: "^(?![[:space:]])Listen {{ api_web_port }}$"
+        state: absent
+      when: ansible_os_family == "Debian"
+
+    - name: add api port to apache on Debian
+      lineinfile:
+        path: "{{ apache_ports_config_file }}"
+        regexp: "^[[:space:]]*Listen {{ api_web_port }}$"
+        line: "    Listen {{ api_web_port }}"
+        insertafter: "<IfModule ssl_module>"
+      when: ansible_os_family == "Debian"
+
+    - name: add api port to apache on RedHat
       lineinfile:
         path: "{{ apache_ports_config_file }}"
         regexp: "^Listen {{ api_web_port }}$"
         line: "Listen {{ api_web_port }}"
         create: true
+      when: ansible_os_family == "RedHat"
 
     - name: restart apache
       service:

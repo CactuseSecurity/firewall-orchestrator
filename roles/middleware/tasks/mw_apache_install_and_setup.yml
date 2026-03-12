@@ -47,12 +47,28 @@
       register: testoutput
       when: ansible_os_family == "Debian"
 
-    - name: add mw port to apache
+    - name: remove legacy middleware listen lines on Debian
+      lineinfile:
+        path: "{{ apache_ports_config_file }}"
+        regexp: "^(?![[:space:]])Listen {{ middleware_web_listener_port }}$"
+        state: absent
+      when: ansible_os_family == "Debian"
+
+    - name: add mw port to apache on Debian
+      lineinfile:
+        path: "{{ apache_ports_config_file }}"
+        regexp: "^[[:space:]]*Listen {{ middleware_web_listener_port }}$"
+        line: "    Listen {{ middleware_web_listener_port }}"
+        insertafter: "<IfModule ssl_module>"
+      when: ansible_os_family == "Debian"
+
+    - name: add mw port to apache on RedHat
       lineinfile:
         path: "{{ apache_ports_config_file }}"
         regexp: "^Listen {{ middleware_web_listener_port }}$"
         line: "Listen {{ middleware_web_listener_port }}"
         create: true
+      when: ansible_os_family == "RedHat"
 
     - name: restart apache
       service:

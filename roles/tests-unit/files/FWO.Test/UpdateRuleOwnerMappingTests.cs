@@ -32,7 +32,7 @@ namespace FWO.Test
             var rule = BuildRule();
             var owners = new List<FwoOwner> { BuildOwner() };
 
-            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners, 123);
+            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
 
             Assert.Multiple(() =>
             {
@@ -49,7 +49,7 @@ namespace FWO.Test
             var rule = BuildRule();
             var owners = new List<FwoOwner> { BuildOwner(id: expectedOwnerId, extAppId: ownerExtAppId) };
 
-            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners, 123);
+            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
 
             Assert.That(result.Any(), Is.EqualTo(shouldMatch));
             if (shouldMatch)
@@ -69,7 +69,7 @@ namespace FWO.Test
             };
             var owners = new List<FwoOwner> { new FwoOwner { Id = 10, ExtAppId = "TeamA" } };
 
-            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners, 123);
+            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
 
             Assert.That(result, Is.Empty);
         }
@@ -80,7 +80,7 @@ namespace FWO.Test
             var rule = BuildRule(customFields: "{}");
             var owners = new List<FwoOwner> { BuildOwner() };
 
-            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners, 123);
+            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
 
             Assert.That(result, Is.Empty);
         }
@@ -213,7 +213,7 @@ namespace FWO.Test
                 }
             };
 
-            var result = service.BuildNewRuleOwnersIpBased(new List<Rule> { rule }, owners, 123);
+            var result = service.BuildNewRuleOwnersIpBased(new List<Rule> { rule }, owners);
 
             Assert.That(result.Select(r => r.OwnerId), Is.EquivalentTo(new[] { 10, 20 }));
         }

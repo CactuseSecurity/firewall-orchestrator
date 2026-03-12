@@ -107,18 +107,13 @@ namespace FWO.Services
 
         private async Task<bool> RunFullReinitializeIpBased()
         {
-            var lastImportControl = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getLastImportControl);
-            var lastControl = lastImportControl.FirstOrDefault() ?? throw new InvalidOperationException("No import_control found.");
-
-            long newControlId = lastControl.ControlId + 1;
-
             var rulesTask = apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForOwnerMappingIpBased);
             var ownersTask = apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerIpBased);
             await Task.WhenAll(rulesTask, ownersTask);
             var rules = rulesTask.Result;
             var owners = ownersTask.Result;
 
-            var newRuleOwners = BuildNewRuleOwnersIpBased(rules, owners, newControlId);
+            var newRuleOwners = BuildNewRuleOwnersIpBased(rules, owners);
 
             if (!newRuleOwners.Any())
             {
@@ -126,7 +121,12 @@ namespace FWO.Services
                 return false;
             }
 
-            long importControlId = await CreateImportControl(newControlId);
+            long importControlId = await CreateImportControl();
+
+            foreach (RuleOwner ruleOwner in newRuleOwners)
+            {
+                ruleOwner.Created = importControlId;
+            }
 
             await SetAllActiveRuleOwnersRemoved(importControlId);
             await InsertNewRuleOwners(newRuleOwners);
@@ -247,7 +247,12 @@ namespace FWO.Services
                     }
             }
 
-            var newRuleOwners = BuildNewRuleOwnersIpBased(rulesToMap, owners, import.ControlId);
+            var newRuleOwners = BuildNewRuleOwnersIpBased(rulesToMap, owners);
+
+            foreach (RuleOwner ruleOwner in newRuleOwners)
+            {
+                ruleOwner.Created = import.ControlId;
+            }
 
             await SetAffectedRuleOwnersRemoved(ruleOwnersToRemove, import.ControlId);
 
@@ -323,7 +328,7 @@ namespace FWO.Services
             }
         }
 
-        private List<RuleOwner> BuildNewRuleOwnersCustomField(List<Rule> rulesToMap, List<FwoOwner> ownersToMap)
+        public List<RuleOwner> BuildNewRuleOwnersCustomField(List<Rule> rulesToMap, List<FwoOwner> ownersToMap)
         {
             // create a dictionary for owner name to id mapping for faster lookup
             var ownerNameToIdMap = ownersToMap.Where(o => !string.IsNullOrWhiteSpace(o.ExtAppId))
@@ -361,7 +366,7 @@ namespace FWO.Services
             return newRuleOwners;
         }
 
-        public List<RuleOwner> BuildNewRuleOwnersIpBased(List<Rule> rulesToMap, List<FwoOwner> ownersToMap, long importControlId)
+        public List<RuleOwner> BuildNewRuleOwnersIpBased(List<Rule> rulesToMap, List<FwoOwner> ownersToMap)
         {
             var newRuleOwners = new List<RuleOwner>();
 
@@ -380,8 +385,7 @@ namespace FWO.Services
                         RuleId = rule.Id,
                         OwnerId = ownerID,
                         RuleMetadataId = rule.Metadata.Id,
-                        OwnerMappingSourceId = (int)OwnerMappingSourceStm.IpBased,
-                        Created = importControlId
+                        OwnerMappingSourceId = (int)OwnerMappingSourceStm.IpBased
                     });
                 }
             }

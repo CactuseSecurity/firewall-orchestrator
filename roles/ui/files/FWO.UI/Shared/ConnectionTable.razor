@@ -246,18 +246,20 @@
 
     private void ToggleSelection(ModellingConnection conn)
     {
-        if (SelectInterfaceView)
+        if (!SelectInterfaceView || !IsVisibleToOwner(conn))
         {
-            if (!SelectedConns.Remove(conn))
-            {
-                if (SelectionType != SelectionType.Multiple)
-                {
-                    SelectedConns = [];
-                }
-                SelectedConns.Add(conn);
-            }
-            SelectedConnsChanged.InvokeAsync(SelectedConns);
+            return;
         }
+
+        if (!SelectedConns.Remove(conn))
+        {
+            if (SelectionType != SelectionType.Multiple)
+            {
+                SelectedConns = [];
+            }
+            SelectedConns.Add(conn);
+        }
+        SelectedConnsChanged.InvokeAsync(SelectedConns);
     }
 
     private string getTableRowClass(ModellingConnection conn)

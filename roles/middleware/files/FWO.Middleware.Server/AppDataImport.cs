@@ -162,6 +162,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
+                incomingApp = await NormalizeImportedUserReferences(incomingApp);
                 int appId;
                 if (!TryResolveOwnerLifeCycleStateId(incomingApp, out int? ownerLifeCycleStateId))
                 {
@@ -204,6 +205,102 @@ namespace FWO.Middleware.Server
                 return false;
             }
             return true;
+        }
+
+        private async Task<ModellingImportAppData> NormalizeImportedUserReferences(ModellingImportAppData incomingApp)
+        {
+            ModellingImportAppData normalizedApp = new()
+            {
+                Name = incomingApp.Name,
+                ExtAppId = incomingApp.ExtAppId,
+                MainUser = await NormalizeImportedUserReference(incomingApp, incomingApp.MainUser, "main_user"),
+                Criticality = incomingApp.Criticality,
+                OwnerLifecycleState = incomingApp.OwnerLifecycleState,
+                ImportSource = incomingApp.ImportSource,
+                RecertInterval = incomingApp.RecertInterval,
+                FirstRecertInterval = incomingApp.FirstRecertInterval,
+                RecertActive = incomingApp.RecertActive,
+                AppServers = [.. incomingApp.AppServers]
+            };
+
+            if (incomingApp.Responsibles == null)
+            {
+                normalizedApp.Responsibles = null;
+                return normalizedApp;
+            }
+
+            normalizedApp.Responsibles = [];
+            foreach ((string typeKey, List<string> identifiers) in incomingApp.Responsibles)
+            {
+                List<string> normalizedIdentifiers = [];
+                foreach (string identifier in identifiers)
+                {
+                    string? normalizedIdentifier = await NormalizeImportedUserReference(incomingApp, identifier, $"responsibles[{typeKey}]");
+                    if (!string.IsNullOrWhiteSpace(normalizedIdentifier))
+                    {
+                        normalizedIdentifiers.Add(normalizedIdentifier);
+                    }
+                }
+                normalizedApp.Responsibles[typeKey] = normalizedIdentifiers;
+            }
+            return normalizedApp;
+        }
+
+        private async Task<string?> NormalizeImportedUserReference(ModellingImportAppData incomingApp, string? importedIdentifier, string fieldName)
+        {
+            if (string.IsNullOrWhiteSpace(importedIdentifier))
+            {
+                return importedIdentifier;
+            }
+
+            string trimmedIdentifier = importedIdentifier.Trim();
+            if (LooksLikeDistinguishedName(trimmedIdentifier))
+            {
+                return trimmedIdentifier;
+            }
+
+            string? resolvedDn = await ResolveImportedUserIdentifierToDn(trimmedIdentifier);
+            if (!string.IsNullOrWhiteSpace(resolvedDn))
+            {
+                return resolvedDn.Trim();
+            }
+
+            string appLabel = string.IsNullOrWhiteSpace(incomingApp.Name)
+                ? incomingApp.ExtAppId
+                : $"{incomingApp.Name} ({incomingApp.ExtAppId})";
+            string warningText = $"App \"{appLabel}\": could not resolve imported user id \"{trimmedIdentifier}\" from field \"{fieldName}\". Skipping entry.";
+            Log.WriteWarning(LogMessageTitle, warningText);
+            await AddLogEntry(1, LevelApp, warningText);
+            return null;
+        }
+
+        /// <summary>
+        /// Resolves a plain imported user identifier to an LDAP distinguished name.
+        /// </summary>
+        /// <param name="userIdentifier">Imported user identifier such as uid, cn, or login name.</param>
+        /// <returns>Resolved user DN if found in any connected LDAP; otherwise null.</returns>
+        protected virtual async Task<string?> ResolveImportedUserIdentifierToDn(string userIdentifier)
+        {
+            UiUser userToResolve = new() { Name = userIdentifier };
+            foreach (Ldap ldap in connectedLdaps)
+            {
+                if (string.IsNullOrWhiteSpace(ldap.UserSearchPath))
+                {
+                    continue;
+                }
+
+                LdapEntry? ldapUser = await ldap.GetLdapEntry(userToResolve, false);
+                if (!string.IsNullOrWhiteSpace(ldapUser?.Dn))
+                {
+                    return ldapUser.Dn;
+                }
+            }
+            return null;
+        }
+
+        private static bool LooksLikeDistinguishedName(string identifier)
+        {
+            return identifier.Contains('=') && identifier.Contains(',');
         }
 
         private async Task<int> NewApp(ModellingImportAppData incomingApp, int? ownerLifeCycleStateId, List<OwnerResponsible> responsibles)

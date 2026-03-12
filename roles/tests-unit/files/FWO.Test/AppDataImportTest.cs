@@ -867,6 +867,69 @@ namespace FWO.Test
             Assert.That(apiConn.UpdateOwnerCalls, Is.EqualTo(0));
         }
 
+        [Test]
+        public async Task NormalizeImportedUserReferences_ResolvesPlainUserIds_AndKeepsDns()
+        {
+            ResolverTestAppDataImport import = new(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["main.user"] = "cn=main.user,ou=users,dc=example,dc=com",
+                ["support.user"] = "cn=support.user,ou=users,dc=example,dc=com"
+            });
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-Resolve",
+                ExtAppId = "APP-RESOLVE",
+                MainUser = " main.user ",
+                Responsibles = new Dictionary<string, List<string>>
+                {
+                    ["1"] =
+                    [
+                        "support.user",
+                        "cn=group1,ou=groups,dc=example,dc=com"
+                    ]
+                }
+            };
+
+            ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
+
+            Assert.That(normalizedApp.MainUser, Is.EqualTo("cn=main.user,ou=users,dc=example,dc=com"));
+            Assert.That(normalizedApp.Responsibles?["1"], Is.EquivalentTo(new[]
+            {
+                "cn=support.user,ou=users,dc=example,dc=com",
+                "cn=group1,ou=groups,dc=example,dc=com"
+            }));
+            Assert.That(import.ResolvedIdentifiers, Is.EqualTo(new[] { "main.user", "support.user" }));
+        }
+
+        [Test]
+        public async Task NormalizeImportedUserReferences_DropsUnresolvablePlainUserIds()
+        {
+            ResolverTestAppDataImport import = new(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase));
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-Unresolved",
+                ExtAppId = "APP-UNRESOLVED",
+                MainUser = "missing.user",
+                Responsibles = new Dictionary<string, List<string>>
+                {
+                    ["1"] =
+                    [
+                        "missing.user",
+                        "cn=group1,ou=groups,dc=example,dc=com"
+                    ]
+                }
+            };
+
+            ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
+
+            Assert.That(normalizedApp.MainUser, Is.Null);
+            Assert.That(normalizedApp.Responsibles?["1"], Is.EqualTo(new[]
+            {
+                "cn=group1,ou=groups,dc=example,dc=com"
+            }));
+            Assert.That(import.ResolvedIdentifiers, Is.EqualTo(new[] { "missing.user", "missing.user" }));
+        }
+
         private static AppDataImport CreateImportWithTypeMap(Dictionary<string, int> typeMap)
         {
             AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
@@ -1042,6 +1105,15 @@ namespace FWO.Test
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("SaveApp helper not found.");
             return await (Task<bool>)method.Invoke(import, [incomingApp, tracker])!;
+        }
+
+        private static async Task<ModellingImportAppData> InvokeNormalizeImportedUserReferences(AppDataImport import, ModellingImportAppData incomingApp)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "NormalizeImportedUserReferences",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("NormalizeImportedUserReferences helper not found.");
+            return await (Task<ModellingImportAppData>)method.Invoke(import, [incomingApp])!;
         }
 
         private static async Task<(int deleted, int failed)> InvokeDeactivateMissingApps(
@@ -1287,6 +1359,24 @@ namespace FWO.Test
                 }
 
                 throw new NotImplementedException($"Query not implemented in save-app test api: {query}");
+            }
+        }
+
+        private sealed class ResolverTestAppDataImport : AppDataImport
+        {
+            private readonly Dictionary<string, string?> resolutions;
+            public List<string> ResolvedIdentifiers { get; } = [];
+
+            public ResolverTestAppDataImport(Dictionary<string, string?> resolutions)
+                : base(new SimulatedApiConnection(), new GlobalConfig())
+            {
+                this.resolutions = resolutions;
+            }
+
+            protected override Task<string?> ResolveImportedUserIdentifierToDn(string userIdentifier)
+            {
+                ResolvedIdentifiers.Add(userIdentifier);
+                return Task.FromResult(resolutions.TryGetValue(userIdentifier, out string? resolvedDn) ? resolvedDn : null);
             }
         }
     }

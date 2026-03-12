@@ -35,8 +35,9 @@ namespace FWO.Middleware.Server
         public string ExtAppId { get; set; } = "";
 
         /// <summary>
-        /// Main User (Dn)
-        /// legacy: is now imported as responsible with type MainUser
+        /// Main user identifier from import.
+        /// Prefer a plain user id; LDAP DNs remain supported for compatibility.
+        /// Legacy: is now imported as responsible with type MainUser.
         /// </summary>
         [JsonProperty("main_user"), JsonPropertyName("main_user")]
         public string? MainUser { get; set; } = "";
@@ -55,6 +56,7 @@ namespace FWO.Middleware.Server
 
         /// <summary>
         /// Owner responsibles grouped by responsible type key.
+        /// Values may be plain user ids or LDAP DNs.
         /// Keys must be numeric.
         /// Incoming keys are sorted numerically and assigned to responsible types
         /// sorted by sort_order (lowest key -> first type by sort_order, next key -> next type).

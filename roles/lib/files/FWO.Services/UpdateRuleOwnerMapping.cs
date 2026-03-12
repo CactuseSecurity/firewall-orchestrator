@@ -86,7 +86,7 @@ namespace FWO.Services
 
             long importControlId = await CreateImportControl();
 
-            foreach( RuleOwner ruleOwner in newRuleOwners)
+            foreach (RuleOwner ruleOwner in newRuleOwners)
             {
                 ruleOwner.Created = importControlId;
             }
@@ -178,7 +178,7 @@ namespace FWO.Services
                     throw new InvalidOperationException("Failed to create ImportControl. Returning list empty.");
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Created new import control with ID { firstControl.ControlId }.");
+                Log.WriteInfo(LogMessageTitle, $"Created new import control with ID {firstControl.ControlId}.");
                 return firstControl.ControlId;
             }
             catch (Exception exception)

@@ -1,0 +1,6 @@
+- name: install upgrade {{ upgrade_file }}.sql
+  community.postgresql.postgresql_script:
+      db: "{{ fworch_db_name }}"
+      path: "{{ database_install_dir }}/upgrade/{{ upgrade_file }}.sql"
+  become: true
+  become_user: postgres

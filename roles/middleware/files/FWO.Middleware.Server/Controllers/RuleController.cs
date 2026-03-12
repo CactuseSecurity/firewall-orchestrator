@@ -427,7 +427,7 @@ public sealed class IpFilterHelper
         var sanitized = SanitizeIpString(ipString);
         if (_parseCache.TryGetValue(sanitized, out var cached))
             return cached;
-        
+
         IPAddress.TryParse(sanitized, out var parsed);
         _parseCache[sanitized] = parsed;
 

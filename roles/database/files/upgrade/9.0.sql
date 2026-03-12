@@ -459,6 +459,10 @@ Create table IF NOT EXISTS "rulebase"
 	"removed" BIGINT
 );
 
+ALTER table "rulebase" ADD COLUMN IF NOT EXISTS "uid" Varchar NOT NULL;
+ALTER table "rulebase" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+
+
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "fk_rulebase_mgm_id" CASCADE;
 Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 
@@ -525,6 +529,8 @@ Create Table IF NOT EXISTS "rule_enforced_on_gateway"
 	"created" BIGINT,
 	"removed" BIGINT
 );
+
+ ALTER table "rule_enforced_on_gateway" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 
 ALTER TABLE "rule_enforced_on_gateway"
     DROP CONSTRAINT IF EXISTS "fk_rule_enforced_on_gateway_rule_rule_id" CASCADE;
@@ -1157,6 +1163,20 @@ AS $function$
 $function$;
 
 -- TODO: needs to be rewritten to rulebase_link
+
+CREATE OR REPLACE FUNCTION get_last_import_id_for_mgmt (INTEGER) RETURNS BIGINT AS $$
+DECLARE
+        i_mgm_id ALIAS FOR $1; -- ID des Managements
+        i_prev_import_id BIGINT; -- temp. Record
+BEGIN
+        SELECT INTO i_prev_import_id MAX(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND successful_import;
+        IF NOT FOUND THEN
+                RETURN NULL;
+        END IF;
+        RETURN i_prev_import_id;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION addRuleEnforcedOnGatewayEntries() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
@@ -2081,3 +2101,5 @@ ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id
 FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id")
 ON UPDATE RESTRICT
 ON DELETE CASCADE;
+
+DROP FUNCTION IF EXISTS get_last_import_id_for_mgmt(INTEGER);

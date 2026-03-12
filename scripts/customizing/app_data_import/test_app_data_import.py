@@ -779,6 +779,36 @@ class AppDataImportTests(unittest.TestCase):
                 {"1": ["CN=user18"], "2": ["A_APP_017_FW_RULEMGT"]},
             )
 
+    def test_extract_app_data_from_csv_handles_long_separator_free_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            long_app_id: str = f"APP{'7' * 20000}"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\n"
+                    f"Fallback App,{long_app_id},user18,false\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                level_two_responsible_pattern="A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT",
+            )
+
+            self.assertEqual(len(app_list), 1)
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertEqual(
+                owner_json.get("responsibles"),
+                {"1": ["CN=user18"], "2": [f"A_APP_{'7' * 20000}_FW_RULEMGT"]},
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

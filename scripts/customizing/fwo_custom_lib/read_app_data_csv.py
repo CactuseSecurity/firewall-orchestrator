@@ -191,10 +191,12 @@ def _split_app_id_external(app_id_external: str) -> tuple[str, str]:
     if "_" in app_id_external:
         app_prefix, app_id = app_id_external.split("_", 1)
         return app_prefix, app_id
-    match: re.Match[str] | None = re.match(r"^([A-Za-z]+)(.+)$", app_id_external)
-    if match is not None:
-        app_prefix = match.group(1)
-        app_id = match.group(2).lstrip("-_")
+    prefix_end: int = 0
+    while prefix_end < len(app_id_external) and app_id_external[prefix_end].isalpha():
+        prefix_end += 1
+    if 0 < prefix_end < len(app_id_external):
+        app_prefix = app_id_external[:prefix_end]
+        app_id = app_id_external[prefix_end:].lstrip("-_")
         if app_id != "":
             return app_prefix, app_id
     return app_id_external, app_id_external

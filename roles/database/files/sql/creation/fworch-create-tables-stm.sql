@@ -1,5 +1,5 @@
 
-Create table IF NOT EXISTS "stm_link_type"
+Create table "stm_link_type"
 (
 	"id" Integer primary key,
 	"name" Varchar NOT NULL

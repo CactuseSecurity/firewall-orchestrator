@@ -86,7 +86,9 @@
       path: "{{ database_install_dir }}/sql/creation/{{ item }}"
     loop:
       - fworch-create-tables-base.sql
+      - fworch-create-tables-rule-related.sql
       - fworch-create-tables-stm.sql
+      - fworch-create-tables-flats.sql
       - fworch-create-tables-changelog.sql
       - fworch-create-tables-owner.sql
       - fworch-create-tables-report.sql

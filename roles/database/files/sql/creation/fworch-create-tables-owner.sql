@@ -94,14 +94,6 @@ create table recertification
 	owner_recert_id bigint
 );
 
-Create Table IF NOT EXISTS "rule_enforced_on_gateway" 
-(
-	"rule_id" Integer NOT NULL,
-	"dev_id" Integer,  --  NULL if rule is available for all gateways of its management
-	"created" BIGINT,
-	"removed" BIGINT
-);
-
 create table owner_recertification
 (
 	id BIGSERIAL PRIMARY KEY,

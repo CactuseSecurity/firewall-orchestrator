@@ -785,8 +785,7 @@ class AppDataImportTests(unittest.TestCase):
             long_app_id: str = f"APP{'7' * 20000}"
             with open(owner_csv_path, "w", encoding="utf-8") as fh:
                 fh.write(
-                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\n"
-                    f"Fallback App,{long_app_id},user18,false\n"
+                    f"col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nFallback App,{long_app_id},user18,false\n"
                 )
 
             app_list: list[Owner] = []

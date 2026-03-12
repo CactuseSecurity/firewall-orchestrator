@@ -521,6 +521,7 @@ namespace FWO.Middleware.Server
                     responsible_type = new { _eq = responsible.ResponsibleTypeId }
                 });
                 await apiConnection.SendQueryAsync<object>(OwnerQueries.deleteSpecificOwnerResponsibles, new { ownerId, objects = deletionObjects });
+                await RemoveRolesFromResponsibles(responsiblesToDelete, rolesToSetByType);
             }
 
             if (responsiblesToInsert.Count == 0)
@@ -584,6 +585,19 @@ namespace FWO.Middleware.Server
 
         private async Task ApplyRolesToResponsibles(List<OwnerResponsible> responsibles, Dictionary<int, List<string>> rolesByType)
         {
+            await ForEachResponsibleRoleAssignment(responsibles, rolesByType, UpdateRoles);
+        }
+
+        private async Task RemoveRolesFromResponsibles(List<OwnerResponsible> responsibles, Dictionary<int, List<string>> rolesByType)
+        {
+            await ForEachResponsibleRoleAssignment(responsibles, rolesByType, RemoveRoles);
+        }
+
+        private async Task ForEachResponsibleRoleAssignment(
+            List<OwnerResponsible> responsibles,
+            Dictionary<int, List<string>> rolesByType,
+            Func<string, List<string>, Task> roleHandler)
+        {
             foreach (OwnerResponsible responsible in responsibles)
             {
                 if (!rolesByType.TryGetValue(responsible.ResponsibleTypeId, out List<string>? roles) || roles.Count == 0)
@@ -597,7 +611,7 @@ namespace FWO.Middleware.Server
                 {
                     continue;
                 }
-                await UpdateRoles(responsible.Dn, filteredRoles);
+                await roleHandler(responsible.Dn, filteredRoles);
             }
         }
 
@@ -811,11 +825,29 @@ namespace FWO.Middleware.Server
             List<string> roles = await internalLdap.GetRoles([dn]);
             foreach (var role in rolesToApply)
             {
-                if (!roles.Contains(role))
+                if (!roles.Contains(role, StringComparer.OrdinalIgnoreCase))
                 {
                     await internalLdap.AddUserToEntry(dn, GetRoleDn(role));
                 }
             }
+        }
+
+        private async Task RemoveRoles(string dn, List<string> rolesToRemove)
+        {
+            foreach (string role in rolesToRemove)
+            {
+                await RemoveRoleFromDn(dn, role);
+            }
+        }
+
+        /// <summary>
+        /// Removes a role assignment from a user DN.
+        /// </summary>
+        /// <param name="dn">User distinguished name.</param>
+        /// <param name="role">Role name.</param>
+        protected virtual async Task RemoveRoleFromDn(string dn, string role)
+        {
+            await internalLdap.RemoveUserFromEntry(dn, GetRoleDn(role));
         }
 
         private async Task ImportAppServers(ModellingImportAppData incomingApp, int applId)

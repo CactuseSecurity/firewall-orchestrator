@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
+using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
@@ -844,6 +845,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task UpdateOwnerResponsibles_RemovesMappedRoles_ForDeletedResponsibles()
+        {
+            AppDataImportResponsiblesApiConn apiConn = new();
+            RoleRemovalTrackingImport import = new(apiConn);
+            SetOwnerDataImportSyncUsers(import, true);
+            SetResponsibleTypes(import,
+            [
+                new OwnerResponsibleType { Id = 2, Name = "Supporting", SortOrder = 2, Active = true, AllowModelling = false, AllowRecertification = false }
+            ]);
+            SetRolesByType(import, new Dictionary<int, List<string>>
+            {
+                [2] = ["ReadOnlyRole"]
+            });
+            List<OwnerResponsible> existingResponsibles =
+            [
+                new() { Dn = "cn=delete,dc=example,dc=com", ResponsibleTypeId = 2 }
+            ];
+
+            await InvokeUpdateOwnerResponsibles(import, 123, [], existingResponsibles);
+
+            Assert.That(import.RemovedRoleAssignments, Is.EqualTo(new[]
+            {
+                ("cn=delete,dc=example,dc=com", "ReadOnlyRole")
+            }));
+        }
+
+        [Test]
         public async Task UpdateOwnerResponsibles_DoesNothing_WhenNoChanges()
         {
             AppDataImportResponsiblesApiConn apiConn = new();
@@ -1474,6 +1502,22 @@ namespace FWO.Test
             {
                 ResolvedGroupIdentifiers.Add(groupIdentifier);
                 return Task.FromResult(groupResolutions.TryGetValue(groupIdentifier, out string? resolvedDn) ? resolvedDn : null);
+            }
+        }
+
+        private sealed class RoleRemovalTrackingImport : AppDataImport
+        {
+            public List<(string dn, string role)> RemovedRoleAssignments { get; } = [];
+
+            public RoleRemovalTrackingImport(ApiConnection apiConnection)
+                : base(apiConnection, new GlobalConfig())
+            {
+            }
+
+            protected override Task RemoveRoleFromDn(string dn, string role)
+            {
+                RemovedRoleAssignments.Add((dn, role));
+                return Task.CompletedTask;
             }
         }
     }

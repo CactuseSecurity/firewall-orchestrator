@@ -83,7 +83,7 @@
     name: slapd
     state: stopped
     enabled: no
-  when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
+  when: ansible_os_family == 'Debian'
   ignore_errors: true
 
 - name: stop and disable {{ product_name }}-ui
@@ -111,11 +111,13 @@
     - name: disable apache sites
       command: a2dissite {{ product_name }}-ui
       ignore_errors: true
+      when: ansible_os_family == "Debian"
 
     - name: disable apache modules (due to a bug with php mod not properly getting purged)
       apache2_module: state=absent name={{ item }}
       loop: "{{ apache2_required_modules }}"
       ignore_errors: true
+      when: ansible_os_family == "Debian"
 
     - name: uninstall all packages for {{ product_name }}, keeping git and ansible
       package:
@@ -124,35 +126,35 @@
         purge: yes
       loop:
         - rsyslog
-        - apache2
+        - "{{ webserver_package_name }}"
         - gnupg2
-        - apt-transport-https
+        - "{{ 'apt-transport-https' if ansible_os_family == 'Debian' else 'dnf-plugins-core' }}"
         - software-properties-common
         - npm
         - python3-pip
         - python3-virtualenv
         - python3-psycopg2
-        - libpq-dev
+        - "{{ postgresql_c_client_library_header_files }}"
         - "{{ postgresql_package }}"
-        - libpq-dev
-        - postgresql-client
-        - ldap-utils
-        - libldap-common
-        - libldap
+        - "{{ postgresql_c_client_library_header_files }}"
+        - "{{ 'postgresql-client' if ansible_os_family == 'Debian' else 'postgresql' }}"
+        - "{{ 'ldap-utils' if ansible_os_family == 'Debian' else 'openldap-clients' }}"
+        - "{{ 'libldap-common' if ansible_os_family == 'Debian' else 'openldap-servers' }}"
+        - "{{ 'libldap' if ansible_os_family == 'Debian' else 'openldap' }}"
         - docker-ce
         - docker-ce-cli
         - containerd.io
-        - dotnet-sdk-3.1
+        - "dotnet-sdk-{{ dotnet_version }}"
         - make
         - "{{ postgresql_dev_package }}"
         - "{{ postgresql_test_package }}"
-        - apache2
+        - "{{ webserver_package_name }}"
       when: wipe_packages is defined and wipe_packages|bool
 
     - name: uninstall openldap
       package:
         state: absent
-        name: slapd
+        name: "{{ 'slapd' if ansible_os_family == 'Debian' else 'openldap-servers' }}"
         purge: yes
 
     - name: remove {{ product_name }} dirs and files
@@ -162,10 +164,10 @@
       loop:
         - "{{ fworch_home }}"
         - /etc/{{ product_name }}
-        - /etc/apache2/sites-available/{{ product_name }}-ui.conf
-        - /etc/apache2/sites-available/{{ product_name }}-api.conf
-        - /etc/apache2/sites-available/{{ product_name }}-mw.conf
-        - /etc/apache2/sites-available/{{ product_name }}-maintenance.conf
+        - "{{ http_conf_dir }}{{ product_name }}-ui.conf"
+        - "{{ http_conf_dir }}{{ product_name }}-api.conf"
+        - "{{ http_conf_dir }}{{ product_name }}-mw.conf"
+        - "{{ http_conf_dir }}{{ product_name }}-maintenance.conf"
         - /etc/apache2/sites-enabled/{{ product_name }}-ui.conf
         - /etc/apache2/sites-enabled/{{ product_name }}-api.conf
         - /etc/apache2/sites-enabled/{{ product_name }}-mw.conf

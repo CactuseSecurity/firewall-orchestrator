@@ -114,7 +114,10 @@
   command: "a2dissite {{ product_name }}-maintenance"
   ignore_errors: true
   become: true
-  when: "installation_mode == 'upgrade' and 'frontends' in group_names"
+  when:
+    - "installation_mode == 'upgrade'"
+    - "'frontends' in group_names"
+    - "ansible_os_family == 'Debian'"
 
 - name: restart apache without maintenance site
   service:

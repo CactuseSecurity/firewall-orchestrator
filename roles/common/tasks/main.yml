@@ -30,6 +30,13 @@
     - debug:
         msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
 
+    - name: fail if RedHat major version is unsupported
+      fail:
+        msg: "RHEL {{ ansible_distribution_major_version }} is unsupported. Supported RedHat versions are 8, 9 and 10."
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version | int not in [8, 9, 10]
+
     - name: fail if unknown installation_mode is set
       fail:
         msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
@@ -44,6 +51,10 @@
       fail:
         msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
       when: not already_installed and installation_mode == "upgrade"
+
+    - name: include RedHat preparation tasks
+      include_tasks: redhat_preps.yml
+      when: ansible_os_family == "RedHat"
 
       # when upgrading check if we are not attempting a downgrade
     - block:
@@ -135,10 +146,12 @@
             - name: disable apache2 maintenance web site
               command: "a2dissite {{ product_name }}-maintenance"
               ignore_errors: true
+              when: ansible_os_family == "Debian"
 
             - name: enable {{ product_name }} web site
               command: "a2ensite {{ product_name }}-ui"
               ignore_errors: true
+              when: ansible_os_family == "Debian"
 
             - name: restart apache without maintenance site
               service:
@@ -159,7 +172,7 @@
     - name: update operating system packages .rpm based (untested)
       yum:
         upgrade: dist
-      when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
+      when: ansible_os_family == "RedHat"
 
     - name: install packages rsync, acl (for non-root user in ansible)
       package:

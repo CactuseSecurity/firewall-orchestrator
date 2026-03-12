@@ -23,6 +23,7 @@
   - name: enable apache2 required modules
     apache2_module: state=present name={{ item }}
     loop: "{{ apache2_required_modules }}"
+    when: ansible_os_family == "Debian"
 
   - name: copy httpd maintenance config file to ui target
     template:
@@ -34,10 +35,12 @@
   - name: enable apache2 maintenance web site
     command: "a2ensite {{ product_name }}-maintenance"
     ignore_errors: true
+    when: ansible_os_family == "Debian"
 
   - name: disable {{ product_name }} web site
     command: "a2dissite {{ product_name }}-ui"
     ignore_errors: true
+    when: ansible_os_family == "Debian"
 
   - name: restart apache with maintenance site
     service:

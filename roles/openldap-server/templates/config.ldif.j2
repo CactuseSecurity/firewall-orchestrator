@@ -12,7 +12,7 @@ olcTLSCertificateKeyFile: {{ openldap_server_private_key }}
 dn: cn=module{0},cn=config
 objectClass: olcModuleList
 cn: module{0}
-olcModulePath: /usr/lib/ldap
+olcModulePath: {{ openldap_module_path }}
 olcModuleLoad: {0}back_mdb.la
 olcModuleLoad: {1}memberof.la
 olcModuleLoad: {2}refint.la
@@ -23,10 +23,10 @@ objectClass: olcSchemaConfig
 cn: schema
 
 # include the core schemata
-include: file:///etc/ldap/schema/core.ldif
-include: file:///etc/ldap/schema/cosine.ldif
-include: file:///etc/ldap/schema/inetorgperson.ldif
-include: file:///etc/ldap/schema/nis.ldif
+include: file://{{ openldap_schema_dir }}/core.ldif
+include: file://{{ openldap_schema_dir }}/cosine.ldif
+include: file://{{ openldap_schema_dir }}/inetorgperson.ldif
+include: file://{{ openldap_schema_dir }}/nis.ldif
 
 # configure config database
 dn: olcDatabase=config,cn=config

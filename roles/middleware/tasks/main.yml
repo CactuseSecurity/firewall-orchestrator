@@ -65,14 +65,7 @@
 
 - name: install python modules for ansible ldap module via package
   package:
-    name:
-      - python3-pip
-      - libsasl2-dev
-      - python3-dev
-      - libldap2-dev
-      - libssl-dev
-      - python3-setuptools
-      - python3-pyldap
+    name: "{{ middleware_ldap_packages }}"
   become: true
 
 - name: make sure {{ fworch_secrets_dir }} exists

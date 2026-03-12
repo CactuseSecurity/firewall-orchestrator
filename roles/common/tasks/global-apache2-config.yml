@@ -4,10 +4,7 @@
       package:
         name: "{{ item }}"
         state: present
-        update_cache: yes
-      loop:
-        - "{{ webserver_package_name }}"
-        - "{{ wsgi_package_name }}"
+      loop: "{{ apache_packages }}"
 
     - name: edit conf file for global security settings - ServerTokens
       lineinfile:
@@ -35,6 +32,7 @@
 
     - name: enable global security settings
       command: "a2enconf security"
+      when: ansible_os_family == "Debian"
 
     - name: restart apache
       service:

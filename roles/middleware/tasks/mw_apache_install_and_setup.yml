@@ -2,9 +2,7 @@
 - block:
     - name: Install webserver packages
       package: name={{ item }} state=present
-      with_items:
-        - "{{ webserver_package_name }}"
-        - "{{ wsgi_package_name }}"
+      with_items: "{{ apache_packages }}"
       environment: "{{ proxy_env }}"
 
     - name: copy mw httpd config file to mw target
@@ -19,12 +17,13 @@
         state: present 
         name: "{{ item }}"
       loop: "{{ apache2_required_modules }}"
+      when: ansible_os_family == "Debian"
 
     - name: create apache certificates
       include_role:
         name: openssl-cert
       vars:
-        openssl_cert_path: /etc/apache2/ssl
+        openssl_cert_path: "{{ apache_ssl_dir }}"
         openssl_user: root
         openssl_private_key: "{{ openssl_cert_path }}/server.key"
         openssl_csr: "{{ openssl_cert_path }}/server.csr"
@@ -38,7 +37,7 @@
 
     - name: copy cert to /etc/ssl/certs/ to make it acceptable
       copy:
-        src: "/etc/apache2/ssl/server.crt"
+        src: "{{ apache_ssl_dir }}/server.crt"
         dest: "/etc/ssl/certs/"
         remote_src: true
       when: installation_mode == "new"
@@ -46,12 +45,14 @@
     - name: enable {{ product_name }} middleware apache site
       command: "a2ensite {{ product_name }}-mw"
       register: testoutput
+      when: ansible_os_family == "Debian"
 
     - name: add mw port to apache
       lineinfile:
-        path: "/etc/apache2/ports.conf"
+        path: "{{ apache_ports_config_file }}"
+        regexp: "^Listen {{ middleware_web_listener_port }}$"
         line: "Listen {{ middleware_web_listener_port }}"
-        insertafter: "<IfModule ssl_module>"
+        create: true
 
     - name: restart apache
       service:

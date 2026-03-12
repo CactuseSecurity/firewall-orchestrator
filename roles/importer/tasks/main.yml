@@ -29,9 +29,9 @@
           - "--chown={{ fworch_user }}:{{ fworch_group }}"
       tags: ["test"]
 
-    - name: Install importer python3-venv package (for Ubuntu/Debian)
+    - name: Install importer venv package
       package:
-        name: python3-venv
+        name: "{{ python_venv_package_name }}"
         state: present
 
     - name: Create Python virtual environment

@@ -40,7 +40,7 @@
     owner: root
     group: root
     mode: "0775"
-  when: ansible_facts['distribution'] == "RedHat"
+  when: ansible_os_family == "RedHat"
   become: true
 
 # - name: create db log file for {{ product_name }} - owner postgres

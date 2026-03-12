@@ -31,9 +31,15 @@
       when: ansible_os_family == "Debian"
 
     - name: initdb as extra step for redhat
-      shell: "LC_ALL=C.UTF-8 /usr/bin/postgresql-setup --initdb"
+      command: /usr/bin/postgresql-setup --initdb
       become: true
-      when: ansible_os_family == "RedHat"
+      environment:
+        LC_ALL: C.UTF-8
+      args:
+        creates: /var/lib/pgsql/data/PG_VERSION
+      when:
+        - ansible_os_family == "RedHat"
+        - installation_mode == "new"
 
     - name: find out installed postgres version
       script: get_pg_version.sh

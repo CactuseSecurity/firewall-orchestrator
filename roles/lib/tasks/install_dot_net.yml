@@ -173,3 +173,48 @@
 
   become: true
   environment: "{{ proxy_env }}"
+  when: ansible_os_family == "Debian"
+
+- block:
+    - name: set RedHat distribution version
+      set_fact:
+        distribution_version: "{{ ansible_facts['distribution_major_version'] }}"
+
+    - name: set dotnet package name
+      set_fact:
+        dotnet_package_name: "dotnet-sdk-{{ dotnet_version }}"
+
+    - name: get package list from microsoft for RedHat
+      get_url:
+        url: "https://packages.microsoft.com/config/rhel/{{ distribution_version }}/{{ dotnet_rpm_name }}"
+        dest: "{{ lib_tmp_dir }}/{{ dotnet_rpm_name }}"
+        mode: "0644"
+      register: dotnet_ms_repo_download_redhat
+      until: dotnet_ms_repo_download_redhat is succeeded
+      retries: 3
+      delay: 5
+
+    - name: install ms package list for RedHat
+      yum:
+        name: "{{ lib_tmp_dir }}/{{ dotnet_rpm_name }}"
+        state: present
+
+    - name: remove package list file for RedHat
+      file:
+        dest: "{{ lib_tmp_dir }}/{{ dotnet_rpm_name }}"
+        state: absent
+
+    - name: Install dotnet-sdk-{{ dotnet_version }} on RedHat
+      package:
+        name: "{{ dotnet_package_name }}"
+        state: present
+      when: ansible_architecture == "x86_64"
+
+    - debug:
+        msg:
+          - "NOTE: you need to install dotnet yourself for architectures other than x86_64 before running FWO installer"
+      when: ansible_architecture != "x86_64"
+
+  become: true
+  environment: "{{ proxy_env }}"
+  when: ansible_os_family == "RedHat"

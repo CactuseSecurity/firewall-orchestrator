@@ -1,7 +1,7 @@
 # Installation instructions server
 
 - use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
-- recommended platforms are Ubuntu Server 22.04 LTS and Debian 12. See [system requirements](https://fwo.cactus.de/wp-content/uploads/2021/07/fwo-system-requirements-v5.pdf) for supported platforms
+- recommended platforms are Ubuntu Server 24.04 LTS, Debian 12, and RHEL 9. See [system requirements](https://fwo.cactus.de/wp-content/uploads/2021/07/fwo-system-requirements-v5.pdf) for supported platforms
 - we will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
 1) prepare your target system (make sure your user has full sudo permissions)

@@ -191,3 +191,12 @@ Create table "rule_to_zone"
 	"removed" BIGINT,
 	primary key (rule_id, zone_id, created)
 );
+
+create table rule_time
+(
+    rule_time_id BIGSERIAL PRIMARY KEY,
+    rule_id BIGINT,
+    time_obj_id BIGINT,
+    created BIGINT,
+    removed BIGINT
+);

@@ -120,7 +120,7 @@ namespace FWO.Api.Client.Queries
                 getRulesForRuleOwnerByOwnerToUpdate = GetQueryText("rule/getRulesForRuleOwnerByOwnerToUpdate.graphql");
                 getRuleDetailsById = GetQueryText("rule/getRuleDetailByID.graphql");
                 getTimeBasedRulesByOwner = GetQueryText("rule/getTimeBasedRulesByOwner.graphql");
-                getRuleIdsByRuleOwner =  GetQueryText("rule/getRuleIdsByRuleOwner.graphql");
+                getRuleIdsByRuleOwner = GetQueryText("rule/getRuleIdsByRuleOwner.graphql");
             }
             catch (Exception exception)
             {

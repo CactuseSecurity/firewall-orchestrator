@@ -36,7 +36,7 @@ namespace FWO.Middleware.Server
 
         /// <summary>
         /// Main user identifier from import.
-        /// Prefer a plain user id; LDAP DNs remain supported for compatibility.
+        /// The import source should provide its own user identifier, which is resolved by middleware.
         /// Legacy: is now imported as responsible with type MainUser.
         /// </summary>
         [JsonProperty("main_user"), JsonPropertyName("main_user")]
@@ -56,13 +56,13 @@ namespace FWO.Middleware.Server
 
         /// <summary>
         /// Owner responsibles grouped by responsible type key.
-        /// Values may be plain user ids or LDAP DNs.
+        /// Values may be user or group identifiers from the source system.
         /// Keys must be numeric.
         /// Incoming keys are sorted numerically and assigned to responsible types
         /// sorted by sort_order (lowest key -> first type by sort_order, next key -> next type).
         /// Example:
         /// "responsibles": {
-        ///   "1": ["cn=user1,dc=example,dc=com"],
+        ///   "1": ["user1"],
         ///   "2": []
         /// }
         /// </summary>

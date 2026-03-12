@@ -259,7 +259,7 @@ namespace FWO.Middleware.Server
                 return trimmedIdentifier;
             }
 
-            string? resolvedDn = await ResolveImportedUserIdentifierToDn(trimmedIdentifier);
+            string? resolvedDn = await ResolveImportedResponsibleIdentifierToDn(trimmedIdentifier);
             if (!string.IsNullOrWhiteSpace(resolvedDn))
             {
                 return resolvedDn.Trim();
@@ -275,10 +275,26 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Resolves a plain imported user identifier to an LDAP distinguished name.
+        /// Resolves a plain imported responsible identifier to a distinguished name.
+        /// User identifiers are tried first, then group identifiers.
+        /// </summary>
+        /// <param name="identifier">Imported user or group identifier from the source system.</param>
+        /// <returns>Resolved distinguished name if found; otherwise null.</returns>
+        protected virtual async Task<string?> ResolveImportedResponsibleIdentifierToDn(string identifier)
+        {
+            string? userDn = await ResolveImportedUserIdentifierToDn(identifier);
+            if (!string.IsNullOrWhiteSpace(userDn))
+            {
+                return userDn;
+            }
+            return await ResolveImportedGroupIdentifierToDn(identifier);
+        }
+
+        /// <summary>
+        /// Resolves a plain imported user identifier to a distinguished name.
         /// </summary>
         /// <param name="userIdentifier">Imported user identifier such as uid, cn, or login name.</param>
-        /// <returns>Resolved user DN if found in any connected LDAP; otherwise null.</returns>
+        /// <returns>Resolved user distinguished name if found in any connected LDAP; otherwise null.</returns>
         protected virtual async Task<string?> ResolveImportedUserIdentifierToDn(string userIdentifier)
         {
             UiUser userToResolve = new() { Name = userIdentifier };
@@ -293,6 +309,24 @@ namespace FWO.Middleware.Server
                 if (!string.IsNullOrWhiteSpace(ldapUser?.Dn))
                 {
                     return ldapUser.Dn;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Resolves a plain imported group identifier to a distinguished name.
+        /// </summary>
+        /// <param name="groupIdentifier">Imported group identifier from the source system.</param>
+        /// <returns>Resolved group distinguished name if found; otherwise null.</returns>
+        protected virtual async Task<string?> ResolveImportedGroupIdentifierToDn(string groupIdentifier)
+        {
+            foreach (Ldap ldap in connectedLdaps)
+            {
+                List<string> matches = await ldap.GetAllGroups(groupIdentifier);
+                if (matches.Count > 0)
+                {
+                    return matches[0];
                 }
             }
             return null;
@@ -643,71 +677,100 @@ namespace FWO.Middleware.Server
 
         private async Task AddResponsibleDnToUiUser(string responsibleDn, HashSet<string> handledUserDns, HashSet<string> handledGroupDnsByLdap)
         {
+            string normalizedResponsibleDn = responsibleDn.Trim();
+            if (await TryResolveAndUpsertImportedUiUser(normalizedResponsibleDn, handledUserDns))
+            {
+                return;
+            }
+
             foreach (Ldap ldap in connectedLdaps)
             {
-                bool isUserDn = !string.IsNullOrEmpty(ldap.UserSearchPath)
-                    && responsibleDn.Contains(ldap.UserSearchPath, StringComparison.OrdinalIgnoreCase);
-                if (isUserDn)
-                {
-                    await TryUpsertUiUser(responsibleDn, handledUserDns);
-                    continue;
-                }
-
-                string groupKey = $"{ldap.Id}|{responsibleDn}";
+                string groupKey = $"{ldap.Id}|{normalizedResponsibleDn}";
                 if (!handledGroupDnsByLdap.Add(groupKey))
                 {
                     continue;
                 }
-                foreach (string memberDn in await ldap.GetGroupMembers(responsibleDn))
+                foreach (string memberDn in await ResolveImportedGroupMembers(ldap, normalizedResponsibleDn))
                 {
                     if (!string.IsNullOrWhiteSpace(memberDn))
                     {
-                        await TryUpsertUiUser(memberDn, handledUserDns);
+                        await AddResponsibleDnToUiUser(memberDn.Trim(), handledUserDns, handledGroupDnsByLdap);
                     }
                 }
             }
         }
 
-        private async Task TryUpsertUiUser(string userDn, HashSet<string> handledUserDns)
+        private async Task<bool> TryResolveAndUpsertImportedUiUser(string responsibleDn, HashSet<string> handledUserDns)
         {
-            if (!handledUserDns.Add(userDn))
+            UiUser? uiUser = await ResolveImportedUiUser(responsibleDn);
+            if (uiUser == null || string.IsNullOrWhiteSpace(uiUser.Dn))
             {
-                return;
+                return false;
             }
-            UiUser? uiUser = await ConvertLdapToUiUser(userDn);
-            if (uiUser != null)
+            if (!handledUserDns.Add(uiUser.Dn))
             {
-                await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
+                return true;
             }
+            await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
+            if (uiUser.DbId <= 0)
+            {
+                Log.WriteWarning(LogMessageTitle, $"Resolved imported user \"{uiUser.Dn}\" could not be written to uiuser.");
+            }
+            return true;
         }
 
         private async Task<UiUser?> ConvertLdapToUiUser(string userDn)
         {
             // add the modelling user to local uiuser table for later ref to email address
             // find the user in all connected ldaps
+            bool inputLooksLikeDn = LooksLikeDistinguishedName(userDn);
             foreach (Ldap ldap in connectedLdaps)
             {
-                if (!string.IsNullOrEmpty(ldap.UserSearchPath) && userDn.ToLower().Contains(ldap.UserSearchPath!.ToLower()))
+                if (!inputLooksLikeDn
+                    && (string.IsNullOrEmpty(ldap.UserSearchPath)
+                        || !userDn.Contains(ldap.UserSearchPath, StringComparison.OrdinalIgnoreCase)))
                 {
-                    LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
+                    continue;
+                }
 
-                    if (ldapUser != null)
+                LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
+                if (ldapUser != null && !Ldap.IsGroupEntry(ldapUser))
+                {
+                    // add data from ldap entry to uiUser
+                    return new()
                     {
-                        // add data from ldap entry to uiUser
-                        return new()
-                        {
-                            LdapConnection = new UiLdapConnection() { Id = ldap.Id },
-                            Dn = ldapUser.Dn,
-                            Name = Ldap.GetName(ldapUser),
-                            Firstname = Ldap.GetFirstName(ldapUser),
-                            Lastname = Ldap.GetLastName(ldapUser),
-                            Email = Ldap.GetEmail(ldapUser),
-                            Tenant = await DeriveTenantFromLdap(ldap, ldapUser)
-                        };
-                    }
+                        LdapConnection = new UiLdapConnection() { Id = ldap.Id },
+                        Dn = ldapUser.Dn,
+                        Name = Ldap.GetName(ldapUser),
+                        Firstname = Ldap.GetFirstName(ldapUser),
+                        Lastname = Ldap.GetLastName(ldapUser),
+                        Email = Ldap.GetEmail(ldapUser),
+                        Tenant = await DeriveTenantFromLdap(ldap, ldapUser)
+                    };
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Resolves an imported responsible DN to a UI user if it references a user entry.
+        /// </summary>
+        /// <param name="responsibleDn">Imported responsible distinguished name.</param>
+        /// <returns>UI user when the DN is a user entry; otherwise null.</returns>
+        protected virtual async Task<UiUser?> ResolveImportedUiUser(string responsibleDn)
+        {
+            return await ConvertLdapToUiUser(responsibleDn);
+        }
+
+        /// <summary>
+        /// Resolves members of an imported group DN, including groups from non-standard LDAP paths.
+        /// </summary>
+        /// <param name="ldap">LDAP connection to query.</param>
+        /// <param name="groupDn">Imported group distinguished name.</param>
+        /// <returns>List of member user or group DNs.</returns>
+        protected virtual async Task<List<string>> ResolveImportedGroupMembers(Ldap ldap, string groupDn)
+        {
+            return await ldap.GetGroupMembers(groupDn);
         }
 
         private async Task<Tenant> DeriveTenantFromLdap(Ldap ldap, LdapEntry ldapUser)

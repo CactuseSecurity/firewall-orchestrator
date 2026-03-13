@@ -13,7 +13,7 @@
       register: lib_dir_check
 
     - name: backup lib dir
-      synchronize:
+      ansible.posix.synchronize:
         src: "{{ fworch_home }}/lib"
         dest: "{{ fworch_home }}/backup_lib"
       delegate_to: "{{ inventory_hostname }}"
@@ -37,7 +37,7 @@
       include_tasks: install_puppeteer.yml
 
     - name: copy {{ product_name }} dotnet lib files to lib target
-      synchronize:
+      ansible.posix.synchronize:
         src: "./"
         dest: "{{ lib_dir }}"
         rsync_opts:

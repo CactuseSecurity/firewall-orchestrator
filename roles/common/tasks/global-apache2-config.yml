@@ -6,6 +6,21 @@
         state: present
       loop: "{{ apache_packages }}"
 
+    - name: Install SELinux helpers for Apache port labeling on RedHat
+      package:
+        name: policycoreutils-python-utils
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Allow Apache to listen on FWO ports via SELinux on RedHat
+      community.general.seport:
+        ports: "{{ item }}"
+        proto: tcp
+        setype: http_port_t
+        state: present
+      loop: "{{ apache_selinux_ports | unique }}"
+      when: ansible_os_family == "RedHat"
+
     - name: edit conf file for global security settings - ServerTokens
       lineinfile:
         path: "{{ apache_global_settings_file }}"

@@ -143,20 +143,24 @@ wsgi_package_name: "{{ 'python3-mod_wsgi' if ansible_os_family == 'RedHat' else 
 apache_packages: "{{ [webserver_package_name, wsgi_package_name] + (['mod_ssl'] if ansible_os_family == 'RedHat' else []) }}"
 apache_ports_config_file: "{{ '/etc/httpd/conf.d/fworch-ports.conf' if ansible_os_family == 'RedHat' else '/etc/apache2/ports.conf' }}"
 apache_ssl_dir: "/etc/{{ webserver_package_name }}/ssl"
+apache_selinux_ports:
+  - "{{ api_web_port }}"
+  - "{{ middleware_web_listener_port }}"
 python_venv_package_name: "{{ 'python3-venv' if ansible_os_family == 'Debian' else 'python3' }}"
 middleware_ldap_packages: >-
   {{
     [
       'python3-pip',
-      'python3-dev',
       'python3-setuptools'
     ] + (
       [
+        'python3-dev',
         'libsasl2-dev',
         'libldap2-dev',
         'libssl-dev',
         'python3-pyldap'
       ] if ansible_os_family == 'Debian' else [
+        'python3-devel',
         'cyrus-sasl-devel',
         'openldap-devel',
         'openssl-devel',
@@ -164,6 +168,7 @@ middleware_ldap_packages: >-
       ]
     )
   }}
+middleware_crypto_packages: "{{ ['python3-cryptography', 'python3-pyOpenSSL'] if ansible_os_family == 'RedHat' else ['python3-cryptography', 'python3-openssl'] }}"
 
 ############# wkhtmltopdf #########################
 

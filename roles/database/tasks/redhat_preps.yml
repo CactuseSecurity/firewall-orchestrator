@@ -5,6 +5,12 @@
     dest: "/tmp/pgdg-redhat-repo-latest.noarch.rpm"
   environment: "{{ proxy_env }}"
 
+- name: import PostgreSQL yum GPG key
+  rpm_key:
+    state: present
+    key: "https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL"
+  environment: "{{ proxy_env }}"
+
 - name: install postgresql repo
   yum:
     name: /tmp/pgdg-redhat-repo-latest.noarch.rpm

@@ -194,6 +194,11 @@
       retries: 3
       delay: 5
 
+    - name: import Microsoft RPM GPG key for RedHat
+      rpm_key:
+        state: present
+        key: "https://packages.microsoft.com/keys/microsoft.asc"
+
     - name: install ms package list for RedHat
       yum:
         name: "{{ lib_tmp_dir }}/{{ dotnet_rpm_name }}"

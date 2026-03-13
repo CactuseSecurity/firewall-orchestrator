@@ -60,10 +60,7 @@
   failed_when: false
 
 - name: stop API container for upgrading
-  docker_container:
-    name: "{{ api_container_name }}"
-    state: stopped
-    container_default_behavior: no_defaults
+  command: "docker stop {{ api_container_name }}"
   become: true
   become_user: "{{ fworch_user }}"
   when: installation_mode == "upgrade" and not (api_use_existing_hasura_on_upgrade | default(false) | bool)
@@ -82,7 +79,7 @@
   register: api_dir_check
 
 - name: backup api dir
-  synchronize:
+  ansible.posix.synchronize:
     src: "{{ fworch_home }}/api"
     dest: "{{ fworch_home }}/backup_api"
   delegate_to: "{{ inventory_hostname }}"

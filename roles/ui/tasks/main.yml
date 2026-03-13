@@ -14,7 +14,7 @@
       register: ui_dir_check
 
     - name: backup ui dir
-      synchronize:
+      ansible.posix.synchronize:
         src: "{{ fworch_home }}/ui"
         dest: "{{ fworch_home }}/backup_ui"
       delegate_to: "{{ inventory_hostname }}"
@@ -28,7 +28,7 @@
         group: "{{ fworch_group }}"
 
     - name: copy ui files to frontend target
-      synchronize:
+      ansible.posix.synchronize:
         src: "FWO.UI"
         dest: "{{ ui_dir }}"
         rsync_opts:

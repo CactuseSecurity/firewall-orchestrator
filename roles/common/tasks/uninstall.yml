@@ -123,7 +123,7 @@
       package:
         state: absent
         name: "{{ item }}"
-        purge: yes
+        purge: "{{ ansible_os_family == 'Debian' | ternary(true, omit) }}"
       loop:
         - rsyslog
         - "{{ webserver_package_name }}"
@@ -151,11 +151,18 @@
         - "{{ webserver_package_name }}"
       when: wipe_packages is defined and wipe_packages|bool
 
-    - name: uninstall openldap
+    - name: uninstall openldap on Debian
       package:
         state: absent
-        name: "{{ 'slapd' if ansible_os_family == 'Debian' else 'openldap-servers' }}"
+        name: slapd
         purge: yes
+      when: ansible_os_family == 'Debian'
+
+    - name: uninstall openldap on RedHat
+      package:
+        state: absent
+        name: openldap-servers
+      when: ansible_os_family == 'RedHat'
 
     - name: remove {{ product_name }} dirs and files
       file:

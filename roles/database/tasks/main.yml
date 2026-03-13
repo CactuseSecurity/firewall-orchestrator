@@ -15,6 +15,7 @@
         state: present
       loop:
         - postgresql-server
+        - postgresql-contrib
         - python3-psycopg2
       when: ansible_os_family == "RedHat"
       # todo: check if we need and if true, how to install libpq-dev(el)
@@ -25,6 +26,7 @@
         state: present
       loop:
         - postgresql
+        - postgresql-contrib
         - python3-psycopg2
         - libpq-dev
         - postgresql-client
@@ -112,7 +114,7 @@
       when: postgres_config_updates.changed or postgres_hba_update.changed
 
     - name: copy database files to backend target
-      synchronize: 
+      ansible.posix.synchronize:
         src: "./"
         dest: "{{ database_install_dir }}"
         rsync_opts:

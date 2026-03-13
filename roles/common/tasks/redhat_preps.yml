@@ -4,9 +4,22 @@
     dest: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
   environment: "{{ proxy_env }}"
 
+- name: import EPEL GPG key
+  rpm_key:
+    state: present
+    key: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ redhat_major_version }}"
+  environment: "{{ proxy_env }}"
+
 - name: add EPEL repos
   yum:
     name: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
+    state: present
+
+- name: install subscription-manager
+  package:
+    name:
+      - subscription-manager
+      - dnf-plugins-core
     state: present
 
 - name: remove file EPEL repo
@@ -14,11 +27,52 @@
     name: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
     state: absent
 
-- name: enable repo via subscription manager
-  rhsm_repository:
-    name: "codeready-builder-for-rhel-{{ redhat_major_version }}-{{ arch }}-rpms"
+- name: list RedHat repos via subscription-manager
+  command: subscription-manager repos --list
+  register: redhat_subscription_repos
+  changed_when: false
+  failed_when: false
   environment: "{{ proxy_env }}"
   become: true
+
+- name: list RedHat repos via dnf
+  command: dnf repolist all
+  register: redhat_dnf_repos
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: detect CodeReady Builder repo ID
+  set_fact:
+    redhat_codeready_repo_id: >-
+      {{
+        (
+          redhat_subscription_repos.stdout
+          | regex_findall('(?m)^Repo ID:\\s+(codeready-builder-for-rhel-' ~ redhat_major_version ~ '-[^\\s]+-rpms)$')
+          | first
+        ) | default('')
+      }}
+
+- name: enable CodeReady Builder via subscription manager
+  rhsm_repository:
+    name: "{{ redhat_codeready_repo_id }}"
+  environment: "{{ proxy_env }}"
+  become: true
+  when: redhat_codeready_repo_id | length > 0
+
+- name: enable CRB via dnf config-manager fallback
+  command: dnf config-manager --set-enabled crb
+  become: true
+  when:
+    - redhat_codeready_repo_id | length == 0
+    - redhat_dnf_repos.stdout is search('(?m)^crb\\s')
+
+- name: show CodeReady Builder detection result
+  debug:
+    msg: "No CodeReady Builder repository ID detected via subscription-manager or dnf. Continuing without enabling it."
+  when:
+    - redhat_codeready_repo_id | length == 0
+    - redhat_dnf_repos.stdout is not search('(?m)^crb\\s')
 
 - name: setting default locale in /etc/profile
   blockinfile:

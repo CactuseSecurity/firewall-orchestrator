@@ -44,7 +44,8 @@ create table owner_responsible_type
 
 CREATE TABLE owner_lifecycle_state (
     id SERIAL PRIMARY KEY,
-    name Varchar NOT NULL
+    name Varchar NOT NULL,
+    active_state boolean NOT NULL default true
 );
 
 create table owner_network

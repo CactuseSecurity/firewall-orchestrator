@@ -13,7 +13,7 @@
 @if (InitComplete)
 {
     <div class="input-group">
-        <h3>@(userConfig.GetText("production_lifecycles"))</h3>
+        <h3>@(userConfig.GetText("owner_lifecycle_states"))</h3>
         <HelpLink Page="settings/ownerlifecycles"/>
     </div>
     <hr />
@@ -28,7 +28,7 @@
                 </div>
             </div>
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerLifeCycleState" Items="OwnerLifeCycleStates" PageSize="0" ColumnReorder="true">
-                <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("owner_lc_states"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("owner_lifecycle_states"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template Context="item">
                         <div class="btn-group">
                             @if (userConfig.AllowManualOwnerAdmin)
@@ -48,6 +48,7 @@
                 </Column>
                 <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
                 <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("active"))" Field="@(x => x.ActiveState)" Sortable="true" Filterable="true" />
             </Table>
         </div>
     </div>
@@ -63,17 +64,19 @@ else
         {
             <div class="col-sm-12">
                 <div class="form-group row me-2">
-                    <div class="col-sm-1">
-                        <div class="form-group row">
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(actLifeCycleState.Id)</label>
-                        </div>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-10 col-form-label col-form-label-sm">@(actLifeCycleState.Id)</label>
+                </div>
+                <div class="form-group row me-2 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5665"))">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control form-control-sm" @bind="actLifeCycleState.Name" />
                     </div>
-                    <div class="col-sm-11 me-auto">
-                        <div class="form-group row me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H5665"))">
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class="col-sm-10 me-auto" @bind="actLifeCycleState.Name" />
-                        </div>
+                </div>
+                <div class="form-group row me-2 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5669"))">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
+                    <div class="col-sm-10">
+                        <input class="form-check-input mt-2" type="checkbox" @bind="actLifeCycleState.ActiveState" />
                     </div>
                 </div>
             </div>
@@ -167,6 +170,7 @@ else
         var variables = new
         {
             name = actLifeCycleState.Name,
+            activeState = actLifeCycleState.ActiveState,
         };
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwnerLifeCycle, variables)).ReturnIds;
         if (returnIds == null)
@@ -189,6 +193,7 @@ else
         {
             id = actLifeCycleState.Id,
             name = actLifeCycleState.Name,
+            activeState = actLifeCycleState.ActiveState,
         };
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwnerLifeCycle, Variables)).UpdatedId;
         if (udId != actLifeCycleState.Id)

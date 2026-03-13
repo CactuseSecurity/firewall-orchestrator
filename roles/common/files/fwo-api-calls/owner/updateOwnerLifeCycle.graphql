@@ -1,11 +1,13 @@
 mutation updateOwnerLifeCycle(
   $id: Int!
   $name: String!
+  $activeState: Boolean!
   ) {
    update_owner_lifecycle_state_by_pk(
     pk_columns: { id: $id }
     _set: {
       name: $name
+      active_state: $activeState
   }) {
     updatedId: id
   }

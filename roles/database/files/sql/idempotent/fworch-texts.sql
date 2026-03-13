@@ -2532,10 +2532,8 @@ INSERT INTO txt VALUES ('assign_state_to',      'German',   'Status zuordnen zu:
 INSERT INTO txt VALUES ('assign_state_to',      'English',  'Assign state to: ');
 INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
-INSERT INTO txt VALUES ('manage_lifecycles',    'German',   'Produktions-Lifecycle-Status verwalten');
-INSERT INTO txt VALUES ('manage_lifecycles',    'English',  'Manage production lifecycles');
-INSERT INTO txt VALUES ('manage_owner_lc_state','German',   'Produktions-Lifecycle-Status &auml;ndern');
-INSERT INTO txt VALUES ('manage_owner_lc_state','English',  'Manage production lifecycle states');
+INSERT INTO txt VALUES ('production_lifecycles','German',   'Produktions-Lifecycle-Status');
+INSERT INTO txt VALUES ('production_lifecycles','English',  'Production Lifecycles');
 INSERT INTO txt VALUES ('add_owner_lc_state',   'German',   'Lifecycle Status hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_owner_lc_state',   'English',  'Add Owner Lifecycle State');
 INSERT INTO txt VALUES ('owner_lc_states',      'German',   'Produktions-Status');

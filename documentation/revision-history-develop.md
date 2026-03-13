@@ -368,3 +368,6 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.11 - 04.03.2026 DEVELOP
 - new config value for requesting only own objects
+
+# 9.0.12 - 12.03.2026 DEVELOP
+- new config values for rule expiry notification

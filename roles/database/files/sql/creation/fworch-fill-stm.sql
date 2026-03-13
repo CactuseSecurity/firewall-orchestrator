@@ -36,6 +36,8 @@ insert into config (config_key, config_value, config_user) VALUES ('recCheckEmai
 insert into config (config_key, config_value, config_user) VALUES ('recCheckParams', '{"check_interval":2,"check_offset":1,"check_weekday":null,"check_dayofmonth":null}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recRefreshStartup', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recRefreshDaily', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('ruleExpiryEmailBody', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('ruleExpiryInitiatorKeys', '{}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('messageViewTime', '7', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dailyCheckStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverStartAt', '00:00:00', 0);

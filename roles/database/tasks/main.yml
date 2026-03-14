@@ -5,43 +5,8 @@
         state: absent
         path: "{{ fworch_home }}/database"
 
-    - name: include redhat db install parts
-      include_tasks: redhat_preps.yml
-      when: installation_mode == "new" and ansible_os_family == "RedHat"
-
-    - name: install package postgresql packages for redhat
-      package:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - postgresql-server
-        - postgresql-contrib
-        - python3-psycopg2
-      when: ansible_os_family == "RedHat"
-      # todo: check if we need and if true, how to install libpq-dev(el)
-
-    - name: install package postgresql packages for debian n ubuntu
-      package:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - postgresql
-        - postgresql-contrib
-        - python3-psycopg2
-        - libpq-dev
-        - postgresql-client
-      when: ansible_os_family == "Debian"
-
-    - name: initdb as extra step for redhat
-      command: /usr/bin/postgresql-setup --initdb
-      become: true
-      environment:
-        LC_ALL: C.UTF-8
-      args:
-        creates: /var/lib/pgsql/data/PG_VERSION
-      when:
-        - ansible_os_family == "RedHat"
-        - installation_mode == "new"
+    - name: include os specific database preparation
+      include_tasks: "os/{{ ansible_os_family }}.yml"
 
     - name: find out installed postgres version
       script: get_pg_version.sh
@@ -55,17 +20,8 @@
       set_fact: pg_version={{ pg_version | int }}
       when: pg_version|int >= 10
 
-    - name: set postgresql config path for Debian based systems
-      set_fact:
-        postgresql_config_file: /etc/postgresql/{{ pg_version }}/main/postgresql.conf
-        postgresql_hba_file: /etc/postgresql/{{ pg_version }}/main/pg_hba.conf
-      when: ansible_os_family == 'Debian'
-
-    - name: set postgresql config path for RedHat
-      set_fact:
-        postgresql_config_file: /var/lib/pgsql/data/postgresql.conf
-        postgresql_hba_file: /var/lib/pgsql/data/pg_hba.conf
-      when: ansible_os_family == 'RedHat'
+    - name: include os specific postgresql path setup
+      include_tasks: "os/{{ ansible_os_family }}-paths.yml"
 
     - name: edit {{ postgresql_config_file }} settings
       lineinfile:

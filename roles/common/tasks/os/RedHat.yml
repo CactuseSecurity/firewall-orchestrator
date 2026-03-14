@@ -1,0 +1,13 @@
+- name: fail if RedHat major version is unsupported
+  fail:
+    msg: "RHEL {{ ansible_distribution_major_version }} is unsupported. Supported RedHat versions are 8, 9 and 10."
+  when: ansible_distribution_major_version | int not in [8, 9, 10]
+
+- name: include RedHat preparation tasks
+  include_tasks: redhat_preps.yml
+
+- name: update operating system packages .rpm based
+  dnf:
+    name: "*"
+    state: latest
+    update_only: true

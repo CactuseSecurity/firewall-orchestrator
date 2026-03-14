@@ -1,0 +1,49 @@
+- block:
+    - name: Install apache and ssl packages
+      package:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ apache_packages }}"
+
+    - name: Install SELinux helpers for Apache port labeling on RedHat
+      package:
+        name: policycoreutils-python-utils
+        state: present
+
+    - name: Allow Apache to listen on FWO ports via SELinux on RedHat
+      community.general.seport:
+        ports: "{{ item }}"
+        proto: tcp
+        setype: http_port_t
+        state: present
+      loop: "{{ apache_selinux_ports | unique }}"
+
+    - name: edit conf file for global security settings - ServerTokens
+      lineinfile:
+        path: "{{ apache_global_settings_file }}"
+        line: ServerTokens Prod
+        regexp: '^\s*ServerTokens'
+        create: true
+        mode: "0644"
+
+    - name: edit conf file for global security settings - ServerSignature
+      lineinfile:
+        path: "{{ apache_global_settings_file }}"
+        line: ServerSignature Off
+        regexp: '^\s*ServerSignature'
+        create: true
+        mode: "0644"
+
+    - name: edit conf file for global security settings - TraceEnable
+      lineinfile:
+        path: "{{ apache_global_settings_file }}"
+        line: TraceEnable Off
+        regexp: '^\s*TraceEnable'
+        create: true
+        mode: "0644"
+
+    - name: restart apache
+      service:
+        name: "{{ webserver_package_name }}"
+        state: restarted
+  become: true

@@ -1,0 +1,14 @@
+- block:
+
+    - name: install package postgresql packages for Debian based systems
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - postgresql
+        - postgresql-contrib
+        - python3-psycopg2
+        - libpq-dev
+        - postgresql-client
+
+  become: true

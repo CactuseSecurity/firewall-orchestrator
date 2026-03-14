@@ -206,7 +206,7 @@
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
       HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
       HASURA_GRAPHQL_ADMIN_SECRET: "{{ api_hasura_admin_secret }}"
-      HASURA_GRAPHQL_SERVER_HOST: "127.0.0.1"
+      HASURA_GRAPHQL_SERVER_HOST: "0.0.0.0"
       HASURA_GRAPHQL_SERVER_PORT: "8080"
       HASURA_GRAPHQL_LOG_LEVEL: "{{ api_log_level }}"
       HASURA_GRAPHQL_ENABLED_LOG_TYPES: "{{ api_HASURA_GRAPHQL_ENABLED_LOG_TYPES }}"
@@ -214,8 +214,7 @@
       HASURA_GRAPHQL_V1_BOOLEAN_NULL_COLLAPSE: "true"
       HASURA_GRAPHQL_CORS_DOMAIN: "*"
       HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS: "{{ api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS }}"
-      HASURA_GRAPHQL_JWT_SECRET: >-
-        {"type":{{ api_hasura_jwt_alg | to_json }},"key":{{ (api_hasura_jwt_secret | regex_replace('\n', '\\n')) | to_json }},"claims_namespace_path":"$"}
+      HASURA_GRAPHQL_JWT_SECRET: "{{ {'type': api_hasura_jwt_alg, 'key': api_hasura_jwt_secret, 'claims_namespace_path': '$'} | to_json }}"
       HTTP_PROXY: "{{ http_proxy }}"
       HTTPS_PROXY: "{{ https_proxy }}"
       http_proxy: "{{ http_proxy }}"
@@ -350,6 +349,27 @@
     - result.rc == 0
     - result.stdout == 'exited'
 
+- name: fetch hasura container logs after startup failure
+  command: "docker logs {{ api_container_name }}"
+  register: hasura_container_logs
+  changed_when: false
+  failed_when: false
+  become: true
+  become_user: "{{ fworch_user }}"
+  when:
+    - result.rc == 0
+    - result.stdout == 'exited'
+
+- name: fail with hasura container logs after startup failure
+  fail:
+    msg: >-
+      Hasura container exited during startup.
+      stdout={{ hasura_container_logs.stdout | default('') }}
+      stderr={{ hasura_container_logs.stderr | default('') }}
+  when:
+    - result.rc == 0
+    - result.stdout == 'exited'
+
 - name: copy hasura systemd service script
   template:
     src: "{{ api_service_name }}.service.j2"
@@ -367,12 +387,38 @@
   become: true
 
 - name: wait for hasura port to become available
-  wait_for:
-    port: "{{ api_port }}"
-    host: "{{ api_local_listening_ip_address }}"
-    connect_timeout: 1
-    delay: 10
-    timeout: 25
+  block:
+    - name: wait for hasura port
+      wait_for:
+        port: "{{ api_port }}"
+        host: "{{ api_local_listening_ip_address }}"
+        connect_timeout: 1
+        delay: 10
+        timeout: 25
+  rescue:
+    - name: fetch hasura container state after wait timeout
+      command: "docker inspect -f '{% raw %}{{.State.Status}}{% endraw %}' {{ api_container_name }}"
+      register: hasura_wait_timeout_state
+      changed_when: false
+      failed_when: false
+      become: true
+      become_user: "{{ fworch_user }}"
+
+    - name: fetch hasura container logs after wait timeout
+      command: "docker logs {{ api_container_name }}"
+      register: hasura_wait_timeout_logs
+      changed_when: false
+      failed_when: false
+      become: true
+      become_user: "{{ fworch_user }}"
+
+    - name: fail with hasura diagnostics after wait timeout
+      fail:
+        msg: >-
+          Timed out waiting for Hasura on {{ api_local_listening_ip_address }}:{{ api_port }}.
+          container_state={{ hasura_wait_timeout_state.stdout | default('unknown') }}
+          stdout={{ hasura_wait_timeout_logs.stdout | default('') }}
+          stderr={{ hasura_wait_timeout_logs.stderr | default('') }}
 
 - name: check for existing api dir from restore
   stat:

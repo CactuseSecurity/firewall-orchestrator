@@ -1,0 +1,45 @@
+- name: adjust Debian wsgi package name for newer releases
+  set_fact:
+    wsgi_package_name: "{{ wsgi_package_name }}-py3"
+  when: |
+    (ansible_facts['distribution_release']|lower == debian_testing_release_name)
+    or
+    (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version']|int is version('10', '>'))
+    or
+    (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version']|int is version('20', '>'))
+
+- name: update operating system package cache .deb based
+  apt:
+    update_cache: true
+
+- name: check for existing upgradable packages
+  command: apt list --upgradable
+  register: upgradable_packages
+
+- block:
+    - debug:
+        msg: "current number of upgradable packages: {{ upgradable_packages.stdout_lines|length-1 }}"
+
+    - block:
+        - name: disable apache2 maintenance web site
+          command: "a2dissite {{ product_name }}-maintenance"
+          ignore_errors: true
+
+        - name: enable {{ product_name }} web site
+          command: "a2ensite {{ product_name }}-ui"
+          ignore_errors: true
+
+        - name: restart apache without maintenance site
+          service:
+            name: "{{ webserver_package_name }}"
+            state: restarted
+      when: installation_mode == "upgrade"
+
+    - name: assert there are no upgradable packages. upgrades must be run interactively outside the FWORCH installer
+      fail:
+        msg:
+          - There are upgradable OS packages available, please run OS upgrade before running FWORCH installer.
+          - Use "-e force_install=true" to overwrite this check and install anyway at your own risk.
+  when: |
+    not force_install|bool and
+    upgradable_packages.stdout_lines|length > 1

@@ -1,0 +1,65 @@
+- block:
+    - name: Install webserver packages
+      package:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ apache_packages }}"
+
+    - name: copy mw httpd config file to mw target
+      template:
+        src: "httpd.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-mw.conf"
+        owner: root
+        group: root
+
+    - name: enable apache modules proxy proxy_http ssl
+      apache2_module:
+        state: present
+        name: "{{ item }}"
+      loop: "{{ apache2_required_modules }}"
+
+    - name: create apache certificates
+      include_role:
+        name: openssl-cert
+      vars:
+        openssl_cert_path: "{{ apache_ssl_dir }}"
+        openssl_user: root
+        openssl_private_key: "{{ openssl_cert_path }}/server.key"
+        openssl_csr: "{{ openssl_cert_path }}/server.csr"
+        openssl_country: DE
+        openssl_state: Hessen
+        openssl_location: Frankfurt
+        openssl_organization: Cactus eSecurity
+        openssl_email_address: "fworch@cactus.de"
+        openssl_cert: "{{ openssl_cert_path }}/server.crt"
+      when: installation_mode == "new"
+
+    - name: copy cert to /etc/ssl/certs/ to make it acceptable
+      copy:
+        src: "{{ apache_ssl_dir }}/server.crt"
+        dest: "/etc/ssl/certs/"
+        remote_src: true
+      when: installation_mode == "new"
+
+    - name: enable {{ product_name }} middleware apache site
+      command: "a2ensite {{ product_name }}-mw"
+
+    - name: remove legacy middleware listen lines on Debian
+      lineinfile:
+        path: "{{ apache_ports_config_file }}"
+        regexp: "^(?![[:space:]])Listen {{ middleware_web_listener_port }}$"
+        state: absent
+
+    - name: add mw port to apache on Debian
+      lineinfile:
+        path: "{{ apache_ports_config_file }}"
+        regexp: "^[[:space:]]*Listen {{ middleware_web_listener_port }}$"
+        line: "    Listen {{ middleware_web_listener_port }}"
+        insertafter: "<IfModule ssl_module>"
+
+    - name: restart apache
+      service:
+        name: "{{ webserver_package_name }}"
+        state: restarted
+  become: true
+  environment: "{{ proxy_env }}"

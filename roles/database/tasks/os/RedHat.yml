@@ -1,0 +1,24 @@
+- block:
+
+    - name: include redhat db install parts
+      include_tasks: ../redhat_preps.yml
+      when: installation_mode == "new"
+
+    - name: install package postgresql packages for RedHat
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - postgresql-server
+        - postgresql-contrib
+        - python3-psycopg2
+
+    - name: initdb as extra step for RedHat
+      command: /usr/bin/postgresql-setup --initdb
+      environment:
+        LC_ALL: C.UTF-8
+      args:
+        creates: /var/lib/pgsql/data/PG_VERSION
+      when: installation_mode == "new"
+
+  become: true

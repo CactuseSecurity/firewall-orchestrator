@@ -246,18 +246,20 @@
 
     private void ToggleSelection(ModellingConnection conn)
     {
-        if (SelectInterfaceView)
+        if (!SelectInterfaceView || !IsVisibleToOwner(conn))
         {
-            if (!SelectedConns.Remove(conn))
-            {
-                if (SelectionType != SelectionType.Multiple)
-                {
-                    SelectedConns = [];
-                }
-                SelectedConns.Add(conn);
-            }
-            SelectedConnsChanged.InvokeAsync(SelectedConns);
+            return;
         }
+
+        if (!SelectedConns.Remove(conn))
+        {
+            if (SelectionType != SelectionType.Multiple)
+            {
+                SelectedConns = [];
+            }
+            SelectedConns.Add(conn);
+        }
+        SelectedConnsChanged.InvokeAsync(SelectedConns);
     }
 
     private string getTableRowClass(ModellingConnection conn)
@@ -314,7 +316,7 @@
         {
             return false;
         }
-        return interf.PermittedOwners.Select(o => o.Id).Contains(Application.Id);
+        return interf.PermittedOwnerWrappers.Any(wrapper => wrapper.Owner != null && wrapper.Owner.Id == Application.Id);
     }
 
     private List<string> CollectModellingProps(ModellingConnection connection)

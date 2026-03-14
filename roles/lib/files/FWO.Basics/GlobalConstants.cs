@@ -71,6 +71,10 @@ namespace FWO.Basics
         public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
 
         public const int MaxUploadFileSize = 5 * 1024 * 1024; // 5 MB
+
+        // qad: these two strings should be replaced by customer specific setting values asap
+        public const string kField2 = "field-2";
+        public const string kDatumRegelpr = "Datum-Regelpruefung";
     }
 
     public struct PageName
@@ -165,6 +169,7 @@ namespace FWO.Basics
         public const string TASKCOMMENT = "@@TASKCOMMENT@@";
         public const string TASKS = "@@TASKS@@";
         public const string TICKET_SUBJECT = "@@TICKET_SUBJECT@@";
+        public const string TIME_INTERVAL = "@@TIME_INTERVAL@@";
         public const string TYPE = "@@TYPE@@";
         public const string USER_NAME = "@@USER_NAME@@";
     }

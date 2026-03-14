@@ -2,5 +2,6 @@ query getOwnerLifeCycleStates {
   owner_lifecycle_state (order_by: { name: asc }){
     id
     name
+    active_state
   }
 }

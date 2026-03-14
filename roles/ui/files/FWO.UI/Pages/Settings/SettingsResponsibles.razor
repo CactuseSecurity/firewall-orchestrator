@@ -46,19 +46,19 @@
             </Column>
             <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-            <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("active"))" Field="@(x => x.Active)" Sortable="true" Filterable="true">
-                <Template>
-                    @BoolIcon(context.Active)
+                <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("active"))" Field="@(x => x.Active)" Sortable="true" Filterable="true">
+                <Template Context="item">
+                    @(item.Active.ShowAsHtml(withColors: true))
                 </Template>
             </Column>
             <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("allow_modelling"))" Field="@(x => x.AllowModelling)" Sortable="true" Filterable="true">
-                <Template>
-                    @BoolIcon(context.AllowModelling)
+                <Template Context="item">
+                    @(item.AllowModelling.ShowAsHtml(withColors: true))
                 </Template>
             </Column>
             <Column TableItem="OwnerResponsibleType" Title="@(userConfig.GetText("allow_recertification"))" Field="@(x => x.AllowRecertification)" Sortable="true" Filterable="true">
-                <Template>
-                    @BoolIcon(context.AllowRecertification)
+                <Template Context="item">
+                    @(item.AllowRecertification.ShowAsHtml(withColors: true))
                 </Template>
             </Column>
         </Table>
@@ -347,10 +347,4 @@ else
         }
     }
 
-    private MarkupString BoolIcon(bool value)
-    {
-        string iconClass = value ? Icons.Check : Icons.Close;
-        string colorClass = value ? "text-success" : "text-danger";
-        return (MarkupString)$"<span class=\"{colorClass} {iconClass}\"></span>";
-    }
 }

@@ -300,13 +300,15 @@ class FwConfigImportRule:
             tos.append((dst_ref, user_ref))
         svcs = rule.rule_svc_refs.split(fwo_const.LIST_DELIMITER)
         if is_prev:
-            nwobj_resolveds = self.prev_group_flats_mapper.get_network_object_flats([ref[0] for ref in froms + tos])
-            svc_resolveds = self.prev_group_flats_mapper.get_service_object_flats(svcs)
-            user_resolveds = self.prev_group_flats_mapper.get_user_flats(users)
+            nwobj_resolveds = sorted(
+                self.prev_group_flats_mapper.get_network_object_flats([ref[0] for ref in froms + tos])
+            )
+            svc_resolveds = sorted(self.prev_group_flats_mapper.get_service_object_flats(svcs))
+            user_resolveds = sorted(self.prev_group_flats_mapper.get_user_flats(users))
         else:
-            nwobj_resolveds = self.group_flats_mapper.get_network_object_flats([ref[0] for ref in froms + tos])
-            svc_resolveds = self.group_flats_mapper.get_service_object_flats(svcs)
-            user_resolveds = self.group_flats_mapper.get_user_flats(users)
+            nwobj_resolveds = sorted(self.group_flats_mapper.get_network_object_flats([ref[0] for ref in froms + tos]))
+            svc_resolveds = sorted(self.group_flats_mapper.get_service_object_flats(svcs))
+            user_resolveds = sorted(self.group_flats_mapper.get_user_flats(users))
         from_zones = rule.rule_src_zone.split(fwo_const.LIST_DELIMITER) if rule.rule_src_zone else []
         to_zones = rule.rule_dst_zone.split(fwo_const.LIST_DELIMITER) if rule.rule_dst_zone else []
         times = rule.rule_time.split(fwo_const.LIST_DELIMITER) if rule.rule_time else []

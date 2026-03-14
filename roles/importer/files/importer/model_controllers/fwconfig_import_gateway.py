@@ -4,14 +4,13 @@ from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.gateway import Gateway
-from models.import_state import ImportState
 from models.rulebase_link import (  # TODO: check if we need RulebaseLinkUidBased as well
     RulebaseLink,
     RulebaseLinkUidBased,
 )
-from services.global_state import GlobalState
-from services.service_provider import ServiceProvider
-from services.uid2id_mapper import Uid2IdMapper
+from states.global_state import GlobalState
+from states.import_state import ImportState
+from states.management_state import ManagementState
 
 
 class FwConfigImportGateway:
@@ -19,68 +18,62 @@ class FwConfigImportGateway:
     Provides methods import gateway information into the FWO API.
     """
 
-    _global_state: GlobalState
-    _uid2id_mapper: Uid2IdMapper
-    _rb_link_controller: RulebaseLinkController
-
-    def __init__(self):
-        service_provider = ServiceProvider()
-        self._global_state = service_provider.get_global_state()
-        self._uid2id_mapper = service_provider.get_uid2id_mapper(self._global_state.import_state.state.import_id)
-        self._rb_link_controller = RulebaseLinkController()
-
-    def get_rb_link_controller(self) -> RulebaseLinkController:
-        return self._rb_link_controller
-
-    def get_global_state(self) -> GlobalState:
-        return self._global_state
-
-    def update_gateway_diffs(self, import_state: ImportState):
+    def update_gateway_diffs(
+        self,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
+        rb_link_controller: RulebaseLinkController,
+    ):
         # add gateway details:
-        self._rb_link_controller.get_rulebase_links(import_state)
+        rb_link_controller.get_rulebase_links(import_state)
         if (
-            self._global_state.import_state.state.is_clearing_import
-            and self._global_state.normalized_config is not None
-            and len(self._global_state.normalized_config.gateways) == 0
+            global_state.fwo_config_controller.fwo_config.clear
+            and management_state.normalized_config is not None
+            and len(management_state.normalized_config.gateways) == 0
         ):
-            removed_link_ids = [link.id for link in self._rb_link_controller.rb_links if link.id is not None]
-            self._rb_link_controller.remove_rulebase_links(
-                self._global_state.import_state.api_call,
-                self._global_state.import_state.state.stats,
-                self._global_state.import_state.state.import_id,
+            removed_link_ids = [link.id for link in rb_link_controller.rb_links if link.id is not None]
+            rb_link_controller.remove_rulebase_links(
+                import_state.fwo_api_call,
+                import_state.statistics_controller,
+                import_state.import_id,
                 removed_link_ids,
             )
             self.update_interface_diffs()
             self.update_routing_diffs()
             return
-        required_inserts, required_removes = self.update_rulebase_link_diffs()
-        self._rb_link_controller.insert_rulebase_links(
-            self._global_state.import_state.api_call, self._global_state.import_state.state.stats, required_inserts
+        required_inserts, required_removes = self.update_rulebase_link_diffs(
+            import_state, management_state, rb_link_controller
         )
-        self._rb_link_controller.remove_rulebase_links(
-            self._global_state.import_state.api_call,
-            self._global_state.import_state.state.stats,
-            self._global_state.import_state.state.import_id,
+        rb_link_controller.insert_rulebase_links(
+            import_state.fwo_api_call, import_state.statistics_controller, required_inserts
+        )
+        rb_link_controller.remove_rulebase_links(
+            import_state.fwo_api_call,
+            import_state.statistics_controller,
+            import_state.import_id,
             required_removes,
         )
         self.update_interface_diffs()
         self.update_routing_diffs()
 
-    def update_rulebase_link_diffs(self) -> tuple[list[dict[str, Any]], list[int]]:
-        if self._global_state.normalized_config is None:
+    def update_rulebase_link_diffs(
+        self, import_state: ImportState, management_state: ManagementState, rb_link_controller: RulebaseLinkController
+    ) -> tuple[list[dict[str, Any]], list[int]]:
+        if management_state.normalized_config is None:
             raise FwoImporterError("normalized_config is None in update_rulebase_link_diffs")
-        if self._global_state.previous_config is None:
+        if management_state.previous_config is None:
             raise FwoImporterError("previous_config is None in update_rulebase_link_diffs")
 
         required_inserts: list[dict[str, Any]] = []
         required_removes: list[int] = []
 
-        for gw in self._global_state.normalized_config.gateways:
+        for gw in management_state.normalized_config.gateways:
             previous_config_gw = next(
-                (p_gw for p_gw in self._global_state.previous_config.gateways if gw.Uid == p_gw.Uid), None
+                (p_gw for p_gw in management_state.previous_config.gateways if gw.Uid == p_gw.Uid), None
             )
 
-            if gw in self._global_state.previous_config.gateways:
+            if gw in management_state.previous_config.gateways:
                 # this check finds all changes in gateway (including rulebase link changes)
                 # gateway found with exactly same properties in previous config
                 continue
@@ -88,12 +81,14 @@ class FwConfigImportGateway:
             FWOLogger.debug(f"gateway {gw!s} NOT found in previous config", 9)
             if gw.Uid is None:
                 raise FwoImporterError("found gateway with Uid = None")
-            gw_id = self._global_state.import_state.state.lookup_gateway_id(gw.Uid)
+            gw_id = import_state.lookup_gateway_id(gw.Uid, management_state.mgm_id)
 
-            self._create_insert_args(gw, previous_config_gw, gw_id, required_inserts)
+            self._create_insert_args(gw, previous_config_gw, gw_id, required_inserts, import_state, management_state)
 
             if previous_config_gw:
-                self._create_remove_args(gw, previous_config_gw, gw_id, required_removes)
+                self._create_remove_args(
+                    gw, previous_config_gw, gw_id, required_removes, rb_link_controller, import_state, management_state
+                )
 
         return required_inserts, required_removes
 
@@ -103,25 +98,48 @@ class FwConfigImportGateway:
         previous_gateway: Gateway | None,
         gw_id: int | None,
         arg_list: list[dict[str, Any]],
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         rulebase_links = []
 
         for link in normalized_gateway.RulebaseLinks:
             if previous_gateway:
                 rulebase_links = previous_gateway.RulebaseLinks
-            self._try_add_single_link(arg_list, link, rulebase_links, gw_id, is_insert=True)
+            self._try_add_single_link(
+                arg_list,
+                link,
+                rulebase_links,
+                gw_id,
+                is_insert=True,
+                import_state=import_state,
+                management_state=management_state,
+            )
 
     def _create_remove_args(
-        self, normalized_gateway: Gateway, previous_gateway: Gateway, gw_id: int | None, arg_list: list[int]
+        self,
+        normalized_gateway: Gateway,
+        previous_gateway: Gateway,
+        gw_id: int | None,
+        arg_list: list[int],
+        rb_link_controller: RulebaseLinkController,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         removed_rulebase_links: list[dict[str, Any]] = []
 
         for link in previous_gateway.RulebaseLinks:
             self._try_add_single_link(
-                removed_rulebase_links, link, normalized_gateway.RulebaseLinks, gw_id, is_insert=False
+                removed_rulebase_links,
+                link,
+                normalized_gateway.RulebaseLinks,
+                gw_id,
+                is_insert=False,
+                management_state=management_state,
+                import_state=import_state,
             )
         for link in removed_rulebase_links:
-            link_in_db = self._try_get_id_based_link(link, self._rb_link_controller.rb_links)
+            link_in_db = self._try_get_id_based_link(link, rb_link_controller.rb_links)
             if link_in_db and link_in_db.id is not None:
                 arg_list.append(link_in_db.id)
 
@@ -132,11 +150,13 @@ class FwConfigImportGateway:
         link_list: list[RulebaseLinkUidBased],
         gw_id: int | None,
         is_insert: bool,
+        management_state: ManagementState,
+        import_state: ImportState,
     ):
         # For updates, if rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
         # For inserts, we need the id of the new version
         from_rule_id = (
-            self._uid2id_mapper.get_rule_id(link.from_rule_uid, before_update=not is_insert)
+            management_state.uid2id_mapper.get_rule_id(link.from_rule_uid, before_update=not is_insert)
             if link.from_rule_uid
             else None
         )
@@ -144,9 +164,13 @@ class FwConfigImportGateway:
         if link.from_rulebase_uid is None or link.from_rulebase_uid == "":
             from_rulebase_id = None
         else:
-            from_rulebase_id = self._uid2id_mapper.get_rulebase_id(link.from_rulebase_uid, before_update=not is_insert)
-        to_rulebase_id = self._uid2id_mapper.get_rulebase_id(link.to_rulebase_uid, before_update=not is_insert)
-        link_type_id = self._global_state.import_state.state.lookup_link_type(link.link_type)
+            from_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(
+                link.from_rulebase_uid, before_update=not is_insert
+            )
+        to_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(
+            link.to_rulebase_uid, before_update=not is_insert
+        )
+        link_type_id = import_state.lookup_link_type(link.link_type)
         if type(link_type_id) is not int:
             FWOLogger.warning(f"did not find a link_type_id for link_type {link.link_type}")
 
@@ -164,7 +188,7 @@ class FwConfigImportGateway:
                     is_global=link.is_global,
                     is_section=link.is_section,
                     from_rulebase_id=from_rulebase_id,
-                    created=self._global_state.import_state.state.import_id,
+                    created=import_state.import_id,
                 ).to_dict()
             )
 

@@ -16,6 +16,7 @@ from model_controllers.management_controller import (
     ManagementController,
 )
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
+from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManager
 from states.global_state import GlobalState
@@ -28,6 +29,7 @@ class FwConfigImport:
     _fw_config_import_rule: FwConfigImportRule
     _fw_config_import_object: FwConfigImportObject
     _fw_config_import_gateway: FwConfigImportGateway
+    _rb_link_controller: RulebaseLinkController
 
     @property
     def fwconfig_import_object(self):
@@ -37,6 +39,7 @@ class FwConfigImport:
         self._fw_config_import_object = FwConfigImportObject()
         self._fw_config_import_rule = FwConfigImportRule()
         self._fw_config_import_gateway = FwConfigImportGateway()
+        self._rb_link_controller = RulebaseLinkController()
 
     def import_single_config(
         self,
@@ -163,7 +166,9 @@ class FwConfigImport:
         if fwo_globals.shutdown_requested:
             raise ImportInterruptionError("Shutdown requested during updateRulebaseDiffs.")
 
-        self._fw_config_import_gateway.update_gateway_diffs(import_state)
+        self._fw_config_import_gateway.update_gateway_diffs(
+            global_state, import_state, management_state, self._rb_link_controller
+        )
 
         # get new rules details from API (for obj refs as well as enforcing gateways)
         new_rules = self._fw_config_import_rule.get_rules_by_id_with_ref_uids(new_rule_ids)

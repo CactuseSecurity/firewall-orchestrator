@@ -48,7 +48,11 @@
                 </Column>
                 <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
                 <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-                <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("active"))" Field="@(x => x.ActiveState)" Sortable="true" Filterable="true" />
+                <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("active"))" Field="@(x => x.ActiveState)" Sortable="true" Filterable="true">
+                    <Template Context="item">
+                        @(item.ActiveState.ShowAsHtml(withColors: true))
+                    </Template>
+                </Column>
             </Table>
         </div>
     </div>

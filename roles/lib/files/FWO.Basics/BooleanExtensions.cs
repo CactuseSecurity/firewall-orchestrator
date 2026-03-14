@@ -6,10 +6,16 @@ namespace FWO.Basics
     {
         public static MarkupString ShowAsHtml(this bool boolVal)
         {
+            return ShowAsHtml(boolVal, withColors: false);
+        }
+
+        public static MarkupString ShowAsHtml(this bool boolVal, bool withColors)
+        {
             // shows check (true) or x (false) in UI
+            string colorClass = withColors ? (boolVal ? "text-success" : "text-danger") : "";
             var htmlString = boolVal
-            ? $"<span class=\"{@Icons.Check}\"></span>"
-            : $"<span class=\"{@Icons.Close}\"></span>";
+            ? $"<span class=\"{colorClass} {@Icons.Check}\"></span>"
+            : $"<span class=\"{colorClass} {@Icons.Close}\"></span>";
             return new MarkupString(htmlString);
         }
     }

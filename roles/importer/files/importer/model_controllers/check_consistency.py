@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 import fwo_const
-from fwo_exceptions import FwoImporterErrorInconsistenciesError
+from fwo_exceptions import FwoImporterError, FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import (
     FwConfigManagerListController,
@@ -55,7 +55,7 @@ class FwConfigImportCheckConsistency:
             self.check_config_consistency(mgr.configs[0], global_config, fix_config=False)
 
     def check_config_consistency(
-        self, config: FwConfigNormalized, global_config: FwConfigNormalized | None, fix_config: bool
+        self, config: FwConfigNormalized | None, global_config: FwConfigNormalized | None, fix_config: bool
     ):
         """
         Check the consistency of a given normalized config and corresponding global normalized config.
@@ -81,6 +81,9 @@ class FwConfigImportCheckConsistency:
             FwoImporterErrorInconsistenciesError: If inconsistencies are found in the configurations
 
         """
+        if config is None:
+            raise FwoImporterError("cannot check consistency: config is None")
+
         self.check_color_consistency(config, fix=True)
         self.check_network_object_consistency(config, global_config, fix_unresolvable_refs=fix_config)
         self.check_service_object_consistency(config, global_config, fix_inconsistencies=fix_config)

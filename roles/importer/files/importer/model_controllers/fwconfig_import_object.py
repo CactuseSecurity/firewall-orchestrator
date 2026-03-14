@@ -27,15 +27,20 @@ class Type(Enum):
 class FwConfigImportObject:
     def update_object_diffs(
         self,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
-        prev_config: FwConfigNormalized,
-        prev_global_config: FwConfigNormalized,
         single_manager: FwConfigManager,
     ):
         change_logger = ChangeLogger()
+        prev_config = management_state.previous_config
+        prev_global_config = import_state.previous_super_config
         if management_state.normalized_config is None:
             raise FwoImporterError("no normalized config available in FwConfigImportObject.update_object_diffs")
+        if prev_config is None or prev_global_config is None:
+            raise FwoImporterError(
+                "previous configs needed for diff calculation in FwConfigImportObject.update_object_diffs"
+            )
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
         deleted_nw_obj_uids: list[str] = list(
@@ -203,7 +208,9 @@ class FwConfigImportObject:
 
         # Write change logs to tables.
 
-        self.add_changelog_objs(import_state, new_nw_obj_ids, new_svc_obj_ids, removed_nw_obj_ids, removed_svc_obj_ids)
+        self.add_changelog_objs(
+            global_state, import_state, new_nw_obj_ids, new_svc_obj_ids, removed_nw_obj_ids, removed_svc_obj_ids
+        )
 
         # note changes:
         import_state.statistics_controller.increment_network_object_add_count(len(new_nw_obj_ids))
@@ -857,6 +864,7 @@ class FwConfigImportObject:
 
     def add_changelog_objs(
         self,
+        global_state: GlobalState,
         import_state: ImportState,
         nwobj_ids_added: list[dict[str, int]],
         svc_obj_ids_added: list[dict[str, int]],
@@ -864,7 +872,7 @@ class FwConfigImportObject:
         svc_obj_ids_removed: list[dict[str, int]],
     ):
         nwobjs_changed, svcobjs_changed = self.prepare_changelog_objects(
-            import_state, nwobj_ids_added, svc_obj_ids_added, nw_obj_ids_removed, svc_obj_ids_removed
+            global_state, import_state, nwobj_ids_added, svc_obj_ids_added, nw_obj_ids_removed, svc_obj_ids_removed
         )
         changelog_mutation = """
             mutation updateObjChangelogs($nwObjChanges: [changelog_object_insert_input!]!, $svcObjChanges: [changelog_service_insert_input!]!) {

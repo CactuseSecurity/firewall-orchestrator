@@ -60,9 +60,11 @@ class FwConfigImportRule:
         self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_details.state.import_id)
         self.rule_order_service = service_provider.get_rule_order_service(self.import_details.state.import_id)
 
-    def update_rulebase_diffs(self, prev_config: FwConfigNormalized) -> list[int]:
+    def update_rulebase_diffs(self, prev_config: FwConfigNormalized | None) -> list[int]:
         if self.normalized_config is None:
             raise FwoImporterError("cannot update rulebase diffs: normalized_config is None")
+        if prev_config is None:
+            raise FwoImporterError("cannot update rulebase diffs: prev_config is None")
 
         # calculate rule diffs
         changed_rule_uids: dict[str, list[str]] = {}  # rulebase_id -> list of rule_uids

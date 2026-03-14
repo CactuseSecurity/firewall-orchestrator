@@ -39,7 +39,11 @@ class FwConfigImport:
         self._fw_config_import_gateway = FwConfigImportGateway()
 
     def import_single_config(
-        self, import_state: ImportState, management_state: ManagementState, single_manager: FwConfigManager
+        self,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
+        single_manager: FwConfigManager,
     ):
         previous_config = self.get_latest_config_from_db(import_state=import_state)
         management_state.previous_config = previous_config
@@ -49,7 +53,7 @@ class FwConfigImport:
         self.check_and_fix_db_consistency(import_state, management_state)
 
         # calculate differences and write them to the database via API
-        self.update_diffs(import_state, management_state, single_manager)
+        self.update_diffs(global_state, import_state, management_state, single_manager)
 
     def import_management_set(
         self, global_state: GlobalState, import_state: ImportState, mgr_set: FwConfigManagerListController
@@ -66,7 +70,7 @@ class FwConfigImport:
 
     def import_config(
         self,
-        _global_state: GlobalState,
+        global_state: GlobalState,
         import_state: ImportState,
         manager: FwConfigManager,
         config: FwConfigNormalized,
@@ -83,7 +87,7 @@ class FwConfigImport:
         # TODO: clean separation between values relevant for all managers and those only relevant for specific managers - see #3646
         import_state.mgm_details.current_mgm_id = mgm_id
         import_state.mgm_details.current_mgm_is_super_manager = manager.is_super_manager
-        self.import_single_config(import_state, management_state, manager)
+        self.import_single_config(global_state, import_state, management_state, manager)
         self.consistency_check_config_against_db(import_state=import_state, management_state=management_state)
         self.write_latest_config(import_state=import_state, management_state=management_state)
 
@@ -139,12 +143,16 @@ class FwConfigImport:
 
     def update_diffs(
         self,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
         single_manager: FwConfigManager,
     ):
         self._fw_config_import_object.update_object_diffs(
-            management_state.previous_config, import_state.previous_super_config, single_manager
+            global_state,
+            import_state,
+            management_state,
+            single_manager,
         )
 
         if fwo_globals.shutdown_requested:
@@ -155,7 +163,7 @@ class FwConfigImport:
         if fwo_globals.shutdown_requested:
             raise ImportInterruptionError("Shutdown requested during updateRulebaseDiffs.")
 
-        self._fw_config_import_gateway.update_gateway_diffs()
+        self._fw_config_import_gateway.update_gateway_diffs(import_state)
 
         # get new rules details from API (for obj refs as well as enforcing gateways)
         new_rules = self._fw_config_import_rule.get_rules_by_id_with_ref_uids(new_rule_ids)

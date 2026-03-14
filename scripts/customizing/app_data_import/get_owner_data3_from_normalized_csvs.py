@@ -54,8 +54,6 @@ from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"
-app_data_repo_target_dir: str = base_dir_etc + "cmdb-repo"
-recert_repo_target_dir: str = base_dir_etc + "recert-repo"
 default_config_file_name: str = base_dir_etc + "secrets/customizingConfig.json"
 default_import_source_string: str = "tufinRlm"
 
@@ -205,6 +203,11 @@ if __name__ == "__main__":
         help="if set, will try to read csv files from given folder instead of git repo",
     )
     parser.add_argument(
+        "--local_repo_base_dir",
+        default=base_dir_etc,
+        help="base directory for local git checkouts, default=/usr/local/fworch/etc/",
+    )
+    parser.add_argument(
         "-l",
         "--limit",
         metavar="api_limit",
@@ -237,6 +240,11 @@ if __name__ == "__main__":
         "--lifecycleState",
         default="Lifecycle State",
         help='owner CSV column header for lifecycle state import, default="Lifecycle State"',
+    )
+    parser.add_argument(
+        "--fallback_owner_lifecycle",
+        default="unknown",
+        help='default owner lifecycle state used when no --lifecycleState column is configured, default="unknown"',
     )
     parser.add_argument(
         "--compositeIdFields",
@@ -272,6 +280,11 @@ if __name__ == "__main__":
         nargs="+",
         default=None,
         help='grouped mapping LEVEL:HEADER [HEADER ...], e.g. 1:"UserId" "UserID Vertreter" 2:"UserIDs Mitwirkende"',
+    )
+    parser.add_argument(
+        "--levelTwoResponsiblePattern",
+        default=None,
+        help='fallback pattern for owner_responsibles when --responsiblesColumns is omitted, e.g. "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"',
     )
 
     args: argparse.Namespace = parser.parse_args()
@@ -309,6 +322,8 @@ if __name__ == "__main__":
     included_owners_column: str | None = args.filter_column.strip() if args.filter_column else None
     include_values: list[str] = args.include_values
     lifecycle_state_column: str = args.lifecycleState
+    fallback_owner_lifecycle: str = args.fallback_owner_lifecycle
+    local_repo_base_dir: str = args.local_repo_base_dir
     composite_id_fields: tuple[str, ...] | None = tuple(args.compositeIdFields) if args.compositeIdFields else None
     composite_id_fields_delimiter_str: str = args.compositeIdFieldsDelimiterStr
     composite_id_fields_max_length: list[int] | None = args.compositeIdFieldsMaxLength
@@ -321,6 +336,7 @@ if __name__ == "__main__":
     responsibles_columns_headers: dict[str, tuple[str, ...]] | None = (
         parse_responsibles_columns(args.responsiblesColumns) if args.responsiblesColumns else None
     )
+    level_two_responsible_pattern: str | None = args.levelTwoResponsiblePattern
     owner_header_patterns = apply_owner_column_overrides(owner_header_patterns, lifecycle_state_column)
 
     if args.debug:
@@ -330,6 +346,10 @@ if __name__ == "__main__":
 
     #############################################
     # 1. get CSV files from github repo
+    local_repo_base_path: Path = Path(local_repo_base_dir)
+    local_repo_base_path.mkdir(parents=True, exist_ok=True)
+    app_data_repo_target_dir: str = str(local_repo_base_path / "cmdb-repo")
+    recert_repo_target_dir: str = str(local_repo_base_path / "recert-repo")
 
     import_from_folder: str | None = args.import_from_folder
     if import_from_folder:
@@ -384,12 +404,14 @@ if __name__ == "__main__":
                 included_owners_column=included_owners_column,
                 include_values=include_values,
                 csv_separator=csv_separator,
+                fallback_owner_lifecycle=fallback_owner_lifecycle,
                 composite_id_fields=composite_id_fields,
                 composite_id_fields_delimiter_str=composite_id_fields_delimiter_str,
                 composite_id_fields_max_length=composite_id_fields_max_length,
                 criticality_column_header=criticality_column_header,
                 criticality_recert_period_mapping=criticality_recert_period_mapping,
                 responsibles_columns_headers=responsibles_columns_headers,
+                level_two_responsible_pattern=level_two_responsible_pattern,
             )
 
     app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)

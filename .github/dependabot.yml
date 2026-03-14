@@ -13,3 +13,5 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "daily"
+    registries:
+      - private-github

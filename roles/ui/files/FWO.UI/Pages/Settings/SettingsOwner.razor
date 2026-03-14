@@ -30,11 +30,7 @@
         {
             <button type="button" class="btn btn-sm btn-success" @onclick="AddOwner">@(DisplayService.DisplayButton(userConfig, "add_owner", Icons.Add))</button>
         }
-        @if (userConfig.AllowManualOwnerAdmin)
-        {
-            <button type="button" class="btn btn-sm btn-warning" @onclick="ManageLifeCycles">@(DisplayService.DisplayButton(userConfig, "manage_lifecycles", Icons.Edit, "", Icons.Owner))</button>
-        }
-        <button type="button" class="btn btn-sm btn-primary" @onclick="OpenOwnerMapping">
+        <button type="button" class="btn btn-sm btn-warning" @onclick="OpenOwnerMapping">
             @(DisplayService.DisplayButton(userConfig, "owner_mapping", Icons.Edit, "", Icons.Matrix))
         </button>
         @if (ShowCleanupButton)
@@ -99,7 +95,6 @@
     <OwnerMapping @bind-Display="OwnerMappingMode" />
     <ConfirmDelete @bind-Display="DeleteOwnerMode" PerformAction="DeleteOwner" Title="@userConfig.GetText("delete_owner")" DeleteMessage="@(userConfig.GetText("U5217") + ActOwner.Name + "?")"/>
     <ConfirmDelete @bind-Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@CleanupMessage"/>
-    <ManageOwnerLifeCycle @bind-Display="ManageLifeCyclesMode" OwnerLifeCycleStates="OwnerLifeCycleStates" Readonly="Readonly" />
 }
 else
 {
@@ -126,8 +121,6 @@ else
     private bool DeleteOwnerMode = false;
     private bool OwnerMappingMode = false;
     private bool InitComplete = false;
-    private bool ManageLifeCyclesMode = false;
-
     protected override async Task OnInitializedAsync()
     {
         try
@@ -172,11 +165,6 @@ else
     private async Task AddOwner()
     {
         await EditOwner(new FwoOwner());
-    }
-
-    private void ManageLifeCycles()
-    {
-        ManageLifeCyclesMode = true;
     }
 
     private async Task DisplayOwner(FwoOwner owner)

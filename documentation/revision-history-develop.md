@@ -371,3 +371,6 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.12 - 12.03.2026 DEVELOP
 - new config values for rule expiry notification
+
+# 9.0.13 - 12.03.2026 DEVELOP
+- mark lifecycle states as active

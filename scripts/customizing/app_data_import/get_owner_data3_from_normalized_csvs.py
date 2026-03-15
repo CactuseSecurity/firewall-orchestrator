@@ -44,6 +44,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     read_custom_config_with_default,
 )
 from scripts.customizing.fwo_custom_lib.git_helpers import (
+    parse_git_depth_arg,
     read_file_from_git_repo,
     update_git_repo,
 )
@@ -286,6 +287,12 @@ if __name__ == "__main__":
         default=None,
         help='fallback pattern for owner_responsibles when --responsiblesColumns is omitted, e.g. "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"',
     )
+    parser.add_argument(
+        "--depth",
+        type=parse_git_depth_arg,
+        default=None,
+        help="optional git clone/pull depth; if omitted, no depth is passed to git",
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -337,6 +344,7 @@ if __name__ == "__main__":
         parse_responsibles_columns(args.responsiblesColumns) if args.responsiblesColumns else None
     )
     level_two_responsible_pattern: str | None = args.levelTwoResponsiblePattern
+    git_depth: int | None = args.depth
     owner_header_patterns = apply_owner_column_overrides(owner_header_patterns, lifecycle_state_column)
 
     if args.debug:
@@ -361,7 +369,7 @@ if __name__ == "__main__":
             "https://" + cmdb_git_username + ":" + cmdb_git_password + "@" + cmdb_git_repo_url_without_protocol
         )
 
-        repo_updated: bool = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger)
+        repo_updated = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger, depth=git_depth)
         if not repo_updated:
             logger.warning("trying to read csv files from folder given as parameter...")
 
@@ -375,6 +383,7 @@ if __name__ == "__main__":
             recert_repo_target_dir,
             recert_active_file_name,
             logger,
+            depth=git_depth,
         )
         recert_active_app_list: list[str] = recert_activation_data.splitlines() if recert_activation_data else []
         logger.info("found %s apps with active recertification", len(recert_active_app_list))

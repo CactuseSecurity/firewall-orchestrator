@@ -12,24 +12,24 @@ from fwo_base import ConfigAction, write_native_config_to_file
 from fwo_exceptions import FwLoginFailedError, FwLogoutFailedError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from models.fw_common import FwCommon
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
-from models.import_state import ImportState
 from models.management import Management
+from states.global_state import GlobalState
+from states.import_state import ImportState
 from utils.conversion_utils import convert_list_to_dict
 
 
 class FortiAdom5ffCommon(FwCommon):
     def get_config(
-        self, config_in: FwConfigManagerListController, import_state: ImportStateController
+        self, config_in: FwConfigManagerListController, import_state: ImportState, global_state: GlobalState
     ) -> tuple[int, FwConfigManagerListController]:
-        return get_config(config_in, import_state)
+        return get_config(config_in, import_state, global_state)
 
 
 def get_config(
-    config_in: FwConfigManagerListController, import_state: ImportStateController
+    config_in: FwConfigManagerListController, import_state: ImportState, global_state: GlobalState
 ) -> tuple[int, FwConfigManagerListController]:
     if config_in.has_empty_config():  # no native config was passed in, so getting it from FW-Manager
         config_in.native_config.update({"domains": []})  # type: ignore #TYPING: What is this? None or not None this is the question  # noqa: PGH003
@@ -38,12 +38,12 @@ def get_config(
         parsing_config_only = True
 
     if not parsing_config_only:  # no native config was passed in, so getting it from FortiManager
-        sid = get_sid(import_state.state)
-        limit = import_state.state.fwo_config.api_fetch_size
-        fm_api_url = import_state.state.mgm_details.build_fw_api_string()
-        native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
+        sid = get_sid(import_state)
+        limit = global_state.fwo_config_controller.fwo_config.api_fetch_size
+        fm_api_url = import_state.mgm_details.build_fw_api_string()
+        native_config_global = initialize_native_config_domain(import_state.mgm_details)
         config_in.native_config["domains"].append(native_config_global)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
-        adom_list = build_adom_list(import_state.state)
+        adom_list = build_adom_list(import_state)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
         # delete_v: das geht schief für unschöne adoms
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
@@ -120,7 +120,7 @@ def get_config(
         except Exception:
             raise FwLogoutFailedError("logout exception probably due to timeout - irrelevant, so ignoring it")
 
-        write_native_config_to_file(import_state.state, config_in.native_config)
+        write_native_config_to_file(import_state, config_in.native_config)
 
     if not config_in.native_config:
         raise ImportError("native config missing")

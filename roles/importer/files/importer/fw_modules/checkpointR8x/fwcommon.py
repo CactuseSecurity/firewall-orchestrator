@@ -361,7 +361,6 @@ def process_devices(
         if import_state.mgm_details.is_super_manager:
             global_ordered_layer_count = handle_global_rulebase_links(
                 manager_details,
-                import_state,
                 global_state,
                 device_config,
                 global_assignments,
@@ -399,7 +398,6 @@ def initialize_device_config(device: dict[str, Any]) -> dict[str, Any]:
 
 def handle_global_rulebase_links(
     manager_details: ManagementController,
-    import_state: ImportState,
     global_state: GlobalState,
     device_config: dict[str, Any],
     global_assignments: list[Any] | None,

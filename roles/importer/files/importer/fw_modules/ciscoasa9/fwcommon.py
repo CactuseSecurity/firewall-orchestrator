@@ -17,17 +17,18 @@ from fwo_base import write_native_config_to_file
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
 from models.fw_common import FwCommon
 from scrapli.driver import GenericDriver
+from states.global_state import GlobalState
+from states.import_state import ImportState
 
 
 class CiscoAsa9Common(FwCommon):
     def get_config(
-        self, config_in: FwConfigManagerListController, import_state: ImportStateController
+        self, config_in: FwConfigManagerListController, import_state: ImportState, global_state: GlobalState
     ) -> tuple[int, FwConfigManagerListController]:
-        return get_config(config_in, import_state)
+        return get_config(config_in, import_state, global_state)
 
 
 def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
@@ -301,7 +302,7 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
 
 
 def get_config(
-    config_in: FwConfigManagerListController, import_state: ImportStateController
+    config_in: FwConfigManagerListController, import_state: ImportState, _global_state: GlobalState
 ) -> tuple[int, FwConfigManagerListController]:
     """
     Retrieve and parse the ASA configuration.
@@ -316,17 +317,17 @@ def get_config(
     """
     FWOLogger.debug("starting ciscoAsa9/get_config")
 
-    is_virtual_asa = import_state.state.mgm_details.device_type_name == "Cisco Asa on FirePower"
+    is_virtual_asa = import_state.mgm_details.device_type_name == "Cisco Asa on FirePower"
 
     if config_in.native_config_is_empty():
         # for debugging, use: raw_config = load_config_from_file("test_asa.conf")
-        raw_config = load_config_from_management(import_state.state.mgm_details, is_virtual_asa)
+        raw_config = load_config_from_management(import_state.mgm_details, is_virtual_asa)
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 
-    write_native_config_to_file(import_state.state, config_in.native_config)
+    write_native_config_to_file(import_state, config_in.native_config)
 
-    normalize_config(config_in, import_state.state)
+    normalize_config(config_in, import_state)
 
     return 0, config_in
 

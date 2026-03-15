@@ -125,6 +125,7 @@ remove any local pip config and install manually:
     python3 -m venv installer-venv
     source installer-venv/bin/activate
     pip install -r requirements.txt
+    if [ -f collections/requirements.txt ]; then pip install -r collections/requirements.txt; fi
     pip install ansible
 
 ### Parameter "api_no_metadata" to prevent meta data import

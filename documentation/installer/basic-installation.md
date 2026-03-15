@@ -54,6 +54,12 @@ If you use `ansible-core` instead of the full `ansible` package, also install th
 ansible-galaxy collection install -r collections/requirements.yml
 ```
 
+If using RedHat-like systems and `collections/requirements.txt` exists in your checkout, install those Python dependencies as well:
+
+```console
+pip install -r collections/requirements.txt
+```
+
 Note that if your server is behind a proxy, you will have to set the proxy for pip as follows (to allow for ansible venv download):
 
          pip config set global.proxy http://YOUR-PROXY-NAME:YOUR-PROXY-PORT

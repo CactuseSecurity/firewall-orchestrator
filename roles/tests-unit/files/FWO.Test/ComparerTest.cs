@@ -3,6 +3,7 @@ using NUnit.Framework.Legacy;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Services;
+using FWO.Services.Modelling;
 
 namespace FWO.Test
 {

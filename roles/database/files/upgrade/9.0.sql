@@ -459,6 +459,10 @@ Create table IF NOT EXISTS "rulebase"
 	"removed" BIGINT
 );
 
+ALTER table "rulebase" ADD COLUMN IF NOT EXISTS "uid" Varchar NOT NULL;
+ALTER table "rulebase" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+
+
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "fk_rulebase_mgm_id" CASCADE;
 Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 
@@ -525,6 +529,8 @@ Create Table IF NOT EXISTS "rule_enforced_on_gateway"
 	"created" BIGINT,
 	"removed" BIGINT
 );
+
+ ALTER table "rule_enforced_on_gateway" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 
 ALTER TABLE "rule_enforced_on_gateway"
     DROP CONSTRAINT IF EXISTS "fk_rule_enforced_on_gateway_rule_rule_id" CASCADE;
@@ -616,6 +622,8 @@ DECLARE
     missing_uids TEXT;
     too_many_mgm_ids_on_uid_and_no_resolve TEXT;
     all_errors_with_no_resolve TEXT := '';
+    rm_columns TEXT;
+    rm_columns_select TEXT;
 
 BEGIN
 --Check rule_metadata has entries in rule
@@ -721,6 +729,114 @@ BEGIN
     IF all_errors_with_no_resolve <> '' THEN
         RAISE EXCEPTION 'Ambiguous mgm_id assignments detected:%s', all_errors_with_no_resolve;
     END IF;
+
+    -- update NAT rule UIDs to make implicit NAT rules unique per device/xlate rule
+    CREATE TEMP TABLE tmp_nat_rule_uid AS
+        SELECT r.rule_id,
+               r.mgm_id,
+               r.rule_uid AS old_uid,
+               r.rule_uid || '_' || COALESCE(r.dev_id::text, 'NULL') || '_' || COALESCE(r.xlate_rule::text, 'NULL') AS new_uid
+        FROM rule r
+        WHERE r.nat_rule IS TRUE
+          AND r.rule_uid IS NOT NULL
+          AND r.rule_uid NOT LIKE '%' || '_' || COALESCE(r.dev_id::text, 'NULL') || '_' || COALESCE(r.xlate_rule::text, 'NULL');
+
+    -- collapse any existing rule_metadata duplicates for the affected old_uids
+    CREATE TEMP TABLE tmp_rule_metadata_dups_old AS
+        SELECT rm.rule_metadata_id AS duplicate_id,
+               MIN(rm.rule_metadata_id) OVER (PARTITION BY rm.mgm_id, rm.rule_uid) AS keep_id
+        FROM rule_metadata rm
+        JOIN (
+            SELECT DISTINCT mgm_id, old_uid
+            FROM tmp_nat_rule_uid
+        ) t ON t.mgm_id = rm.mgm_id AND t.old_uid = rm.rule_uid;
+
+    UPDATE rule_owner ro
+    SET rule_metadata_id = d.keep_id
+    FROM tmp_rule_metadata_dups_old d
+    WHERE ro.rule_metadata_id = d.duplicate_id
+      AND d.duplicate_id <> d.keep_id;
+
+    UPDATE recertification rct
+    SET rule_metadata_id = d.keep_id
+    FROM tmp_rule_metadata_dups_old d
+    WHERE rct.rule_metadata_id = d.duplicate_id
+      AND d.duplicate_id <> d.keep_id;
+
+    DELETE FROM rule_metadata rm
+    USING tmp_rule_metadata_dups_old d
+    WHERE rm.rule_metadata_id = d.duplicate_id
+      AND d.duplicate_id <> d.keep_id;
+
+    DROP TABLE tmp_rule_metadata_dups_old;
+
+    SELECT string_agg(quote_ident(column_name), ', ')
+    INTO rm_columns
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'rule_metadata'
+      AND column_name NOT IN ('rule_metadata_id', 'rule_uid');
+
+    SELECT string_agg('rm.' || quote_ident(column_name), ', ')
+    INTO rm_columns_select
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'rule_metadata'
+      AND column_name NOT IN ('rule_metadata_id', 'rule_uid');
+
+    WITH primary_uid AS (
+        SELECT mgm_id, old_uid, MIN(new_uid) AS new_uid
+        FROM tmp_nat_rule_uid
+        GROUP BY mgm_id, old_uid
+    )
+    UPDATE rule_metadata rm
+    SET rule_uid = p.new_uid
+    FROM primary_uid p
+    WHERE rm.mgm_id = p.mgm_id
+      AND rm.rule_uid = p.old_uid;
+
+    IF rm_columns IS NULL THEN
+        EXECUTE
+            'INSERT INTO rule_metadata (rule_uid)
+             SELECT m.new_uid
+             FROM tmp_nat_rule_uid m
+             JOIN (
+                 SELECT mgm_id, old_uid, MIN(new_uid) AS primary_uid
+                 FROM tmp_nat_rule_uid
+                 GROUP BY mgm_id, old_uid
+             ) p ON p.mgm_id = m.mgm_id AND p.old_uid = m.old_uid
+             WHERE m.new_uid <> p.primary_uid
+               AND NOT EXISTS (
+                   SELECT 1 FROM rule_metadata rm2
+                   WHERE rm2.mgm_id = m.mgm_id AND rm2.rule_uid = m.new_uid
+               )';
+    ELSE
+        EXECUTE format(
+            'INSERT INTO rule_metadata (rule_uid, %s)
+             SELECT m.new_uid, %s
+             FROM tmp_nat_rule_uid m
+             JOIN (
+                 SELECT mgm_id, old_uid, MIN(new_uid) AS primary_uid
+                 FROM tmp_nat_rule_uid
+                 GROUP BY mgm_id, old_uid
+             ) p ON p.mgm_id = m.mgm_id AND p.old_uid = m.old_uid
+             JOIN rule_metadata rm ON rm.mgm_id = p.mgm_id AND rm.rule_uid = p.primary_uid
+             WHERE m.new_uid <> p.primary_uid
+               AND NOT EXISTS (
+                   SELECT 1 FROM rule_metadata rm2
+                   WHERE rm2.mgm_id = m.mgm_id AND rm2.rule_uid = m.new_uid
+               )',
+            rm_columns,
+            rm_columns_select
+        );
+    END IF;
+
+    UPDATE rule r
+    SET rule_uid = t.new_uid
+    FROM tmp_nat_rule_uid t
+    WHERE r.rule_id = t.rule_id;
+
+    DROP TABLE tmp_nat_rule_uid;
 
     -- redo constraints
     ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
@@ -1047,6 +1163,20 @@ AS $function$
 $function$;
 
 -- TODO: needs to be rewritten to rulebase_link
+
+CREATE OR REPLACE FUNCTION get_last_import_id_for_mgmt (INTEGER) RETURNS BIGINT AS $$
+DECLARE
+        i_mgm_id ALIAS FOR $1; -- ID des Managements
+        i_prev_import_id BIGINT; -- temp. Record
+BEGIN
+        SELECT INTO i_prev_import_id MAX(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND successful_import;
+        IF NOT FOUND THEN
+                RETURN NULL;
+        END IF;
+        RETURN i_prev_import_id;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION addRuleEnforcedOnGatewayEntries() RETURNS VOID
     LANGUAGE plpgsql
     VOLATILE
@@ -1971,3 +2101,5 @@ ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id
 FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id")
 ON UPDATE RESTRICT
 ON DELETE CASCADE;
+
+DROP FUNCTION IF EXISTS get_last_import_id_for_mgmt(INTEGER);

@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -6,7 +6,9 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
-using FWO.Services;
+using FWO.Services.Modelling;
+using FWO.Services.RuleTreeBuilder;
+using FWO.Services.Workflow;
 
 namespace FWO.Report
 {
@@ -14,11 +16,11 @@ namespace FWO.Report
     {
         private static ReportBase? _currentReport;
 
-        public static async Task<ReportBase?> GenerateFromTemplate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null)
+        public static async Task<ReportBase?> GenerateFromTemplate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null, IRuleTreeBuilder? ruleTreeBuilder = null)
         {
             try
             {
-                ReportBase report = ReportBase.ConstructReport(reportTemplate, userConfig);
+                ReportBase report = ReportBase.ConstructReport(reportTemplate, userConfig, ruleTreeBuilder);
                 CancellationToken canToken = token == null ? new() : (CancellationToken)token;
                 await DoGeneration(report, reportTemplate, apiConnection, userConfig, displayMessageInUi, canToken);
                 return report;
@@ -123,7 +125,7 @@ namespace FWO.Report
         private static async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerConnectionReport ownerReport, ReportType reportType, ModellingFilter modellingFilter,
             ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
         {
-            ModellingHandlerBase handlerBase = new(apiConnection, userConfig, new(), false, displayMessageInUi);
+            ModellingHandlerBase handlerBase = new(apiConnection, userConfig, new(), false, displayMessageInUi, true, false);
             foreach (var conn in ownerReport.Connections)
             {
                 await handlerBase.ExtractUsedInterface(conn);

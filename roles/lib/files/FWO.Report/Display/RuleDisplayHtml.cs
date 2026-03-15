@@ -8,6 +8,13 @@ namespace FWO.Ui.Display
 {
     public class RuleDisplayHtml(UserConfig userConfig) : RuleDisplayBase(userConfig)
     {
+        public string DisplayRuleTime(Rule rule)
+        {
+            // Quick implementation to satisfy current requirements: use only the first time object with an EndTime.
+            DateTime? firstEndTime = rule.RuleTimes.FirstOrDefault(ruleTime => ruleTime.TimeObj?.EndTime != null)?.TimeObj?.EndTime;
+            return firstEndTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
+        }
+
         public string DisplaySource(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "", bool overwriteIsResolvedReport = false)
         {
             return DisplaySourceOrDestination(rule, chapterNumber, location, reportType, style, true, overwriteIsResolvedReport);

@@ -7,6 +7,8 @@ using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report;
 using FWO.Services;
+using FWO.Services.Modelling;
+using FWO.Services.Workflow;
 using Quartz;
 
 namespace FWO.Middleware.Server.Jobs
@@ -70,7 +72,7 @@ namespace FWO.Middleware.Server.Jobs
             }
             catch (Exception exc)
             {
-                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kVarianceAnalysis, AlertCode.VarianceAnalysis, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kVarianceAnalysis, AlertCode.VarianceAnalysis, exc);
             }
         }
     }

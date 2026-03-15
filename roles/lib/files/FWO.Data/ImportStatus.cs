@@ -19,6 +19,15 @@ namespace FWO.Data
 
         [JsonProperty("import_errors"), JsonPropertyName("import_errors")]
         public string? ImportErrors { get; set; }
+
+        [JsonProperty("import_type_id"), JsonPropertyName("import_type_id")]
+        public int? ImportTypeId { get; set; }
+
+        [JsonProperty("rule_owner_mapping_done"), JsonPropertyName("rule_owner_mapping_done")]
+        public bool RuleOwnerMappingDone { get; set; }
+
+        [JsonProperty("changes_found"), JsonPropertyName("changes_found")]
+        public bool ChangesFound { get; set; }
     }
 
     public class ImportStatus
@@ -59,5 +68,11 @@ namespace FWO.Data
         public ImportControl[]? ErroneousImports { get; set; }
 
         public int ErrorCount = 0;
+    }
+
+    public class InsertImportControl
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<ImportControl> Returning { get; set; } = new();
     }
 }

@@ -97,7 +97,6 @@
           host  all         {{ fworch_user }}    127.0.0.0/8            trust
           host  all         +dbbackupusers       127.0.0.0/8            trust
           host  all         confexporter         127.0.0.0/8            trust
-          host  all         +configimporters     127.0.0.0/8            trust
       register: postgres_hba_update
   
     - name: reload postgres service
@@ -173,11 +172,6 @@
     - "{{ postgresql_test_package }}"
   tags: [ 'never', 'unittest' ]
   become: true
-
-- name: run unit tests
-  include_tasks: run-unit-tests.yml
-  when: not installation_mode == "uninstall" 
-  tags: [ 'never', 'unittest' ]
 
 - name: remove database dir
   file:

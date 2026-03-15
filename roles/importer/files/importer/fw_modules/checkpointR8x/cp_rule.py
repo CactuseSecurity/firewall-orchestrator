@@ -205,7 +205,7 @@ def accept_malformed_parts(objects: dict[str, Any] | list[dict[str, Any]], part:
         if part == "install-on":
             return {"install-on": objects.get("name", None)}
         if part == "time":
-            return {"time": objects.get("name", None)}
+            return {"time": objects.get("uid", None)}
         if part == "track":
             return {"track": objects.get("type", {}).get("name", None)}
         FWOLogger.warning(f"found no uid or name in rule part ({part}): {objects!s}")
@@ -271,6 +271,8 @@ def _parse_obj_with_type(obj: dict[str, Any], address_objects: dict[str, Any]) -
 
     elif obj["type"] == "access-role":
         _parse_obj_with_access_role(obj, address_objects)
+    elif obj["type"] == "time":
+        address_objects[obj["uid"]] = obj["uid"]
     else:  # standard object
         address_objects[obj["uid"]] = obj["name"]
 

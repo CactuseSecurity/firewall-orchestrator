@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING, Any
 import fwo_const
 from fwo_const import IMPORT_TMP_PATH
 from fwo_enums import ConfFormat, ConfigAction
-from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
@@ -212,18 +211,8 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
 
     total_moves: int = len(deletions) + len(insertions) + len(reposition_moves)
 
-    # Build a list of human-readable operations.
-    operations: list[str] = []
-    for idx, elem in deletions:
-        operations.append(f"Delete element '{elem}' at source index {idx}.")
-    for idx, elem in insertions:
-        operations.append(f"Insert element '{elem}' at target position {idx}.")
-    for idx, elem, target_pos in reposition_moves:
-        operations.append(f"Pop element '{elem}' from source index {idx} and reinsert at target position {target_pos}.")
-
     return {
         "moves": total_moves,
-        "operations": operations,
         "deletions": deletions,
         "insertions": insertions,
         "reposition_moves": reposition_moves,
@@ -254,7 +243,6 @@ def init_service_provider() -> ServiceProvider:
     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
-    service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.IMPORT)
     return service_provider
 
 

@@ -10,11 +10,10 @@ from states.import_state import ImportState
 
 
 class RulebaseLinkController:
-    rulbase_to_gateway_map: dict[int, list[int]]
     rb_links: list[RulebaseLink]
 
     def __init__(self) -> None:
-        self.rulbase_to_gateway_map = {}
+        self.rb_links = []
 
     def insert_rulebase_links(
         self, fwo_api_call: FwoApiCall, stats: ImportStatisticsController, rb_links: list[dict[str, Any]]
@@ -68,20 +67,3 @@ class RulebaseLinkController:
                 link for link in links["data"]["rulebase_link"] if link.get("created") is not None
             ]  # TODO: is this necessary or was the bug some corrupted local db stuff? But why does integration test fail?
             self.rb_links: list[RulebaseLink] = parse_rulebase_links(parsable_rulebase_links)
-
-    # add an entry for all rulebase to gateway pairs that are conained in the rulebase_links table
-    def set_map_of_all_enforcing_gateway_ids_for_rulebase_id(self, import_state: ImportState):
-        self.get_rulebase_links(import_state)
-
-        for link in self.rb_links:
-            rulebase_id = link.to_rulebase_id
-            gw_id = link.gw_id
-            if rulebase_id not in self.rulbase_to_gateway_map:
-                self.rulbase_to_gateway_map.update({rulebase_id: []})
-            if gw_id not in self.rulbase_to_gateway_map[rulebase_id]:
-                self.rulbase_to_gateway_map[rulebase_id].append(gw_id)
-
-    def get_gw_ids_for_rulebase_id(self, rulebase_id: int | None) -> list[int]:
-        if rulebase_id is None:
-            return []
-        return self.rulbase_to_gateway_map.get(rulebase_id, [])

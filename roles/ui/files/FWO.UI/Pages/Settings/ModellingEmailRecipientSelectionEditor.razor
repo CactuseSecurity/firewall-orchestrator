@@ -1,0 +1,105 @@
+@inject UserConfig userConfig
+
+<div class="form-check">
+    <input id="@($"{CheckboxIdPrefix}_none")" class="form-check-input" type="checkbox" checked="@Selection.None"
+        @onchange="ToggleNoneRecipientSelection" />
+    <label class="form-check-label" for="@($"{CheckboxIdPrefix}_none")">@(userConfig.GetText(nameof(EmailRecipientOption.None)))</label>
+</div>
+<div class="form-check">
+    <input id="@($"{CheckboxIdPrefix}_other")" class="form-check-input" type="checkbox" disabled="@Selection.None"
+        checked="@Selection.OtherAddresses"
+        @onchange="ToggleOtherAddressSelection" />
+    <label class="form-check-label" for="@($"{CheckboxIdPrefix}_other")">@(userConfig.GetText(nameof(EmailRecipientOption.OtherAddresses)))</label>
+</div>
+<div class="form-check">
+    <input id="@($"{CheckboxIdPrefix}_ensure_one")" class="form-check-input" type="checkbox" disabled="@Selection.None"
+        checked="@Selection.EnsureAtLeastOneNotification"
+        @onchange="ToggleEnsureAtLeastOneNotification" />
+    <label class="form-check-label" for="@($"{CheckboxIdPrefix}_ensure_one")">@(userConfig.GetText("modEnsureAtLeastOneEmailNotification"))</label>
+</div>
+@foreach (OwnerResponsibleType ownerResponsibleType in OwnerResponsibleTypes)
+{
+    <div class="form-check">
+        <input id="@($"{CheckboxIdPrefix}_ort_{ownerResponsibleType.Id}")" class="form-check-input" type="checkbox" disabled="@Selection.None"
+            checked="@Selection.OwnerResponsibleTypeIds.Contains(ownerResponsibleType.Id)"
+            @onchange="@(args => ToggleOwnerResponsibleTypeSelection(ownerResponsibleType.Id, args))" />
+        <label class="form-check-label" for="@($"{CheckboxIdPrefix}_ort_{ownerResponsibleType.Id}")">@GetOwnerResponsibleTypeDisplayName(ownerResponsibleType)</label>
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public ModellingEmailRecipientSelection Selection { get; set; } = new();
+
+    [Parameter]
+    public List<OwnerResponsibleType> OwnerResponsibleTypes { get; set; } = [];
+
+    [Parameter]
+    public string CheckboxIdPrefix { get; set; } = "cbx_mod_mail";
+
+    private void ToggleNoneRecipientSelection(ChangeEventArgs args)
+    {
+        bool isChecked = IsChecked(args);
+        Selection.None = isChecked;
+        if (isChecked)
+        {
+            Selection.OtherAddresses = false;
+            Selection.OwnerResponsibleTypeIds = [];
+        }
+    }
+
+    private void ToggleOtherAddressSelection(ChangeEventArgs args)
+    {
+        bool isChecked = IsChecked(args);
+        Selection.OtherAddresses = isChecked;
+        if (isChecked)
+        {
+            Selection.None = false;
+        }
+        else if (Selection.OwnerResponsibleTypeIds.Count == 0)
+        {
+            Selection.None = true;
+        }
+    }
+
+    private void ToggleEnsureAtLeastOneNotification(ChangeEventArgs args)
+    {
+        Selection.EnsureAtLeastOneNotification = IsChecked(args);
+    }
+
+    private void ToggleOwnerResponsibleTypeSelection(int typeId, ChangeEventArgs args)
+    {
+        bool isChecked = IsChecked(args);
+        if (isChecked)
+        {
+            if (!Selection.OwnerResponsibleTypeIds.Contains(typeId))
+            {
+                Selection.OwnerResponsibleTypeIds.Add(typeId);
+            }
+            Selection.None = false;
+            return;
+        }
+
+        Selection.OwnerResponsibleTypeIds.RemoveAll(selectedTypeId => selectedTypeId == typeId);
+        if (!Selection.OtherAddresses && Selection.OwnerResponsibleTypeIds.Count == 0)
+        {
+            Selection.None = true;
+        }
+    }
+
+    private static bool IsChecked(ChangeEventArgs args)
+    {
+        if (args.Value is bool checkedValue)
+        {
+            return checkedValue;
+        }
+        return bool.TryParse(args.Value?.ToString(), out bool parsedValue) && parsedValue;
+    }
+
+    private string GetOwnerResponsibleTypeDisplayName(OwnerResponsibleType type)
+    {
+        string localized = userConfig.GetText(type.Name);
+        return localized == GlobalConst.kUndefinedText ? type.Name : localized;
+    }
+}

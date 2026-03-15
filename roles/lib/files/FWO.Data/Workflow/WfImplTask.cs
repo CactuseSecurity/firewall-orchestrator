@@ -39,6 +39,7 @@ namespace FWO.Data.Workflow
             DeviceId = implTask.DeviceId;
             ImplElements = implTask.ImplElements;
             Comments = implTask.Comments;
+            RemovedElements = implTask.RemovedElements;
             TicketId = implTask.TicketId;
         }
 

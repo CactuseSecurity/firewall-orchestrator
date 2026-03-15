@@ -100,7 +100,7 @@ def main_loop(
     fwo_api = FwoApi(fwo_config.fwo_api_url, jwt)
     fwo_api_call = FwoApiCall(fwo_api)
 
-    urllib3.disable_warnings()  # suppress ssl warnings only
+    urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
     verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
     suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
 
@@ -138,13 +138,12 @@ def main(
     suppress_certificate_warnings: bool | None = None,
     clear: bool = False,
     force: bool = False,
-    is_full_import: bool = False,
 ):
     FWOLogger(debug_level)
 
     fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
     if suppress_certificate_warnings:
-        urllib3.disable_warnings()
+        urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
 
     FWOLogger.info("importer_main_loop starting ...")
     if IMPORTER_BASE_DIR not in sys.path:
@@ -177,9 +176,19 @@ if __name__ == "__main__":
         default="0",
         help="Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=keep temporary config files; default=0",
     )
-    parser.add_argument("-v", "--verify_certificates", action="store_true", default=None, help="verify certificates")
     parser.add_argument(
-        "-s", "--suppress_certificate_warnings", action="store_true", default=None, help="suppress certificate warnings"
+        "-v",
+        "--verify_certificates",
+        action="store_true",
+        default=None,
+        help="verify certificates",
+    )
+    parser.add_argument(
+        "-s",
+        "--suppress_certificate_warnings",
+        action="store_true",
+        default=None,
+        help="suppress certificate warnings",
     )
     parser.add_argument(
         "-c",

@@ -124,7 +124,7 @@ namespace FWO.Test
             AggregateCount count = new AggregateCount();
             count.Aggregate.Count = ComplianceCheck.RulesInCheck!.Count;
             ApiConnection
-                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules)
+                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules, Arg.Any<object>())
                 .Returns(Task.FromResult(count));
 
             // Act
@@ -151,7 +151,7 @@ namespace FWO.Test
             AggregateCount count = new AggregateCount();
             count.Aggregate.Count = ComplianceCheck.RulesInCheck!.Count;
             ApiConnection
-                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules)
+                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules, Arg.Any<object>())
                 .Returns(Task.FromResult(count));
 
             // Act
@@ -183,7 +183,7 @@ namespace FWO.Test
             AggregateCount count = new AggregateCount();
             count.Aggregate.Count = ComplianceCheck.RulesInCheck!.Count;
             ApiConnection
-                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules)
+                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules, Arg.Any<object>())
                 .Returns(Task.FromResult(count));
 
             // Act

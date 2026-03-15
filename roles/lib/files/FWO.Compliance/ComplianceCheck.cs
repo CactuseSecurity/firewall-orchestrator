@@ -192,7 +192,10 @@ namespace FWO.Compliance
 
             // Getting total number of rules, for calculating chunks.
 
-            AggregateCount? result = await _apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules);
+            AggregateCount? result = await _apiConnection.SendQueryAsync<AggregateCount>(
+                RuleQueries.countActiveRules,
+                new { mgm_ids = managementIds }
+            );
             int activeRulesCount = result?.Aggregate?.Count ?? 0;
 
             Logger.TryWriteInfo("Compliance Check", $"Loading {activeRulesCount} active rules in chunks of {_elementsPerFetch} for managements: {string.Join(",", managementIds)}.", LocalSettings.ComplianceCheckVerbose);

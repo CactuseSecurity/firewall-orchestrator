@@ -11,9 +11,8 @@ from asyncio.log import logger
 from pathlib import Path
 from typing import Any
 
-import git  # apt install python3-git # or: pip install git
-
 from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
+from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
 
 DEFAULT_CONFIG_FILENAME: str = "/usr/local/fworch/etc/secrets/customizingConfig.json"
 IPAM_GIT_REPO_TARGET_DIR: str = "/usr/local/fworch/etc/ipamRepo"
@@ -107,23 +106,11 @@ if __name__ == "__main__":
     ipam_git_user: str = read_custom_config(args.config, "ipamGitUser", logger=logger)
     ipam_git_password: str = read_custom_config(args.config, "ipamGitPassword", logger=logger)
 
-    try:
-        # get ipam repo
-        if Path(IPAM_GIT_REPO_TARGET_DIR).exists():
-            # If the repository already exists, open it and perform a pull
-            repo: Any = git.Repo(IPAM_GIT_REPO_TARGET_DIR)
-            origin: Any = repo.remotes.origin
-            origin.pull()
-        else:
-            repo_url: str = (
-                "https://" + ipam_git_user + ":" + urllib.parse.quote(ipam_git_password, safe="") + "@" + ipam_git_repo
-            )
-            repo = git.Repo.clone_from(
-                repo_url,
-                IPAM_GIT_REPO_TARGET_DIR,
-            )
-    except Exception:
-        logger.exception("error while trying to access git repo %s", ipam_git_repo)
+    repo_url: str = (
+        "https://" + ipam_git_user + ":" + urllib.parse.quote(ipam_git_password, safe="") + "@" + ipam_git_repo
+    )
+    repo_updated: bool = update_git_repo(repo_url, IPAM_GIT_REPO_TARGET_DIR, logger)
+    if not repo_updated:
         sys.exit(1)
 
     # normalizing subnet data

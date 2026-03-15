@@ -132,7 +132,6 @@ def _import_management(
 
     import_state.import_id = import_state.fwo_api_call.set_import_lock(
         import_state.mgm_details,
-        import_state.is_full_import,
         import_state.is_initial_import,
     )
     FWOLogger.info(

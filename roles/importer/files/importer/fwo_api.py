@@ -460,7 +460,7 @@ class FwoApi:
                 printable_chars = set(string.printable)
                 with open(file, encoding="utf-8", errors="ignore") as f:
                     code += "".join(filter(printable_chars.__contains__, f.read())) + " "
-            except FileNotFoundError:
+            except FileNotFoundError:  # noqa: PERF203
                 FWOLogger.error("fwo_api: file not found: " + file)
                 raise
 

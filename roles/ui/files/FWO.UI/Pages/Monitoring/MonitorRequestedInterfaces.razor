@@ -1,0 +1,553 @@
+@page "/monitoring/requested_interfaces"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
+
+@using FWO.Data.Modelling
+@using FWO.Data.Workflow
+@using FWO.Middleware.Client
+@using FWO.Services.Modelling
+@using FWO.Services.Workflow
+@using FWO.Ui.Pages.NetworkModelling
+@using FWO.Ui.Pages.Request
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+<h3>@(userConfig.GetText("requested_interfaces"))</h3>
+<hr />
+
+@if (InitComplete)
+{
+    <div class="m-2 vheight75">
+        <div class="form-group row">
+            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+            <div class="col-sm-3">
+                <Dropdown ElementType="string" ElementToString="TicketStateFilterToString" Nullable="false"
+                          SelectedElement="@SelectedTicketStateFilter"
+                          SelectedElementChanged="UpdateTicketStateFilter"
+                          Elements="TicketStateFilterOptions">
+                    <ElementTemplate Context="stateOption">
+                        @TicketStateFilterToString(stateOption)
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+            <div class="col-sm-5 d-flex align-items-center">
+                <input id="cbx_show_removed_requested_interfaces" class="form-check-input me-2" type="checkbox"
+                       @bind="ShowRemovedRequestedInterfaces" @bind:after="FetchRequestedInterfaces">
+                <label for="cbx_show_removed_requested_interfaces" class="form-check-label">
+                    @(userConfig.GetText("show_removed_requested_interfaces"))
+                </label>
+                @if (ShowRemovedRequestedInterfaces && OpenRemovedTicketIds.Count > 0)
+                {
+                    <button type="button" class="btn btn-sm btn-danger ms-2" @onclick="ShowRejectRemovedTicketsConfirm">
+                        @(DisplayService.DisplayButton(userConfig, "reject_tickets", Icons.Reject))
+                    </button>
+                }
+            </div>
+        </div>
+        <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+               TableItem="RequestedInterfaceRow" Items="FilteredRequestedInterfaces" PageSize="PageSize" ColumnReorder="true">
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                <Template>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-primary" @onclick="async () => await DisplayInterface(context.Connection)">
+                            @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))
+                        </button>
+                        @if (context.TicketId != null)
+                        {
+                            <button type="button" class="btn btn-dark" @onclick="async () => await DisplayTicket(context.Connection)">
+                                @(DisplayService.DisplayButton(userConfig, "display_ticket", Icons.Display, "", Icons.Workflow))
+                            </button>
+                        }
+                        @if (context.IsOpen)
+                        {
+                            <button type="button" class="btn btn-danger" @onclick="async () => await RejectInterface(context.Connection)">
+                                @(DisplayService.DisplayButton(userConfig, "reject", Icons.Reject))
+                            </button>
+                        }
+                    </div>
+                </Template>
+            </Column>
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("requesting_app"))" Field="@(x => x.RequestingApp)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.RequestingApp)
+                </Template>
+            </Column>
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("requesting_ext_app_id"))" Field="@(x => x.RequestingExtAppId)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.RequestingExtAppId)
+                </Template>
+            </Column>
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("used_in_connection_ids"))" Field="@(x => x.UsedInConnectionIds)" Sortable="true" Filterable="false">
+                <Template>
+                    @(context.UsedInConnectionIds)
+                </Template>
+            </Column>
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("requested_app"))" Field="@(x => x.RequestedApp)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.RequestedApp)
+                </Template>
+            </Column>
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("requested_ext_app_id"))" Field="@(x => x.RequestedExtAppId)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.RequestedExtAppId)
+                </Template>
+            </Column>
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.TicketId?.ToString() ?? "-")
+                </Template>
+            </Column>
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("state"))" Field="@(x => x.TicketState)" Sortable="true" Filterable="false">
+                <Template>
+                    @(context.TicketState)
+                </Template>
+            </Column>
+            <Column TableItem="RequestedInterfaceRow" Title="@(userConfig.GetText("creation_date"))" Field="@(x => x.TicketCreationDate)" Sortable="true" Filterable="false">
+                <Template>
+                    @(context.TicketCreationDate?.ToString("g") ?? "-")
+                </Template>
+            </Column>
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
+}
+else
+{
+    <Loading />
+}
+
+<EditConnPopup @bind-Display="ShowDisplayPopup" ConnHandler="DisplayConnHandler" />
+<RejectInterfacePopup @bind-Display="ShowRejectPopup" ConnHandler="RejectConnHandler" RefreshParent="FetchRequestedInterfaces" AllowAdminReject="true" />
+<PopUp Title="@(userConfig.GetText("reject_tickets"))" Show="@ConfirmRejectRemovedTickets" Size=PopupSize.Medium OnClose="CloseRejectRemovedTicketsConfirm">
+    <Body>
+        @if (ConfirmRejectRemovedTickets)
+        {
+            <div class="row mt-2 me-auto">
+                <p>@RejectRemovedTicketsMessage</p>
+            </div>
+            <div class="row mt-2 me-auto">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
+                <textarea rows="5" type="text" class="col-sm-9" @bind="RejectRemovedTicketsReason" />
+            </div>
+        }
+    </Body>
+    <Footer>
+        @if (!WorkInProgress)
+        {
+            <button type="button" class="btn btn-sm btn-primary" @onclick="RejectRemovedInterfaceTickets">@(DisplayService.DisplayButton(userConfig, "reject", Icons.Reject))</button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "reject", Icons.Reject))</button>
+        }
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseRejectRemovedTicketsConfirm">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+    </Footer>
+</PopUp>
+<DisplayImplementationTask WfHandler="wfHandler" States="states" IncludePopups="false" />
+<InProgress Display="WorkInProgress"/>
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<ModellingConnection> RequestedInterfaces = [];
+    private Dictionary<int, FwoOwner> OwnersById = [];
+    private Dictionary<int, FwoOwner> RequestingAppByConnectionId = [];
+    private Dictionary<int, string> UsedByConnectionIdsByInterfaceId = [];
+    private Dictionary<int, int> TicketStateIdByConnectionId = [];
+    private Dictionary<int, DateTime> TicketCreationDateByConnectionId = [];
+    private Dictionary<int, string> StateNameById = [];
+    private List<RequestedInterfaceRow> RequestedInterfaceRows = [];
+    private bool InitComplete = false;
+    private int PageSize { get; set; }
+    private bool ShowRemovedRequestedInterfaces { get; set; } = false;
+    private string SelectedTicketStateFilter { get; set; } = "all";
+    private List<string> TicketStateFilterOptions { get; set; } = ["all", "all_open"];
+    private ModellingConnectionHandler? DisplayConnHandler { get; set; }
+    private bool ShowDisplayPopup { get; set; } = false;
+    private ModellingConnectionHandler? RejectConnHandler { get; set; }
+    private bool ShowRejectPopup { get; set; } = false;
+    private bool ConfirmRejectRemovedTickets { get; set; } = false;
+    private StateMatrix NewInterfaceStateMatrix { get; set; } = new();
+    private WfHandler wfHandler = new();
+    private WfStateDict states = new();
+    private bool WorkInProgress = false;
+    private List<RequestedInterfaceRow> OpenRemovedRequestedRows => [.. FilteredRequestedInterfaces
+        .Where(row => row.Connection.Removed && row.IsOpen && row.TicketId != null)];
+
+    private List<long> OpenRemovedTicketIds => [.. OpenRemovedRequestedRows
+        .Where(row => row.Connection.Removed && row.IsOpen && row.TicketId != null)
+        .Select(row => row.TicketId!.Value)
+        .Distinct()];
+    private string RejectRemovedTicketsReason { get; set; } = "";
+    private string RejectRemovedTicketsMessage =>
+        $"{userConfig.GetText("U9017")}{OpenRemovedTicketIds.Count} {userConfig.GetText("requested_interfaces")}?";
+
+    private void ShowRejectRemovedTicketsConfirm()
+    {
+        RejectRemovedTicketsReason = userConfig.GetText("U9036");
+        ConfirmRejectRemovedTickets = true;
+    }
+
+    private void CloseRejectRemovedTicketsConfirm()
+    {
+        ConfirmRejectRemovedTickets = false;
+        RejectRemovedTicketsReason = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchRequestedInterfaces();
+    }
+
+    private async Task FetchRequestedInterfaces()
+    {
+        try
+        {
+            await EnsureStateMatrixInitialized();
+            RequestedInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
+                ModellingQueries.getRequestedInterfaces,
+                new { showRemoved = ShowRemovedRequestedInterfaces });
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            OwnersById = owners.ToDictionary(owner => owner.Id, owner => owner);
+            List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+            StateNameById = states.ToDictionary(state => state.Id, state => state.Name);
+            await ResolveUsedByConnections();
+            await ResolveRequestingAppsFromTickets();
+            BuildRequestedInterfaceRows();
+            RebuildTicketStateFilterOptions();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("requested_interface"), "", true);
+        }
+        finally
+        {
+            InitComplete = true;
+        }
+    }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
+    }
+
+    private List<RequestedInterfaceRow> FilteredRequestedInterfaces =>
+        SelectedTicketStateFilter switch
+        {
+            "all" => RequestedInterfaceRows,
+            "all_open" => RequestedInterfaceRows.Where(row => row.IsOpen).ToList(),
+            _ => RequestedInterfaceRows.Where(row => row.TicketState == SelectedTicketStateFilter).ToList()
+        };
+
+    private void UpdateTicketStateFilter(string selectedState)
+    {
+        SelectedTicketStateFilter = string.IsNullOrWhiteSpace(selectedState) ? "all" : selectedState;
+    }
+
+    private void RebuildTicketStateFilterOptions()
+    {
+        List<string> usedStateNames = RequestedInterfaceRows
+            .Select(row => row.TicketState)
+            .Where(state => !string.IsNullOrWhiteSpace(state) && state != "-")
+            .Distinct()
+            .OrderBy(state => state)
+            .ToList();
+
+        TicketStateFilterOptions = ["all", "all_open", .. usedStateNames];
+        if (!TicketStateFilterOptions.Contains(SelectedTicketStateFilter))
+        {
+            SelectedTicketStateFilter = "all";
+        }
+    }
+
+    private string TicketStateFilterToString(string value)
+    {
+        return value switch
+        {
+            "all" => userConfig.GetText("all"),
+            "all_open" => userConfig.GetText("all_open"),
+            _ => value
+        };
+    }
+
+    private FwoOwner? GetRequestedApp(ModellingConnection connection)
+    {
+        if (connection.ProposedAppId == null)
+        {
+            return null;
+        }
+        return OwnersById.TryGetValue(connection.ProposedAppId.Value, out FwoOwner? owner) ? owner : null;
+    }
+
+    private FwoOwner? GetRequestingApp(ModellingConnection connection)
+    {
+        return RequestingAppByConnectionId.TryGetValue(connection.Id, out FwoOwner? owner) ? owner : null;
+    }
+
+    private string GetUsedByConnectionIds(ModellingConnection connection)
+    {
+        return UsedByConnectionIdsByInterfaceId.TryGetValue(connection.Id, out string? usedByIds) && !string.IsNullOrWhiteSpace(usedByIds)
+            ? usedByIds
+            : "-";
+    }
+
+    private string GetTicketState(ModellingConnection connection)
+    {
+        if (!TicketStateIdByConnectionId.TryGetValue(connection.Id, out int stateId))
+        {
+            return "-";
+        }
+        if (StateNameById.TryGetValue(stateId, out string? stateName) && !string.IsNullOrWhiteSpace(stateName))
+        {
+            return stateName;
+        }
+        return stateId.ToString();
+    }
+
+    private void BuildRequestedInterfaceRows()
+    {
+        RequestedInterfaceRows = RequestedInterfaces.Select(connection =>
+        {
+            FwoOwner? requestingApp = GetRequestingApp(connection);
+            FwoOwner? requestedApp = GetRequestedApp(connection);
+            bool hasTicketCreationDate = TicketCreationDateByConnectionId.TryGetValue(connection.Id, out DateTime ticketCreationDate);
+            return new RequestedInterfaceRow
+            {
+                Connection = connection,
+                Id = connection.Id,
+                Name = connection.Name ?? "",
+                RequestingApp = requestingApp?.DisplayWithoutAppId(userConfig.GetText("common_service")) ?? "-",
+                RequestingExtAppId = requestingApp?.ExtAppId ?? "-",
+                UsedInConnectionIds = GetUsedByConnectionIds(connection),
+                RequestedApp = requestedApp?.DisplayWithoutAppId(userConfig.GetText("common_service")) ?? "-",
+                RequestedExtAppId = requestedApp?.ExtAppId ?? "-",
+                TicketId = connection.TicketId,
+                TicketState = GetTicketState(connection),
+                TicketCreationDate = hasTicketCreationDate ? ticketCreationDate : null,
+                IsOpen = CanRejectInterface(connection)
+            };
+        }).ToList();
+    }
+
+    private async Task ResolveRequestingAppsFromTickets()
+    {
+        RequestingAppByConnectionId = [];
+        TicketStateIdByConnectionId = [];
+        TicketCreationDateByConnectionId = [];
+        List<long> ticketIds = [.. RequestedInterfaces
+            .Where(connection => connection.TicketId != null)
+            .Select(connection => connection.TicketId!.Value)
+            .Distinct()];
+
+        foreach (long ticketId in ticketIds)
+        {
+            WfTicket? ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
+            if (ticket?.Tasks == null)
+            {
+                continue;
+            }
+
+            foreach (WfReqTask task in ticket.Tasks)
+            {
+                int connId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ConnId);
+                int reqOwnerId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner);
+                if (connId > 0 && !TicketStateIdByConnectionId.ContainsKey(connId))
+                {
+                    TicketStateIdByConnectionId[connId] = ticket.StateId;
+                }
+                if (connId > 0 && !TicketCreationDateByConnectionId.ContainsKey(connId))
+                {
+                    TicketCreationDateByConnectionId[connId] = ticket.CreationDate;
+                }
+                if (connId > 0 && reqOwnerId > 0 && !RequestingAppByConnectionId.ContainsKey(connId) &&
+                    OwnersById.TryGetValue(reqOwnerId, out FwoOwner? requestingOwner))
+                {
+                    RequestingAppByConnectionId[connId] = requestingOwner;
+                }
+            }
+        }
+    }
+
+    private async Task ResolveUsedByConnections()
+    {
+        UsedByConnectionIdsByInterfaceId = [];
+        foreach (ModellingConnection requestedInterface in RequestedInterfaces)
+        {
+            List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
+                ModellingQueries.getInterfaceUsers, new { id = requestedInterface.Id });
+            List<int> usingConnectionIds = usingConnections
+                .Select(connection => connection.Id).Distinct().OrderBy(id => id).ToList();
+            UsedByConnectionIdsByInterfaceId[requestedInterface.Id] = usingConnectionIds.Count > 0
+                ? string.Join(", ", usingConnectionIds) : "-";
+        }
+    }
+
+    private async Task DisplayInterface(ModellingConnection connection)
+    {
+        FwoOwner? application = connection.App;
+        if ((application == null || application.Id <= 0) && connection.AppId != null &&
+            OwnersById.TryGetValue(connection.AppId.Value, out FwoOwner? resolvedOwner))
+        {
+            application = resolvedOwner;
+        }
+        application ??= new();
+        DisplayConnHandler = new ModellingConnectionHandler(
+            apiConnection, userConfig, application, RequestedInterfaces, connection,
+            false, true, DisplayMessageInUi, DefaultInit.DoNothing, false);
+        await DisplayConnHandler.Init();
+        ShowDisplayPopup = true;
+    }
+
+    private bool CanRejectInterface(ModellingConnection connection)
+    {
+        bool ticketOpen = TicketStateIdByConnectionId.TryGetValue(connection.Id, out int stateId)
+            && stateId < NewInterfaceStateMatrix.LowestEndState;
+        if (!ticketOpen)
+        {
+            return false;
+        }
+
+        // Reject is only allowed when no connection currently uses the interface.
+        return !UsedByConnectionIdsByInterfaceId.TryGetValue(connection.Id, out string? usingConnectionIds)
+            || string.IsNullOrWhiteSpace(usingConnectionIds)
+            || usingConnectionIds == "-";
+    }
+
+    private async Task RejectInterface(ModellingConnection connection)
+    {
+        FwoOwner? application = connection.App;
+        if ((application == null || application.Id <= 0) && connection.AppId != null &&
+            OwnersById.TryGetValue(connection.AppId.Value, out FwoOwner? resolvedOwner))
+        {
+            application = resolvedOwner;
+        }
+        application ??= new();
+        RejectConnHandler = new ModellingConnectionHandler(
+            apiConnection, userConfig, application, RequestedInterfaces, connection,
+            false, false, DisplayMessageInUi, DefaultInit.DoNothing, false);
+        await RejectConnHandler.Init();
+        ShowRejectPopup = true;
+    }
+
+    private async Task RejectRemovedInterfaceTickets()
+    {
+        try
+        {
+            WorkInProgress = true;
+            Dictionary<long, RequestedInterfaceRow> rowByTicketId = OpenRemovedRequestedRows
+                .Where(row => row.TicketId != null)
+                .GroupBy(row => row.TicketId!.Value)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            TicketCreator ticketCreator = new( apiConnection, userConfig, authenticationStateTask!.Result.User,
+                middlewareClient, WorkflowPhases.implementation);
+            int rejectedCount = 0;
+            foreach (long ticketId in OpenRemovedTicketIds)
+            {
+                if (await ticketCreator.PromoteNewInterfaceImplTask(ticketId, ExtStates.Rejected, RejectRemovedTicketsReason))
+                {
+                    rejectedCount++;
+                    if (rowByTicketId.TryGetValue(ticketId, out RequestedInterfaceRow? rowForTicket))
+                    {
+                        await SaveRejectedStateAndRemoveSelections(rowForTicket);
+                    }
+                }
+            }
+            DisplayMessageInUi(null, userConfig.GetText("reject_tickets"), $"{userConfig.GetText("U9018")} ({rejectedCount}/{OpenRemovedTicketIds.Count})", false);
+            await FetchRequestedInterfaces();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("reject_tickets"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            CloseRejectRemovedTicketsConfirm();
+        }
+    }
+
+    private async Task SaveRejectedStateAndRemoveSelections(RequestedInterfaceRow rowForTicket)
+    {
+        ModellingConnection connection = rowForTicket.Connection;
+        FwoOwner? application = connection.App;
+        if ((application == null || application.Id <= 0) && connection.AppId != null &&
+            OwnersById.TryGetValue(connection.AppId.Value, out FwoOwner? resolvedOwner))
+        {
+            application = resolvedOwner;
+        }
+        application ??= new();
+
+        ModellingConnectionHandler connHandler = new(
+            apiConnection, userConfig, application, RequestedInterfaces, connection,
+            false, false, DisplayMessageInUi, DefaultInit.DoNothing, false);
+        connHandler.ActConn.AddProperty(ConState.Rejected.ToString());
+        await connHandler.SavePropertiesOnly();
+        await connHandler.RemoveFromAllSelections();
+    }
+
+    private async Task DisplayTicket(ModellingConnection connection)
+    {
+        if (connection.TicketId == null)
+        {
+            return;
+        }
+
+        WorkInProgress = true;
+        await states.Init(apiConnection);
+        wfHandler = new(DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User,
+            apiConnection, middlewareClient, WorkflowPhases.request) { };
+        wfHandler.ReadOnlyMode = true;
+        await wfHandler.Init();
+        WfTicket? ticket = await wfHandler.ResolveTicket((long)connection.TicketId);
+        if (ticket != null)
+        {
+            WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
+            if (reqTask != null)
+            {
+                wfHandler.SetReqTaskEnv(reqTask);
+                WfImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
+                if (implTask != null)
+                {
+                    wfHandler.SelectImplTask(implTask, ObjAction.display);
+                }
+            }
+        }
+        WorkInProgress = false;
+        StateHasChanged();
+    }
+
+    private async Task EnsureStateMatrixInitialized()
+    {
+        if (NewInterfaceStateMatrix.LowestEndState > 0)
+        {
+            return;
+        }
+        await NewInterfaceStateMatrix.Init(WorkflowPhases.implementation, apiConnection, WfTaskType.new_interface);
+    }
+
+    private sealed class RequestedInterfaceRow
+    {
+        public ModellingConnection Connection { get; set; } = new();
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string RequestingApp { get; set; } = "-";
+        public string RequestingExtAppId { get; set; } = "-";
+        public string UsedInConnectionIds { get; set; } = "-";
+        public string RequestedApp { get; set; } = "-";
+        public string RequestedExtAppId { get; set; } = "-";
+        public long? TicketId { get; set; }
+        public string TicketState { get; set; } = "-";
+        public DateTime? TicketCreationDate { get; set; }
+        public bool IsOpen { get; set; }
+    }
+}

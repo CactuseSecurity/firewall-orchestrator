@@ -85,18 +85,17 @@ class FwoApiCall:
     def set_import_lock(
         self,
         mgm_details: ManagementController,
-        is_full_import: int,
         is_initial_import: int,
     ) -> int:
         import_id = -1
         mgm_id = mgm_details.mgm_id
         try:  # set import lock
-            lock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImport.graphql"])
+            lock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImportForMgm.graphql"])
             lock_result = self.api.call(
                 lock_mutation,
                 query_variables={
                     "mgmId": mgm_id,
-                    "isFullImport": is_full_import,
+                    "importTypeId": 1,
                     "isInitialImport": is_initial_import,
                 },
             )
@@ -165,8 +164,8 @@ class FwoApiCall:
                 "stopTime": datetime.datetime.now().isoformat(),
                 "importId": import_id,
                 "success": success,
-                "anyChangesFound": import_stats.get_total_change_number() > 0,
-                "ruleChangesFound": import_stats.get_rule_change_number() > 0,
+                "changesFound": import_stats.get_total_change_number() > 0,
+                "policyChangesFound": import_stats.get_rule_change_number() > 0,
                 "changeNumber": import_stats.get_rule_change_number(),
             }
 

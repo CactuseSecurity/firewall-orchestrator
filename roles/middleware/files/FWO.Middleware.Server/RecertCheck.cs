@@ -68,7 +68,7 @@ namespace FWO.Middleware.Server
                     NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionMiddlewareServer, OwnerGroups);
                     foreach (FwoOwner? owner in owners.Where(o => IsRecertCheckTime(o)))
                     {
-                        emailsSent += await notificationService.SendNotifications(owner, null, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
+                        emailsSent += await notificationService.SendNotificationsIfDue(owner, null, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
                         await SetOwnerLastCheck(owner);
                     }
                     await notificationService.UpdateNotificationsLastSent();

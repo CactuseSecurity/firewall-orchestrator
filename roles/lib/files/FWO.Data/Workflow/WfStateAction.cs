@@ -12,7 +12,6 @@ namespace FWO.Data.Workflow
         TrafficPathAnalysis = 6,
         ExternalCall = 10,
         SendEmail = 15,
-        // CreateConnection = 20,
         UpdateConnectionOwner = 21,
         UpdateConnectionRelease = 22,
         DisplayConnection = 23,

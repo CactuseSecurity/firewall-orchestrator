@@ -8,6 +8,7 @@ from fw_modules.fortiadom5ff.fmgr_network import add_member_names_for_nw_group
 from fwo_base import cidr_to_range
 from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER
 from fwo_log import FWOLogger
+from models.time_object import TimeObject
 from services.service_provider import ServiceProvider
 
 
@@ -18,6 +19,8 @@ def normalize_network_objects(
     global_domain = initialize_global_domain(full_config["objects"])
 
     for obj_dict in full_config["objects"]:
+        if obj_dict["type"] in cp_const.time_obj_table_names:
+            continue  # time objects are handled in separate function
         collect_nw_objects(obj_dict, nw_objects, global_domain, mgm_id=mgm_id)
 
         for nw_obj in nw_objects:
@@ -266,3 +269,33 @@ def make_host(ip_in: str) -> str | None:
     ):  # TODO: check if just else is sufficient # type: ignore  # noqa: PGH003
         return f"{ip_in}/128"
     return None
+
+
+def normalize_time_objects(full_config: dict[str, Any], config2import: dict[str, Any]):
+    time_objects: list[dict[str, Any]] = []
+
+    for obj_dict in full_config["objects"]:
+        if obj_dict["type"] not in cp_const.time_obj_table_names:
+            continue
+        for chunk in obj_dict["chunks"]:
+            time_objects.extend(
+                TimeObject(
+                    time_obj_uid=obj["uid"],
+                    time_obj_name=obj["name"],
+                    start_time=None if obj["start-now"] else obj["start"]["iso-8601"],
+                    end_time=None if obj["end-never"] else obj["end"]["iso-8601"],
+                ).model_dump()  # TODO: rework dicts to models everywhere
+                for obj in chunk.get("objects", [])
+            )
+
+    # add default 'Any' time object
+    time_objects.append(
+        TimeObject(
+            time_obj_uid="Any",
+            time_obj_name="Any",
+            start_time=None,
+            end_time=None,
+        ).model_dump()
+    )
+
+    config2import.update({"time_objects": time_objects})

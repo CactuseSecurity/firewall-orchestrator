@@ -1,5 +1,8 @@
+import traceback
 from typing import Any
 
+import fwo_const
+from fwo_api import FwoApi
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
@@ -56,6 +59,7 @@ class FwConfigImportGateway:
         )
         self.update_interface_diffs()
         self.update_routing_diffs()
+        self.update_removed_gateways()
 
     def update_rulebase_link_diffs(
         self, import_state: ImportState, management_state: ManagementState, rb_link_controller: RulebaseLinkController
@@ -222,3 +226,41 @@ class FwConfigImportGateway:
     def update_routing_diffs(self):
         # TODO: needs to be implemented
         pass
+
+    def update_removed_gateways(self):
+        if self._global_state.normalized_config is None or self._global_state.previous_config is None:
+            raise FwoImporterError("normalized_config or previous_config is None in update_removed_gateways")
+        gw_uids_to_remove = [
+            gw.Uid
+            for gw in self._global_state.previous_config.gateways
+            if gw.Uid not in [ngw.Uid for ngw in self._global_state.normalized_config.gateways]
+        ]
+
+        if not gw_uids_to_remove:
+            return  # nothing to do
+        gw_ids_to_remove = [
+            self._global_state.import_state.state.lookup_gateway_id(gw_uid) for gw_uid in gw_uids_to_remove if gw_uid
+        ]
+
+        FWOLogger.info(f"marking all entries associated with gateways {gw_uids_to_remove!s} as removed")
+        mutation = FwoApi.get_graphql_code(
+            file_list=[fwo_const.GRAPHQL_QUERY_PATH + "device/markGatewaysRemoved.graphql"]
+        )
+        query_variables = {
+            "gwIds": gw_ids_to_remove,
+            "importId": self._global_state.import_state.state.import_id,
+        }
+        try:
+            result = self._global_state.import_state.api_connection.call(mutation, query_variables=query_variables)
+            affected_tables = {key: value["affected_rows"] for key, value in result["data"].items()}
+            FWOLogger.debug(f"marked gateways {gw_uids_to_remove!s} as removed in tables: {affected_tables!s}")
+            FWOLogger.info(
+                f"marked {sum(affected_tables.values())!s} entries as removed for gateways {gw_uids_to_remove!s}"
+            )
+            self._global_state.import_state.state.stats.statistics.rulebase_link_delete_count += affected_tables.get(
+                "update_rulebase_link", 0
+            )
+        except Exception:
+            FWOLogger.error(
+                f"fwconfig_import_gateway - error while marking gateways {gw_uids_to_remove!s} as removed: {traceback.format_exc()!s}"
+            )

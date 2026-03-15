@@ -170,6 +170,9 @@ def normalize_config(
             zone_objects=convert_list_to_dict(
                 native_and_normalized_config_dict["normalized"]["zone_objects"], "zone_name"
             ),
+            time_objects=convert_list_to_dict(
+                native_and_normalized_config_dict["normalized"]["time_objects"], "time_obj_uid"
+            ),
             rulebases=native_and_normalized_config_dict["normalized"]["policies"],
             gateways=native_and_normalized_config_dict["normalized"]["gateways"],
         )
@@ -223,6 +226,8 @@ def normalize_single_manager_config(
     FWOLogger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(native_config, normalized_config_dict, import_state.import_id)
     FWOLogger.info("completed normalizing service objects")
+    cp_network.normalize_time_objects(native_config, normalized_config_dict)
+    FWOLogger.info("completed normalizing time objects")
     cp_gateway.normalize_gateways(native_config, import_state, normalized_config_dict)
     cp_rule.normalize_rulebases(
         native_config,
@@ -249,6 +254,8 @@ def get_rules(native_config: dict[str, Any], import_state: ImportState, global_s
     global_assignments, global_policy_structure, global_domain, global_sid = None, None, None, None
     manager_details_list = create_ordered_manager_list(import_state)
     for manager_index, manager_details in enumerate(manager_details_list):
+        if manager_details.import_disabled and not import_state.force_import:
+            continue
         cp_manager_api_base_url = import_state.mgm_details.build_fw_api_string()
 
         if manager_details.is_super_manager:
@@ -345,6 +352,8 @@ def process_devices(
     global_state: GlobalState,
 ) -> None:
     for device in manager_details.devices:
+        if device["importDisabled"] and not import_state.force_import:
+            continue
         device_config: dict[str, Any] = initialize_device_config(device)
         if not device_config:
             continue

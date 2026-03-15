@@ -35,28 +35,39 @@ namespace FWO.Middleware.Server
         public string ExtAppId { get; set; } = "";
 
         /// <summary>
-        /// Main User (Dn)
+        /// Main user identifier from import.
+        /// The import source should provide its own user identifier, which is resolved by middleware.
+        /// Legacy: is now imported as responsible with type MainUser.
         /// </summary>
         [JsonProperty("main_user"), JsonPropertyName("main_user")]
         public string? MainUser { get; set; } = "";
-
-        /// <summary>
-        /// List of allowed modellers (Dn)
-        /// </summary>
-        [JsonProperty("modellers"), JsonPropertyName("modellers")]
-        public List<string>? Modellers { get; set; } = [];
-
-        /// <summary>
-        /// List of Ldap Groups of allowed modellers (Dn): (currently handled same as modellers)
-        /// </summary>
-        [JsonProperty("modeller_groups"), JsonPropertyName("modeller_groups")]
-        public List<string>? ModellerGroups { get; set; } = [];
 
         /// <summary>
         /// Criticality of App
         /// </summary>
         [JsonProperty("criticality"), JsonPropertyName("criticality")]
         public string? Criticality { get; set; }
+
+        /// <summary>
+        /// Owner lifecycle state name
+        /// </summary>
+        [JsonProperty("owner_lifecycle_state"), JsonPropertyName("owner_lifecycle_state")]
+        public string? OwnerLifecycleState { get; set; }
+
+        /// <summary>
+        /// Owner responsibles grouped by responsible type key.
+        /// Values may be user or group identifiers from the source system.
+        /// Keys must be numeric.
+        /// Incoming keys are sorted numerically and assigned to responsible types
+        /// sorted by sort_order (lowest key -> first type by sort_order, next key -> next type).
+        /// Example:
+        /// "responsibles": {
+        ///   "1": ["user1"],
+        ///   "2": []
+        /// }
+        /// </summary>
+        [JsonProperty("responsibles"), JsonPropertyName("responsibles")]
+        public Dictionary<string, List<string>>? Responsibles { get; set; } = [];
 
         /// <summary>
         /// Source of App import

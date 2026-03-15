@@ -3,7 +3,9 @@ using NUnit.Framework.Legacy;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Services;
+using FWO.Services.Modelling;
 using FWO.Basics;
+using Microsoft.AspNetCore.Components;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -348,6 +350,143 @@ namespace FWO.Test
 
             // ASSERT
             ClassicAssert.AreEqual(true, result, "Method should return true when both lists are empty after deletion");
+        }
+
+        [Test]
+        public void AddExtraConfig_EnablesAddMode()
+        {
+            ModellingConnection connection = new() { Id = 9 };
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
+
+            handler.AddExtraConfig();
+
+            ClassicAssert.IsTrue(handler.AddExtraConfigMode);
+        }
+
+        [Test]
+        public void SaveExtraConfig_AssignsIncrementedIdAndAddsEntry()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 10,
+                ExtraConfigs = [new ModellingExtraConfig { Id = 5, ExtraConfigType = "T1", ExtraConfigText = "A" }]
+            };
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
+            ModellingExtraConfig newConfig = new() { ExtraConfigType = "T2", ExtraConfigText = "B" };
+
+            bool result = handler.SaveExtraConfig(newConfig);
+
+            ClassicAssert.IsTrue(result);
+            ClassicAssert.AreEqual(2, handler.ActConn.ExtraConfigs.Count);
+            ClassicAssert.AreEqual(6, handler.ActConn.ExtraConfigs.Max(c => c.Id));
+        }
+
+        [Test]
+        public void UpdateExtraConfig_SanitizesUpdatedText()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 11,
+                ExtraConfigs = [new ModellingExtraConfig { Id = 1, ExtraConfigType = "Type", ExtraConfigText = "Clean" }]
+            };
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
+            ModellingExtraConfig target = handler.ActConn.ExtraConfigs[0];
+            ChangeEventArgs change = new() { Value = "Bad!" };
+
+            handler.UpdateExtraConfig(change, target);
+
+            ClassicAssert.AreEqual("Bad", handler.ActConn.ExtraConfigs[0].ExtraConfigText);
+        }
+
+        [Test]
+        public void DeleteExtraConfig_RemovesMatchingEntry()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 12,
+                ExtraConfigs =
+                [
+                    new ModellingExtraConfig { Id = 1, ExtraConfigType = "T1", ExtraConfigText = "A" },
+                    new ModellingExtraConfig { Id = 2, ExtraConfigType = "T2", ExtraConfigText = "B" }
+                ]
+            };
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
+
+            bool result = handler.DeleteExtraConfig(new ModellingExtraConfig { Id = 1 });
+
+            ClassicAssert.IsTrue(result);
+            ClassicAssert.AreEqual(1, handler.ActConn.ExtraConfigs.Count);
+            ClassicAssert.AreEqual(2, handler.ActConn.ExtraConfigs[0].Id);
+        }
+
+        [Test]
+        public void SrcDropForbidden_ReturnsTrueWhenReadOnly()
+        {
+            ModellingConnection connection = new() { Id = 13 };
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true)
+            {
+                SrcReadOnly = true
+            };
+
+            ClassicAssert.IsTrue(handler.SrcDropForbidden());
+        }
+
+        [Test]
+        public void SrcDropForbidden_ReturnsTrueWhenInterfaceAndDestinationFilled()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 14,
+                IsInterface = true,
+                DestinationAreas = [new() { Content = Area1 }]
+            };
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
+
+            ClassicAssert.IsTrue(handler.SrcDropForbidden());
+        }
+
+        [Test]
+        public void SrcDropForbidden_ReturnsFalseWhenEditableAndNoInterfaceConstraint()
+        {
+            ModellingConnection connection = new() { Id = 15 };
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
+
+            ClassicAssert.IsFalse(handler.SrcDropForbidden());
+        }
+
+        [Test]
+        public void DstDropForbidden_ReturnsTrueWhenReadOnly()
+        {
+            ModellingConnection connection = new() { Id = 16 };
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true)
+            {
+                DstReadOnly = true
+            };
+
+            ClassicAssert.IsTrue(handler.DstDropForbidden());
+        }
+
+        [Test]
+        public void DstDropForbidden_ReturnsTrueWhenInterfaceAndSourceFilled()
+        {
+            ModellingConnection connection = new()
+            {
+                Id = 17,
+                IsInterface = true,
+                SourceAreas = [new() { Content = Area1 }]
+            };
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
+
+            ClassicAssert.IsTrue(handler.DstDropForbidden());
+        }
+
+        [Test]
+        public void DstDropForbidden_ReturnsFalseWhenEditableAndNoInterfaceConstraint()
+        {
+            ModellingConnection connection = new() { Id = 18 };
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
+
+            ClassicAssert.IsFalse(handler.DstDropForbidden());
         }
     }
 }

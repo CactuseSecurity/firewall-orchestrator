@@ -8,6 +8,8 @@ using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Recert;
 using FWO.Services;
+using FWO.Services.Modelling;
+using FWO.Services.Workflow;
 using Quartz;
 using System.Linq;
 
@@ -47,10 +49,11 @@ namespace FWO.Middleware.Server.Jobs
                 }
                 await CheckRecerts();
                 await CheckUnansweredInterfaceRequests();
+                await CheckRuleExpiry();
             }
             catch (Exception exc)
             {
-                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitle, GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitle, GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
             }
         }
 
@@ -67,8 +70,16 @@ namespace FWO.Middleware.Server.Jobs
                 RecertCheck recertCheck = new(apiConnection, globalConfig);
                 int emailsSent = await recertCheck.CheckRecertifications();
                 Log.WriteDebug(LogMessageTitle, $"Recert Check: Sent {emailsSent} emails.");
-                await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, 0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
+                await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }
+        }
+
+        private async Task CheckRuleExpiry()
+        {
+            RuleExpiryCheck ruleExpiryCheck = new(apiConnection, globalConfig);
+            int ruleExpiryEmailsSent = await ruleExpiryCheck.CheckRuleExpiry();
+            Log.WriteDebug(LogMessageTitle, $"Rule Expiry Check: Sent {ruleExpiryEmailsSent} emails.");
+            await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Rule Expiry Check", ruleExpiryEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
         }
 
         private struct DemoDataFlags
@@ -99,12 +110,12 @@ namespace FWO.Middleware.Server.Jobs
                                                         (demoDataFlags.SampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
                                                         (demoDataFlags.SampleGroupExisting ? globalConfig.GetText("groups") + " " : "") +
                                                         (demoDataFlags.SampleOwnerExisting ? globalConfig.GetText("owners") : "");
-                await SchedulerJobHelper.SetAlert(apiConnection, globalConfig.GetText("sample_data"), description, GlobalConst.kDailyCheck, AlertCode.SampleDataExisting, new SchedulerJobHelper.AdditionalAlertData());
-                await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, 1, globalConfig.GetText("daily_sample_data_check"), description, GlobalConst.kDailyCheck);
+                await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("sample_data"), description, GlobalConst.kDailyCheck, AlertCode.SampleDataExisting, new AlertHelper.AdditionalAlertData());
+                await AlertHelper.AddLogEntry(apiConnection, 1, globalConfig.GetText("daily_sample_data_check"), description, GlobalConst.kDailyCheck);
             }
             else
             {
-                await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, 0, globalConfig.GetText("daily_sample_data_check"), globalConfig.GetText("no_sample_data_found"), GlobalConst.kDailyCheck);
+                await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("daily_sample_data_check"), globalConfig.GetText("no_sample_data_found"), GlobalConst.kDailyCheck);
             }
         }
 
@@ -146,24 +157,24 @@ namespace FWO.Middleware.Server.Jobs
                     if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))
                     {
                         jsonData = imp.LastIncompleteImport;
-                        await SchedulerJobHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7011"), GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, new SchedulerJobHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
+                        await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7011"), GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
                         importIssues++;
                     }
                 }
                 else if (imp.LastImport == null || imp.LastImport.Length == 0)
                 {
                     jsonData = imp;
-                    await SchedulerJobHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7012"), GlobalConst.kDailyCheck, AlertCode.NoImport, new SchedulerJobHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
+                    await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7012"), GlobalConst.kDailyCheck, AlertCode.NoImport, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
                     importIssues++;
                 }
                 else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval))
                 {
                     jsonData = imp;
-                    await SchedulerJobHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7013"), GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, new SchedulerJobHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
+                    await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7013"), GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
                     importIssues++;
                 }
             }
-            await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, importIssues != 0 ? 1 : 0, globalConfig.GetText("daily_importer_check"),
+            await AlertHelper.AddLogEntry(apiConnection, importIssues != 0 ? 1 : 0, globalConfig.GetText("daily_importer_check"),
                 importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found"), GlobalConst.kDailyCheck);
         }
 
@@ -185,7 +196,7 @@ namespace FWO.Middleware.Server.Jobs
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
                     if (owner != null)
                     {
-                        emailsSent += await notificationService.SendNotification(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
+                        emailsSent += await notificationService.SendNotificationIfDue(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
                     }
                 }
             }
@@ -219,7 +230,7 @@ namespace FWO.Middleware.Server.Jobs
                 }
                 catch (Exception exc)
                 {
-                    await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitle, GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
+                    await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitle, GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
                 }
             }
             return reqOwner;

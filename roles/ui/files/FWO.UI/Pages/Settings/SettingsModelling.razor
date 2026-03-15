@@ -1,4 +1,7 @@
 @using System.Text.Json
+@using FWO.Api.Client.Queries
+@using FWO.Basics
+@using FWO.Data
 @using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using FWO.Ui.Data
@@ -83,7 +86,7 @@
                 </div>
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5620"))">
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5620"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("common_areas"):</label>
             <CommonAreaSelection CommonAreas="CommonAreas" CommAreasToDelete="CommAreasToDelete" SearchCommonArea="SearchCommonArea"/>
         </div>
@@ -200,18 +203,18 @@
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
-            <div class="col-sm-3">
-                <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="configData!.ModReqEmailReceiver"
-                        ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
-                    <ElementTemplate Context="opt">
-                        @(userConfig.GetText(opt.ToString()))
-                    </ElementTemplate>
-                </Dropdown>
+            <div class="col-sm-4">
+                <ModellingEmailRecipientSelectionEditor Selection="@modReqEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                    CheckboxIdPrefix="cbx_mod_req_mail" />
             </div>
             <label for="cbx_email_requester_in_cc" class="col-form-label col-sm-2">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
             <div class="col-sm-1">
                 <input id="cbx_email_requester_in_cc" type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
             </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailOtherAddresses")):</label>
+            <input type="text" class="col-sm-6" disabled="@(!modReqEmailRecipients.OtherAddresses || modReqEmailRecipients.None)" @bind="configData!.ModReqEmailOtherAddresses" />
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailSubject")):</label>
@@ -242,14 +245,14 @@
         <hr />
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5660"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailReceiver")):</label>
-            <div class="col-sm-3">
-                <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="configData!.ModDecommEmailReceiver"
-                        ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
-                    <ElementTemplate Context="opt">
-                        @(userConfig.GetText(opt.ToString()))
-                    </ElementTemplate>
-                </Dropdown>
+            <div class="col-sm-4">
+                <ModellingEmailRecipientSelectionEditor Selection="@modDecommEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                    CheckboxIdPrefix="cbx_mod_decomm_mail" />
             </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailOtherAddresses")):</label>
+            <input type="text" class="col-sm-6" disabled="@(!modDecommEmailRecipients.OtherAddresses || modDecommEmailRecipients.None)" @bind="configData!.ModDecommEmailOtherAddresses" />
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailSubject")):</label>
@@ -285,6 +288,18 @@
                 <label for="cbx_request_nat" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutNatHeuristic")):</label>
                 <div class="col-sm-2">
                     <input id="cbx_request_nat" type="checkbox" class="w-100" @bind="configData!.ModRolloutNatHeuristic">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5667"))">
+                <label for="cbx_rollout_removed" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutRemovedAppServers")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_rollout_removed" type="checkbox" class="w-100" @bind="configData!.ModRolloutRemovedAppServers">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5668"))">
+                <label for="cbx_request_only_own_objects" class="col-form-label col-sm-8">@(userConfig.GetText("modRequestOnlyOwnObjects")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_request_only_own_objects" type="checkbox" class="w-100" @bind="configData!.ModRequestOnlyOwnObjects">
                 </div>
             </div>
         </div>
@@ -391,6 +406,9 @@ else
     private string actExtraConfig = "";
 
     private List<ModellingNwGroup> allAreas = [];
+    private List<OwnerResponsibleType> activeOwnerResponsibleTypes = [];
+    private ModellingEmailRecipientSelection modReqEmailRecipients = new();
+    private ModellingEmailRecipientSelection modDecommEmailRecipients = new();
     private List<CommonArea> CommonAreas = [];
     private List<CommonArea> CommAreasToDelete = [];
     private List<CommonArea> SpecUserAreas = [];
@@ -414,6 +432,15 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
+            activeOwnerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            activeOwnerResponsibleTypes = activeOwnerResponsibleTypes
+                .Where(type => type.Active)
+                .OrderByDescending(type => type.SortOrder)
+                .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
+            modReqEmailRecipients = ModellingEmailRecipientSelection.Parse(configData.ModReqEmailReceiver, activeTypeIds);
+            modDecommEmailRecipients = ModellingEmailRecipientSelection.Parse(configData.ModDecommEmailReceiver, activeTypeIds);
             ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? [];
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
             if (configData.ModAppServerTypes != "")
@@ -560,6 +587,7 @@ else
     private void PrepareConfigData()
     {
         PrepareExtraConfigs();
+        PrepareModellingMailRecipients();
         configData!.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
         configData!.ModCommonAreas = PrepareAreas(CommonAreas, CommAreasToDelete);
@@ -567,6 +595,13 @@ else
         configData!.ModUpdatableObjAreas = PrepareAreas(UpdObjAreas, UpdObjAreasToDelete);
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
         configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
+    }
+
+    private void PrepareModellingMailRecipients()
+    {
+        List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
+        configData!.ModReqEmailReceiver = modReqEmailRecipients.ToConfigValue(activeTypeIds);
+        configData!.ModDecommEmailReceiver = modDecommEmailRecipients.ToConfigValue(activeTypeIds);
     }
 
     private string PrepareAreas(List<CommonArea> areas, List<CommonArea> areasToDelete)

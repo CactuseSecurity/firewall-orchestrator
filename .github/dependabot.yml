@@ -1,8 +1,17 @@
 version: 2
 
+registries:
+  private-github:
+    type: git
+    url: https://github.com
+    username: x-access-token
+    password: ${{ secrets.PRIVATE_SUBMODULE_TOKEN }}
+
 updates:
   - package-ecosystem: "nuget"
     directory: "/roles/"
     target-branch: "develop"
     schedule:
       interval: "daily"
+    registries:
+      - private-github

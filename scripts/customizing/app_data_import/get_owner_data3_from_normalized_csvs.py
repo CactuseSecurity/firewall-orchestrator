@@ -96,6 +96,27 @@ def parse_criticality_recert_period_mapping(mapping_entries: list[str]) -> dict[
     return mapping
 
 
+def build_git_repo_url(
+    repo_url_without_protocol: str | None,
+    git_username: str | None,
+    git_password: str | None,
+    logger: logging.Logger,
+    repo_purpose: str,
+) -> str | None:
+    if not repo_url_without_protocol:
+        logger.warning("%s git repo url missing in config; skipping repository access", repo_purpose)
+        return None
+
+    normalized_repo_url: str = repo_url_without_protocol.removeprefix("https://").removeprefix("http://")
+    if git_username and git_password:
+        return f"https://{git_username}:{git_password}@{normalized_repo_url}"
+
+    if git_username or git_password:
+        logger.warning("%s git credentials incomplete in config; using anonymous repository access", repo_purpose)
+
+    return f"https://{normalized_repo_url}"
+
+
 def _expand_responsibles_entries(entries: list[str]) -> list[str]:
     expanded: list[str] = []
     entry_value: str
@@ -365,11 +386,18 @@ if __name__ == "__main__":
         app_data_repo_target_dir = import_from_folder
     else:
         base_dir = app_data_repo_target_dir
-        app_data_repo_url: str = (
-            "https://" + cmdb_git_username + ":" + cmdb_git_password + "@" + cmdb_git_repo_url_without_protocol
+        app_data_repo_url: str | None = build_git_repo_url(
+            cmdb_git_repo_url_without_protocol,
+            cmdb_git_username,
+            cmdb_git_password,
+            logger,
+            "CMDB",
         )
-
-        repo_updated = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger, depth=git_depth)
+        repo_updated: bool = (
+            update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger, depth=git_depth)
+            if app_data_repo_url
+            else False
+        )
         if not repo_updated:
             logger.warning("trying to read csv files from folder given as parameter...")
 
@@ -377,13 +405,23 @@ if __name__ == "__main__":
     # 2. get app list with activated recertification
 
     if recert_active_repo_url and recert_active_file_name:
-        recert_repo_url: str = f"https://{cmdb_git_username}:{cmdb_git_password}@{recert_active_repo_url}"
-        recert_activation_data: str | None = read_file_from_git_repo(
-            recert_repo_url,
-            recert_repo_target_dir,
-            recert_active_file_name,
+        recert_repo_url: str | None = build_git_repo_url(
+            recert_active_repo_url,
+            cmdb_git_username,
+            cmdb_git_password,
             logger,
-            depth=git_depth,
+            "recertification activation",
+        )
+        recert_activation_data: str | None = (
+            read_file_from_git_repo(
+                recert_repo_url,
+                recert_repo_target_dir,
+                recert_active_file_name,
+                logger,
+                depth=git_depth,
+            )
+            if recert_repo_url
+            else None
         )
         recert_active_app_list: list[str] = recert_activation_data.splitlines() if recert_activation_data else []
         logger.info("found %s apps with active recertification", len(recert_active_app_list))

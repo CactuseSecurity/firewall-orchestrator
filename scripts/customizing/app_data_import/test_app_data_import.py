@@ -6,6 +6,7 @@ from pathlib import Path
 
 from scripts.customizing.app_data_import.get_owner_data3_from_normalized_csvs import (
     apply_owner_column_overrides,
+    build_git_repo_url,
     parse_criticality_recert_period_mapping,
     parse_responsibles_columns,
 )
@@ -604,6 +605,35 @@ class AppDataImportTests(unittest.TestCase):
     def test_parse_criticality_recert_period_mapping_parses_entries(self) -> None:
         mapping: dict[str, int] = parse_criticality_recert_period_mapping(["1:360", "2:360", "3:180"])
         self.assertEqual(mapping, {"1": 360, "2": 360, "3": 180})
+
+    def test_build_git_repo_url_includes_credentials_when_configured(self) -> None:
+        repo_url: str | None = build_git_repo_url(
+            "github.example.de/cmdb/app-export",
+            "git-user-1",
+            "secret",
+            self.logger,
+            "CMDB",
+        )
+
+        self.assertEqual(repo_url, "https://git-user-1:secret@github.example.de/cmdb/app-export")
+
+    def test_build_git_repo_url_uses_anonymous_access_when_credentials_missing(self) -> None:
+        repo_url: str | None = build_git_repo_url(
+            "https://github.example.de/cmdb/app-export",
+            None,
+            None,
+            self.logger,
+            "CMDB",
+        )
+
+        self.assertEqual(repo_url, "https://github.example.de/cmdb/app-export")
+
+    def test_build_git_repo_url_returns_none_when_repo_missing(self) -> None:
+        with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+            repo_url: str | None = build_git_repo_url(None, None, None, self.logger, "CMDB")
+
+        self.assertIsNone(repo_url)
+        self.assertTrue(any("git repo url missing" in message for message in log_context.output))
 
     def test_parse_responsibles_columns_parses_grouped_entries(self) -> None:
         parsed: dict[str, tuple[str, ...]] = parse_responsibles_columns(

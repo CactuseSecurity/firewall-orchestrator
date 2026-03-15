@@ -13,7 +13,6 @@ class FwoConfigController:
         self,
         fwo_config_filename: str = FWO_CONFIG_FILENAME,
         force: bool = False,
-        is_full_import: bool = False,
         clear: bool = False,
         debug_level: int = 0,
     ):
@@ -36,7 +35,6 @@ class FwoConfigController:
             importer_user_name=importer_user_name,
             sleep_timer=sleep_timer,
             force=force,
-            is_full_import=is_full_import,
             clear=clear,
             debug_level=debug_level,
         )

@@ -254,7 +254,7 @@ def get_rules(native_config: dict[str, Any], import_state: ImportState, global_s
     global_assignments, global_policy_structure, global_domain, global_sid = None, None, None, None
     manager_details_list = create_ordered_manager_list(import_state)
     for manager_index, manager_details in enumerate(manager_details_list):
-        if manager_details.import_disabled and not import_state.force_import:
+        if manager_details.import_disabled and not global_state.fwo_config_controller.fwo_config.force:
             continue
         cp_manager_api_base_url = import_state.mgm_details.build_fw_api_string()
 
@@ -352,7 +352,7 @@ def process_devices(
     global_state: GlobalState,
 ) -> None:
     for device in manager_details.devices:
-        if device["importDisabled"] and not import_state.force_import:
+        if device["importDisabled"] and not global_state.fwo_config_controller.fwo_config.force:
             continue
         device_config: dict[str, Any] = initialize_device_config(device)
         if not device_config:

@@ -13,7 +13,6 @@ class FwoConfig:
     importer_user_name: str
     sleep_timer: int = 90
     force: bool = False
-    is_full_import: bool = False
     clear: bool = False
     debug_level: int = 0
     ssl_verification: bool = True
@@ -30,7 +29,6 @@ class FwoConfig:
         importer_user_name: str = "importer",
         sleep_timer: int = 90,
         force: bool = False,
-        is_full_import: bool = False,
         clear: bool = False,
         debug_level: int = 0,
         ssl_verification: bool = True,
@@ -45,7 +43,6 @@ class FwoConfig:
         self.major_version = major_version
         self.sleep_timer = sleep_timer
         self.force = force
-        self.is_full_import = is_full_import
         self.clear = clear
         self.debug_level = debug_level
         self.ssl_verification = ssl_verification

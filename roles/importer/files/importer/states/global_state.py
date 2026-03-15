@@ -9,10 +9,9 @@ class GlobalState:
         self,
         config_filename: str,
         force: bool,
-        is_full_import: bool,
         clear: bool,
         debug_level: int,
     ):
         self.fwo_config_controller = FwoConfigController(
-            config_filename, force=force, is_full_import=is_full_import, clear=clear, debug_level=debug_level
+            config_filename, force=force, clear=clear, debug_level=debug_level
         )

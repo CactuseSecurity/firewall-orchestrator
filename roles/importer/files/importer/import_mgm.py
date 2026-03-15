@@ -46,7 +46,6 @@ def main(
     global_state = GlobalState(
         config_filename=file or FWO_CONFIG_FILENAME,
         force=force,
-        is_full_import=False,
         clear=clear_management_data,
         debug_level=debug_level,
     )

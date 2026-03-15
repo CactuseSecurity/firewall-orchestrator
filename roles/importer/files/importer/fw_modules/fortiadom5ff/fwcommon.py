@@ -39,7 +39,7 @@ def get_config(
         parsing_config_only = True
 
     if not parsing_config_only:  # no native config was passed in, so getting it from FortiManager
-        get_native_config(config_in, import_state)
+        get_native_config(config_in, import_state, global_state)
 
     if not config_in.native_config:
         raise ImportError("native config missing")
@@ -49,14 +49,16 @@ def get_config(
     return 0, normalized_managers
 
 
-def get_native_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> None:
-    sid = get_sid(import_state.state)
-    limit = import_state.state.fwo_config.api_fetch_size
-    fm_api_url = import_state.state.mgm_details.build_fw_api_string()
-    native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
+def get_native_config(
+    config_in: FwConfigManagerListController, import_state: ImportState, global_state: GlobalState
+) -> None:
+    sid = get_sid(import_state)
+    limit = global_state.fwo_config_controller.fwo_config.api_fetch_size
+    fm_api_url = import_state.mgm_details.build_fw_api_string()
+    native_config_global = initialize_native_config_domain(import_state.mgm_details)
     config_in.native_config["domains"].append(native_config_global)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
-    adom_list = build_adom_list(import_state.state)
-    adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url, import_state.state)
+    adom_list = build_adom_list(import_state)
+    adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url, global_state)
     # delete_v: das geht schief für unschöne adoms
     arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
     adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url)
@@ -77,7 +79,7 @@ def get_native_config(config_in: FwConfigManagerListController, import_state: Im
     get_zones(sid, fm_api_url, native_config_global, "", limit)
 
     for adom in adom_list:
-        if adom.import_disabled and not import_state.state.force_import:
+        if adom.import_disabled and not global_state.fwo_config_controller.fwo_config.force:
             continue
         # TODO: check if adom exists on fw and fail gracefully if not (custom exception)
         adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM config import")
@@ -105,7 +107,7 @@ def get_native_config(config_in: FwConfigManagerListController, import_state: Im
         #    sid, fm_api_url, nativeConfig, adom_name, adom.Devices, limit)
 
         for mgm_details_device in adom.devices:
-            if mgm_details_device["importDisabled"] and not import_state.state.force_import:
+            if mgm_details_device["importDisabled"] and not global_state.fwo_config_controller.fwo_config.force:
                 continue
             # TODO: check if device exists on fw inside adom and fail gracefully if not (custom exception)
             device_config = initialize_device_config(mgm_details_device)
@@ -136,7 +138,7 @@ def get_native_config(config_in: FwConfigManagerListController, import_state: Im
     except Exception:
         raise FwLogoutFailedError("logout exception probably due to timeout - irrelevant, so ignoring it")
 
-    write_native_config_to_file(import_state.state, config_in.native_config)
+    write_native_config_to_file(import_state, config_in.native_config)
 
 
 def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
@@ -287,11 +289,11 @@ def build_adom_list(import_state: ImportState) -> list[Management]:
 
 
 def build_adom_device_vdom_structure(
-    adom_list: list[Management], sid: str, fm_api_url: str, import_state: ImportState
+    adom_list: list[Management], sid: str, fm_api_url: str, global_state: GlobalState
 ) -> dict[str, dict[str, dict[str, Any]]]:
     adom_device_vdom_structure: dict[str, dict[str, dict[str, Any]]] = {}
     for adom in adom_list:
-        if adom.import_disabled and not import_state.force_import:
+        if adom.import_disabled and not global_state.fwo_config_controller.fwo_config.force:
             continue
         adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM device/vdom mapping")
         adom_device_vdom_structure.update({adom_name: {}})

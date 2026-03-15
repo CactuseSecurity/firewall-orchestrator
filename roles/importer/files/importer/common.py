@@ -162,7 +162,7 @@ def _import_management(
     # TODO: replace by deletion of old data with removed date > retention?
     if not fwo_config.clear and import_state.data_retention_days < import_state.days_since_last_full_import:
         config_importer.delete_old_imports(
-            global_state=global_state, import_state=import_state
+            import_state=import_state
         )  # delete all imports of the current management before the last but one full import
 
 

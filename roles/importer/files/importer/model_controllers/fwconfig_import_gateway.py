@@ -59,7 +59,10 @@ class FwConfigImportGateway:
         )
         self.update_interface_diffs()
         self.update_routing_diffs()
-        self.update_removed_gateways()
+        self.update_removed_gateways(
+            management_state=management_state,
+            import_state=import_state,
+        )
 
     def update_rulebase_link_diffs(
         self, import_state: ImportState, management_state: ManagementState, rb_link_controller: RulebaseLinkController
@@ -227,19 +230,19 @@ class FwConfigImportGateway:
         # TODO: needs to be implemented
         pass
 
-    def update_removed_gateways(self):
-        if self._global_state.normalized_config is None or self._global_state.previous_config is None:
+    def update_removed_gateways(self, management_state: ManagementState, import_state: ImportState):
+        if management_state.normalized_config is None or management_state.previous_config is None:
             raise FwoImporterError("normalized_config or previous_config is None in update_removed_gateways")
         gw_uids_to_remove = [
             gw.Uid
-            for gw in self._global_state.previous_config.gateways
-            if gw.Uid not in [ngw.Uid for ngw in self._global_state.normalized_config.gateways]
+            for gw in management_state.previous_config.gateways
+            if gw.Uid not in [ngw.Uid for ngw in management_state.normalized_config.gateways]
         ]
 
         if not gw_uids_to_remove:
             return  # nothing to do
         gw_ids_to_remove = [
-            self._global_state.import_state.state.lookup_gateway_id(gw_uid) for gw_uid in gw_uids_to_remove if gw_uid
+            import_state.lookup_gateway_id(gw_uid, management_state.mgm_id) for gw_uid in gw_uids_to_remove if gw_uid
         ]
 
         FWOLogger.info(f"marking all entries associated with gateways {gw_uids_to_remove!s} as removed")
@@ -248,16 +251,16 @@ class FwConfigImportGateway:
         )
         query_variables = {
             "gwIds": gw_ids_to_remove,
-            "importId": self._global_state.import_state.state.import_id,
+            "importId": import_state.import_id,
         }
         try:
-            result = self._global_state.import_state.api_connection.call(mutation, query_variables=query_variables)
+            result = import_state.fwo_api_call.call(mutation, query_variables=query_variables)
             affected_tables = {key: value["affected_rows"] for key, value in result["data"].items()}
             FWOLogger.debug(f"marked gateways {gw_uids_to_remove!s} as removed in tables: {affected_tables!s}")
             FWOLogger.info(
                 f"marked {sum(affected_tables.values())!s} entries as removed for gateways {gw_uids_to_remove!s}"
             )
-            self._global_state.import_state.state.stats.statistics.rulebase_link_delete_count += affected_tables.get(
+            import_state.statistics_controller.statistics.rulebase_link_delete_count += affected_tables.get(
                 "update_rulebase_link", 0
             )
         except Exception:

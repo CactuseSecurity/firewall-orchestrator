@@ -8,11 +8,11 @@ import urllib3
 from common import import_management  # type: ignore[import-not-found]
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
-from fwo_base import register_global_state
-from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
+from fwo_const import BASE_DIR, FWO_CONFIG_FILENAME, IMPORTER_BASE_DIR
 from fwo_exceptions import FwoApiLoginFailedError
 from fwo_log import FWOLogger
-from model_controllers.import_state_controller import ImportStateController
+from states.global_state import GlobalState
+from states.import_state import ImportState
 
 if IMPORTER_BASE_DIR not in sys.path:
     sys.path.append(IMPORTER_BASE_DIR)
@@ -43,7 +43,13 @@ def main(
     FWOLogger(debug_level)
     FWOLogger.debug("debug level set to " + str(debug_level))
 
-    fwo_config = FWOConfig()
+    global_state = GlobalState(
+        config_filename=file or FWO_CONFIG_FILENAME,
+        force=force,
+        is_full_import=False,
+        clear=clear_management_data,
+        debug_level=debug_level,
+    )
     verify_certificates = verify_certificates_default
     if suppress_certificate_warnings:
         urllib3.disable_warnings()
@@ -61,13 +67,15 @@ def main(
         FWOLogger.error("error while reading importer pwd file")
         raise
 
-    jwt = get_fwo_jwt(importer_user_name, importer_pwd, fwo_config.user_management_api_base_url)
+    jwt = get_fwo_jwt(
+        importer_user_name, importer_pwd, global_state.fwo_config_controller.fwo_config.fwo_user_mgmt_api_uri
+    )
     # check if login was successful - if not, wait and retry
     if jwt is None:
         FWOLogger.error("cannot proceed without successful login - exiting")
         return
 
-    fwo_api = FwoApi(fwo_config.api_base_url, jwt)
+    fwo_api = FwoApi(global_state.fwo_config_controller.fwo_config.fwo_api_url, jwt)
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # suppress ssl warnings only
@@ -76,28 +84,17 @@ def main(
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
 
-    import_state = ImportStateController.initialize_import(
-        mgm_id,
-        fwo_api_call,
-        suppress_certificate_warnings,
-        verify_certificates,
-        force,
-        fwo_config.major_version,
-        clear_management_data,
-        is_full_import=True,
+    import_state = ImportState(fwo_api=fwo_api, fwo_api_call=fwo_api_call, mgm_id=mgm_id)
+    global_state.fwo_config_controller.update_settings(
+        ssl_verification=verify_certificates,
+        suppress_certificate_warnings=suppress_certificate_warnings,
+        suppress_consistency_check=suppress_consistency_check,
+        api_fetch_size=limit,
     )
 
-    register_global_state(import_state)
-
     import_management(
-        mgm_id,
-        fwo_api_call,
-        verify_certificates,
-        limit,
-        clear_management_data,
-        suppress_certificate_warnings,
-        file,
-        suppress_consistency_check,
+        global_state,
+        import_state,
     )
 
 

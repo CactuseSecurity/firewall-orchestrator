@@ -3,15 +3,16 @@ from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig
 from fwo_base import write_native_config_to_file
 from fwo_exceptions import FwoNativeConfigParseError
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from models.fw_common import FwCommon
 from models.fwconfigmanager import FwConfigManager
 from pydantic import ValidationError
+from states.global_state import GlobalState
+from states.import_state import ImportState
 
 
 class FortiosManagementRESTCommon(FwCommon):
     def get_config(
-        self, config_in: FwConfigManagerListController, import_state: ImportStateController
+        self, config_in: FwConfigManagerListController, import_state: ImportState, global_state: GlobalState
     ) -> tuple[int, FwConfigManagerListController]:
         ensure_manager_set(config_in, import_state)
         ensure_device_name(import_state)

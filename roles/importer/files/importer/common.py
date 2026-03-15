@@ -282,7 +282,7 @@ def get_config_from_api(
 
     if config_changed_since_last_import or force_import:
         # get config from product-specific FW API
-        _, native_config = fw_module.get_config(config_in, import_state)
+        _, native_config = fw_module.get_config(config_in, import_state, global_state)
     else:
         native_config = FwConfigManagerListController.generate_empty_config(import_state.mgm_details.is_super_manager)
     if config_in.native_config is None:

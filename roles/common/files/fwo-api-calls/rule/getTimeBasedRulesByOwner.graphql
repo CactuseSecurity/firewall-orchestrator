@@ -1,0 +1,125 @@
+query getTimeBasedRulesByOwner {
+  rule_owner(
+    where: {
+      removed: { _is_null: true }
+      owner: { active: { _eq: true } }
+      rule: {
+        removed: { _is_null: true }
+        rule_times: {
+          removed: { _is_null: true }
+          time_object: { removed: { _is_null: true }, end_time: { _is_null: false } }
+        }
+      }
+    }
+  ) {
+    owner {
+      id
+      name
+      app_id_external
+    }
+    rule {
+      rule_id
+      rule_uid
+      rule_name
+      mgm_id
+      rule_num
+      rule_src_neg
+      rule_dst_neg
+      rule_svc_neg
+      rule_src
+      rule_dst
+      rule_svc
+      rule_custom_fields
+      rule_metadatum {
+        rule_last_hit
+      }
+      rulebase {
+        name
+      }
+      rule_froms(
+        where: {
+          removed: { _is_null: true }
+          object: { removed: { _is_null: true } }
+        }
+        order_by: { object: { obj_name: asc } }
+      ) {
+        usr {
+          user_id
+          user_uid
+          user_name
+        }
+        object {
+          obj_id
+          obj_uid
+          obj_name
+          obj_ip
+          obj_ip_end
+          type: stm_obj_typ {
+            id: obj_typ_id
+            name: obj_typ_name
+          }
+        }
+      }
+      rule_tos(
+        where: {
+          removed: { _is_null: true }
+          object: { removed: { _is_null: true } }
+        }
+        order_by: { object: { obj_name: asc } }
+      ) {
+        usr {
+          user_id
+          user_uid
+          user_name
+        }
+        object {
+          obj_id
+          obj_uid
+          obj_name
+          obj_ip
+          obj_ip_end
+          type: stm_obj_typ {
+            id: obj_typ_id
+            name: obj_typ_name
+          }
+        }
+      }
+      rule_services(
+        where: {
+          removed: { _is_null: true }
+          service: { removed: { _is_null: true } }
+        }
+        order_by: { service: { svc_name: asc } }
+      ) {
+        service {
+          svc_id
+          svc_uid
+          svc_name
+          svc_port
+          svc_port_end
+          service_type: stm_svc_typ {
+            name: svc_typ_name
+          }
+          ip_proto_id
+          protocol_name: stm_ip_proto {
+            id: ip_proto_id
+            name: ip_proto_name
+          }
+        }
+      }
+      rule_times(
+        where: {
+          removed: { _is_null: true }
+          time_object: { removed: { _is_null: true }, end_time: { _is_null: false } }
+        }
+      ) {
+        time_obj_id
+        time_object {
+          time_obj_id
+          time_obj_name
+          end_time
+        }
+      }
+    }
+  }
+}

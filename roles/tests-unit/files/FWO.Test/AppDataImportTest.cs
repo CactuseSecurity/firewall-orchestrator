@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
+using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
@@ -628,29 +629,78 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TryUpsertUiUser_ReturnsEarly_WhenDnAlreadyHandled()
+        public async Task AddResponsibleDnToUiUser_ImportsUsersFromGroupDn_OutsideConfiguredGroupPath()
         {
-            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
-            HashSet<string> handledUserDns = new(StringComparer.OrdinalIgnoreCase)
+            ResolverTestAppDataImport import = new(
+                new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                new Dictionary<string, UiUser>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["cn=user1,ou=users,dc=example,dc=com"] = new() { Dn = "cn=user1,ou=users,dc=example,dc=com", Name = "user1" },
+                    ["cn=user2,ou=users,dc=example,dc=com"] = new() { Dn = "cn=user2,ou=users,dc=example,dc=com", Name = "user2" }
+                },
+                new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["cn=group1,ou=external-groups,dc=example,dc=com"] =
+                    [
+                        "cn=user1,ou=users,dc=example,dc=com",
+                        "cn=user2,ou=users,dc=example,dc=com"
+                    ]
+                });
+            SetConnectedLdaps(import,
+            [
+                new Ldap
+                {
+                    Id = 5,
+                    GroupSearchPath = "ou=internal-groups,dc=example,dc=com"
+                }
+            ]);
+            HashSet<string> handledUserDns = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> handledGroupDnsByLdap = new(StringComparer.OrdinalIgnoreCase);
+
+            await InvokeAddResponsibleDnToUiUser(import, "cn=group1,ou=external-groups,dc=example,dc=com", handledUserDns, handledGroupDnsByLdap);
+
+            Assert.That(handledGroupDnsByLdap.Contains("5|cn=group1,ou=external-groups,dc=example,dc=com"), Is.True);
+            Assert.That(handledUserDns, Is.EquivalentTo(new[]
             {
-                "cn=user1,dc=example,dc=com"
-            };
-
-            await InvokeTryUpsertUiUser(import, "cn=user1,dc=example,dc=com", handledUserDns);
-
-            Assert.That(handledUserDns.Count, Is.EqualTo(1));
+                "cn=user1,ou=users,dc=example,dc=com",
+                "cn=user2,ou=users,dc=example,dc=com"
+            }));
         }
 
         [Test]
-        public async Task TryUpsertUiUser_AddsDn_WhenNotHandledAndUserCannotBeResolved()
+        public async Task AddResponsibleDnToUiUser_TriesDnAsUserBeforeResolvingGroupMembers()
         {
-            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
-            SetConnectedLdaps(import, []);
+            ResolverTestAppDataImport import = new(
+                new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                new Dictionary<string, UiUser>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["cn=user-or-group,ou=mixed,dc=example,dc=com"] = new() { Dn = "cn=user-or-group,ou=mixed,dc=example,dc=com", Name = "mixedUser" }
+                },
+                new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["cn=user-or-group,ou=mixed,dc=example,dc=com"] =
+                    [
+                        "cn=group-member,ou=users,dc=example,dc=com"
+                    ]
+                });
+            SetConnectedLdaps(import,
+            [
+                new Ldap
+                {
+                    Id = 5,
+                    GroupSearchPath = "ou=groups,dc=example,dc=com"
+                }
+            ]);
             HashSet<string> handledUserDns = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> handledGroupDnsByLdap = new(StringComparer.OrdinalIgnoreCase);
 
-            await InvokeTryUpsertUiUser(import, "cn=user2,dc=example,dc=com", handledUserDns);
+            await InvokeAddResponsibleDnToUiUser(import, "cn=user-or-group,ou=mixed,dc=example,dc=com", handledUserDns, handledGroupDnsByLdap);
 
-            Assert.That(handledUserDns.Contains("cn=user2,dc=example,dc=com"), Is.True);
+            Assert.That(handledUserDns, Is.EquivalentTo(new[]
+            {
+                "cn=user-or-group,ou=mixed,dc=example,dc=com"
+            }));
+            Assert.That(handledGroupDnsByLdap, Is.Empty);
         }
 
         [Test]
@@ -795,6 +845,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task UpdateOwnerResponsibles_RemovesMappedRoles_ForDeletedResponsibles()
+        {
+            AppDataImportResponsiblesApiConn apiConn = new();
+            RoleRemovalTrackingImport import = new(apiConn);
+            SetOwnerDataImportSyncUsers(import, true);
+            SetResponsibleTypes(import,
+            [
+                new OwnerResponsibleType { Id = 2, Name = "Supporting", SortOrder = 2, Active = true, AllowModelling = false, AllowRecertification = false }
+            ]);
+            SetRolesByType(import, new Dictionary<int, List<string>>
+            {
+                [2] = ["ReadOnlyRole"]
+            });
+            List<OwnerResponsible> existingResponsibles =
+            [
+                new() { Dn = "cn=delete,dc=example,dc=com", ResponsibleTypeId = 2 }
+            ];
+
+            await InvokeUpdateOwnerResponsibles(import, 123, [], existingResponsibles);
+
+            Assert.That(import.RemovedRoleAssignments, Is.EqualTo(new[]
+            {
+                ("cn=delete,dc=example,dc=com", "ReadOnlyRole")
+            }));
+        }
+
+        [Test]
         public async Task UpdateOwnerResponsibles_DoesNothing_WhenNoChanges()
         {
             AppDataImportResponsiblesApiConn apiConn = new();
@@ -865,6 +942,99 @@ namespace FWO.Test
             Assert.That(imported, Is.False);
             Assert.That(apiConn.NewOwnerCalls, Is.EqualTo(0));
             Assert.That(apiConn.UpdateOwnerCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task NormalizeImportedUserReferences_ResolvesPlainUserIds_AndKeepsDns()
+        {
+            ResolverTestAppDataImport import = new(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["main.user"] = "cn=main.user,ou=users,dc=example,dc=com",
+                ["support.user"] = "cn=support.user,ou=users,dc=example,dc=com"
+            });
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-Resolve",
+                ExtAppId = "APP-RESOLVE",
+                MainUser = " main.user ",
+                Responsibles = new Dictionary<string, List<string>>
+                {
+                    ["1"] =
+                    [
+                        "support.user",
+                        "cn=group1,ou=groups,dc=example,dc=com"
+                    ]
+                }
+            };
+
+            ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
+
+            Assert.That(normalizedApp.MainUser, Is.EqualTo("cn=main.user,ou=users,dc=example,dc=com"));
+            Assert.That(normalizedApp.Responsibles?["1"], Is.EquivalentTo(new[]
+            {
+                "cn=support.user,ou=users,dc=example,dc=com",
+                "cn=group1,ou=groups,dc=example,dc=com"
+            }));
+            Assert.That(import.ResolvedIdentifiers, Is.EqualTo(new[] { "main.user", "support.user" }));
+        }
+
+        [Test]
+        public async Task NormalizeImportedUserReferences_DropsUnresolvablePlainUserIds()
+        {
+            ResolverTestAppDataImport import = new(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase));
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-Unresolved",
+                ExtAppId = "APP-UNRESOLVED",
+                MainUser = "missing.user",
+                Responsibles = new Dictionary<string, List<string>>
+                {
+                    ["1"] =
+                    [
+                        "missing.user",
+                        "cn=group1,ou=groups,dc=example,dc=com"
+                    ]
+                }
+            };
+
+            ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
+
+            Assert.That(normalizedApp.MainUser, Is.Null);
+            Assert.That(normalizedApp.Responsibles?["1"], Is.EqualTo(new[]
+            {
+                "cn=group1,ou=groups,dc=example,dc=com"
+            }));
+            Assert.That(import.ResolvedIdentifiers, Is.EqualTo(new[] { "missing.user", "missing.user" }));
+        }
+
+        [Test]
+        public async Task NormalizeImportedUserReferences_ResolvesPlainGroupNamesToGroupDns()
+        {
+            ResolverTestAppDataImport import = new(
+                new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                null,
+                null,
+                new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["app-support"] = "cn=app-support,ou=groups,dc=example,dc=com"
+                });
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-GroupResolve",
+                ExtAppId = "APP-GROUP-RESOLVE",
+                Responsibles = new Dictionary<string, List<string>>
+                {
+                    ["2"] = ["app-support"]
+                }
+            };
+
+            ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
+
+            Assert.That(normalizedApp.Responsibles?["2"], Is.EqualTo(new[]
+            {
+                "cn=app-support,ou=groups,dc=example,dc=com"
+            }));
+            Assert.That(import.ResolvedGroupIdentifiers, Is.EqualTo(new[] { "app-support" }));
         }
 
         private static AppDataImport CreateImportWithTypeMap(Dictionary<string, int> typeMap)
@@ -1008,15 +1178,6 @@ namespace FWO.Test
             await (Task)method.Invoke(import, [responsibleDn, handledUserDns, handledGroupDnsByLdap])!;
         }
 
-        private static async Task InvokeTryUpsertUiUser(AppDataImport import, string userDn, HashSet<string> handledUserDns)
-        {
-            MethodInfo method = typeof(AppDataImport).GetMethod(
-                "TryUpsertUiUser",
-                BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new InvalidOperationException("TryUpsertUiUser helper not found.");
-            await (Task)method.Invoke(import, [userDn, handledUserDns])!;
-        }
-
         private static async Task<UiUser?> InvokeConvertLdapToUiUser(AppDataImport import, string userDn)
         {
             MethodInfo method = typeof(AppDataImport).GetMethod(
@@ -1042,6 +1203,15 @@ namespace FWO.Test
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("SaveApp helper not found.");
             return await (Task<bool>)method.Invoke(import, [incomingApp, tracker])!;
+        }
+
+        private static async Task<ModellingImportAppData> InvokeNormalizeImportedUserReferences(AppDataImport import, ModellingImportAppData incomingApp)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "NormalizeImportedUserReferences",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("NormalizeImportedUserReferences helper not found.");
+            return await (Task<ModellingImportAppData>)method.Invoke(import, [incomingApp])!;
         }
 
         private static async Task<(int deleted, int failed)> InvokeDeactivateMissingApps(
@@ -1287,6 +1457,67 @@ namespace FWO.Test
                 }
 
                 throw new NotImplementedException($"Query not implemented in save-app test api: {query}");
+            }
+        }
+
+        private sealed class ResolverTestAppDataImport : AppDataImport
+        {
+            private readonly Dictionary<string, string?> resolutions;
+            private readonly Dictionary<string, UiUser> uiUsersByDn;
+            private readonly Dictionary<string, List<string>> groupMembersByDn;
+            private readonly Dictionary<string, string?> groupResolutions;
+            public List<string> ResolvedIdentifiers { get; } = [];
+            public List<string> ResolvedGroupIdentifiers { get; } = [];
+
+            public ResolverTestAppDataImport(
+                Dictionary<string, string?> resolutions,
+                Dictionary<string, UiUser>? uiUsersByDn = null,
+                Dictionary<string, List<string>>? groupMembersByDn = null,
+                Dictionary<string, string?>? groupResolutions = null)
+                : base(new SimulatedApiConnection(), new GlobalConfig())
+            {
+                this.resolutions = resolutions;
+                this.uiUsersByDn = uiUsersByDn ?? new(StringComparer.OrdinalIgnoreCase);
+                this.groupMembersByDn = groupMembersByDn ?? new(StringComparer.OrdinalIgnoreCase);
+                this.groupResolutions = groupResolutions ?? new(StringComparer.OrdinalIgnoreCase);
+            }
+
+            protected override Task<string?> ResolveImportedUserIdentifierToDn(string userIdentifier)
+            {
+                ResolvedIdentifiers.Add(userIdentifier);
+                return Task.FromResult(resolutions.TryGetValue(userIdentifier, out string? resolvedDn) ? resolvedDn : null);
+            }
+
+            protected override Task<UiUser?> ResolveImportedUiUser(string responsibleDn)
+            {
+                return Task.FromResult(uiUsersByDn.TryGetValue(responsibleDn, out UiUser? uiUser) ? uiUser : null);
+            }
+
+            protected override Task<List<string>> ResolveImportedGroupMembers(Ldap ldap, string groupDn)
+            {
+                return Task.FromResult(groupMembersByDn.TryGetValue(groupDn, out List<string>? members) ? members : []);
+            }
+
+            protected override Task<string?> ResolveImportedGroupIdentifierToDn(string groupIdentifier)
+            {
+                ResolvedGroupIdentifiers.Add(groupIdentifier);
+                return Task.FromResult(groupResolutions.TryGetValue(groupIdentifier, out string? resolvedDn) ? resolvedDn : null);
+            }
+        }
+
+        private sealed class RoleRemovalTrackingImport : AppDataImport
+        {
+            public List<(string dn, string role)> RemovedRoleAssignments { get; } = [];
+
+            public RoleRemovalTrackingImport(ApiConnection apiConnection)
+                : base(apiConnection, new GlobalConfig())
+            {
+            }
+
+            protected override Task RemoveRoleFromDn(string dn, string role)
+            {
+                RemovedRoleAssignments.Add((dn, role));
+                return Task.CompletedTask;
             }
         }
     }

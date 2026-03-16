@@ -11921,6 +11921,7 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "active_state",
                       "name",
                       "id"
                     ],
@@ -11932,6 +11933,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "active_state",
                       "name",
                       "id"
                     ],

@@ -37,14 +37,11 @@
   copy:
       src: "upgrade/{{ item }}.sql"
       dest: "{{ database_install_dir }}/upgrade/"
-  loop: "{{ upgrade_files }}"
+  loop: "{{ upgrade_files | community.general.version_sort }}"
   become: true
 
 - name: install upgrades
-  community.postgresql.postgresql_script:
-      db: "{{ fworch_db_name }}"
-      path: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
+  include_tasks: run-upgrade-file.yml
   loop: "{{ upgrade_files | community.general.version_sort }}"
-  become: true
-  ignore_errors: false
-  become_user: postgres
+  loop_control:
+      loop_var: upgrade_file

@@ -16,6 +16,9 @@ namespace FWO.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        [JsonProperty("active_state"), JsonPropertyName("active_state")]
+        public bool ActiveState { get; set; } = true;
+
         public OwnerLifeCycleState()
         { }
 
@@ -23,6 +26,7 @@ namespace FWO.Data
         {
             Id = ownerLifeCycleState.Id;
             Name = ownerLifeCycleState.Name;
+            ActiveState = ownerLifeCycleState.ActiveState;
         }
 
 

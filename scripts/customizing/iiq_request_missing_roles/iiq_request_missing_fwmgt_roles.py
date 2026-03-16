@@ -22,7 +22,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     read_custom_config,
     read_custom_config_with_default,
 )
-from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
+from scripts.customizing.fwo_custom_lib.git_helpers import parse_git_depth_arg, update_git_repo
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
@@ -146,11 +146,17 @@ def get_tisos_from_owner_dict(app_dict: dict[str, Owner]) -> dict[str, str]:
     return tisos
 
 
-def get_git_repo(git_repo_url: str, git_username: str, git_password: str, repo_target_dir: str) -> None:
+def get_git_repo(
+    git_repo_url: str,
+    git_username: str,
+    git_password: str,
+    repo_target_dir: str,
+    depth: int | None = None,
+) -> None:
     encoded_password: str = urllib.parse.quote(git_password, safe="")
     repo_url: str = f"https://{git_username}:{encoded_password}@{git_repo_url}"
 
-    repo_updated: bool = update_git_repo(repo_url, repo_target_dir, logger)
+    repo_updated: bool = update_git_repo(repo_url, repo_target_dir, logger, depth=depth)
     if not repo_updated:
         sys.exit(1)
 
@@ -335,6 +341,12 @@ if __name__ == "__main__":
         "--import_from_folder",
         help="if set, will try to read csv files from given folder instead of git repo",
     )
+    parser.add_argument(
+        "--depth",
+        type=parse_git_depth_arg,
+        default=None,
+        help="optional git clone/pull depth; if omitted, no depth is passed to git",
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -385,7 +397,7 @@ if __name__ == "__main__":
         git_username: str = read_custom_config(args.config, "cmdbGitUsername", logger)
         git_password: str = read_custom_config(args.config, "cmdbGitPassword", logger)
         csv_file_base_dir = CMDB_REPO_TARGET_DIR
-        get_git_repo(git_repo_url, git_username, git_password, CMDB_REPO_TARGET_DIR)
+        get_git_repo(git_repo_url, git_username, git_password, CMDB_REPO_TARGET_DIR, depth=args.depth)
 
     logger.info_if(0, "getting owners from file")
 

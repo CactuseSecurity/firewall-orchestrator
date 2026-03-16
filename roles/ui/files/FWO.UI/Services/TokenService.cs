@@ -158,20 +158,42 @@ namespace FWO.Ui.Services
         {
             await initializationTask.Value;
 
-            if (currentTokenPair is null)
+            string? refreshToken = currentTokenPair?.RefreshToken;
+
+            try
             {
-                return;
+                if (!string.IsNullOrWhiteSpace(refreshToken))
+                {
+                    RefreshTokenRequest revokeTokenRequest = new()
+                    {
+                        RefreshToken = refreshToken
+                    };
+
+                    RestResponse response = await middlewareClient.RevokeRefreshToken(revokeTokenRequest);
+
+                    if (!response.IsSuccessful)
+                    {
+                        Log.WriteWarning("Token Revoke", $"Server-side revoke failed during logout: {response.StatusCode} {response.ErrorMessage ?? response.Content}");
+                    }
+                }
             }
-
-            RefreshTokenRequest revokeTokenRequest = new()
+            catch (Exception ex)
             {
-                RefreshToken = currentTokenPair.RefreshToken
-            };
+                Log.WriteWarning("Token Revoke", $"Server-side revoke failed during logout: {ex.Message}");
+            }
+            finally
+            {
+                currentTokenPair = null;
 
-            await middlewareClient.RevokeRefreshToken(revokeTokenRequest);
-            await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
-
-            currentTokenPair = null;
+                try
+                {
+                    await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteWarning("Token Revoke", $"Failed to clear local token storage: {ex.Message}");
+                }
+            }
         }
     }
 }

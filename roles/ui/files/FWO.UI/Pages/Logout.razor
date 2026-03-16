@@ -1,4 +1,5 @@
-﻿@using FWO.Middleware.Client;
+﻿
+@using FWO.Middleware.Client;
 @using Microsoft.AspNetCore.Components.Server.Circuits;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using FWO.Ui.Services
@@ -20,18 +21,26 @@
 {
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await ((AuthStateProvider)AuthService).Deauthenticate();
+        if (!firstRender)
+        {
+            return;
+        }
 
-        // Dispose unmanaged ressources
-        apiConnection.Dispose();
-        middlewareClient.Dispose();
-
-        // Write an audit log that the user logged out
         UiUser user = userConfig.User;
-        Log.WriteAudit($"Logout", $"User \"{user.Name}\" with DN: \"{user.Dn}\" logged out.");
-        ((CircuitHandlerService)circuitHandler).User = null;
 
-        // Navigate to login page and force a reload to clear the current session
-        NavigationManager.NavigateTo("", forceLoad: true);
+        try
+        {
+            await ((AuthStateProvider)AuthService).Deauthenticate();
+        }
+        finally
+        {
+            apiConnection.Dispose();
+            middlewareClient.Dispose();
+
+            Log.WriteAudit("Logout", $"User \"{user.Name}\" with DN: \"{user.Dn}\" logged out.");
+            ((CircuitHandlerService)circuitHandler).User = null;
+
+            NavigationManager.NavigateTo("", forceLoad: true);
+        }
     }
 }

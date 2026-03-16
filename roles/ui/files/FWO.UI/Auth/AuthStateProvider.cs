@@ -131,10 +131,19 @@ namespace FWO.Ui.Auth
         /// <returns></returns>
 		public async Task Deauthenticate()
         {
-            await tokenService.RevokeTokens();
-
-            user = new ClaimsPrincipal(new ClaimsIdentity());
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            try
+            {
+                await tokenService.RevokeTokens();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Deauthenticate", $"Token cleanup failed during logout: {ex.Message}");
+            }
+            finally
+            {
+                user = new ClaimsPrincipal(new ClaimsIdentity());
+                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            }
         }
 
         public void ConfirmPasswordChanged()

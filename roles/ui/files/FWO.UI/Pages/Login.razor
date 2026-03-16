@@ -40,90 +40,88 @@
                         <input type="text" class="form-control @InputClass" id="UsernameInput"
                                placeholder="@(globalConfig.GetText("username"))" value="@Username" @oninput="OnUsernameInput"
                                @ref="usernameInput">
+                        </div>
+                        <div class="form-group mt-3">
+                            <input type="password" class="form-control @InputClass" id="PasswordInput"
+                                   placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
+                            </div>
+                            @if (!loginInProgress)
+                            {
+                                <button type="submit" class="btn btn-block btn-primary mt-3" @onclick:preventDefault="true"
+                                        @onclick="LoginSubmit">
+                                    @(globalConfig.GetText("login"))
+                                </button>
+                                @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="@Icons.Login"></div></button> *@
+                            }
+                            else
+                            {
+                                <div class="spinner-border text-primary align-self-center mt-3" role="status"></div>
+                            }
+                            @if (!string.IsNullOrEmpty(errorMessage))
+                            {
+                                <label class="m-2">@errorMessage</label>
+                            }
+                        </form>
                     </div>
-                    <div class="form-group mt-3">
-                        <input type="password" class="form-control @InputClass" id="PasswordInput"
-                               placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
-                    </div>
-                    @if (!loginInProgress)
-                    {
-                        <button type="submit" class="btn btn-block btn-primary mt-3" @onclick:preventDefault="true"
-                                @onclick="LoginSubmit">
-                            @(globalConfig.GetText("login"))
-                        </button>
-                        @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="@Icons.Login"></div></button> *@
-                    }
-                    else
-                    {
-                        <div class="spinner-border text-primary align-self-center mt-3" role="status"></div>
-                    }
-                    @if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        <label class="m-2">@errorMessage</label>
-                    }
-                </form>
-            </div>
-        </div>
-        <div class="col-xl col-lg col-md col-sm col"></div>
-    </div>
-    @if (ShowWelcomeMessage)
-    {
-        <div class="row mt-4">
-            <div class="col-lg-4 col-md-3 col-sm-2">
-            </div>
-            <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12">
-                <div class="alert alert-primary" role="alert">
-                    <span>@((MarkupString)@SanitizedWelcomeMessage)</span>
                 </div>
+                <div class="col-xl col-lg col-md col-sm col"></div>
             </div>
-            <div class="col-lg-4 col-md-3 col-sm-2">
-            </div>
-        </div>
-    }
-}
+            @if (ShowWelcomeMessage)
+            {
+                <div class="row mt-4">
+                    <div class="col-lg-4 col-md-3 col-sm-2">
+                    </div>
+                    <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12">
+                        <div class="alert alert-primary" role="alert">
+                            <span>@((MarkupString)@SanitizedWelcomeMessage)</span>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-3 col-sm-2">
+                    </div>
+                </div>
+            }
+        }
 
-@if (showPasswordChangeForm)
-{
-    <div class="row m-4 justify-content-center">
-        <h2 class="text-center"> @(userConfig.GetText("change_password")) </h2>
-        <div class="shadow-sm card p-3" style="width: 250px;">
-            <form class="d-flex flex-column">
-                <div class="form-group">
-                    <input type="password" class="form-control @InputClass" id="OldPasswordInput"
-                           placeholder="@(userConfig.GetText("old_password"))" value="@oldPassword"
-                           @oninput="OnOldPasswordInput">
-                </div>
-                <div class="form-group mt-2">
-                    <input type="password" class="form-control @InputClass" id="NewPasswordInput1"
-                           placeholder="@(userConfig.GetText("new_password"))" value="@newPassword1"
-                           @oninput="OnNewPassword1Input">
-                </div>
-                <div class="form-group mt-2">
-                    <input type="password" class="form-control @InputClass" id="NewPasswordInput2"
-                           placeholder="@(userConfig.GetText("new_password"))" value="@newPassword2"
-                           @oninput="OnNewPassword2Input">
-                </div>
-                @if (!passwordChangeInProgress)
-                {
-                    <button type="button" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true"
-                            @onclick="ChangePassword">
-                        <div class="@Icons.Login"></div>
-                    </button>
-                }
-                else
-                {
-                    <div class="spinner-border text-primary align-self-center" role="status"></div>
-                }
-                <label class="m-2">@chgPwErrorMessage</label>
-            </form>
-        </div>
-    </div>
-}
+        @if (showPasswordChangeForm)
+        {
+            <div class="row m-4 justify-content-center">
+                <h2 class="text-center"> @(userConfig.GetText("change_password")) </h2>
+                <div class="shadow-sm card p-3" style="width: 250px;">
+                    <form class="d-flex flex-column">
+                        <div class="form-group">
+                            <input type="password" class="form-control @InputClass" id="OldPasswordInput"
+                                   placeholder="@(userConfig.GetText("old_password"))" value="@oldPassword"
+                                   @oninput="OnOldPasswordInput">
+                            </div>
+                            <div class="form-group mt-2">
+                                <input type="password" class="form-control @InputClass" id="NewPasswordInput1"
+                                       placeholder="@(userConfig.GetText("new_password"))" value="@newPassword1"
+                                       @oninput="OnNewPassword1Input">
+                                </div>
+                                <div class="form-group mt-2">
+                                    <input type="password" class="form-control @InputClass" id="NewPasswordInput2"
+                                           placeholder="@(userConfig.GetText("new_password"))" value="@newPassword2"
+                                           @oninput="OnNewPassword2Input">
+                                    </div>
+                                    @if (!passwordChangeInProgress)
+                                    {
+                                        <button type="button" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true"
+                                                @onclick="ChangePassword">
+                                            <div class="@Icons.Login"></div>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="spinner-border text-primary align-self-center" role="status"></div>
+                                    }
+                                    <label class="m-2">@chgPwErrorMessage</label>
+                                </form>
+                            </div>
+                        </div>
+                    }
 
 @code
 {
-    // dont immediately show login page because session storage is only available after render,
-    // so there might be a immediate redirect
     private bool showLoginForm = false;
     private bool showPasswordChangeForm = false;
 
@@ -149,12 +147,18 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        //ApiConnection.Dispose();
-        //ApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri);
-
         if (firstRender)
         {
-            string? jwt = await tokenService.GetAccessTokenAsync();
+            string? jwt = null;
+
+            try
+            {
+                jwt = await tokenService.GetAccessToken();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Login", $"Failed to restore session token: {ex.Message}");
+            }
 
             if (!string.IsNullOrWhiteSpace(jwt))
             {
@@ -166,7 +170,6 @@
                     return;
                 }
                 catch (Exception) { }
-
             }
 
             if (!string.IsNullOrWhiteSpace(globalConfig.WelcomeMessage))
@@ -175,7 +178,6 @@
                 ShowWelcomeMessage = true;
             }
 
-            // else no reconnect / reconnect unsuccessful
             showLoginForm = true;
             StateHasChanged();
             await focusInput();

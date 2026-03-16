@@ -4,6 +4,7 @@ using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using RestSharp;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 
 namespace FWO.Ui.Services
 {
@@ -38,11 +39,28 @@ namespace FWO.Ui.Services
         /// <returns></returns>
         private async Task InitializeAsync()
         {
-            ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY);
-
-            if (result.Success && result.Value != null)
+            try
             {
-                currentTokenPair = result.Value;
+                ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY);
+
+                if (result.Success && result.Value != null)
+                {
+                    currentTokenPair = result.Value;
+                }
+                else
+                {
+                    currentTokenPair = null;
+                }
+            }
+            catch (CryptographicException ex)
+            {
+                Log.WriteWarning("Token", $"Unreadable protected session token pair detected, clearing stored data: {ex.Message}");
+                await ClearStoredTokenPair();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Token", $"Failed to restore token pair from session storage, clearing stored data: {ex.Message}");
+                await ClearStoredTokenPair();
             }
         }
 
@@ -61,7 +79,7 @@ namespace FWO.Ui.Services
         /// Gets the current access token.
         /// </summary>
         /// <returns>The access token or null if not available.</returns>
-        public async Task<string?> GetAccessTokenAsync()
+        public async Task<string?> GetAccessToken()
         {
             await initializationTask.Value;
             return currentTokenPair?.AccessToken;
@@ -97,7 +115,7 @@ namespace FWO.Ui.Services
         /// Refreshes the access token using the current refresh token.
         /// </summary>
         /// <returns>True if refresh was successful, false otherwise.</returns>
-        public async Task<bool> RefreshAccessTokenAsync()
+        public async Task<bool> RefreshAccessToken()
         {
             await initializationTask.Value;
 
@@ -183,16 +201,25 @@ namespace FWO.Ui.Services
             }
             finally
             {
-                currentTokenPair = null;
+                await ClearStoredTokenPair();
+            }
+        }
 
-                try
-                {
-                    await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteWarning("Token Revoke", $"Failed to clear local token storage: {ex.Message}");
-                }
+        /// <summary>
+        ///  Clears the stored token pair from memory and session storage
+        /// </summary>
+        /// <returns></returns>
+        private async Task ClearStoredTokenPair()
+        {
+            currentTokenPair = null;
+
+            try
+            {
+                await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Token", $"Failed to clear stored token pair: {ex.Message}");
             }
         }
     }

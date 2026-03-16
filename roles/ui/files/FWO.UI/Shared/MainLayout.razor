@@ -162,11 +162,11 @@ MonitorQueries.subscribeAlertChanges);
             {
                 Log.WriteDebug("Token Check", "Access token expired, attempting refresh...");
 
-                bool refreshed = await tokenService.RefreshAccessTokenAsync();
+                bool refreshed = await tokenService.RefreshAccessToken();
 
                 if (refreshed)
                 {
-                    string? newAccessToken = await tokenService.GetAccessTokenAsync();
+                    string? newAccessToken = await tokenService.GetAccessToken();
 
                     if (!string.IsNullOrEmpty(newAccessToken))
                     {

@@ -71,7 +71,7 @@ namespace FWO.Test
             await tokenService.SetTokenPair(newTokenPair);
 
             // Assert
-            string? storedToken = await tokenService.GetAccessTokenAsync();
+            string? storedToken = await tokenService.GetAccessToken();
             Assert.That(storedToken, Is.EqualTo("new.access.token"));
         }
 
@@ -83,7 +83,7 @@ namespace FWO.Test
         public async Task GetAccessTokenAsync_WhenNoTokenExists_ShouldReturnNull()
         {
             // Act
-            string? result = await tokenService!.GetAccessTokenAsync();
+            string? result = await tokenService!.GetAccessToken();
 
             // Assert
             Assert.That(result, Is.Null);
@@ -97,7 +97,7 @@ namespace FWO.Test
             await tokenService!.SetTokenPair(tokenPair);
 
             // Act
-            string? result = await tokenService.GetAccessTokenAsync();
+            string? result = await tokenService.GetAccessToken();
 
             // Assert
             Assert.That(result, Is.EqualTo(TEST_ACCESS_TOKEN));
@@ -111,9 +111,9 @@ namespace FWO.Test
             await tokenService!.SetTokenPair(tokenPair);
 
             // Act
-            string? result1 = await tokenService.GetAccessTokenAsync();
-            string? result2 = await tokenService.GetAccessTokenAsync();
-            string? result3 = await tokenService.GetAccessTokenAsync();
+            string? result1 = await tokenService.GetAccessToken();
+            string? result2 = await tokenService.GetAccessToken();
+            string? result3 = await tokenService.GetAccessToken();
 
             // Assert
             Assert.That(result1, Is.EqualTo(result2));
@@ -246,7 +246,7 @@ namespace FWO.Test
         public async Task RefreshAccessTokenAsync_WhenNoTokenPairExists_ShouldReturnFalse()
         {
             // Act
-            bool result = await tokenService!.RefreshAccessTokenAsync();
+            bool result = await tokenService!.RefreshAccessToken();
 
             // Assert
             Assert.That(result, Is.False);
@@ -267,7 +267,7 @@ namespace FWO.Test
             await tokenService!.SetTokenPair(tokenPair);
 
             // Act
-            bool result = await tokenService.RefreshAccessTokenAsync();
+            bool result = await tokenService.RefreshAccessToken();
 
             // Assert
             Assert.That(result, Is.False);
@@ -289,7 +289,7 @@ namespace FWO.Test
             await tokenService!.SetTokenPair(tokenPair);
 
             // Act
-            bool result = await tokenService.RefreshAccessTokenAsync();
+            bool result = await tokenService.RefreshAccessToken();
 
             // Assert
             Assert.That(result, Is.True);
@@ -323,7 +323,7 @@ namespace FWO.Test
             mockMiddlewareClient.ShouldRefreshSucceed = true;
 
             // Act
-            bool result = await tokenService.RefreshAccessTokenAsync();
+            bool result = await tokenService.RefreshAccessToken();
 
             // Assert
             Assert.That(result, Is.True);
@@ -331,7 +331,7 @@ namespace FWO.Test
             Assert.That(mockMiddlewareClient.LastRefreshRequest, Is.Not.Null);
             Assert.That(mockMiddlewareClient.LastRefreshRequest!.RefreshToken, Is.EqualTo(TEST_REFRESH_TOKEN));
 
-            string? storedToken = await tokenService.GetAccessTokenAsync();
+            string? storedToken = await tokenService.GetAccessToken();
             Assert.That(storedToken, Is.EqualTo(newAccessToken));
         }
 
@@ -352,7 +352,7 @@ namespace FWO.Test
             mockMiddlewareClient!.ShouldRefreshSucceed = false;
 
             // Act
-            bool result = await tokenService.RefreshAccessTokenAsync();
+            bool result = await tokenService.RefreshAccessToken();
 
             // Assert
             Assert.That(result, Is.False);
@@ -386,9 +386,9 @@ namespace FWO.Test
             mockMiddlewareClient.ShouldRefreshSucceed = true;
 
             // Act - call refresh token concurrently
-            Task<bool> task1 = tokenService.RefreshAccessTokenAsync();
-            Task<bool> task2 = tokenService.RefreshAccessTokenAsync();
-            Task<bool> task3 = tokenService.RefreshAccessTokenAsync();
+            Task<bool> task1 = tokenService.RefreshAccessToken();
+            Task<bool> task2 = tokenService.RefreshAccessToken();
+            Task<bool> task3 = tokenService.RefreshAccessToken();
 
             await Task.WhenAll(task1, task2, task3);
 
@@ -439,7 +439,7 @@ namespace FWO.Test
             await tokenService.RevokeTokens();
 
             // Assert
-            string? accessToken = await tokenService.GetAccessTokenAsync();
+            string? accessToken = await tokenService.GetAccessToken();
             Assert.That(accessToken, Is.Null);
         }
 
@@ -467,7 +467,7 @@ namespace FWO.Test
             await tokenService!.SetTokenPair(tokenPair);
 
             // Verify token is accessible before revoke
-            string? tokenBefore = await tokenService.GetAccessTokenAsync();
+            string? tokenBefore = await tokenService.GetAccessToken();
             Assert.That(tokenBefore, Is.Not.Null);
 
             // Act
@@ -484,7 +484,7 @@ namespace FWO.Test
             await tokenService.SetTokenPair(newTokenPair);
 
             // Assert - should be able to get the new token
-            string? tokenAfter = await tokenService.GetAccessTokenAsync();
+            string? tokenAfter = await tokenService.GetAccessToken();
             Assert.That(tokenAfter, Is.EqualTo("new.access.token"));
         }
 
@@ -507,7 +507,7 @@ namespace FWO.Test
 
             // Act & Assert - Set
             await tokenService!.SetTokenPair(initialTokenPair);
-            string? token1 = await tokenService.GetAccessTokenAsync();
+            string? token1 = await tokenService.GetAccessToken();
             Assert.That(token1, Is.EqualTo(initialToken));
 
             // Act & Assert - Refresh
@@ -531,15 +531,15 @@ namespace FWO.Test
             };
             mockMiddlewareClient!.NextRefreshTokenResponse = refreshedTokenPair;
 
-            bool refreshResult = await tokenService.RefreshAccessTokenAsync();
+            bool refreshResult = await tokenService.RefreshAccessToken();
             Assert.That(refreshResult, Is.True);
 
-            string? token2 = await tokenService.GetAccessTokenAsync();
+            string? token2 = await tokenService.GetAccessToken();
             Assert.That(token2, Is.EqualTo(refreshedToken));
 
             // Act & Assert - Revoke
             await tokenService.RevokeTokens();
-            string? token3 = await tokenService.GetAccessTokenAsync();
+            string? token3 = await tokenService.GetAccessToken();
             Assert.That(token3, Is.Null);
             Assert.That(mockMiddlewareClient.RevokeRefreshTokenCallCount, Is.EqualTo(1));
         }

@@ -1,11 +1,17 @@
-from collections.abc import Generator
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import fwo_const
 from fw_modules.fortiosmanagementREST import fos_zone
-from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, Rule
 from fwo_exceptions import FwoImporterError
-from model_controllers.management_controller import ManagementController
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, Rule
+    from model_controllers.management_controller import ManagementController
 
 
 def get_rule_installon(mgm_details: ManagementController) -> str:

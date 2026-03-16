@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 # library for API get functions
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_globals
 import requests
@@ -12,7 +14,9 @@ from fwo_exceptions import (
     FwoUnknownDeviceForManagerError,
 )
 from fwo_log import FWOLogger
-from models.management import Management
+
+if TYPE_CHECKING:
+    from models.management import Management
 
 
 def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, method: str = "") -> dict[str, Any]:

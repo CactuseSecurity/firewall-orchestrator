@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fwo_const import LIST_DELIMITER
-from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.networkobject import NetworkObject
 from models.serviceobject import ServiceObject
 from netaddr import IPNetwork
 from test.utils.partial_dict import PartialDict
+
+if TYPE_CHECKING:
+    from models.fwconfig_normalized import FwConfigNormalized
 
 
 class ChangelogObjectType(Enum):

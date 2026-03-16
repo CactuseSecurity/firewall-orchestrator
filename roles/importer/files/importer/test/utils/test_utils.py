@@ -1,7 +1,11 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from fwo_api import FwoApi
-from pytest_mock import MockerFixture, MockType
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture, MockType
 
 
 def mock_get_graphql_code(mocker: MockerFixture, return_value: Any) -> MockType:

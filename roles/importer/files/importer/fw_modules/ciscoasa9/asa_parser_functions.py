@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 from fw_modules.ciscoasa9.asa_models import (

@@ -1,0 +1,9 @@
+---
+- name: create log dir for {{ product_name }} on redhat - owner root
+  file:
+    path: "{{ fworch_log_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0775"
+  become: true

@@ -1,0 +1,36 @@
+---
+- name: uninstall all packages for {{ product_name }}, keeping git and ansible
+  package:
+    state: absent
+    name: "{{ item }}"
+  loop:
+    - rsyslog
+    - "{{ webserver_package_name }}"
+    - gnupg2
+    - dnf-plugins-core
+    - software-properties-common
+    - npm
+    - python3-pip
+    - python3-virtualenv
+    - python3-psycopg2
+    - "{{ postgresql_c_client_library_header_files }}"
+    - "{{ postgresql_package }}"
+    - "{{ postgresql_c_client_library_header_files }}"
+    - postgresql
+    - openldap-clients
+    - openldap-servers
+    - openldap
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+    - "dotnet-sdk-{{ dotnet_version }}"
+    - make
+    - "{{ postgresql_dev_package }}"
+    - "{{ postgresql_test_package }}"
+    - "{{ webserver_package_name }}"
+  when: wipe_packages is defined and wipe_packages|bool
+
+- name: uninstall openldap on RedHat
+  package:
+    state: absent
+    name: openldap-servers

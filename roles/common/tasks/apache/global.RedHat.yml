@@ -18,6 +18,12 @@
         state: present
       loop: "{{ apache_selinux_ports | unique }}"
 
+    - name: Allow Apache reverse proxies to connect to local backends on RedHat
+      ansible.posix.seboolean:
+        name: httpd_can_network_connect
+        state: true
+        persistent: true
+
     - name: edit conf file for global security settings - ServerTokens
       lineinfile:
         path: "{{ apache_global_settings_file }}"

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from models.caseinsensitiveenum import CaseInsensitiveEnum
 from pydantic import BaseModel
 

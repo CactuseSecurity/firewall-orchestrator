@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 from dataclasses import dataclass
 from typing import Any
@@ -40,7 +42,7 @@ class CredentialInfo:
 class ManagerInfo:
     is_super_manager: bool = False
     sub_manager_ids: list[int] | None = None
-    sub_managers: list["Management"] | None = None
+    sub_managers: list[Management] | None = None
 
 
 @dataclass
@@ -88,7 +90,7 @@ class ManagementController(Management):
         )
 
     @classmethod
-    def from_json(cls, json_dict: dict[str, Any]) -> "ManagementController":
+    def from_json(cls, json_dict: dict[str, Any]) -> ManagementController:
         device_info = DeviceInfo(
             name=json_dict["name"],
             type_name=json_dict["deviceType"]["name"],
@@ -148,7 +150,7 @@ class ManagementController(Management):
         return self.domain_uid if self.domain_uid is not None else self.domain_name  # type: ignore #TODO: check if None check is needed if yes, change type  # noqa: PGH003
 
     @classmethod
-    def build_gateway_list(cls, mgm_details: "ManagementController") -> list["Gateway"]:
+    def build_gateway_list(cls, mgm_details: ManagementController) -> list[Gateway]:
         devs: list[Gateway] = []
         for dev in mgm_details.devices:
             # check if gateway import is enabled

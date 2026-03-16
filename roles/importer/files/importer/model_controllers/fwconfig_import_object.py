@@ -1,21 +1,25 @@
+from __future__ import annotations
+
 import datetime
 import traceback
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 from fwo_api_call import FwoApi
 from fwo_exceptions import FwoDuplicateKeyViolationError, FwoImporterError
 from fwo_log import ChangeLogger, FWOLogger
-from model_controllers.import_state_controller import ImportStateController
-from models.fwconfig_normalized import FwConfigNormalized
-from models.fwconfigmanager import FwConfigManager
 from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
 from models.time_object import TimeObject, TimeObjectForImport
-from services.group_flats_mapper import GroupFlatsMapper
 from services.service_provider import ServiceProvider
-from services.uid2id_mapper import Uid2IdMapper
+
+if TYPE_CHECKING:
+    from model_controllers.import_state_controller import ImportStateController
+    from models.fwconfig_normalized import FwConfigNormalized
+    from models.fwconfigmanager import FwConfigManager
+    from services.group_flats_mapper import GroupFlatsMapper
+    from services.uid2id_mapper import Uid2IdMapper
 
 
 class Type(Enum):

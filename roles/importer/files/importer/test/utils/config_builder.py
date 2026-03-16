@@ -375,17 +375,16 @@ class FwConfigBuilder:
 
         for link_id, link in enumerate(rulebase_links):
             link_type = 0
-            match link.link_type:
-                case "ordered":
-                    link_type = 2
-                case "inline":
-                    link_type = 3
-                case "concatenated":
-                    link_type = 4
-                case "domain":
-                    link_type = 5
-                case _:
-                    link_type = 0
+            if link.link_type == "ordered":
+                link_type = 2
+            elif link.link_type == "inline":
+                link_type = 3
+            elif link.link_type == "concatenated":
+                link_type = 4
+            elif link.link_type == "domain":
+                link_type = 5
+            else:
+                link_type = 0
 
             new_rb_links.append(
                 RulebaseLink(

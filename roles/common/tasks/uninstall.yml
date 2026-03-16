@@ -16,12 +16,8 @@
   command: docker rm fworch-api
   ignore_errors: true
 
-- name: restart postgres to make sure no connections are blocking the database removal
-  service:
-    name: postgresql
-    state: restarted
-  when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
-  ignore_errors: true
+- name: include uninstall tasks for current OS family
+  include_tasks: "os/uninstall.{{ ansible_os_family }}.yml"
 
 - name: find out installed postgres version
   script: "scripts/get_pg_version.sh"
@@ -78,14 +74,6 @@
   become_user: postgres
   ignore_errors: true
 
-- name: stop and disable slapd
-  service:
-    name: slapd
-    state: stopped
-    enabled: no
-  when: ansible_os_family == 'Debian'
-  ignore_errors: true
-
 - name: stop and disable {{ product_name }}-ui
   service:
     name: "{{ product_name }}-ui"
@@ -108,61 +96,8 @@
   ignore_errors: true
 
 - block:
-    - name: disable apache sites
-      command: a2dissite {{ product_name }}-ui
-      ignore_errors: true
-      when: ansible_os_family == "Debian"
-
-    - name: disable apache modules (due to a bug with php mod not properly getting purged)
-      apache2_module: state=absent name={{ item }}
-      loop: "{{ apache2_required_modules }}"
-      ignore_errors: true
-      when: ansible_os_family == "Debian"
-
-    - name: uninstall all packages for {{ product_name }}, keeping git and ansible
-      package:
-        state: absent
-        name: "{{ item }}"
-        purge: "{{ ansible_os_family == 'Debian' | ternary(true, omit) }}"
-      loop:
-        - rsyslog
-        - "{{ webserver_package_name }}"
-        - gnupg2
-        - "{{ 'apt-transport-https' if ansible_os_family == 'Debian' else 'dnf-plugins-core' }}"
-        - software-properties-common
-        - npm
-        - python3-pip
-        - python3-virtualenv
-        - python3-psycopg2
-        - "{{ postgresql_c_client_library_header_files }}"
-        - "{{ postgresql_package }}"
-        - "{{ postgresql_c_client_library_header_files }}"
-        - "{{ 'postgresql-client' if ansible_os_family == 'Debian' else 'postgresql' }}"
-        - "{{ 'ldap-utils' if ansible_os_family == 'Debian' else 'openldap-clients' }}"
-        - "{{ 'libldap-common' if ansible_os_family == 'Debian' else 'openldap-servers' }}"
-        - "{{ 'libldap' if ansible_os_family == 'Debian' else 'openldap' }}"
-        - docker-ce
-        - docker-ce-cli
-        - containerd.io
-        - "dotnet-sdk-{{ dotnet_version }}"
-        - make
-        - "{{ postgresql_dev_package }}"
-        - "{{ postgresql_test_package }}"
-        - "{{ webserver_package_name }}"
-      when: wipe_packages is defined and wipe_packages|bool
-
-    - name: uninstall openldap on Debian
-      package:
-        state: absent
-        name: slapd
-        purge: yes
-      when: ansible_os_family == 'Debian'
-
-    - name: uninstall openldap on RedHat
-      package:
-        state: absent
-        name: openldap-servers
-      when: ansible_os_family == 'RedHat'
+    - name: include OS specific package uninstall tasks
+      include_tasks: "os/uninstall-packages.{{ ansible_os_family }}.yml"
 
     - name: remove {{ product_name }} dirs and files
       file:

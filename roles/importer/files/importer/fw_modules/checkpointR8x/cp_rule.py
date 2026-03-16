@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 import ast
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fwo_base import sanitize, sort_and_join_refs
 from fwo_const import DEFAULT_SECTION_HEADER_TEXT, LIST_DELIMITER
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
-from models.import_state import ImportState
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
 from models.rulebase import Rulebase
+
+if TYPE_CHECKING:
+    from models.import_state import ImportState
 
 uid_to_name_map: dict[str, str] = {}
 

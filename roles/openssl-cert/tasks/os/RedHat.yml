@@ -1,0 +1,13 @@
+- name: install certificate into RedHat trust store
+  copy:
+    src: "{{ openssl_cert }}"
+    dest: "/etc/pki/ca-trust/source/anchors/{{ product_name }}-server.crt"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+
+- name: update RedHat CA trust
+  command: update-ca-trust extract
+  become: true

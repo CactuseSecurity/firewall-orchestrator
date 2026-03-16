@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import json
 import string
 import time
 import traceback
-from collections.abc import MutableMapping
 from pprint import pformat
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_globals
 import requests
@@ -13,6 +14,9 @@ from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError
 from fwo_log import FWOLogger
 from query_analyzer import QueryAnalyzer
 from services.service_provider import ServiceProvider
+
+if TYPE_CHECKING:
+    from collections.abc import MutableMapping
 
 JSON_CONTENT_TYPE = "application/json"
 

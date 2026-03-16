@@ -6,15 +6,21 @@ It manages both explicit network objects/groups and implicit network objects cre
 inline ACL or group definitions.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import fwo_base
 import fwo_const
-from fw_modules.ciscoasa9.asa_models import (
-    AsaNetworkObject,
-    AsaNetworkObjectGroup,
-    AsaNetworkObjectGroupMember,
-    EndpointKind,
-    Names,
-)
+
+if TYPE_CHECKING:
+    from fw_modules.ciscoasa9.asa_models import (
+        AsaNetworkObject,
+        AsaNetworkObjectGroup,
+        AsaNetworkObjectGroupMember,
+        EndpointKind,
+        Names,
+    )
 from fwo_log import FWOLogger
 from models.networkobject import NetworkObject
 from netaddr import IPAddress, IPNetwork

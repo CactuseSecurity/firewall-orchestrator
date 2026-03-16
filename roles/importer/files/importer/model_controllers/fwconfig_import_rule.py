@@ -1,31 +1,36 @@
+from __future__ import annotations
+
 import json
 import traceback
-from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import fwo_const
 from fwo_api import FwoApi
 from fwo_exceptions import FwoApiWriteError, FwoImporterError, FwoImporterErrorInconsistenciesError
 from fwo_log import ChangeLogger, FWOLogger
 from model_controllers.fwconfig_import_ruleorder import update_rule_order_diffs
-from model_controllers.import_state_controller import ImportStateController
-from models.fwconfig_normalized import FwConfigNormalized
-from models.gateway import Gateway
-from models.networkobject import NetworkObject
 from models.rule import Rule, RuleNormalized
 from models.rule_from import RuleFrom
 from models.rule_metadatum import RuleMetadatum
 from models.rule_service import RuleService
 from models.rule_to import RuleTo
 from models.rulebase import Rulebase, RulebaseForImport
-from models.serviceobject import ServiceObject
-from models.time_object import TimeObject
-from services.global_state import GlobalState
-from services.group_flats_mapper import GroupFlatsMapper
 from services.service_provider import ServiceProvider
-from services.uid2id_mapper import Uid2IdMapper
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from model_controllers.import_state_controller import ImportStateController
+    from models.fwconfig_normalized import FwConfigNormalized
+    from models.gateway import Gateway
+    from models.networkobject import NetworkObject
+    from models.serviceobject import ServiceObject
+    from models.time_object import TimeObject
+    from services.global_state import GlobalState
+    from services.group_flats_mapper import GroupFlatsMapper
+    from services.uid2id_mapper import Uid2IdMapper
 
 
 class RefType(Enum):

@@ -32,7 +32,6 @@
   systemd:
     name: "{{ middleware_service_name }}"
     enabled: true
+    state: started
+    daemon_reload: true
   become: true
-
-  # not starting the server as the api is not ready yet
-  # we will restart the middlewareserver later 

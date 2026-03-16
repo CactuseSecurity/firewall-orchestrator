@@ -129,6 +129,7 @@
   ansible.builtin.systemd:
     name: "{{ product_name }}-middleware"
     state: restarted
+    daemon_reload: true
   become: true
   when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false))"
 

@@ -1,8 +1,12 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from fwo_log import FWOLogger
-from model_controllers.interface_controller import InterfaceSerializable
 from netaddr import IPAddress, IPNetwork
+
+if TYPE_CHECKING:
+    from model_controllers.interface_controller import InterfaceSerializable
 
 
 class Route:

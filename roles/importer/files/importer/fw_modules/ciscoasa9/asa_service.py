@@ -6,12 +6,18 @@ It manages both explicit service objects/groups and implicit service objects cre
 inline ACL definitions.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import fwo_base
 import fwo_const
 from fw_modules.ciscoasa9.asa_maps import name_to_port, protocol_map
-from fw_modules.ciscoasa9.asa_models import AccessListEntry, AsaServiceObject, AsaServiceObjectGroup
 from fwo_log import FWOLogger
 from models.serviceobject import ServiceObject
+
+if TYPE_CHECKING:
+    from fw_modules.ciscoasa9.asa_models import AccessListEntry, AsaServiceObject, AsaServiceObjectGroup
 
 
 def create_service_object(

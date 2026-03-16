@@ -1,8 +1,14 @@
-from collections.abc import Generator
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import fwo_const
-from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, SvcObjCustom
 from models.serviceobject import ServiceObject
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, SvcObjCustom
 
 
 def normalize_app_service_objects(native_config: FortiOSConfig) -> Generator[ServiceObject]:
@@ -122,48 +128,45 @@ def normalize_single_custom_service_object(svc_obj: SvcObjCustom) -> Generator[S
         base_name = f"{svc_obj.name}_sctp" if split else svc_obj.name
         yield from get_svcobjs_from_portrange(svc_obj.sctp_portrange, base_name, comment, ip_proto=132, members=members)
 
-    match svc_obj.protocol:
-        case "TCP/UDP/SCTP" if len(members) > 1:
-            # create parent group object
-            yield ServiceObject(
-                svc_name=svc_obj.name,
-                svc_uid=svc_obj.name,
-                svc_typ="group",
-                svc_member_names=fwo_const.LIST_DELIMITER.join(members),
-                svc_member_refs=fwo_const.LIST_DELIMITER.join(members),
-                svc_color=fwo_const.DEFAULT_COLOR,
-                svc_comment=svc_obj.comment,
-            )
-        case "IP":
-            # IP protocol service object
-            yield ServiceObject(  # TODO: check if ports really not available in this case
-                svc_name=svc_obj.name,
-                svc_uid=svc_obj.name,
-                svc_typ="simple",
-                ip_proto=svc_obj.protocol_number,
-                svc_color=fwo_const.DEFAULT_COLOR,
-                svc_comment=svc_obj.comment,
-            )
-        case "ICMP" | "ICMP6":
-            yield ServiceObject(
-                svc_name=svc_obj.name,
-                svc_uid=svc_obj.name,
-                svc_typ="simple",
-                ip_proto=1 if svc_obj.protocol == "ICMP" else 58,
-                svc_color=fwo_const.DEFAULT_COLOR,
-                svc_comment=svc_obj.comment,
-            )
-        case "ALL":
-            yield ServiceObject(
-                svc_name=svc_obj.name,
-                svc_uid=svc_obj.name,
-                svc_typ="simple",
-                ip_proto=0,
-                svc_color=fwo_const.DEFAULT_COLOR,
-                svc_comment=svc_obj.comment,
-            )
-        case _:
-            pass  # unknown protocol or TCP/UDP/SCTP with only one port range handled above
+    if svc_obj.protocol == "TCP/UDP/SCTP" and len(members) > 1:
+        # create parent group object
+        yield ServiceObject(
+            svc_name=svc_obj.name,
+            svc_uid=svc_obj.name,
+            svc_typ="group",
+            svc_member_names=fwo_const.LIST_DELIMITER.join(members),
+            svc_member_refs=fwo_const.LIST_DELIMITER.join(members),
+            svc_color=fwo_const.DEFAULT_COLOR,
+            svc_comment=svc_obj.comment,
+        )
+    elif svc_obj.protocol == "IP":
+        # IP protocol service object
+        yield ServiceObject(  # TODO: check if ports really not available in this case
+            svc_name=svc_obj.name,
+            svc_uid=svc_obj.name,
+            svc_typ="simple",
+            ip_proto=svc_obj.protocol_number,
+            svc_color=fwo_const.DEFAULT_COLOR,
+            svc_comment=svc_obj.comment,
+        )
+    elif svc_obj.protocol in {"ICMP", "ICMP6"}:
+        yield ServiceObject(
+            svc_name=svc_obj.name,
+            svc_uid=svc_obj.name,
+            svc_typ="simple",
+            ip_proto=1 if svc_obj.protocol == "ICMP" else 58,
+            svc_color=fwo_const.DEFAULT_COLOR,
+            svc_comment=svc_obj.comment,
+        )
+    elif svc_obj.protocol == "ALL":
+        yield ServiceObject(
+            svc_name=svc_obj.name,
+            svc_uid=svc_obj.name,
+            svc_typ="simple",
+            ip_proto=0,
+            svc_color=fwo_const.DEFAULT_COLOR,
+            svc_comment=svc_obj.comment,
+        )
 
 
 def normalize_custom_service_objects(native_config: FortiOSConfig) -> Generator[ServiceObject]:

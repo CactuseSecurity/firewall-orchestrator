@@ -1,5 +1,6 @@
 # Core runtime
 pydantic>=2.0,<3.0
+eval_type_backport>=0.2
 jsonpickle>=3.0
 python-dateutil>=2.8
 netaddr>=1.0
@@ -18,7 +19,7 @@ scrapli>=2025.01.30
 scrapli-community>=2025.01.30
 
 # Test
-pytest>=9.0
+pytest>=8.0
 pytest-mock>=3.0
 
 # Linting

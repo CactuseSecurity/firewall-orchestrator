@@ -19,7 +19,6 @@ from services.enums import Lifetime, Services
 from services.global_state import GlobalState
 from services.group_flats_mapper import GroupFlatsMapper
 from services.service_provider import ServiceProvider
-from services.uid2id_mapper import Uid2IdMapper
 
 
 def sanitize(content: Any, lower: bool = False) -> None | str:
@@ -242,7 +241,7 @@ def init_service_provider() -> ServiceProvider:
     service_provider = ServiceProvider()
     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-    service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
+    # service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
     return service_provider
 
 

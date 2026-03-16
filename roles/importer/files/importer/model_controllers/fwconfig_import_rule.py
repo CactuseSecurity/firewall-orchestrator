@@ -10,7 +10,6 @@ from fwo_api import FwoApi
 from fwo_exceptions import FwoApiWriteError, FwoImporterError, FwoImporterErrorInconsistenciesError
 from fwo_log import ChangeLogger, FWOLogger
 from model_controllers.fwconfig_import_ruleorder import update_rule_order_diffs
-from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
 from models.networkobject import NetworkObject
@@ -22,10 +21,11 @@ from models.rule_to import RuleTo
 from models.rulebase import Rulebase, RulebaseForImport
 from models.serviceobject import ServiceObject
 from models.time_object import TimeObject
-from services.global_state import GlobalState
 from services.group_flats_mapper import GroupFlatsMapper
-from services.service_provider import ServiceProvider
 from services.uid2id_mapper import Uid2IdMapper
+from states.global_state import GlobalState
+from states.import_state import ImportState
+from states.management_state import ManagementState
 
 
 class RefType(Enum):
@@ -43,21 +43,21 @@ class RefType(Enum):
 # this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule:
     global_state: GlobalState
-    import_details: ImportStateController
+    import_state: ImportState
     normalized_config: FwConfigNormalized | None = None
     uid2id_mapper: Uid2IdMapper
     group_flats_mapper: GroupFlatsMapper
     prev_group_flats_mapper: GroupFlatsMapper
 
-    def __init__(self):
-        service_provider = ServiceProvider()
-        self.global_state = service_provider.get_global_state()
-        self.import_details = self.global_state.import_state
+    def __init__(self, global_state: GlobalState, import_state: ImportState, management_state: ManagementState):
+        self.global_state = global_state
+        self.import_state = import_state
         # TODO: why is there a state where this is initialized with normalized_config = None? - see #3154
-        self.normalized_config = self.global_state.normalized_config
-        self.uid2id_mapper = service_provider.get_uid2id_mapper(self.import_details.state.import_id)
-        self.group_flats_mapper = service_provider.get_group_flats_mapper(self.import_details.state.import_id)
-        self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_details.state.import_id)
+        self.normalized_config = management_state.normalized_config
+        self.uid2id_mapper = import_state.uid2id_mapper
+        self.group_flats_mapper = import_state.group_flats_mapper
+        self.prev_group_flats_mapper = import_state.prev_group_flats_mapper
+        self.management_state = management_state
 
     def update_rulebase_diffs(self, prev_config: FwConfigNormalized | None) -> None:
         if self.normalized_config is None:
@@ -146,14 +146,14 @@ class FwConfigImportRule:
         num_removed_rules = len(removed_rule_uids)
         num_changed_rules = len(changed_rule_uids)
 
-        self.import_details.state.stats.increment_rulebase_add_count(num_added_rulebases)
-        self.import_details.state.stats.increment_rulebase_delete_count(num_deleted_rulebases)
-        self.import_details.state.stats.increment_rule_add_count(num_added_rules)
-        self.import_details.state.stats.increment_rule_delete_count(num_removed_rules)
-        self.import_details.state.stats.increment_rule_move_count(num_moved_rules)
-        self.import_details.state.stats.increment_rule_change_count(num_changed_rules)
-        self.import_details.state.stats.increment_rule_ref_add_count(refs_added + rule_to_gw_refs_added)
-        self.import_details.state.stats.increment_rule_ref_delete_count(refs_removed + rule_to_gw_refs_removed)
+        self.import_state.statistics_controller.increment_rulebase_add_count(num_added_rulebases)
+        self.import_state.statistics_controller.increment_rulebase_delete_count(num_deleted_rulebases)
+        self.import_state.statistics_controller.increment_rule_add_count(num_added_rules)
+        self.import_state.statistics_controller.increment_rule_delete_count(num_removed_rules)
+        self.import_state.statistics_controller.increment_rule_move_count(num_moved_rules)
+        self.import_state.statistics_controller.increment_rule_change_count(num_changed_rules)
+        self.import_state.statistics_controller.increment_rule_ref_add_count(refs_added + rule_to_gw_refs_added)
+        self.import_state.statistics_controller.increment_rule_ref_delete_count(refs_removed + rule_to_gw_refs_removed)
 
         # change counts returned from db mutations should match counts calculated from diffs, if not log a warning
         if num_inserted_rules != len(added_rule_uids) + len(changed_rule_uids):
@@ -221,7 +221,7 @@ class FwConfigImportRule:
                 {
                     "where": {
                         "rule_uid": {"_eq": rule.rule_uid},
-                        "mgm_id": {"_eq": self.import_details.state.mgm_details.current_mgm_id},
+                        "mgm_id": {"_eq": self.import_state.mgm_details.current_mgm_id},
                     },
                     "_set": {"rule_last_hit": rule.last_hit},
                 }
@@ -262,7 +262,7 @@ class FwConfigImportRule:
             query_variables = {"hit_info": new_hit_information}
 
             try:
-                import_result = self.import_details.api_call.call(
+                import_result = self.import_state.fwo_api.call(
                     update_last_hit_mutation, query_variables=query_variables, analyze_payload=True
                 )
                 if "errors" in import_result:
@@ -334,10 +334,8 @@ class FwConfigImportRule:
         object_type_name: str,
     ) -> T:
         """Generic object lookup from config with fallback to global config."""
-        config = self.global_state.previous_config if previous else self.normalized_config
-        global_config = (
-            self.global_state.previous_global_config if previous else self.global_state.global_normalized_config
-        )
+        config = self.management_state.previous_config if previous else self.normalized_config
+        global_config = self.import_state.previous_super_config if previous else self.import_state.super_config
         config_type = "previous" if previous else "current"
 
         if config is None:
@@ -531,7 +529,7 @@ class FwConfigImportRule:
         import_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/updateRuleRefs.graphql"])
 
         query_variables: dict[str, Any] = {
-            "importId": self.import_details.state.import_id,
+            "importId": self.import_state.import_id,
             "ruleFroms": all_refs_to_remove[RefType.SRC],
             "ruleTos": all_refs_to_remove[RefType.DST],
             "ruleServices": all_refs_to_remove[RefType.SVC],
@@ -544,7 +542,7 @@ class FwConfigImportRule:
         }
 
         try:
-            import_result = self.import_details.api_call.call(
+            import_result = self.import_state.fwo_api.call(
                 import_mutation, query_variables=query_variables, analyze_payload=True
             )
             if "errors" in import_result:
@@ -564,8 +562,8 @@ class FwConfigImportRule:
                 f"rule UID is None: {rule} in rulebase during get_ref_add_statement"
             )  # should not happen
 
-        import_id = self.import_details.state.import_id
-        mgm_id = self.import_details.state.mgm_details.current_mgm_id
+        import_id = self.import_state.import_id
+        mgm_id = self.import_state.mgm_details.current_mgm_id
 
         if ref_type == RefType.SRC:
             nwobj_uid, user_uid = ref_uid
@@ -702,7 +700,7 @@ class FwConfigImportRule:
         }
 
         try:
-            import_result = self.import_details.api_call.call(
+            import_result = self.import_state.fwo_api.call(
                 import_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
@@ -742,7 +740,7 @@ class FwConfigImportRule:
         FWOLogger.debug(json.dumps(query_variables), 10)  # just for debugging purposes
 
         try:
-            import_result = self.import_details.api_call.call(
+            import_result = self.import_state.fwo_api.call(
                 add_new_rule_metadata_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
@@ -787,7 +785,7 @@ class FwConfigImportRule:
         if len(new_rules) > 0:
             query_variables = {"rules": [rule.model_dump() for rule in new_rules]}
             try:
-                import_result = self.import_details.api_call.call(
+                import_result = self.import_state.fwo_api.call(
                     upsert_rules, query_variables=query_variables, analyze_payload=True
                 )
             except Exception:
@@ -828,14 +826,14 @@ class FwConfigImportRule:
 
         new_rulebases_for_import = [
             RulebaseForImport.from_rulebase(
-                rb, self.import_details.state.mgm_details.current_mgm_id, self.import_details.state.import_id
+                rb, self.import_state.mgm_details.current_mgm_id, self.import_state.import_id
             )
             for rb in new_rulebases
         ]
         query_variables = {"rulebases": [rb.model_dump(by_alias=True) for rb in new_rulebases_for_import]}
 
         try:
-            import_result = self.import_details.api_call.call(
+            import_result = self.import_state.fwo_api.call(
                 add_rulebases_without_rules_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
@@ -860,8 +858,8 @@ class FwConfigImportRule:
                 raise FwoImporterError(f"rule UID is None: {rule} in rulebase during prepare_new_rule_metadata")
             rm4import = RuleMetadatum(
                 rule_uid=rule.rule_uid,
-                mgm_id=self.import_details.state.mgm_details.current_mgm_id,
-                rule_created=self.import_details.state.import_id,
+                mgm_id=self.import_state.mgm_details.current_mgm_id,
+                rule_created=self.import_state.import_id,
                 rule_last_hit=rule.last_hit,
             )
             new_rule_metadata.append(rm4import.model_dump())
@@ -890,12 +888,12 @@ class FwConfigImportRule:
             }
         """
         query_variables: dict[str, Any] = {
-            "importId": self.import_details.state.import_id,
+            "importId": self.import_state.import_id,
             "ids": [self.uid2id_mapper.get_rulebase_id(uid) for uid in removed_rulebase_uids],
         }
 
         try:
-            remove_result = self.import_details.api_call.call(
+            remove_result = self.import_state.fwo_api.call(
                 remove_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
@@ -923,12 +921,12 @@ class FwConfigImportRule:
             }
         """
         query_variables: dict[str, Any] = {
-            "importId": self.import_details.state.import_id,
+            "importId": self.import_state.import_id,
             "ruleIds": rule_ids_to_remove,
         }
 
         try:
-            remove_result = self.import_details.api_call.call(
+            remove_result = self.import_state.fwo_api.call(
                 remove_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
@@ -998,21 +996,19 @@ class FwConfigImportRule:
             tuple[int, int]: A tuple containing the number of added references and the number of removed references
 
         """
-        if not self.global_state.previous_config:
+        if not self.management_state.previous_config:
             raise FwoImporterError("cannot update rule enforced on gateway: previous_config is None")
-        if not self.global_state.normalized_config:
+        if not self.management_state.normalized_config:
             raise FwoImporterError("cannot update rule enforced on gateway: normalized_config is None")
         prev_rule_to_gw_refs = self.get_rule_to_gw_refs(
-            self.global_state.previous_config.rulebases,
-            self.global_state.previous_global_config.rulebases if self.global_state.previous_global_config else None,
-            self.global_state.previous_config.gateways,
+            self.management_state.previous_config.rulebases,
+            self.import_state.previous_super_config.rulebases if self.import_state.previous_super_config else None,
+            self.management_state.previous_config.gateways,
         )
         new_rule_to_gw_refs = self.get_rule_to_gw_refs(
-            self.global_state.normalized_config.rulebases,
-            self.global_state.global_normalized_config.rulebases
-            if self.global_state.global_normalized_config
-            else None,
-            self.global_state.normalized_config.gateways,
+            self.management_state.normalized_config.rulebases,
+            self.import_state.super_config.rulebases if self.import_state.super_config else None,
+            self.management_state.normalized_config.gateways,
         )
         # check for changed rule_uid -> gw uid assignments
         refs_to_add = new_rule_to_gw_refs - prev_rule_to_gw_refs
@@ -1035,15 +1031,21 @@ class FwConfigImportRule:
                     {
                         "_and": [
                             {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
-                            {"dev_id": {"_eq": self.import_details.state.lookup_gateway_id(gw_uid)}},
+                            {
+                                "dev_id": {
+                                    "_eq": self.import_state.lookup_gateway_id(
+                                        gw_uid, self.import_state.mgm_details.current_mgm_id
+                                    )
+                                }
+                            },
                         ]
                     }
                     for rule_uid, gw_uid in refs_to_remove
                 ],
-                "importId": self.import_details.state.import_id,
+                "importId": self.import_state.import_id,
             }
             try:
-                remove_result = self.import_details.api_call.call(
+                remove_result = self.import_state.fwo_api.call(
                     remove_mutation, query_variables=remove_variables, analyze_payload=True
                 )
             except Exception:
@@ -1063,14 +1065,16 @@ class FwConfigImportRule:
                 "rulesEnforcedOnGateway": [
                     {
                         "rule_id": self.uid2id_mapper.get_rule_id(rule_uid),
-                        "dev_id": self.import_details.state.lookup_gateway_id(gw_uid),
-                        "created": self.import_details.state.import_id,
+                        "dev_id": self.import_state.lookup_gateway_id(
+                            gw_uid, self.import_state.mgm_details.current_mgm_id
+                        ),
+                        "created": self.import_state.import_id,
                     }
                     for rule_uid, gw_uid in refs_to_add
                 ]
             }
             try:
-                add_result = self.import_details.api_call.call(
+                add_result = self.import_state.fwo_api.call(
                     add_mutation, query_variables=add_variables, analyze_payload=True
                 )
             except Exception:
@@ -1088,7 +1092,7 @@ class FwConfigImportRule:
     def prepare_rule_for_import(self, rule: RuleNormalized, rulebase_uid: str) -> Rule:
         rulebase_id = self.uid2id_mapper.get_rulebase_id(rulebase_uid)
         return Rule(
-            mgm_id=self.import_details.state.mgm_details.current_mgm_id,
+            mgm_id=self.import_state.mgm_details.current_mgm_id,
             rule_num=rule.rule_num,
             rule_disabled=rule.rule_disabled,
             rule_src_neg=rule.rule_src_neg,
@@ -1114,11 +1118,11 @@ class FwConfigImportRule:
             nat_rule=False,
             is_global=False,
             rulebase_id=rulebase_id,
-            rule_create=self.import_details.state.import_id,
-            rule_last_seen=self.import_details.state.import_id,
+            rule_create=self.import_state.import_id,
+            rule_last_seen=self.import_state.import_id,
             rule_num_numeric=rule.rule_num_numeric,
-            action_id=self.import_details.state.lookup_action(rule.rule_action),
-            track_id=self.import_details.state.lookup_track(rule.rule_track),
+            action_id=self.import_state.lookup_action(rule.rule_action),
+            track_id=self.import_state.lookup_track(rule.rule_track),
             rule_head_text=rule.rule_head_text,
             rule_installon=rule.rule_installon,
             last_change_admin=None,  # TODO: get id from rule.last_change_admin
@@ -1171,7 +1175,7 @@ class FwConfigImportRule:
 
         if len(changelog_rule_insert_objects) > 0:
             try:
-                update_changelog_rules_result = self.import_details.api_call.call(
+                update_changelog_rules_result = self.import_state.fwo_api.call(
                     update_changelog_rules, query_variables=query_variables, analyze_payload=True
                 )
                 if "errors" in update_changelog_rules_result:
@@ -1193,15 +1197,15 @@ class FwConfigImportRule:
         changelog_rule_insert_objects: list[dict[str, Any]] = []
         import_time = datetime.now().isoformat()
         change_typ = 3
-        if self.import_details.state.is_initial_import or self.import_details.state.is_clearing_import:
+        if self.import_state.is_initial_import or self.global_state.fwo_config_controller.fwo_config.clear:
             change_typ = 2  # initial - to be ignored in change reports
 
         changelog_rule_insert_objects.extend(
             [
                 change_logger.create_changelog_import_object(
                     "rule",
-                    self.import_details.state.import_id,
-                    self.import_details.state.mgm_details.mgm_id,
+                    self.import_state.import_id,
+                    self.import_state.mgm_details.mgm_id,
                     "I",
                     change_typ,
                     import_time,
@@ -1215,8 +1219,8 @@ class FwConfigImportRule:
             [
                 change_logger.create_changelog_import_object(
                     "rule",
-                    self.import_details.state.import_id,
-                    self.import_details.state.mgm_details.mgm_id,
+                    self.import_state.import_id,
+                    self.import_state.mgm_details.mgm_id,
                     "D",
                     change_typ,
                     import_time,
@@ -1230,8 +1234,8 @@ class FwConfigImportRule:
             [
                 change_logger.create_changelog_import_object(
                     "rule",
-                    self.import_details.state.import_id,
-                    self.import_details.state.mgm_details.mgm_id,
+                    self.import_state.import_id,
+                    self.import_state.mgm_details.mgm_id,
                     "C",
                     change_typ,
                     import_time,

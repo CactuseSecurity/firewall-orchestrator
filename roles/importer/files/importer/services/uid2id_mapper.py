@@ -1,14 +1,10 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from fwo_log import FWOLogger
-
-if TYPE_CHECKING:
-    from model_controllers.import_state_controller import ImportStateController
 import fwo_const
 from fwo_api import FwoApi
 from fwo_exceptions import FwoImporterError
-from services.enums import Services
-from services.service_provider import ServiceProvider
+from fwo_log import FWOLogger
+from states.import_state import ImportState
 
 
 class Uid2IdMap:
@@ -55,7 +51,7 @@ class Uid2IdMapper:
     This class is used to maintain a mapping between UID and relevant ID in the database.
     """
 
-    import_state: "ImportStateController"
+    import_state: "ImportState"
 
     nwobj_uid2id: Uid2IdMap
     svc_uid2id: Uid2IdMap
@@ -67,14 +63,13 @@ class Uid2IdMapper:
 
     @property
     def api_connection(self) -> FwoApi:
-        return self.import_state.api_connection
+        return self.import_state.fwo_api
 
-    def __init__(self) -> None:
+    def __init__(self, import_state: ImportState) -> None:
         """
         Initialize the Uid2IdMapper.
         """
-        global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
-        self.import_state = global_state.import_state
+        self.import_state = import_state
         self.nwobj_uid2id = Uid2IdMap()
         self.svc_uid2id = Uid2IdMap()
         self.user_uid2id = Uid2IdMap()
@@ -331,9 +326,9 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.state.mgm_details.current_mgm_id}
+            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
         try:
-            response = self.import_state.api_connection.call(query, variables)
+            response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
                 raise FwoImporterError(f"Error updating network object mapping: {response['errors']}")
             self.nwobj_uid2id.update(
@@ -360,9 +355,9 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.state.mgm_details.current_mgm_id}
+            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
         try:
-            response = self.import_state.api_connection.call(query, variables)
+            response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
                 raise FwoImporterError(f"Error updating service object mapping: {response['errors']}")
             self.svc_uid2id.update(
@@ -389,9 +384,9 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.state.mgm_details.current_mgm_id}
+            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
         try:
-            response = self.import_state.api_connection.call(query, variables)
+            response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
                 raise FwoImporterError(f"Error updating user mapping: {response['errors']}")
             self.user_uid2id.update(
@@ -418,9 +413,9 @@ class Uid2IdMapper:
             variables = {"names": names}
         else:
             # If no names are provided, fetch all zones for the Management
-            variables = {"mgmId": self.import_state.state.mgm_details.current_mgm_id}
+            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
         try:
-            response = self.import_state.api_connection.call(query, variables)
+            response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
                 raise FwoImporterError(f"Error updating zone mapping: {response['errors']}")
             self.zone_name2id.update(
@@ -447,9 +442,9 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.state.mgm_details.current_mgm_id}
+            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
         try:
-            response = self.import_state.api_connection.call(query, variables)
+            response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
                 raise FwoImporterError(f"Error updating time object mapping: {response['errors']}")
             self.timeobj_uid2id.update(
@@ -476,9 +471,9 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.state.mgm_details.current_mgm_id}
+            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
         try:
-            response = self.import_state.api_connection.call(query, variables)
+            response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
                 raise FwoImporterError(f"Error updating rule mapping: {response['errors']}")
             self.rule_uid2id.update({obj["rule_uid"]: obj["rule_id"] for obj in response["data"]["rule"]})
@@ -502,9 +497,9 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.state.mgm_details.current_mgm_id}
+            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
         try:
-            response = self.import_state.api_connection.call(query, variables)
+            response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
                 raise FwoImporterError(f"Error updating rulebase mapping: {response['errors']}")
             self.rulebase_uid2id.update({obj["uid"]: obj["id"] for obj in response["data"]["rulebase"]})

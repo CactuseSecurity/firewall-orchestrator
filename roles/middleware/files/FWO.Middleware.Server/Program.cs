@@ -114,7 +114,7 @@ builder.Services.AddSwaggerGen(c =>
     string documentationPath = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
     c.IncludeXmlComments(documentationPath);
 
-
+    //! Microsoft broke the current OpenAPI "AddSecurityRequirement" so we have to use the workaround with "OpenApiSecuritySchemeReference" until they fix it
     c.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
     {
         Type = SecuritySchemeType.Http,

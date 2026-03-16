@@ -369,23 +369,26 @@ namespace FWO.Services
         public List<RuleOwner> BuildNewRuleOwnersIpBased(List<Rule> rulesToMap, List<FwoOwner> ownersToMap)
         {
             var newRuleOwners = new List<RuleOwner>();
-
-            // prepare owner networks for faster lookup
             var ownerNetworksPrepared = PrepareOwnerNetworks(ownersToMap);
 
-            // iterate through each rule 
             foreach (var rule in rulesToMap)
             {
-                var matchedOwnerIds = GetMatchingOwnerIds(rule, ownerNetworksPrepared);
+                var matchesByOwner = GetMatchingOwnerIds(rule, ownerNetworksPrepared);
 
-                foreach (var ownerID in matchedOwnerIds)
+                foreach (var matchByOwner in matchesByOwner)
                 {
+                    var minimalMatchedObjectsForOwner = matchByOwner.Value.ToDictionary(
+                        dirKvp => dirKvp.Key,
+                        dirKvp => dirKvp.Value.Select(o => new { o.Id, o.Name, o.IP, o.IpEnd }).ToList()
+                    );
+
                     newRuleOwners.Add(new RuleOwner
                     {
                         RuleId = rule.Id,
-                        OwnerId = ownerID,
+                        OwnerId = matchByOwner.Key,
                         RuleMetadataId = rule.Metadata.Id,
-                        OwnerMappingSourceId = (int)OwnerMappingSourceStm.IpBased
+                        OwnerMappingSourceId = (int)OwnerMappingSourceStm.IpBased,
+                        MatchedObjects = JsonSerializer.Serialize(minimalMatchedObjectsForOwner)
                     });
                 }
             }
@@ -651,7 +654,6 @@ namespace FWO.Services
             try
             {
                 await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.updateImportControlForRuleOwnerFull,
-
                 new
                 {
                     controlId = importControlId,
@@ -661,10 +663,43 @@ namespace FWO.Services
                 });
 
                 Log.WriteInfo(LogMessageTitle, $"Import control {importControlId} completed successfully.");
+
+                await CompleteOlderPendingImports(importControlId);
             }
             catch (Exception ex)
             {
                 Log.WriteError(LogMessageTitle, "Error while updating import control completion status.", ex);
+            }
+        }
+
+        private async Task CompleteOlderPendingImports(long referenceControlId)
+        {
+            var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
+
+            if (pendingImports == null || !pendingImports.Any())
+            {
+                return;
+            }
+
+            var olderImports = pendingImports.Where(i => i.ControlId < referenceControlId);
+
+            foreach (var import in olderImports)
+            {
+                try
+                {
+                    await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.updateImportControlForRuleOwnerInc,
+                        new
+                        {
+                            controlId = import.ControlId,
+                            rule_owner_mapping_done = true
+                        });
+
+                    Log.WriteInfo(LogMessageTitle, $"Older import control {import.ControlId} marked as rule_owner_mapping_done.");
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteError(LogMessageTitle, $"Error while updating older import_control {import.ControlId}.", ex);
+                }
             }
         }
 
@@ -753,39 +788,52 @@ namespace FWO.Services
                     .ToList();
         }
 
-        public static HashSet<int> GetMatchingOwnerIds(Rule rule, List<OwnerNetworkPrepared> ownerNetworksPrepared)
+        public static Dictionary<int, Dictionary<string, List<NetworkObject>>> GetMatchingOwnerIds(Rule rule, List<OwnerNetworkPrepared> ownerNetworksPrepared)
         {
-            var matchedOwnerIds = new HashSet<int>();
-            var ruleNetworks = rule.Froms.Concat(rule.Tos).Where(n => n?.Object != null).Select(n => n.Object).ToList();
+            var matchesByOwner = new Dictionary<int, Dictionary<string, List<NetworkObject>>>();
 
-            if (!ruleNetworks.Any())
+            var ruleNetworksWithDirections = rule.Froms.Where(n => n?.Object != null).Select(n => (Obj: n.Object!, Direction: "From"))
+                                                       .Concat
+                                             (rule.Tos.Where(n => n?.Object != null).Select(n => (Obj: n.Object!, Direction: "To"))).ToList();
+
+            if (!ruleNetworksWithDirections.Any())
             {
                 Log.WriteWarning(LogMessageTitle, $"Rule {rule.Id} has no network locations and will be skipped.");
-                return matchedOwnerIds;
+                return matchesByOwner;
             }
 
             // Iterate through each network location of the rule
-            foreach (var ruleNetwork in ruleNetworks)
+            foreach (var (obj, direction) in ruleNetworksWithDirections)
             {
-                if (ruleNetwork == null || string.IsNullOrWhiteSpace(ruleNetwork.IP) || string.IsNullOrWhiteSpace(ruleNetwork.IpEnd))
+                if (obj == null || string.IsNullOrWhiteSpace(obj.IP) || string.IsNullOrWhiteSpace(obj.IpEnd))
                 {
                     continue;
                 }
 
-                var (ruleRange, ruleIpVersion) = GetIpRangeAndVersion(ruleNetwork.IP, ruleNetwork.IpEnd);
+                var (ruleRange, ruleIpVersion) = GetIpRangeAndVersion(obj.IP, obj.IpEnd);
 
                 if (ruleRange == null || ruleIpVersion == null)
                 {
                     continue;
                 }
 
-                // For each network location, check against all owners' networks
-                matchedOwnerIds.UnionWith(ownerNetworksPrepared
-                    .Where(owner => !matchedOwnerIds.Contains(owner.OwnerId))
-                    .Where(owner => owner.Ranges.Any(o => o != null && o.IpVersion == ruleIpVersion && IpOperations.RangeOverlapExists(ruleRange, o.Range)))
-                    .Select(owner => owner.OwnerId));
+                var matchingOwnerIds = ownerNetworksPrepared
+                .Where(owner => owner.Ranges.Any(r => r != null
+                                                      && r.IpVersion == ruleIpVersion
+                                                      && IpOperations.RangeOverlapExists(ruleRange, r.Range)))
+                .Select(owner => owner.OwnerId);
+
+                foreach (var ownerId in matchingOwnerIds)
+                {
+                    var dictForOwner = matchesByOwner.GetValueOrDefault(ownerId) ?? new Dictionary<string, List<NetworkObject>>();
+                    if (!dictForOwner.ContainsKey(direction))
+                        dictForOwner[direction] = new List<NetworkObject>();
+
+                    dictForOwner[direction].Add(obj);
+                    matchesByOwner[ownerId] = dictForOwner;
+                }
             }
-            return matchedOwnerIds;
+            return matchesByOwner;
         }
 
         public class OwnerNetworkPrepared

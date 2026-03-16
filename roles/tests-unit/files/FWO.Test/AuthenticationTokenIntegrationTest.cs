@@ -77,7 +77,7 @@ namespace FWO.Test
             AuthenticationTokenGetParameters parameters = defaultCredentialsBuilder.BuildGetParameters();
 
             // Act
-            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/Get", parameters);
+            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetTokenPair", parameters);
 
             // Asserts
             AuthTestHelpers.AssertSuccessResponse(response);
@@ -97,7 +97,7 @@ namespace FWO.Test
             AuthenticationTokenGetParameters parameters = AuthTestHelpers.CreateInvalidCredentials();
 
             // Act
-            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/Get", parameters);
+            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetTokenPair", parameters);
 
             // Assert
             Assert.That(response.IsSuccessStatusCode, Is.False);
@@ -113,7 +113,7 @@ namespace FWO.Test
             AuthenticationTokenGetParameters? credentials = null;
 
             // Act
-            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/Get", credentials);
+            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetTokenPair", credentials);
 
             // Assert
             Assert.That(response.IsSuccessStatusCode, Is.False);
@@ -272,7 +272,7 @@ namespace FWO.Test
                 .BuildGetForUserParameters();
 
             // Act
-            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetForUser", parameters);
+            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetTokenPairForUser", parameters);
 
             string responseText = await response.Content.ReadAsStringAsync();
 
@@ -305,7 +305,7 @@ namespace FWO.Test
         {
             // Use default credentials from GlobalSetup
             AuthenticationTokenGetParameters parameters = defaultCredentialsBuilder.BuildGetParameters();
-            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/Get", parameters);
+            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetTokenPair", parameters);
 
             if (!response.IsSuccessStatusCode)
             {

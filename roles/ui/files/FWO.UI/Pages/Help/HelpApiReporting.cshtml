@@ -22,13 +22,19 @@
         <li>@userConfig.GetText("H6906")</li>
         <pre class="code-block" data-lang="bash"><code>
 curl --request POST \
-    --url https://localhost:8888/api/AuthenticationToken/Get/ \
+    --url https://localhost:8888/api/AuthenticationToken/GetTokenPair/ \
     --header 'content-type: application/json' \
     --data '{"Username": "reportingscheduler", "Password": "xxx"}'
         </code></pre>
 
-        <pre class="code-block" data-lang="text"><code>
-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+        <small class="small-helptext">@userConfig.GetText("response")</small>
+        <pre class="code-block" data-lang="json"><code>
+            {
+            "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "refreshToken": "a7f3c8b9e2d1...",
+            "accessTokenExpires": "2025-12-11T14:30:00Z",
+            "refreshTokenExpires": "2026-01-10T12:00:00Z"
+            }
         </code></pre>
 
         <li>@userConfig.GetText("H6905")</li>

@@ -19,7 +19,7 @@
     <br>
     <pre class="code-block" data-lang="bash"><code>
 curl --request POST \
-    --url https://localhost:8888/api/AuthenticationToken/Get/ \
+        --url https://localhost:8888/api/AuthenticationToken/GetTokenPair/ \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "cactus1"}'
     </code></pre>
@@ -37,7 +37,7 @@ curl --request POST \
     <br><br>
     <pre class="code-block" data-lang="bash"><code>
 curl --request POST \
-    --url https://localhost:8888/api/AuthenticationToken/Get/ \
+    --url https://localhost:8888/api/AuthenticationToken/GetTokenPair/ \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "wrong-pwd"}'
     </code></pre>

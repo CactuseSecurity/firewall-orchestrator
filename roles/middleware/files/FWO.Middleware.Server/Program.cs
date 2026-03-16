@@ -6,6 +6,7 @@ using FWO.Logging;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Quartz;
@@ -112,6 +113,20 @@ builder.Services.AddSwaggerGen(c =>
     });
     string documentationPath = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
     c.IncludeXmlComments(documentationPath);
+
+
+    c.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "JWT Authorization header using the Bearer scheme."
+    });
+
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("bearer", document)] = []
+    });
 });
 
 WebApplication app = builder.Build();

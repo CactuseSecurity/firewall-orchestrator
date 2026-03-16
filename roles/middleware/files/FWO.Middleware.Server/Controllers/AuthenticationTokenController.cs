@@ -218,6 +218,7 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <param name="request">Refresh token request</param>
         /// <returns>New token pair if refresh token is valid</returns>
+        [Authorize]
         [HttpPost("Refresh")]
         public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
         {
@@ -235,7 +236,7 @@ namespace FWO.Middleware.Server.Controllers
 
                 if (tokenInfo == null)
                 {
-                    return Unauthorized("Invalid or expired refresh token");
+                    return BadRequest("Invalid or expired refresh token");
                 }
 
                 UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = tokenInfo.UserId });
@@ -272,6 +273,7 @@ namespace FWO.Middleware.Server.Controllers
         /// An <see cref="ActionResult"/> indicating success if the token is revoked;
         /// otherwise, a bad request or unauthorized result with an error message.
         /// </returns>
+        [Authorize]
         [HttpPost("Revoke")]
         public async Task<ActionResult> RevokeToken([FromBody] RefreshTokenRequest request)
         {
@@ -303,6 +305,19 @@ namespace FWO.Middleware.Server.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+#if DEBUG
+        /// <summary>
+        ///  Tests the Auth from swagger. If this returns unauthorized then check JWT token in swagger and try again.
+        /// </summary>
+        /// <returns></returns>
+        [Authorize]
+        [HttpGet("TestAuth")]
+        public async Task<ActionResult> TestAuth()
+        {
+            return Ok();
+        }
+#endif
     }
 
     class AuthManager

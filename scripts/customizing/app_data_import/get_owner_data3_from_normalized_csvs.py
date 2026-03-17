@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2026-03-16-01"
+__version__ = "2026-03-17-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -17,6 +17,8 @@ __version__ = "2026-03-16-01"
 #   - in UI-Settings: allow passing of multiple script parameters via multiple text fields (should be limited to non-sensitive parameters, as they will be visible to all users with access to the UI-Settings)
 # 2026-03-16-01:
 #   - allowing multiple filter columns with per-column include values
+# 2026-03-17-01:
+#   - allowing csv delimiter override via cli argument
 
 # reads the main app data from multiple csv files contained in a git repo
 # users will reside in external ldap groups with standardized names
@@ -53,6 +55,7 @@ from scripts.customizing.fwo_custom_lib.git_helpers import (
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
+    parse_csv_separator_arg,
 )
 
 base_dir: str = "/usr/local/fworch/"
@@ -240,7 +243,7 @@ if __name__ == "__main__":
                             "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv", \
                             "gitRepoOwnersWithActiveRecert": "github.example.de/FWO", \
                             "gitFileOwnersWithActiveRecert": "isolated-apps.txt", \
-                            "csvSeparator": ",", \
+                            "csvSeparator": ";", \
                             "validAppIdPrefixes": ["app-", "com-"], \
                             "importSource": "tufinRlm" \
                         } \
@@ -269,6 +272,12 @@ if __name__ == "__main__":
         metavar="api_limit",
         default="150",
         help="The maximal number of returned results per HTTPS Connection; default=50",
+    )
+    parser.add_argument(
+        "--csvSeparator",
+        type=parse_csv_separator_arg,
+        default=None,
+        help="csv delimiter used for owner and ip csv files; allowed values are ',' and ';'; defaults to config value",
     )
     parser.add_argument("-d", "--debug", default=0, help="debug level, default=0")
     parser.add_argument(
@@ -381,7 +390,11 @@ if __name__ == "__main__":
     valid_app_id_prefixes: list[str] | None = read_custom_config_with_default(
         args.config, "validAppIdPrefixes", None, logger
     )
-    csv_separator: str = read_custom_config_with_default(args.config, "csvSeparator", ",", logger)
+    csv_separator: str = (
+        args.csvSeparator
+        if args.csvSeparator is not None
+        else parse_csv_separator_arg(read_custom_config_with_default(args.config, "csvSeparator", ";", logger))
+    )
     default_recert_active_state: bool = args.default_recertification_active_state
     if args.filter_columns is None:
         filter_columns: list[str] = ["Aktive Firewallregel"]

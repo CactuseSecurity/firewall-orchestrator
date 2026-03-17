@@ -23,6 +23,7 @@ from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     ExtractAppDataCsvOptions,
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
+    parse_csv_separator_arg,
 )
 
 # Make module directory importable
@@ -67,6 +68,28 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(owner.import_source, self.import_source)
             self.assertEqual(owner.owner_lifecycle_state, "unknown")
             self.assertNotIn("criticality", owner.to_json())
+
+    def test_extract_app_data_from_csv_supports_semicolon_separator(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Name;col: Alfabet-ID;bogus: TISO;bogus: kwITA\nMy App;APP-001;user1;false\n")
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                csv_separator=";",
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].app_id_external, "APP-001")
 
     def test_extract_app_data_from_csv_reads_cp1252_encoded_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -140,6 +163,28 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(str(app_server.ip_end), "10.0.0.1")
             self.assertEqual(app_server.type, "host")
             self.assertEqual(app_server.app_id_external, "APP-001")
+
+    def test_extract_ip_data_from_csv_supports_semicolon_separator(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ip_csv_path: Path = Path(tmpdir) / "ips.csv"
+            with open(ip_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Alfabet-ID;col: IP\nAPP-001;10.0.0.1\n")
+
+            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            app_dict: dict[str, Owner] = {"APP-001": owner}
+
+            extract_ip_data_from_csv(
+                "ips.csv",
+                app_dict,
+                Appip,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                csv_separator=";",
+            )
+
+            self.assertEqual(len(owner.app_servers), 1)
+            self.assertEqual(str(owner.app_servers[0].ip_start), "10.0.0.1")
 
     def test_extract_ip_data_from_csv_reads_cp1252_encoded_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -502,6 +547,14 @@ class AppDataImportTests(unittest.TestCase):
                 ["Aktive Firewallregel", "Importieren"],
                 [["Ja"], ["Nein"], ["Ausnahme"]],
             )
+
+    def test_parse_csv_separator_arg_accepts_supported_values(self) -> None:
+        self.assertEqual(parse_csv_separator_arg(","), ",")
+        self.assertEqual(parse_csv_separator_arg(";"), ";")
+
+    def test_parse_csv_separator_arg_rejects_unsupported_values(self) -> None:
+        with pytest.raises(argparse.ArgumentTypeError, match="invalid csv separator"):
+            parse_csv_separator_arg("|")
 
     def test_read_custom_config_parses_json_with_comments(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

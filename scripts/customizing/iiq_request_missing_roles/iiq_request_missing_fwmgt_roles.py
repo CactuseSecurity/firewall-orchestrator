@@ -26,6 +26,7 @@ from scripts.customizing.fwo_custom_lib.git_helpers import parse_git_depth_arg, 
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
+    parse_csv_separator_arg,
 )
 from scripts.customizing.iiq_request_missing_roles.iiq_client import IIQClient
 
@@ -75,6 +76,7 @@ def get_owners_from_csv_files(
     debug_level: int,
     owner_header_patterns: dict[str, str] | None = None,
     ip_header_patterns: dict[str, str] | None = None,
+    csv_separator: str = ";",
 ) -> tuple[dict[str, Owner], dict[str, str]]:
     app_list: list[Owner] = []
     re_owner_file_pattern: re.Pattern[str] = re.compile(csv_owner_file_pattern)
@@ -90,6 +92,7 @@ def get_owners_from_csv_files(
                 debug_level,
                 base_dir=repo_target_dir,
                 column_patterns=owner_header_patterns,
+                csv_separator=csv_separator,
             )
 
     owner_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)
@@ -106,6 +109,7 @@ def get_owners_from_csv_files(
                 debug_level,
                 base_dir=repo_target_dir,
                 column_patterns=ip_header_patterns,
+                csv_separator=csv_separator,
             )
 
     # now only choose those owners which have at least one app server with a non-empty IP assigned
@@ -347,6 +351,12 @@ if __name__ == "__main__":
         default=None,
         help="optional git clone/pull depth; if omitted, no depth is passed to git",
     )
+    parser.add_argument(
+        "--csvSeparator",
+        type=parse_csv_separator_arg,
+        default=None,
+        help="csv delimiter used for owner and ip csv files; allowed values are ',' and ';'; defaults to config value",
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -356,6 +366,11 @@ if __name__ == "__main__":
         args.config, "csvOwnerColumnPatterns", {}, logger
     )
     ip_header_patterns: dict[str, str] = read_custom_config_with_default(args.config, "csvIpColumnPatterns", {}, logger)
+    csv_separator: str = (
+        args.csvSeparator
+        if args.csvSeparator is not None
+        else parse_csv_separator_arg(read_custom_config_with_default(args.config, "csvSeparator", ";", logger))
+    )
 
     debug: int = int(args.debug)
     logger.configure_debug_level(debug)
@@ -412,6 +427,7 @@ if __name__ == "__main__":
         debug,
         owner_header_patterns=owner_header_patterns,
         ip_header_patterns=ip_header_patterns,
+        csv_separator=csv_separator,
     )
 
     tiso_orgids: dict[str, str] = get_tisos_orgids(tisos, iiq_client, exit_after_dump=args.just_dump_tiso_org_ids)

@@ -1,4 +1,5 @@
 import csv
+import argparse
 import logging
 import re
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ DEFAULT_OWNER_HEADER_PATTERNS: dict[str, str] = {
 }
 DEFAULT_IP_HEADER_PATTERNS: dict[str, str] = {"app_id": r".*?:\s*Alfabet-ID$", "ip": r".*?:\s*IP"}
 CSV_FALLBACK_ENCODINGS: tuple[str, ...] = ("utf-8", "cp1252", "latin-1")
+ALLOWED_CSV_SEPARATORS: tuple[str, ...] = (",", ";")
 
 
 @dataclass(frozen=True)
@@ -63,6 +65,14 @@ class ExtractAppDataCsvOptions:
     criticality_recert_period_mapping: dict[str, int] | None = None
     responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None
     level_two_responsible_pattern: str | None = None
+
+
+def parse_csv_separator_arg(value: str) -> str:
+    normalized_value: str = value.strip()
+    if normalized_value not in ALLOWED_CSV_SEPARATORS:
+        allowed_values: str = ", ".join(repr(separator) for separator in ALLOWED_CSV_SEPARATORS)
+        raise argparse.ArgumentTypeError(f"invalid csv separator {value!r}, expected one of: {allowed_values}")
+    return normalized_value
 
 
 def _resolve_extract_options(

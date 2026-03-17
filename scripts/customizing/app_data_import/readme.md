@@ -27,6 +27,7 @@ Adjust `/etc/fworch/secrets/customizingConfig.json` as follows:
 You can bypass Git and read from a local folder by providing `--import_from_folder` when running the script.
 
 Owner row import can be filtered via CLI parameters:
+- `--csvSeparator` (optional): csv delimiter used for owner and ip csv files. Allowed values are `,` and `;`. If omitted, the value from `customizingConfig.json` is used, falling back to `;`.
 - `--filterColumn` (default: `Aktive Firewallregel`): owner CSV header used for filtering. Repeat the option to require matches in multiple columns.
 - `--includeValues` (default: `Ja`): one or more values to include for the preceding `--filterColumn`. Repeat per filter column. If only one `--includeValues` group is provided for multiple filter columns, that same value set is reused for all of them.
 - `--lifecycleState` (default: `Lifecycle State`): owner CSV header used to import `owner_lifecycle_state`.

@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 import re
 import socket
 import sys
@@ -163,6 +164,16 @@ def get_git_repo(
     repo_updated: bool = update_git_repo(repo_url, repo_target_dir, logger, depth=depth)
     if not repo_updated:
         sys.exit(1)
+
+
+def resolve_local_repo_base_dir(
+    config_file: str,
+    cli_local_repo_base_dir: str | None,
+    logger: logging.Logger,
+) -> str:
+    if cli_local_repo_base_dir is not None:
+        return cli_local_repo_base_dir
+    return read_custom_config_with_default(config_file, "iiqLocalRepoBaseDir", FWO_TMP_DIR, logger)
 
 
 def request_all_roles(
@@ -346,6 +357,11 @@ if __name__ == "__main__":
         help="if set, will try to read csv files from given folder instead of git repo",
     )
     parser.add_argument(
+        "--local_repo_base_dir",
+        default=None,
+        help="base directory for local git checkouts; defaults to config key iiqLocalRepoBaseDir or /usr/local/fworch/tmp/iiq_request_missing_fwmgt_roles/",
+    )
+    parser.add_argument(
         "--depth",
         type=parse_git_depth_arg,
         default=None,
@@ -384,6 +400,8 @@ if __name__ == "__main__":
         urllib3.disable_warnings()
 
     logger.debug_if(3, f"using config file {args.config}")
+    local_repo_base_dir: str = resolve_local_repo_base_dir(args.config, args.local_repo_base_dir, logger)
+    cmdb_repo_target_dir: str = str(Path(local_repo_base_dir) / "cmdb-repo")
 
     ldap_path: str = read_custom_config(args.config, "ldapPath", logger)
     iiq_hostname: str = read_custom_config(args.config, "iiqHostname", logger)
@@ -411,8 +429,8 @@ if __name__ == "__main__":
         git_repo_url: str = read_custom_config(args.config, "cmdbGitRepoUrl", logger)
         git_username: str = read_custom_config(args.config, "cmdbGitUsername", logger)
         git_password: str = read_custom_config(args.config, "cmdbGitPassword", logger)
-        csv_file_base_dir = CMDB_REPO_TARGET_DIR
-        get_git_repo(git_repo_url, git_username, git_password, CMDB_REPO_TARGET_DIR, depth=args.depth)
+        csv_file_base_dir = cmdb_repo_target_dir
+        get_git_repo(git_repo_url, git_username, git_password, cmdb_repo_target_dir, depth=args.depth)
 
     logger.info_if(0, "getting owners from file")
 

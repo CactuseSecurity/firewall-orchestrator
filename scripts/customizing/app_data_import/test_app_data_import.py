@@ -14,6 +14,7 @@ from scripts.customizing.app_data_import.get_owner_data3_from_normalized_csvs im
     parse_criticality_recert_period_mapping,
     parse_included_owners_filters,
     parse_responsibles_columns,
+    resolve_local_repo_base_dir,
 )
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 from scripts.customizing.fwo_custom_lib.basic_helpers import (
@@ -621,6 +622,41 @@ class AppDataImportTests(unittest.TestCase):
 
         self.assertEqual(updated_patterns["name"], r".*?:\s*Name")
         self.assertEqual(updated_patterns["owner_lifecycle_state"], r"^\s*Lifecycle\ Status\s*$")
+
+    def test_resolve_local_repo_base_dir_prefers_config_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            expected_repo_dir: str = str(Path(tmpdir) / "fworch-custom-repos")
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    f"""
+                    {{
+                      "localRepoBaseDir": "{expected_repo_dir}"
+                    }}
+                    """
+                )
+
+            resolved: str = resolve_local_repo_base_dir(str(config_path), None, self.logger)
+
+            self.assertEqual(resolved, expected_repo_dir)
+
+    def test_resolve_local_repo_base_dir_prefers_cli_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            config_repo_dir: str = str(Path(tmpdir) / "fworch-config-repos")
+            cli_repo_dir: str = str(Path(tmpdir) / "fworch-cli-repos")
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    f"""
+                    {{
+                      "localRepoBaseDir": "{config_repo_dir}"
+                    }}
+                    """
+                )
+
+            resolved: str = resolve_local_repo_base_dir(str(config_path), cli_repo_dir, self.logger)
+
+            self.assertEqual(resolved, cli_repo_dir)
 
     def test_get_owner_data3_imports_owner_lifecycle_state_from_override_column(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

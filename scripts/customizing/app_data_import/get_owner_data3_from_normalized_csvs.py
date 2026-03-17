@@ -183,6 +183,16 @@ def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[st
     return {level: tuple(headers) for level, headers in responsibles_columns.items()}
 
 
+def resolve_local_repo_base_dir(
+    config_file: str,
+    cli_local_repo_base_dir: str | None,
+    logger: logging.Logger,
+) -> str:
+    if cli_local_repo_base_dir is not None:
+        return cli_local_repo_base_dir
+    return read_custom_config_with_default(config_file, "localRepoBaseDir", base_dir_etc, logger)
+
+
 def apply_owner_column_overrides(
     owner_header_patterns: dict[str, str],
     lifecycle_state_column: str,
@@ -279,8 +289,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--local_repo_base_dir",
-        default=base_dir_etc,
-        help="base directory for local git checkouts, default=/usr/local/fworch/etc/",
+        default=None,
+        help="base directory for local git checkouts; defaults to config key localRepoBaseDir or /usr/local/fworch/etc/",
     )
     parser.add_argument(
         "-l",
@@ -427,7 +437,7 @@ if __name__ == "__main__":
         parser.error(str(err))
     lifecycle_state_column: str = args.lifecycleState
     fallback_owner_lifecycle: str = args.fallback_owner_lifecycle
-    local_repo_base_dir: str = args.local_repo_base_dir
+    local_repo_base_dir: str = resolve_local_repo_base_dir(args.config, args.local_repo_base_dir, logger)
     composite_id_fields: tuple[str, ...] | None = tuple(args.compositeIdFields) if args.compositeIdFields else None
     composite_id_fields_delimiter_str: str = args.compositeIdFieldsDelimiterStr
     composite_id_fields_max_length: list[int] | None = args.compositeIdFieldsMaxLength

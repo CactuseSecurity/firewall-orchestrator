@@ -23,10 +23,12 @@ Adjust `/etc/fworch/secrets/customizingConfig.json` as follows:
 - `csvOwnerColumnPatterns` (optional): JSON object with regexes for the owner CSV headers (`name`, `app_id`, `owner_kwita`, `owner_lifecycle_state`); defaults match `col: Name`, `col: Alfabet-ID`, `kwITA`, and `Lifecycle State`.
 - `csvIpColumnPatterns` (optional): JSON object with regexes for the IP CSV headers (`app_id`, `ip`); defaults match `col: Alfabet-ID` and `col: IP`.
 - `ldapPath`: DN template containing `{USERID}` to expand responsibles into DNs. If responsibles level `1` is present, its first DN is also written to `main_user`.
+- `localRepoBaseDir` (optional): base directory used for local git checkouts when `--local_repo_base_dir` is not provided.
 
 You can bypass Git and read from a local folder by providing `--import_from_folder` when running the script.
 
 Owner row import can be filtered via CLI parameters:
+- `--local_repo_base_dir` (optional): base directory for local git checkouts. If omitted, the script uses `localRepoBaseDir` from `customizingConfig.json`, falling back to `/usr/local/fworch/etc/`.
 - `--csvSeparator` (optional): csv delimiter used for owner and ip csv files. Allowed values are `,` and `;`. If omitted, the value from `customizingConfig.json` is used, falling back to `;`.
 - `--filterColumn` (default: `Aktive Firewallregel`): owner CSV header used for filtering. Repeat the option to require matches in multiple columns.
 - `--includeValues` (default: `Ja`): one or more values to include for the preceding `--filterColumn`. Repeat per filter column. If only one `--includeValues` group is provided for multiple filter columns, that same value set is reused for all of them.

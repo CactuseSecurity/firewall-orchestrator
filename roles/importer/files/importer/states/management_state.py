@@ -3,6 +3,7 @@ from typing import Any
 from models.fwconfig_normalized import FwConfigNormalized
 from services.group_flats_mapper import GroupFlatsMapper
 from services.uid2id_mapper import Uid2IdMapper
+from states.import_state import ImportState
 
 
 class ManagementState:
@@ -34,9 +35,9 @@ class ManagementState:
     cloud_client_id: str | None = None
     cloud_client_secret: str | None = None
 
-    def __init__(self, mgm_id: int):
+    def __init__(self, import_state: ImportState, mgm_id: int):
         self.mgm_id = mgm_id
         self.normalized_config = None
         self.previous_config = None
-        self.uid2id_mapper = None
-        self.group_flats_mapper = None
+        self.uid2id_mapper = Uid2IdMapper(import_state=import_state)
+        self.group_flats_mapper = GroupFlatsMapper()

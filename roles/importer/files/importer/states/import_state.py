@@ -12,8 +12,6 @@ from fwo_log import FWOLogger
 from model_controllers.import_statistics_controller import ImportStatisticsController
 from model_controllers.management_controller import ManagementController
 from models.fwconfig_normalized import FwConfigNormalized
-from services.group_flats_mapper import GroupFlatsMapper
-from services.uid2id_mapper import Uid2IdMapper
 
 
 class ImportState:
@@ -43,10 +41,6 @@ class ImportState:
     is_initial_import: bool = False
     responsible_for_importing: bool = True
     input_file: str | None = None
-
-    uid2id_mapper: Uid2IdMapper
-    group_flats_mapper: GroupFlatsMapper
-    previous_group_flats_mapper: GroupFlatsMapper
 
     # uid 2 id mapper...
 

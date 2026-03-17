@@ -21,8 +21,6 @@ from models.rule_to import RuleTo
 from models.rulebase import Rulebase, RulebaseForImport
 from models.serviceobject import ServiceObject
 from models.time_object import TimeObject
-from services.group_flats_mapper import GroupFlatsMapper
-from services.uid2id_mapper import Uid2IdMapper
 from states.global_state import GlobalState
 from states.import_state import ImportState
 from states.management_state import ManagementState
@@ -45,19 +43,15 @@ class FwConfigImportRule:
     global_state: GlobalState
     import_state: ImportState
     normalized_config: FwConfigNormalized | None = None
-    uid2id_mapper: Uid2IdMapper
-    group_flats_mapper: GroupFlatsMapper
-    prev_group_flats_mapper: GroupFlatsMapper
 
     def __init__(self, global_state: GlobalState, import_state: ImportState, management_state: ManagementState):
         self.global_state = global_state
         self.import_state = import_state
-        # TODO: why is there a state where this is initialized with normalized_config = None? - see #3154
-        self.normalized_config = management_state.normalized_config
-        self.uid2id_mapper = import_state.uid2id_mapper
-        self.group_flats_mapper = import_state.group_flats_mapper
-        self.prev_group_flats_mapper = import_state.prev_group_flats_mapper
         self.management_state = management_state
+        self.uid2id_mapper = management_state.uid2id_mapper
+        self.group_flats_mapper = management_state.group_flats_mapper
+        self.prev_group_flats_mapper = management_state.prev_group_flats_mapper
+        # TODO: why is there a state where this is initialized with normalized_config = None? - see #3154
 
     def update_rulebase_diffs(self, prev_config: FwConfigNormalized | None) -> None:
         if self.normalized_config is None:

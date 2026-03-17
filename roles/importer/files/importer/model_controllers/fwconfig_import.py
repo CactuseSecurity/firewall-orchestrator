@@ -25,7 +25,7 @@ from states.management_state import ManagementState
 
 # this class is used for importing a config into the FWO API
 class FwConfigImport:
-    _fw_config_import_rule: FwConfigImportRule
+    _fw_config_import_rule: FwConfigImportRule | None
     _fw_config_import_object: FwConfigImportObject
     _fw_config_import_gateway: FwConfigImportGateway
     _rb_link_controller: RulebaseLinkController
@@ -34,9 +34,9 @@ class FwConfigImport:
     def fwconfig_import_object(self):
         return self._fw_config_import_object
 
-    def __init__(self, global_state: GlobalState, import_state: ImportState, management_state: ManagementState):
+    def __init__(self, global_state: GlobalState, import_state: ImportState):
         self._fw_config_import_object = FwConfigImportObject()
-        self._fw_config_import_rule = FwConfigImportRule(global_state, import_state, management_state)
+        self._fw_config_import_rule = None
         self._fw_config_import_gateway = FwConfigImportGateway()
         self._rb_link_controller = RulebaseLinkController()
 
@@ -86,7 +86,9 @@ class FwConfigImport:
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {manager.manager_uid}")
 
-        management_state = ManagementState(mgm_id)
+        management_state = ManagementState(import_state, mgm_id)
+        self._fw_config_import_rule = FwConfigImportRule(global_state, import_state, management_state)
+
         # TODO: clean separation between values relevant for all managers and those only relevant for specific managers - see #3646
         import_state.mgm_details.current_mgm_id = mgm_id
         import_state.mgm_details.current_mgm_is_super_manager = manager.is_super_manager
@@ -226,6 +228,8 @@ class FwConfigImport:
         if fwo_globals.shutdown_requested:
             raise ImportInterruptionError("Shutdown requested during updateObjectDiffs.")
 
+        if self._fw_config_import_rule is None:
+            raise FwoImporterError("FwConfigImportRule is not initialized")
         self._fw_config_import_rule.update_rulebase_diffs(management_state.previous_config)
 
         if fwo_globals.shutdown_requested:

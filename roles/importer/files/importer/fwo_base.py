@@ -12,13 +12,8 @@ from fwo_const import IMPORT_TMP_PATH
 from fwo_enums import ConfFormat, ConfigAction
 
 if TYPE_CHECKING:
-    from model_controllers.import_state_controller import ImportStateController
     from states.import_state import ImportState
 from fwo_log import FWOLogger
-from services.enums import Lifetime, Services
-from services.global_state import GlobalState
-from services.group_flats_mapper import GroupFlatsMapper
-from services.service_provider import ServiceProvider
 
 
 def sanitize(content: Any, lower: bool = False) -> None | str:
@@ -235,19 +230,6 @@ def write_native_config_to_file(import_state: "ImportState", config_native: dict
 
         time_write_debug_json = int(time.time()) - debug_start_time
         FWOLogger.debug(f"import_management - writing debug config json files duration {time_write_debug_json!s}s")
-
-
-def init_service_provider() -> ServiceProvider:
-    service_provider = ServiceProvider()
-    service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-    service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-    # service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
-    return service_provider
-
-
-def register_global_state(import_state: "ImportStateController") -> None:
-    service_provider = ServiceProvider()
-    service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(import_state), Lifetime.SINGLETON)
 
 
 def _diff_dicts(a: dict[Any, Any], b: dict[Any, Any], strict: bool, path: str) -> list[str]:

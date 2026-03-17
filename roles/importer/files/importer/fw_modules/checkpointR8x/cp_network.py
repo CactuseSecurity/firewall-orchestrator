@@ -9,7 +9,6 @@ from fwo_base import cidr_to_range
 from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER
 from fwo_log import FWOLogger
 from models.time_object import TimeObject
-from services.service_provider import ServiceProvider
 
 
 def normalize_network_objects(

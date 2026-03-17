@@ -11,7 +11,6 @@ from fw_modules.checkpointR8x import cp_const, cp_network
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.management_controller import ManagementController
-from services.service_provider import ServiceProvider
 
 # Constants for status values
 STATUS_IN_PROGRESS = "in progress"

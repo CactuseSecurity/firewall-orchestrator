@@ -38,8 +38,6 @@ from model_controllers.fwconfigmanagerlist_controller import (
     FwConfigManagerListController,
 )
 from models.gateway import Gateway
-from services.enums import Services
-from services.service_provider import ServiceProvider
 
 """
     import_management: import a single management (if no import for it is running)
@@ -59,7 +57,10 @@ def import_management(
     import_state: ImportState,
 ) -> None:
     fwo_signalling.register_signalling_handlers()
-    config_importer = FwConfigImport()
+    config_importer = FwConfigImport(
+        global_state=global_state,
+        import_state=import_state,
+    )
     exception: BaseException | None = None
 
     try:
@@ -94,7 +95,6 @@ def import_management(
     finally:
         try:
             import_state.fwo_api_call.complete_import(import_state, exception)
-            ServiceProvider().dispose_service(Services.UID2ID_MAPPER, import_state.import_id)
         except Exception as e:
             FWOLogger.error(f"Error during import completion: {e!s}")
 
@@ -106,7 +106,7 @@ def _import_management(
     config_normalized: FwConfigManagerListController
 
     config_changed_since_last_import = True
-    config_importer = FwConfigImport()
+    config_importer = FwConfigImport(global_state=global_state, import_state=import_state)
 
     fwo_config = global_state.fwo_config_controller.fwo_config
     FWOLogger.debug(f"import_management - ssl_verification: {fwo_config.ssl_verification}", 9)

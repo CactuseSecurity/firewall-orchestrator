@@ -115,36 +115,23 @@ namespace FWO.Middleware.Server
 
             foreach (char currentCharacter in commandLine)
             {
-                if (isEscaped)
+                if (TryAppendEscapedCharacter(currentCharacter, currentArgument, ref isEscaped))
                 {
-                    currentArgument.Append(currentCharacter);
-                    isEscaped = false;
                     continue;
                 }
 
-                if (currentCharacter == '\\')
+                if (TryStartEscapeSequence(currentCharacter, ref isEscaped))
                 {
-                    isEscaped = true;
                     continue;
                 }
 
-                if (inQuotes)
+                if (TryHandleQuotedCharacter(currentCharacter, currentArgument, ref inQuotes, quoteCharacter))
                 {
-                    if (currentCharacter == quoteCharacter)
-                    {
-                        inQuotes = false;
-                    }
-                    else
-                    {
-                        currentArgument.Append(currentCharacter);
-                    }
                     continue;
                 }
 
-                if (currentCharacter == '"' || currentCharacter == '\'')
+                if (TryStartQuotedArgument(currentCharacter, ref inQuotes, ref quoteCharacter))
                 {
-                    inQuotes = true;
-                    quoteCharacter = currentCharacter;
                     continue;
                 }
 
@@ -164,6 +151,67 @@ namespace FWO.Middleware.Server
 
             AppendCompletedArgument(arguments, currentArgument);
             return arguments;
+        }
+
+        private static bool TryAppendEscapedCharacter(
+            char currentCharacter,
+            StringBuilder currentArgument,
+            ref bool isEscaped)
+        {
+            if (!isEscaped)
+            {
+                return false;
+            }
+
+            currentArgument.Append(currentCharacter);
+            isEscaped = false;
+            return true;
+        }
+
+        private static bool TryStartEscapeSequence(char currentCharacter, ref bool isEscaped)
+        {
+            if (currentCharacter != '\\')
+            {
+                return false;
+            }
+
+            isEscaped = true;
+            return true;
+        }
+
+        private static bool TryHandleQuotedCharacter(
+            char currentCharacter,
+            StringBuilder currentArgument,
+            ref bool inQuotes,
+            char quoteCharacter)
+        {
+            if (!inQuotes)
+            {
+                return false;
+            }
+
+            if (currentCharacter == quoteCharacter)
+            {
+                inQuotes = false;
+            }
+            else
+            {
+                currentArgument.Append(currentCharacter);
+            }
+
+            return true;
+        }
+
+        private static bool TryStartQuotedArgument(char currentCharacter, ref bool inQuotes, ref char quoteCharacter)
+        {
+            if (currentCharacter != '"' && currentCharacter != '\'')
+            {
+                return false;
+            }
+
+            inQuotes = true;
+            quoteCharacter = currentCharacter;
+            return true;
         }
 
         private static void AppendCompletedArgument(List<string> arguments, StringBuilder currentArgument)

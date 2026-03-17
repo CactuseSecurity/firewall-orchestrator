@@ -9,10 +9,10 @@ namespace FWO.Data
         Recertification = 1,
         ImportChange = 2,
         Compliance = 3,
-		InterfaceRequest = 4,
-		RuleTimer = 5,
-		AppDecomm = 6
-	}
+        InterfaceRequest = 4,
+        RuleTimer = 5,
+        AppDecomm = 6
+    }
 
     public enum NotificationChannel
     {
@@ -23,10 +23,10 @@ namespace FWO.Data
     {
         None = 0,
         RecertDate = 1,
-		RequestDate = 2,
-		RuleExpiry = 3,
-		DecommissionDate = 4
-	}
+        RequestDate = 2,
+        RuleExpiry = 3,
+        DecommissionDate = 4
+    }
 
     public class FwoNotification
     {

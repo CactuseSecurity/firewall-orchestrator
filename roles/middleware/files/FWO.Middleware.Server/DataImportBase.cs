@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Config.Api;
 using FWO.Logging;
 using System.Diagnostics;
+using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -65,10 +66,10 @@ namespace FWO.Middleware.Server
                     ProcessStartInfo start = new()
                     {
                         FileName = importScriptFile,
-                        Arguments = scriptArguments ?? "",
                         UseShellExecute = false,
                         RedirectStandardOutput = true
                     };
+                    AddScriptArguments(start, scriptArguments);
                     Process? process = Process.Start(start);
                     StreamReader? reader = process?.StandardOutput;
                     string? result = reader?.ReadToEnd();
@@ -83,6 +84,95 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Run Import Script", $"File {importScriptFile} could not be executed.", Exception);
             }
             return false;
+        }
+
+        /// <summary>
+        /// Parse a configured command line into discrete process arguments.
+        /// </summary>
+        protected static void AddScriptArguments(ProcessStartInfo start, string? scriptArguments)
+        {
+            foreach (string argument in ParseCommandLineArguments(scriptArguments))
+            {
+                start.ArgumentList.Add(argument);
+            }
+        }
+
+        /// <summary>
+        /// Split a command line string while preserving quoted values.
+        /// </summary>
+        protected static List<string> ParseCommandLineArguments(string? commandLine)
+        {
+            List<string> arguments = [];
+            if (string.IsNullOrWhiteSpace(commandLine))
+            {
+                return arguments;
+            }
+
+            StringBuilder currentArgument = new();
+            bool inQuotes = false;
+            char quoteCharacter = '\0';
+            bool isEscaped = false;
+
+            foreach (char currentCharacter in commandLine)
+            {
+                if (isEscaped)
+                {
+                    currentArgument.Append(currentCharacter);
+                    isEscaped = false;
+                    continue;
+                }
+
+                if (currentCharacter == '\\')
+                {
+                    isEscaped = true;
+                    continue;
+                }
+
+                if (inQuotes)
+                {
+                    if (currentCharacter == quoteCharacter)
+                    {
+                        inQuotes = false;
+                    }
+                    else
+                    {
+                        currentArgument.Append(currentCharacter);
+                    }
+                    continue;
+                }
+
+                if (currentCharacter == '"' || currentCharacter == '\'')
+                {
+                    inQuotes = true;
+                    quoteCharacter = currentCharacter;
+                    continue;
+                }
+
+                if (char.IsWhiteSpace(currentCharacter))
+                {
+                    AppendCompletedArgument(arguments, currentArgument);
+                    continue;
+                }
+
+                currentArgument.Append(currentCharacter);
+            }
+
+            if (isEscaped)
+            {
+                currentArgument.Append('\\');
+            }
+
+            AppendCompletedArgument(arguments, currentArgument);
+            return arguments;
+        }
+
+        private static void AppendCompletedArgument(List<string> arguments, StringBuilder currentArgument)
+        {
+            if (currentArgument.Length > 0)
+            {
+                arguments.Add(currentArgument.ToString());
+                currentArgument.Clear();
+            }
         }
 
         /// <summary>

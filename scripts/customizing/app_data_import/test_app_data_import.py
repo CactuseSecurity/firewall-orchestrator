@@ -10,6 +10,7 @@ import pytest
 from scripts.customizing.app_data_import.get_owner_data3_from_normalized_csvs import (
     apply_owner_column_overrides,
     build_git_repo_url,
+    normalize_option_value_args,
     parse_criticality_recert_period_mapping,
     parse_included_owners_filters,
     parse_responsibles_columns,
@@ -63,7 +64,7 @@ class AppDataImportTests(unittest.TestCase):
             owner: Owner = app_list[0]
             self.assertEqual(owner.name, "My App")
             self.assertEqual(owner.app_id_external, "APP-001")
-            self.assertEqual(owner.main_user, "CN=user1")
+            self.assertEqual(owner.main_user, "")
             self.assertEqual(owner.recert_period_days, 365)
             self.assertEqual(owner.import_source, self.import_source)
             self.assertEqual(owner.owner_lifecycle_state, "unknown")
@@ -221,7 +222,6 @@ class AppDataImportTests(unittest.TestCase):
             header_patterns: dict[str, str] = {
                 "name": r"Application Name",
                 "app_id": r"Application Identifier",
-                "owner_tiso": r"Main Owner",
                 "owner_kwita": r"Recert Active",
             }
             extract_app_data_from_csv(
@@ -239,7 +239,7 @@ class AppDataImportTests(unittest.TestCase):
             owner: Owner = app_list[0]
             self.assertEqual(owner.name, "My Other App")
             self.assertEqual(owner.app_id_external, "APP-002")
-            self.assertEqual(owner.main_user, "CN=user2")
+            self.assertEqual(owner.main_user, "")
             self.assertEqual(owner.recert_period_days, 182)
 
     def test_extract_app_data_from_csv_applies_default_recert_active_state(self) -> None:
@@ -555,6 +555,15 @@ class AppDataImportTests(unittest.TestCase):
     def test_parse_csv_separator_arg_rejects_unsupported_values(self) -> None:
         with pytest.raises(argparse.ArgumentTypeError, match="invalid csv separator"):
             parse_csv_separator_arg("|")
+
+    def test_normalize_option_value_args_allows_dash_prefixed_delimiter_value(self) -> None:
+        self.assertEqual(
+            normalize_option_value_args(
+                ["--compositeIdFieldsDelimiterStr", "-abc", "--debug", "2"],
+                ("--compositeIdFieldsDelimiterStr",),
+            ),
+            ["--compositeIdFieldsDelimiterStr=-abc", "--debug", "2"],
+        )
 
     def test_read_custom_config_parses_json_with_comments(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -892,6 +901,42 @@ class AppDataImportTests(unittest.TestCase):
             owner_json: dict[str, object] = app_list[0].to_json()
             self.assertIsNone(owner_json.get("responsibles"))
 
+    def test_extract_app_data_from_csv_imports_responsibles_without_owner_tiso_column(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: kwITA,UserId,UserID Vertreter,UserIDs Mitwirkende\n"
+                    "App Resp,APP-021,false,uid-main,uid-deputy,uid-collab\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                responsibles_columns_headers={
+                    "1": ("UserId", "UserID Vertreter"),
+                    "2": ("UserIDs Mitwirkende",),
+                },
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].main_user, "CN=uid-main")
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertEqual(
+                owner_json.get("responsibles"),
+                {
+                    "1": ["CN=uid-main", "CN=uid-deputy"],
+                    "2": ["CN=uid-collab"],
+                },
+            )
+
     def test_extract_app_data_from_csv_uses_custom_level_two_responsible_pattern(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
@@ -915,7 +960,7 @@ class AppDataImportTests(unittest.TestCase):
             owner_json: dict[str, object] = app_list[0].to_json()
             self.assertEqual(
                 owner_json.get("responsibles"),
-                {"1": ["CN=user18"], "2": ["ROLE_018_APP"]},
+                {"2": ["ROLE_018_APP"]},
             )
 
     def test_extract_app_data_from_csv_splits_multi_user_responsibles_values(self) -> None:
@@ -954,6 +999,7 @@ class AppDataImportTests(unittest.TestCase):
                     "30": ["CN=R8M4"],
                 },
             )
+            self.assertEqual(app_list[0].main_user, "")
 
     def test_extract_app_data_from_csv_uses_custom_level_two_pattern_without_separator(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -978,7 +1024,7 @@ class AppDataImportTests(unittest.TestCase):
             owner_json: dict[str, object] = app_list[0].to_json()
             self.assertEqual(
                 owner_json.get("responsibles"),
-                {"1": ["CN=user18"], "2": ["A_APP_017_FW_RULEMGT"]},
+                {"2": ["A_APP_017_FW_RULEMGT"]},
             )
 
     def test_extract_app_data_from_csv_handles_long_separator_free_ids(self) -> None:
@@ -1007,7 +1053,7 @@ class AppDataImportTests(unittest.TestCase):
             owner_json: dict[str, object] = app_list[0].to_json()
             self.assertEqual(
                 owner_json.get("responsibles"),
-                {"1": ["CN=user18"], "2": [f"A_APP_{'7' * 20000}_FW_RULEMGT"]},
+                {"2": [f"A_APP_{'7' * 20000}_FW_RULEMGT"]},
             )
 
 

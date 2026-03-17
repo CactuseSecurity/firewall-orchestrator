@@ -13,7 +13,6 @@ DEFAULT_VALID_APP_ID_PREFIXES: list[str] = []
 DEFAULT_OWNER_HEADER_PATTERNS: dict[str, str] = {
     "name": r".*?:\s*Name",
     "app_id": r".*?:\s*Alfabet-ID$",
-    "owner_tiso": r".*?:\s*TISO",
     "owner_kwita": r".*?:\s*kwITA",
     "owner_lifecycle_state": r"^\s*Lifecycle State\s*$",
 }
@@ -29,7 +28,6 @@ class OwnerLineParserContext:
     composite_id_columns: tuple[int, ...] | None
     composite_id_delimiter: str
     composite_id_max_lengths: tuple[int, ...] | None
-    app_owner_tiso_column: int
     app_owner_kwita_column: int
     owner_lifecycle_state_column: int
     fallback_owner_lifecycle: str
@@ -222,13 +220,18 @@ def _build_level_two_responsible(app_id_external: str, level_two_responsible_pat
 
 def _build_default_responsibles(
     app_id_external: str,
-    main_user_dn: str,
     level_two_responsible_pattern: str,
 ) -> dict[str, list[str]]:
     return {
-        "1": [main_user_dn] if main_user_dn else [],
         "2": [_build_level_two_responsible(app_id_external, level_two_responsible_pattern)],
     }
+
+
+def _get_main_user_dn_from_responsibles(responsibles: dict[str, list[str]]) -> str:
+    level_one_responsibles: list[str] = responsibles.get("1", [])
+    if level_one_responsibles:
+        return level_one_responsibles[0]
+    return ""
 
 
 def _build_responsibles_dns(
@@ -410,7 +413,6 @@ def read_app_data_from_csv(
         int,
         int,
         int,
-        int,
         dict[str, tuple[int, ...]] | None,
         tuple[tuple[int, tuple[str, ...]], ...] | None,
     ]
@@ -425,7 +427,6 @@ def read_app_data_from_csv(
 
         name_pattern: re.Pattern[str] = re.compile(header_patterns["name"], re.IGNORECASE)
         app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
-        owner_tiso_pattern: re.Pattern[str] = re.compile(header_patterns["owner_tiso"], re.IGNORECASE)
         owner_kwita_pattern: re.Pattern[str] = re.compile(header_patterns["owner_kwita"], re.IGNORECASE)
         owner_lifecycle_state_pattern: re.Pattern[str] = re.compile(
             header_patterns["owner_lifecycle_state"], re.IGNORECASE
@@ -437,9 +438,6 @@ def read_app_data_from_csv(
         )
         composite_id_columns: tuple[int, ...] | None = _find_composite_id_columns(
             headers, composite_id_fields, csv_file_name, logger
-        )
-        app_owner_tiso_column: int = _find_header_index(
-            headers, owner_tiso_pattern, "owner_tiso", csv_file_name, logger
         )
         app_owner_kwita_column: int = _find_header_index(
             headers, owner_kwita_pattern, "owner_kwita", csv_file_name, logger, required=False
@@ -494,7 +492,6 @@ def read_app_data_from_csv(
         app_name_column,
         app_id_column,
         composite_id_columns,
-        app_owner_tiso_column,
         app_owner_kwita_column,
         owner_lifecycle_state_column,
         criticality_column,
@@ -523,8 +520,6 @@ def parse_app_line(
         return count_skips + 1
 
     app_name: str = line[context.app_name_column]
-    app_main_user: str = line[context.app_owner_tiso_column]
-    main_user_dn: str = build_dn(app_main_user, context.ldap_path, context.logger)
     owner_lifecycle_state: str = _get_owner_lifecycle_state(
         line, context.owner_lifecycle_state_column, context.fallback_owner_lifecycle
     )
@@ -537,9 +532,10 @@ def parse_app_line(
             context.logger,
         )
     elif context.level_two_responsible_pattern is not None:
-        responsibles = _build_default_responsibles(app_id, main_user_dn, context.level_two_responsible_pattern)
+        responsibles = _build_default_responsibles(app_id, context.level_two_responsible_pattern)
     else:
         responsibles = {}
+    main_user_dn: str = _get_main_user_dn_from_responsibles(responsibles)
     recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
     mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
         criticality, context.criticality_recert_period_mapping
@@ -606,7 +602,6 @@ def extract_app_data_from_csv(
             int,
             int,
             int,
-            int,
             dict[str, tuple[int, ...]] | None,
             tuple[tuple[int, tuple[str, ...]], ...] | None,
         ]
@@ -629,7 +624,6 @@ def extract_app_data_from_csv(
         app_name_column,
         app_id_column,
         composite_id_columns,
-        app_owner_tiso_column,
         app_owner_kwita_column,
         owner_lifecycle_state_column,
         criticality_column,
@@ -642,7 +636,6 @@ def extract_app_data_from_csv(
         composite_id_columns=composite_id_columns,
         composite_id_delimiter=resolved_options.composite_id_fields_delimiter_str,
         composite_id_max_lengths=composite_id_max_lengths,
-        app_owner_tiso_column=app_owner_tiso_column,
         app_owner_kwita_column=app_owner_kwita_column,
         owner_lifecycle_state_column=owner_lifecycle_state_column,
         fallback_owner_lifecycle=resolved_options.fallback_owner_lifecycle,

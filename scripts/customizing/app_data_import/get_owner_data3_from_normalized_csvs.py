@@ -33,6 +33,7 @@ import argparse
 import logging
 import re
 import shlex
+import sys
 from pathlib import Path
 
 import urllib3
@@ -224,6 +225,21 @@ def parse_included_owners_filters(
     return included_owners_filters
 
 
+def normalize_option_value_args(argv: list[str], option_names: tuple[str, ...]) -> list[str]:
+    normalized_argv: list[str] = []
+    option_names_set: set[str] = set(option_names)
+    index: int = 0
+    while index < len(argv):
+        current_arg: str = argv[index]
+        if current_arg in option_names_set and index + 1 < len(argv):
+            normalized_argv.append(f"{current_arg}={argv[index + 1]}")
+            index += 2
+            continue
+        normalized_argv.append(current_arg)
+        index += 1
+    return normalized_argv
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(
@@ -360,7 +376,9 @@ if __name__ == "__main__":
         help="optional git clone/pull depth; if omitted, no depth is passed to git",
     )
 
-    args: argparse.Namespace = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args(
+        normalize_option_value_args(sys.argv[1:], ("--compositeIdFieldsDelimiterStr",))
+    )
 
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()

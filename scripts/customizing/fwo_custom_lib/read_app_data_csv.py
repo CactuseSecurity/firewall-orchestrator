@@ -1,5 +1,5 @@
-import csv
 import argparse
+import csv
 import logging
 import re
 from dataclasses import dataclass

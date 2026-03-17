@@ -362,7 +362,7 @@ if __name__ == "__main__":
         "--responsiblesColumns",
         nargs="+",
         default=None,
-        help='grouped mapping LEVEL:HEADER [HEADER ...], e.g. 1:"UserId" "UserID Vertreter" 2:"UserIDs Mitwirkende"',
+        help='grouped mapping LEVEL:HEADER [HEADER ...]; each HEADER may be an exact column name or a regex matching zero or one CSV column, e.g. 1:"^UserID$" "^UserID Vertreter$" 2:"^UserIDs Mitwirkende$"; ambiguous matches are rejected',
     )
     parser.add_argument(
         "--levelTwoResponsiblePattern",

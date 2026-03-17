@@ -365,6 +365,58 @@ def _find_required_header_index_by_name(
     raise ValueError(f"missing required composite id header {header_name}")
 
 
+def _find_responsibles_header_index(
+    headers: list[str],
+    header_name_or_pattern: str,
+    csv_file_name: str,
+    logger: logging.Logger,
+) -> int | None:
+    normalized_target: str = header_name_or_pattern.strip().casefold()
+    exact_matches: list[int] = [
+        index for index, header in enumerate(headers) if header.strip().casefold() == normalized_target
+    ]
+    if len(exact_matches) == 1:
+        return exact_matches[0]
+    if len(exact_matches) > 1:
+        logger.error(
+            "responsiblesColumns entry %s in %s matched multiple columns exactly; headers=%s",
+            header_name_or_pattern,
+            csv_file_name,
+            headers,
+        )
+        raise ValueError(f"ambiguous responsiblesColumns entry {header_name_or_pattern}")
+
+    try:
+        header_pattern: re.Pattern[str] = re.compile(header_name_or_pattern, re.IGNORECASE)
+    except re.error as err:
+        logger.exception(
+            "invalid responsiblesColumns regex %s in %s",
+            header_name_or_pattern,
+            csv_file_name,
+        )
+        raise ValueError(f"invalid responsiblesColumns regex {header_name_or_pattern}") from err
+
+    pattern_matches: list[int] = [index for index, header in enumerate(headers) if header_pattern.search(header)]
+    if len(pattern_matches) == 1:
+        return pattern_matches[0]
+    if len(pattern_matches) == 0:
+        logger.info(
+            "responsiblesColumns entry %s in %s matched no columns; headers=%s",
+            header_name_or_pattern,
+            csv_file_name,
+            headers,
+        )
+        return None
+
+    logger.error(
+        "responsiblesColumns regex %s in %s matched multiple columns; headers=%s",
+        header_name_or_pattern,
+        csv_file_name,
+        headers,
+    )
+    raise ValueError(f"ambiguous responsiblesColumns entry {header_name_or_pattern}")
+
+
 def _find_composite_id_columns(
     headers: list[str],
     composite_id_fields: tuple[str, ...] | None,
@@ -391,10 +443,14 @@ def _find_responsibles_columns(
     responsible_level: str
     responsible_headers: tuple[str, ...]
     for responsible_level, responsible_headers in responsibles_columns_headers.items():
-        responsibles_columns[responsible_level] = tuple(
-            _find_required_header_index_by_name(headers, header_name, csv_file_name, logger)
+        resolved_headers: tuple[int, ...] = tuple(
+            resolved_index
             for header_name in responsible_headers
+            if (resolved_index := _find_responsibles_header_index(headers, header_name, csv_file_name, logger))
+            is not None
         )
+        if resolved_headers:
+            responsibles_columns[responsible_level] = resolved_headers
     return responsibles_columns
 
 

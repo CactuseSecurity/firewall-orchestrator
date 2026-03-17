@@ -34,9 +34,9 @@ class FwConfigImport:
     def fwconfig_import_object(self):
         return self._fw_config_import_object
 
-    def __init__(self):
+    def __init__(self, global_state: GlobalState, import_state: ImportState, management_state: ManagementState):
         self._fw_config_import_object = FwConfigImportObject()
-        self._fw_config_import_rule = FwConfigImportRule()
+        self._fw_config_import_rule = FwConfigImportRule(global_state, import_state, management_state)
         self._fw_config_import_gateway = FwConfigImportGateway()
         self._rb_link_controller = RulebaseLinkController()
 

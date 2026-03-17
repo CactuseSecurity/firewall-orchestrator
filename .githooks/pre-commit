@@ -1,45 +1,87 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+VENV_BIN=""
+
+# Load config file
+CONFIG_FILE=".githooks/tooling.env"
+set -a
+source "$CONFIG_FILE"
+set +a
+
 if [ -d ".venv/Scripts" ]; then
+    # Using virtual environment from .venv (Windows)
     VENV_BIN=".venv/Scripts/"
-  echo "Using virtual environment from .venv (Windows)"
-    activate_script=".venv/Scripts/activate"
+    source ".venv/Scripts/activate"
 elif [ -d ".venv/bin" ]; then
-    echo "Using virtual environment from .venv (Unix)"
+    # Using virtual environment from .venv (Unix)
     VENV_BIN=".venv/bin/"
-    activate_script=".venv/bin/activate"
-else
-    echo "Warning: No virtual environment found. Assuming ruff and pyright are globally available."
-    VENV_BIN=""
-    activate_script=""
+    source ".venv/bin/activate"
+elif command -v conda >/dev/null 2>&1; then
+    # Using conda
+    CONDA_BASE="$(conda info --base)"
+    source "$CONDA_BASE/etc/profile.d/conda.sh"
+    conda activate "$CONDA_ENV"
+    if [ -d "$CONDA_PREFIX/Scripts" ]; then
+        # Conda Windows
+        VENV_BIN="$CONDA_PREFIX/Scripts/"
+    else
+        # Conda Unix
+        VENV_BIN="$CONDA_PREFIX/bin/"
+    fi
 fi
 
-if [ -f "$activate_script" ]; then
-    source "$activate_script"
+if [ -z "$VENV_BIN" ]; then
+    echo "Warning: No virtual environment found. Assuming python (with ruff and pyright) is available in base environment."
 fi
 
-RUFF_PATH=$VENV_BIN"ruff"
-PYRIGHT_PATH=$VENV_BIN"pyright"
-
-# Assure ruff, pyright and dotnet are available -> otherwise inform user about it
+# Assure dotnet and python are available
 UNAVAILABLE_DEPENDENCIES=false
-for cmd in "$RUFF_PATH" "$PYRIGHT_PATH" "dotnet"; do
-    command -v "$cmd" >/dev/null 2>&1 || 
-    { 
-     echo "Error: '$cmd' not found. Please install it or activate your environment.";
-     UNAVAILABLE_DEPENDENCIES=true;
+for cmd in "dotnet" "python"; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+        echo "Error: '$cmd' not found. Please install it or activate your environment."
+        UNAVAILABLE_DEPENDENCIES=true
     }
 done
-
 if $UNAVAILABLE_DEPENDENCIES; then
     exit 1;
 fi
 
-# Checks
-$RUFF_PATH check --fix
-$RUFF_PATH format
+PYTHON_PATH="$(command -v python)"
 
-$PYRIGHT_PATH
+# Assure ruff and pyright are available
+for python_tool in ruff pyright; do
+    if ! "$PYTHON_PATH" -m "$python_tool" --version >/dev/null 2>&1; then
+        echo "Error: 'python -m $python_tool' is not available. Please install $python_tool in the active environment."
+        exit 1
+    fi
+done
 
-dotnet format roles
+# Python Checks
+"$PYTHON_PATH" -m ruff check --fix
+"$PYTHON_PATH" -m ruff format
+"$PYTHON_PATH" -m pyright
+
+# Determine changed Dotnet files
+STAGED_ROLES_DOTNET_FORMAT_FILES=()
+while IFS= read -r -d '' staged_file; do
+    case "$staged_file" in
+        roles/*.cs|roles/*.razor|roles/*.cshtml)
+            STAGED_ROLES_DOTNET_FORMAT_FILES+=("${staged_file#roles/}")
+            ;;
+    esac
+done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.cs' '*.razor' '*.cshtml')
+
+# If any Dontet files have been changed run
+# Dotnet checks
+if [ "${#STAGED_ROLES_DOTNET_FORMAT_FILES[@]}" -gt 0 ]; then
+    dotnet format roles --no-restore --include "${STAGED_ROLES_DOTNET_FORMAT_FILES[@]}"
+fi
+
+# Prevent committing submodule pointer updates (auto-unstage)
+for submodule in $CHECK_SUBMODULE_POINTERS; do
+    if ! git diff --cached --quiet --ignore-submodules=none -- "$submodule"; then
+        echo "Info: Unstaging '$submodule' submodule pointer change (not allowed in commits)."
+        git restore --staged -- "$submodule" >/dev/null 2>&1
+    fi
+done

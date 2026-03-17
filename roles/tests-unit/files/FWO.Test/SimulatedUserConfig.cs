@@ -9,7 +9,7 @@ namespace FWO.Test
 
         public override string GetText(string key)
         {
-            return DummyTranslate[key];
+            return DummyTranslate.TryGetValue(key, out string? value) ? value : key;
         }
 
         public SimulatedGlobalConfig() : base()
@@ -176,7 +176,25 @@ namespace FWO.Test
             {"from_ticket","From Ticket" },
             {"InterfaceRejected","Interface rejected" },
             {"interface_requested","Interface requested" },
+            {"requested_interfaces","Requested Interfaces" },
+            {"show_removed_requested_interfaces","Show removed requested interfaces" },
+            {"reject_tickets","Close Tickets as rejected" },
+            {"reject_interface","Reject interface" },
+            {"requesting_app","Requesting App" },
+            {"requesting_ext_app_id","Requesting Ext App Id" },
+            {"used_in_connection_ids","Used In Connection Ids" },
+            {"requested_app","Requested App" },
+            {"requested_ext_app_id","Requested Ext App Id" },
+            {"requested_interface","Requested Interface" },
+            {"creation_date","Creation Date" },
+            {"reason","Reason" },
+            {"all_open","All Open" },
+            {"U9017","Are you sure you want to reject following requested interface: " },
+            {"U9018","Ticket rejected." },
+            {"U9036","Rejected by Admin" },
+            {"state","State" },
             {"ticket","Ticket" },
+            {"implementation","Implementation" },
             {"U9012","Requested Interface" },
             {"E9004","Missing Source/Destination or Service" },
             {"E9005","Source/Destination changed" },
@@ -308,7 +326,8 @@ namespace FWO.Test
             {"C9016","Deleted objects (interface)"},
             {"C9014","Deleted objects"},
             {"modRequestOnlyOwnObjects","Request only own objects"},
-            {"H5668","Request only own objects help"}
+            {"H5668","Request only own objects help"},
+            {"change_id","Change-ID"}
         };
 
         public override string GetText(string key)

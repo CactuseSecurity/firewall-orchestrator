@@ -10,12 +10,11 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteLatestConfigOfManagement;
         public static readonly string getLastImport;
         public static readonly string getMaxImportId;
+        public static readonly string addImportForOwner;
         public static readonly string addImportForRuleOwner;
         public static readonly string updateImportControlForRuleOwnerFull;
         public static readonly string updateImportControlForRuleOwnerInc;
-        public static readonly string getLastImportControl;
         public static readonly string getPendingRuleOwnerImports;
-        public static readonly string addImportForOwner;
 
         static ImportQueries()
         {
@@ -26,12 +25,11 @@ namespace FWO.Api.Client.Queries
                 deleteLatestConfigOfManagement = GetQueryText("import/deleteLatestConfigOfManagement.graphql");
                 getLastImport = GetQueryText("import/getLastImport.graphql");
                 getMaxImportId = GetQueryText("import/getMaxImportId.graphql");
+                addImportForOwner = GetQueryText("import/addImportForOwner.graphql");
                 addImportForRuleOwner = GetQueryText("import/addImportForRuleOwner.graphql");
                 updateImportControlForRuleOwnerFull = GetQueryText("import/updateImportControlForRuleOwnerFull.graphql");
-                getLastImportControl = GetQueryText("import/getLastImportControl.graphql");
                 getPendingRuleOwnerImports = GetQueryText("import/getPendingRuleOwnerImports.graphql");
                 updateImportControlForRuleOwnerInc = GetQueryText("import/updateImportControlForRuleOwnerInc.graphql");
-                addImportForOwner = GetQueryText("import/addImportForOwner.graphql");
             }
             catch (Exception exception)
             {

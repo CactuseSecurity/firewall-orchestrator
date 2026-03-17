@@ -282,17 +282,13 @@ namespace FWO.Ui.Services
                     DecommissionInterfaceMode = true;
                     return;
                 }
-                else
-                {
-                    Message = userConfig.GetText("U9014") + ConnToDelete.Name + "?";
-                    DeleteAllowed = true;
-                }
+                Message = userConfig.GetText("U9014") + ConnToDelete.Name + "?";
             }
             else
             {
                 Message = userConfig.GetText("U9001") + ConnToDelete.Name + "?";
-                DeleteAllowed = true;
             }
+            DeleteAllowed = true;
             DeleteConnMode = true;
         }
 
@@ -326,7 +322,7 @@ namespace FWO.Ui.Services
                 return true;
             }
 
-            DisplayMessageInUi(null, action, userConfig.GetText("C9012"), true);
+            DisplayMessageInUi(null, action, userConfig.GetText("E9104"), true);
             return false;
         }
     }

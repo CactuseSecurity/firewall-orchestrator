@@ -107,16 +107,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ManageLifeCycles_SetsManageLifeCyclesMode()
-        {
-            SettingsOwner component = new();
-
-            GetPrivateMethod("ManageLifeCycles").Invoke(component, null);
-
-            Assert.That(GetPrivateField<bool>(component, "ManageLifeCyclesMode"), Is.True);
-        }
-
-        [Test]
         public void RequestDeleteOwner_SetsCurrentOwnerAndDeleteMode()
         {
             SettingsOwner component = new();
@@ -186,6 +176,25 @@ namespace FWO.Test
             Assert.That(formatted, Does.Contain("NetOps"));
             Assert.That(formatted, Does.Contain("invalid-dn"));
             Assert.That(formatted, Does.Contain(","));
+        }
+
+        [Test]
+        public void OrderActiveResponsibleTypes_FiltersInactiveAndSorts()
+        {
+            List<OwnerResponsibleType> input =
+            [
+                new() { Id = 10, Name = "Zulu", SortOrder = 2, Active = true },
+                new() { Id = 20, Name = "Alpha", SortOrder = 2, Active = true },
+                new() { Id = 30, Name = "Inactive", SortOrder = 1, Active = false },
+                new() { Id = 40, Name = "Beta", SortOrder = 1, Active = true }
+            ];
+
+            SettingsOwner component = new();
+            List<OwnerResponsibleType> result = (List<OwnerResponsibleType>)GetPrivateMethod("OrderActiveResponsibleTypes")
+                .Invoke(component, [input])!;
+
+            Assert.That(result.Select(type => type.Id).ToList(), Is.EqualTo(new List<int> { 40, 20, 10 }));
+            Assert.That(result.All(type => type.Active), Is.True);
         }
     }
 }

@@ -110,6 +110,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ShowDeleteButton_ReturnsFalse_ForInterfaceWithOpenRequest()
+        {
+            ConnectionTable table = new();
+            ModellingConnection conn = new() { IsInterface = true, IsRequested = true, TicketId = 42 };
+
+            MethodInfo showDeleteButton = GetInstanceMethod("ShowDeleteButton", typeof(ModellingConnection));
+            bool result = (bool)showDeleteButton.Invoke(table, [conn])!;
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public void ShowDeleteButton_ReturnsTrue_ForNonRequestedInterface()
+        {
+            ConnectionTable table = new();
+            ModellingConnection conn = new() { IsInterface = true, IsRequested = false, TicketId = null };
+
+            MethodInfo showDeleteButton = GetInstanceMethod("ShowDeleteButton", typeof(ModellingConnection));
+            bool result = (bool)showDeleteButton.Invoke(table, [conn])!;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
         public void CollectModellingProps_AddsInterfaceRequestedWarning()
         {
             ConnectionTable table = new();
@@ -391,7 +415,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void IsVisibleToOwner_ReturnsTrue_ForPermittedOwner()
+        public void IsVisibleToOwner_ReturnsTrue_ForPermittedOwnerWrapper()
         {
             ConnectionTable table = new();
             SetComponentParameter(table, nameof(ConnectionTable.Application), new FwoOwner { Id = 3 });
@@ -400,7 +424,7 @@ namespace FWO.Test
             {
                 InterfacePermission = InterfacePermissions.Restricted.ToString(),
                 App = new FwoOwner { Id = 2 },
-                PermittedOwners = [ new FwoOwner { Id = 3 } ]
+                PermittedOwnerWrappers = [new PermittedOwnerWrapper { Owner = new FwoOwner { Id = 3 } }]
             };
 
             MethodInfo isVisibleToOwner = GetInstanceMethod("IsVisibleToOwner", typeof(ModellingConnection));

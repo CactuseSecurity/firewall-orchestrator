@@ -306,15 +306,6 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
         public DateTime ImportAppDataStartAt { get; set; } = DateTime.Now;
 
-        [JsonProperty("ownerLdapId"), JsonPropertyName("ownerLdapId")]
-        public int OwnerLdapId { get; set; } = GlobalConst.kLdapInternalId;
-
-        [JsonProperty("manageOwnerLdapGroups"), JsonPropertyName("manageOwnerLdapGroups")]
-        public bool ManageOwnerLdapGroups { get; set; } = true;
-
-        [JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
-        public string OwnerLdapGroupNames { get; set; } = GlobalConst.kLdapGroupPattern;
-
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;
 
@@ -374,6 +365,12 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modUnansweredReqEmailBody"), JsonPropertyName("modUnansweredReqEmailBody")]
         public string ModUnansweredReqEmailBody { get; set; } = "";
+
+        [JsonProperty("ruleExpiryEmailBody"), JsonPropertyName("ruleExpiryEmailBody")]
+        public string RuleExpiryEmailBody { get; set; } = "";
+
+        [JsonProperty("ruleExpiryInitiatorKeys"), JsonPropertyName("ruleExpiryInitiatorKeys")]
+        public string RuleExpiryInitiatorKeys { get; set; } = "";
 
         [JsonProperty("modReqTicketTitle"), JsonPropertyName("modReqTicketTitle")]
         public string ModReqTicketTitle { get; set; } = "";

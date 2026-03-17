@@ -1,4 +1,4 @@
-﻿@using FWO.Middleware.Client
+@using FWO.Middleware.Client
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -19,7 +19,7 @@
         }
     </Body>
     <Footer>
-        <AuthorizeView Roles="@Roles.Modeller">
+        <AuthorizeView Roles="@(AllowAdminReject ? $"{Roles.Modeller}, {Roles.Admin}" : Roles.Modeller)">
             <Authorized>
                 @if(!WorkInProgress)
                 {
@@ -60,6 +60,9 @@
     [Parameter]
     public Func<Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
 
+    [Parameter]
+    public bool AllowAdminReject { get; set; } = false;
+
     private string Reason { get; set; } = "";
     private string Message { get; set; } = "";
     private bool WorkInProgress = false;
@@ -72,6 +75,10 @@
         {
             firstTry = false;
             Message = userConfig.GetText("U9017") + ConnHandler.ActConn.Name + "?";
+            if (AllowAdminReject && IsAdminUser())
+            {
+                Reason = userConfig.GetText("U9036");
+            }
         }
     }
 
@@ -83,7 +90,13 @@
             try
             {
                 ConnHandler.ActConn.AddProperty(ConState.Rejected.ToString());
-                await ConnHandler.Save(true);
+                bool saved = AllowAdminReject
+                    ? await ConnHandler.SavePropertiesOnly()
+                    : await ConnHandler.Save(true);
+                if (!saved)
+                {
+                    return;
+                }
                 await ConnHandler.RemoveFromAllSelections();
                 await RejectInTicket();
                 await RefreshParent();
@@ -113,6 +126,13 @@
     {
         Display = false;
         firstTry = true;
+        Reason = "";
+        Message = "";
         DisplayChanged.InvokeAsync(Display);
+    }
+
+    private bool IsAdminUser()
+    {
+        return authenticationStateTask?.Result.User.IsInRole(Roles.Admin) ?? false;
     }
 }

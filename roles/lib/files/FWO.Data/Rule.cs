@@ -88,7 +88,7 @@ namespace FWO.Data
         [SystemTextJsonIgnore]
         [JsonProperty("importControlByRuleLastSeen"), JsonPropertyName("importControlByRuleLastSeen")]
         public ImportControl? LastSeenImport { get; set; }
-        
+
         [SystemTextJsonIgnore]
         [JsonProperty("createdImport"), JsonPropertyName("createdImport")]
         public ImportControl? CreatedImport { get; set; }
@@ -146,6 +146,9 @@ namespace FWO.Data
 
         [JsonProperty("rule"), JsonPropertyName("rule")]
         public Rule? ParentRule { get; set; }
+
+        [JsonProperty("rule_owners"), JsonPropertyName("rule_owners")]
+        public RuleOwner?[] RuleOwner { get; set; } = [];
 
         public string ChangeID { get; set; } = "";
         public string AdoITID { get; set; } = "";

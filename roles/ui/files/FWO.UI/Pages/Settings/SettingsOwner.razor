@@ -30,11 +30,7 @@
         {
             <button type="button" class="btn btn-sm btn-success" @onclick="AddOwner">@(DisplayService.DisplayButton(userConfig, "add_owner", Icons.Add))</button>
         }
-        @if (userConfig.AllowManualOwnerAdmin)
-        {
-            <button type="button" class="btn btn-sm btn-warning" @onclick="ManageLifeCycles">@(DisplayService.DisplayButton(userConfig, "manage_lifecycles", Icons.Edit, "", Icons.Owner))</button>
-        }
-        <button type="button" class="btn btn-sm btn-primary" @onclick="OpenOwnerMapping">
+        <button type="button" class="btn btn-sm btn-warning" @onclick="OpenOwnerMapping">
             @(DisplayService.DisplayButton(userConfig, "owner_mapping", Icons.Edit, "", Icons.Matrix))
         </button>
         @if (ShowCleanupButton)
@@ -72,12 +68,12 @@
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owner_lc_state"))" Field="@(x => x.OwnerLifeCycleStateId)" Sortable="true" Filterable="true" >
                 <Template>
-                    @(OwnerLifeCycleStates.FirstOrDefault(x => x.Id == context.OwnerLifeCycleStateId)?.Name ?? "")
+                    @(OwnerLifeCycleStates.FirstOrDefault(x => x.Id == context.OwnerLifeCycleStateId)?.Display(userConfig.GetText("inactive")) ?? "")
                 </Template>
             </Column>
             @foreach (OwnerResponsibleType type in OwnerResponsibleTypes)
             {
-                <Column TableItem="FwoOwner" Title="@(GetResponsibleTypeDisplayName(type))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                <Column TableItem="FwoOwner" Title="@(type.Name)" Field="@(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
                         @FormatOwnerResponsibles(context.GetOwnerResponsiblesByType(type.Id))
                     </Template>
@@ -99,7 +95,6 @@
     <OwnerMapping @bind-Display="OwnerMappingMode" />
     <ConfirmDelete @bind-Display="DeleteOwnerMode" PerformAction="DeleteOwner" Title="@userConfig.GetText("delete_owner")" DeleteMessage="@(userConfig.GetText("U5217") + ActOwner.Name + "?")"/>
     <ConfirmDelete @bind-Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@CleanupMessage"/>
-    <ManageOwnerLifeCycle @bind-Display="ManageLifeCyclesMode" OwnerLifeCycleStates="OwnerLifeCycleStates" Readonly="Readonly" />
 }
 else
 {
@@ -126,16 +121,13 @@ else
     private bool DeleteOwnerMode = false;
     private bool OwnerMappingMode = false;
     private bool InitComplete = false;
-    private bool ManageLifeCyclesMode = false;
-
     protected override async Task OnInitializedAsync()
     {
         try
         {
             Owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             OwnerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(OwnerQueries.getOwnerLifeCycleStates);
-            OwnerResponsibleTypes = (await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes))
-                .OrderBy(type => type.SortOrder).ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            OwnerResponsibleTypes = OrderActiveResponsibleTypes(await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes));
             AnalyseSampleOwners();
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
@@ -173,11 +165,6 @@ else
     private async Task AddOwner()
     {
         await EditOwner(new FwoOwner());
-    }
-
-    private void ManageLifeCycles()
-    {
-        ManageLifeCyclesMode = true;
     }
 
     private async Task DisplayOwner(FwoOwner owner)
@@ -266,13 +253,12 @@ else
         return string.Join(", ", formatted);
     }
 
-    private string GetResponsibleTypeDisplayName(OwnerResponsibleType type)
+    private List<OwnerResponsibleType> OrderActiveResponsibleTypes(IEnumerable<OwnerResponsibleType> ownerResponsibleTypes)
     {
-        string label = type.Name;
-        if (!type.Active)
-        {
-            label += $" ({userConfig.GetText("inactive")})";
-        }
-        return label;
+        return ownerResponsibleTypes
+            .Where(type => type.Active)
+            .OrderBy(type => type.SortOrder)
+            .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 }

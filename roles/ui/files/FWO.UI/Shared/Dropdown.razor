@@ -51,8 +51,7 @@
         {
             <li id="@($"dropdown-menu-li-element-{Id + i++}")">
                 <button id="@($"dropdown-menu-element-{Id + i++}")" type="button"
-                        @onclick="async () => await SelectElement(element)"
-                        class="dropdown-item @(Small ? "small" : "")">
+                        @onclick="async () => await SelectElement(element)"                        class="dropdown-item @(Small ? "small" : "")">
                     @ElementTemplate(element)
                 </button>
             </li>

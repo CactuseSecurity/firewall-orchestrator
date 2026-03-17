@@ -204,8 +204,16 @@ false);
     {
         if (userDn == userConfig.User.Dn)
         {
-            ShowReloginDialog(userConfig.GetText("permissions_title"), userConfig.GetText("permissions_text"), reloginAbortable:
-            true);
+            ShowReloginDialog(userConfig.GetText("permissions"), userConfig.GetText("permissions_text"), reloginAbortable: true);
+        }
+    }
+
+    private void OnJwtAboutToExpire(object? sender, string userDn)
+    {
+        if (userDn == userConfig.User.Dn)
+        {
+            ShowReloginDialog(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), reloginAbortable:
+true);
         }
     }
 
@@ -427,7 +435,8 @@ false);
                     }
                     catch (Exception) { }
                 }
-                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
+                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "),
+exception, userConfig.User.Name, role);
                 severity = 2;
                 cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
                 description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" :

@@ -357,10 +357,7 @@ class AppDataImportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             with open(owner_csv_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\n"
-                    "App One,APP-012,user12,false\n"
-                )
+                fh.write("col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nApp One,APP-012,user12,false\n")
 
             app_list: list[Owner] = []
             extract_app_data_from_csv(

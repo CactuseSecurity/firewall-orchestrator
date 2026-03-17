@@ -962,7 +962,9 @@ class AppDataImportTests(unittest.TestCase):
                 )
 
             self.assertEqual(len(app_list), 0)
-            self.assertTrue(any("ambiguous responsiblesColumns entry ^UserID" in message for message in log_context.output))
+            self.assertTrue(
+                any("ambiguous responsiblesColumns entry ^UserID" in message for message in log_context.output)
+            )
 
     def test_extract_app_data_from_csv_ignores_missing_responsibles_regex_matches(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

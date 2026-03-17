@@ -72,8 +72,7 @@ class AppDataImportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             owner_csv_content: str = (
-                "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\n"
-                "Märchen App,APP-001,user1,false\n"
+                "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nMärchen App,APP-001,user1,false\n"
             )
             owner_csv_path.write_bytes(owner_csv_content.encode("cp1252"))
 

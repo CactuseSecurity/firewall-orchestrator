@@ -204,9 +204,7 @@ def parse_included_owners_filters(
     if len(include_values_groups) == 1:
         include_values_groups = include_values_groups * len(normalized_filter_columns)
     if len(include_values_groups) != len(normalized_filter_columns):
-        raise argparse.ArgumentTypeError(
-            "number of --includeValues groups must match --filterColumn occurrences"
-        )
+        raise argparse.ArgumentTypeError("number of --includeValues groups must match --filterColumn occurrences")
 
     included_owners_filters: dict[str, tuple[str, ...]] = {}
     index: int

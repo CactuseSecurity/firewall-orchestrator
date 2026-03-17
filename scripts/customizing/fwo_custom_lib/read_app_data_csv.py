@@ -428,7 +428,9 @@ def read_app_data_from_csv(
         composite_id_columns: tuple[int, ...] | None = _find_composite_id_columns(
             headers, composite_id_fields, csv_file_name, logger
         )
-        app_owner_tiso_column: int = _find_header_index(headers, owner_tiso_pattern, "owner_tiso", csv_file_name, logger)
+        app_owner_tiso_column: int = _find_header_index(
+            headers, owner_tiso_pattern, "owner_tiso", csv_file_name, logger
+        )
         app_owner_kwita_column: int = _find_header_index(
             headers, owner_kwita_pattern, "owner_kwita", csv_file_name, logger, required=False
         )

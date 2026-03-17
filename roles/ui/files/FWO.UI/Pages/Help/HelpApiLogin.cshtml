@@ -1,4 +1,4 @@
-﻿@page "/help/API/login"
+@page "/help/API/login"
 @model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
@@ -23,7 +23,7 @@ curl --request POST \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "cactus1"}'
     </code></pre>
-    <small class="small-helptext">@userConfig.GetText("response")</small>
+    <small class="small-helptext">@userConfig.GetText("response") (200 OK)</small>
     <pre class="code-block" data-lang="json"><code>
 {
     "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -42,7 +42,7 @@ curl --request POST \
     --data '{"Username": "user1_demo", "Password": "wrong-pwd"}'
     </code></pre>
     <small class="small-helptext">
-        @userConfig.GetText("response")
+        @userConfig.GetText("response") (400 Bad Request)
     </small>
     <pre class="code-block" data-lang="text"><code>
 A0002 Invalid credentials
@@ -57,7 +57,7 @@ curl --request POST \
     --data '{"RefreshToken": "a7f3c8b9e2d1..."}'
     </code></pre>
     <small class="small-helptext">
-        @userConfig.GetText("response")
+        @userConfig.GetText("response") (200 OK)
     </small>
     <pre class="code-block" data-lang="json"><code>
 {
@@ -77,7 +77,7 @@ curl --request POST \
     --data '{}'
     </code></pre>
     <small class="small-helptext">
-        @userConfig.GetText("response") (400 Bad Request):
+        @userConfig.GetText("response") (400 Bad Request)
     </small>
     <pre class="code-block" data-lang="text"><code>
 Refresh token is required
@@ -92,7 +92,7 @@ curl --request POST \
     --data '{"RefreshToken": "invalid-or-expired-token"}'
     </code></pre>
     <small class="small-helptext">
-        @userConfig.GetText("response") (401 Unauthorized):
+        @userConfig.GetText("response") (400 Bad Request)
     </small>
     <pre class="code-block" data-lang="text"><code>
 Invalid or expired refresh token
@@ -109,7 +109,7 @@ curl --request POST \
     --data '{"RefreshToken": "a7f3c8b9e2d1..."}'
     </code></pre>
     <small class="small-helptext">
-        @userConfig.GetText("response") (200 OK):
+        @userConfig.GetText("response") (200 OK)
     </small>
     <pre class="code-block" data-lang="text"><code>
 (Empty response body indicating success)
@@ -123,7 +123,7 @@ curl --request POST \
     --data '{}'
     </code></pre>
     <small class="small-helptext">
-        @userConfig.GetText("response") (400 Bad Request):
+        @userConfig.GetText("response") (400 Bad Request)
     </small>
     <pre class="code-block" data-lang="text"><code>
 Refresh token is required

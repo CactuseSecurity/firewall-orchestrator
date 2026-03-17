@@ -353,6 +353,31 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(owner.owner_lifecycle_state, "retired")
             self.assertEqual(owner.to_json()["owner_lifecycle_state"], "retired")
 
+    def test_extract_app_data_from_csv_matches_valid_app_id_prefix_case_insensitively(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\n"
+                    "App One,APP-012,user12,false\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                valid_app_id_prefixes=["ApP-"],
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].app_id_external, "APP-012")
+
     def test_extract_app_data_from_csv_filters_by_included_owners_column(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"

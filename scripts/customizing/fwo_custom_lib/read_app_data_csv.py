@@ -143,7 +143,10 @@ def _is_included_owners_match(line: list[str], context: OwnerLineParserContext) 
 
 
 def _has_valid_app_id_prefix(app_id: str, context: OwnerLineParserContext) -> bool:
-    return len(context.valid_app_id_prefixes) == 0 or app_id.lower().startswith(tuple(context.valid_app_id_prefixes))
+    if len(context.valid_app_id_prefixes) == 0:
+        return True
+    normalized_prefixes: tuple[str, ...] = tuple(prefix.strip().casefold() for prefix in context.valid_app_id_prefixes)
+    return app_id.strip().casefold().startswith(normalized_prefixes)
 
 
 def _build_app_id(line: list[str], context: OwnerLineParserContext) -> str:

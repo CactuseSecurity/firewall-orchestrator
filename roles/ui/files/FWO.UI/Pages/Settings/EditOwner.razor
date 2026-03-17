@@ -10,6 +10,8 @@
 @using FWO.Middleware.Client
 @using FWO.Recert
 @using FWO.Services
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
 @using Newtonsoft.Json
 @using RestSharp
 @using System.Net
@@ -18,6 +20,7 @@
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
+@inject IEventMediator EventMediator
 
 <PopUp Title="@(userConfig.GetText(Readonly ? "owner" : "edit_owner"))" Show="@Display" Size=PopupSize.XLarge OnClose="ClosePopup">
     <Body>
@@ -25,38 +28,34 @@
         {
             <div class="col-sm-12">
                 <div class="form-group row me-2">
-                    <div class="col-sm-1">
-                        <div class="form-group row">
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(ActOwner.Id)</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-9 col-form-label col-form-label-sm">@(ActOwner.Id)</label>
+                </div>
+                <div class="form-group row me-2 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5582"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    @if(Readonly)
+                    {
+                        <label class="col-sm-9 col-form-label col-form-label-sm">@ActOwner.Name</label>
+                    }
+                    else
+                    {
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control form-control-sm" @bind="ActOwner.Name" />
                         </div>
-                    </div>
-                    <div class="col-sm-11 me-auto">
-                        <div class="form-group row me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H5582"))">
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            @if(Readonly)
-                            {
-                                <label class="col-sm-10 me-auto">@ActOwner.Name</label>
-                            }
-                            else
-                            {
-                                <input type="text" class="col-sm-10 me-auto" @bind="ActOwner.Name" />
-                            }
-                        </div>
-                    </div>
+                    }
                 </div>
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5664"))">@(userConfig.GetText("owner_lc_state")):</label>
                     @if (Readonly)
                     {
-                        <label class="col-sm-5">@(OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ActOwner.OwnerLifeCycleStateId)?.Name ?? "")</label>
+                        <label class="col-sm-5">@(OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ActOwner.OwnerLifeCycleStateId)?.Display(userConfig.GetText("inactive")) ?? "")</label>
                     }
                     else
                     {
                         <div class="col-sm-5">
-                            <Dropdown ElementType="OwnerLifeCycleState" ElementToString="@(t => t.Name)" @bind-SelectedElement="SelectedOwnerLifeCycleState" Elements="OwnerLifeCycleStates" Nullable="true">
+                            <Dropdown ElementType="OwnerLifeCycleState" ElementToString="@(state => state.Display(userConfig.GetText("inactive")))" @bind-SelectedElement="SelectedOwnerLifeCycleState" Elements="OwnerLifeCycleStates" Nullable="true">
                                 <ElementTemplate Context="lifecycleState">
-                                    @lifecycleState.Name
+                                    @lifecycleState.Display(userConfig.GetText("inactive"))
                                 </ElementTemplate>
                             </Dropdown>
                         </div>
@@ -291,6 +290,8 @@
     private bool RecertActiveBefore { get; set; }
     private bool DisplayWasOpen { get; set; }
     private FwoOwner? LoadedOwnerRef;
+    private int? OriginalOwnerLifeCycleStateId { get; set; }
+    private HashSet<string> OriginalOwnedIpKeys = new(StringComparer.OrdinalIgnoreCase);
 
     private Dictionary<int, string> NewOwnerResponsibleDnByType = [];
     private Tenant? SelectedTenant;
@@ -336,6 +337,7 @@
 
         ActOwner.OwnerResponsibles ??= [];
         RecertActiveBefore = ActOwner.RecertActive;
+        OriginalOwnerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId;
 
         NewOwnerResponsibleDnByType = OwnerResponsibleTypes.ToDictionary(type => type.Id, _ => "");
         SelectedTenant = Tenants.FirstOrDefault(x => x.Id == ActOwner.TenantId);
@@ -353,6 +355,7 @@
             ActIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(OwnerQueries.getNetworkOwnerships, new { ownerId = ActOwner.Id });
             ActRules = (await apiConnection.SendQueryAsync<List<RuleHelper>>(OwnerQueries.getRuleOwnerships, new { ownerId = ActOwner.Id })).ConvertAll(r => r.ToRule());
         }
+        OriginalOwnedIpKeys = BuildOwnedIpKeys(ActIpAddresses);
 
         IpsToAdd = [];
         IpsToDelete = [];
@@ -395,6 +398,8 @@
                 RecertHandler recertHandler = new(apiConnection, userConfig);
                 await recertHandler.InitOwnerRecert(ActOwner);
             }
+
+            await ReinitializeRuleOwnerMappingIfNeeded();
 
             await OnSaved.InvokeAsync();
             await DisplayChanged.InvokeAsync(false);
@@ -775,5 +780,64 @@
             await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.deleteNetworkOwnership, variables);
             ActIpAddresses.Remove(ipDel);
         }
+    }
+
+    private async Task ReinitializeRuleOwnerMappingIfNeeded()
+    {
+        if (!HasRelevantOwnerMappingChanges())
+        {
+            return;
+        }
+
+        TaskCompletionSource<bool> tcs = new();
+        UpdateRuleOwnerMappingEventArgs args = new() { isFullReInitialize = true, Completion = tcs };
+        EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
+
+        bool success = await tcs.Task;
+        if (!success)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("owner_mapping"), userConfig.GetText("E5502"), true);
+        }
+    }
+
+    private bool HasRelevantOwnerMappingChanges()
+    {
+        return HasOwnerLifecycleActivityChanged() || !OriginalOwnedIpKeys.SetEquals(BuildOwnedIpKeys(ActIpAddresses));
+    }
+
+    private bool HasOwnerLifecycleActivityChanged()
+    {
+        if (!TryGetOwnerLifeCycleStateActive(OriginalOwnerLifeCycleStateId, out bool originalActiveState)
+            || !TryGetOwnerLifeCycleStateActive(ActOwner.OwnerLifeCycleStateId, out bool currentActiveState))
+        {
+            return false;
+        }
+
+        return originalActiveState != currentActiveState;
+    }
+
+    private bool TryGetOwnerLifeCycleStateActive(int? ownerLifeCycleStateId, out bool activeState)
+    {
+        OwnerLifeCycleState? state = OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ownerLifeCycleStateId);
+        if (state == null)
+        {
+            activeState = false;
+            return false;
+        }
+
+        activeState = state.ActiveState;
+        return true;
+    }
+
+    private static HashSet<string> BuildOwnedIpKeys(IEnumerable<NwObjectElement> ipAddresses)
+    {
+        HashSet<string> keys = new(StringComparer.OrdinalIgnoreCase);
+        foreach (NwObjectElement ipAddress in ipAddresses)
+        {
+            string ip = ipAddress.Cidr?.Valid == true ? ipAddress.IpString : "";
+            string ipEnd = ipAddress.CidrEnd?.Valid == true ? ipAddress.IpEndString : ip;
+            keys.Add($"{ip}|{ipEnd}");
+        }
+        return keys;
     }
 }

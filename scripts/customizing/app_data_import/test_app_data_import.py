@@ -1,13 +1,17 @@
+import argparse
 import logging
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
 from scripts.customizing.app_data_import.get_owner_data3_from_normalized_csvs import (
     apply_owner_column_overrides,
     build_git_repo_url,
     parse_criticality_recert_period_mapping,
+    parse_included_owners_filters,
     parse_responsibles_columns,
 )
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
@@ -64,6 +68,32 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(owner.owner_lifecycle_state, "unknown")
             self.assertNotIn("criticality", owner.to_json())
 
+    def test_extract_app_data_from_csv_reads_cp1252_encoded_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            owner_csv_content: str = (
+                "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\n"
+                "Märchen App,APP-001,user1,false\n"
+            )
+            owner_csv_path.write_bytes(owner_csv_content.encode("cp1252"))
+
+            app_list: list[Owner] = []
+            with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+                extract_app_data_from_csv(
+                    "owners.csv",
+                    app_list,
+                    self.ldap_path,
+                    self.import_source,
+                    Owner,
+                    self.logger,
+                    self.debug_level,
+                    base_dir=tmpdir,
+                )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].name, "Märchen App")
+            self.assertTrue(any("fallback encoding cp1252" in message for message in log_context.output))
+
     def test_extract_app_data_from_csv_accepts_options_object(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
@@ -111,6 +141,28 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(str(app_server.ip_end), "10.0.0.1")
             self.assertEqual(app_server.type, "host")
             self.assertEqual(app_server.app_id_external, "APP-001")
+
+    def test_extract_ip_data_from_csv_reads_cp1252_encoded_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ip_csv_path: Path = Path(tmpdir) / "ips.csv"
+            ip_csv_content: str = "col: Alfabet-ID,col: IP,Kommentar\nAPP-001,10.0.0.1,ä\n"
+            ip_csv_path.write_bytes(ip_csv_content.encode("cp1252"))
+
+            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            app_dict: dict[str, Owner] = {"APP-001": owner}
+
+            with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+                extract_ip_data_from_csv(
+                    "ips.csv",
+                    app_dict,
+                    Appip,
+                    self.logger,
+                    self.debug_level,
+                    base_dir=tmpdir,
+                )
+
+            self.assertEqual(len(owner.app_servers), 1)
+            self.assertTrue(any("fallback encoding cp1252" in message for message in log_context.output))
 
     def test_extract_app_data_from_csv_allows_custom_header_patterns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -340,6 +392,36 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(len(app_list), 2)
             self.assertTrue(any("optional filter column" in message for message in log_context.output))
 
+    def test_extract_app_data_from_csv_filters_by_multiple_columns(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,Aktive Firewallregel,Importieren\n"
+                    "App One,APP-012,user12,false,Ja,Ja\n"
+                    "App Two,APP-013,user13,false,Ja,Nein\n"
+                    "App Three,APP-014,user14,false,Nein,Ja\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                included_owners_filters={
+                    "Aktive Firewallregel": ("Ja",),
+                    "Importieren": ("Ja",),
+                },
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].app_id_external, "APP-012")
+
     def test_extract_app_data_from_csv_skips_file_if_required_column_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
@@ -383,6 +465,44 @@ class AppDataImportTests(unittest.TestCase):
 
             self.assertEqual(len(owner.app_servers), 0)
             self.assertTrue(any("skipping csv file" in message for message in log_context.output))
+
+    def test_parse_included_owners_filters_reuses_single_include_values_group(self) -> None:
+        included_owners_filters: dict[str, tuple[str, ...]] | None = parse_included_owners_filters(
+            ["Aktive Firewallregel", "Importieren"],
+            [["Ja", "Ausnahme"]],
+        )
+
+        self.assertEqual(
+            included_owners_filters,
+            {
+                "Aktive Firewallregel": ("Ja", "Ausnahme"),
+                "Importieren": ("Ja", "Ausnahme"),
+            },
+        )
+
+    def test_parse_included_owners_filters_matches_groups_to_columns(self) -> None:
+        included_owners_filters: dict[str, tuple[str, ...]] | None = parse_included_owners_filters(
+            ["Aktive Firewallregel", "Importieren"],
+            [["Ja"], ["Nein", "Ausnahme"]],
+        )
+
+        self.assertEqual(
+            included_owners_filters,
+            {
+                "Aktive Firewallregel": ("Ja",),
+                "Importieren": ("Nein", "Ausnahme"),
+            },
+        )
+
+    def test_parse_included_owners_filters_rejects_mismatched_group_count(self) -> None:
+        with pytest.raises(
+            argparse.ArgumentTypeError,
+            match="number of --includeValues groups must match --filterColumn occurrences",
+        ):
+            parse_included_owners_filters(
+                ["Aktive Firewallregel", "Importieren"],
+                [["Ja"], ["Nein"], ["Ausnahme"]],
+            )
 
     def test_read_custom_config_parses_json_with_comments(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

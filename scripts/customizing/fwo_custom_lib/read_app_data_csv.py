@@ -17,6 +17,7 @@ DEFAULT_OWNER_HEADER_PATTERNS: dict[str, str] = {
     "owner_lifecycle_state": r"^\s*Lifecycle State\s*$",
 }
 DEFAULT_IP_HEADER_PATTERNS: dict[str, str] = {"app_id": r".*?:\s*Alfabet-ID$", "ip": r".*?:\s*IP"}
+CSV_FALLBACK_ENCODINGS: tuple[str, ...] = ("utf-8", "cp1252", "latin-1")
 
 
 @dataclass(frozen=True)
@@ -34,8 +35,7 @@ class OwnerLineParserContext:
     criticality_recert_period_mapping: dict[str, int] | None
     responsibles_columns: dict[str, tuple[int, ...]] | None
     level_two_responsible_pattern: str | None
-    included_owners_column_no: int
-    include_values: list[str] | None
+    included_owners_filters: tuple[tuple[int, tuple[str, ...]], ...] | None
     ldap_path: str
     import_source_string: str
     owner_cls: type[Owner]
@@ -53,6 +53,7 @@ class ExtractAppDataCsvOptions:
     valid_app_id_prefixes: list[str] | None = None
     included_owners_column: str | None = None
     include_values: list[str] | None = None
+    included_owners_filters: dict[str, tuple[str, ...]] | None = None
     csv_separator: str = ","
     composite_id_fields: tuple[str, ...] | None = None
     composite_id_fields_delimiter_str: str = ""
@@ -114,21 +115,23 @@ def _get_composite_id_max_lengths(
 
 
 def _is_included_owners_match(line: list[str], context: OwnerLineParserContext) -> bool:
-    if context.included_owners_column_no < 0:
+    if not context.included_owners_filters:
         return True
-    row_value: str = (
-        line[context.included_owners_column_no].strip() if len(line) > context.included_owners_column_no else ""
-    )
-    allowed_values: set[str] = {value.strip().casefold() for value in (context.include_values or []) if value.strip()}
-    if row_value.casefold() in allowed_values:
-        return True
-    if context.debug_level > 1:
-        context.logger.debug(
-            "ignoring line from csv file as included owners value does not match: found '%s', expected one of %s'",
-            row_value,
-            sorted(allowed_values),
-        )
-    return False
+    column_no: int
+    allowed_values: tuple[str, ...]
+    for column_no, allowed_values in context.included_owners_filters:
+        row_value: str = line[column_no].strip() if len(line) > column_no else ""
+        normalized_allowed_values: set[str] = {value.strip().casefold() for value in allowed_values if value.strip()}
+        if row_value.casefold() in normalized_allowed_values:
+            continue
+        if context.debug_level > 1:
+            context.logger.debug(
+                "ignoring line from csv file as included owners value does not match: found '%s', expected one of %s'",
+                row_value,
+                sorted(normalized_allowed_values),
+            )
+        return False
+    return True
 
 
 def _has_valid_app_id_prefix(app_id: str, context: OwnerLineParserContext) -> bool:
@@ -271,6 +274,39 @@ def _normalize_headers(headers: list[str]) -> list[str]:
     return [h.strip().lstrip("\ufeff") for h in headers]
 
 
+def _read_csv_rows_with_fallback_encodings(
+    csv_file_name: str,
+    csv_separator: str,
+    logger: logging.Logger,
+) -> list[list[str]]:
+    def _read_csv_rows(csv_encoding: str) -> list[list[str]]:
+        with open(csv_file_name, newline="", encoding=csv_encoding) as csv_file_handle:
+            return list(csv.reader(csv_file_handle, delimiter=csv_separator))
+
+    try:
+        return _read_csv_rows(CSV_FALLBACK_ENCODINGS[0])
+    except UnicodeDecodeError as first_decode_error:
+        try:
+            rows = _read_csv_rows(CSV_FALLBACK_ENCODINGS[1])
+            logger.warning(
+                "csv file %s decoded using fallback encoding %s",
+                csv_file_name,
+                CSV_FALLBACK_ENCODINGS[1],
+            )
+            return rows
+        except UnicodeDecodeError:
+            try:
+                rows = _read_csv_rows(CSV_FALLBACK_ENCODINGS[2])
+                logger.warning(
+                    "csv file %s decoded using fallback encoding %s",
+                    csv_file_name,
+                    CSV_FALLBACK_ENCODINGS[2],
+                )
+                return rows
+            except UnicodeDecodeError:
+                raise first_decode_error
+
+
 def _find_header_index(
     headers: list[str],
     pattern: re.Pattern[str],
@@ -350,75 +386,90 @@ def read_app_data_from_csv(
     csv_file_name: str,
     logger: logging.Logger,
     column_patterns: dict[str, str] | None = None,
-    included_owners_column: str | None = None,
+    included_owners_filters: dict[str, tuple[str, ...]] | None = None,
     csv_separator: str = ",",
     composite_id_fields: tuple[str, ...] | None = None,
     criticality_column_header: str | None = None,
     responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None,
 ) -> (
-    tuple[list[list[str]], int, int, tuple[int, ...] | None, int, int, int, int, dict[str, tuple[int, ...]] | None, int]
+    tuple[
+        list[list[str]],
+        int,
+        int,
+        tuple[int, ...] | None,
+        int,
+        int,
+        int,
+        int,
+        dict[str, tuple[int, ...]] | None,
+        tuple[tuple[int, tuple[str, ...]], ...] | None,
+    ]
     | None
 ):
     try:
         header_patterns: dict[str, str] = {**DEFAULT_OWNER_HEADER_PATTERNS, **(column_patterns or {})}
-        with open(csv_file_name, newline="", encoding="utf-8") as csv_file_handle:
-            reader = csv.reader(csv_file_handle, delimiter=csv_separator)
-            headers: list[str] = _normalize_headers(next(reader))  # Get header row first
+        all_rows: list[list[str]] = _read_csv_rows_with_fallback_encodings(csv_file_name, csv_separator, logger)
+        if len(all_rows) == 0:
+            raise ValueError("csv file is empty")
+        headers: list[str] = _normalize_headers(all_rows[0])  # Get header row first
 
-            name_pattern: re.Pattern[str] = re.compile(header_patterns["name"], re.IGNORECASE)
-            app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
-            owner_tiso_pattern: re.Pattern[str] = re.compile(header_patterns["owner_tiso"], re.IGNORECASE)
-            owner_kwita_pattern: re.Pattern[str] = re.compile(header_patterns["owner_kwita"], re.IGNORECASE)
-            owner_lifecycle_state_pattern: re.Pattern[str] = re.compile(
-                header_patterns["owner_lifecycle_state"], re.IGNORECASE
-            )
+        name_pattern: re.Pattern[str] = re.compile(header_patterns["name"], re.IGNORECASE)
+        app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
+        owner_tiso_pattern: re.Pattern[str] = re.compile(header_patterns["owner_tiso"], re.IGNORECASE)
+        owner_kwita_pattern: re.Pattern[str] = re.compile(header_patterns["owner_kwita"], re.IGNORECASE)
+        owner_lifecycle_state_pattern: re.Pattern[str] = re.compile(
+            header_patterns["owner_lifecycle_state"], re.IGNORECASE
+        )
 
-            app_name_column: int = _find_header_index(headers, name_pattern, "name", csv_file_name, logger)
-            app_id_column: int = _find_header_index(
-                headers, app_id_pattern, "app_id", csv_file_name, logger, required=composite_id_fields is None
+        app_name_column: int = _find_header_index(headers, name_pattern, "name", csv_file_name, logger)
+        app_id_column: int = _find_header_index(
+            headers, app_id_pattern, "app_id", csv_file_name, logger, required=composite_id_fields is None
+        )
+        composite_id_columns: tuple[int, ...] | None = _find_composite_id_columns(
+            headers, composite_id_fields, csv_file_name, logger
+        )
+        app_owner_tiso_column: int = _find_header_index(headers, owner_tiso_pattern, "owner_tiso", csv_file_name, logger)
+        app_owner_kwita_column: int = _find_header_index(
+            headers, owner_kwita_pattern, "owner_kwita", csv_file_name, logger, required=False
+        )
+        owner_lifecycle_state_column: int = _find_header_index(
+            headers,
+            owner_lifecycle_state_pattern,
+            "owner_lifecycle_state",
+            csv_file_name,
+            logger,
+            required=False,
+        )
+        criticality_column: int = -1
+        if criticality_column_header:
+            criticality_column = _find_required_header_index_by_name(
+                headers, criticality_column_header, csv_file_name, logger
             )
-            composite_id_columns: tuple[int, ...] | None = _find_composite_id_columns(
-                headers, composite_id_fields, csv_file_name, logger
-            )
-            app_owner_tiso_column: int = _find_header_index(
-                headers, owner_tiso_pattern, "owner_tiso", csv_file_name, logger
-            )
-            app_owner_kwita_column: int = _find_header_index(
-                headers, owner_kwita_pattern, "owner_kwita", csv_file_name, logger, required=False
-            )
-            owner_lifecycle_state_column: int = _find_header_index(
-                headers,
-                owner_lifecycle_state_pattern,
-                "owner_lifecycle_state",
-                csv_file_name,
-                logger,
-                required=False,
-            )
-            criticality_column: int = -1
-            if criticality_column_header:
-                criticality_column = _find_required_header_index_by_name(
-                    headers, criticality_column_header, csv_file_name, logger
-                )
-            responsibles_columns: dict[str, tuple[int, ...]] | None = _find_responsibles_columns(
-                headers, responsibles_columns_headers, csv_file_name, logger
-            )
-            included_owners_column_no: int = -1
-            if included_owners_column:
-                escaped_included_owners_column: str = re.escape(included_owners_column)
+        responsibles_columns: dict[str, tuple[int, ...]] | None = _find_responsibles_columns(
+            headers, responsibles_columns_headers, csv_file_name, logger
+        )
+        resolved_included_owners_filters: list[tuple[int, tuple[str, ...]]] = []
+        if included_owners_filters:
+            filter_column_name: str
+            filter_include_values: tuple[str, ...]
+            for filter_column_name, filter_include_values in included_owners_filters.items():
+                escaped_included_owners_column: str = re.escape(filter_column_name)
                 included_owners_pattern: re.Pattern[str] = re.compile(
                     rf"^\s*{escaped_included_owners_column}\s*$", re.IGNORECASE
                 )
-                included_owners_column_no = _find_header_index(
+                included_owners_column_no: int = _find_header_index(
                     headers, included_owners_pattern, "included_owners", csv_file_name, logger, required=False
                 )
                 if included_owners_column_no < 0:
                     logger.warning(
-                        "optional filter column '%s' not found in %s; proceeding without included owners filtering",
-                        included_owners_column,
+                        "optional filter column '%s' not found in %s; proceeding without this included owners filter",
+                        filter_column_name,
                         csv_file_name,
                     )
+                    continue
+                resolved_included_owners_filters.append((included_owners_column_no, filter_include_values))
 
-            apps_from_csv: list[list[str]] = list(reader)  # Read remaining rows
+        apps_from_csv: list[list[str]] = all_rows[1:]
     except ValueError as err:
         logger.warning("skipping csv file %s because %s", csv_file_name, err)
         return None
@@ -436,7 +487,7 @@ def read_app_data_from_csv(
         owner_lifecycle_state_column,
         criticality_column,
         responsibles_columns,
-        included_owners_column_no,
+        tuple(resolved_included_owners_filters) if included_owners_filters else None,
     )
 
 
@@ -518,6 +569,11 @@ def extract_app_data_from_csv(
     resolved_options: ExtractAppDataCsvOptions = _resolve_extract_options(options, legacy_kwargs)
     valid_app_id_prefixes: list[str] = resolved_options.valid_app_id_prefixes or DEFAULT_VALID_APP_ID_PREFIXES
     recert_active_app_list: list[str] = resolved_options.recert_active_app_list or []
+    normalized_included_owners_filters: dict[str, tuple[str, ...]] | None = resolved_options.included_owners_filters
+    if normalized_included_owners_filters is None and resolved_options.included_owners_column:
+        normalized_included_owners_filters = {
+            resolved_options.included_owners_column: tuple(resolved_options.include_values or [])
+        }
 
     composite_id_max_lengths: tuple[int, ...] | None = _get_composite_id_max_lengths(resolved_options, csv_file, logger)
     if (
@@ -540,14 +596,14 @@ def extract_app_data_from_csv(
             int,
             int,
             dict[str, tuple[int, ...]] | None,
-            int,
+            tuple[tuple[int, tuple[str, ...]], ...] | None,
         ]
         | None
     ) = read_app_data_from_csv(
         csv_file_path,
         logger,
         resolved_options.column_patterns,
-        resolved_options.included_owners_column,
+        normalized_included_owners_filters,
         resolved_options.csv_separator,
         resolved_options.composite_id_fields,
         resolved_options.criticality_column_header,
@@ -566,7 +622,7 @@ def extract_app_data_from_csv(
         owner_lifecycle_state_column,
         criticality_column,
         responsibles_columns,
-        included_owners_column_no,
+        included_owners_filters,
     ) = csv_data
     parser_context: OwnerLineParserContext = OwnerLineParserContext(
         app_name_column=app_name_column,
@@ -582,8 +638,7 @@ def extract_app_data_from_csv(
         criticality_recert_period_mapping=resolved_options.criticality_recert_period_mapping,
         responsibles_columns=responsibles_columns,
         level_two_responsible_pattern=resolved_options.level_two_responsible_pattern,
-        included_owners_column_no=included_owners_column_no,
-        include_values=resolved_options.include_values,
+        included_owners_filters=included_owners_filters,
         ldap_path=ldap_path,
         import_source_string=import_source_string,
         owner_cls=owner_cls,
@@ -616,17 +671,18 @@ def read_ip_data_from_csv(
 ) -> tuple[list[list[str]], int, int] | None:
     try:
         header_patterns: dict[str, str] = {**DEFAULT_IP_HEADER_PATTERNS, **(column_patterns or {})}
-        with open(csv_filename, newline="", encoding="utf-8") as csv_file:
-            reader = csv.reader(csv_file, delimiter=csv_separator)
-            headers: list[str] = _normalize_headers(next(reader))  # Get header row first
+        all_rows: list[list[str]] = _read_csv_rows_with_fallback_encodings(csv_filename, csv_separator, logger)
+        if len(all_rows) == 0:
+            raise ValueError("csv file is empty")
+        headers: list[str] = _normalize_headers(all_rows[0])  # Get header row first
 
-            app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
-            ip_pattern: re.Pattern[str] = re.compile(header_patterns["ip"], re.IGNORECASE)
+        app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
+        ip_pattern: re.Pattern[str] = re.compile(header_patterns["ip"], re.IGNORECASE)
 
-            app_id_column_no: int = _find_header_index(headers, app_id_pattern, "app_id", csv_filename, logger)
-            ip_column_no: int = _find_header_index(headers, ip_pattern, "ip", csv_filename, logger)
+        app_id_column_no: int = _find_header_index(headers, app_id_pattern, "app_id", csv_filename, logger)
+        ip_column_no: int = _find_header_index(headers, ip_pattern, "ip", csv_filename, logger)
 
-            ip_data: list[list[str]] = list(reader)  # Read remaining rows
+        ip_data: list[list[str]] = all_rows[1:]
     except ValueError as err:
         logger.warning("skipping csv file %s because %s", csv_filename, err)
         return None

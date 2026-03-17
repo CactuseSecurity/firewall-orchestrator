@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2026-02-19-01"
+__version__ = "2026-03-16-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -15,6 +15,8 @@ __version__ = "2026-02-19-01"
 #   - importing criticality from csv file if column pattern is given in config; if not, criticality will be set to "unknown" for all apps
 #   - allowing for composite fields with delimiter string to allow concatenation of two columns into one field
 #   - in UI-Settings: allow passing of multiple script parameters via multiple text fields (should be limited to non-sensitive parameters, as they will be visible to all users with access to the UI-Settings)
+# 2026-03-16-01:
+#   - allowing multiple filter columns with per-column include values
 
 # reads the main app data from multiple csv files contained in a git repo
 # users will reside in external ldap groups with standardized names
@@ -187,6 +189,40 @@ def apply_owner_column_overrides(
     return updated_patterns
 
 
+def parse_included_owners_filters(
+    filter_columns: list[str] | None,
+    include_values_groups: list[list[str]] | None,
+) -> dict[str, tuple[str, ...]] | None:
+    if not filter_columns:
+        return None
+    if include_values_groups is None:
+        include_values_groups = [["Ja"]]
+
+    normalized_filter_columns: list[str] = [column.strip() for column in filter_columns if column.strip()]
+    if len(normalized_filter_columns) == 0:
+        return None
+    if len(include_values_groups) == 1:
+        include_values_groups = include_values_groups * len(normalized_filter_columns)
+    if len(include_values_groups) != len(normalized_filter_columns):
+        raise argparse.ArgumentTypeError(
+            "number of --includeValues groups must match --filterColumn occurrences"
+        )
+
+    included_owners_filters: dict[str, tuple[str, ...]] = {}
+    index: int
+    filter_column: str
+    for index, filter_column in enumerate(normalized_filter_columns):
+        normalized_include_values: tuple[str, ...] = tuple(
+            value.strip() for value in include_values_groups[index] if value.strip()
+        )
+        if len(normalized_include_values) == 0:
+            raise argparse.ArgumentTypeError(
+                f"--includeValues for filter column '{filter_column}' must contain at least one non-empty value"
+            )
+        included_owners_filters[filter_column] = normalized_include_values
+    return included_owners_filters
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(
@@ -246,17 +282,19 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--filterColumn",
-        dest="filter_column",
-        default="Aktive Firewallregel",
-        help='owner CSV column header used for filtering for owners with active rules, default="Aktive Firewallregel"; set to empty string to disable',
+        dest="filter_columns",
+        action="append",
+        default=None,
+        help='owner CSV column header used for filtering; repeat to require matches in multiple columns, default="Aktive Firewallregel"; set to empty string to disable',
     )
     parser.add_argument(
         "--includeValues",
         "--includeValue",
-        dest="include_values",
+        dest="include_values_groups",
+        action="append",
         nargs="+",
-        default=["Ja"],
-        help='list of values in filter column to include, default=["Ja"]',
+        default=None,
+        help='list of values to include for the preceding --filterColumn; repeat per filter column, default=["Ja"]',
     )
     parser.add_argument(
         "--lifecycleState",
@@ -347,8 +385,17 @@ if __name__ == "__main__":
     )
     csv_separator: str = read_custom_config_with_default(args.config, "csvSeparator", ",", logger)
     default_recert_active_state: bool = args.default_recertification_active_state
-    included_owners_column: str | None = args.filter_column.strip() if args.filter_column else None
-    include_values: list[str] = args.include_values
+    if args.filter_columns is None:
+        filter_columns: list[str] = ["Aktive Firewallregel"]
+    else:
+        filter_columns = args.filter_columns
+    try:
+        included_owners_filters: dict[str, tuple[str, ...]] | None = parse_included_owners_filters(
+            filter_columns,
+            args.include_values_groups,
+        )
+    except argparse.ArgumentTypeError as err:
+        parser.error(str(err))
     lifecycle_state_column: str = args.lifecycleState
     fallback_owner_lifecycle: str = args.fallback_owner_lifecycle
     local_repo_base_dir: str = args.local_repo_base_dir
@@ -448,8 +495,7 @@ if __name__ == "__main__":
                 default_recert_active_state=default_recert_active_state,
                 column_patterns=owner_header_patterns,
                 valid_app_id_prefixes=valid_app_id_prefixes,
-                included_owners_column=included_owners_column,
-                include_values=include_values,
+                included_owners_filters=included_owners_filters,
                 csv_separator=csv_separator,
                 fallback_owner_lifecycle=fallback_owner_lifecycle,
                 composite_id_fields=composite_id_fields,

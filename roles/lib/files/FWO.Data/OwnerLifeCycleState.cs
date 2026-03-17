@@ -36,5 +36,10 @@ namespace FWO.Data
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             return shortened;
         }
+
+        public string Display(string inactiveText)
+        {
+            return ActiveState ? Name : $"{Name} ({inactiveText})";
+        }
     }
 }

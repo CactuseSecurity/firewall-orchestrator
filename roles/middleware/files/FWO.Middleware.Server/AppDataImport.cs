@@ -19,9 +19,9 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class AppDataImport : DataImportBase
     {
-        private List<ModellingImportAppData> importedApps = [];
-        private List<FwoOwner> existingApps = [];
-        private List<ModellingAppServer> existingAppServers = [];
+        private List<ModellingImportAppData> ImportedApps = [];
+        private List<FwoOwner> ExistingApps = [];
+        private List<ModellingAppServer> ExistingAppServers = [];
 
         private Ldap internalLdap = new();
 
@@ -30,6 +30,7 @@ namespace FWO.Middleware.Server
         private Dictionary<int, OwnerResponsibleType> ownerResponsibleTypeById = [];
         private Dictionary<string, int> ownerResponsibleTypeIdByName = new(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, int> ownerLifeCycleStateIdsByName = new(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<int, bool> ownerLifeCycleStateActiveById = [];
         private ModellingNamingConvention NamingConvention = new();
         private UserConfig userConfig = new();
         private const string LogMessageTitle = "Import App Data";
@@ -98,11 +99,13 @@ namespace FWO.Middleware.Server
         {
             List<OwnerLifeCycleState> lifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(OwnerQueries.getOwnerLifeCycleStates);
             ownerLifeCycleStateIdsByName = new(StringComparer.OrdinalIgnoreCase);
+            ownerLifeCycleStateActiveById = [];
             foreach (OwnerLifeCycleState state in lifeCycleStates)
             {
                 if (!string.IsNullOrWhiteSpace(state.Name))
                 {
-                    ownerLifeCycleStateIdsByName[state.Name] = state.Id;
+                    ownerLifeCycleStateIdsByName[state.Name.Trim()] = state.Id;
+                    ownerLifeCycleStateActiveById[state.Id] = state.ActiveState;
                 }
             }
         }
@@ -115,7 +118,7 @@ namespace FWO.Middleware.Server
                 ModellingImportOwnerData? importedOwnerData = JsonSerializer.Deserialize<ModellingImportOwnerData>(importFile) ?? throw new JsonException("File could not be parsed.");
                 if (importedOwnerData != null && importedOwnerData.Owners != null)
                 {
-                    importedApps = importedOwnerData.Owners;
+                    ImportedApps = importedOwnerData.Owners;
                     await ImportApps(importfileName, ownerChangeTracker);
                 }
             }
@@ -135,8 +138,8 @@ namespace FWO.Middleware.Server
             int deleteCounter = 0;
             int deleteFailCounter = 0;
 
-            existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-            foreach (var incomingApp in importedApps)
+            ExistingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            foreach (var incomingApp in ImportedApps)
             {
                 if (await SaveApp(incomingApp, ownerChangeTracker))
                 {
@@ -147,15 +150,14 @@ namespace FWO.Middleware.Server
                     ++failCounter;
                 }
             }
-            string? importSource = importedApps.FirstOrDefault()?.ImportSource;
+            string? importSource = ImportedApps.FirstOrDefault()?.ImportSource;
             if (importSource != null)
             {
-                (deleteCounter, deleteFailCounter) = await DeactivateMissingApps(importSource, existingApps, importedApps, ownerChangeTracker);
+                (deleteCounter, deleteFailCounter) = await DeactivateMissingApps(importSource, ownerChangeTracker);
             }
             string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
             Log.WriteInfo(LogMessageTitle, messageText);
             await AddLogEntry(0, LevelFile, messageText);
-
         }
 
         private async Task<bool> SaveApp(ModellingImportAppData incomingApp, OwnerChangeImportTracker ownerChangeTracker)
@@ -173,7 +175,7 @@ namespace FWO.Middleware.Server
                 }
                 List<OwnerResponsible> responsibles = BuildOwnerResponsibles(incomingApp);
 
-                FwoOwner? existingApp = existingApps.FirstOrDefault(x => x.ExtAppId == incomingApp.ExtAppId);
+                FwoOwner? existingApp = ExistingApps.FirstOrDefault(x => x.ExtAppId == incomingApp.ExtAppId);
 
                 if (existingApp == null)
                 {
@@ -184,10 +186,8 @@ namespace FWO.Middleware.Server
                 {
                     appId = existingApp.Id;
                     await UpdateApp(incomingApp, existingApp, ownerLifeCycleStateId, responsibles);
-                    if (!existingApp.Active)
-                    {
-                        await ownerChangeTracker.AddOwnerChange(appId, appId, ChangelogActionType.CHANGE, incomingApp.ImportSource);
-                    }
+                    await AddOwnerChangeIfNeeded(existingApp, incomingApp, ownerChangeTracker);
+                    await AddOwnerLifeCycleStateActiveChangeIfNeeded(existingApp, ownerLifeCycleStateId, incomingApp.ImportSource, ownerChangeTracker);
                 }
                 if (!string.IsNullOrWhiteSpace(incomingApp.MainUser) && IsResponsibleTypeActive(GlobalConst.kOwnerResponsibleTypeMain))
                 {
@@ -244,6 +244,69 @@ namespace FWO.Middleware.Server
                 normalizedApp.Responsibles[typeKey] = normalizedIdentifiers;
             }
             return normalizedApp;
+        }
+
+        private async Task AddOwnerLifeCycleStateActiveChangeIfNeeded(
+            FwoOwner existingApp,
+            int? ownerLifeCycleStateId,
+            string? importSource,
+            OwnerChangeImportTracker ownerChangeTracker)
+        {
+            if (!TryGetOwnerLifeCycleStateActive(existingApp.OwnerLifeCycleStateId, out bool oldActiveState)
+                || !TryGetOwnerLifeCycleStateActive(ownerLifeCycleStateId, out bool newActiveState)
+                || oldActiveState == newActiveState)
+            {
+                return;
+            }
+
+            await ownerChangeTracker.AddOwnerChange(
+                existingApp.Id,
+                existingApp.Id,
+                newActiveState ? ChangelogActionType.REACTIVATE : ChangelogActionType.DEACTIVATE,
+                importSource);
+        }
+
+        private async Task AddOwnerChangeIfNeeded(
+            FwoOwner existingApp,
+            ModellingImportAppData incomingApp,
+            OwnerChangeImportTracker ownerChangeTracker)
+        {
+            if (!existingApp.Active || HaveAppServerChanges(incomingApp))
+            {
+                await ownerChangeTracker.AddOwnerChange(existingApp.Id, existingApp.Id, ChangelogActionType.CHANGE, incomingApp.ImportSource);
+            }
+        }
+
+        private bool HaveAppServerChanges(ModellingImportAppData incomingApp)
+        {
+            HashSet<string> existing = BuildAppServerKeys(ExistingAppServers);
+            HashSet<string> incoming = BuildAppServerKeys(incomingApp.AppServers.Select(appServer => appServer.ToModellingAppServer()));
+            return !existing.SetEquals(incoming);
+        }
+
+        private static HashSet<string> BuildAppServerKeys(IEnumerable<ModellingAppServer> appServers)
+        {
+            HashSet<string> keys = new(StringComparer.OrdinalIgnoreCase);
+            foreach (ModellingAppServer appServer in appServers.Where(appServer => !appServer.IsDeleted))
+            {
+                string ip = string.IsNullOrWhiteSpace(appServer.Ip) ? "" : appServer.Ip.Trim().IpAsCidr();
+                string ipEnd = string.IsNullOrWhiteSpace(appServer.IpEnd) ? ip : appServer.IpEnd.Trim().IpAsCidr();
+                string name = string.IsNullOrWhiteSpace(appServer.Name) ? "" : appServer.Name.Trim();
+                keys.Add($"{ip}|{ipEnd}|{name}");
+            }
+            return keys;
+        }
+
+        private bool TryGetOwnerLifeCycleStateActive(int? ownerLifeCycleStateId, out bool activeState)
+        {
+            if (ownerLifeCycleStateId.HasValue && ownerLifeCycleStateActiveById.TryGetValue(ownerLifeCycleStateId.Value, out bool resolvedActiveState))
+            {
+                activeState = resolvedActiveState;
+                return true;
+            }
+
+            activeState = false;
+            return false;
         }
 
         private async Task<string?> NormalizeImportedUserReference(ModellingImportAppData incomingApp, string? importedIdentifier, string fieldName)
@@ -384,12 +447,12 @@ namespace FWO.Middleware.Server
             await ImportAppServers(incomingApp, existingApp.Id);
         }
 
-        private async Task<(int deleted, int failed)> DeactivateMissingApps(string importSource, IEnumerable<FwoOwner> existingApps, List<ModellingImportAppData> importedApps, OwnerChangeImportTracker ownerChangeTracker)
+        private async Task<(int deleted, int failed)> DeactivateMissingApps(string importSource, OwnerChangeImportTracker ownerChangeTracker)
         {
             int deletedCounter = 0, deleteFailCounter = 0;
-            foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
+            foreach (var existingApp in ExistingApps.Where(x => x.ImportSource == importSource && x.Active))
             {
-                if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
+                if (ImportedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
                 {
                     if (await DeactivateApp(existingApp, ownerChangeTracker))
                     {
@@ -862,7 +925,7 @@ namespace FWO.Middleware.Server
                 importSource = incomingApp.ImportSource,
                 appId = applId
             };
-            existingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, Variables);
+            ExistingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, Variables);
             foreach (var incomingAppServer in incomingApp.AppServers)
             {
                 if (await SaveAppServer(incomingAppServer, applId, incomingApp.ImportSource))
@@ -874,7 +937,7 @@ namespace FWO.Middleware.Server
                     ++failCounter;
                 }
             }
-            foreach (var existingAppServer in existingAppServers.Where(e => !e.IsDeleted).ToList())
+            foreach (var existingAppServer in ExistingAppServers.Where(e => !e.IsDeleted).ToList())
             {
                 if (incomingApp.AppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == existingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == existingAppServer.IpEnd.IpAsCidr()) == null)
                 {
@@ -903,7 +966,7 @@ namespace FWO.Middleware.Server
                 {
                     incomingAppServer.Name = await BuildAppServerName(incomingAppServer);
                 }
-                ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == incomingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == incomingAppServer.IpEnd.IpAsCidr());
+                ModellingAppServer? existingAppServer = ExistingAppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == incomingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == incomingAppServer.IpEnd.IpAsCidr());
                 if (existingAppServer == null)
                 {
                     return await NewAppServer(incomingAppServer, appID, impSource);

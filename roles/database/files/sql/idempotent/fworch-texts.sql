@@ -271,6 +271,8 @@ INSERT INTO txt VALUES ('RecertDate',       	'German',	'Rezertifizierungsdatum')
 INSERT INTO txt VALUES ('RecertDate', 	    	'English',	'Recertification Date');
 INSERT INTO txt VALUES ('RequestDate',       	'German',	'Antragsdatum');
 INSERT INTO txt VALUES ('RequestDate', 	    	'English',	'Request Date');
+INSERT INTO txt VALUES ('RuleExpiry',       	'German',	'Ablaufdatum');
+INSERT INTO txt VALUES ('RuleExpiry', 	    	'English',	'Expiry Date');
 INSERT INTO txt VALUES ('Public',       		'German',	'&Ouml;ffentlich');
 INSERT INTO txt VALUES ('Public', 	    		'English',	'Public');
 INSERT INTO txt VALUES ('Restricted',       	'German',	'Beschr&auml;nkt');
@@ -2330,6 +2332,10 @@ INSERT INTO txt VALUES ('ruleExpiryNotifications','German', 'Regelablauf - Benac
 INSERT INTO txt VALUES ('ruleExpiryNotifications','English','Rule Expiry - Notifications');
 INSERT INTO txt VALUES ('ruleExpiryEmailBody',   'German',  'Regelablauf - Email-Text');
 INSERT INTO txt VALUES ('ruleExpiryEmailBody',   'English', 'Rule Expiry - Email body');
+INSERT INTO txt VALUES ('ownerActiveRuleNotifications','German', 'Aktive Regeln - Benachrichtigungen');
+INSERT INTO txt VALUES ('ownerActiveRuleNotifications','English', 'Active Rules - Notifications');
+INSERT INTO txt VALUES ('ownerActiveRuleEmailBody',   'German',  'Aktive Regeln - Email-Text');
+INSERT INTO txt VALUES ('ownerActiveRuleEmailBody',   'English', 'Active Rules - Email body');
 INSERT INTO txt VALUES ('ruleExpiryInitiatorKeys','German',  'Regelablauf - Initiator-Texte');
 INSERT INTO txt VALUES ('ruleExpiryInitiatorKeys','English', 'Rule Expiry - Initiator texts');
 INSERT INTO txt VALUES ('ruleExpiryInitiator',   'German',  'Initiator des Ablaufs');
@@ -3329,8 +3335,8 @@ INSERT INTO txt VALUES ('U5325', 'German',  'Mehrere Service-Uids mit Komma tren
 INSERT INTO txt VALUES ('U5325', 'English', 'Multiple service uids can be separated by using commas');
 INSERT INTO txt VALUES ('U5326', 'German',  'Verwaltung aller durch FW-&Auml;nderungen ausgel&ouml;sten Events');
 INSERT INTO txt VALUES ('U5326', 'English', 'Set the settings for all events triggerd by FW changes');
-INSERT INTO txt VALUES ('U5327', 'German',  'Verwaltung der Benachrichtigungs-Einstellungen f&uuml;r den Regelablauf.');
-INSERT INTO txt VALUES ('U5327', 'English', 'Administration of notification settings for rule expiry.');
+INSERT INTO txt VALUES ('U5327', 'German',  'Verwaltung der Benachrichtigungs-Einstellungen f&uuml;r Regelablauf und aktive Regeln.');
+INSERT INTO txt VALUES ('U5327', 'English', 'Administration of notification settings for rule expiry and active rules.');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -6185,6 +6191,10 @@ INSERT INTO txt VALUES ('H5723', 'German',  'Regelablauf - Initiator-Texte: Zuor
 INSERT INTO txt VALUES ('H5723', 'English', 'Rule expiry initiator texts: Mapping of suffix keys from time-object names to display texts in the report.');
 INSERT INTO txt VALUES ('H5724', 'German',  'Neuen Initiator-Eintrag hinzuf&uuml;gen: Schl&uuml;ssel und Text erfassen und mit Plus &uuml;bernehmen.');
 INSERT INTO txt VALUES ('H5724', 'English', 'Add a new initiator entry: Enter key and text and confirm with the plus button.');
+INSERT INTO txt VALUES ('H5725', 'German',  'Aktive Regeln - Benachrichtigungen: Konfiguration der Empf&auml;nger f&uuml;r Benachrichtigungen, wenn ein Owner noch aktive Regeln besitzt.');
+INSERT INTO txt VALUES ('H5725', 'English', 'Active rules notifications: Configure recipients for notifications when an owner still has active rules.');
+INSERT INTO txt VALUES ('H5726', 'German',  'Aktive Regeln - Email-Text: Vorlage f&uuml;r den Mail-Text. Platzhalter wie @@APPNAME@@ und @@APPID@@ werden ersetzt.');
+INSERT INTO txt VALUES ('H5726', 'English', 'Active rules email body: Template for the mail body. Placeholders like @@APPNAME@@ and @@APPID@@ are replaced.');
 INSERT INTO txt VALUES ('H5801', 'German',  'Compliance-Check-Intervall (in Minuten): legt das Intervall fest, in dem der Compliance-Check durchgef&uuml;hrt werden soll.');
 INSERT INTO txt VALUES ('H5801', 'English', 'Compliance Check sleep time (in minutes): defines the interval in which the compliance check should be performed.');
 INSERT INTO txt VALUES ('H5802', 'German',  'Compliance-Check-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r den Compliance-Check gerechnet werden.');

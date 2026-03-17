@@ -9,10 +9,10 @@ namespace FWO.Data
         Recertification = 1,
         ImportChange = 2,
         Compliance = 3,
-		InterfaceRequest = 4,
-		RuleTimer = 5,
-		AppDecomm = 6
-	}
+        InterfaceRequest = 4,
+        RuleTimer = 5,
+        AppDecomm = 6
+    }
 
     public enum NotificationChannel
     {
@@ -23,10 +23,10 @@ namespace FWO.Data
     {
         None = 0,
         RecertDate = 1,
-		RequestDate = 2,
-		RuleExpiry = 3,
-		DecommissionDate = 4
-	}
+        RequestDate = 2,
+        RuleExpiry = 3,
+        DecommissionDate = 4
+    }
 
     public class FwoNotification
     {
@@ -89,5 +89,18 @@ namespace FWO.Data
 
         [JsonProperty("last_sent"), JsonPropertyName("last_sent")]
         public DateTime? LastSent { get; set; }
+
+
+        public static List<NotificationDeadline> OfferedDeadlineOptions(NotificationClient client)
+        {
+            return client switch
+            {
+                NotificationClient.Recertification => [NotificationDeadline.RecertDate],
+                NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
+                NotificationClient.InterfaceRequest => [NotificationDeadline.RequestDate],
+                NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],
+                _ => Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>().ToList()
+            };
+        }
     }
 }

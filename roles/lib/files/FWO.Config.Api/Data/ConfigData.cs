@@ -369,6 +369,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("ruleExpiryEmailBody"), JsonPropertyName("ruleExpiryEmailBody")]
         public string RuleExpiryEmailBody { get; set; } = "";
 
+        [JsonProperty("ownerActiveRuleEmailBody"), JsonPropertyName("ownerActiveRuleEmailBody")]
+        public string OwnerActiveRuleEmailBody { get; set; } = "";
+
         [JsonProperty("ruleExpiryInitiatorKeys"), JsonPropertyName("ruleExpiryInitiatorKeys")]
         public string RuleExpiryInitiatorKeys { get; set; } = "";
 

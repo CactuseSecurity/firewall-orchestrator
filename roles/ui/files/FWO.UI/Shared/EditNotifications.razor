@@ -72,30 +72,37 @@
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4102"))">
                 <label class="col-form-label col-sm-3">@(userConfig.GetText("layout")):</label>
                 <div class="col-sm-3">
-                    <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="actNotification.Layout" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                            Elements="OfferedLayoutOptions()" >
-                        <ElementTemplate Context="layout">
-                            @(userConfig.GetText(layout.ToString()))
-                        </ElementTemplate>
-                    </Dropdown>
+                    @if(OfferedLayoutOptions().Count > 1)
+                    {
+                        <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="actNotification.Layout" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                Elements="OfferedLayoutOptions()" >
+                            <ElementTemplate Context="layout">
+                                @(userConfig.GetText(layout.ToString()))
+                            </ElementTemplate>
+                        </Dropdown>
+                    }
+                    else
+                    {
+                        @(userConfig.GetText(actNotification.Layout.ToString()))
+                    }
                 </div>
             </div>
 
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4103"))">
                 <label class="col-form-label col-sm-3">@(userConfig.GetText("deadline")):</label>
                 <div class="col-sm-3">
-                    @if(Client == NotificationClient.InterfaceRequest)
-                    {
-                        @(userConfig.GetText(actNotification.Deadline.ToString()))
-                    }
-                    else
+                    @if(OfferedDeadlineOptions().Count > 1)
                     {
                         <Dropdown ElementType="NotificationDeadline" @bind-SelectedElement="actNotification.Deadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                                Elements="Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>()" >
+                                Elements="OfferedDeadlineOptions()" >
                             <ElementTemplate Context="deadline">
                                 @(userConfig.GetText(deadline.ToString()))
                             </ElementTemplate>
                         </Dropdown>
+                    }
+                    else
+                    {
+                        @(userConfig.GetText(actNotification.Deadline.ToString()))
                     }
                 </div>
             </div>
@@ -267,13 +274,13 @@
         actNotification = new(){ NotificationClient = Client };
         actNotification.RecipientTo = EmailRecipientOption.OwnerMainResponsible;
         actNotification.RecipientCc = EmailRecipientOption.None;
-        if(Client == NotificationClient.Recertification)
+        if(Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
         {
-            actNotification.Deadline = NotificationDeadline.RecertDate;
+            actNotification.Layout = NotificationLayout.HtmlInBody;
         }
-        else if(Client == NotificationClient.InterfaceRequest)
+        if(OfferedDeadlineOptions().Count == 1)
         {
-            actNotification.Deadline = NotificationDeadline.RequestDate;
+            actNotification.Deadline = OfferedDeadlineOptions()[0];
         }
     }
 
@@ -340,22 +347,27 @@
         return userConfig.GetText("U4001") + DisplayNotification(actNotification);
     }
 
-    private IEnumerable<EmailRecipientOption> OfferedAdressOptions()
+    private List<EmailRecipientOption> OfferedAdressOptions()
     {
-        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer)
+        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
         {
-            return EmailRecipientGroups.GetModellingOptions();
+            return EmailRecipientGroups.GetModellingOptions().ToList();
         }
-        return Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>();
+        return Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>().ToList();
     }
 
-    private IEnumerable<NotificationLayout> OfferedLayoutOptions()
+    private List<NotificationLayout> OfferedLayoutOptions()
     {
-        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer)
+        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
         {
-            return NotificationLayoutGroups.WithoutAttachments();
+            return NotificationLayoutGroups.WithoutAttachments().ToList();
         }
-        return Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>();
+        return Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>().ToList();
+    }
+
+    private List<NotificationDeadline> OfferedDeadlineOptions()
+    {
+        return FwoNotification.OfferedDeadlineOptions(Client);
     }
 
     private async Task Save()

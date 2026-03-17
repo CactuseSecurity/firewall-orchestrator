@@ -7,7 +7,11 @@ from typing import Any, TypeVar
 
 import fwo_const
 from fwo_api import FwoApi
-from fwo_exceptions import FwoApiWriteError, FwoImporterError, FwoImporterErrorInconsistenciesError
+from fwo_exceptions import (
+    FwoApiWriteError,
+    FwoImporterError,
+    FwoImporterErrorInconsistenciesError,
+)
 from fwo_log import ChangeLogger, FWOLogger
 from model_controllers.fwconfig_import_ruleorder import update_rule_order_diffs
 from model_controllers.import_state_controller import ImportStateController
@@ -1143,17 +1147,18 @@ class FwConfigImportRule:
         removed_rules_ids = [
             self.uid2id_mapper.get_rule_id(rule.rule_uid) for rule in removed_rules if rule.rule_uid is not None
         ]
-        changed_rules_ids: list[tuple[int, int]] = []
+        changed_rules_ids: list[tuple[int, int]] = []  # (new_rule_id, old_rule_id)
         for old_rule, new_rule in changed_rules:
             if (
                 new_rule.rule_uid is not None
                 and old_rule.rule_uid is not None
                 and self.is_change_security_relevant(old_rule, new_rule)
             ):
+                rule_uid = new_rule.rule_uid
                 changed_rules_ids.append(
                     (
-                        self.uid2id_mapper.get_rule_id(new_rule.rule_uid),
-                        self.uid2id_mapper.get_rule_id(old_rule.rule_uid),
+                        self.uid2id_mapper.get_rule_id(rule_uid),
+                        self.uid2id_mapper.get_rule_id(rule_uid, before_update=True),
                     )
                 )
 

@@ -194,5 +194,7 @@ namespace FWO.Basics
         public const Char INSERT = 'I';
         public const Char CHANGE = 'C';
         public const Char DELETE = 'D';
+        public const Char DEACTIVATE = 'X';
+        public const Char REACTIVATE = 'R';
     }
 }

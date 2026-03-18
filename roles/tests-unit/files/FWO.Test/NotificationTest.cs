@@ -81,5 +81,22 @@ namespace FWO.Test
             notification.LastSent = DateTime.Now.AddDays(-1);
             ClassicAssert.IsFalse(NotificationService.IsNotificationDue(owner, DateTime.Now.AddDays(-8), notification));
         }
+
+        [Test]
+        public void TestDecommissionNotificationDueCalculation()
+        {
+            FwoOwner owner = new() { DecommDate = DateTime.Now.AddDays(-8) };
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.DecommissionDate,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+                RepeatOffsetAfterDeadline = 7,
+                RepetitionsAfterDeadline = 2
+            };
+
+            ClassicAssert.IsTrue(NotificationService.IsNotificationDue(owner, null, notification));
+            notification.LastSent = DateTime.Now.AddDays(-1);
+            ClassicAssert.IsFalse(NotificationService.IsNotificationDue(owner, null, notification));
+        }
     }
 }

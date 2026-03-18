@@ -50,6 +50,7 @@ namespace FWO.Middleware.Server.Jobs
                 await CheckRecerts();
                 await CheckUnansweredInterfaceRequests();
                 await CheckRuleExpiry();
+                await CheckOwnerActiveRules();
             }
             catch (Exception exc)
             {
@@ -80,6 +81,14 @@ namespace FWO.Middleware.Server.Jobs
             int ruleExpiryEmailsSent = await ruleExpiryCheck.CheckRuleExpiry();
             Log.WriteDebug(LogMessageTitle, $"Rule Expiry Check: Sent {ruleExpiryEmailsSent} emails.");
             await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Rule Expiry Check", ruleExpiryEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
+        }
+
+        private async Task CheckOwnerActiveRules()
+        {
+            OwnerActiveRuleCheck ownerActiveRuleCheck = new(apiConnection, globalConfig);
+            int ownerActiveRuleEmailsSent = await ownerActiveRuleCheck.CheckActiveRulesByScheduler();
+            Log.WriteDebug(LogMessageTitle, $"Owner Active Rule Check: Sent {ownerActiveRuleEmailsSent} emails.");
+            await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Owner Active Rule Check", ownerActiveRuleEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
         }
 
         private struct DemoDataFlags

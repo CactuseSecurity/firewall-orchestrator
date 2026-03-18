@@ -42,7 +42,7 @@ class RefType(Enum):
 class FwConfigImportRule:
     global_state: GlobalState
     import_state: ImportState
-    normalized_config: FwConfigNormalized | None = None
+    management_state: ManagementState
 
     def __init__(self, global_state: GlobalState, import_state: ImportState, management_state: ManagementState):
         self.global_state = global_state
@@ -54,14 +54,14 @@ class FwConfigImportRule:
         # TODO: why is there a state where this is initialized with normalized_config = None? - see #3154
 
     def update_rulebase_diffs(self, prev_config: FwConfigNormalized | None) -> None:
-        if self.normalized_config is None:
+        if self.management_state.normalized_config is None:
             raise FwoImporterError("cannot update rulebase diffs: normalized_config is None")
         if prev_config is None:
             raise FwoImporterError("cannot update rulebase diffs: prev_config is None")
 
         # set rule_num_numeric values based on rule order changes and moves. needs to be done
         # before any other processing to have the correct rule numbers available for all following steps
-        update_rule_order_diffs(prev_config, self.normalized_config)
+        update_rule_order_diffs(prev_config, self.management_state.normalized_config)
 
         # collect rules with rulebase information for diffing, rule_uid -> (rule, rulebase_uid)
         prev_rules: dict[str, RuleNormalized] = {
@@ -71,10 +71,12 @@ class FwConfigImportRule:
             rule_uid: rb.uid for rb in prev_config.rulebases for rule_uid in rb.rules
         }
         curr_rules: dict[str, RuleNormalized] = {
-            rule_uid: rule for rb in self.normalized_config.rulebases for rule_uid, rule in rb.rules.items()
+            rule_uid: rule
+            for rb in self.management_state.normalized_config.rulebases
+            for rule_uid, rule in rb.rules.items()
         }
         curr_rule_to_rulebase: dict[str, str] = {
-            rule_uid: rb.uid for rb in self.normalized_config.rulebases for rule_uid in rb.rules
+            rule_uid: rb.uid for rb in self.management_state.normalized_config.rulebases for rule_uid in rb.rules
         }
 
         (
@@ -98,7 +100,7 @@ class FwConfigImportRule:
         # add new rulebases
         new_rulebases = [
             rb
-            for rb in self.normalized_config.rulebases
+            for rb in self.management_state.normalized_config.rulebases
             if rb.uid not in {prev_rb.uid for prev_rb in prev_config.rulebases}
         ]
         num_added_rulebases, new_rulebase_ids = self.add_new_rulebases(new_rulebases)
@@ -119,7 +121,7 @@ class FwConfigImportRule:
         removed_rulebase_uids = [
             prev_rb.uid
             for prev_rb in prev_config.rulebases
-            if prev_rb.uid not in {rb.uid for rb in self.normalized_config.rulebases}
+            if prev_rb.uid not in {rb.uid for rb in self.management_state.normalized_config.rulebases}
         ]
         num_deleted_rulebases = self.mark_rulebases_removed(removed_rulebase_uids)
         refs_removed = self.remove_outdated_refs(prev_config)
@@ -183,7 +185,7 @@ class FwConfigImportRule:
         """
         changed_rule_uids: set[str] = set()
 
-        if self.normalized_config is None:
+        if self.management_state.normalized_config is None:
             raise FwoImporterError("cannot get rule diffs: normalized_config is None")
 
         added_rule_uids = set(curr_rules.keys()) - set(prev_rules.keys())
@@ -222,10 +224,10 @@ class FwConfigImportRule:
             )
 
         # check all rulebases in current config
-        if self.normalized_config is None:
+        if self.management_state.normalized_config is None:
             raise FwoImporterError("cannot collect hit information: normalized_config is None")
 
-        for current_rulebase in self.normalized_config.rulebases:
+        for current_rulebase in self.management_state.normalized_config.rulebases:
             previous_rulebase = prev_config.get_rulebase_or_none(current_rulebase.uid)
 
             for rule_uid in current_rulebase.rules:
@@ -328,7 +330,7 @@ class FwConfigImportRule:
         object_type_name: str,
     ) -> T:
         """Generic object lookup from config with fallback to global config."""
-        config = self.management_state.previous_config if previous else self.normalized_config
+        config = self.management_state.previous_config if previous else self.management_state.normalized_config
         global_config = self.import_state.previous_super_config if previous else self.import_state.super_config
         config_type = "previous" if previous else "current"
 
@@ -490,11 +492,14 @@ class FwConfigImportRule:
 
     def get_refs_to_remove(self, prev_config: FwConfigNormalized) -> dict[RefType, list[dict[str, Any]]]:
         all_refs_to_remove: dict[RefType, list[dict[str, Any]]] = {ref_type: [] for ref_type in RefType}
-        if self.normalized_config is None:
+        if self.management_state.normalized_config is None:
             raise FwoImporterError("cannot remove outdated refs: normalized_config is None")
         for prev_rulebase in prev_config.rulebases:
             rules: dict[str, RuleNormalized] = {}
-            rules = next((rb.rules for rb in self.normalized_config.rulebases if rb.uid == prev_rulebase.uid), rules)
+            rules = next(
+                (rb.rules for rb in self.management_state.normalized_config.rulebases if rb.uid == prev_rulebase.uid),
+                rules,
+            )
             for prev_rule in prev_rulebase.rules.values():
                 uid = prev_rule.rule_uid
                 if uid is None:
@@ -661,9 +666,9 @@ class FwConfigImportRule:
 
         """
         all_refs_to_add: dict[RefType, list[dict[str, Any]]] = {ref_type: [] for ref_type in RefType}
-        if self.normalized_config is None:
+        if self.management_state.normalized_config is None:
             raise FwoImporterError("cannot add new refs: normalized_config is None")
-        for rulebase in self.normalized_config.rulebases:
+        for rulebase in self.management_state.normalized_config.rulebases:
             prev_rules: dict[str, RuleNormalized] = {}
             prev_rules = next((rb.rules for rb in prev_config.rulebases if rb.uid == rulebase.uid), prev_rules)
             for rule in rulebase.rules.values():
@@ -842,7 +847,7 @@ class FwConfigImportRule:
         ]
 
     def prepare_new_rule_metadata(self, new_rules: list[RuleNormalized]) -> list[dict[str, Any]]:
-        if self.normalized_config is None:
+        if self.management_state.normalized_config is None:
             raise FwoImporterError("cannot prepare new rule metadata: normalized_config is None")
 
         new_rule_metadata: list[dict[str, Any]] = []

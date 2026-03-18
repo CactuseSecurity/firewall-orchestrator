@@ -87,6 +87,7 @@ class FwConfigImport:
             raise FwoImporterError(f"could not find manager id in DB for UID {manager.manager_uid}")
 
         management_state = ManagementState(import_state, mgm_id)
+        management_state.normalized_config = config
         self._fw_config_import_rule = FwConfigImportRule(global_state, import_state, management_state)
 
         # TODO: clean separation between values relevant for all managers and those only relevant for specific managers - see #3646

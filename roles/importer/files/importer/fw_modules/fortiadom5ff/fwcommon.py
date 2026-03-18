@@ -587,9 +587,7 @@ def to_time_object(d: dict[str, Any]) -> TimeObject:
         time_part, date_part = value
         # format needs to be 1970-01-01T00:00:00
         try:
-            dt = datetime.strptime(date_part + " " + time_part, "%Y/%m/%d %H:%M").replace(
-                tzinfo=timezone.utc
-            )
+            dt = datetime.strptime(date_part + " " + time_part, "%Y/%m/%d %H:%M").replace(tzinfo=timezone.utc)
             return dt.strftime("%Y-%m-%dT%H:%M:%S")
         except ValueError as e:
             FWOLogger.warning(f"Error parsing date/time for {field_name} in time object {d.get('name', '')}: {e}")

@@ -21,7 +21,6 @@ namespace FWO.Test
         private WebApplicationFactory<Middleware.ServerTest.Program>? factory;
         private HttpClient? client;
         private JwtSecurityTokenHandler? tokenHandler;
-        //Console.WriteLine("");
         private TokenTestDataBuilder defaultCredentialsBuilder = null!;
         //private TokenTestDataBuilder adminCredentialsBuilder = null!; // For future admin tests
 

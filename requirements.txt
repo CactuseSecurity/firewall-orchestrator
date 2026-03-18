@@ -1,1 +1,13 @@
+# FWO core dependencies
 ansible>2.13
+
+# Linting
+ruff==0.14.8
+pre-commit>=3.0
+pyright>=1.1.407
+
+# Importer runtime dependencies
+-r roles/importer/files/importer/requirements.txt
+
+# App data import dependencies
+-r scripts/customizing/app_data_import/requirements.txt

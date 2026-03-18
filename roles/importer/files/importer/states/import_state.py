@@ -44,10 +44,10 @@ class ImportState:
 
     # uid 2 id mapper...
 
-    def __init__(self, fwo_api: FwoApi, fwo_api_call: FwoApiCall, mgm_id: int, file: str | None = None):
+    def __init__(self, fwo_api: FwoApi, fwo_api_call: FwoApiCall, mgm_id: int, input_file: str | None = None):
         self.fwo_api = fwo_api
         self.fwo_api_call = fwo_api_call
-        self.input_file = file
+        self.input_file = input_file
 
         self.statistics_controller: ImportStatisticsController = ImportStatisticsController()
         self.start_time: int = int(time.time())

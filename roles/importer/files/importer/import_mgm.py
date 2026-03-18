@@ -83,7 +83,7 @@ def main(
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
 
-    import_state = ImportState(fwo_api=fwo_api, fwo_api_call=fwo_api_call, mgm_id=mgm_id)
+    import_state = ImportState(fwo_api=fwo_api, fwo_api_call=fwo_api_call, mgm_id=mgm_id, input_file=file)
     global_state.fwo_config_controller.update_settings(
         ssl_verification=verify_certificates,
         suppress_certificate_warnings=suppress_certificate_warnings,

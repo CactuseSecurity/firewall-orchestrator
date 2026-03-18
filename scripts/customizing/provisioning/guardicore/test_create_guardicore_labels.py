@@ -122,7 +122,7 @@ def test_post_guardicore_labels_raises_when_response_reports_failed_items(monkey
         def post(self, _endpoint: str, **_kwargs: Any) -> FakeResponse:
             return FakeResponse()
 
-    monkeypatch.setattr(module.requests, "Session", lambda: FakeSession())
+    monkeypatch.setattr(module.requests, "Session", FakeSession)
     config = module.GuardicoreConfig(
         base_url="https://gc.local",
         token=_get_test_token(),

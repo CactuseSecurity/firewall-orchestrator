@@ -294,7 +294,7 @@ def require_guardicore_fields(args: argparse.Namespace) -> None:
 
 
 def normalize_ip(value: str) -> str:
-    return value.split("/")[0]
+    return value.split("/", maxsplit=1)[0]
 
 
 def criteria_from_network(ip: str | None, ip_end: str | None) -> Criteria | None:

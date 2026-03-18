@@ -1,4 +1,5 @@
-﻿@page "/settings/importer"
+@page "/settings/importer"
+@using System.Text.Json
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
@@ -41,6 +42,62 @@
         </div>
     </form>   
     <hr />
+    <h3>@(userConfig.GetText("custom_field_import_Settings"))</h3>
+    <div class="form-group row mt-2 align-items-center">
+        <label class="col-sm-4 col-form-label me-2" for="ownerMappingSourceDropdown">@(userConfig.GetText("source"))</label>
+        <div class="col-sm-5">
+            <Dropdown ElementType="OwnerMappingSourceStm?" ElementToString="GetOwnerMappingSourceText" SelectedElement="@SelectedOwnerMappingSource"
+                      SelectedElementChanged="@(src => { SelectedOwnerMappingSource = src; StateHasChanged(); })" Elements="OwnerMappingSources" Nullable="true" id="ownerMappingSourceDropdown">
+                <ElementTemplate Context="source">
+                    @GetOwnerMappingSourceText(source)
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+    @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField)
+    {
+        <div class="form-group row mb-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5611"))"> @* tooltip todo *@
+            <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_Owner_key"):</label>
+            <div class="col-sm-5">
+                <EditList ElementType="string" Elements="OwnerKeys.ToArray()" ElementsToAdd="OwnerKeysToAdd"
+                          ElementsToDelete="OwnerKeysToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-12 border bg-transparent">@context</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row col-sm-12 mt-1">
+                    <input type="text" class="col-sm-10" @bind="actOwnerKey" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddOwnerKey"
+                            @onclick:preventDefault>
+                        @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5611"))">  @* tooltip todo *@
+            <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_ChangeID_key"):</label>
+            <div class="col-sm-5">
+                <EditList ElementType="string" Elements="ChangeIdKeys.ToArray()" ElementsToAdd="ChangeIdsToAdd"
+                          ElementsToDelete="ChangeIdsToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-12 border bg-transparent">@context</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row col-sm-12 mt-1">
+                    <input type="text" class="col-sm-10" @bind="actChangeIdKey" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddChangeIdKey"
+                            @onclick:preventDefault>
+                        @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                    </button>
+                </div>
+            </div>
+        </div>
+    }   
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
@@ -63,12 +120,62 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
+    private List<OwnerMappingSourceStm?> OwnerMappingSources = [];
+    private OwnerMappingSourceStm? SelectedOwnerMappingSource = null;
+
+    private string actOwnerKey = "";
+    private List<string> OwnerKeys = [];
+    private List<string> OwnerKeysToAdd = [];
+    private List<string> OwnerKeysToDelete = [];
+
+    private string actChangeIdKey = "";
+    private List<string> ChangeIdKeys = [];
+    private List<string> ChangeIdsToAdd = [];
+    private List<string> ChangeIdsToDelete = [];
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
+            OwnerMappingSources = Enum.GetValues(typeof(OwnerMappingSourceStm))
+                .Cast<OwnerMappingSourceStm>()
+                .Where(oms => oms != OwnerMappingSourceStm.Manual)
+                .Cast<OwnerMappingSourceStm?>()
+                .ToList();
+
+            if (Enum.IsDefined(typeof(OwnerMappingSourceStm), userConfig.OwnerSoruceMappingID))
+            {
+                SelectedOwnerMappingSource = (OwnerMappingSourceStm)userConfig.OwnerSoruceMappingID;
+            }
+
+            if (!string.IsNullOrWhiteSpace(userConfig.OwnerSourceCustomFieldOwnerKey))
+            {
+                var json = userConfig.OwnerSourceCustomFieldOwnerKey.Trim();
+
+                if (json.StartsWith("[") && json.EndsWith("]"))
+                {
+                    OwnerKeys = JsonSerializer.Deserialize<string[]>(json)?.ToList() ?? new List<string>();
+                }
+                else
+                {
+                    OwnerKeys = new List<string> { json };
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(userConfig.OwnerSourceCustomFieldChangeIdKey))
+            {
+                var json = userConfig.OwnerSourceCustomFieldChangeIdKey.Trim();
+
+                if (json.StartsWith("[") && json.EndsWith("]"))
+                {
+                    ChangeIdKeys = JsonSerializer.Deserialize<string[]>(json)?.ToList() ?? new List<string>();
+                }
+                else
+                {
+                    ChangeIdKeys = new List<string> { json };
+                }
+            }
         }
         catch (Exception exception)
         {
@@ -82,6 +189,24 @@ else
         {
             if (configData != null)
             {
+
+                if (SelectedOwnerMappingSource == null)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5504"), true);
+                    return;
+                }
+                PrepareOwnerKeys();
+                PrepareChangeIdKeys();
+                if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField && !OwnerKeys.Any())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5505"), true);
+                    return;
+                }
+
+                configData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
+                configData.OwnerSourceCustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
+                configData.OwnerSourceCustomFieldChangeIdKey = JsonSerializer.Serialize(ChangeIdKeys);
+
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
@@ -94,5 +219,56 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    private void AddOwnerKey()
+    {
+        if (actOwnerKey != "")
+        {
+            OwnerKeysToAdd.Add(actOwnerKey);
+            actOwnerKey = "";
+        }
+    }
+
+    private void PrepareOwnerKeys()
+    {
+        foreach (var key in OwnerKeysToDelete)
+        {
+            OwnerKeys.Remove(key);
+        }
+        foreach (var key in OwnerKeysToAdd)
+        {
+            OwnerKeys.Add(key);
+        }
+        OwnerKeysToDelete = [];
+        OwnerKeysToAdd = [];
+    }
+
+    private void AddChangeIdKey()
+    {
+        if (actChangeIdKey != "")
+        {
+            ChangeIdsToAdd.Add(actChangeIdKey);
+            actChangeIdKey = "";
+        }
+    }
+
+    private void PrepareChangeIdKeys()
+    {
+        foreach (var key in ChangeIdsToDelete)
+        {
+            ChangeIdKeys.Remove(key);
+        }
+        foreach (var key in ChangeIdsToAdd)
+        {
+            ChangeIdKeys.Add(key);
+        }
+        ChangeIdsToDelete = [];
+        ChangeIdsToAdd = [];
+    }
+
+    private string GetOwnerMappingSourceText(OwnerMappingSourceStm? source)
+    {
+        return userConfig.GetText(source?.ToString() ?? "");
     }
 }

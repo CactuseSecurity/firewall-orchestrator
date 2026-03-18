@@ -3,6 +3,7 @@
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Services
+@using System.Text.Json;
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -25,23 +26,37 @@
                         </ElementTemplate>
                     </Dropdown>
                 </div>
-	            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="SaveOwnerMappingSourceConfig">
-	                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-	            </button>
             </div>
             @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField)
             {
-                <div class="form-group row mt-2">
-                    <label class="col-sm-4 col-form-label me-2">@(userConfig.GetText("custom_field_key"))</label>
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5611"))"> @* tooltip todo *@
+                    <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_key"):</label>
                     <div class="col-sm-5">
-                        <input type="text" class="form-control form-control-sm" @bind="OwnerMappingCustomFieldkey" />
+                        <EditList ElementType="string" Elements="OwnerKeys.ToArray()" ElementsToAdd="OwnerKeysToAdd"
+                                  ElementsToDelete="OwnerKeysToDelete" StdLayout="false">
+                            <Display>
+                                <div class="row">
+                                    <div class="col-sm-12 border bg-transparent">@context</div>
+                                </div>
+                            </Display>
+                        </EditList>
+                        <div class="row col-sm-12 mt-1">
+                            <input type="text" class="col-sm-10" @bind="actOwnerKey" />
+                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddOwnerKey"
+                                    @onclick:preventDefault>
+                                @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                            </button>
+                        </div>
                     </div>
                 </div>
             }
         }
     </Body>
     <Footer>
-        <div class="btn-group">
+        <div class="btn-group align-items-center">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveOwnerMappingSourceConfig">
+                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+            </button>
             <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     @if (!OwnerMappingCalcInProgress)
@@ -82,9 +97,13 @@
     private ConfigData? ConfigData;
     private List<OwnerMappingSourceStm?> OwnerMappingSources = [];
     private OwnerMappingSourceStm? SelectedOwnerMappingSource = null;
-    private string OwnerMappingCustomFieldkey = "";
     private bool OwnerMappingCalcInProgress = false;
     private UpdateRuleOwnerMapping? updateOwnerRuleMappings;
+
+    private string actOwnerKey = "";
+    private List<string> OwnerKeys = [];
+    private List<string> OwnerKeysToAdd = [];
+    private List<string> OwnerKeysToDelete = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,9 +128,18 @@
                 SelectedOwnerMappingSource = (OwnerMappingSourceStm)userConfig.OwnerSoruceMappingID;
             }
 
-            if (!string.IsNullOrWhiteSpace(userConfig.OwnerSourceCustomFieldKey))
+            if (!string.IsNullOrWhiteSpace(userConfig.OwnerSourceCustomFieldOwnerKey))
             {
-                OwnerMappingCustomFieldkey = userConfig.OwnerSourceCustomFieldKey;
+                var json = userConfig.OwnerSourceCustomFieldOwnerKey.Trim();
+
+                if (json.StartsWith("[") && json.EndsWith("]"))
+                {
+                    OwnerKeys = JsonSerializer.Deserialize<string[]>(json)?.ToList() ?? new List<string>();
+                }
+                else
+                {
+                    OwnerKeys = new List<string> { json };
+                }
             }
         }
         catch (Exception exception)
@@ -152,6 +180,7 @@
     {
         try
         {
+            
             if (ConfigData == null)
             {
                 throw new ArgumentException("Data saved before loaded. This should be impossible.");
@@ -162,15 +191,15 @@
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5504"), true);
                 return;
             }
-
-            if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField && string.IsNullOrWhiteSpace(OwnerMappingCustomFieldkey))
+            PrepareOwnerKeys();
+            if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField && !OwnerKeys.Any())
             {
                 DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5505"), true);
                 return;
             }
 
             ConfigData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
-            ConfigData.OwnerSourceCustomFieldKey = OwnerMappingCustomFieldkey;
+            ConfigData.OwnerSourceCustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
             await globalConfig.WriteToDatabase(ConfigData, apiConnection);
 
             DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
@@ -179,6 +208,29 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
         }
+    }
+
+    private void AddOwnerKey()
+    {
+        if (actOwnerKey != "")
+        {
+            OwnerKeysToAdd.Add(actOwnerKey);
+            actOwnerKey = "";
+        }
+    }
+
+    private void PrepareOwnerKeys()
+    {
+        foreach (var key in OwnerKeysToDelete)
+        {
+            OwnerKeys.Remove(key);
+        }
+        foreach (var key in OwnerKeysToAdd)
+        {
+            OwnerKeys.Add(key);
+        }
+        OwnerKeysToDelete = [];
+        OwnerKeysToAdd = [];
     }
 
     private void Close()

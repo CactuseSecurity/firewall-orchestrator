@@ -4,6 +4,7 @@ import sys
 import traceback
 import warnings
 
+import fwo_globals
 import urllib3
 from common import import_management  # type: ignore[import-not-found]
 from fwo_api import FwoApi
@@ -18,14 +19,17 @@ if IMPORTER_BASE_DIR not in sys.path:
     sys.path.append(IMPORTER_BASE_DIR)
 
 
-def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
+def get_fwo_jwt(
+    import_user: str, import_pwd: str, user_management_api: str
+) -> str | None:
     try:
         return FwoApi.login(import_user, import_pwd, user_management_api)
     except FwoApiLoginFailedError as e:
         FWOLogger.error(e.message)
     except Exception:
         FWOLogger.error(
-            "import_main_loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
+            "import_main_loop - unspecified error during FWO API login - skipping: "
+            + str(traceback.format_exc())
         )
 
 
@@ -53,6 +57,7 @@ def main(
     if suppress_certificate_warnings:
         urllib3.disable_warnings()
 
+    fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
     FWOLogger.info("import-mgm starting ...")
     if IMPORTER_BASE_DIR not in sys.path:
         sys.path.append(IMPORTER_BASE_DIR)
@@ -67,7 +72,9 @@ def main(
         raise
 
     jwt = get_fwo_jwt(
-        importer_user_name, importer_pwd, global_state.fwo_config_controller.fwo_config.fwo_user_mgmt_api_uri
+        importer_user_name,
+        importer_pwd,
+        global_state.fwo_config_controller.fwo_config.fwo_user_mgmt_api_uri,
     )
     # check if login was successful - if not, wait and retry
     if jwt is None:
@@ -78,12 +85,18 @@ def main(
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # suppress ssl warnings only
-    verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
-    suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
+    verify_certificates = (
+        fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    )
+    suppress_certificate_warnings = (
+        fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
+    )
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
 
-    import_state = ImportState(fwo_api=fwo_api, fwo_api_call=fwo_api_call, mgm_id=mgm_id, input_file=file)
+    import_state = ImportState(
+        fwo_api=fwo_api, fwo_api_call=fwo_api_call, mgm_id=mgm_id, input_file=file
+    )
     global_state.fwo_config_controller.update_settings(
         ssl_verification=verify_certificates,
         suppress_certificate_warnings=suppress_certificate_warnings,
@@ -98,7 +111,9 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
+    parser = argparse.ArgumentParser(
+        description="Read configuration from FW management via API calls"
+    )
     parser.add_argument(
         "-m",
         "--mgmId",
@@ -186,7 +201,10 @@ if __name__ == "__main__":
         )
     except Exception:
         FWOLogger.error(
-            "import-mgm - error while importing mgmId=" + str(args.mgmId) + ": " + str(traceback.format_exc())
+            "import-mgm - error while importing mgmId="
+            + str(args.mgmId)
+            + ": "
+            + str(traceback.format_exc())
         )
 
     sys.exit()

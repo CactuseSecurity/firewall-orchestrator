@@ -31,7 +31,6 @@ class ImportState:
 
     mgm_details: ManagementController
 
-    import_version: int
     data_retention_days: int
     days_since_last_full_import: int
     last_full_import_id: int

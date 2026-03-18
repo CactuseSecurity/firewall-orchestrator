@@ -95,7 +95,9 @@ class FwConfigImport:
         import_state.mgm_details.current_mgm_is_super_manager = manager.is_super_manager
         self.import_single_config(global_state, import_state, management_state, manager)
         self.consistency_check_config_against_db(import_state=import_state, management_state=management_state)
-        self.write_latest_config(import_state=import_state, management_state=management_state)
+        self.write_latest_config(
+            global_state=global_state, import_state=import_state, management_state=management_state
+        )
 
     def update_removed_managers(self, mgr_set: list[FwConfigManager], import_state: ImportState):
         """
@@ -276,8 +278,10 @@ class FwConfigImport:
             )
             raise FwoApiFailedDeleteOldImportsError(f"management id: {mgm_id}") from None
 
-    def write_latest_config(self, import_state: ImportState, management_state: ManagementState) -> None:
-        if import_state.import_version > 8:  # noqa: PLR2004
+    def write_latest_config(
+        self, global_state: GlobalState, import_state: ImportState, management_state: ManagementState
+    ) -> None:
+        if global_state.importer_version > 8:  # noqa: PLR2004
             if management_state.normalized_config is None:
                 raise FwoImporterError("cannot write latest config: NormalizedConfig is None")
             # convert FwConfigImport to FwConfigNormalized

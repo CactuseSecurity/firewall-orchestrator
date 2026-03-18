@@ -17,7 +17,6 @@ class ImportState:
     import_id: int = -1
     import_file_name: str = ""
     force_import: bool
-    import_version: int
     data_retention_days: int
     days_since_last_full_import: int
     last_full_import_id: int

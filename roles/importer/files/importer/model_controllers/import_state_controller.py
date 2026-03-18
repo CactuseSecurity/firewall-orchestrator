@@ -77,7 +77,6 @@ class ImportStateController:
         state.fwo_config = fwo_config
         state.mgm_details = ManagementController.from_json(mgm_details)
         state.force_import = force
-        state.import_version = version
         state.is_clearing_import = is_clearing_import
         state.is_initial_import = last_import_date == ""
         state.verify_certs = ssl_verification

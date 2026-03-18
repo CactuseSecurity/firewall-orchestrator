@@ -41,3 +41,4 @@ class ManagementState:
         self.previous_config = None
         self.uid2id_mapper = Uid2IdMapper(import_state=import_state)
         self.group_flats_mapper = GroupFlatsMapper()
+        self.prev_group_flats_mapper = GroupFlatsMapper()

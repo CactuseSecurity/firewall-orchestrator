@@ -44,7 +44,7 @@ def main(
     FWOLogger.debug("debug level set to " + str(debug_level))
 
     global_state = GlobalState(
-        config_filename=file or FWO_CONFIG_FILENAME,
+        config_filename=FWO_CONFIG_FILENAME,
         force=force,
         clear=clear_management_data,
         debug_level=debug_level,

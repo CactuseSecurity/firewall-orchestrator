@@ -20,8 +20,8 @@ class ImportState:
     fwo_api: FwoApi
     fwo_api_call: FwoApiCall
 
-    super_config: FwConfigNormalized | None
-    previous_super_config: FwConfigNormalized | None
+    super_config: FwConfigNormalized | None = None
+    previous_super_config: FwConfigNormalized | None = None
 
     statistics_controller: ImportStatisticsController
 

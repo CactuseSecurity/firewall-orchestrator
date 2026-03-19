@@ -458,8 +458,9 @@ class FwConfigImport:
             self.fix_rulebase_links_in_db(import_state)
         self.fix_rule_to_gw_refs_in_db(
             management_state.previous_config, import_state.previous_super_config, import_state
+        )
         self.fix_ref_tables_in_db(import_state)
-        self.fix_changelog_rule()
+        self.fix_changelog_rule(import_state)
 
     def fix_objects_in_db(
         self, import_state: ImportState, nwobj_uids: list[str], svcobj_uids: list[str], user_uids: list[str]
@@ -732,7 +733,7 @@ class FwConfigImport:
                 "error while trying to fix references to removed objects/rules in ref tables"
             ) from None
 
-    def fix_changelog_rule(self):
+    def fix_changelog_rule(self, import_state: ImportState):
         """
         Fix changelog entries with old_rule_id == new_rule_id (both containing new_rule_id due to a bug in the past)
         """
@@ -740,13 +741,13 @@ class FwConfigImport:
             file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getChangelogRulesCForMgm.graphql"]
         )
         query_variables: dict[str, Any] = {
-            "mgmId": self.import_state.state.mgm_details.current_mgm_id,
+            "mgmId": import_state.mgm_details.current_mgm_id,
         }
         try:
-            result = self.import_state.api_call.call(get_changelog_entries_query, query_variables=query_variables)
+            result = import_state.fwo_api_call.call(get_changelog_entries_query, query_variables=query_variables)
             if "errors" in result:
                 raise FwoImporterError(
-                    f"failed to get changelog entries for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {result['errors']!s}"
+                    f"failed to get changelog entries for mgm id {import_state.mgm_details.current_mgm_id!s}: {result['errors']!s}"
                 )
             changelog_entries = result["data"]["changelog_rule"]
             entries_to_fix = [
@@ -759,22 +760,22 @@ class FwConfigImport:
             if not entries_to_fix:
                 return  # nothing to fix
             FWOLogger.info(
-                f"found {len(entries_to_fix)!s} changelog entries with identical new and old rule id for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}, fixing these entries now"
+                f"found {len(entries_to_fix)!s} changelog entries with identical new and old rule id for mgm id {import_state.mgm_details.current_mgm_id!s}, fixing these entries now"
             )
             # get correct old rule ids
             get_rule_ids_mutation = FwoApi.get_graphql_code(
                 file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulesByUidsForMgm.graphql"]
             )
             get_rule_ids_variables: dict[str, Any] = {
-                "mgmId": self.import_state.state.mgm_details.current_mgm_id,
+                "mgmId": import_state.mgm_details.current_mgm_id,
                 "ruleUids": list({entry["rule"]["rule_uid"] for entry in entries_to_fix}),
             }
-            get_rule_ids_result = self.import_state.api_call.call(
+            get_rule_ids_result = import_state.fwo_api_call.call(
                 get_rule_ids_mutation, query_variables=get_rule_ids_variables, analyze_payload=True
             )
             if "errors" in get_rule_ids_result:
                 raise FwoImporterError(
-                    f"failed to get rule ids for UIDs of changelog entries to fix for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {get_rule_ids_result['errors']!s}"
+                    f"failed to get rule ids for UIDs of changelog entries to fix for mgm id {import_state.mgm_details.current_mgm_id!s}: {get_rule_ids_result['errors']!s}"
                 )
             correct_old_rule_ids: dict[int, int] = {}
             for entry in entries_to_fix:
@@ -795,22 +796,22 @@ class FwConfigImport:
             update_changelog_entries_mutation = FwoApi.get_graphql_code(
                 file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/updateChangelogRuleEntries.graphql"]
             )
-            update_result = self.import_state.api_call.call(
+            update_result = import_state.fwo_api_call.call(
                 update_changelog_entries_mutation, query_variables=changelog_rule_updates, analyze_payload=True
             )
             if "errors" in update_result:
                 raise FwoImporterError(
-                    f"failed to update changelog entries with correct old rule ids for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {update_result['errors']!s}"
+                    f"failed to update changelog entries with correct old rule ids for mgm id {import_state.mgm_details.current_mgm_id!s}: {update_result['errors']!s}"
                 )
             updated_entries = sum(
                 update["affected_rows"] for update in update_result["data"]["update_changelog_rule_many"]
             )
             FWOLogger.info(
-                f"updated {updated_entries!s} changelog entries with correct old rule ids for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}"
+                f"updated {updated_entries!s} changelog entries with correct old rule ids for mgm id {import_state.mgm_details.current_mgm_id!s}"
             )
         except Exception:
             FWOLogger.exception(
-                f"failed to fix changelog entries with identical new and old rule id for mgm id {self.import_state.state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to fix changelog entries with identical new and old rule id for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError(
                 "error while trying to fix changelog entries with identical new and old rule id"

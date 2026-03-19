@@ -98,5 +98,15 @@ namespace FWO.Test
             notification.LastSent = DateTime.Now.AddDays(-1);
             ClassicAssert.IsFalse(NotificationService.IsNotificationDue(owner, null, notification));
         }
+
+        [Test]
+        public void TestNotificationDeadlineIsAlwaysInPast()
+        {
+            ClassicAssert.IsTrue(NotificationDeadline.RequestDate.IsAlwaysInPast());
+            ClassicAssert.IsTrue(NotificationDeadline.DecommissionDate.IsAlwaysInPast());
+            ClassicAssert.IsFalse(NotificationDeadline.None.IsAlwaysInPast());
+            ClassicAssert.IsFalse(NotificationDeadline.RecertDate.IsAlwaysInPast());
+            ClassicAssert.IsFalse(NotificationDeadline.RuleExpiry.IsAlwaysInPast());
+        }
     }
 }

@@ -53,25 +53,22 @@ namespace FWO.Middleware.Server
                 .Replace(Placeholder.APPID, owner.ExtAppId ?? "")
                 .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
 
-            StringBuilder builder = new();
-            builder.Append("<p>")
-                .Append(WebUtility.HtmlEncode(introText).Replace(Environment.NewLine, "<br>").Replace("\n", "<br>"))
-                .Append("</p>")
-                .Append("<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\">")
+            StringBuilder tableBuilder = new();
+            tableBuilder.Append("<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\">")
                 .Append("<thead><tr>");
 
             foreach (string headerText in headerTexts)
             {
-                builder.Append("<th>")
+                tableBuilder.Append("<th>")
                     .Append(WebUtility.HtmlEncode(headerText))
                     .Append("</th>");
             }
 
-            builder.Append("</tr></thead><tbody>");
+            tableBuilder.Append("</tr></thead><tbody>");
 
             foreach (TRule rule in rules)
             {
-                builder.Append("<tr>")
+                tableBuilder.Append("<tr>")
                     .Append(HtmlCell(rule.Uid))
                     .Append(HtmlCell(rule.Name))
                     .Append(HtmlRawCell(ruleDisplayHtml.DisplaySource(rule, FWO.Report.OutputLocation.export, FWO.Basics.ReportType.ResolvedRules)))
@@ -84,15 +81,27 @@ namespace FWO.Middleware.Server
                 {
                     foreach (string? extraCellValue in getExtraCellValues(rule))
                     {
-                        builder.Append(HtmlCell(extraCellValue));
+                        tableBuilder.Append(HtmlCell(extraCellValue));
                     }
                 }
 
-                builder.Append("</tr>");
+                tableBuilder.Append("</tr>");
             }
 
-            builder.Append("</tbody></table>");
-            return builder.ToString();
+            tableBuilder.Append("</tbody></table>");
+            string ruleTable = tableBuilder.ToString();
+
+            StringBuilder bodyBuilder = new();
+            string[] bodyParts = introText.Split(Placeholder.RULE_TABLE, StringSplitOptions.None);
+            for (int index = 0; index < bodyParts.Length; ++index)
+            {
+                AppendEncodedParagraph(bodyBuilder, bodyParts[index]);
+                if (index < bodyParts.Length - 1)
+                {
+                    bodyBuilder.Append(ruleTable);
+                }
+            }
+            return bodyBuilder.ToString();
         }
 
         /// <summary>
@@ -151,6 +160,23 @@ namespace FWO.Middleware.Server
         private static string HtmlRawCell(string? value)
         {
             return $"<td>{value ?? ""}</td>";
+        }
+
+        /// <summary>
+        /// Appends a paragraph with HTML-encoded text if content is present.
+        /// </summary>
+        /// <param name="builder">Target builder.</param>
+        /// <param name="text">Text content to append.</param>
+        private static void AppendEncodedParagraph(StringBuilder builder, string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            builder.Append("<p>")
+                .Append(WebUtility.HtmlEncode(text).Replace(Environment.NewLine, "<br>").Replace("\n", "<br>"))
+                .Append("</p>");
         }
 
         /// <summary>

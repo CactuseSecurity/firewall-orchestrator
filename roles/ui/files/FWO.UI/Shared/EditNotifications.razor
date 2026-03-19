@@ -109,7 +109,7 @@
 
             @if(actNotification.Deadline != NotificationDeadline.None)
             {
-                @if(actNotification.Deadline != NotificationDeadline.RequestDate)
+                @if(!actNotification.Deadline.IsAlwaysInPast())
                 {
                     <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4104"))">
                         <label class="col-form-label col-sm-3">@(userConfig.GetText("notif_before_deadline")):</label>

@@ -28,6 +28,25 @@ namespace FWO.Data
         DecommissionDate = 4
     }
 
+    public static class NotificationDeadlineGroups
+    {
+        /// <summary>
+        /// Returns whether the deadline source is only meaningful as a past event and therefore
+        /// cannot support a "before deadline" notification configuration.
+        /// </summary>
+        /// <param name="notificationDeadline">Deadline type to classify.</param>
+        /// <returns>True for deadlines that are always treated as past events.</returns>
+        public static bool IsAlwaysInPast(this NotificationDeadline notificationDeadline)
+        {
+            return notificationDeadline switch
+            {
+                NotificationDeadline.RequestDate or
+                NotificationDeadline.DecommissionDate => true,
+                _ => false
+            };
+        }
+    }
+
     public class FwoNotification
     {
         [JsonProperty("id"), JsonPropertyName("id")]

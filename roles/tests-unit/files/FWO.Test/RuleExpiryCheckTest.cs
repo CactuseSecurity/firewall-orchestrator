@@ -1,4 +1,5 @@
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Middleware.Server;
 using NUnit.Framework;
@@ -249,15 +250,18 @@ namespace FWO.Test
             entries.Add(ruleEntry);
 
             FwoOwner owner = new() { Name = "OwnerX", ExtAppId = "APPX" };
-            string bodyTemplate = "Hello @@APPNAME@@ @@APPID@@ @@TIME_INTERVAL@@";
+            string bodyTemplate = $"Hello @@APPNAME@@ @@APPID@@ @@TIME_INTERVAL@@ {Placeholder.RULE_TABLE} Bye";
             string intervalText = "2 Weeks";
 
             string body = (string)(closedBuildBodyMethod.Invoke(check, [owner, bodyTemplate, intervalText, entries, null, null]) ?? "");
 
             ClassicAssert.IsTrue(body.Contains("Hello OwnerX APPX 2 Weeks"));
+            ClassicAssert.IsTrue(body.Contains("<table"));
+            ClassicAssert.IsTrue(body.Contains("</table><p> Bye</p>") || body.Contains("</table><p>Bye</p>"));
             ClassicAssert.IsFalse(body.Contains("@@APPNAME@@"));
             ClassicAssert.IsFalse(body.Contains("@@APPID@@"));
             ClassicAssert.IsFalse(body.Contains("@@TIME_INTERVAL@@"));
+            ClassicAssert.IsFalse(body.Contains(Placeholder.RULE_TABLE));
         }
 
         private static FwoNotification CreateRuleTimerNotification(int id, int? ownerId = null)

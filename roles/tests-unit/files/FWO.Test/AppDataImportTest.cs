@@ -969,6 +969,7 @@ namespace FWO.Test
         {
             AppDataImportSaveAppApiConn apiConn = new();
             TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetHasImmediateAppDecommNotificationForImport(import, true);
             SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Inactive"] = 11
@@ -994,6 +995,72 @@ namespace FWO.Test
 
             Assert.That(imported, Is.True);
             Assert.That(apiConn.LastUpdateOwnerDecommDate, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task SaveApp_DoesNotCheckActiveRules_WhenImmediateAppDecommNotificationIsMissing()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetHasImmediateAppDecommNotificationForImport(import, false);
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Inactive"] = 11
+            });
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [11] = false
+            });
+            SetExistingApps(import,
+            [
+                new() { Id = 35, Name = "App-35", ExtAppId = "APP-35", OwnerLifeCycleStateId = 10 }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-35",
+                ExtAppId = "APP-35",
+                ImportSource = "SRC-35",
+                OwnerLifecycleState = "Inactive"
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(import.CheckedOwners, Is.Empty);
+        }
+
+        [Test]
+        public async Task SaveApp_ChecksActiveRules_WhenImmediateAppDecommNotificationExists()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetHasImmediateAppDecommNotificationForImport(import, true);
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Inactive"] = 11
+            });
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [11] = false
+            });
+            SetExistingApps(import,
+            [
+                new() { Id = 36, Name = "App-36", ExtAppId = "APP-36", OwnerLifeCycleStateId = 10 }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-36",
+                ExtAppId = "APP-36",
+                ImportSource = "SRC-36",
+                OwnerLifecycleState = "Inactive"
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(import.CheckedOwners.Select(owner => owner.Id), Is.EqualTo(new[] { 36 }));
         }
 
         [Test]
@@ -1123,6 +1190,7 @@ namespace FWO.Test
         {
             AppDataImportSaveAppApiConn apiConn = new();
             TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetHasImmediateAppDecommNotificationForImport(import, true);
             SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
             {
                 [10] = true,
@@ -1451,6 +1519,13 @@ namespace FWO.Test
             FieldInfo field = typeof(AppDataImport).GetField("connectedLdaps", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("connectedLdaps field not found.");
             field.SetValue(import, ldaps);
+        }
+
+        private static void SetHasImmediateAppDecommNotificationForImport(AppDataImport import, bool value)
+        {
+            FieldInfo field = typeof(AppDataImport).GetField("hasImmediateAppDecommNotificationForImport", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("hasImmediateAppDecommNotificationForImport field not found.");
+            field.SetValue(import, value);
         }
 
         private static List<OwnerResponsible> InvokeBuildOwnerResponsibles(AppDataImport import, ModellingImportAppData incomingApp, string userGroupDn, IEnumerable<string> extraDns)

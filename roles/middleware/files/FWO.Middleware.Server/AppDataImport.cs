@@ -31,6 +31,7 @@ namespace FWO.Middleware.Server
         private Dictionary<string, int> ownerResponsibleTypeIdByName = new(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, int> ownerLifeCycleStateIdsByName = new(StringComparer.OrdinalIgnoreCase);
         private Dictionary<int, bool> ownerLifeCycleStateActiveById = [];
+        private bool hasImmediateAppDecommNotificationForImport;
         private ModellingNamingConvention NamingConvention = new();
         private UserConfig userConfig = new();
         private const string LogMessageTitle = "Import App Data";
@@ -57,6 +58,7 @@ namespace FWO.Middleware.Server
             await InitLdap();
             await InitResponsibleTypes();
             await InitOwnerLifeCycleStates();
+            hasImmediateAppDecommNotificationForImport = await LoadHasImmediateAppDecommNotification();
             List<string> failedImports = [];
             var ownerChangeTracker = new OwnerChangeImportTracker(apiConnection);
 
@@ -265,7 +267,7 @@ namespace FWO.Middleware.Server
                 newActiveState ? ChangelogActionType.REACTIVATE : ChangelogActionType.DEACTIVATE,
                 importSource);
 
-            if (!newActiveState)
+            if (!newActiveState && hasImmediateAppDecommNotificationForImport)
             {
                 await CheckActiveRulesSync(existingApp);
             }
@@ -439,6 +441,18 @@ namespace FWO.Middleware.Server
         protected virtual async Task CheckActiveRulesSync(FwoOwner owner)
         {
             await new OwnerActiveRuleCheck(apiConnection, globalConfig).CheckActiveRulesSync(owner);
+        }
+
+        /// <summary>
+        /// Loads whether an immediate owner decommission notification exists.
+        /// This is intended to be called once per whole import run.
+        /// </summary>
+        protected virtual async Task<bool> LoadHasImmediateAppDecommNotification()
+        {
+            List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(
+                NotificationQueries.getNotifications,
+                new { client = NotificationClient.AppDecomm.ToString() });
+            return notifications.Any(notification => notification.Deadline == NotificationDeadline.None);
         }
 
         private static bool LooksLikeDistinguishedName(string identifier)

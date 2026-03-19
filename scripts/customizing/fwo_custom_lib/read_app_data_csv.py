@@ -176,7 +176,7 @@ def _get_owner_lifecycle_state(
     owner_lifecycle_state: str = (
         line[owner_lifecycle_state_column].strip() if len(line) > owner_lifecycle_state_column else ""
     )
-    return owner_lifecycle_state if owner_lifecycle_state else fallback_owner_lifecycle
+    return owner_lifecycle_state or fallback_owner_lifecycle
 
 
 def _get_criticality(line: list[str], criticality_column: int) -> str:
@@ -604,7 +604,7 @@ def parse_app_line(
     if main_user_dn == "" and context.debug_level > 0:
         context.logger.warning("adding app without main user: %s", app_id)
     criticality_value: str | None = criticality if context.criticality_column >= 0 else None
-    responsibles_value: dict[str, list[str]] | None = responsibles if responsibles else None
+    responsibles_value: dict[str, list[str]] | None = responsibles or None
     app_list.append(
         context.owner_cls(
             app_id_external=app_id,

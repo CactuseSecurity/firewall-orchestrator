@@ -56,7 +56,7 @@
     </div>
     @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField)
     {
-        <div class="form-group row mb-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5611"))"> @* tooltip todo *@
+        <div class="form-group row mb-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5677"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_Owner_key"):</label>
             <div class="col-sm-5">
                 <EditList ElementType="string" Elements="OwnerKeys.ToArray()" ElementsToAdd="OwnerKeysToAdd"
@@ -77,7 +77,7 @@
             </div>
         </div>
 
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5611"))">  @* tooltip todo *@
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5678"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_ChangeID_key"):</label>
             <div class="col-sm-5">
                 <EditList ElementType="string" Elements="ChangeIdKeys.ToArray()" ElementsToAdd="ChangeIdsToAdd"

@@ -6154,7 +6154,14 @@ INSERT INTO txt VALUES ('H5675', 'German',  'Nur Administratoren k&ouml;nnen &Au
 INSERT INTO txt VALUES ('H5675', 'English', 'Only administrators can save changes.');
 INSERT INTO txt VALUES ('H5676', 'German',  'Wenn aktiviert, werden Benutzer aus Eigent&uuml;mergruppen entfernt, die nicht im Import enthalten sind. Andernfalls werden nur neue Benutzer hinzugef&uuml;gt.');
 INSERT INTO txt VALUES ('H5676', 'English', 'If enabled, users not listed in the import are removed from owner groups. Otherwise only new users are added.');
-
+INSERT INTO txt VALUES ('H5677', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für den Owner repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.
+');
+INSERT INTO txt VALUES ('H5677', 'English', 'Enter the keys that represent the Owner field. You can add multiple keys by clicking the + button.
+');
+INSERT INTO txt VALUES ('H5678', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für die &Auml;nderungsId repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.
+');
+INSERT INTO txt VALUES ('H5678', 'English', 'Enter the keys that represent the ChangeId field. You can add multiple keys by clicking the + button.
+');
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
     Die hier gemachten &Auml;nderungen werden in der UI beim n&auml;chsten Login sichtbar, bei Hilfetexten erst nach dem n&auml;chsten Restart.

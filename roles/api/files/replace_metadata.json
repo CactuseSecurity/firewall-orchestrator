@@ -16349,20 +16349,7 @@
                     "computed_fields": [
                       "rule_relevant_for_tenant"
                     ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "rule_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },
@@ -17496,22 +17483,7 @@
                     "computed_fields": [
                       "rule_from_relevant_for_tenant"
                     ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "rule": {
-                            "mgm_id": {
-                              "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule_from_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },
@@ -19320,22 +19292,7 @@
                     "computed_fields": [
                       "rule_to_relevant_for_tenant"
                     ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "rule": {
-                            "mgm_id": {
-                              "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule_to_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },

@@ -128,9 +128,9 @@
                 SelectedOwnerMappingSource = (OwnerMappingSourceStm)userConfig.OwnerSoruceMappingID;
             }
 
-            if (!string.IsNullOrWhiteSpace(userConfig.OwnerSourceCustomFieldOwnerKey))
+            if (!string.IsNullOrWhiteSpace(userConfig.CustomFieldOwnerKey))
             {
-                var json = userConfig.OwnerSourceCustomFieldOwnerKey.Trim();
+                var json = userConfig.CustomFieldOwnerKey.Trim();
 
                 if (json.StartsWith("[") && json.EndsWith("]"))
                 {
@@ -199,7 +199,7 @@
             }
 
             ConfigData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
-            ConfigData.OwnerSourceCustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
+            ConfigData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
             await globalConfig.WriteToDatabase(ConfigData, apiConnection);
 
             DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);

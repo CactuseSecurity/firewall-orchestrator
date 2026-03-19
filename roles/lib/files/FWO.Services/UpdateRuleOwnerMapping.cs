@@ -250,7 +250,7 @@ namespace FWO.Services
 
                 try
                 {
-                    var customFieldValue = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, globalConfig.OwnerSourceCustomFieldOwnerKey);
+                    var customFieldValue = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, globalConfig.CustomFieldOwnerKey);
 
                     if (!string.IsNullOrWhiteSpace(customFieldValue) && ownerNameToIdMap.TryGetValue(customFieldValue, out var ownerId))
                     {
@@ -345,8 +345,8 @@ namespace FWO.Services
             var oldFields = DeserializeCustomFields(ruleChange.OldRule?.CustomFields);
             var newFields = DeserializeCustomFields(ruleChange.NewRule?.CustomFields);
 
-            oldFields.TryGetValue(globalConfig.OwnerSourceCustomFieldOwnerKey, out var oldValue);
-            newFields.TryGetValue(globalConfig.OwnerSourceCustomFieldOwnerKey, out var newValue);
+            oldFields.TryGetValue(globalConfig.CustomFieldOwnerKey, out var oldValue);
+            newFields.TryGetValue(globalConfig.CustomFieldOwnerKey, out var newValue);
 
             return !string.Equals(oldValue, newValue, StringComparison.Ordinal);
         }

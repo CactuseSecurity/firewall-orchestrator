@@ -149,9 +149,9 @@ else
                 SelectedOwnerMappingSource = (OwnerMappingSourceStm)userConfig.OwnerSoruceMappingID;
             }
 
-            if (!string.IsNullOrWhiteSpace(userConfig.OwnerSourceCustomFieldOwnerKey))
+            if (!string.IsNullOrWhiteSpace(userConfig.CustomFieldOwnerKey))
             {
-                var json = userConfig.OwnerSourceCustomFieldOwnerKey.Trim();
+                var json = userConfig.CustomFieldOwnerKey.Trim();
 
                 if (json.StartsWith("[") && json.EndsWith("]"))
                 {
@@ -204,7 +204,7 @@ else
                 }
 
                 configData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
-                configData.OwnerSourceCustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
+                configData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
                 configData.CustomFieldChangeIdKey = JsonSerializer.Serialize(ChangeIdKeys);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);

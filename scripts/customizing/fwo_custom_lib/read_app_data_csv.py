@@ -29,9 +29,11 @@ class OwnerLineParserContext:
     app_owner_tiso_column: int
     app_owner_kwita_column: int
     owner_lifecycle_state_column: int
+    fallback_owner_lifecycle: str
     criticality_column: int
     criticality_recert_period_mapping: dict[str, int] | None
     responsibles_columns: dict[str, tuple[int, ...]] | None
+    level_two_responsible_pattern: str | None
     included_owners_column_no: int
     include_values: list[str] | None
     ldap_path: str
@@ -55,9 +57,11 @@ class ExtractAppDataCsvOptions:
     composite_id_fields: tuple[str, ...] | None = None
     composite_id_fields_delimiter_str: str = ""
     composite_id_fields_max_length: list[int] | None = None
+    fallback_owner_lifecycle: str = "unknown"
     criticality_column_header: str | None = None
     criticality_recert_period_mapping: dict[str, int] | None = None
     responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None
+    level_two_responsible_pattern: str | None = None
 
 
 def _resolve_extract_options(
@@ -150,13 +154,15 @@ def _get_recert_period_days(line: list[str], kwita_column: int) -> int:
     return 365 if kwita == "" or kwita.lower() == "false" else 182
 
 
-def _get_owner_lifecycle_state(line: list[str], owner_lifecycle_state_column: int) -> str:
+def _get_owner_lifecycle_state(
+    line: list[str], owner_lifecycle_state_column: int, fallback_owner_lifecycle: str
+) -> str:
     if owner_lifecycle_state_column < 0:
-        return "unknown"
+        return fallback_owner_lifecycle
     owner_lifecycle_state: str = (
         line[owner_lifecycle_state_column].strip() if len(line) > owner_lifecycle_state_column else ""
     )
-    return owner_lifecycle_state if owner_lifecycle_state else "unknown"
+    return owner_lifecycle_state or fallback_owner_lifecycle
 
 
 def _get_criticality(line: list[str], criticality_column: int) -> str:
@@ -176,6 +182,40 @@ def _get_responsibles(line: list[str], responsibles_columns: dict[str, tuple[int
             line[column_index].strip() if len(line) > column_index else "" for column_index in column_indexes
         ]
     return responsibles
+
+
+def _split_app_id_external(app_id_external: str) -> tuple[str, str]:
+    if "-" in app_id_external:
+        app_prefix, app_id = app_id_external.split("-", 1)
+        return app_prefix, app_id
+    if "_" in app_id_external:
+        app_prefix, app_id = app_id_external.split("_", 1)
+        return app_prefix, app_id
+    prefix_end: int = 0
+    while prefix_end < len(app_id_external) and app_id_external[prefix_end].isalpha():
+        prefix_end += 1
+    if 0 < prefix_end < len(app_id_external):
+        app_prefix = app_id_external[:prefix_end]
+        app_id = app_id_external[prefix_end:].lstrip("-_")
+        if app_id != "":
+            return app_prefix, app_id
+    return app_id_external, app_id_external
+
+
+def _build_level_two_responsible(app_id_external: str, level_two_responsible_pattern: str) -> str:
+    app_prefix, app_id = _split_app_id_external(app_id_external)
+    return level_two_responsible_pattern.replace("@@AppPrefix@@", app_prefix).replace("@@AppId@@", app_id)
+
+
+def _build_default_responsibles(
+    app_id_external: str,
+    main_user_dn: str,
+    level_two_responsible_pattern: str,
+) -> dict[str, list[str]]:
+    return {
+        "1": [main_user_dn] if main_user_dn else [],
+        "2": [_build_level_two_responsible(app_id_external, level_two_responsible_pattern)],
+    }
 
 
 def _build_responsibles_dns(
@@ -422,13 +462,21 @@ def parse_app_line(
     app_name: str = line[context.app_name_column]
     app_main_user: str = line[context.app_owner_tiso_column]
     main_user_dn: str = build_dn(app_main_user, context.ldap_path, context.logger)
-    owner_lifecycle_state: str = _get_owner_lifecycle_state(line, context.owner_lifecycle_state_column)
-    criticality: str = _get_criticality(line, context.criticality_column)
-    responsibles: dict[str, list[str]] = _build_responsibles_dns(
-        _get_responsibles(line, context.responsibles_columns),
-        context.ldap_path,
-        context.logger,
+    owner_lifecycle_state: str = _get_owner_lifecycle_state(
+        line, context.owner_lifecycle_state_column, context.fallback_owner_lifecycle
     )
+    criticality: str = _get_criticality(line, context.criticality_column)
+    responsibles: dict[str, list[str]]
+    if context.responsibles_columns is not None:
+        responsibles = _build_responsibles_dns(
+            _get_responsibles(line, context.responsibles_columns),
+            context.ldap_path,
+            context.logger,
+        )
+    elif context.level_two_responsible_pattern is not None:
+        responsibles = _build_default_responsibles(app_id, main_user_dn, context.level_two_responsible_pattern)
+    else:
+        responsibles = {}
     recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
     mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
         criticality, context.criticality_recert_period_mapping
@@ -438,7 +486,7 @@ def parse_app_line(
     if main_user_dn == "" and context.debug_level > 0:
         context.logger.warning("adding app without main user: %s", app_id)
     criticality_value: str | None = criticality if context.criticality_column >= 0 else None
-    responsibles_value: dict[str, list[str]] | None = responsibles if context.responsibles_columns is not None else None
+    responsibles_value: dict[str, list[str]] | None = responsibles or None
     app_list.append(
         context.owner_cls(
             app_id_external=app_id,
@@ -529,9 +577,11 @@ def extract_app_data_from_csv(
         app_owner_tiso_column=app_owner_tiso_column,
         app_owner_kwita_column=app_owner_kwita_column,
         owner_lifecycle_state_column=owner_lifecycle_state_column,
+        fallback_owner_lifecycle=resolved_options.fallback_owner_lifecycle,
         criticality_column=criticality_column,
         criticality_recert_period_mapping=resolved_options.criticality_recert_period_mapping,
         responsibles_columns=responsibles_columns,
+        level_two_responsible_pattern=resolved_options.level_two_responsible_pattern,
         included_owners_column_no=included_owners_column_no,
         include_values=resolved_options.include_values,
         ldap_path=ldap_path,

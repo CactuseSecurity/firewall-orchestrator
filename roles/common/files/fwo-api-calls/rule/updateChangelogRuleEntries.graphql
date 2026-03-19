@@ -1,0 +1,5 @@
+mutation updateChangelogRuleEntries($updates: [changelog_rule_updates!]!) {
+  update_changelog_rule_many(updates: $updates) {
+    affected_rows
+  }
+}

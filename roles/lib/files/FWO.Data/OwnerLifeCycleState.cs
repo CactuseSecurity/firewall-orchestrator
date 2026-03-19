@@ -16,6 +16,9 @@ namespace FWO.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        [JsonProperty("active_state"), JsonPropertyName("active_state")]
+        public bool ActiveState { get; set; } = true;
+
         public OwnerLifeCycleState()
         { }
 
@@ -23,6 +26,7 @@ namespace FWO.Data
         {
             Id = ownerLifeCycleState.Id;
             Name = ownerLifeCycleState.Name;
+            ActiveState = ownerLifeCycleState.ActiveState;
         }
 
 
@@ -31,6 +35,11 @@ namespace FWO.Data
             bool shortened = false;
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
             return shortened;
+        }
+
+        public string Display(string inactiveText)
+        {
+            return ActiveState ? Name : $"{Name} ({inactiveText})";
         }
     }
 }

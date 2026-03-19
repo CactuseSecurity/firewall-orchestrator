@@ -46,6 +46,18 @@ namespace FWO.Test
             Layout = NotificationLayout.HtmlAsAttachment
         };
 
+        readonly FwoNotification NotifRuleTimer = new()
+        {
+            Id = 3,
+            RecipientTo = EmailRecipientOption.OtherAddresses,
+            EmailAddressTo = "a@b.de",
+            EmailSubject = "subject3",
+            Deadline = NotificationDeadline.RuleExpiry,
+            RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+            RepeatOffsetAfterDeadline = 7,
+            RepetitionsAfterDeadline = 2
+        };
+
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
@@ -53,7 +65,11 @@ namespace FWO.Test
             if (responseType == typeof(List<FwoNotification>))
             {
                 string? Vars = variables?.ToString();
-                List<FwoNotification>? notifs = Vars != null && Vars.Contains($"{NotificationClient.InterfaceRequest}") ? [NotifReq1, NotifReq2] : [NotifRec];
+                List<FwoNotification>? notifs = Vars != null && Vars.Contains($"{NotificationClient.InterfaceRequest}")
+                    ? [NotifReq1, NotifReq2]
+                    : Vars != null && Vars.Contains($"{NotificationClient.RuleTimer}")
+                        ? [NotifRuleTimer]
+                        : [NotifRec];
                 GraphQLResponse<dynamic> response = new() { Data = notifs };
                 return response.Data;
             }

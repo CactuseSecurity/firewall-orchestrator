@@ -366,6 +366,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modUnansweredReqEmailBody"), JsonPropertyName("modUnansweredReqEmailBody")]
         public string ModUnansweredReqEmailBody { get; set; } = "";
 
+        [JsonProperty("ruleExpiryEmailBody"), JsonPropertyName("ruleExpiryEmailBody")]
+        public string RuleExpiryEmailBody { get; set; } = "";
+
+        [JsonProperty("ruleExpiryInitiatorKeys"), JsonPropertyName("ruleExpiryInitiatorKeys")]
+        public string RuleExpiryInitiatorKeys { get; set; } = "";
+
         [JsonProperty("modReqTicketTitle"), JsonPropertyName("modReqTicketTitle")]
         public string ModReqTicketTitle { get; set; } = "";
 

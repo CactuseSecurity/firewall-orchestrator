@@ -49,6 +49,7 @@ namespace FWO.Middleware.Server.Jobs
                 }
                 await CheckRecerts();
                 await CheckUnansweredInterfaceRequests();
+                await CheckRuleExpiry();
             }
             catch (Exception exc)
             {
@@ -71,6 +72,14 @@ namespace FWO.Middleware.Server.Jobs
                 Log.WriteDebug(LogMessageTitle, $"Recert Check: Sent {emailsSent} emails.");
                 await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }
+        }
+
+        private async Task CheckRuleExpiry()
+        {
+            RuleExpiryCheck ruleExpiryCheck = new(apiConnection, globalConfig);
+            int ruleExpiryEmailsSent = await ruleExpiryCheck.CheckRuleExpiry();
+            Log.WriteDebug(LogMessageTitle, $"Rule Expiry Check: Sent {ruleExpiryEmailsSent} emails.");
+            await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Rule Expiry Check", ruleExpiryEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
         }
 
         private struct DemoDataFlags
@@ -187,7 +196,7 @@ namespace FWO.Middleware.Server.Jobs
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
                     if (owner != null)
                     {
-                        emailsSent += await notificationService.SendNotification(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
+                        emailsSent += await notificationService.SendNotificationIfDue(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
                     }
                 }
             }

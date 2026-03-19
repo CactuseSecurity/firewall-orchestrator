@@ -415,7 +415,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void IsVisibleToOwner_ReturnsTrue_ForPermittedOwner()
+        public void IsVisibleToOwner_ReturnsTrue_ForPermittedOwnerWrapper()
         {
             ConnectionTable table = new();
             SetComponentParameter(table, nameof(ConnectionTable.Application), new FwoOwner { Id = 3 });
@@ -424,7 +424,7 @@ namespace FWO.Test
             {
                 InterfacePermission = InterfacePermissions.Restricted.ToString(),
                 App = new FwoOwner { Id = 2 },
-                PermittedOwners = [new FwoOwner { Id = 3 }]
+                PermittedOwnerWrappers = [new PermittedOwnerWrapper { Owner = new FwoOwner { Id = 3 } }]
             };
 
             MethodInfo isVisibleToOwner = GetInstanceMethod("IsVisibleToOwner", typeof(ModellingConnection));

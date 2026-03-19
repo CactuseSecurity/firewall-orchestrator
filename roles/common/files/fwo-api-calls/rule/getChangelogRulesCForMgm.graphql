@@ -1,0 +1,12 @@
+query getChangelogRulesCForMgm($mgmId: Int!) {
+  changelog_rule(
+    where: { mgm_id: { _eq: $mgmId }, change_action: { _eq: "C" } }
+  ) {
+    log_rule_id
+    new_rule_id
+    old_rule_id
+    rule {
+      rule_uid
+    }
+  }
+}

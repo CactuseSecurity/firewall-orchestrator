@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
-from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
+from scripts.customizing.fwo_custom_lib.git_helpers import parse_git_depth_arg, update_git_repo
 
 DEFAULT_CONFIG_FILENAME: str = "/usr/local/fworch/etc/secrets/customizingConfig.json"
 IPAM_GIT_REPO_TARGET_DIR: str = "/usr/local/fworch/etc/ipamRepo"
@@ -92,6 +92,12 @@ if __name__ == "__main__":
         default="150",
         help="The maximal number of returned results per HTTPS Connection; default=50",
     )
+    parser.add_argument(
+        "--depth",
+        type=parse_git_depth_arg,
+        default=None,
+        help="optional git clone/pull depth; if omitted, no depth is passed to git",
+    )
 
     args: argparse.Namespace = parser.parse_args()
     subnets: list[Any] = []
@@ -109,7 +115,7 @@ if __name__ == "__main__":
     repo_url: str = (
         "https://" + ipam_git_user + ":" + urllib.parse.quote(ipam_git_password, safe="") + "@" + ipam_git_repo
     )
-    repo_updated: bool = update_git_repo(repo_url, IPAM_GIT_REPO_TARGET_DIR, logger)
+    repo_updated: bool = update_git_repo(repo_url, IPAM_GIT_REPO_TARGET_DIR, logger, depth=args.depth)
     if not repo_updated:
         sys.exit(1)
 

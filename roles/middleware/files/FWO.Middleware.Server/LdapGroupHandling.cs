@@ -328,9 +328,10 @@ namespace FWO.Middleware.Server
         {
             List<string> allMembers = [];
 
-            if (string.IsNullOrEmpty(GroupSearchPath) ||
-                !groupDn.EndsWith(GroupSearchPath, StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(groupDn))
+            {
                 return allMembers;
+            }
 
             try
             {
@@ -353,6 +354,10 @@ namespace FWO.Middleware.Server
 
                 string[] groupMemberDn = entry.Get(memberKey).StringValueArray;
                 allMembers.AddRange(groupMemberDn.Where(m => !string.IsNullOrWhiteSpace(m)));
+            }
+            catch (LdapException ex) when (ex.ResultCode == LdapException.NoSuchObject)
+            {
+                Log.WriteDebug("GetGroupMembers", $"Group not found: {groupDn}");
             }
             catch (Exception ex)
             {

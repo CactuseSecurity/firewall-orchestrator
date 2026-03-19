@@ -107,16 +107,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ManageLifeCycles_SetsManageLifeCyclesMode()
-        {
-            SettingsOwner component = new();
-
-            GetPrivateMethod("ManageLifeCycles").Invoke(component, null);
-
-            Assert.That(GetPrivateField<bool>(component, "ManageLifeCyclesMode"), Is.True);
-        }
-
-        [Test]
         public void RequestDeleteOwner_SetsCurrentOwnerAndDeleteMode()
         {
             SettingsOwner component = new();

@@ -391,15 +391,17 @@ namespace FWO.Services
             {
                 switch (change.ChangeAction)
                 {
-                    case 'I':
+                    case ChangelogActionType.INSERT:
+                    case ChangelogActionType.REACTIVATE:
                         ownersToAdd.Add(change.NewOwner);
                         break;
 
-                    case 'D':
+                    case ChangelogActionType.DELETE:
+                    case ChangelogActionType.DEACTIVATE:
                         ownersToRemove.Add(change.OldOwner);
                         break;
 
-                    case 'C':
+                    case ChangelogActionType.CHANGE:
                         ownersToUpdate.Add(change.NewOwner);
                         break;
                 }

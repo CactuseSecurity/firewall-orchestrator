@@ -34,7 +34,7 @@ we are using cycloneDx
     pytest>=7.0
 
 ### Linting
-    ruff>=0.14.8
+    ruff==0.15.0
     pre-commit>=3.0
     pyright>=1.1.407
 

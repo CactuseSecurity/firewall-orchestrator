@@ -243,10 +243,10 @@ def write_native_config_to_file(import_state: ImportState, config_native: dict[s
 
 def init_service_provider() -> ServiceProvider:
     service_provider = ServiceProvider()
-    service_provider.register(Services.FWO_CONFIG, lambda: fwo_config.read_config(), Lifetime.SINGLETON)
-    service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-    service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-    service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
+    service_provider.register(Services.FWO_CONFIG, fwo_config.read_config, Lifetime.SINGLETON)
+    service_provider.register(Services.GROUP_FLATS_MAPPER, GroupFlatsMapper, Lifetime.IMPORT)
+    service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, GroupFlatsMapper, Lifetime.IMPORT)
+    service_provider.register(Services.UID2ID_MAPPER, Uid2IdMapper, Lifetime.IMPORT)
     return service_provider
 
 

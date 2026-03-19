@@ -1,0 +1,6 @@
+query getRulesByUidsForMgm($mgmId: Int!, $ruleUids: [String!]) {
+  rule(where: { mgm_id: { _eq: $mgmId }, rule_uid: { _in: $ruleUids } }) {
+    rule_id
+    rule_uid
+  }
+}

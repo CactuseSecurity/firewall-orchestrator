@@ -7,7 +7,11 @@ from typing import Any, TypeVar
 
 import fwo_const
 from fwo_api import FwoApi
-from fwo_exceptions import FwoApiWriteError, FwoImporterError, FwoImporterErrorInconsistenciesError
+from fwo_exceptions import (
+    FwoApiWriteError,
+    FwoImporterError,
+    FwoImporterErrorInconsistenciesError,
+)
 from fwo_log import ChangeLogger, FWOLogger
 from model_controllers.fwconfig_import_ruleorder import update_rule_order_diffs
 from models.fwconfig_normalized import FwConfigNormalized
@@ -554,7 +558,10 @@ class FwConfigImportRule:
             raise FwoApiWriteError(f"failed to remove outdated rule references: {traceback.format_exc()!s}")
 
     def get_ref_add_statement(
-        self, ref_type: RefType, rule: RuleNormalized, ref_uid: tuple[str, str | None] | str
+        self,
+        ref_type: RefType,
+        rule: RuleNormalized,
+        ref_uid: tuple[str, str | None] | str,
     ) -> dict[str, Any]:
         if rule.rule_uid is None:
             raise FwoImporterError(
@@ -670,7 +677,10 @@ class FwConfigImportRule:
             raise FwoImporterError("cannot add new refs: normalized_config is None")
         for rulebase in self.management_state.normalized_config.rulebases:
             prev_rules: dict[str, RuleNormalized] = {}
-            prev_rules = next((rb.rules for rb in prev_config.rulebases if rb.uid == rulebase.uid), prev_rules)
+            prev_rules = next(
+                (rb.rules for rb in prev_config.rulebases if rb.uid == rulebase.uid),
+                prev_rules,
+            )
             for rule in rulebase.rules.values():
                 uid = rule.rule_uid
                 if uid is None:
@@ -940,14 +950,16 @@ class FwConfigImportRule:
     # TODO: find a better place for these kind of functions that simply return from config data
     @staticmethod
     def get_rule_to_gw_refs(
-        rulebases: list[Rulebase], global_rulebases: list[Rulebase] | None, gateways: list[Gateway]
+        rulebases: list[Rulebase],
+        global_rulebases: list[Rulebase] | None,
+        gateways: list[Gateway],
     ) -> set[tuple[str, str]]:
         """
         Get all rule_enforced_on_gateway (rule to gateway) refs based on the given rulebases and gateways.
         """
         # first, gather all rule to gateway references from install-on fields
         # need to check global rulebases for rules installed on this mgms gws as well
-        rulebases_to_check = rulebases + (global_rulebases if global_rulebases else [])
+        rulebases_to_check = rulebases + (global_rulebases or [])
         rule_to_gw_refs = {
             (rule_uid, gw_installon)
             for rulebase in rulebases_to_check
@@ -1148,17 +1160,18 @@ class FwConfigImportRule:
         removed_rules_ids = [
             self.uid2id_mapper.get_rule_id(rule.rule_uid) for rule in removed_rules if rule.rule_uid is not None
         ]
-        changed_rules_ids: list[tuple[int, int]] = []
+        changed_rules_ids: list[tuple[int, int]] = []  # (new_rule_id, old_rule_id)
         for old_rule, new_rule in changed_rules:
             if (
                 new_rule.rule_uid is not None
                 and old_rule.rule_uid is not None
                 and self.is_change_security_relevant(old_rule, new_rule)
             ):
+                rule_uid = new_rule.rule_uid
                 changed_rules_ids.append(
                     (
-                        self.uid2id_mapper.get_rule_id(new_rule.rule_uid),
-                        self.uid2id_mapper.get_rule_id(old_rule.rule_uid),
+                        self.uid2id_mapper.get_rule_id(rule_uid),
+                        self.uid2id_mapper.get_rule_id(rule_uid, before_update=True),
                     )
                 )
 
@@ -1187,7 +1200,10 @@ class FwConfigImportRule:
                 )
 
     def prepare_changelog_rules_insert_objects(
-        self, added_rules_ids: list[int], removed_rules_ids: list[int], changed_rules_ids: list[tuple[int, int]]
+        self,
+        added_rules_ids: list[int],
+        removed_rules_ids: list[int],
+        changed_rules_ids: list[tuple[int, int]],
     ) -> list[dict[str, Any]]:
         """
         Creates two lists of insert arguments for the changelog_rules db table, one for new rules, one for deleted.

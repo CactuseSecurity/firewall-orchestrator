@@ -234,6 +234,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("dailyCheckStartAt"), JsonPropertyName("dailyCheckStartAt")]
         public DateTime DailyCheckStartAt { get; set; } = DateTime.Now;
 
+        [JsonProperty("dailyCheckModules"), JsonPropertyName("dailyCheckModules")]
+        public string DailyCheckModules { get; set; } = "";
+
         [JsonProperty("maxImportDuration"), JsonPropertyName("maxImportDuration")]
         public int MaxImportDuration { get; set; } = 4;
 

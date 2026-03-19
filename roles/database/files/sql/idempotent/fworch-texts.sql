@@ -289,6 +289,20 @@ INSERT INTO txt VALUES ('NameField',            'German',   'Namensfeld');
 INSERT INTO txt VALUES ('NameField',            'English',  'Name field');
 INSERT INTO txt VALUES ('Manual',               'German',   'Manuell');
 INSERT INTO txt VALUES ('Manual',               'English',  'Manual');
+INSERT INTO txt VALUES ('DemoData',             'German', 	'Demo-Daten');
+INSERT INTO txt VALUES ('DemoData',             'English', 	'Demo data');
+INSERT INTO txt VALUES ('Imports',              'German', 	'Importe');
+INSERT INTO txt VALUES ('Imports',              'English', 	'Imports');
+INSERT INTO txt VALUES ('RecertRefresh',        'German', 	'Zertifizierungs-Aktualisierung');
+INSERT INTO txt VALUES ('RecertRefresh',        'English', 	'Recertification refresh');
+INSERT INTO txt VALUES ('RecertCheck',          'German', 	'Zertifizierungs-Check');
+INSERT INTO txt VALUES ('RecertCheck',          'English', 	'Recertification check');
+INSERT INTO txt VALUES ('UnansweredInterfaceRequests','German','Unbeantwortete Interface-Anfragen');
+INSERT INTO txt VALUES ('UnansweredInterfaceRequests','English','Unanswered interface requests');
+INSERT INTO txt VALUES ('RuleExpiryCheck',      'German', 	'Ablaufdatum-Check');
+INSERT INTO txt VALUES ('RuleExpiryCheck',      'English', 	'Rule expiry check');
+INSERT INTO txt VALUES ('OwnerActiveRules',     'German', 	'Aktive Regeln von deaktivierten Eigent&uuml;mern');
+INSERT INTO txt VALUES ('OwnerActiveRules',     'English', 	'Active rules of decommissioned owners');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -2256,6 +2270,8 @@ INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungsze
 INSERT INTO txt VALUES ('dataRetentionTime',    'English', 	'Data retention time (in days)');
 INSERT INTO txt VALUES ('dailyCheckStartAt',    'German', 	'Startzeit t&auml;glicher Check');
 INSERT INTO txt VALUES ('dailyCheckStartAt',    'English', 	'Daily check start at');
+INSERT INTO txt VALUES ('dailyCheckModules',    'German', 	'Module t&auml;glicher Check');
+INSERT INTO txt VALUES ('dailyCheckModules',    'English', 	'Daily check modules');
 INSERT INTO txt VALUES ('maxImportDuration',    'German', 	'Max erlaubte Importdauer (in Stunden)');
 INSERT INTO txt VALUES ('maxImportDuration',    'English', 	'Max allowed import duration (in hours)');
 INSERT INTO txt VALUES ('maxImportInterval',    'German', 	'Max erlaubtes Importintervall (in Stunden)');
@@ -5422,6 +5438,8 @@ INSERT INTO txt VALUES ('H5423', 'English', 'Message view time (in seconds): def
 ');
 INSERT INTO txt VALUES ('H5424', 'German',  'Startzeit t&auml;glicher Check: legt die Zeit fest, wann der t&auml;gliche Check durchgef&uuml;hrt werden soll.');
 INSERT INTO txt VALUES ('H5424', 'English', 'Daily check start at: defines the time when the daily check should happen.');
+INSERT INTO txt VALUES ('H5424a', 'German',  'Module t&auml;glicher Check: legt fest, welche Teile des t&auml;glichen Checks ausgef&uuml;hrt werden sollen.');
+INSERT INTO txt VALUES ('H5424a', 'English', 'Daily check modules: defines which parts of the daily check should be executed.');
 INSERT INTO txt VALUES ('H5425', 'German',  'Hostname der UI: URL der UI, wird z. B. f&uuml;r Links in Email-Benachrichtigungen ben&ouml;tigt.');
 INSERT INTO txt VALUES ('H5425', 'English', 'UI Hostname: URL of the UI, needed e.g. for links in email notifications.');
 INSERT INTO txt VALUES ('H5426', 'German',  'Autodiscover-Intervall (in Stunden): legt das Intervall fest, in dem die Autodiscovery durchgef&uuml;hrt werden soll.');

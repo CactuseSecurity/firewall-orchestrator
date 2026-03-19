@@ -317,7 +317,9 @@ class FwConfigBuilder:
             )
         ]
 
-        for previous, current in zip(config.rulebases, config.rulebases[1:], strict=False):
+        for index in range(len(config.rulebases) - 1):
+            previous = config.rulebases[index]
+            current = config.rulebases[index + 1]
             last_rule_uid = list(previous.rules.keys())[-1]
             links.append(
                 RulebaseLinkUidBased(

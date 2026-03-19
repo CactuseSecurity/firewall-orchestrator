@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 import re
 import socket
 import sys
@@ -22,10 +23,11 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     read_custom_config,
     read_custom_config_with_default,
 )
-from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
+from scripts.customizing.fwo_custom_lib.git_helpers import parse_git_depth_arg, update_git_repo
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
+    parse_csv_separator_arg,
 )
 from scripts.customizing.iiq_request_missing_roles.iiq_client import IIQClient
 
@@ -75,6 +77,7 @@ def get_owners_from_csv_files(
     debug_level: int,
     owner_header_patterns: dict[str, str] | None = None,
     ip_header_patterns: dict[str, str] | None = None,
+    csv_separator: str = ";",
 ) -> tuple[dict[str, Owner], dict[str, str]]:
     app_list: list[Owner] = []
     re_owner_file_pattern: re.Pattern[str] = re.compile(csv_owner_file_pattern)
@@ -90,6 +93,7 @@ def get_owners_from_csv_files(
                 debug_level,
                 base_dir=repo_target_dir,
                 column_patterns=owner_header_patterns,
+                csv_separator=csv_separator,
             )
 
     owner_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)
@@ -106,6 +110,7 @@ def get_owners_from_csv_files(
                 debug_level,
                 base_dir=repo_target_dir,
                 column_patterns=ip_header_patterns,
+                csv_separator=csv_separator,
             )
 
     # now only choose those owners which have at least one app server with a non-empty IP assigned
@@ -146,13 +151,29 @@ def get_tisos_from_owner_dict(app_dict: dict[str, Owner]) -> dict[str, str]:
     return tisos
 
 
-def get_git_repo(git_repo_url: str, git_username: str, git_password: str, repo_target_dir: str) -> None:
+def get_git_repo(
+    git_repo_url: str,
+    git_username: str,
+    git_password: str,
+    repo_target_dir: str,
+    depth: int | None = None,
+) -> None:
     encoded_password: str = urllib.parse.quote(git_password, safe="")
     repo_url: str = f"https://{git_username}:{encoded_password}@{git_repo_url}"
 
-    repo_updated: bool = update_git_repo(repo_url, repo_target_dir, logger)
+    repo_updated: bool = update_git_repo(repo_url, repo_target_dir, logger, depth=depth)
     if not repo_updated:
         sys.exit(1)
+
+
+def resolve_local_repo_base_dir(
+    config_file: str,
+    cli_local_repo_base_dir: str | None,
+    logger: logging.Logger,
+) -> str:
+    if cli_local_repo_base_dir is not None:
+        return cli_local_repo_base_dir
+    return read_custom_config_with_default(config_file, "iiqLocalRepoBaseDir", FWO_TMP_DIR, logger)
 
 
 def request_all_roles(
@@ -335,6 +356,23 @@ if __name__ == "__main__":
         "--import_from_folder",
         help="if set, will try to read csv files from given folder instead of git repo",
     )
+    parser.add_argument(
+        "--local_repo_base_dir",
+        default=None,
+        help="base directory for local git checkouts; defaults to config key iiqLocalRepoBaseDir or /usr/local/fworch/tmp/iiq_request_missing_fwmgt_roles/",
+    )
+    parser.add_argument(
+        "--depth",
+        type=parse_git_depth_arg,
+        default=None,
+        help="optional git clone/pull depth; if omitted, no depth is passed to git",
+    )
+    parser.add_argument(
+        "--csvSeparator",
+        type=parse_csv_separator_arg,
+        default=None,
+        help="csv delimiter used for owner and ip csv files; allowed values are ',' and ';'; defaults to config value",
+    )
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -344,6 +382,11 @@ if __name__ == "__main__":
         args.config, "csvOwnerColumnPatterns", {}, logger
     )
     ip_header_patterns: dict[str, str] = read_custom_config_with_default(args.config, "csvIpColumnPatterns", {}, logger)
+    csv_separator: str = (
+        args.csvSeparator
+        if args.csvSeparator is not None
+        else parse_csv_separator_arg(read_custom_config_with_default(args.config, "csvSeparator", ";", logger))
+    )
 
     debug: int = int(args.debug)
     logger.configure_debug_level(debug)
@@ -357,6 +400,8 @@ if __name__ == "__main__":
         urllib3.disable_warnings()
 
     logger.debug_if(3, f"using config file {args.config}")
+    local_repo_base_dir: str = resolve_local_repo_base_dir(args.config, args.local_repo_base_dir, logger)
+    cmdb_repo_target_dir: str = str(Path(local_repo_base_dir) / "cmdb-repo")
 
     ldap_path: str = read_custom_config(args.config, "ldapPath", logger)
     iiq_hostname: str = read_custom_config(args.config, "iiqHostname", logger)
@@ -384,8 +429,8 @@ if __name__ == "__main__":
         git_repo_url: str = read_custom_config(args.config, "cmdbGitRepoUrl", logger)
         git_username: str = read_custom_config(args.config, "cmdbGitUsername", logger)
         git_password: str = read_custom_config(args.config, "cmdbGitPassword", logger)
-        csv_file_base_dir = CMDB_REPO_TARGET_DIR
-        get_git_repo(git_repo_url, git_username, git_password, CMDB_REPO_TARGET_DIR)
+        csv_file_base_dir = cmdb_repo_target_dir
+        get_git_repo(git_repo_url, git_username, git_password, cmdb_repo_target_dir, depth=args.depth)
 
     logger.info_if(0, "getting owners from file")
 
@@ -400,6 +445,7 @@ if __name__ == "__main__":
         debug,
         owner_header_patterns=owner_header_patterns,
         ip_header_patterns=ip_header_patterns,
+        csv_separator=csv_separator,
     )
 
     tiso_orgids: dict[str, str] = get_tisos_orgids(tisos, iiq_client, exit_after_dump=args.just_dump_tiso_org_ids)

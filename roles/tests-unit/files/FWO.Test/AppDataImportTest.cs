@@ -8,6 +8,7 @@ using FWO.Basics;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Middleware.Server;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -945,6 +946,181 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddOwnerLifeCycleStateActiveChangeIfNeeded_LogsReactivate_WhenLifecycleStateChangesToActive()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [11] = false
+            });
+            FwoOwner existingApp = new() { Id = 7, OwnerLifeCycleStateId = 11 };
+            OwnerChangeImportTracker tracker = new(apiConn);
+
+            await InvokeAddOwnerLifeCycleStateActiveChangeIfNeeded(import, existingApp, 10, "SRC-7", tracker);
+
+            Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.ChangelogActions, Is.EqualTo(new[] { ChangelogActionType.REACTIVATE }));
+        }
+
+        [Test]
+        public async Task AddOwnerLifeCycleStateActiveChangeIfNeeded_LogsDeactivate_WhenLifecycleStateChangesToInactive()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [11] = false
+            });
+            FwoOwner existingApp = new() { Id = 8, OwnerLifeCycleStateId = 10 };
+            OwnerChangeImportTracker tracker = new(apiConn);
+
+            await InvokeAddOwnerLifeCycleStateActiveChangeIfNeeded(import, existingApp, 11, "SRC-8", tracker);
+
+            Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.ChangelogActions, Is.EqualTo(new[] { ChangelogActionType.DEACTIVATE }));
+        }
+
+        [Test]
+        public async Task AddOwnerLifeCycleStateActiveChangeIfNeeded_DoesNotLog_WhenActiveStateDoesNotChange()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [12] = true
+            });
+            FwoOwner existingApp = new() { Id = 9, OwnerLifeCycleStateId = 10 };
+            OwnerChangeImportTracker tracker = new(apiConn);
+
+            await InvokeAddOwnerLifeCycleStateActiveChangeIfNeeded(import, existingApp, 12, "SRC-9", tracker);
+
+            Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task AddOwnerChangeIfNeeded_LogsChange_WhenAppServersChanged()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetExistingAppServers(import,
+            [
+                new ModellingAppServer
+                {
+                    Id = 100,
+                    AppId = 19,
+                    Name = "server-old",
+                    Ip = "10.0.0.1/32",
+                    IpEnd = "10.0.0.1/32",
+                    ImportSource = "SRC-19",
+                    IsDeleted = false
+                }
+            ]);
+            FwoOwner existingApp = new() { Id = 19, Name = "App-19", ExtAppId = "APP-19" };
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-19",
+                ExtAppId = "APP-19",
+                ImportSource = "SRC-19",
+                AppServers =
+                [
+                    new ModellingImportAppServer
+                    {
+                        Name = "server-new",
+                        Ip = "10.0.0.2/32",
+                        IpEnd = "10.0.0.2/32"
+                    }
+                ]
+            };
+            OwnerChangeImportTracker tracker = new(apiConn);
+
+            await InvokeAddOwnerChangeIfNeeded(import, existingApp, incomingApp, tracker);
+
+            Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.ChangelogActions, Is.EqualTo(new[] { ChangelogActionType.CHANGE }));
+        }
+
+        [Test]
+        public async Task AddOwnerChangeIfNeeded_LogsChange_WhenInactiveOwnerIsFoundAgainInImport()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetExistingAppServers(import, []);
+            FwoOwner existingApp = new() { Id = 21, Name = "App-21", ExtAppId = "APP-21", Active = false };
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-21",
+                ExtAppId = "APP-21",
+                ImportSource = "SRC-21"
+            };
+            OwnerChangeImportTracker tracker = new(apiConn);
+
+            await InvokeAddOwnerChangeIfNeeded(import, existingApp, incomingApp, tracker);
+
+            Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.ChangelogActions, Is.EqualTo(new[] { ChangelogActionType.CHANGE }));
+        }
+
+        [Test]
+        public async Task SaveApp_LogsChangeAndReactivate_WhenAppServersChangeAndLifecycleStateBecomesActive()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Active"] = 10
+            });
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [11] = false
+            });
+            SetExistingApps(import,
+            [
+                new() { Id = 20, Name = "App-20", ExtAppId = "APP-20", OwnerLifeCycleStateId = 11 }
+            ]);
+            apiConn.AppServersByOwner[(20, "SRC-20")] =
+            [
+                new ModellingAppServer
+                {
+                    Id = 200,
+                    AppId = 20,
+                    Name = "server-old",
+                    Ip = "10.0.0.1/32",
+                    IpEnd = "10.0.0.1/32",
+                    ImportSource = "SRC-20",
+                    IsDeleted = false
+                }
+            ];
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-20",
+                ExtAppId = "APP-20",
+                ImportSource = "SRC-20",
+                OwnerLifecycleState = "Active",
+                AppServers =
+                [
+                    new ModellingImportAppServer
+                    {
+                        Name = "server-new",
+                        Ip = "10.0.0.2/32",
+                        IpEnd = "10.0.0.2/32"
+                    }
+                ]
+            };
+            OwnerChangeImportTracker tracker = new(apiConn);
+
+            bool imported = await InvokeSaveApp(import, incomingApp, tracker);
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(2));
+            Assert.That(apiConn.ChangelogActions, Is.EqualTo(new[] { ChangelogActionType.CHANGE, ChangelogActionType.REACTIVATE }));
+        }
+
+        [Test]
         public async Task NormalizeImportedUserReferences_ResolvesPlainUserIds_AndKeepsDns()
         {
             ResolverTestAppDataImport import = new(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
@@ -1064,6 +1240,13 @@ namespace FWO.Test
         {
             FieldInfo field = typeof(AppDataImport).GetField("ownerLifeCycleStateIdsByName", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("ownerLifeCycleStateIdsByName field not found.");
+            field.SetValue(import, stateMap);
+        }
+
+        private static void SetOwnerLifeCycleActiveMap(AppDataImport import, Dictionary<int, bool> stateMap)
+        {
+            FieldInfo field = typeof(AppDataImport).GetField("ownerLifeCycleStateActiveById", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("ownerLifeCycleStateActiveById field not found.");
             field.SetValue(import, stateMap);
         }
 
@@ -1205,6 +1388,33 @@ namespace FWO.Test
             return await (Task<bool>)method.Invoke(import, [incomingApp, tracker])!;
         }
 
+        private static async Task InvokeAddOwnerLifeCycleStateActiveChangeIfNeeded(
+            AppDataImport import,
+            FwoOwner existingApp,
+            int? ownerLifeCycleStateId,
+            string? importSource,
+            OwnerChangeImportTracker tracker)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "AddOwnerLifeCycleStateActiveChangeIfNeeded",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("AddOwnerLifeCycleStateActiveChangeIfNeeded helper not found.");
+            await (Task)method.Invoke(import, [existingApp, ownerLifeCycleStateId, importSource, tracker])!;
+        }
+
+        private static async Task InvokeAddOwnerChangeIfNeeded(
+            AppDataImport import,
+            FwoOwner existingApp,
+            ModellingImportAppData incomingApp,
+            OwnerChangeImportTracker tracker)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "AddOwnerChangeIfNeeded",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("AddOwnerChangeIfNeeded helper not found.");
+            await (Task)method.Invoke(import, [existingApp, incomingApp, tracker])!;
+        }
+
         private static async Task<ModellingImportAppData> InvokeNormalizeImportedUserReferences(AppDataImport import, ModellingImportAppData incomingApp)
         {
             MethodInfo method = typeof(AppDataImport).GetMethod(
@@ -1221,11 +1431,13 @@ namespace FWO.Test
             List<ModellingImportAppData> importedApps,
             OwnerChangeImportTracker tracker)
         {
+            SetExistingApps(import, existingApps.ToList());
+            SetImportedApps(import, importedApps);
             MethodInfo method = typeof(AppDataImport).GetMethod(
                 "DeactivateMissingApps",
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("DeactivateMissingApps helper not found.");
-            return ((int deleted, int failed))await (Task<(int deleted, int failed)>)method.Invoke(import, [importSource, existingApps, importedApps, tracker])!;
+            return ((int deleted, int failed))await (Task<(int deleted, int failed)>)method.Invoke(import, [importSource, tracker])!;
         }
 
         private static async Task InvokeUpdateOwnerResponsibles(
@@ -1263,16 +1475,23 @@ namespace FWO.Test
 
         private static void SetImportedApps(AppDataImport import, List<ModellingImportAppData> importedApps)
         {
-            FieldInfo field = typeof(AppDataImport).GetField("importedApps", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new InvalidOperationException("importedApps field not found.");
+            FieldInfo field = typeof(AppDataImport).GetField("ImportedApps", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("ImportedApps field not found.");
             field.SetValue(import, importedApps);
         }
 
         private static void SetExistingApps(AppDataImport import, List<FwoOwner> existingApps)
         {
-            FieldInfo field = typeof(AppDataImport).GetField("existingApps", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new InvalidOperationException("existingApps field not found.");
+            FieldInfo field = typeof(AppDataImport).GetField("ExistingApps", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("ExistingApps field not found.");
             field.SetValue(import, existingApps);
+        }
+
+        private static void SetExistingAppServers(AppDataImport import, List<ModellingAppServer> existingAppServers)
+        {
+            FieldInfo field = typeof(AppDataImport).GetField("ExistingAppServers", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("ExistingAppServers field not found.");
+            field.SetValue(import, existingAppServers);
         }
 
         private sealed class AppDataImportFlowTestApiConn : SimulatedApiConnection
@@ -1427,6 +1646,9 @@ namespace FWO.Test
         {
             public int NewOwnerCalls { get; private set; }
             public int UpdateOwnerCalls { get; private set; }
+            public int UpdateChangelogOwnerCalls { get; private set; }
+            public List<char> ChangelogActions { get; } = [];
+            public Dictionary<(int ownerId, string importSource), List<ModellingAppServer>> AppServersByOwner { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
             {
@@ -1448,6 +1670,38 @@ namespace FWO.Test
                     });
                 }
 
+                if (query == OwnerQueries.updateChangelogOwner)
+                {
+                    ++UpdateChangelogOwnerCalls;
+                    char? action = GetAnonymousChar(variables, "change_action");
+                    if (action.HasValue)
+                    {
+                        ChangelogActions.Add(action.Value);
+                    }
+                    return Task.FromResult((QueryResponseType)(object)new object());
+                }
+
+                if (query == ModellingQueries.getAppServersBySource)
+                {
+                    int ownerId = GetAnonymousInt(variables, "appId");
+                    string importSource = GetAnonymousString(variables, "importSource");
+                    List<ModellingAppServer> appServers = AppServersByOwner.TryGetValue((ownerId, importSource), out List<ModellingAppServer>? value)
+                        ? value
+                        : [];
+                    return Task.FromResult((QueryResponseType)(object)appServers);
+                }
+
+                if (query == ImportQueries.addImportForOwner)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new InsertImportControl
+                    {
+                        Returning = new List<ImportControl>
+                        {
+                            new ImportControl { ControlId = 123 }
+                        }
+                    });
+                }
+
                 if (query == MonitorQueries.addDataImportLogEntry)
                 {
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
@@ -1457,6 +1711,51 @@ namespace FWO.Test
                 }
 
                 throw new NotImplementedException($"Query not implemented in save-app test api: {query}");
+            }
+
+            private static char? GetAnonymousChar(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return null;
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null)
+                {
+                    return null;
+                }
+                object? value = property.GetValue(variables);
+                return value is char charValue ? charValue : null;
+            }
+
+            private static int GetAnonymousInt(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return 0;
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null)
+                {
+                    return 0;
+                }
+                object? value = property.GetValue(variables);
+                return value is int intValue ? intValue : 0;
+            }
+
+            private static string GetAnonymousString(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return "";
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null)
+                {
+                    return "";
+                }
+                object? value = property.GetValue(variables);
+                return value as string ?? "";
             }
         }
 

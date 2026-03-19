@@ -4246,6 +4246,37 @@
                     "allow_aggregations": true
                   }
                 }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_rule_id",
+                      "new_rule_id",
+                      "old_rule_id",
+                      "documented",
+                      "implicit_change",
+                      "security_relevant",
+                      "change_action",
+                      "change_request_info",
+                      "unique_name",
+                      "change_type_id",
+                      "dev_id",
+                      "doku_admin",
+                      "import_admin",
+                      "mgm_id",
+                      "changelog_rule_comment",
+                      "change_time",
+                      "docu_time"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
               ]
             },
             {
@@ -16304,20 +16335,7 @@
                     "computed_fields": [
                       "rule_relevant_for_tenant"
                     ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "rule_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },
@@ -17451,22 +17469,7 @@
                     "computed_fields": [
                       "rule_from_relevant_for_tenant"
                     ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "rule": {
-                            "mgm_id": {
-                              "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule_from_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },
@@ -19275,22 +19278,7 @@
                     "computed_fields": [
                       "rule_to_relevant_for_tenant"
                     ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "rule": {
-                            "mgm_id": {
-                              "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule_to_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },

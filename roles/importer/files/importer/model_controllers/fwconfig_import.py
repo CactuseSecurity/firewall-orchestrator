@@ -34,7 +34,7 @@ class FwConfigImport:
     def fwconfig_import_object(self):
         return self._fw_config_import_object
 
-    def __init__(self, global_state: GlobalState, import_state: ImportState):
+    def __init__(self):
         self._fw_config_import_object = FwConfigImportObject()
         self._fw_config_import_rule = None
         self._fw_config_import_gateway = FwConfigImportGateway()

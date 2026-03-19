@@ -57,10 +57,7 @@ def import_management(
     import_state: ImportState,
 ) -> None:
     fwo_signalling.register_signalling_handlers()
-    config_importer = FwConfigImport(
-        global_state=global_state,
-        import_state=import_state,
-    )
+    config_importer = FwConfigImport()
     exception: BaseException | None = None
 
     try:
@@ -106,7 +103,7 @@ def _import_management(
     config_normalized: FwConfigManagerListController
 
     config_changed_since_last_import = True
-    config_importer = FwConfigImport(global_state=global_state, import_state=import_state)
+    config_importer = FwConfigImport()
 
     fwo_config = global_state.fwo_config_controller.fwo_config
     FWOLogger.debug(f"import_management - ssl_verification: {fwo_config.ssl_verification}", 9)

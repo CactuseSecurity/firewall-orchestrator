@@ -250,14 +250,9 @@ namespace FWO.Services
 
                 try
                 {
-                    var customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields.Replace("'", "\""));
+                    var customFieldValue = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, globalConfig.OwnerSourceCustomFieldOwnerKey);
 
-                    if (customFields == null || !customFields.TryGetValue(globalConfig.OwnerSourceCustomFieldOwnerKey, out var ownerName))
-                    {
-                        continue;
-                    }
-
-                    if (ownerNameToIdMap.TryGetValue(ownerName, out var ownerId))
+                    if (!string.IsNullOrWhiteSpace(customFieldValue) && ownerNameToIdMap.TryGetValue(customFieldValue, out var ownerId))
                     {
                         newRuleOwners.Add(new RuleOwner
                         {

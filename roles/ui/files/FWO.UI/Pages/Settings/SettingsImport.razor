@@ -163,9 +163,9 @@ else
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(userConfig.OwnerSourceCustomFieldChangeIdKey))
+            if (!string.IsNullOrWhiteSpace(userConfig.CustomFieldChangeIdKey))
             {
-                var json = userConfig.OwnerSourceCustomFieldChangeIdKey.Trim();
+                var json = userConfig.CustomFieldChangeIdKey.Trim();
 
                 if (json.StartsWith("[") && json.EndsWith("]"))
                 {
@@ -205,7 +205,7 @@ else
 
                 configData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
                 configData.OwnerSourceCustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
-                configData.OwnerSourceCustomFieldChangeIdKey = JsonSerializer.Serialize(ChangeIdKeys);
+                configData.CustomFieldChangeIdKey = JsonSerializer.Serialize(ChangeIdKeys);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

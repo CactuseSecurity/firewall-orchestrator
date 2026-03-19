@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Ui.Display;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {
@@ -116,30 +117,29 @@ namespace FWO.Middleware.Server
                 return "";
             }
 
-            try
+            string? field2 = TryExtractCustomFieldValue(customFieldsString, GlobalConst.kField2);
+            if (!string.IsNullOrWhiteSpace(field2))
             {
-                Dictionary<string, string>? customFields = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
-                if (customFields == null)
-                {
-                    return "";
-                }
-
-                if (customFields.TryGetValue(GlobalConst.kField2, out string? value) && !string.IsNullOrWhiteSpace(value))
-                {
-                    return value;
-                }
-
-                if (customFields.TryGetValue(GlobalConst.kDatumRegelpr, out string? fallback) && !string.IsNullOrWhiteSpace(fallback))
-                {
-                    return fallback;
-                }
+                return field2;
             }
-            catch (System.Text.Json.JsonException)
+
+            string? fallback = TryExtractCustomFieldValue(customFieldsString, GlobalConst.kDatumRegelpr);
+            if (!string.IsNullOrWhiteSpace(fallback))
             {
-                return "";
+                return fallback;
             }
 
             return "";
+        }
+
+        private static string? TryExtractCustomFieldValue(string customFieldsString, string key)
+        {
+            Match match = Regex.Match(
+                customFieldsString,
+                $@"['""]{Regex.Escape(key)}['""]\s*:\s*['""](?<value>(?:\\.|[^'""])*)['""]",
+                RegexOptions.CultureInvariant);
+
+            return match.Success ? Regex.Unescape(match.Groups["value"].Value) : null;
         }
 
         /// <summary>

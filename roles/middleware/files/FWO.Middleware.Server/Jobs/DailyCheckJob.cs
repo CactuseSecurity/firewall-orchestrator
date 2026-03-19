@@ -8,10 +8,8 @@ using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Recert;
 using FWO.Services;
-using FWO.Services.Modelling;
 using FWO.Services.Workflow;
 using Quartz;
-using System.Linq;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -88,7 +86,7 @@ namespace FWO.Middleware.Server.Jobs
             try
             {
                 List<DailyCheckModule>? modules = System.Text.Json.JsonSerializer.Deserialize<List<DailyCheckModule>>(globalConfig.DailyCheckModules);
-                return modules == null || modules.Count == 0
+                return modules == null
                     ? [.. Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>()]
                     : [.. modules];
             }

@@ -590,10 +590,10 @@ def parse_app_line(
             context.ldap_path,
             context.logger,
         )
-    elif context.level_two_responsible_pattern is not None:
-        responsibles = _build_default_responsibles(app_id, context.level_two_responsible_pattern)
     else:
         responsibles = {}
+    if context.level_two_responsible_pattern is not None:
+        responsibles.update(_build_default_responsibles(app_id, context.level_two_responsible_pattern))
     main_user_dn: str = _get_main_user_dn_from_responsibles(responsibles)
     recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
     mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(

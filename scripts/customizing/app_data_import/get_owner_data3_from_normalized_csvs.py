@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2026-02-19-01"
+__version__ = "2026-03-17-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -15,6 +15,10 @@ __version__ = "2026-02-19-01"
 #   - importing criticality from csv file if column pattern is given in config; if not, criticality will be set to "unknown" for all apps
 #   - allowing for composite fields with delimiter string to allow concatenation of two columns into one field
 #   - in UI-Settings: allow passing of multiple script parameters via multiple text fields (should be limited to non-sensitive parameters, as they will be visible to all users with access to the UI-Settings)
+# 2026-03-16-01:
+#   - allowing multiple filter columns with per-column include values
+# 2026-03-17-01:
+#   - allowing csv delimiter override via cli argument
 
 # reads the main app data from multiple csv files contained in a git repo
 # users will reside in external ldap groups with standardized names
@@ -29,6 +33,7 @@ import argparse
 import logging
 import re
 import shlex
+import sys
 from pathlib import Path
 
 import urllib3
@@ -51,6 +56,7 @@ from scripts.customizing.fwo_custom_lib.git_helpers import (
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
+    parse_csv_separator_arg,
 )
 
 base_dir: str = "/usr/local/fworch/"
@@ -177,6 +183,16 @@ def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[st
     return {level: tuple(headers) for level, headers in responsibles_columns.items()}
 
 
+def resolve_local_repo_base_dir(
+    config_file: str,
+    cli_local_repo_base_dir: str | None,
+    logger: logging.Logger,
+) -> str:
+    if cli_local_repo_base_dir is not None:
+        return cli_local_repo_base_dir
+    return read_custom_config_with_default(config_file, "localRepoBaseDir", base_dir_etc, logger)
+
+
 def apply_owner_column_overrides(
     owner_header_patterns: dict[str, str],
     lifecycle_state_column: str,
@@ -185,6 +201,53 @@ def apply_owner_column_overrides(
     if lifecycle_state_column.strip():
         updated_patterns["owner_lifecycle_state"] = rf"^\s*{re.escape(lifecycle_state_column.strip())}\s*$"
     return updated_patterns
+
+
+def parse_included_owners_filters(
+    filter_columns: list[str] | None,
+    include_values_groups: list[list[str]] | None,
+) -> dict[str, tuple[str, ...]] | None:
+    if not filter_columns:
+        return None
+    if include_values_groups is None:
+        include_values_groups = [["Ja"]]
+
+    normalized_filter_columns: list[str] = [column.strip() for column in filter_columns if column.strip()]
+    if len(normalized_filter_columns) == 0:
+        return None
+    if len(include_values_groups) == 1:
+        include_values_groups = include_values_groups * len(normalized_filter_columns)
+    if len(include_values_groups) != len(normalized_filter_columns):
+        raise argparse.ArgumentTypeError("number of --includeValues groups must match --filterColumn occurrences")
+
+    included_owners_filters: dict[str, tuple[str, ...]] = {}
+    index: int
+    filter_column: str
+    for index, filter_column in enumerate(normalized_filter_columns):
+        normalized_include_values: tuple[str, ...] = tuple(
+            value.strip() for value in include_values_groups[index] if value.strip()
+        )
+        if len(normalized_include_values) == 0:
+            raise argparse.ArgumentTypeError(
+                f"--includeValues for filter column '{filter_column}' must contain at least one non-empty value"
+            )
+        included_owners_filters[filter_column] = normalized_include_values
+    return included_owners_filters
+
+
+def normalize_option_value_args(argv: list[str], option_names: tuple[str, ...]) -> list[str]:
+    normalized_argv: list[str] = []
+    option_names_set: set[str] = set(option_names)
+    index: int = 0
+    while index < len(argv):
+        current_arg: str = argv[index]
+        if current_arg in option_names_set and index + 1 < len(argv):
+            normalized_argv.append(f"{current_arg}={argv[index + 1]}")
+            index += 2
+            continue
+        normalized_argv.append(current_arg)
+        index += 1
+    return normalized_argv
 
 
 if __name__ == "__main__":
@@ -206,7 +269,7 @@ if __name__ == "__main__":
                             "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv", \
                             "gitRepoOwnersWithActiveRecert": "github.example.de/FWO", \
                             "gitFileOwnersWithActiveRecert": "isolated-apps.txt", \
-                            "csvSeparator": ",", \
+                            "csvSeparator": ";", \
                             "validAppIdPrefixes": ["app-", "com-"], \
                             "importSource": "tufinRlm" \
                         } \
@@ -226,8 +289,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--local_repo_base_dir",
-        default=base_dir_etc,
-        help="base directory for local git checkouts, default=/usr/local/fworch/etc/",
+        default=None,
+        help="base directory for local git checkouts; defaults to config key localRepoBaseDir or /usr/local/fworch/etc/",
     )
     parser.add_argument(
         "-l",
@@ -235,6 +298,12 @@ if __name__ == "__main__":
         metavar="api_limit",
         default="150",
         help="The maximal number of returned results per HTTPS Connection; default=50",
+    )
+    parser.add_argument(
+        "--csvSeparator",
+        type=parse_csv_separator_arg,
+        default=None,
+        help="csv delimiter used for owner and ip csv files; allowed values are ',' and ';'; defaults to config value",
     )
     parser.add_argument("-d", "--debug", default=0, help="debug level, default=0")
     parser.add_argument(
@@ -246,17 +315,19 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--filterColumn",
-        dest="filter_column",
-        default="Aktive Firewallregel",
-        help='owner CSV column header used for filtering for owners with active rules, default="Aktive Firewallregel"; set to empty string to disable',
+        dest="filter_columns",
+        action="append",
+        default=None,
+        help='owner CSV column header used for filtering; repeat to require matches in multiple columns, default="Aktive Firewallregel"; set to empty string to disable',
     )
     parser.add_argument(
         "--includeValues",
         "--includeValue",
-        dest="include_values",
+        dest="include_values_groups",
+        action="append",
         nargs="+",
-        default=["Ja"],
-        help='list of values in filter column to include, default=["Ja"]',
+        default=None,
+        help='list of values to include for the preceding --filterColumn; repeat per filter column, default=["Ja"]',
     )
     parser.add_argument(
         "--lifecycleState",
@@ -301,7 +372,7 @@ if __name__ == "__main__":
         "--responsiblesColumns",
         nargs="+",
         default=None,
-        help='grouped mapping LEVEL:HEADER [HEADER ...], e.g. 1:"UserId" "UserID Vertreter" 2:"UserIDs Mitwirkende"',
+        help='grouped mapping LEVEL:HEADER [HEADER ...]; each HEADER may be an exact column name or a regex matching zero or one CSV column, e.g. 1:"^UserID$" "^UserID Vertreter$" 2:"^UserIDs Mitwirkende$"; ambiguous matches are rejected',
     )
     parser.add_argument(
         "--levelTwoResponsiblePattern",
@@ -315,7 +386,9 @@ if __name__ == "__main__":
         help="optional git clone/pull depth; if omitted, no depth is passed to git",
     )
 
-    args: argparse.Namespace = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args(
+        normalize_option_value_args(sys.argv[1:], ("--compositeIdFieldsDelimiterStr",))
+    )
 
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()
@@ -345,13 +418,26 @@ if __name__ == "__main__":
     valid_app_id_prefixes: list[str] | None = read_custom_config_with_default(
         args.config, "validAppIdPrefixes", None, logger
     )
-    csv_separator: str = read_custom_config_with_default(args.config, "csvSeparator", ",", logger)
+    csv_separator: str = (
+        args.csvSeparator
+        if args.csvSeparator is not None
+        else parse_csv_separator_arg(read_custom_config_with_default(args.config, "csvSeparator", ";", logger))
+    )
     default_recert_active_state: bool = args.default_recertification_active_state
-    included_owners_column: str | None = args.filter_column.strip() if args.filter_column else None
-    include_values: list[str] = args.include_values
+    if args.filter_columns is None:
+        filter_columns: list[str] = ["Aktive Firewallregel"]
+    else:
+        filter_columns = args.filter_columns
+    try:
+        included_owners_filters: dict[str, tuple[str, ...]] | None = parse_included_owners_filters(
+            filter_columns,
+            args.include_values_groups,
+        )
+    except argparse.ArgumentTypeError as err:
+        parser.error(str(err))
     lifecycle_state_column: str = args.lifecycleState
     fallback_owner_lifecycle: str = args.fallback_owner_lifecycle
-    local_repo_base_dir: str = args.local_repo_base_dir
+    local_repo_base_dir: str = resolve_local_repo_base_dir(args.config, args.local_repo_base_dir, logger)
     composite_id_fields: tuple[str, ...] | None = tuple(args.compositeIdFields) if args.compositeIdFields else None
     composite_id_fields_delimiter_str: str = args.compositeIdFieldsDelimiterStr
     composite_id_fields_max_length: list[int] | None = args.compositeIdFieldsMaxLength
@@ -448,8 +534,7 @@ if __name__ == "__main__":
                 default_recert_active_state=default_recert_active_state,
                 column_patterns=owner_header_patterns,
                 valid_app_id_prefixes=valid_app_id_prefixes,
-                included_owners_column=included_owners_column,
-                include_values=include_values,
+                included_owners_filters=included_owners_filters,
                 csv_separator=csv_separator,
                 fallback_owner_lifecycle=fallback_owner_lifecycle,
                 composite_id_fields=composite_id_fields,

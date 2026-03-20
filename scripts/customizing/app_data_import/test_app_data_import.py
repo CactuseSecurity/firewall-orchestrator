@@ -11,6 +11,7 @@ from scripts.customizing.app_data_import.get_owner_data3_from_normalized_csvs im
     apply_owner_column_overrides,
     build_git_repo_url,
     normalize_option_value_args,
+    parse_add_users_by_pattern,
     parse_criticality_recert_period_mapping,
     parse_included_owners_filters,
     parse_responsibles_columns,
@@ -900,6 +901,18 @@ class AppDataImportTests(unittest.TestCase):
             },
         )
 
+    def test_parse_add_users_by_pattern_parses_grouped_entries(self) -> None:
+        parsed: dict[str, str] = parse_add_users_by_pattern(
+            ["1:ROLE_@@AppId@@", "2:A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"]
+        )
+        self.assertEqual(
+            parsed,
+            {
+                "1": "ROLE_@@AppId@@",
+                "2": "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT",
+            },
+        )
+
     def test_extract_app_data_from_csv_imports_responsibles_when_configured(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
@@ -1089,7 +1102,7 @@ class AppDataImportTests(unittest.TestCase):
                 },
             )
 
-    def test_extract_app_data_from_csv_uses_custom_level_two_responsible_pattern(self) -> None:
+    def test_extract_app_data_from_csv_adds_users_by_pattern(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             with open(owner_csv_path, "w", encoding="utf-8") as fh:
@@ -1105,7 +1118,7 @@ class AppDataImportTests(unittest.TestCase):
                 self.logger,
                 self.debug_level,
                 base_dir=tmpdir,
-                level_two_responsible_pattern="ROLE_@@AppId@@_@@AppPrefix@@",
+                add_users_by_pattern={"2": "ROLE_@@AppId@@_@@AppPrefix@@"},
             )
 
             self.assertEqual(len(app_list), 1)
@@ -1113,6 +1126,46 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(
                 owner_json.get("responsibles"),
                 {"2": ["ROLE_018_APP"]},
+            )
+
+    def test_extract_app_data_from_csv_adds_users_by_pattern_without_overwriting_existing_responsibles(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,UserID,UserIDs Mitwirkende\n"
+                    "Fallback App,APP-018,user18,false,uid-main,uid-collab\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                responsibles_columns_headers={
+                    "1": ("UserID",),
+                    "2": ("UserIDs Mitwirkende",),
+                },
+                add_users_by_pattern={
+                    "1": "ROLE_@@AppId@@",
+                    "2": "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT",
+                },
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].main_user, "CN=uid-main")
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertEqual(
+                owner_json.get("responsibles"),
+                {
+                    "1": ["CN=uid-main", "ROLE_018"],
+                    "2": ["CN=uid-collab", "A_APP_018_FW_RULEMGT"],
+                },
             )
 
     def test_extract_app_data_from_csv_splits_multi_user_responsibles_values(self) -> None:
@@ -1153,7 +1206,7 @@ class AppDataImportTests(unittest.TestCase):
             )
             self.assertEqual(app_list[0].main_user, "")
 
-    def test_extract_app_data_from_csv_uses_custom_level_two_pattern_without_separator(self) -> None:
+    def test_extract_app_data_from_csv_adds_users_by_pattern_without_separator(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             with open(owner_csv_path, "w", encoding="utf-8") as fh:
@@ -1169,7 +1222,7 @@ class AppDataImportTests(unittest.TestCase):
                 self.logger,
                 self.debug_level,
                 base_dir=tmpdir,
-                level_two_responsible_pattern="A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT",
+                add_users_by_pattern={"2": "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"},
             )
 
             self.assertEqual(len(app_list), 1)
@@ -1179,7 +1232,7 @@ class AppDataImportTests(unittest.TestCase):
                 {"2": ["A_APP_017_FW_RULEMGT"]},
             )
 
-    def test_extract_app_data_from_csv_handles_long_separator_free_ids(self) -> None:
+    def test_extract_app_data_from_csv_handles_long_separator_free_ids_for_add_users_by_pattern(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             long_app_id: str = f"APP{'7' * 20000}"
@@ -1198,7 +1251,7 @@ class AppDataImportTests(unittest.TestCase):
                 self.logger,
                 self.debug_level,
                 base_dir=tmpdir,
-                level_two_responsible_pattern="A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT",
+                add_users_by_pattern={"2": "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"},
             )
 
             self.assertEqual(len(app_list), 1)

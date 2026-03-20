@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2026-03-17-01"
+__version__ = "2026-03-20-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -19,6 +19,8 @@ __version__ = "2026-03-17-01"
 #   - allowing multiple filter columns with per-column include values
 # 2026-03-17-01:
 #   - allowing csv delimiter override via cli argument
+# 2026-03-20-01:
+#   - generalizing fallback responsible pattern to grouped add_users_by_pattern entries
 
 # reads the main app data from multiple csv files contained in a git repo
 # users will reside in external ldap groups with standardized names
@@ -181,6 +183,23 @@ def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[st
     _validate_responsibles_columns(responsibles_columns)
 
     return {level: tuple(headers) for level, headers in responsibles_columns.items()}
+
+
+def parse_add_users_by_pattern(entries: list[str]) -> dict[str, str]:
+    add_users_by_pattern: dict[str, str] = {}
+    expanded_entries: list[str] = _expand_responsibles_entries(entries)
+    entry: str
+    for entry in expanded_entries:
+        level_mapping: tuple[str, str] | None = _parse_level_mapping(entry)
+        if level_mapping is None:
+            raise argparse.ArgumentTypeError(f"invalid add_users_by_pattern entry '{entry}', expected LEVEL:PATTERN")
+        level, pattern = level_mapping
+        if level == "" or pattern == "":
+            raise argparse.ArgumentTypeError(f"invalid add_users_by_pattern entry '{entry}', expected LEVEL:PATTERN")
+        add_users_by_pattern[level] = pattern
+    if not add_users_by_pattern:
+        raise argparse.ArgumentTypeError("add_users_by_pattern must contain at least one LEVEL:PATTERN mapping")
+    return add_users_by_pattern
 
 
 def resolve_local_repo_base_dir(
@@ -375,9 +394,10 @@ if __name__ == "__main__":
         help='grouped mapping LEVEL:HEADER [HEADER ...]; each HEADER may be an exact column name or a regex matching zero or one CSV column, e.g. 1:"^UserID$" "^UserID Vertreter$" 2:"^UserIDs Mitwirkende$"; ambiguous matches are rejected',
     )
     parser.add_argument(
-        "--levelTwoResponsiblePattern",
+        "--add_users_by_pattern",
+        nargs="+",
         default=None,
-        help='fallback pattern for owner_responsibles when --responsiblesColumns is omitted, e.g. "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"',
+        help='grouped mapping LEVEL:PATTERN used to append responsibles after CSV import, e.g. 1:"ROLE_@@AppId@@" 2:"A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"',
     )
     parser.add_argument(
         "--depth",
@@ -450,7 +470,9 @@ if __name__ == "__main__":
     responsibles_columns_headers: dict[str, tuple[str, ...]] | None = (
         parse_responsibles_columns(args.responsiblesColumns) if args.responsiblesColumns else None
     )
-    level_two_responsible_pattern: str | None = args.levelTwoResponsiblePattern
+    add_users_by_pattern: dict[str, str] | None = (
+        parse_add_users_by_pattern(args.add_users_by_pattern) if args.add_users_by_pattern else None
+    )
     git_depth: int | None = args.depth
     owner_header_patterns = apply_owner_column_overrides(owner_header_patterns, lifecycle_state_column)
 
@@ -543,7 +565,7 @@ if __name__ == "__main__":
                 criticality_column_header=criticality_column_header,
                 criticality_recert_period_mapping=criticality_recert_period_mapping,
                 responsibles_columns_headers=responsibles_columns_headers,
-                level_two_responsible_pattern=level_two_responsible_pattern,
+                add_users_by_pattern=add_users_by_pattern,
             )
 
     app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)

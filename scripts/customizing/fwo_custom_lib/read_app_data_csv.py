@@ -34,7 +34,7 @@ class OwnerLineParserContext:
     criticality_column: int
     criticality_recert_period_mapping: dict[str, int] | None
     responsibles_columns: dict[str, tuple[int, ...]] | None
-    level_two_responsible_pattern: str | None
+    add_users_by_pattern: dict[str, str] | None
     included_owners_filters: tuple[tuple[int, tuple[str, ...]], ...] | None
     ldap_path: str
     import_source_string: str
@@ -62,7 +62,7 @@ class ExtractAppDataCsvOptions:
     criticality_column_header: str | None = None
     criticality_recert_period_mapping: dict[str, int] | None = None
     responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None
-    level_two_responsible_pattern: str | None = None
+    add_users_by_pattern: dict[str, str] | None = None
 
 
 def parse_csv_separator_arg(value: str) -> str:
@@ -216,18 +216,39 @@ def _split_app_id_external(app_id_external: str) -> tuple[str, str]:
     return app_id_external, app_id_external
 
 
-def _build_level_two_responsible(app_id_external: str, level_two_responsible_pattern: str) -> str:
+def _build_user_from_pattern(app_id_external: str, user_pattern: str) -> str:
     app_prefix, app_id = _split_app_id_external(app_id_external)
-    return level_two_responsible_pattern.replace("@@AppPrefix@@", app_prefix).replace("@@AppId@@", app_id)
+    return user_pattern.replace("@@AppPrefix@@", app_prefix).replace("@@AppId@@", app_id)
 
 
-def _build_default_responsibles(
+def _build_pattern_responsibles(
     app_id_external: str,
-    level_two_responsible_pattern: str,
+    add_users_by_pattern: dict[str, str],
 ) -> dict[str, list[str]]:
     return {
-        "2": [_build_level_two_responsible(app_id_external, level_two_responsible_pattern)],
+        level: [_build_user_from_pattern(app_id_external, user_pattern)]
+        for level, user_pattern in add_users_by_pattern.items()
     }
+
+
+def _merge_responsibles(
+    existing_responsibles: dict[str, list[str]],
+    additional_responsibles: dict[str, list[str]],
+) -> dict[str, list[str]]:
+    merged_responsibles: dict[str, list[str]] = {
+        level: list(values) for level, values in existing_responsibles.items() if values
+    }
+    level: str
+    values: list[str]
+    for level, values in additional_responsibles.items():
+        if not values:
+            continue
+        merged_values: list[str] = merged_responsibles.setdefault(level, [])
+        value: str
+        for value in values:
+            if value not in merged_values:
+                merged_values.append(value)
+    return merged_responsibles
 
 
 def _get_main_user_dn_from_responsibles(responsibles: dict[str, list[str]]) -> str:
@@ -592,8 +613,8 @@ def parse_app_line(
         )
     else:
         responsibles = {}
-    if context.level_two_responsible_pattern is not None:
-        responsibles.update(_build_default_responsibles(app_id, context.level_two_responsible_pattern))
+    if context.add_users_by_pattern is not None:
+        responsibles = _merge_responsibles(responsibles, _build_pattern_responsibles(app_id, context.add_users_by_pattern))
     main_user_dn: str = _get_main_user_dn_from_responsibles(responsibles)
     recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
     mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
@@ -701,7 +722,7 @@ def extract_app_data_from_csv(
         criticality_column=criticality_column,
         criticality_recert_period_mapping=resolved_options.criticality_recert_period_mapping,
         responsibles_columns=responsibles_columns,
-        level_two_responsible_pattern=resolved_options.level_two_responsible_pattern,
+        add_users_by_pattern=resolved_options.add_users_by_pattern,
         included_owners_filters=included_owners_filters,
         ldap_path=ldap_path,
         import_source_string=import_source_string,

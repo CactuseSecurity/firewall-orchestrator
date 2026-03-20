@@ -368,3 +368,7 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.11 - 04.03.2026 DEVELOP
 - new config value for requesting only own objects
+
+# 9.0.16 - 20.03.2026 DEVELOP
+- remove not needed stm_owner_mapping_source
+- add matched_objects field in rule_owner table for track matched objects - IpBased

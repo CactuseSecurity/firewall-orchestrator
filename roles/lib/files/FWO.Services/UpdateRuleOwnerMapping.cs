@@ -511,10 +511,18 @@ namespace FWO.Services
             var oldFields = DeserializeCustomFields(ruleChange.OldRule?.CustomFields);
             var newFields = DeserializeCustomFields(ruleChange.NewRule?.CustomFields);
 
-            oldFields.TryGetValue(globalConfig.CustomFieldOwnerKey, out var oldValue);
-            newFields.TryGetValue(globalConfig.CustomFieldOwnerKey, out var newValue);
+            var ownerKeys = JsonSerializer.Deserialize<string[]>(globalConfig.CustomFieldOwnerKey) ?? Array.Empty<string>();
 
-            return !string.Equals(oldValue, newValue, StringComparison.Ordinal);
+            foreach (var key in ownerKeys)
+            {
+                oldFields.TryGetValue(key, out var oldValue);
+                newFields.TryGetValue(key, out var newValue);
+
+                if (!string.Equals(oldValue, newValue, StringComparison.Ordinal))
+                    return true;
+            }
+
+            return false;
         }
 
         public static Dictionary<string, string> DeserializeCustomFields(string? raw)

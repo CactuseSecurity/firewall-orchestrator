@@ -20,7 +20,7 @@ namespace FWO.Test
         {
             var globalConfig = new GlobalConfig
             {
-                OwnerSourceCustomFieldKey = "owner"
+                CustomFieldOwnerKey = @"[""owner""]"
             };
 
             service = new UpdateRuleOwnerMapping(null!, globalConfig);
@@ -167,7 +167,7 @@ namespace FWO.Test
             var prepared = service.PrepareOwnerNetworks(owners);
             var result = UpdateRuleOwnerMapping.GetMatchingOwnerIds(rule, prepared);
 
-            Assert.That(result.Contains(10));
+            Assert.That(result.ContainsKey(10));
         }
 
         [Test]

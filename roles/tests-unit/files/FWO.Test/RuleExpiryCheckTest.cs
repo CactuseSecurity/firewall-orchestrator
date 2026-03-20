@@ -1,4 +1,5 @@
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Middleware.Server;
 using NUnit.Framework;
@@ -220,37 +221,47 @@ namespace FWO.Test
         public void BuildRuleExpiryBody_ReplacesPlaceholders()
         {
             RuleExpiryCheck check = new(new RuleExpiryCheckTestApiConn(), CreateGlobalConfig());
-            MethodInfo? buildBodyMethod = typeof(RuleExpiryCheck).GetMethod("BuildRuleExpiryBody", BindingFlags.NonPublic | BindingFlags.Instance);
-            ClassicAssert.IsNotNull(buildBodyMethod, "Expected private method BuildRuleExpiryBody.");
+            MethodInfo? buildBodyMethod = typeof(RuleExpiryCheck).GetMethod("BuildRuleBody", BindingFlags.NonPublic | BindingFlags.Instance);
+            ClassicAssert.IsNotNull(buildBodyMethod, "Expected protected method BuildRuleBody.");
+            MethodInfo closedBuildBodyMethod = (buildBodyMethod ?? throw new InvalidOperationException("BuildRuleBody method not found."))
+                .MakeGenericMethod(typeof(RuleExpiryCheck).GetNestedType("RuleExpiryInfo", BindingFlags.NonPublic)
+                    ?? throw new InvalidOperationException("RuleExpiryInfo type not found."));
 
             Type? ruleExpiryInfoType = typeof(RuleExpiryCheck).GetNestedType("RuleExpiryInfo", BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(ruleExpiryInfoType, "Expected private nested type RuleExpiryInfo.");
+            Type resolvedRuleExpiryInfoType = ruleExpiryInfoType ?? throw new InvalidOperationException("RuleExpiryInfo type not found.");
 
-            object ruleEntry = Activator.CreateInstance(ruleExpiryInfoType!) ?? throw new InvalidOperationException("Could not create RuleExpiryInfo.");
-            ruleExpiryInfoType!.GetProperty("RuleUid")?.SetValue(ruleEntry, "uid-1");
-            ruleExpiryInfoType.GetProperty("RuleName")?.SetValue(ruleEntry, "rule-1");
-            ruleExpiryInfoType.GetProperty("Source")?.SetValue(ruleEntry, "src");
-            ruleExpiryInfoType.GetProperty("Destination")?.SetValue(ruleEntry, "dst");
-            ruleExpiryInfoType.GetProperty("Service")?.SetValue(ruleEntry, "svc");
-            ruleExpiryInfoType.GetProperty("ChangeId")?.SetValue(ruleEntry, "chg-1");
-            ruleExpiryInfoType.GetProperty("LastHitDate")?.SetValue(ruleEntry, DateTime.Today);
-            ruleExpiryInfoType.GetProperty("EndTime")?.SetValue(ruleEntry, DateTime.Today);
-            ruleExpiryInfoType.GetProperty("ExpiryInitiator")?.SetValue(ruleEntry, "init");
+            Rule rule = new()
+            {
+                Uid = "uid-1",
+                Name = "rule-1",
+                Source = "src",
+                Destination = "dst",
+                Service = "svc",
+                CustomFields = "{\"field2\":\"chg-1\"}",
+                Metadata = new RuleMetadata { LastHit = DateTime.Today }
+            };
+            object ruleEntry = Activator.CreateInstance(resolvedRuleExpiryInfoType, [rule]) ?? throw new InvalidOperationException("Could not create RuleExpiryInfo.");
+            resolvedRuleExpiryInfoType.GetProperty("EndTime")?.SetValue(ruleEntry, DateTime.Today);
+            resolvedRuleExpiryInfoType.GetProperty("ExpiryInitiator")?.SetValue(ruleEntry, "init");
 
-            Type listType = typeof(List<>).MakeGenericType(ruleExpiryInfoType);
+            Type listType = typeof(List<>).MakeGenericType(resolvedRuleExpiryInfoType);
             IList entries = (IList)(Activator.CreateInstance(listType) ?? throw new InvalidOperationException("Could not create entry list."));
             entries.Add(ruleEntry);
 
             FwoOwner owner = new() { Name = "OwnerX", ExtAppId = "APPX" };
-            string bodyTemplate = "Hello @@APPNAME@@ @@APPID@@ @@TIME_INTERVAL@@";
+            string bodyTemplate = $"Hello @@APPNAME@@ @@APPID@@ @@TIME_INTERVAL@@ {Placeholder.RULE_TABLE} Bye";
             string intervalText = "2 Weeks";
 
-            string body = (string)(buildBodyMethod!.Invoke(check, [owner, entries, bodyTemplate, intervalText]) ?? "");
+            string body = (string)(closedBuildBodyMethod.Invoke(check, [owner, bodyTemplate, intervalText, entries, null, null]) ?? "");
 
             ClassicAssert.IsTrue(body.Contains("Hello OwnerX APPX 2 Weeks"));
+            ClassicAssert.IsTrue(body.Contains("<table"));
+            ClassicAssert.IsTrue(body.Contains("</table><p> Bye</p>") || body.Contains("</table><p>Bye</p>"));
             ClassicAssert.IsFalse(body.Contains("@@APPNAME@@"));
             ClassicAssert.IsFalse(body.Contains("@@APPID@@"));
             ClassicAssert.IsFalse(body.Contains("@@TIME_INTERVAL@@"));
+            ClassicAssert.IsFalse(body.Contains(Placeholder.RULE_TABLE));
         }
 
         private static FwoNotification CreateRuleTimerNotification(int id, int? ownerId = null)

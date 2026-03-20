@@ -234,6 +234,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("dailyCheckStartAt"), JsonPropertyName("dailyCheckStartAt")]
         public DateTime DailyCheckStartAt { get; set; } = DateTime.Now;
 
+        [JsonProperty("dailyCheckModules"), JsonPropertyName("dailyCheckModules")]
+        public string DailyCheckModules { get; set; } = "";
+
         [JsonProperty("maxImportDuration"), JsonPropertyName("maxImportDuration")]
         public int MaxImportDuration { get; set; } = 4;
 
@@ -371,6 +374,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("ruleExpiryEmailBody"), JsonPropertyName("ruleExpiryEmailBody")]
         public string RuleExpiryEmailBody { get; set; } = "";
+
+        [JsonProperty("ownerActiveRuleEmailBody"), JsonPropertyName("ownerActiveRuleEmailBody")]
+        public string OwnerActiveRuleEmailBody { get; set; } = "";
 
         [JsonProperty("ruleExpiryInitiatorKeys"), JsonPropertyName("ruleExpiryInitiatorKeys")]
         public string RuleExpiryInitiatorKeys { get; set; } = "";

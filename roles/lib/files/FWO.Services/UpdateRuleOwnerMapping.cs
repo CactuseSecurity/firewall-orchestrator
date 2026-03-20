@@ -250,14 +250,9 @@ namespace FWO.Services
 
                 try
                 {
-                    var customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields.Replace("'", "\""));
+                    var customFieldValue = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, globalConfig.CustomFieldOwnerKey);
 
-                    if (customFields == null || !customFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var ownerName))
-                    {
-                        continue;
-                    }
-
-                    if (ownerNameToIdMap.TryGetValue(ownerName, out var ownerId))
+                    if (!string.IsNullOrWhiteSpace(customFieldValue) && ownerNameToIdMap.TryGetValue(customFieldValue, out var ownerId))
                     {
                         newRuleOwners.Add(new RuleOwner
                         {
@@ -350,8 +345,8 @@ namespace FWO.Services
             var oldFields = DeserializeCustomFields(ruleChange.OldRule?.CustomFields);
             var newFields = DeserializeCustomFields(ruleChange.NewRule?.CustomFields);
 
-            oldFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var oldValue);
-            newFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var newValue);
+            oldFields.TryGetValue(globalConfig.CustomFieldOwnerKey, out var oldValue);
+            newFields.TryGetValue(globalConfig.CustomFieldOwnerKey, out var newValue);
 
             return !string.Equals(oldValue, newValue, StringComparison.Ordinal);
         }

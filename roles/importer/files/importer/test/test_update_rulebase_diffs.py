@@ -6,11 +6,11 @@ import pytest
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from model_controllers.import_state_controller import ImportStateController
 from models.rule import RuleNormalized
 from pytest_mock import MockerFixture
-from services.global_state import GlobalState
 from services.uid2id_mapper import Uid2IdMapper
+from states.import_state import ImportState
+from states.management_state import ManagementState
 from test.utils.config_builder import FwConfigBuilder
 from test.utils.rule_helper_functions import insert_rule_in_config, move_rule_in_config, remove_rule_from_rulebase
 from test.utils.test_utils import mock_get_graphql_code
@@ -34,11 +34,6 @@ def mock_api_connection_response(api_connection: FwoApi):
     api_connection.call = unittest.mock.Mock(
         return_value={"data": {"insert_rulebase": {"affected_rows": 1}, "rule": []}}
     )
-
-
-@pytest.fixture
-def mock_import_state_controller_response(import_state_controller: ImportStateController):
-    import_state_controller.state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
 
 
 @pytest.fixture
@@ -189,14 +184,13 @@ def mock_api_call_response(api_call: FwoApiCall):
 class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
     def test_update_rulebase_diffs_on_insert_delete_and_move(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
+        management_controller: ManagementState,
         fwconfig_import_rule: FwConfigImportRule,
         fwconfig_builder: FwConfigBuilder,
-        global_state: GlobalState,
         mock_graphql: None,  # noqa: ARG002
         mock_uid2id_mapper_response: None,  # noqa: ARG002
         mock_api_connection_response: None,  # noqa: ARG002
-        mock_import_state_controller_response: None,  # noqa: ARG002
         mock_fwconfig_import_rule_side_effects: None,  # noqa: ARG002
         mock_api_call_response: None,  # noqa: ARG002
     ):
@@ -208,21 +202,21 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
             rules_per_rulebase_count=10,
         )
 
-        global_state.previous_config = config
-        global_state.normalized_config = copy.deepcopy(config)
-        fwconfig_builder.initialize_rule_num_numerics(global_state.previous_config)
-        fwconfig_import_rule.normalized_config = global_state.normalized_config
+        import_state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+        management_controller.previous_config = config
+        management_controller.normalized_config = copy.deepcopy(config)
+        fwconfig_builder.initialize_rule_num_numerics(management_controller.previous_config)
 
-        rulebase = global_state.normalized_config.rulebases[0]
+        rulebase = management_controller.normalized_config.rulebases[0]
         rule_uids = list(rulebase.rules.keys())
         rule_uid = rule_uids[0]
-        remove_rule_from_rulebase(global_state.normalized_config, rulebase.uid, rule_uid, rule_uids)
-        insert_rule_in_config(global_state.normalized_config, rulebase.uid, 0, rule_uids, fwconfig_builder)
-        move_rule_in_config(global_state.normalized_config, rulebase.uid, 9, 0, rule_uids)
+        remove_rule_from_rulebase(management_controller.normalized_config, rulebase.uid, rule_uid, rule_uids)
+        insert_rule_in_config(management_controller.normalized_config, rulebase.uid, 0, rule_uids, fwconfig_builder)
+        move_rule_in_config(management_controller.normalized_config, rulebase.uid, 9, 0, rule_uids)
 
         # Act
 
-        fwconfig_import_rule.update_rulebase_diffs(global_state.previous_config)
+        fwconfig_import_rule.update_rulebase_diffs(management_controller.previous_config)
 
         # The order of the entries in normalized_config
         assert rule_uids == list(rulebase.rules.keys())
@@ -234,7 +228,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         assert rule_uids == sorted_rulebase_rules_uids
 
         # Insert, delete and move recognized in ImportDetails
-        assert import_state_controller.state.stats.statistics.rule_add_count == 1
-        assert import_state_controller.state.stats.statistics.rule_delete_count == 1
-        assert import_state_controller.state.stats.statistics.rule_change_count == 1
-        assert import_state_controller.state.stats.statistics.rule_move_count == 1
+        assert import_state.statistics_controller.statistics.rule_add_count == 1
+        assert import_state.statistics_controller.statistics.rule_delete_count == 1
+        assert import_state.statistics_controller.statistics.rule_change_count == 1
+        assert import_state.statistics_controller.statistics.rule_move_count == 1

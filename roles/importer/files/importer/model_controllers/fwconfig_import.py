@@ -78,9 +78,6 @@ class FwConfigImport:
         manager: FwConfigManager,
         config: FwConfigNormalized,
     ):
-        if manager.is_super_manager:
-            # store global config as it is needed when importing sub managers which might reference it
-            import_state.super_config = config
         mgm_id = import_state.lookup_management_id(manager.manager_uid)
 
         if mgm_id is None:
@@ -88,6 +85,12 @@ class FwConfigImport:
 
         management_state = ManagementState(import_state, mgm_id)
         management_state.normalized_config = config
+
+        if manager.is_super_manager:
+            # store global config as it is needed when importing sub managers which might reference it
+            import_state.super_config = config
+            import_state.super_uid2id_mapper = management_state.uid2id_mapper
+
         self._fw_config_import_rule = FwConfigImportRule(global_state, import_state, management_state)
 
         # TODO: clean separation between values relevant for all managers and those only relevant for specific managers - see #3646

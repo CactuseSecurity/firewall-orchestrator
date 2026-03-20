@@ -1,10 +1,12 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 from fwo_api import FwoApi
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from states.import_state import ImportState
+
+if TYPE_CHECKING:
+    from states.import_state import ImportState
 
 
 class Uid2IdMap:
@@ -65,7 +67,7 @@ class Uid2IdMapper:
     def api_connection(self) -> FwoApi:
         return self.import_state.fwo_api
 
-    def __init__(self, import_state: ImportState) -> None:
+    def __init__(self, import_state: "ImportState") -> None:
         """
         Initialize the Uid2IdMapper.
         """

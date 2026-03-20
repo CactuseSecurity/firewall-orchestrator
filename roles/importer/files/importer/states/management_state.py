@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any
 
 from models.fwconfig_normalized import FwConfigNormalized
@@ -39,6 +40,10 @@ class ManagementState:
         self.mgm_id = mgm_id
         self.normalized_config = None
         self.previous_config = None
-        self.uid2id_mapper = Uid2IdMapper(import_state=import_state)
+        self.uid2id_mapper = (
+            Uid2IdMapper(import_state=import_state)
+            if import_state.super_uid2id_mapper is None
+            else deepcopy(import_state.super_uid2id_mapper)
+        )
         self.group_flats_mapper = GroupFlatsMapper()
         self.prev_group_flats_mapper = GroupFlatsMapper()

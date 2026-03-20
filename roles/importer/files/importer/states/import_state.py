@@ -12,6 +12,7 @@ from fwo_log import FWOLogger
 from model_controllers.import_statistics_controller import ImportStatisticsController
 from model_controllers.management_controller import ManagementController
 from models.fwconfig_normalized import FwConfigNormalized
+from services.uid2id_mapper import Uid2IdMapper
 
 
 class ImportState:
@@ -22,6 +23,8 @@ class ImportState:
 
     super_config: FwConfigNormalized | None = None
     previous_super_config: FwConfigNormalized | None = None
+
+    super_uid2id_mapper: Uid2IdMapper | None = None
 
     statistics_controller: ImportStatisticsController
 
@@ -40,8 +43,6 @@ class ImportState:
     is_initial_import: bool = False
     responsible_for_importing: bool = True
     input_file: str | None = None
-
-    # uid 2 id mapper...
 
     def __init__(self, fwo_api: FwoApi, fwo_api_call: FwoApiCall, mgm_id: int, input_file: str | None = None):
         self.fwo_api = fwo_api

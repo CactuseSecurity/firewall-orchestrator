@@ -614,7 +614,9 @@ def parse_app_line(
     else:
         responsibles = {}
     if context.add_users_by_pattern is not None:
-        responsibles = _merge_responsibles(responsibles, _build_pattern_responsibles(app_id, context.add_users_by_pattern))
+        responsibles = _merge_responsibles(
+            responsibles, _build_pattern_responsibles(app_id, context.add_users_by_pattern)
+        )
     main_user_dn: str = _get_main_user_dn_from_responsibles(responsibles)
     recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
     mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(

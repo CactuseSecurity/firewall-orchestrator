@@ -14,7 +14,6 @@ from models.fwconfig_normalized import FwConfigNormalized
 from query_analyzer import QueryAnalyzer
 
 if TYPE_CHECKING:
-    from model_controllers.import_state_controller import ImportStateController
     from states.import_state import ImportState
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
@@ -222,7 +221,7 @@ class FwoApiCall:
             FWOLogger.exception("failed to delete config without changes")
 
     def get_error_string_from_imp_control(
-        self, _: "ImportStateController", query_variables: dict[str, Any]
+        self, _: "ImportState", query_variables: dict[str, Any]
     ) -> list[dict[str, Any]]:  # TYPING: confirm return type
         error_query = (
             "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"

@@ -12,7 +12,10 @@ from states.import_state import ImportState
 
 class FortiosManagementRESTCommon(FwCommon):
     def get_config(
-        self, config_in: FwConfigManagerListController, import_state: ImportState, global_state: GlobalState
+        self,
+        config_in: FwConfigManagerListController,
+        import_state: ImportState,
+        global_state: GlobalState,  # noqa: ARG002
     ) -> tuple[int, FwConfigManagerListController]:
         ensure_manager_set(config_in, import_state)
         ensure_device_name(import_state)

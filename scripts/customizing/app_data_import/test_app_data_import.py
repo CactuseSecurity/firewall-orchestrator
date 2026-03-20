@@ -94,6 +94,30 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(len(app_list), 1)
             self.assertEqual(app_list[0].app_id_external, "APP-001")
 
+    def test_extract_app_data_from_csv_auto_detects_comma_separator_when_semicolon_is_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nMy App,APP-001,user1,false\n")
+
+            app_list: list[Owner] = []
+            with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+                extract_app_data_from_csv(
+                    "owners.csv",
+                    app_list,
+                    self.ldap_path,
+                    self.import_source,
+                    Owner,
+                    self.logger,
+                    self.debug_level,
+                    base_dir=tmpdir,
+                    csv_separator=";",
+                )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].app_id_external, "APP-001")
+            self.assertTrue(any("alternate separator ','" in message for message in log_context.output))
+
     def test_extract_app_data_from_csv_reads_cp1252_encoded_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
@@ -188,6 +212,30 @@ class AppDataImportTests(unittest.TestCase):
 
             self.assertEqual(len(owner.app_servers), 1)
             self.assertEqual(str(owner.app_servers[0].ip_start), "10.0.0.1")
+
+    def test_extract_ip_data_from_csv_auto_detects_semicolon_separator_when_comma_is_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ip_csv_path: Path = Path(tmpdir) / "ips.csv"
+            with open(ip_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Alfabet-ID;col: IP\nAPP-001;10.0.0.1\n")
+
+            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            app_dict: dict[str, Owner] = {"APP-001": owner}
+
+            with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+                extract_ip_data_from_csv(
+                    "ips.csv",
+                    app_dict,
+                    Appip,
+                    self.logger,
+                    self.debug_level,
+                    base_dir=tmpdir,
+                    csv_separator=",",
+                )
+
+            self.assertEqual(len(owner.app_servers), 1)
+            self.assertEqual(str(owner.app_servers[0].ip_start), "10.0.0.1")
+            self.assertTrue(any("alternate separator ';'" in message for message in log_context.output))
 
     def test_extract_ip_data_from_csv_reads_cp1252_encoded_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

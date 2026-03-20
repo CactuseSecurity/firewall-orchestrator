@@ -316,15 +316,44 @@ def _read_csv_rows_with_fallback_encodings(
     csv_separator: str,
     logger: logging.Logger,
 ) -> list[list[str]]:
+    def _get_alternate_csv_separator(configured_separator: str) -> str | None:
+        for separator in ALLOWED_CSV_SEPARATORS:
+            if separator != configured_separator:
+                return separator
+        return None
+
+    def _should_retry_with_alternate_separator(rows: list[list[str]], configured_separator: str) -> bool:
+        if len(rows) == 0 or len(rows[0]) != 1:
+            return False
+        alternate_separator: str | None = _get_alternate_csv_separator(configured_separator)
+        if alternate_separator is None:
+            return False
+        return alternate_separator in rows[0][0]
+
     def _read_csv_rows(csv_encoding: str) -> list[list[str]]:
         with open(csv_file_name, newline="", encoding=csv_encoding) as csv_file_handle:
             return list(csv.reader(csv_file_handle, delimiter=csv_separator))
 
+    def _read_csv_rows_for_encoding(csv_encoding: str) -> list[list[str]]:
+        rows: list[list[str]] = _read_csv_rows(csv_encoding)
+        if _should_retry_with_alternate_separator(rows, csv_separator):
+            alternate_separator: str | None = _get_alternate_csv_separator(csv_separator)
+            if alternate_separator is not None:
+                with open(csv_file_name, newline="", encoding=csv_encoding) as csv_file_handle:
+                    rows = list(csv.reader(csv_file_handle, delimiter=alternate_separator))
+                logger.warning(
+                    "csv file %s parsed using alternate separator %r instead of configured separator %r",
+                    csv_file_name,
+                    alternate_separator,
+                    csv_separator,
+                )
+        return rows
+
     try:
-        return _read_csv_rows(CSV_FALLBACK_ENCODINGS[0])
+        return _read_csv_rows_for_encoding(CSV_FALLBACK_ENCODINGS[0])
     except UnicodeDecodeError as first_decode_error:
         try:
-            rows = _read_csv_rows(CSV_FALLBACK_ENCODINGS[1])
+            rows = _read_csv_rows_for_encoding(CSV_FALLBACK_ENCODINGS[1])
             logger.warning(
                 "csv file %s decoded using fallback encoding %s",
                 csv_file_name,
@@ -333,7 +362,7 @@ def _read_csv_rows_with_fallback_encodings(
             return rows
         except UnicodeDecodeError:
             try:
-                rows = _read_csv_rows(CSV_FALLBACK_ENCODINGS[2])
+                rows = _read_csv_rows_for_encoding(CSV_FALLBACK_ENCODINGS[2])
                 logger.warning(
                     "csv file %s decoded using fallback encoding %s",
                     csv_file_name,

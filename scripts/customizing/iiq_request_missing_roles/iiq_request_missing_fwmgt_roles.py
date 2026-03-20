@@ -173,7 +173,50 @@ def resolve_local_repo_base_dir(
 ) -> str:
     if cli_local_repo_base_dir is not None:
         return cli_local_repo_base_dir
+    local_repo_base_dir: str | None = read_custom_config_with_default(config_file, "localRepoBaseDir", None, logger)
+    if local_repo_base_dir is not None:
+        return local_repo_base_dir
     return read_custom_config_with_default(config_file, "iiqLocalRepoBaseDir", FWO_TMP_DIR, logger)
+
+
+def resolve_import_from_folder(
+    config_file: str,
+    cli_import_from_folder: str | None,
+    logger: logging.Logger,
+) -> str | None:
+    if cli_import_from_folder is not None:
+        return cli_import_from_folder
+    import_from_folder: str | None = read_custom_config_with_default(config_file, "importFromFolder", None, logger)
+    if import_from_folder is not None:
+        return import_from_folder
+    return read_custom_config_with_default(config_file, "import_from_folder", None, logger)
+
+
+def resolve_debug_level(
+    config_file: str,
+    cli_debug: str | None,
+    logger: logging.Logger,
+) -> int:
+    debug_value: str | int = (
+        cli_debug if cli_debug is not None else read_custom_config_with_default(config_file, "debug", 0, logger)
+    )
+    try:
+        return int(debug_value)
+    except (TypeError, ValueError) as err:
+        raise argparse.ArgumentTypeError(f"invalid debug value: {debug_value}") from err
+
+
+def resolve_git_depth(
+    config_file: str,
+    cli_depth: int | None,
+    logger: logging.Logger,
+) -> int | None:
+    if cli_depth is not None:
+        return cli_depth
+    depth_value: str | int | None = read_custom_config_with_default(config_file, "depth", None, logger)
+    if depth_value is None:
+        return None
+    return parse_git_depth_arg(str(depth_value))
 
 
 def request_all_roles(
@@ -321,8 +364,8 @@ if __name__ == "__main__":
         "-d",
         "--debug",
         metavar="debug_level",
-        default="0",
-        help="set to >1 for debugging and to avoid CMDB git pull (due to permission conflicts in debug mode)",
+        default=None,
+        help="set to >1 for debugging; defaults to config key debug or 0",
     )
     parser.add_argument(
         "-f",
@@ -388,7 +431,11 @@ if __name__ == "__main__":
         else parse_csv_separator_arg(read_custom_config_with_default(args.config, "csvSeparator", ";", logger))
     )
 
-    debug: int = int(args.debug)
+    try:
+        debug: int = resolve_debug_level(args.config, args.debug, logger)
+        git_depth: int | None = resolve_git_depth(args.config, args.depth, logger)
+    except argparse.ArgumentTypeError as err:
+        parser.error(str(err))
     logger.configure_debug_level(debug)
 
     if args.stage == "prod":
@@ -401,6 +448,7 @@ if __name__ == "__main__":
 
     logger.debug_if(3, f"using config file {args.config}")
     local_repo_base_dir: str = resolve_local_repo_base_dir(args.config, args.local_repo_base_dir, logger)
+    import_from_folder: str | None = resolve_import_from_folder(args.config, args.import_from_folder, logger)
     cmdb_repo_target_dir: str = str(Path(local_repo_base_dir) / "cmdb-repo")
 
     ldap_path: str = read_custom_config(args.config, "ldapPath", logger)
@@ -423,14 +471,14 @@ if __name__ == "__main__":
         logger=logger,
     )
 
-    if args.import_from_folder:
-        csv_file_base_dir: str = args.import_from_folder
+    if import_from_folder:
+        csv_file_base_dir: str = import_from_folder
     else:
         git_repo_url: str = read_custom_config(args.config, "cmdbGitRepoUrl", logger)
         git_username: str = read_custom_config(args.config, "cmdbGitUsername", logger)
         git_password: str = read_custom_config(args.config, "cmdbGitPassword", logger)
         csv_file_base_dir = cmdb_repo_target_dir
-        get_git_repo(git_repo_url, git_username, git_password, cmdb_repo_target_dir, depth=args.depth)
+        get_git_repo(git_repo_url, git_username, git_password, cmdb_repo_target_dir, depth=git_depth)
 
     logger.info_if(0, "getting owners from file")
 

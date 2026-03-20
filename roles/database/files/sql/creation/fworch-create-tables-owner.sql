@@ -21,7 +21,8 @@ create table owner
 	last_recertifier int,
 	last_recertifier_dn Varchar,
 	next_recert_date Timestamp,
-    recert_active boolean default false
+    recert_active boolean default false,
+    decomm_date Timestamp
 );
 
 create table owner_responsible

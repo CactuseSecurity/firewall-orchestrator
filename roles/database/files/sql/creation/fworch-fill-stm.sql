@@ -37,9 +37,11 @@ insert into config (config_key, config_value, config_user) VALUES ('recCheckPara
 insert into config (config_key, config_value, config_user) VALUES ('recRefreshStartup', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recRefreshDaily', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleExpiryEmailBody', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('ownerActiveRuleEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleExpiryInitiatorKeys', '{}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('messageViewTime', '7', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dailyCheckStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('dailyCheckModules', '[1,2,3,4,5,6,7]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverSleepTime', '24', 0);
 insert into config (config_key, config_value, config_user) VALUES ('minCollapseAllDevices', '15', 0);

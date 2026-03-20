@@ -312,8 +312,11 @@ namespace FWO.Config.Api.Data
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;
 
-        [JsonProperty("OwnerSourceCustomFieldKey"), JsonPropertyName("OwnerSourceCustomFieldKey")]
-        public string OwnerSourceCustomFieldKey { get; set; } = "";
+        [JsonProperty("CustomFieldOwnerKey"), JsonPropertyName("CustomFieldOwnerKey")]
+        public string CustomFieldOwnerKey { get; set; } = "";
+
+        [JsonProperty("CustomFieldChangeIdKey"), JsonPropertyName("CustomFieldChangeIdKey")]
+        public string CustomFieldChangeIdKey { get; set; } = "";
 
         [JsonProperty("rolesWithAppDataImport"), JsonPropertyName("rolesWithAppDataImport")]
         public string RolesWithAppDataImport { get; set; } = "[]";

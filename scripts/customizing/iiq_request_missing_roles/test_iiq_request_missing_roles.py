@@ -43,7 +43,7 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
                     f"""
                     {{
                       "localRepoBaseDir": "{expected_repo_dir}",
-                      "iiqLocalRepoBaseDir": "{Path(tmpdir) / 'fworch-iiq-config-repos'}"
+                      "iiqLocalRepoBaseDir": "{Path(tmpdir) / "fworch-iiq-config-repos"}"
                     }}
                     """
                 )

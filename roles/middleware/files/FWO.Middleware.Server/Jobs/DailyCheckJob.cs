@@ -8,10 +8,8 @@ using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Recert;
 using FWO.Services;
-using FWO.Services.Modelling;
 using FWO.Services.Workflow;
 using Quartz;
-using System.Linq;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -41,18 +39,61 @@ namespace FWO.Middleware.Server.Jobs
         {
             try
             {
-                await CheckDemoData();
-                await CheckImports();
-                if (globalConfig.RecRefreshDaily)
+                HashSet<DailyCheckModule> enabledModules = LoadEnabledModules();
+
+                if (enabledModules.Contains(DailyCheckModule.DemoData))
+                {
+                    await CheckDemoData();
+                }
+                if (enabledModules.Contains(DailyCheckModule.Imports))
+                {
+                    await CheckImports();
+                }
+                if (enabledModules.Contains(DailyCheckModule.RecertRefresh) && globalConfig.RecRefreshDaily)
                 {
                     await RefreshRecert();
                 }
-                await CheckRecerts();
-                await CheckUnansweredInterfaceRequests();
+                if (enabledModules.Contains(DailyCheckModule.RecertCheck))
+                {
+                    await CheckRecerts();
+                }
+                if (enabledModules.Contains(DailyCheckModule.UnansweredInterfaceRequests))
+                {
+                    await CheckUnansweredInterfaceRequests();
+                }
+                if (enabledModules.Contains(DailyCheckModule.RuleExpiryCheck))
+                {
+                    await CheckRuleExpiry();
+                }
+                if (enabledModules.Contains(DailyCheckModule.OwnerActiveRules))
+                {
+                    await CheckOwnerActiveRules();
+                }
             }
             catch (Exception exc)
             {
                 await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitle, GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
+            }
+        }
+
+        private HashSet<DailyCheckModule> LoadEnabledModules()
+        {
+            if (string.IsNullOrWhiteSpace(globalConfig.DailyCheckModules))
+            {
+                return [.. Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>()];
+            }
+
+            try
+            {
+                List<DailyCheckModule>? modules = System.Text.Json.JsonSerializer.Deserialize<List<DailyCheckModule>>(globalConfig.DailyCheckModules);
+                return modules == null
+                    ? [.. Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>()]
+                    : [.. modules];
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                Log.WriteError(LogMessageTitle, $"Could not parse daily check modules config \"{globalConfig.DailyCheckModules}\". Using all modules.");
+                return [.. Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>()];
             }
         }
 
@@ -71,6 +112,22 @@ namespace FWO.Middleware.Server.Jobs
                 Log.WriteDebug(LogMessageTitle, $"Recert Check: Sent {emailsSent} emails.");
                 await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }
+        }
+
+        private async Task CheckRuleExpiry()
+        {
+            RuleExpiryCheck ruleExpiryCheck = new(apiConnection, globalConfig);
+            int ruleExpiryEmailsSent = await ruleExpiryCheck.CheckRuleExpiry();
+            Log.WriteDebug(LogMessageTitle, $"Rule Expiry Check: Sent {ruleExpiryEmailsSent} emails.");
+            await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Rule Expiry Check", ruleExpiryEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
+        }
+
+        private async Task CheckOwnerActiveRules()
+        {
+            OwnerActiveRuleCheck ownerActiveRuleCheck = new(apiConnection, globalConfig);
+            int ownerActiveRuleEmailsSent = await ownerActiveRuleCheck.CheckActiveRulesByScheduler();
+            Log.WriteDebug(LogMessageTitle, $"Owner Active Rule Check: Sent {ownerActiveRuleEmailsSent} emails.");
+            await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Owner Active Rule Check", ownerActiveRuleEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
         }
 
         private struct DemoDataFlags
@@ -187,7 +244,7 @@ namespace FWO.Middleware.Server.Jobs
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
                     if (owner != null)
                     {
-                        emailsSent += await notificationService.SendNotification(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
+                        emailsSent += await notificationService.SendNotificationIfDue(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
                     }
                 }
             }

@@ -19,9 +19,9 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class AppDataImport : DataImportBase
     {
-        private List<ModellingImportAppData> importedApps = [];
-        private List<FwoOwner> existingApps = [];
-        private List<ModellingAppServer> existingAppServers = [];
+        private List<ModellingImportAppData> ImportedApps = [];
+        private List<FwoOwner> ExistingApps = [];
+        private List<ModellingAppServer> ExistingAppServers = [];
 
         private Ldap internalLdap = new();
 
@@ -30,6 +30,8 @@ namespace FWO.Middleware.Server
         private Dictionary<int, OwnerResponsibleType> ownerResponsibleTypeById = [];
         private Dictionary<string, int> ownerResponsibleTypeIdByName = new(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, int> ownerLifeCycleStateIdsByName = new(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<int, bool> ownerLifeCycleStateActiveById = [];
+        private bool hasImmediateAppDecommNotificationForImport;
         private ModellingNamingConvention NamingConvention = new();
         private UserConfig userConfig = new();
         private const string LogMessageTitle = "Import App Data";
@@ -56,6 +58,7 @@ namespace FWO.Middleware.Server
             await InitLdap();
             await InitResponsibleTypes();
             await InitOwnerLifeCycleStates();
+            hasImmediateAppDecommNotificationForImport = await LoadHasImmediateAppDecommNotification();
             List<string> failedImports = [];
             var ownerChangeTracker = new OwnerChangeImportTracker(apiConnection);
 
@@ -98,11 +101,13 @@ namespace FWO.Middleware.Server
         {
             List<OwnerLifeCycleState> lifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(OwnerQueries.getOwnerLifeCycleStates);
             ownerLifeCycleStateIdsByName = new(StringComparer.OrdinalIgnoreCase);
+            ownerLifeCycleStateActiveById = [];
             foreach (OwnerLifeCycleState state in lifeCycleStates)
             {
                 if (!string.IsNullOrWhiteSpace(state.Name))
                 {
-                    ownerLifeCycleStateIdsByName[state.Name] = state.Id;
+                    ownerLifeCycleStateIdsByName[state.Name.Trim()] = state.Id;
+                    ownerLifeCycleStateActiveById[state.Id] = state.ActiveState;
                 }
             }
         }
@@ -115,7 +120,7 @@ namespace FWO.Middleware.Server
                 ModellingImportOwnerData? importedOwnerData = JsonSerializer.Deserialize<ModellingImportOwnerData>(importFile) ?? throw new JsonException("File could not be parsed.");
                 if (importedOwnerData != null && importedOwnerData.Owners != null)
                 {
-                    importedApps = importedOwnerData.Owners;
+                    ImportedApps = importedOwnerData.Owners;
                     await ImportApps(importfileName, ownerChangeTracker);
                 }
             }
@@ -147,21 +152,21 @@ namespace FWO.Middleware.Server
                     ++failCounter;
                 }
             }
-            string? importSource = importedApps.FirstOrDefault()?.ImportSource;
+            string? importSource = ImportedApps.FirstOrDefault()?.ImportSource;
             if (importSource != null)
             {
-                (deleteCounter, deleteFailCounter) = await DeactivateMissingApps(importSource, existingApps, importedApps, ownerChangeTracker);
+                (deleteCounter, deleteFailCounter) = await DeactivateMissingApps(importSource, ownerChangeTracker);
             }
             string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
             Log.WriteInfo(LogMessageTitle, messageText);
             await AddLogEntry(0, LevelFile, messageText);
-
         }
 
         private async Task<bool> SaveApp(ModellingImportAppData incomingApp, OwnerChangeImportTracker ownerChangeTracker)
         {
             try
             {
+                incomingApp = await NormalizeImportedUserReferences(incomingApp);
                 int appId;
                 if (!TryResolveOwnerLifeCycleStateId(incomingApp, out int? ownerLifeCycleStateId))
                 {
@@ -172,7 +177,7 @@ namespace FWO.Middleware.Server
                 }
                 List<OwnerResponsible> responsibles = BuildOwnerResponsibles(incomingApp);
 
-                FwoOwner? existingApp = existingApps.FirstOrDefault(x => x.ExtAppId == incomingApp.ExtAppId);
+                FwoOwner? existingApp = ExistingApps.FirstOrDefault(x => x.ExtAppId == incomingApp.ExtAppId);
 
                 if (existingApp == null)
                 {
@@ -183,11 +188,8 @@ namespace FWO.Middleware.Server
                 {
                     appId = existingApp.Id;
                     await UpdateApp(incomingApp, existingApp, ownerLifeCycleStateId, responsibles);
-                    // Owner got reactivated or Changes in Owners Network
-                    if (!AreNetworksIdentical(existingApp.OwnerNetworks, incomingApp.AppServers) || !existingApp.Active)
-                    {
-                        await ownerChangeTracker.AddOwnerChange(appId, appId, ChangelogActionType.CHANGE, incomingApp.ImportSource);
-                    }
+                    await AddOwnerChangeIfNeeded(existingApp, incomingApp, ownerChangeTracker);
+                    await AddOwnerLifeCycleStateActiveChangeIfNeeded(existingApp, ownerLifeCycleStateId, incomingApp.ImportSource, ownerChangeTracker);
                 }
                 if (!string.IsNullOrWhiteSpace(incomingApp.MainUser) && IsResponsibleTypeActive(GlobalConst.kOwnerResponsibleTypeMain))
                 {
@@ -207,6 +209,257 @@ namespace FWO.Middleware.Server
             return true;
         }
 
+        private async Task<ModellingImportAppData> NormalizeImportedUserReferences(ModellingImportAppData incomingApp)
+        {
+            ModellingImportAppData normalizedApp = new()
+            {
+                Name = incomingApp.Name,
+                ExtAppId = incomingApp.ExtAppId,
+                MainUser = await NormalizeImportedUserReference(incomingApp, incomingApp.MainUser, "main_user"),
+                Criticality = incomingApp.Criticality,
+                OwnerLifecycleState = incomingApp.OwnerLifecycleState,
+                ImportSource = incomingApp.ImportSource,
+                RecertInterval = incomingApp.RecertInterval,
+                FirstRecertInterval = incomingApp.FirstRecertInterval,
+                RecertActive = incomingApp.RecertActive,
+                AppServers = [.. incomingApp.AppServers]
+            };
+
+            if (incomingApp.Responsibles == null)
+            {
+                normalizedApp.Responsibles = null;
+                return normalizedApp;
+            }
+
+            normalizedApp.Responsibles = [];
+            foreach ((string typeKey, List<string> identifiers) in incomingApp.Responsibles)
+            {
+                List<string> normalizedIdentifiers = [];
+                foreach (string identifier in identifiers)
+                {
+                    string? normalizedIdentifier = await NormalizeImportedUserReference(incomingApp, identifier, $"responsibles[{typeKey}]");
+                    if (!string.IsNullOrWhiteSpace(normalizedIdentifier))
+                    {
+                        normalizedIdentifiers.Add(normalizedIdentifier);
+                    }
+                }
+                normalizedApp.Responsibles[typeKey] = normalizedIdentifiers;
+            }
+            return normalizedApp;
+        }
+
+        private async Task AddOwnerLifeCycleStateActiveChangeIfNeeded(
+            FwoOwner existingApp,
+            int? ownerLifeCycleStateId,
+            string? importSource,
+            OwnerChangeImportTracker ownerChangeTracker)
+        {
+            if (!TryGetOwnerLifeCycleStateActive(existingApp.OwnerLifeCycleStateId, out bool oldActiveState)
+                || !TryGetOwnerLifeCycleStateActive(ownerLifeCycleStateId, out bool newActiveState)
+                || oldActiveState == newActiveState)
+            {
+                return;
+            }
+
+            await ownerChangeTracker.AddOwnerChange(
+                existingApp.Id,
+                existingApp.Id,
+                newActiveState ? ChangelogActionType.REACTIVATE : ChangelogActionType.DEACTIVATE,
+                importSource);
+
+            if (!newActiveState && hasImmediateAppDecommNotificationForImport)
+            {
+                await CheckActiveRulesSync(existingApp);
+            }
+        }
+
+        private async Task AddOwnerChangeIfNeeded(
+            FwoOwner existingApp,
+            ModellingImportAppData incomingApp,
+            OwnerChangeImportTracker ownerChangeTracker)
+        {
+            if (!existingApp.Active || HaveAppServerChanges(incomingApp))
+            {
+                await ownerChangeTracker.AddOwnerChange(existingApp.Id, existingApp.Id, ChangelogActionType.CHANGE, incomingApp.ImportSource);
+            }
+        }
+
+        private bool HaveAppServerChanges(ModellingImportAppData incomingApp)
+        {
+            HashSet<string> existing = BuildAppServerKeys(ExistingAppServers);
+            HashSet<string> incoming = BuildAppServerKeys(incomingApp.AppServers.Select(appServer => appServer.ToModellingAppServer()));
+            return !existing.SetEquals(incoming);
+        }
+
+        private static HashSet<string> BuildAppServerKeys(IEnumerable<ModellingAppServer> appServers)
+        {
+            HashSet<string> keys = new(StringComparer.OrdinalIgnoreCase);
+            foreach (ModellingAppServer appServer in appServers.Where(appServer => !appServer.IsDeleted))
+            {
+                string ip = string.IsNullOrWhiteSpace(appServer.Ip) ? "" : appServer.Ip.Trim().IpAsCidr();
+                string ipEnd = string.IsNullOrWhiteSpace(appServer.IpEnd) ? ip : appServer.IpEnd.Trim().IpAsCidr();
+                string name = string.IsNullOrWhiteSpace(appServer.Name) ? "" : appServer.Name.Trim();
+                keys.Add($"{ip}|{ipEnd}|{name}");
+            }
+            return keys;
+        }
+
+        private bool TryGetOwnerLifeCycleStateActive(int? ownerLifeCycleStateId, out bool activeState)
+        {
+            if (ownerLifeCycleStateId.HasValue && ownerLifeCycleStateActiveById.TryGetValue(ownerLifeCycleStateId.Value, out bool resolvedActiveState))
+            {
+                activeState = resolvedActiveState;
+                return true;
+            }
+
+            activeState = false;
+            return false;
+        }
+
+        private OwnerLifeCycleState? GetOwnerLifeCycleState(int? ownerLifeCycleStateId)
+        {
+            if (ownerLifeCycleStateId.HasValue && ownerLifeCycleStateActiveById.TryGetValue(ownerLifeCycleStateId.Value, out bool activeState))
+            {
+                return new OwnerLifeCycleState
+                {
+                    Id = ownerLifeCycleStateId.Value,
+                    ActiveState = activeState
+                };
+            }
+
+            return null;
+        }
+
+        private DateTime? GetDecommDateAfterLifecycleChange(FwoOwner existingApp, int? ownerLifeCycleStateId)
+        {
+            return OwnerLifeCycleState.GetDecommDate(
+                existingApp.DecommDate,
+                GetOwnerLifeCycleState(existingApp.OwnerLifeCycleStateId),
+                GetOwnerLifeCycleState(ownerLifeCycleStateId),
+                DateTime.UtcNow);
+        }
+
+        private DateTime? GetDecommDateForNewOwner(int? ownerLifeCycleStateId)
+        {
+            return OwnerLifeCycleState.GetDecommDate(
+                null,
+                null,
+                GetOwnerLifeCycleState(ownerLifeCycleStateId),
+                DateTime.UtcNow);
+        }
+
+        private async Task<string?> NormalizeImportedUserReference(ModellingImportAppData incomingApp, string? importedIdentifier, string fieldName)
+        {
+            if (string.IsNullOrWhiteSpace(importedIdentifier))
+            {
+                return importedIdentifier;
+            }
+
+            string trimmedIdentifier = importedIdentifier.Trim();
+            if (LooksLikeDistinguishedName(trimmedIdentifier))
+            {
+                return trimmedIdentifier;
+            }
+
+            string? resolvedDn = await ResolveImportedResponsibleIdentifierToDn(trimmedIdentifier);
+            if (!string.IsNullOrWhiteSpace(resolvedDn))
+            {
+                return resolvedDn.Trim();
+            }
+
+            string appLabel = string.IsNullOrWhiteSpace(incomingApp.Name)
+                ? incomingApp.ExtAppId
+                : $"{incomingApp.Name} ({incomingApp.ExtAppId})";
+            string warningText = $"App \"{appLabel}\": could not resolve imported user id \"{trimmedIdentifier}\" from field \"{fieldName}\". Skipping entry.";
+            Log.WriteWarning(LogMessageTitle, warningText);
+            await AddLogEntry(1, LevelApp, warningText);
+            return null;
+        }
+
+        /// <summary>
+        /// Resolves a plain imported responsible identifier to a distinguished name.
+        /// User identifiers are tried first, then group identifiers.
+        /// </summary>
+        /// <param name="identifier">Imported user or group identifier from the source system.</param>
+        /// <returns>Resolved distinguished name if found; otherwise null.</returns>
+        protected virtual async Task<string?> ResolveImportedResponsibleIdentifierToDn(string identifier)
+        {
+            string? userDn = await ResolveImportedUserIdentifierToDn(identifier);
+            if (!string.IsNullOrWhiteSpace(userDn))
+            {
+                return userDn;
+            }
+            return await ResolveImportedGroupIdentifierToDn(identifier);
+        }
+
+        /// <summary>
+        /// Resolves a plain imported user identifier to a distinguished name.
+        /// </summary>
+        /// <param name="userIdentifier">Imported user identifier such as uid, cn, or login name.</param>
+        /// <returns>Resolved user distinguished name if found in any connected LDAP; otherwise null.</returns>
+        protected virtual async Task<string?> ResolveImportedUserIdentifierToDn(string userIdentifier)
+        {
+            UiUser userToResolve = new() { Name = userIdentifier };
+            foreach (Ldap ldap in connectedLdaps)
+            {
+                if (string.IsNullOrWhiteSpace(ldap.UserSearchPath))
+                {
+                    continue;
+                }
+
+                LdapEntry? ldapUser = await ldap.GetLdapEntry(userToResolve, false);
+                if (!string.IsNullOrWhiteSpace(ldapUser?.Dn))
+                {
+                    return ldapUser.Dn;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Resolves a plain imported group identifier to a distinguished name.
+        /// </summary>
+        /// <param name="groupIdentifier">Imported group identifier from the source system.</param>
+        /// <returns>Resolved group distinguished name if found; otherwise null.</returns>
+        protected virtual async Task<string?> ResolveImportedGroupIdentifierToDn(string groupIdentifier)
+        {
+            foreach (Ldap ldap in connectedLdaps)
+            {
+                List<string> matches = await ldap.GetAllGroups(groupIdentifier);
+                if (matches.Count > 0)
+                {
+                    return matches[0];
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Checks whether the owner still has active rules after a lifecycle transition to an inactive state.
+        /// </summary>
+        /// <param name="owner">Owner to check.</param>
+        protected virtual async Task CheckActiveRulesSync(FwoOwner owner)
+        {
+            await new OwnerActiveRuleCheck(apiConnection, globalConfig).CheckActiveRulesSync(owner);
+        }
+
+        /// <summary>
+        /// Loads whether an immediate owner decommission notification exists.
+        /// This is intended to be called once per whole import run.
+        /// </summary>
+        protected virtual async Task<bool> LoadHasImmediateAppDecommNotification()
+        {
+            List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(
+                NotificationQueries.getNotifications,
+                new { client = NotificationClient.AppDecomm.ToString() });
+            return notifications.Any(notification => notification.Deadline == NotificationDeadline.None);
+        }
+
+        private static bool LooksLikeDistinguishedName(string identifier)
+        {
+            return identifier.Contains('=') && identifier.Contains(',');
+        }
+
         private async Task<int> NewApp(ModellingImportAppData incomingApp, int? ownerLifeCycleStateId, List<OwnerResponsible> responsibles)
         {
             int appId = 0;
@@ -219,7 +472,8 @@ namespace FWO.Middleware.Server
                 ownerLifeCycleStateId,
                 importSource = incomingApp.ImportSource,
                 commSvcPossible = false,
-                recertActive = false
+                recertActive = false,
+                decommDate = GetDecommDateForNewOwner(ownerLifeCycleStateId)
             };
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
             if (returnIds != null)
@@ -245,6 +499,7 @@ namespace FWO.Middleware.Server
                 criticality = incomingApp.Criticality,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
                 ownerLifeCycleStateId,
+                decommDate = GetDecommDateAfterLifecycleChange(existingApp, ownerLifeCycleStateId),
                 commSvcPossible = existingApp.CommSvcPossible,
                 recertActive = incomingApp.RecertActive || existingApp.RecertActive
             };
@@ -254,12 +509,12 @@ namespace FWO.Middleware.Server
             await ImportAppServers(incomingApp, existingApp.Id);
         }
 
-        private async Task<(int deleted, int failed)> DeactivateMissingApps(string importSource, IEnumerable<FwoOwner> existingApps, List<ModellingImportAppData> importedApps, OwnerChangeImportTracker ownerChangeTracker)
+        private async Task<(int deleted, int failed)> DeactivateMissingApps(string importSource, OwnerChangeImportTracker ownerChangeTracker)
         {
             int deletedCounter = 0, deleteFailCounter = 0;
-            foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
+            foreach (var existingApp in ExistingApps.Where(x => x.ImportSource == importSource && x.Active))
             {
-                if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
+                if (ImportedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
                 {
                     if (await DeactivateApp(existingApp, ownerChangeTracker))
                     {
@@ -391,6 +646,7 @@ namespace FWO.Middleware.Server
                     responsible_type = new { _eq = responsible.ResponsibleTypeId }
                 });
                 await apiConnection.SendQueryAsync<object>(OwnerQueries.deleteSpecificOwnerResponsibles, new { ownerId, objects = deletionObjects });
+                await RemoveRolesFromResponsibles(responsiblesToDelete, rolesToSetByType);
             }
 
             if (responsiblesToInsert.Count == 0)
@@ -454,6 +710,19 @@ namespace FWO.Middleware.Server
 
         private async Task ApplyRolesToResponsibles(List<OwnerResponsible> responsibles, Dictionary<int, List<string>> rolesByType)
         {
+            await ForEachResponsibleRoleAssignment(responsibles, rolesByType, UpdateRoles);
+        }
+
+        private async Task RemoveRolesFromResponsibles(List<OwnerResponsible> responsibles, Dictionary<int, List<string>> rolesByType)
+        {
+            await ForEachResponsibleRoleAssignment(responsibles, rolesByType, RemoveRoles);
+        }
+
+        private async Task ForEachResponsibleRoleAssignment(
+            List<OwnerResponsible> responsibles,
+            Dictionary<int, List<string>> rolesByType,
+            Func<string, List<string>, Task> roleHandler)
+        {
             foreach (OwnerResponsible responsible in responsibles)
             {
                 if (!rolesByType.TryGetValue(responsible.ResponsibleTypeId, out List<string>? roles) || roles.Count == 0)
@@ -467,7 +736,7 @@ namespace FWO.Middleware.Server
                 {
                     continue;
                 }
-                await UpdateRoles(responsible.Dn, filteredRoles);
+                await roleHandler(responsible.Dn, filteredRoles);
             }
         }
 
@@ -547,71 +816,100 @@ namespace FWO.Middleware.Server
 
         private async Task AddResponsibleDnToUiUser(string responsibleDn, HashSet<string> handledUserDns, HashSet<string> handledGroupDnsByLdap)
         {
+            string normalizedResponsibleDn = responsibleDn.Trim();
+            if (await TryResolveAndUpsertImportedUiUser(normalizedResponsibleDn, handledUserDns))
+            {
+                return;
+            }
+
             foreach (Ldap ldap in connectedLdaps)
             {
-                bool isUserDn = !string.IsNullOrEmpty(ldap.UserSearchPath)
-                    && responsibleDn.Contains(ldap.UserSearchPath, StringComparison.OrdinalIgnoreCase);
-                if (isUserDn)
-                {
-                    await TryUpsertUiUser(responsibleDn, handledUserDns);
-                    continue;
-                }
-
-                string groupKey = $"{ldap.Id}|{responsibleDn}";
+                string groupKey = $"{ldap.Id}|{normalizedResponsibleDn}";
                 if (!handledGroupDnsByLdap.Add(groupKey))
                 {
                     continue;
                 }
-                foreach (string memberDn in await ldap.GetGroupMembers(responsibleDn))
+                foreach (string memberDn in await ResolveImportedGroupMembers(ldap, normalizedResponsibleDn))
                 {
                     if (!string.IsNullOrWhiteSpace(memberDn))
                     {
-                        await TryUpsertUiUser(memberDn, handledUserDns);
+                        await AddResponsibleDnToUiUser(memberDn.Trim(), handledUserDns, handledGroupDnsByLdap);
                     }
                 }
             }
         }
 
-        private async Task TryUpsertUiUser(string userDn, HashSet<string> handledUserDns)
+        private async Task<bool> TryResolveAndUpsertImportedUiUser(string responsibleDn, HashSet<string> handledUserDns)
         {
-            if (!handledUserDns.Add(userDn))
+            UiUser? uiUser = await ResolveImportedUiUser(responsibleDn);
+            if (uiUser == null || string.IsNullOrWhiteSpace(uiUser.Dn))
             {
-                return;
+                return false;
             }
-            UiUser? uiUser = await ConvertLdapToUiUser(userDn);
-            if (uiUser != null)
+            if (!handledUserDns.Add(uiUser.Dn))
             {
-                await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
+                return true;
             }
+            await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
+            if (uiUser.DbId <= 0)
+            {
+                Log.WriteWarning(LogMessageTitle, $"Resolved imported user \"{uiUser.Dn}\" could not be written to uiuser.");
+            }
+            return true;
         }
 
         private async Task<UiUser?> ConvertLdapToUiUser(string userDn)
         {
             // add the modelling user to local uiuser table for later ref to email address
             // find the user in all connected ldaps
+            bool inputLooksLikeDn = LooksLikeDistinguishedName(userDn);
             foreach (Ldap ldap in connectedLdaps)
             {
-                if (!string.IsNullOrEmpty(ldap.UserSearchPath) && userDn.ToLower().Contains(ldap.UserSearchPath!.ToLower()))
+                if (!inputLooksLikeDn
+                    && (string.IsNullOrEmpty(ldap.UserSearchPath)
+                        || !userDn.Contains(ldap.UserSearchPath, StringComparison.OrdinalIgnoreCase)))
                 {
-                    LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
+                    continue;
+                }
 
-                    if (ldapUser != null)
+                LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
+                if (ldapUser != null && !Ldap.IsGroupEntry(ldapUser))
+                {
+                    // add data from ldap entry to uiUser
+                    return new()
                     {
-                        // add data from ldap entry to uiUser
-                        return new()
-                        {
-                            LdapConnection = new UiLdapConnection() { Id = ldap.Id },
-                            Dn = ldapUser.Dn,
-                            Name = Ldap.GetName(ldapUser),
-                            Firstname = Ldap.GetFirstName(ldapUser),
-                            Lastname = Ldap.GetLastName(ldapUser),
-                            Email = Ldap.GetEmail(ldapUser),
-                            Tenant = await DeriveTenantFromLdap(ldap, ldapUser)
-                        };
-                    }
+                        LdapConnection = new UiLdapConnection() { Id = ldap.Id },
+                        Dn = ldapUser.Dn,
+                        Name = Ldap.GetName(ldapUser),
+                        Firstname = Ldap.GetFirstName(ldapUser),
+                        Lastname = Ldap.GetLastName(ldapUser),
+                        Email = Ldap.GetEmail(ldapUser),
+                        Tenant = await DeriveTenantFromLdap(ldap, ldapUser)
+                    };
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Resolves an imported responsible DN to a UI user if it references a user entry.
+        /// </summary>
+        /// <param name="responsibleDn">Imported responsible distinguished name.</param>
+        /// <returns>UI user when the DN is a user entry; otherwise null.</returns>
+        protected virtual async Task<UiUser?> ResolveImportedUiUser(string responsibleDn)
+        {
+            return await ConvertLdapToUiUser(responsibleDn);
+        }
+
+        /// <summary>
+        /// Resolves members of an imported group DN, including groups from non-standard LDAP paths.
+        /// </summary>
+        /// <param name="ldap">LDAP connection to query.</param>
+        /// <param name="groupDn">Imported group distinguished name.</param>
+        /// <returns>List of member user or group DNs.</returns>
+        protected virtual async Task<List<string>> ResolveImportedGroupMembers(Ldap ldap, string groupDn)
+        {
+            return await ldap.GetGroupMembers(groupDn);
         }
 
         private async Task<Tenant> DeriveTenantFromLdap(Ldap ldap, LdapEntry ldapUser)
@@ -652,11 +950,29 @@ namespace FWO.Middleware.Server
             List<string> roles = await internalLdap.GetRoles([dn]);
             foreach (var role in rolesToApply)
             {
-                if (!roles.Contains(role))
+                if (!roles.Contains(role, StringComparer.OrdinalIgnoreCase))
                 {
                     await internalLdap.AddUserToEntry(dn, GetRoleDn(role));
                 }
             }
+        }
+
+        private async Task RemoveRoles(string dn, List<string> rolesToRemove)
+        {
+            foreach (string role in rolesToRemove)
+            {
+                await RemoveRoleFromDn(dn, role);
+            }
+        }
+
+        /// <summary>
+        /// Removes a role assignment from a user DN.
+        /// </summary>
+        /// <param name="dn">User distinguished name.</param>
+        /// <param name="role">Role name.</param>
+        protected virtual async Task RemoveRoleFromDn(string dn, string role)
+        {
+            await internalLdap.RemoveUserFromEntry(dn, GetRoleDn(role));
         }
 
         private async Task ImportAppServers(ModellingImportAppData incomingApp, int applId)
@@ -671,7 +987,7 @@ namespace FWO.Middleware.Server
                 importSource = incomingApp.ImportSource,
                 appId = applId
             };
-            existingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, Variables);
+            ExistingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, Variables);
             foreach (var incomingAppServer in incomingApp.AppServers)
             {
                 if (await SaveAppServer(incomingAppServer, applId, incomingApp.ImportSource))
@@ -683,7 +999,7 @@ namespace FWO.Middleware.Server
                     ++failCounter;
                 }
             }
-            foreach (var existingAppServer in existingAppServers.Where(e => !e.IsDeleted).ToList())
+            foreach (var existingAppServer in ExistingAppServers.Where(e => !e.IsDeleted).ToList())
             {
                 if (incomingApp.AppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == existingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == existingAppServer.IpEnd.IpAsCidr()) == null)
                 {
@@ -712,7 +1028,7 @@ namespace FWO.Middleware.Server
                 {
                     incomingAppServer.Name = await BuildAppServerName(incomingAppServer);
                 }
-                ModellingAppServer? existingAppServer = existingAppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == incomingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == incomingAppServer.IpEnd.IpAsCidr());
+                ModellingAppServer? existingAppServer = ExistingAppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == incomingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == incomingAppServer.IpEnd.IpAsCidr());
                 if (existingAppServer == null)
                 {
                     return await NewAppServer(incomingAppServer, appID, impSource);

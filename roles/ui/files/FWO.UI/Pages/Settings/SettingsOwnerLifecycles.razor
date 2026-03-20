@@ -1,53 +1,66 @@
+@page "/settings/owners/lifecycles"
 @using FWO.Api.Client.Queries
 @using FWO.Data
 @using FWO.Logging
 @using FWO.Services
 @using FWO.Ui.Services
 
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("manage_lifecycles"))" HelpPage="settings/owners" Show="@Display" Size=PopupSize.Large OnClose="CancelLifeCycle">
-    <Body>
-        @if (Display)
-        {
-            <div class="row">
+@if (InitComplete)
+{
+    <div class="input-group">
+        <h3>@(userConfig.GetText("owner_lifecycle_states"))</h3>
+        <HelpLink Page="settings/ownerlifecycles"/>
+    </div>
+    <hr />
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="row mb-2">
                 <div class="col-sm-12">
-                    <div class="row mb-2">
-                        <div class="col-sm-12">
-                            @if (userConfig.AllowManualOwnerAdmin)
-                            {
-                                <button type="button" class="btn btn-sm btn-success" @onclick="AddLifeCycle">@(DisplayService.DisplayButton(userConfig, "add_owner_lc_state", Icons.Add))</button>
-                            }
-                        </div>
-                    </div>
-                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerLifeCycleState" Items="OwnerLifeCycleStates" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("owner_lc_states"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
-                            <Template Context="item">
-                                <div class="btn-group">
-                                    @if (userConfig.AllowManualOwnerAdmin)
-                                    {
-                                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditLifeCyle(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                                        <AuthorizeView Roles="@Roles.Admin" Context="ctx">
-                                            <Authorized>
-                                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteLifeCycle(item)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
-                                            </Authorized>
-                                            <NotAuthorized>
-                                                <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
-                                            </NotAuthorized>
-                                        </AuthorizeView>
-                                    }
-                                </div>
-                            </Template>
-                        </Column>
-                        <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-                        <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-                    </Table>
+                    @if (userConfig.AllowManualOwnerAdmin)
+                    {
+                        <button type="button" class="btn btn-sm btn-success" @onclick="AddLifeCycle">@(DisplayService.DisplayButton(userConfig, "add_owner_lc_state", Icons.Add))</button>
+                    }
                 </div>
             </div>
-        }
-    </Body>
-</PopUp>
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerLifeCycleState" Items="OwnerLifeCycleStates" PageSize="0" ColumnReorder="true">
+                <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("owner_lifecycle_states"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                    <Template Context="item">
+                        <div class="btn-group">
+                            @if (userConfig.AllowManualOwnerAdmin)
+                            {
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditLifeCyle(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                <AuthorizeView Roles="@Roles.Admin" Context="ctx">
+                                    <Authorized>
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteLifeCycle(item)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    </NotAuthorized>
+                                </AuthorizeView>
+                            }
+                        </div>
+                    </Template>
+                </Column>
+                <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("active"))" Field="@(x => x.ActiveState)" Sortable="true" Filterable="true">
+                    <Template Context="item">
+                        @(item.ActiveState.ShowAsHtml(withColors: true))
+                    </Template>
+                </Column>
+            </Table>
+        </div>
+    </div>
+}
+else
+{
+    <Loading/>
+}
 
 <PopUp Title="@(userConfig.GetText("edit_owner_lc_state"))" Show="@EditLifeCycleMode" Size=PopupSize.Medium OnClose="() => EditLifeCycleMode = false">
     <Body>
@@ -55,24 +68,19 @@
         {
             <div class="col-sm-12">
                 <div class="form-group row me-2">
-                    <div class="col-sm-1">
-                        <div class="form-group row">
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(actLifeCycleState.Id)</label>
-                        </div>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-10 col-form-label col-form-label-sm">@(actLifeCycleState.Id)</label>
+                </div>
+                <div class="form-group row me-2 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5665"))">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control form-control-sm" @bind="actLifeCycleState.Name" />
                     </div>
-                    <div class="col-sm-11 me-auto">
-                        <div class="form-group row me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H5665"))">
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            @if (Readonly)
-                            {
-                                <label class="col-sm-10 me-auto">@actLifeCycleState.Name</label>
-                            }
-                            else
-                            {
-                                <input type="text" class="col-sm-10 me-auto" @bind="actLifeCycleState.Name" />
-                            }
-                        </div>
+                </div>
+                <div class="form-group row me-2 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5669"))">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
+                    <div class="col-sm-10">
+                        <input class="form-check-input mt-2" type="checkbox" @bind="actLifeCycleState.ActiveState" />
                     </div>
                 </div>
             </div>
@@ -80,17 +88,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            @if (!Readonly || !userConfig.AllowManualOwnerAdmin)
-            {
-                <AuthorizeView Roles="@Roles.Admin">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveLifeCycle">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
-                    </NotAuthorized>
-                </AuthorizeView>
-            }
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="SaveLifeCycle">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </NotAuthorized>
+            </AuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEditLifeCycle">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
@@ -100,25 +105,28 @@
 
 @code
 {
-    [Parameter]
-    public List<OwnerLifeCycleState> OwnerLifeCycleStates { get; set; } = [];
-
-    [Parameter]
-    public bool Display { get; set; }
-
-    [Parameter]
-    public EventCallback<bool> DisplayChanged { get; set; }
-
-    [Parameter]
-    public bool Readonly { get; set; }
-
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
+    private List<OwnerLifeCycleState> OwnerLifeCycleStates { get; set; } = [];
     private OwnerLifeCycleState actLifeCycleState = new();
     private bool EditLifeCycleMode = false;
     private bool AddLifeCycleMode = false;
     private bool DeleteLifeCycleMode = false;
+    private bool InitComplete = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            OwnerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(OwnerQueries.getOwnerLifeCycleStates);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+        InitComplete = true;
+    }
 
 
     private void EditLifeCyle(OwnerLifeCycleState ownerLifeCycleState)
@@ -166,6 +174,7 @@
         var variables = new
         {
             name = actLifeCycleState.Name,
+            activeState = actLifeCycleState.ActiveState,
         };
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwnerLifeCycle, variables)).ReturnIds;
         if (returnIds == null)
@@ -188,6 +197,7 @@
         {
             id = actLifeCycleState.Id,
             name = actLifeCycleState.Name,
+            activeState = actLifeCycleState.ActiveState,
         };
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwnerLifeCycle, Variables)).UpdatedId;
         if (udId != actLifeCycleState.Id)
@@ -212,12 +222,6 @@
         EditLifeCycleMode = false;
         AddLifeCycleMode = false;
         DeleteLifeCycleMode = false;
-    }
-
-    private void CancelLifeCycle()
-    {
-        Display = false;
-        DisplayChanged.InvokeAsync(Display);
     }
 
     private void RequestDeleteLifeCycle(OwnerLifeCycleState ownerLifeCycleState)

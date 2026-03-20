@@ -92,7 +92,7 @@ namespace FWO.Services
 
             long importControlId = await CreateImportControl();
 
-            foreach( RuleOwner ruleOwner in newRuleOwners)
+            foreach (RuleOwner ruleOwner in newRuleOwners)
             {
                 ruleOwner.Created = importControlId;
             }
@@ -275,7 +275,7 @@ namespace FWO.Services
                     throw new InvalidOperationException("Failed to create ImportControl. Returning list empty.");
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Created new import control with ID { firstControl.ControlId }.");
+                Log.WriteInfo(LogMessageTitle, $"Created new import control with ID {firstControl.ControlId}.");
                 return firstControl.ControlId;
             }
             catch (Exception exception)
@@ -340,14 +340,9 @@ namespace FWO.Services
             {
                 try
                 {
-                    var customFields =JsonSerializer.Deserialize<Dictionary<string, string>>((rule.CustomFields ?? "{}").Replace("'", "\"")) ?? new Dictionary<string, string>();
+                    var customFieldValue = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, globalConfig.CustomFieldOwnerKey);
 
-                    if (!customFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var ownerName))
-                    {
-                        continue;
-                    }
-
-                    if (ownerNameToIdMap.TryGetValue(ownerName, out var ownerId))
+                    if (!string.IsNullOrWhiteSpace(customFieldValue) && ownerNameToIdMap.TryGetValue(customFieldValue, out var ownerId))
                     {
                         newRuleOwners.Add(new RuleOwner
                         {
@@ -516,8 +511,8 @@ namespace FWO.Services
             var oldFields = DeserializeCustomFields(ruleChange.OldRule?.CustomFields);
             var newFields = DeserializeCustomFields(ruleChange.NewRule?.CustomFields);
 
-            oldFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var oldValue);
-            newFields.TryGetValue(globalConfig.OwnerSourceCustomFieldKey, out var newValue);
+            oldFields.TryGetValue(globalConfig.CustomFieldOwnerKey, out var oldValue);
+            newFields.TryGetValue(globalConfig.CustomFieldOwnerKey, out var newValue);
 
             return !string.Equals(oldValue, newValue, StringComparison.Ordinal);
         }
@@ -606,10 +601,12 @@ namespace FWO.Services
                 switch (change.ChangeAction)
                 {
                     case ChangelogActionType.INSERT:
+                    case ChangelogActionType.REACTIVATE:
                         ownersToAdd.Add(change.NewOwner);
                         break;
 
                     case ChangelogActionType.DELETE:
+                    case ChangelogActionType.DEACTIVATE:
                         ownersToRemove.Add(change.OldOwner);
                         break;
 

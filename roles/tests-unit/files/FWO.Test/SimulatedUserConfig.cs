@@ -9,7 +9,7 @@ namespace FWO.Test
 
         public override string GetText(string key)
         {
-            return DummyTranslate[key];
+            return DummyTranslate.TryGetValue(key, out string? value) ? value : key;
         }
 
         public SimulatedGlobalConfig() : base()
@@ -326,7 +326,8 @@ namespace FWO.Test
             {"C9016","Deleted objects (interface)"},
             {"C9014","Deleted objects"},
             {"modRequestOnlyOwnObjects","Request only own objects"},
-            {"H5668","Request only own objects help"}
+            {"H5668","Request only own objects help"},
+            {"change_id","Change-ID"}
         };
 
         public override string GetText(string key)

@@ -1,0 +1,28 @@
+@page "/help/settings/notifications"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("notifications"))</h3>
+    <p>
+        @(Html.Raw(userConfig.GetText("H5720")))
+    </p>
+    <h4>@(userConfig.GetText("settings"))</h4>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5721")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5722")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5723")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5724")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5725")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5726")))</li>
+    </ul>
+</div>

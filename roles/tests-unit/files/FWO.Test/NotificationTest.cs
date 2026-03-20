@@ -21,26 +21,26 @@ namespace FWO.Test
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
             FwoOwner owner = new();
 
-            int emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-8), EmailText);
+            int emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-8), EmailText);
             ClassicAssert.AreEqual(2, emailsSent);
             ClassicAssert.AreEqual(2, await notificationService.UpdateNotificationsLastSent());
 
             notificationService.Notifications[0].LastSent = DateTime.Now.AddDays(-1);
-            emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-8), EmailText);
+            emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-8), EmailText);
             ClassicAssert.AreEqual(1, emailsSent);
             ClassicAssert.AreEqual(1, await notificationService.UpdateNotificationsLastSent());
 
             notificationService.Notifications[1].LastSent = DateTime.Now.AddDays(-8);
-            emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-15), EmailText);
+            emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-15), EmailText);
             ClassicAssert.AreEqual(0, emailsSent);
             ClassicAssert.AreEqual(0, await notificationService.UpdateNotificationsLastSent());
 
             notificationService.Notifications[1].InitialOffsetAfterDeadline = 7;
-            emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-15), EmailText);
+            emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-15), EmailText);
             ClassicAssert.AreEqual(1, emailsSent);
 
             notificationService.Notifications[1].InitialOffsetAfterDeadline = -7;
-            emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-1), EmailText);
+            emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-1), EmailText);
             ClassicAssert.AreEqual(1, emailsSent);
         }
 
@@ -51,22 +51,62 @@ namespace FWO.Test
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnection, ownerGroups);
             FwoOwner owner = new() { NextRecertDate = DateTime.Now.AddDays(21) };
 
-            int emailsSent = await notificationService.SendNotifications(owner, null, EmailText, new ReportRecertEvent(new(""), new(globalConfig), Basics.ReportType.RecertificationEvent) { });
+            int emailsSent = await notificationService.SendNotificationsIfDue(owner, null, EmailText, new ReportRecertEvent(new(""), new(globalConfig), Basics.ReportType.RecertificationEvent) { });
             ClassicAssert.AreEqual(1, emailsSent);
 
             notificationService.Notifications[0].LastSent = DateTime.Now;
-            emailsSent = await notificationService.SendNotifications(owner, null, EmailText);
+            emailsSent = await notificationService.SendNotificationsIfDue(owner, null, EmailText);
             ClassicAssert.AreEqual(0, emailsSent);
 
             notificationService.Notifications[0].LastSent = DateTime.Now.AddDays(-7);
             owner.NextRecertDate = DateTime.Now.AddDays(-7);
-            emailsSent = await notificationService.SendNotifications(owner, null, EmailText);
+            emailsSent = await notificationService.SendNotificationsIfDue(owner, null, EmailText);
             ClassicAssert.AreEqual(1, emailsSent);
 
             notificationService.Notifications[0].LastSent = DateTime.Now.AddDays(-7);
             owner.NextRecertDate = DateTime.Now.AddDays(-14);
-            emailsSent = await notificationService.SendNotifications(owner, null, EmailText);
+            emailsSent = await notificationService.SendNotificationsIfDue(owner, null, EmailText);
             ClassicAssert.AreEqual(0, emailsSent);
+        }
+
+        [Test]
+        public async Task TestRuleExpiryNotificationDueCalculation()
+        {
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.RuleTimer, globalConfig, apiConnection, ownerGroups);
+            FwoOwner owner = new();
+            FwoNotification notification = notificationService.Notifications[0];
+
+            ClassicAssert.IsTrue(NotificationService.IsNotificationDue(owner, DateTime.Now.AddDays(-8), notification));
+            notification.LastSent = DateTime.Now.AddDays(-1);
+            ClassicAssert.IsFalse(NotificationService.IsNotificationDue(owner, DateTime.Now.AddDays(-8), notification));
+        }
+
+        [Test]
+        public void TestDecommissionNotificationDueCalculation()
+        {
+            FwoOwner owner = new() { DecommDate = DateTime.Now.AddDays(-8) };
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.DecommissionDate,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+                RepeatOffsetAfterDeadline = 7,
+                RepetitionsAfterDeadline = 2
+            };
+
+            ClassicAssert.IsTrue(NotificationService.IsNotificationDue(owner, null, notification));
+            notification.LastSent = DateTime.Now.AddDays(-1);
+            ClassicAssert.IsFalse(NotificationService.IsNotificationDue(owner, null, notification));
+        }
+
+        [Test]
+        public void TestNotificationDeadlineIsAlwaysInPast()
+        {
+            ClassicAssert.IsTrue(NotificationDeadline.RequestDate.IsAlwaysInPast());
+            ClassicAssert.IsTrue(NotificationDeadline.DecommissionDate.IsAlwaysInPast());
+            ClassicAssert.IsFalse(NotificationDeadline.None.IsAlwaysInPast());
+            ClassicAssert.IsFalse(NotificationDeadline.RecertDate.IsAlwaysInPast());
+            ClassicAssert.IsFalse(NotificationDeadline.RuleExpiry.IsAlwaysInPast());
         }
     }
 }

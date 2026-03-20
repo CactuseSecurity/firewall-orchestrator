@@ -374,3 +374,6 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.13 - 12.03.2026 DEVELOP
 - mark lifecycle states as active
+
+# 9.0.14 - 17.03.2026 DEVELOP
+- prepare owner decommission notification

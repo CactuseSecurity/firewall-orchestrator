@@ -25,6 +25,9 @@ namespace FWO.Data
 
         [JsonProperty("owner_mapping_source_id"), JsonPropertyName("owner_mapping_source_id")]
         public int OwnerMappingSourceId { get; set; }
+
+        [JsonProperty("matched_objects"), JsonPropertyName("matched_objects")]
+        public string? MatchedObjects { get; set; } = null;
     }
 
 

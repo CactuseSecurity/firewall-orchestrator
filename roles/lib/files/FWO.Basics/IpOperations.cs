@@ -452,7 +452,7 @@ namespace FWO.Basics
             return FromBigInteger(value, family);
         }
 
-        private static BigInteger ToBigInteger(IPAddress ip)
+        public static BigInteger ToBigInteger(IPAddress ip)
         {
             byte[] bytes = ip.GetAddressBytes(); // Big-endian.
             byte[] littleEndian = [.. bytes.Reverse(), 0]; // Little-endian plus unsigned padding.

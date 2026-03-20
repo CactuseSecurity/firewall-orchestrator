@@ -299,6 +299,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetIPAdressRange_Range_Fails_InvalidRange()
+        {
+            // Arrange
+            string input = "10.0.0.235-10.0.0.43";
+
+            // Act
+            TestDelegate action = () => IpOperations.GetIPAdressRange(input);
+
+            // Assert
+            Assert.Throws<FormatException>(action);
+        }
+
+        [Test]
         public void GetIPAdressRange_Single_Succeeds()
         {
             // Arrange

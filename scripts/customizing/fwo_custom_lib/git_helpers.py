@@ -1,4 +1,5 @@
 import logging
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -24,27 +25,20 @@ def update_git_repo(
 ) -> bool:
     try:
         git_any: Any = git
-        if Path(git_repo_target_dir).exists():
-            # If the repository already exists, open it and perform a pull
-            repo: Any = git_any.Repo(git_repo_target_dir)
-            if branch:
-                repo.git.checkout(branch)
-            origin: Any = repo.remotes.origin
-            pull_args: dict[str, int] = {}
-            if depth is not None:
-                pull_args["depth"] = depth
-            origin.pull(**pull_args)
-        # clone the repo initially
-        elif branch:
-            clone_args: dict[str, str | int] = {"branch": branch}
-            if depth is not None:
-                clone_args["depth"] = depth
-            repo = git_any.Repo.clone_from(repo_url, git_repo_target_dir, **clone_args)
-        else:
-            clone_args = {}
-            if depth is not None:
-                clone_args["depth"] = depth
-            repo = git_any.Repo.clone_from(repo_url, git_repo_target_dir, **clone_args)
+        repo_target_path: Path = Path(git_repo_target_dir)
+        if repo_target_path.exists():
+            if repo_target_path.is_dir():
+                shutil.rmtree(repo_target_path)
+            else:
+                repo_target_path.unlink()
+        repo_target_path.parent.mkdir(parents=True, exist_ok=True)
+
+        clone_args: dict[str, str | int] = {}
+        if branch:
+            clone_args["branch"] = branch
+        if depth is not None:
+            clone_args["depth"] = depth
+        git_any.Repo.clone_from(repo_url, git_repo_target_dir, **clone_args)
         return True
     except Exception:
         logger.exception("could not clone/pull git repo from %s", repo_url)

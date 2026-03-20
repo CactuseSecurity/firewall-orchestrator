@@ -28,11 +28,11 @@ from asyncio.log import logger
 from pathlib import Path
 from typing import Any
 
-import git  # apt install python3-git # or: pip install git
 import requests
 import urllib3
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
+from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"
@@ -40,7 +40,6 @@ repo_target_dir: str = base_dir_etc + "cmdb-repo"
 default_config_file_name: str = base_dir_etc + "secrets/customizingConfig.json"
 default_rlm_import_file_name: str = base_dir_etc + "getOwnersFromTufinRlm.json"
 import_source_string: str = "tufinRlm"
-git_any: Any = git
 
 # TUFIN settings:
 api_url_path_rlm_login: str = "apps/public/rlm/oauth/token"
@@ -277,13 +276,8 @@ if __name__ == "__main__":
     # 1. get all owners
     # get cmdb repo
     repo_url: str = f"https://{git_username}:{git_password}@{git_repo_url}"
-    if Path(repo_target_dir).exists():
-        # If the repository already exists, open it and perform a pull
-        repo: Any = git_any.Repo(repo_target_dir)
-        origin: Any = repo.remotes.origin
-        origin.pull()
-    else:
-        repo = git_any.Repo.clone_from(repo_url, repo_target_dir)
+    if not update_git_repo(repo_url, repo_target_dir, logger):
+        sys.exit(1)
 
     df_all_apps: list[list[str]] = []
     csv_file: str

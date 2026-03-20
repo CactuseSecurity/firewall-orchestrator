@@ -140,8 +140,8 @@ namespace FWO.Middleware.Server
             int deleteCounter = 0;
             int deleteFailCounter = 0;
 
-            existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithNetworks);
-            foreach (var incomingApp in importedApps)
+            ExistingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithNetworks);
+            foreach (var incomingApp in ImportedApps)
             {
                 if (await SaveApp(incomingApp, ownerChangeTracker))
                 {
@@ -1283,30 +1283,6 @@ namespace FWO.Middleware.Server
         private async Task AddLogEntry(int severity, string level, string description)
         {
             await AddLogEntry(GlobalConst.kImportAppData, severity, level, description);
-        }
-
-        private static bool AreNetworksIdentical(IEnumerable<OwnerNetwork> existingNetworks, IEnumerable<ModellingImportAppServer> incomingNetworks)
-        {
-            var existingList = existingNetworks
-                    .Where(e => e != null)
-                    .Select(e => IpOperations.GetIPAdressRange($"{e.IP.StripOffUnnecessaryNetmask()}-{e.IpEnd.StripOffUnnecessaryNetmask()}"))
-                    .ToList();
-
-            var incomingList = incomingNetworks
-                .Where(n => n != null)
-                .Select(n => IpOperations.GetIPAdressRange($"{n.Ip.StripOffUnnecessaryNetmask()}-{n.IpEnd.StripOffUnnecessaryNetmask()}"))
-                .ToList();
-
-
-            if (existingList.Count != incomingList.Count)
-            {
-                return false;
-            }
-
-            return existingList.All(oldRange =>
-                    incomingList.Any(newRange =>
-                        oldRange.Begin.Equals(newRange.Begin) &&
-                        oldRange.End.Equals(newRange.End)));
-        }
+        }        
     }
 }

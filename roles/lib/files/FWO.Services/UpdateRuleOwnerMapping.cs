@@ -564,6 +564,7 @@ namespace FWO.Services
             }
             return (rulesToMap, ownersToAdd.Concat(ownersToUpdate).ToList(), ruleOwnersToRemove);
         }
+
         private async Task<(List<Rule> RulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleOwnerImportIpBased(ImportControl import)
         {
             var changelogOwners = await apiConnection.SendQueryAsync<List<OwnerChange>>(OwnerQueries.getChangedOwnersForRuleOwnerMappingIpBased, new { controlId = import.ControlId });

@@ -542,7 +542,9 @@ if __name__ == "__main__":
             logger.info("found %s apps with active recertification", len(recert_active_app_list))
         else:
             recert_active_app_list: list[str] = []
-            logger.info("no recertification activation source configured; skipping activation of recertification import")
+            logger.info(
+                "no recertification activation source configured; skipping activation of recertification import"
+            )
 
         #############################################
         # 3. get app data from CSV files

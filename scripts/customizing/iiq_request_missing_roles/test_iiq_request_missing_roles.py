@@ -179,6 +179,24 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
 
             self.assertEqual(resolved, {"1": ("TISO UserID", "TISO Backup"), "2": ("Owner UserID",)})
 
+    def test_resolve_responsibles_columns_headers_reads_list_config_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """
+                    {
+                      "responsiblesColumns": ["1:TISO UserID", "1:TISO Backup", "2:Owner UserID"]
+                    }
+                    """
+                )
+
+            resolved: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+                str(config_path), self.logger
+            )
+
+            self.assertEqual(resolved, {"1": ("TISO UserID", "TISO Backup"), "2": ("Owner UserID",)})
+
     def test_resolve_responsibles_columns_headers_returns_none_when_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path: Path = Path(tmpdir) / "customizingConfig.json"
@@ -190,6 +208,24 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
             )
 
             self.assertIsNone(resolved)
+
+    def test_resolve_responsibles_columns_headers_reads_snake_case_list_config_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """
+                    {
+                      "responsibles_columns": ["1:TISO UserID"]
+                    }
+                    """
+                )
+
+            resolved: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+                str(config_path), self.logger
+            )
+
+            self.assertEqual(resolved, {"1": ("TISO UserID",)})
 
     def test_get_tisos_from_owner_dict_uses_level_one_responsible(self) -> None:
         owner: Owner = Owner(

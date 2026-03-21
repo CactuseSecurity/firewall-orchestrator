@@ -253,15 +253,57 @@ def _normalize_responsibles_headers(level_name: str, headers_value: Any) -> tupl
     return tuple(normalized_headers)
 
 
+def _parse_responsibles_columns_list(entries: list[str]) -> dict[str, tuple[str, ...]]:
+    responsibles_columns_headers: dict[str, list[str]] = {}
+    current_level: str | None = None
+    entry_value: str
+    for entry_value in entries:
+        if ":" in entry_value:
+            level_name, header_name = entry_value.split(":", 1)
+            normalized_level_name: str = _normalize_responsibles_level_name(level_name)
+            current_level = normalized_level_name
+            responsibles_columns_headers.setdefault(current_level, [])
+            normalized_header_name: str = header_name.strip()
+            if normalized_header_name:
+                responsibles_columns_headers[current_level].append(normalized_header_name)
+            continue
+        if current_level is None:
+            raise argparse.ArgumentTypeError(
+                f"invalid responsiblesColumns entry '{entry_value}', expected LEVEL:HEADER"
+            )
+        normalized_header_name = entry_value.strip()
+        if normalized_header_name == "":
+            raise argparse.ArgumentTypeError(
+                f"invalid responsiblesColumns entry '{entry_value}', expected LEVEL:HEADER"
+            )
+        responsibles_columns_headers[current_level].append(normalized_header_name)
+
+    normalized_responsibles_columns: dict[str, tuple[str, ...]] = {}
+    level_name: str
+    headers_list: list[str]
+    for level_name, headers_list in responsibles_columns_headers.items():
+        normalized_responsibles_columns[level_name] = _normalize_responsibles_headers(level_name, headers_list)
+    if not normalized_responsibles_columns:
+        raise argparse.ArgumentTypeError("config key responsiblesColumns must contain at least one LEVEL:HEADER entry")
+    return normalized_responsibles_columns
+
+
 def resolve_responsibles_columns_headers(
     config_file: str,
     logger: logging.Logger,
 ) -> dict[str, tuple[str, ...]] | None:
     responsibles_columns_value: Any = read_custom_config_with_default(config_file, "responsiblesColumns", None, logger)
     if responsibles_columns_value is None:
+        responsibles_columns_value = read_custom_config_with_default(config_file, "responsibles_columns", None, logger)
+    if responsibles_columns_value is None:
         return None
+    if isinstance(responsibles_columns_value, list):
+        string_entries: list[str] = cast("list[str]", responsibles_columns_value)
+        return _parse_responsibles_columns_list(string_entries)
     if not isinstance(responsibles_columns_value, dict):
-        raise argparse.ArgumentTypeError("config key responsiblesColumns must be a JSON object")
+        raise argparse.ArgumentTypeError(
+            "config key responsiblesColumns must be a JSON object or a list of LEVEL:HEADER entries"
+        )
     responsibles_columns_dict: dict[Any, Any] = cast("dict[Any, Any]", responsibles_columns_value)
 
     responsibles_columns_headers: dict[str, tuple[str, ...]] = {}

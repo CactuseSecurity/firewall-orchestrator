@@ -9,7 +9,7 @@ import sys
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import urllib3
 
@@ -51,6 +51,7 @@ BASE_DIR_ETC: str = FWO_BASE_DIR + "etc/"
 CMDB_REPO_TARGET_DIR: str = FWO_TMP_DIR + "cmdb-repo"
 DEFAULT_CONFIG_FILE_NAME: str = f"{BASE_DIR_ETC}customizingConfig.json"
 IPV4_DOT_COUNT: int = 3
+logger: FWOLogger = cast(FWOLogger, logging.getLogger("iiq-request-missing-roles"))
 
 
 def is_valid_ipv4_address(address: str) -> bool:
@@ -141,13 +142,15 @@ def get_tisos_from_owner_dict(app_dict: dict[str, Owner]) -> dict[str, str]:
     tisos: dict[str, str] = {}
     app_id: str
     for app_id, owner in app_dict.items():
-        if owner.main_user != "":
-            tiso: str = owner.main_user.replace("CN=", "")  # remove possible CN= prefix
-            if "," in tiso:
-                tiso = tiso.split(",", maxsplit=1)[0]  # take only the user name part before any comma
-            tisos[f"{app_id}"] = tiso
-        else:
-            logger.warning("owner %s has no main user, cannot get TISO", owner.name)
+        level_one_responsibles: list[str] = owner.responsibles.get("1", []) if owner.responsibles else []
+        if len(level_one_responsibles) == 0 or level_one_responsibles[0] == "":
+            logger.warning("owner %s has no level 1 responsible, cannot get TISO", owner.name)
+            continue
+
+        tiso: str = level_one_responsibles[0].replace("CN=", "")  # remove possible CN= prefix
+        if "," in tiso:
+            tiso = tiso.split(",", maxsplit=1)[0]  # take only the user name part before any comma
+        tisos[f"{app_id}"] = tiso
     return tisos
 
 
@@ -328,7 +331,7 @@ if __name__ == "__main__":
     ALLOWED_STAGE_VALUES: set[str] = {"prod", "test"}
     ALLOWED_RUN_VALUES: set[bool] = {True, False}
 
-    logger: FWOLogger = get_logger()
+    logger = get_logger()
 
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(

@@ -3,8 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from scripts.customizing.fwo_custom_lib.app_data_models import Owner
 from scripts.customizing.iiq_request_missing_roles.iiq_request_missing_fwmgt_roles import (
     FWO_TMP_DIR,
+    get_tisos_from_owner_dict,
     resolve_debug_level,
     resolve_git_depth,
     resolve_import_from_folder,
@@ -154,3 +156,26 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
             resolved: int | None = resolve_git_depth(str(config_path), 7, self.logger)
 
             self.assertEqual(resolved, 7)
+
+    def test_get_tisos_from_owner_dict_uses_level_one_responsible(self) -> None:
+        owner: Owner = Owner(
+            "Example App",
+            "APP-001",
+            "CN=legacy-user,OU=Users,DC=example,DC=org",
+            365,
+            365,
+            responsibles={"1": ["CN=tiso-user,OU=Users,DC=example,DC=org"]},
+        )
+
+        tisos: dict[str, str] = get_tisos_from_owner_dict({"APP-001": owner})
+
+        self.assertEqual(tisos, {"APP-001": "tiso-user"})
+
+    def test_get_tisos_from_owner_dict_skips_owner_without_level_one_responsible(self) -> None:
+        owner: Owner = Owner("Example App", "APP-001", "CN=legacy-user,OU=Users,DC=example,DC=org", 365, 365)
+
+        with self.assertLogs("iiq-request-missing-roles", level="WARNING") as log_context:
+            tisos: dict[str, str] = get_tisos_from_owner_dict({"APP-001": owner})
+
+        self.assertEqual(tisos, {})
+        self.assertTrue(any("has no level 1 responsible" in message for message in log_context.output))

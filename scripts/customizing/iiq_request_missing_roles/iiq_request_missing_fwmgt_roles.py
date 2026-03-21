@@ -78,6 +78,7 @@ def get_owners_from_csv_files(
     debug_level: int,
     owner_header_patterns: dict[str, str] | None = None,
     ip_header_patterns: dict[str, str] | None = None,
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None,
     csv_separator: str = ";",
 ) -> tuple[dict[str, Owner], dict[str, str]]:
     app_list: list[Owner] = []
@@ -94,6 +95,7 @@ def get_owners_from_csv_files(
                 debug_level,
                 base_dir=repo_target_dir,
                 column_patterns=owner_header_patterns,
+                responsibles_columns_headers=responsibles_columns_headers,
                 csv_separator=csv_separator,
             )
 
@@ -220,6 +222,56 @@ def resolve_git_depth(
     if depth_value is None:
         return None
     return parse_git_depth_arg(str(depth_value))
+
+
+def _normalize_responsibles_level_name(level_name: Any) -> str:
+    if not isinstance(level_name, str) or level_name.strip() == "":
+        raise argparse.ArgumentTypeError("config key responsiblesColumns must use non-empty string levels")
+    return level_name.strip()
+
+
+def _normalize_responsibles_headers(level_name: str, headers_value: Any) -> tuple[str, ...]:
+    if not isinstance(headers_value, list):
+        raise argparse.ArgumentTypeError(
+            f"config key responsiblesColumns level '{level_name}' must contain a JSON array of headers"
+        )
+    headers_list: list[Any] = cast("list[Any]", headers_value)
+
+    normalized_headers: list[str] = []
+    header_value: Any
+    for header_value in headers_list:
+        if not isinstance(header_value, str) or header_value.strip() == "":
+            raise argparse.ArgumentTypeError(
+                f"config key responsiblesColumns level '{level_name}' must contain non-empty string headers"
+            )
+        normalized_headers.append(header_value.strip())
+
+    if len(normalized_headers) == 0:
+        raise argparse.ArgumentTypeError(
+            f"config key responsiblesColumns level '{level_name}' must contain at least one header"
+        )
+    return tuple(normalized_headers)
+
+
+def resolve_responsibles_columns_headers(
+    config_file: str,
+    logger: logging.Logger,
+) -> dict[str, tuple[str, ...]] | None:
+    responsibles_columns_value: Any = read_custom_config_with_default(config_file, "responsiblesColumns", None, logger)
+    if responsibles_columns_value is None:
+        return None
+    if not isinstance(responsibles_columns_value, dict):
+        raise argparse.ArgumentTypeError("config key responsiblesColumns must be a JSON object")
+    responsibles_columns_dict: dict[Any, Any] = cast("dict[Any, Any]", responsibles_columns_value)
+
+    responsibles_columns_headers: dict[str, tuple[str, ...]] = {}
+    level_name: Any
+    headers_value: Any
+    for level_name, headers_value in responsibles_columns_dict.items():
+        normalized_level_name: str = _normalize_responsibles_level_name(level_name)
+        normalized_headers: tuple[str, ...] = _normalize_responsibles_headers(normalized_level_name, headers_value)
+        responsibles_columns_headers[normalized_level_name] = normalized_headers
+    return responsibles_columns_headers
 
 
 def request_all_roles(
@@ -351,6 +403,7 @@ if __name__ == "__main__":
                             "cmdbGitPassword": "gituser-1-pwd", \
                             "csvOwnerFilePattern": "NeMo_???_meta.csv", \
                             "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv", \
+                            "responsiblesColumns": {"1": ["TISO UserID"]}, \
                             "iiqAppName": "AD EXAMPLEDE", \
                             "userPrefix": "USR" \
                         } \
@@ -437,6 +490,9 @@ if __name__ == "__main__":
     try:
         debug: int = resolve_debug_level(args.config, args.debug, logger)
         git_depth: int | None = resolve_git_depth(args.config, args.depth, logger)
+        responsibles_columns_headers: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+            args.config, logger
+        )
     except argparse.ArgumentTypeError as err:
         parser.error(str(err))
     logger.configure_debug_level(debug)
@@ -496,6 +552,7 @@ if __name__ == "__main__":
         debug,
         owner_header_patterns=owner_header_patterns,
         ip_header_patterns=ip_header_patterns,
+        responsibles_columns_headers=responsibles_columns_headers,
         csv_separator=csv_separator,
     )
 

@@ -11,6 +11,7 @@ from scripts.customizing.iiq_request_missing_roles.iiq_request_missing_fwmgt_rol
     resolve_git_depth,
     resolve_import_from_folder,
     resolve_local_repo_base_dir,
+    resolve_responsibles_columns_headers,
 )
 
 
@@ -156,6 +157,39 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
             resolved: int | None = resolve_git_depth(str(config_path), 7, self.logger)
 
             self.assertEqual(resolved, 7)
+
+    def test_resolve_responsibles_columns_headers_reads_config_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """
+                    {
+                      "responsiblesColumns": {
+                        "1": ["TISO UserID", "TISO Backup"],
+                        "2": ["Owner UserID"]
+                      }
+                    }
+                    """
+                )
+
+            resolved: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+                str(config_path), self.logger
+            )
+
+            self.assertEqual(resolved, {"1": ("TISO UserID", "TISO Backup"), "2": ("Owner UserID",)})
+
+    def test_resolve_responsibles_columns_headers_returns_none_when_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write("{}")
+
+            resolved: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+                str(config_path), self.logger
+            )
+
+            self.assertIsNone(resolved)
 
     def test_get_tisos_from_owner_dict_uses_level_one_responsible(self) -> None:
         owner: Owner = Owner(

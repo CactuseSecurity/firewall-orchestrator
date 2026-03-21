@@ -63,6 +63,8 @@ from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
 )
 from scripts.customizing.fwo_custom_lib.responsibles_config import (
     parse_responsibles_columns as parse_responsibles_columns_from_lib,
+)
+from scripts.customizing.fwo_custom_lib.responsibles_config import (
     resolve_responsibles_columns_headers as resolve_responsibles_columns_headers_from_lib,
 )
 

@@ -172,6 +172,7 @@ namespace FWO.Report
                 ReportType.OwnerRecertification => new ReportOwnerRecerts(query, userConfig, repType),
                 ReportType.RecertificationEvent => new RecertificateOwner(query, userConfig, repType),
                 ReportType.RecertEventReport => new ReportRecertEvent(query, userConfig, repType, ruleTreeBuilder),
+                ReportType.TicketChangeReport => new ReportTicketChanges(query, userConfig, repType, reportFilter.ReportParams.WorkflowFilter),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }
@@ -231,9 +232,11 @@ namespace FWO.Report
 
         private void ReplaceDateOfConfig(TimeFilter? timeFilter)
         {
-            if (ReportType.IsChangeReport())
+            if (ReportType.IsChangeReport() || ReportType == ReportType.TicketChangeReport)
             {
-                (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter ?? new());
+                (string startTime, string stopTime) = ReportType == ReportType.TicketChangeReport && timeFilter == null
+                    ? ((string)Query.QueryVariables["ticket_time_start"], (string)Query.QueryVariables["ticket_time_end"])
+                    : DynGraphqlQuery.ResolveTimeRange(timeFilter ?? new());
                 string timeRange = $"{userConfig.GetText("change_time")}: " +
                     $"{userConfig.GetText("from")}: {ToUtcString(startTime)}, " +
                     $"{userConfig.GetText("until")}: {ToUtcString(stopTime)}";

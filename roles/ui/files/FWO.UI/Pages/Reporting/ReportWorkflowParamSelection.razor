@@ -1,0 +1,141 @@
+@using FWO.Data.Report
+@using FWO.Data.Workflow
+@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="p-3">
+    <h5 class="text-left">@(userConfig.GetText("workflow"))</h5>
+    <div class="mt-3">
+        <h6 class="text-left text-white">@(userConfig.GetText("reference_date"))</h6>
+        <Dropdown ElementType="WorkflowReferenceDate" @bind-SelectedElement="WorkflowFilter.ReferenceDate"
+                  ElementToString="ReferenceDateToString" Elements="availableReferenceDates">
+            <ElementTemplate>
+                @(ReferenceDateToString(context))
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+    <div class="mt-3">
+        <h6 class="text-left text-white">@(userConfig.GetText("task_type"))</h6>
+        <Dropdown ElementType="WfTaskType?" SelectedElements="selectedTaskTypesForUi" SelectedElementsChanged="TaskTypesChanged"
+                  ElementToString="TaskTypeToString" Elements="availableTaskTypes" Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+            <ElementTemplate>
+                @(TaskTypeToString(context))
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+    <div class="mt-3">
+        <h6 class="text-left text-white">@(userConfig.GetText("state"))</h6>
+        <Dropdown ElementType="int?" SelectedElements="selectedStateIdsForUi" SelectedElementsChanged="StateIdsChanged"
+                  ElementToString="StateIdToString" Elements="availableStateIds" Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+            <ElementTemplate>
+                @(StateIdToString(context))
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+    <div class="form-check mt-3">
+        <input class="form-check-input" id="showFullTicket" type="checkbox" @bind="WorkflowFilter.ShowFullTicket" />
+        <label class="form-check-label text-white" for="showFullTicket">@(userConfig.GetText("show_full_ticket"))</label>
+    </div>
+</div>
+
+@code
+{
+    private readonly List<WfTaskType> availableRealTaskTypes = [.. Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().Where(taskType => taskType != WfTaskType.master)];
+    private readonly List<WorkflowReferenceDate> availableReferenceDates = [.. Enum.GetValues(typeof(WorkflowReferenceDate)).Cast<WorkflowReferenceDate>()];
+    private IEnumerable<WfTaskType?> selectedTaskTypesForUi = [];
+    private List<WfState> availableStates = [];
+    private IEnumerable<int?> selectedStateIdsForUi = [];
+
+    private List<WfTaskType?> availableTaskTypes => [null, .. availableRealTaskTypes.Cast<WfTaskType?>()];
+    private List<int?> availableStateIds => [null, .. availableStates.Select(state => (int?)state.Id)];
+
+    [Parameter]
+    public WorkflowFilter WorkflowFilter { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<WorkflowFilter> WorkflowFilterChanged { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        availableStates = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+    }
+
+    protected override void OnParametersSet()
+    {
+        selectedTaskTypesForUi = BuildSelectedTaskTypesForUi();
+        selectedStateIdsForUi = BuildSelectedStateIdsForUi();
+    }
+
+    private string TaskTypeToString(WfTaskType? taskType)
+    {
+        return taskType == null ? userConfig.GetText("all") : userConfig.GetText(taskType.ToString() ?? "");
+    }
+
+    private string ReferenceDateToString(WorkflowReferenceDate referenceDate)
+    {
+        return userConfig.GetText(referenceDate.ToString());
+    }
+
+    private string StateIdToString(int? stateId)
+    {
+        return stateId == null
+            ? userConfig.GetText("all")
+            : availableStates.FirstOrDefault(state => state.Id == stateId)?.Name ?? stateId.ToString() ?? "";
+    }
+
+    private IEnumerable<WfTaskType?> BuildSelectedTaskTypesForUi()
+    {
+        if (WorkflowFilter.TaskTypes.Count == availableRealTaskTypes.Count)
+        {
+            return [];
+        }
+        return [.. WorkflowFilter.TaskTypes.Cast<WfTaskType?>()];
+    }
+
+    private IEnumerable<int?> BuildSelectedStateIdsForUi()
+    {
+        if (WorkflowFilter.StateIds.Count == 0 || WorkflowFilter.StateIds.Count == availableStates.Count)
+        {
+            return [];
+        }
+        return [.. WorkflowFilter.StateIds.Select(stateId => (int?)stateId)];
+    }
+
+    private async Task TaskTypesChanged(IEnumerable<WfTaskType?> taskTypes)
+    {
+        List<WfTaskType?> taskTypeList = taskTypes.ToList();
+        List<WfTaskType> selectedRealTaskTypes = [.. taskTypeList.Where(taskType => taskType.HasValue).Select(taskType => taskType!.Value)];
+
+        if (taskTypeList.Count == 0 || taskTypeList.Contains(null))
+        {
+            WorkflowFilter.TaskTypes = [.. availableRealTaskTypes];
+        }
+        else
+        {
+            WorkflowFilter.TaskTypes = selectedRealTaskTypes;
+        }
+
+        selectedTaskTypesForUi = BuildSelectedTaskTypesForUi();
+        await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+
+    private async Task StateIdsChanged(IEnumerable<int?> stateIds)
+    {
+        List<int?> stateIdList = stateIds.ToList();
+
+        if (stateIdList.Count == 0 || stateIdList.Contains(null))
+        {
+            WorkflowFilter.StateIds = [];
+        }
+        else
+        {
+            WorkflowFilter.StateIds = [.. stateIdList.Where(stateId => stateId.HasValue).Select(stateId => stateId!.Value)];
+        }
+
+        selectedStateIdsForUi = BuildSelectedStateIdsForUi();
+        await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+}

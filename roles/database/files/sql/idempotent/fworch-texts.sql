@@ -55,6 +55,24 @@ INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen
 INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
 INSERT INTO txt VALUES ('new_interface',        'German', 	'Neue Schnittstelle');
 INSERT INTO txt VALUES ('new_interface',        'English', 	'New Interface');
+INSERT INTO txt VALUES ('TicketCreation',       'German',   'Ticket-Erstellung');
+INSERT INTO txt VALUES ('TicketCreation',       'English',  'Ticket Creation');
+INSERT INTO txt VALUES ('TicketClosure',        'German',   'Ticket-Abschluss');
+INSERT INTO txt VALUES ('TicketClosure',        'English',  'Ticket Closure');
+INSERT INTO txt VALUES ('ApprovalOpened',       'German',   'Freigabe ge&ouml;ffnet');
+INSERT INTO txt VALUES ('ApprovalOpened',       'English',  'Approval Opened');
+INSERT INTO txt VALUES ('Approved',             'German',   'Genehmigt');
+INSERT INTO txt VALUES ('Approved',             'English',  'Approved');
+INSERT INTO txt VALUES ('TaskStart',            'German',   'Aufgabenstart');
+INSERT INTO txt VALUES ('TaskStart',            'English',  'Task Start');
+INSERT INTO txt VALUES ('TaskEnd',              'German',   'Aufgabenende');
+INSERT INTO txt VALUES ('TaskEnd',              'English',  'Task End');
+INSERT INTO txt VALUES ('ImplementationStart',  'German',   'Implementierungsstart');
+INSERT INTO txt VALUES ('ImplementationStart',  'English',  'Implementation Start');
+INSERT INTO txt VALUES ('ImplementationEnd',    'German',   'Implementierungsende');
+INSERT INTO txt VALUES ('ImplementationEnd',    'English',  'Implementation End');
+INSERT INTO txt VALUES ('AnyActivity',          'German',   'Beliebige Aktivit&auml;t');
+INSERT INTO txt VALUES ('AnyActivity',          'English',  'Any Activity');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
 INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
@@ -165,6 +183,10 @@ INSERT INTO txt VALUES ('ComplianceReport',     'German', 	'Compliance Report');
 INSERT INTO txt VALUES ('ComplianceReport',     'English', 	'Compliance Report');
 INSERT INTO txt VALUES ('ComplianceDiffReport', 'German', 	'Compliance Diff Report');
 INSERT INTO txt VALUES ('ComplianceDiffReport', 'English', 	'Compliance Diff Report');
+INSERT INTO txt VALUES ('TicketReport',         'German',   'Workflow: Tickets');
+INSERT INTO txt VALUES ('TicketReport',         'English',  'Workflow: Tickets');
+INSERT INTO txt VALUES ('TicketChangeReport',   'German',   'Workflow: Ticket-&Auml;nderungen');
+INSERT INTO txt VALUES ('TicketChangeReport',   'English',  'Workflow: Ticket Changes');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
 INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
 INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
@@ -970,6 +992,8 @@ INSERT INTO txt VALUES ('all_readonly',		    'German', 	'Alle Antr&auml;ge (nur 
 INSERT INTO txt VALUES ('all_readonly',		    'English', 	'All tickets (read only)');
 INSERT INTO txt VALUES ('task',                 'German', 	'Aufgabe');
 INSERT INTO txt VALUES ('task',                 'English', 	'Task');
+INSERT INTO txt VALUES ('task_number',          'German',   'Aufgabennummer');
+INSERT INTO txt VALUES ('task_number',          'English',  'Task Number');
 INSERT INTO txt VALUES ('element',              'German', 	'Element');
 INSERT INTO txt VALUES ('element',              'English', 	'Element');
 INSERT INTO txt VALUES ('reason', 				'German', 	'Grund');
@@ -1758,6 +1782,8 @@ INSERT INTO txt VALUES ('match_drop_rules',		'German', 	'in Drop-Regeln');
 INSERT INTO txt VALUES ('match_drop_rules',		'English', 	'in Drop rules');
 INSERT INTO txt VALUES ('show_full_rules',		'German', 	'vollst&auml;ndige Regeln anzeigen');
 INSERT INTO txt VALUES ('show_full_rules',		'English', 	'show full rules');
+INSERT INTO txt VALUES ('show_full_ticket',		'German', 	'vollst&auml;ndiges Ticket anzeigen');
+INSERT INTO txt VALUES ('show_full_ticket',		'English', 	'show full ticket');
 INSERT INTO txt VALUES ('analyse_remaining_rules','German', 'Verbleibende Regeln analysieren');
 INSERT INTO txt VALUES ('analyse_remaining_rules','English','Analyse remaining rules');
 INSERT INTO txt VALUES ('rules_for_deleted_conns','German', 'Regeln von gel&ouml;schten Verbindungen');
@@ -4096,6 +4122,7 @@ INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Au
     <li>Zert: Regel-&Uuml;bersicht - Anzeige aller Regeln mit anstehenden Rezertifizierungen. Der Default-Report-Zeitraum kann in den Einstellungen gesetzt werden</li>
     <li>Zert: Eigent&uuml;mer-&Uuml;bersicht - Darstellung aller Eigent&uuml;mer nach ihrem Rezertifizierungsstatus.</li>
     <li>Zert: Zert-Regel-Details - Darstellung einer Eigent&uuml;mer-Rezertifizierung mitsamt der mitrezertifizierten Regeln</li>
+    <li>Workflow: Ticket-&Auml;nderungen - Darstellung von Workflow-Tickets innerhalb eines gew&auml;hlten Zeitraums bezogen auf ein ausw&auml;hlbares Referenzdatum. Zus&auml;tzlich kann nach Tasktypen und Ticket-Status gefiltert sowie die Detailtiefe der Ausgabe gesteuert werden.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report types:
@@ -4117,6 +4144,7 @@ INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report t
     <li>Cert: Rule Overview - display all rules where recertifications are upcoming. Default report interval can be defined in settings</li>
     <li>Cert: Owner Overview - display all owners regarding their recertification status.</li>
     <li>Cert: Cert Rule Details - display an owner recertification together with the related rule recertifications.</li>
+    <li>Workflow: Ticket Changes - display workflow tickets in a selected time range based on a selectable reference date. Further filters are available for task types, ticket states and the amount of detail shown in the output.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices
@@ -4338,6 +4366,18 @@ INSERT INTO txt VALUES ('H1513', 'English', 'Only for Model: App Rules: Further 
 ');
 INSERT INTO txt VALUES ('H1514', 'German',  'Nur beim Modell: Soll-Ist: Verbleibende Regeln analysieren: Die dem Eigent&uuml;mer zugeordneten nicht modellierten Regeln werden in Form eines App-Regel-Reports an den report angeh&auml;ngt.');
 INSERT INTO txt VALUES ('H1514', 'English', 'Only for Model: Variances: Analyse remaining rules: Not modelled rules associated to the owner are appended to the report as App Rules Report.');
+INSERT INTO txt VALUES ('H1515', 'German',  'Nur bei Workflow: Ticket-&Auml;nderungen: Workflow-spezifische Parameter zur Eingrenzung der angezeigten Tickets und ihrer Details.');
+INSERT INTO txt VALUES ('H1515', 'English', 'Only for Workflow: Ticket Changes: workflow-specific parameters to restrict the displayed tickets and their details.');
+INSERT INTO txt VALUES ('H1516', 'German',  'F&uuml;r Workflow: Ticket-&Auml;nderungen stehen folgende Parameter zur Verf&uuml;gung:');
+INSERT INTO txt VALUES ('H1516', 'English', 'For Workflow: Ticket Changes the following parameters are available:');
+INSERT INTO txt VALUES ('H1517', 'German',  'Referenzdatum: Legt fest, auf welches Datum oder Ereignis der gew&auml;hlte Zeitraum angewendet wird, z.B. Ticket-Erstellung, Ticket-Abschluss, Aufgabenstart, Aufgabenende, Freigaben oder beliebige Aktivit&auml;t.');
+INSERT INTO txt VALUES ('H1517', 'English', 'Reference date: Defines which date or event the selected time range is applied to, e.g. ticket creation, ticket closure, task start, task end, approvals or any activity.');
+INSERT INTO txt VALUES ('H1518', 'German',  'Tasktyp: Mehrfachauswahl der zu ber&uuml;cksichtigenden Request-Tasktypen. Die Option "alle" ist vorbelegt und w&auml;hlt alle verf&uuml;gbaren Typen aus.');
+INSERT INTO txt VALUES ('H1518', 'English', 'Task type: Multiselect of request task types to be considered. The option "all" is selected by default and represents all available types.');
+INSERT INTO txt VALUES ('H1519', 'German',  'Status: Mehrfachauswahl der Ticket-Statuswerte. Ohne explizite Auswahl werden Tickets aller Status ber&uuml;cksichtigt.');
+INSERT INTO txt VALUES ('H1519', 'English', 'State: Multiselect of ticket states. Without an explicit selection, tickets of all states are considered.');
+INSERT INTO txt VALUES ('H1520', 'German',  'Vollst&auml;ndiges Ticket anzeigen: Ist diese Option aktiviert, werden zu jedem gefundenen Ticket alle enthaltenen Request Tasks, Implementierungs-Tasks und Freigaben angezeigt. Ist sie deaktiviert, werden in den Details nur Objekte angezeigt, deren Referenzdatum im gew&auml;hlten Zeitraum liegt.');
+INSERT INTO txt VALUES ('H1520', 'English', 'Show full ticket: If this option is enabled, every matching ticket shows all contained request tasks, implementation tasks and approvals. If it is disabled, the details only show objects whose reference date lies within the selected time range.');
 
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.

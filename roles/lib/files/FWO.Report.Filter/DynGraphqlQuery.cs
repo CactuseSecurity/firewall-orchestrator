@@ -460,6 +460,10 @@ namespace FWO.Report.Filter
                     query.FullQuery = Queries.Compact(ConstructChangesQuery(query, paramString, filter));
                     break;
 
+                case ReportType.TicketChangeReport:
+                    query.FullQuery = Queries.Compact(ConstructTicketChangesQuery(query, filter));
+                    break;
+
                 case ReportType.NatRules:
                     query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
                     break;
@@ -474,6 +478,75 @@ namespace FWO.Report.Filter
                     query.FullQuery = Queries.Compact(ConstructOwnerRecertQuery(query, paramString));
                     break;
             }
+        }
+
+        private static string ConstructTicketChangesQuery(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            query.QueryParameters = [];
+            query.QueryVariables = [];
+
+            query.QueryParameters.Add("$ticket_time_start: timestamp ");
+            query.QueryParameters.Add("$ticket_time_end: timestamp ");
+            query.QueryParameters.Add("$task_types: [String!] ");
+            (string ticketTimeStart, string ticketTimeEnd) = ResolveTimeRange(filter.ReportParams.TimeFilter);
+            query.QueryVariables["ticket_time_start"] = ticketTimeStart;
+            query.QueryVariables["ticket_time_end"] = ticketTimeEnd;
+            query.QueryVariables["task_types"] = filter.ReportParams.WorkflowFilter.TaskTypes.Select(taskType => taskType.ToString()).ToList();
+
+            List<string> ticketFilters = [];
+            ticketFilters.Add("{ reqtasks: { task_type: { _in: $task_types } } }");
+            if (filter.ReportParams.WorkflowFilter.StateIds.Count > 0)
+            {
+                query.QueryParameters.Add("$state_ids: [Int!] ");
+                query.QueryVariables["state_ids"] = filter.ReportParams.WorkflowFilter.StateIds;
+                ticketFilters.Add("{ state_id: { _in: $state_ids } }");
+            }
+            ticketFilters.Add(BuildTicketReferenceDateFilter(filter.ReportParams.WorkflowFilter.ReferenceDate));
+
+            string paramString = string.Join(" ", query.QueryParameters.ToArray());
+            return $@"
+                {RequestQueries.ticketDetailsReqTaskOverviewFragment}
+                query ticketChangeReport ({paramString})
+                {{
+                    request_ticket(
+                        where: {{
+                            _and: [
+                                {string.Join(",", ticketFilters)}
+                            ]
+                        }},
+                        order_by: {{ id: desc }}
+                    ) {{
+                        ...ticketDetailsReqTaskOverview
+                    }}
+                }}";
+        }
+
+        private static string BuildTicketReferenceDateFilter(WorkflowReferenceDate referenceDate)
+        {
+            return referenceDate switch
+            {
+                WorkflowReferenceDate.TicketCreation => "{ _and: [{ date_created: { _gte: $ticket_time_start } }, { date_created: { _lt: $ticket_time_end } }] }",
+                WorkflowReferenceDate.TicketClosure => "{ _and: [{ date_completed: { _gte: $ticket_time_start } }, { date_completed: { _lt: $ticket_time_end } }] }",
+                WorkflowReferenceDate.ApprovalOpened => "{ reqtasks: { approvals: { _and: [{ date_opened: { _gte: $ticket_time_start } }, { date_opened: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.Approved => "{ reqtasks: { approvals: { _and: [{ approval_date: { _gte: $ticket_time_start } }, { approval_date: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.TaskStart => "{ reqtasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } }",
+                WorkflowReferenceDate.TaskEnd => "{ reqtasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } }",
+                WorkflowReferenceDate.ImplementationStart => "{ reqtasks: { impltasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.ImplementationEnd => "{ reqtasks: { impltasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.AnyActivity => @"{
+                    _or: [
+                        { _and: [{ date_created: { _gte: $ticket_time_start } }, { date_created: { _lt: $ticket_time_end } }] },
+                        { _and: [{ date_completed: { _gte: $ticket_time_start } }, { date_completed: { _lt: $ticket_time_end } }] },
+                        { reqtasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } },
+                        { reqtasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } },
+                        { reqtasks: { impltasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } } },
+                        { reqtasks: { impltasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } } },
+                        { reqtasks: { approvals: { _and: [{ date_opened: { _gte: $ticket_time_start } }, { date_opened: { _lt: $ticket_time_end } }] } } },
+                        { reqtasks: { approvals: { _and: [{ approval_date: { _gte: $ticket_time_start } }, { approval_date: { _lt: $ticket_time_end } }] } } }
+                    ]
+                }",
+                _ => "{ _and: [{ date_created: { _gte: $ticket_time_start } }, { date_created: { _lt: $ticket_time_end } }] }"
+            };
         }
 
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)

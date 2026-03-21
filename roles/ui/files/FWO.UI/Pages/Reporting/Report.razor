@@ -56,7 +56,10 @@
                 </div>
             </div>
         }
-
+        @if(actReportFilters.ReportType.IsWorkflowReport())
+        {
+            <ReportWorkflowParamSelection @bind-WorkflowFilter="actReportFilters.WorkflowFilter" />
+        }
         @if (actReportFilters.ReportType.IsComplianceReport())
         {
             <div class="p-3">
@@ -190,6 +193,16 @@
                             case ReportType.RecertEventReport:
                                 <RecertEventReport OwnerData="currentReport.ReportData.OwnerData" Managements="currentReport.ReportData.ManagementData" RulesPerPage="rulesPerPage"
                                                    @bind-SelectedRules="selectedItemsRuleReportTable" />
+                                break;
+
+                            case ReportType.TicketChangeReport:
+                                string ticketTimeStart = currentReport.Query.QueryVariables["ticket_time_start"]?.ToString() ?? string.Empty;
+                                string ticketTimeEnd = currentReport.Query.QueryVariables["ticket_time_end"]?.ToString() ?? string.Empty;
+                                <ReportedTickets Tickets="currentReport.ReportData.Tickets" StateNames="currentReport.ReportData.WorkflowStateNames"
+                                                 ReferenceDate="currentReport.ReportData.WorkflowFilter.ReferenceDate"
+                                                 ShowFullTicket="currentReport.ReportData.WorkflowFilter.ShowFullTicket"
+                                                 TimeRangeStart="ticketTimeStart"
+                                                 TimeRangeEnd="ticketTimeEnd" />
                                 break;
 
                             default:
@@ -361,9 +374,9 @@
                 CleanUri();
             }
 
-            // Hide right sidebar for compliance report.
+            // Hide right sidebar for compliance or workflow report.
 
-            if(newReportType.IsComplianceReport())
+            if(newReportType.IsComplianceReport() || newReportType.IsWorkflowReport())
             {
                 _showRightSidebar = false;
                 sidebarRightWidth = 0;                
@@ -644,6 +657,7 @@
             ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
             ReportType.Recertification,
             ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
+            ReportType.TicketChangeReport,
             ReportType.Statistics,
             ReportType.Connections,
             ReportType.AppRules,
@@ -653,7 +667,9 @@
         {
             if (ListIn.Contains(reportType))
             {
-                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport() || showModellingReports && reportType.IsModellingReport())
+                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport()
+                    || showModellingReports && reportType.IsModellingReport()
+                    || reportType.IsWorkflowReport())
                 {
                     ListOut.Add(reportType);
                 }

@@ -20,9 +20,12 @@ namespace FWO.Basics
         OwnerRecertification = 24,
         RecertificationEvent = 25,
         RecertEventReport = 26,
-        ComplianceReport = 31,
-        ComplianceDiffReport = 32
 
+        ComplianceReport = 31,
+        ComplianceDiffReport = 32,
+
+        TicketReport = 41,
+        TicketChangeReport = 42
     }
 
     public static class ReportTypeGroups
@@ -118,6 +121,11 @@ namespace FWO.Basics
             return reportType == ReportType.Recertification || reportType == ReportType.AppRules;
         }
 
+        public static bool IsWorkflowReport(this ReportType reportType)
+        {
+            return reportType == ReportType.TicketReport || reportType == ReportType.TicketChangeReport;
+        }
+
         public static bool HasTimeFilter(this ReportType reportType)
         {
             return reportType switch
@@ -129,7 +137,8 @@ namespace FWO.Basics
                 ReportType.Statistics or
                 ReportType.Changes or
                 ReportType.ResolvedChanges or
-                ReportType.ResolvedChangesTech => true,
+                ReportType.ResolvedChangesTech or
+                ReportType.TicketChangeReport => true,
                 _ => false
             };
         }
@@ -159,11 +168,16 @@ namespace FWO.Basics
                 ReportType.VarianceAnalysis,
                 ReportType.Recertification,
                 ReportType.OwnerRecertification,
-                ReportType.RecertEventReport
+                ReportType.RecertEventReport,
+                ReportType.TicketReport,
+                ReportType.TicketChangeReport
             ];
             foreach (var reportType in orderedReportTypeList.Where(r => ListIn.Contains(r)))
             {
-                if (reportType == ReportType.Undefined || ruleRelated && reportType.IsDeviceRelatedReport() || modellingRelated && reportType.IsModellingReport())
+                if (reportType == ReportType.Undefined
+                    || ruleRelated && reportType.IsDeviceRelatedReport()
+                    || modellingRelated && reportType.IsModellingReport()
+                    || reportType.IsWorkflowReport())
                 {
                     ListOut.Add(reportType);
                 }

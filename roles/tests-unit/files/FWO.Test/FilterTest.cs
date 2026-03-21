@@ -4,6 +4,7 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
 using FWO.Data.Report;
+using FWO.Data.Workflow;
 using System.Text.Json;
 namespace FWO.Test
 {
@@ -272,6 +273,134 @@ namespace FWO.Test
             ClassicAssert.AreEqual("10.0.0.2", query.QueryVariables["dstIpLow1"]);
             ClassicAssert.AreEqual("10.0.0.2", query.QueryVariables["dstIpHigh1"]);
             ClassicAssert.AreEqual("_and: [{ _or: [ { app_id: { _eq: $appId } }, { proposed_app_id: { _eq: $appId } } ], removed: { _eq: false } }{_or: [{ _or: [{ nwobject_connections: {connection_field: { _eq: 1 }, owner_network: {  ip_end: { _gte: $srcIpLow0 } ip: { _lte: $srcIpHigh0 } } } }, { nwgroup_connections: {connection_field: { _eq: 1 }, nwgroup: { nwobject_nwgroups: { owner_network: {  ip_end: { _gte: $srcIpLow0 } ip: { _lte: $srcIpHigh0 } } } } } }]}, { _or: [{ nwobject_connections: {connection_field: { _eq: 2 }, owner_network: {  ip_end: { _gte: $dstIpLow1 } ip: { _lte: $dstIpHigh1 } } } }, { nwgroup_connections: {connection_field: { _eq: 2 }, nwgroup: { nwobject_nwgroups: { owner_network: {  ip_end: { _gte: $dstIpLow1 } ip: { _lte: $dstIpHigh1 } } } } } }]}] }] ", query.ConnectionWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketChangeReport_UsesTicketClosureReferenceDate()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Shortcut;
+            template.ReportParams.TimeFilter.TimeRangeShortcut = "today";
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.TicketClosure;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("request_ticket", query.FullQuery);
+            StringAssert.Contains("date_completed: { _gte: $ticket_time_start }", query.FullQuery);
+            ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("ticket_time_start"));
+            ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("ticket_time_end"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketChangeReport_UsesTicketCreationReferenceDate()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Shortcut;
+            template.ReportParams.TimeFilter.TimeRangeShortcut = "today";
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.TicketCreation;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("request_ticket", query.FullQuery);
+            StringAssert.Contains("date_created: { _gte: $ticket_time_start }", query.FullQuery);
+            StringAssert.DoesNotContain("date_completed: { _is_null: false }", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketChangeReport_UsesApprovalOpenedReferenceDate()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.ApprovalOpened;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("approvals: { _and: [{ date_opened: { _gte: $ticket_time_start } }", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketChangeReport_UsesImplementationStartReferenceDate()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.ImplementationStart;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("impltasks: { _and: [{ start: { _gte: $ticket_time_start } }", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketChangeReport_UsesAnyActivityReferenceDate()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.AnyActivity;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("_or:", query.FullQuery);
+            StringAssert.Contains("approval_date", query.FullQuery);
+            StringAssert.Contains("date_opened", query.FullQuery);
+            StringAssert.Contains("start: { _gte: $ticket_time_start }", query.FullQuery);
+            StringAssert.Contains("stop: { _gte: $ticket_time_start }", query.FullQuery);
+            StringAssert.Contains("impltasks", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketChangeReport_FiltersBySelectedTaskTypes()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.TaskTypes = [WfTaskType.access, WfTaskType.new_interface];
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("reqtasks: { task_type: { _in: $task_types } }", query.FullQuery);
+            Assert.That(query.QueryVariables["task_types"], Is.EqualTo(new List<string> { WfTaskType.access.ToString(), WfTaskType.new_interface.ToString() }));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketChangeReport_FiltersBySelectedStates()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.StateIds = [2, 5];
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("state_id: { _in: $state_ids }", query.FullQuery);
+            Assert.That(query.QueryVariables["state_ids"], Is.EqualTo(new List<int> { 2, 5 }));
         }
     }
 }

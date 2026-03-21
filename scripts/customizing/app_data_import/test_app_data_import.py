@@ -1152,6 +1152,38 @@ class AppDataImportTests(unittest.TestCase):
             owner_json: dict[str, object] = app_list[0].to_json()
             self.assertEqual(owner_json.get("responsibles"), {"1": ["CN=uid-main"]})
 
+    def test_extract_app_data_from_csv_warns_when_all_configured_responsibles_columns_miss(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,UserID\n"
+                    "App Partial,APP-033,user33,false,uid-main\n"
+                )
+
+            app_list: list[Owner] = []
+            with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+                extract_app_data_from_csv(
+                    "owners.csv",
+                    app_list,
+                    self.ldap_path,
+                    self.import_source,
+                    Owner,
+                    self.logger,
+                    self.debug_level,
+                    base_dir=tmpdir,
+                    responsibles_columns_headers={
+                        "2": (r"^Missing Collaborator$",),
+                    },
+                )
+
+            self.assertEqual(len(app_list), 1)
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertIsNone(owner_json.get("responsibles"))
+            self.assertTrue(
+                any("configured responsiblesColumns matched no columns" in message for message in log_context.output)
+            )
+
     def test_extract_app_data_from_csv_leaves_responsibles_empty_when_not_configured(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"

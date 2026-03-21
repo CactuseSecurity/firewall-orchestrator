@@ -51,7 +51,7 @@ BASE_DIR_ETC: str = FWO_BASE_DIR + "etc/"
 CMDB_REPO_TARGET_DIR: str = FWO_TMP_DIR + "cmdb-repo"
 DEFAULT_CONFIG_FILE_NAME: str = f"{BASE_DIR_ETC}customizingConfig.json"
 IPV4_DOT_COUNT: int = 3
-logger: FWOLogger = cast(FWOLogger, logging.getLogger("iiq-request-missing-roles"))
+logger: FWOLogger = cast("FWOLogger", logging.getLogger("iiq-request-missing-roles"))
 
 
 def is_valid_ipv4_address(address: str) -> bool:

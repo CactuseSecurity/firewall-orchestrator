@@ -1340,6 +1340,7 @@ class AppDataImportTests(unittest.TestCase):
                     "30": ["CN=R8M4"],
                 },
             )
+
     def test_extract_app_data_from_csv_adds_users_by_pattern_without_separator(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"

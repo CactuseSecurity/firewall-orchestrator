@@ -4,7 +4,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from scripts.customizing.fwo_custom_lib.git_helpers import parse_git_depth_arg, update_git_repo
+from scripts.customizing.fwo_custom_lib.git_helpers import (
+    parse_git_depth_arg,
+    read_file_from_git_repo,
+    update_git_repo,
+)
 
 EXPECTED_DEPTH: int = 5
 UPDATED_DEPTH: int = 7
@@ -104,3 +108,51 @@ def test_update_git_repo_passes_depth_for_clone_when_set() -> None:
         branch="main",
         depth=CLONE_DEPTH,
     )
+
+
+def test_update_git_repo_removes_partial_repo_after_clone_failure() -> None:
+    logger: logging.Logger = logging.getLogger("git-helper-tests")
+    repo_path_mock: Mock = Mock()
+    repo_path_mock.exists.return_value = False
+    parent_path_mock: Mock = Mock()
+    repo_path_mock.parent = parent_path_mock
+
+    with (
+        patch("scripts.customizing.fwo_custom_lib.git_helpers.Path", return_value=repo_path_mock),
+        patch(
+            "scripts.customizing.fwo_custom_lib.git_helpers.git.Repo.clone_from",
+            side_effect=RuntimeError("clone failed"),
+        ),
+        patch("scripts.customizing.fwo_custom_lib.git_helpers.shutil.rmtree") as rmtree_mock,
+    ):
+        repo_updated: bool = update_git_repo("https://example.invalid/repo.git", REPO_TARGET_DIR, logger)
+
+    assert repo_updated is False
+    parent_path_mock.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+    rmtree_mock.assert_not_called()
+    repo_path_mock.unlink.assert_not_called()
+
+
+def test_read_file_from_git_repo_removes_repo_directory_after_read() -> None:
+    logger: logging.Logger = logging.getLogger("git-helper-tests")
+    repo_path_mock: Mock = Mock()
+    repo_path_mock.exists.return_value = True
+    repo_path_mock.is_dir.return_value = True
+
+    with (
+        patch("scripts.customizing.fwo_custom_lib.git_helpers.Path", return_value=repo_path_mock),
+        patch("scripts.customizing.fwo_custom_lib.git_helpers.update_git_repo", return_value=True),
+        patch("builtins.open", create=True) as open_mock,
+        patch("scripts.customizing.fwo_custom_lib.git_helpers.shutil.rmtree") as rmtree_mock,
+    ):
+        open_mock.return_value.__enter__.return_value.read.return_value = "file content"
+
+        file_contents: str = read_file_from_git_repo(
+            "https://example.invalid/repo.git",
+            REPO_TARGET_DIR,
+            "sample.txt",
+            logger,
+        )
+
+    assert file_contents == "file content"
+    rmtree_mock.assert_called_once_with(repo_path_mock)

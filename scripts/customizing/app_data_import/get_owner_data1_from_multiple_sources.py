@@ -255,6 +255,7 @@ if __name__ == "__main__":
     args: argparse.Namespace = parser.parse_args()
 
     owners_by_id: dict[str, dict[str, Any]] = {}
+    main_owners_by_id: dict[str, str] = {}
 
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()
@@ -310,13 +311,13 @@ if __name__ == "__main__":
                     owner[1]: {
                         "app_id_external": app_id,
                         "name": app_name,
-                        "main_user": main_user_dn,
                         "modellers": [],
                         "import_source": import_source_string,
                         "app_servers": [],
                     }
                 }
             )
+            main_owners_by_id[app_id] = main_user_dn
 
     ######################################################
     # 2. now add data from RLM (add. users, server data)
@@ -347,7 +348,7 @@ if __name__ == "__main__":
         uid: str
         for uid in rlm_owner["owner"]["members"]:
             dn: str = build_dn(uid, ldap_path)
-            if app_id in owners_by_id and dn != owners_by_id[app_id]["main_user"]:  # leave out main owner
+            if app_id in owners_by_id and dn != main_owners_by_id.get(app_id, ""):  # leave out main owner
                 users.append(dn)
 
         # enrich modeller users and servers

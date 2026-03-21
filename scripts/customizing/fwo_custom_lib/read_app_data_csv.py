@@ -252,13 +252,6 @@ def _merge_responsibles(
     return merged_responsibles
 
 
-def _get_main_user_dn_from_responsibles(responsibles: dict[str, list[str]]) -> str:
-    level_one_responsibles: list[str] = responsibles.get("1", [])
-    if level_one_responsibles:
-        return level_one_responsibles[0]
-    return ""
-
-
 def _build_responsibles_dns(
     responsibles: dict[str, list[str]],
     ldap_path: str,
@@ -664,21 +657,20 @@ def parse_app_line(
     if context.add_users_by_pattern is not None:
         pattern_responsibles: dict[str, list[str]] = _build_pattern_responsibles(app_id, context.add_users_by_pattern)
         responsibles = _merge_responsibles(responsibles, pattern_responsibles)
-    main_user_dn: str = _get_main_user_dn_from_responsibles(responsibles)
     recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
     mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
         criticality, context.criticality_recert_period_mapping
     )
     if mapped_recert_period_days is not None:
         recert_period_days = mapped_recert_period_days
-    if main_user_dn == "" and context.debug_level > 0:
-        context.logger.warning("adding app without main user: %s", app_id)
+    level_one_responsibles: list[str] = responsibles.get("1", [])
+    if len(level_one_responsibles) == 0 and context.debug_level > 0:
+        context.logger.warning("adding app without level 1 responsible: %s", app_id)
     criticality_value: str | None = criticality if context.criticality_column >= 0 else None
     responsibles_value: dict[str, list[str]] | None = responsibles or None
     owner: Owner = context.owner_cls(
         app_id_external=app_id,
         name=app_name,
-        main_user=main_user_dn,
         recert_period_days=recert_period_days,
         days_until_first_recert=recert_period_days,
         recert_active=False,

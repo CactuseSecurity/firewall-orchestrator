@@ -231,7 +231,6 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
         owner: Owner = Owner(
             "Example App",
             "APP-001",
-            "CN=legacy-user,OU=Users,DC=example,DC=org",
             365,
             365,
             responsibles={"1": ["CN=tiso-user,OU=Users,DC=example,DC=org"]},
@@ -242,7 +241,7 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
         self.assertEqual(tisos, {"APP-001": "tiso-user"})
 
     def test_get_tisos_from_owner_dict_skips_owner_without_level_one_responsible(self) -> None:
-        owner: Owner = Owner("Example App", "APP-001", "CN=legacy-user,OU=Users,DC=example,DC=org", 365, 365)
+        owner: Owner = Owner("Example App", "APP-001", 365, 365)
 
         with self.assertLogs("iiq-request-missing-roles", level="WARNING") as log_context:
             tisos: dict[str, str] = get_tisos_from_owner_dict({"APP-001": owner})

@@ -92,7 +92,6 @@ def _add_app_from_line(
     app_data[app_id] = {
         "app_id_external": app_id,
         "name": app_name,
-        "main_user": main_user_dn,
         "BISO": biso_dn,
         "modellers": [],
         "import_source": import_source_string,
@@ -211,7 +210,6 @@ if __name__ == "__main__":
                 {
                     "name": app_info["name"],
                     "app_id_external": app_info["app_id_external"],
-                    "main_user": app_info["main_user"],
                     "modellers": app_info["modellers"],
                     "criticality": app_info.get("criticality", None),
                     "import_source": app_info["import_source"],

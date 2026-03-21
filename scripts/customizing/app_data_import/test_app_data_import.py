@@ -67,7 +67,6 @@ class AppDataImportTests(unittest.TestCase):
             owner: Owner = app_list[0]
             self.assertEqual(owner.name, "My App")
             self.assertEqual(owner.app_id_external, "APP-001")
-            self.assertEqual(owner.main_user, "")
             self.assertEqual(owner.recert_period_days, 365)
             self.assertEqual(owner.import_source, self.import_source)
             self.assertEqual(owner.owner_lifecycle_state, "unknown")
@@ -172,7 +171,7 @@ class AppDataImportTests(unittest.TestCase):
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
                 fh.write("col: Alfabet-ID,col: IP\nAPP-001,10.0.0.1\n")
 
-            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-001": owner}
 
             extract_ip_data_from_csv(
@@ -198,7 +197,7 @@ class AppDataImportTests(unittest.TestCase):
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
                 fh.write("col: Alfabet-ID;col: IP\nAPP-001;10.0.0.1\n")
 
-            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-001": owner}
 
             extract_ip_data_from_csv(
@@ -220,7 +219,7 @@ class AppDataImportTests(unittest.TestCase):
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
                 fh.write("col: Alfabet-ID;col: IP\nAPP-001;10.0.0.1\n")
 
-            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-001": owner}
 
             with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
@@ -244,7 +243,7 @@ class AppDataImportTests(unittest.TestCase):
             ip_csv_content: str = "col: Alfabet-ID,col: IP,Kommentar\nAPP-001,10.0.0.1,ä\n"
             ip_csv_path.write_bytes(ip_csv_content.encode("cp1252"))
 
-            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-001": owner}
 
             with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
@@ -290,7 +289,6 @@ class AppDataImportTests(unittest.TestCase):
             owner: Owner = app_list[0]
             self.assertEqual(owner.name, "My Other App")
             self.assertEqual(owner.app_id_external, "APP-002")
-            self.assertEqual(owner.main_user, "")
             self.assertEqual(owner.recert_period_days, 182)
 
     def test_extract_app_data_from_csv_applies_default_recert_active_state(self) -> None:
@@ -333,7 +331,7 @@ class AppDataImportTests(unittest.TestCase):
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
                 fh.write("Identifier,IP Address\nAPP-003,10.0.0.0/30\n")
 
-            owner: Owner = Owner("My App", "APP-003", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-003", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-003": owner}
             header_patterns: dict[str, str] = {"app_id": r"Identifier", "ip": r"IP Address"}
 
@@ -567,7 +565,7 @@ class AppDataImportTests(unittest.TestCase):
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
                 fh.write("col: Alfabet-ID\nAPP-001\n")
 
-            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-001": owner}
 
             with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
@@ -1232,7 +1230,6 @@ class AppDataImportTests(unittest.TestCase):
             )
 
             self.assertEqual(len(app_list), 1)
-            self.assertEqual(app_list[0].main_user, "CN=uid-main")
             owner_json: dict[str, object] = app_list[0].to_json()
             self.assertEqual(
                 owner_json.get("responsibles"),
@@ -1298,7 +1295,6 @@ class AppDataImportTests(unittest.TestCase):
             )
 
             self.assertEqual(len(app_list), 1)
-            self.assertEqual(app_list[0].main_user, "CN=uid-main")
             owner_json: dict[str, object] = app_list[0].to_json()
             self.assertEqual(
                 owner_json.get("responsibles"),
@@ -1344,8 +1340,6 @@ class AppDataImportTests(unittest.TestCase):
                     "30": ["CN=R8M4"],
                 },
             )
-            self.assertEqual(app_list[0].main_user, "")
-
     def test_extract_app_data_from_csv_adds_users_by_pattern_without_separator(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"

@@ -199,7 +199,7 @@ namespace FWO.Config.Api
             Match m = Regex.Match(key, pattern);
             if (m.Success)
             {
-                string msg = GetText(key[..5]);
+                string msg = GetText(m.Value);
                 if (msg != GlobalConst.kUndefinedText)
                 {
                     text = msg;

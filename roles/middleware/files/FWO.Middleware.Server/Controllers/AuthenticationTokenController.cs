@@ -1,13 +1,18 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -30,6 +35,88 @@ namespace FWO.Middleware.Server.Controllers
             this.jwtWriter = jwtWriter;
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
+        }
+
+        /// <summary>
+        /// Generates a new access and refresh token pair for a user based on the provided authentication parameters.
+        /// </summary>
+        /// <remarks>This endpoint is typically used during user login to obtain tokens for subsequent
+        /// authenticated requests. The access token is stored in the database as a hash for security purposes. Ensure
+        /// that the credentials provided are valid to receive a token pair.</remarks>
+        /// <param name="parameters">The authentication parameters containing the user's credentials. Must include a valid username and password.
+        /// Cannot be null.</param>
+        /// <returns>An <see cref="ActionResult{TokenPair}"/> containing the generated access and refresh tokens if
+        /// authentication is successful; otherwise, a bad request result with an error message.</returns>
+        [HttpPost("GetTokenPair")]
+        public async Task<ActionResult<TokenPair>> GetTokenPair([FromBody] AuthenticationTokenGetParameters parameters)
+        {
+            try
+            {
+                UiUser? user = null;
+
+                if (parameters != null)
+                {
+                    string? username = parameters.Username;
+                    string? password = parameters.Password;
+
+                    if (username != null && password != null)
+                        user = new UiUser { Name = username, Password = password };
+                }
+
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+
+                await authManager.AuthorizeUserAsync(user, validatePassword: true);
+
+                // Creates access and refresh token and stores the access token hash in DB
+                TokenPair tokenPair = await authManager.CreateTokenPair(user);
+
+                return Ok(tokenPair);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("Token Generation", "Error generating token pair", ex);
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Generates a new access and refresh token pair for a specified user, using administrator credentials for authorization.
+        /// </summary>
+        /// <remarks>This endpoint is restricted to users with the admin role. The administrator's
+        /// credentials are validated before generating a token pair for the target user. The target user's password is
+        /// not required for this operation.</remarks>
+        /// <param name="parameters">The parameters containing administrator credentials and the target user's information. Must include valid
+        /// admin username and password, as well as the target user's name or distinguished name.</param>
+        /// <returns>An <see cref="ActionResult{TokenPair}"/> containing the generated token pair for the target user if the
+        /// operation succeeds; otherwise, a bad request result with an error message.</returns>
+        /// <exception cref="AuthenticationException">Thrown if the provided administrator credentials do not correspond to a user with the admin role.</exception>
+        [HttpPost("GetTokenPairForUser")]
+        public async Task<ActionResult<TokenPair>> GetTokenPairForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
+        {
+            try
+            {
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                UiUser adminUser = new() { Name = parameters.AdminUsername, Password = parameters.AdminPassword };
+
+                await authManager.AuthorizeUserAsync(adminUser, validatePassword: true);
+
+                if (!adminUser.Roles.Contains(Roles.Admin))
+                {
+                    throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
+                }
+
+                UiUser targetUser = new() { Name = parameters.TargetUserName, Dn = parameters.TargetUserDn };
+
+                await authManager.AuthorizeUserAsync(targetUser, validatePassword: false, parameters.Lifetime);
+
+                TokenPair tokenPair = await authManager.CreateTokenPair(targetUser, parameters.Lifetime);
+
+                return Ok(tokenPair);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
         /// <summary>
@@ -125,6 +212,112 @@ namespace FWO.Middleware.Server.Controllers
                 return BadRequest(e.Message);
             }
         }
+
+        /// <summary>
+        /// Refreshes an access token using a valid refresh token.
+        /// </summary>
+        /// <param name="request">Refresh token request</param>
+        /// <returns>New token pair if refresh token is valid</returns>
+        [Authorize]
+        [HttpPost("Refresh")]
+        public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.RefreshToken))
+                {
+                    return BadRequest("Refresh token is required");
+                }
+
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+
+                // Validate refresh token
+                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(request.RefreshToken);
+
+                if (tokenInfo == null)
+                {
+                    return BadRequest("Invalid or expired refresh token");
+                }
+
+                UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = tokenInfo.UserId });
+                UiUser? user = users.FirstOrDefault();
+
+                if (user == null)
+                {
+                    return Unauthorized("User not found");
+                }
+
+                user.Roles = await authManager.GetRoles(user);
+
+                // Revoke the old refresh token (token rotation for security)
+                await authManager.RevokeRefreshToken(request.RefreshToken);
+
+                // Create new token pair
+                TokenPair newTokens = await authManager.CreateTokenPair(user);
+
+                Log.WriteInfo("Token Refresh", $"Successfully refreshed tokens for user {user.Name}");
+                return Ok(newTokens);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("Token Refresh", "Failed to refresh token", ex);
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Revokes a refresh token, preventing it from being used for future token refreshes.
+        /// </summary>
+        /// <param name="request">The request containing the refresh token to revoke.</param>
+        /// <returns>
+        /// An <see cref="ActionResult"/> indicating success if the token is revoked;
+        /// otherwise, a bad request or unauthorized result with an error message.
+        /// </returns>
+        [Authorize]
+        [HttpPost("Revoke")]
+        public async Task<ActionResult> RevokeToken([FromBody] RefreshTokenRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.RefreshToken))
+                {
+                    return BadRequest("Refresh token is required");
+                }
+
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+
+                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(request.RefreshToken);
+
+                if (tokenInfo == null)
+                {
+                    return Unauthorized("Invalid or expired refresh token");
+                }
+
+                await authManager.RevokeRefreshToken(request.RefreshToken);
+
+                Log.WriteInfo("Token Refresh", $"Successfully revoked refresh token");
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("Token Refresh", "Failed to refresh token", ex);
+                return BadRequest(ex.Message);
+            }
+        }
+
+#if DEBUG
+        /// <summary>
+        ///  Tests the Auth from swagger. If this returns unauthorized then check JWT token in swagger and try again.
+        /// </summary>
+        /// <returns></returns>
+        [Authorize]
+        [HttpGet("TestAuth")]
+        public async Task<ActionResult> TestAuth()
+        {
+            return Ok();
+        }
+#endif
     }
 
     class AuthManager
@@ -423,6 +616,125 @@ namespace FWO.Middleware.Server.Controllers
 
             Management[] managementIds = await conn.SendQueryAsync<Management[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
             tenant.VisibleManagementIds = Array.ConvertAll(managementIds, management => management.Id);
+        }
+
+        /// <summary>
+        /// Validates a refresh token and returns token info if valid
+        /// </summary>
+        public async Task<RefreshTokenInfo?> ValidateRefreshToken(string refreshToken)
+        {
+            try
+            {
+                string tokenHash = GenerateTokenHash(refreshToken);
+
+                var queryVariables = new
+                {
+                    tokenHash = tokenHash,
+                    currentTime = DateTime.UtcNow
+                };
+
+                RefreshTokenInfo[] result = await apiConnection.SendQueryAsync<RefreshTokenInfo[]>(AuthQueries.getRefreshToken, queryVariables);
+
+                return result?.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("Token Validation", "Error validating refresh token", ex);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Stores a refresh token in the database
+        /// </summary>
+        public async Task StoreRefreshToken(int userId, string refreshToken, DateTime expiresAt)
+        {
+            try
+            {
+                string tokenHash = GenerateTokenHash(refreshToken);
+
+                var mutationVariables = new
+                {
+                    userId = userId,
+                    tokenHash = tokenHash,
+                    expiresAt = expiresAt,
+                    createdAt = DateTime.UtcNow
+                };
+
+                await apiConnection.SendQueryAsync<object>(AuthQueries.storeRefreshToken, mutationVariables);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("Token Storage", "Error storing refresh token", ex);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Revokes a refresh token by marking it as revoked
+        /// </summary>
+        public async Task RevokeRefreshToken(string refreshToken)
+        {
+            try
+            {
+                string tokenHash = GenerateTokenHash(refreshToken);
+
+                var mutationVariables = new
+                {
+                    tokenHash = tokenHash,
+                    revokedAt = DateTime.UtcNow
+                };
+
+                await apiConnection.SendQueryAsync<object>(AuthQueries.revokeRefreshToken, mutationVariables);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("Token Revocation", "Error revoking refresh token", ex);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Generates a SHA256 hash of the refresh token for secure storage
+        /// </summary>
+        private static string GenerateTokenHash(string token)
+        {
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToBase64String(hash);
+        }
+
+        /// <summary>
+        /// Create access and refresh token pair for given user
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="accessTokenLifetime"></param>
+        /// <returns></returns>
+        public async Task<TokenPair> CreateTokenPair(UiUser? user = null, TimeSpan? accessTokenLifetime = null)
+        {
+            TimeSpan accessLifetime = accessTokenLifetime ?? TimeSpan.FromHours(await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours)));
+
+            string accessToken = await jwtWriter.CreateJWT(user, accessLifetime);
+
+            JwtSecurityToken jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+
+            string refreshToken = "";
+            DateTime refreshExpiry = DateTime.MinValue;
+
+            if (user is not null)
+            {
+                refreshToken = JwtWriter.GenerateRefreshToken();
+                int refreshTokenLifetimeDays = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetimeDays));
+                refreshExpiry = DateTime.UtcNow.AddDays(refreshTokenLifetimeDays);
+                await StoreRefreshToken(user.DbId, refreshToken, refreshExpiry);
+            }
+
+            return new TokenPair
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                AccessTokenExpires = jwt.ValidTo,
+                RefreshTokenExpires = refreshExpiry
+            };
         }
     }
 }

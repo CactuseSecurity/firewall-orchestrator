@@ -13,10 +13,12 @@
 
 <div class="input-group">
     <h3>@(userConfig.GetText("roles"))</h3>
-    <HelpLink Page="settings/roles"/>
+    <HelpLink Page="settings/roles" />
 </div>
 <h6 data-toggle="tooltip" title="@(userConfig.PureLine("H5332") + "\r\n" + userConfig.PureLine("H5361") + "\r\n"+ userConfig.PureLine("H5362") +
-    "\r\n" + userConfig.PureLine("H5363") + "\r\n" + userConfig.PureLine("H5364"))">@(userConfig.GetText("U5215"))</h6>
+                              "\r\n" + userConfig.PureLine("H5363") + "\r\n" + userConfig.PureLine("H5364"))">
+    @(userConfig.GetText("U5215"))
+</h6>
 <hr />
 
 <div class="m-2 vheight75">
@@ -24,11 +26,11 @@
         <Column TableItem="Role" Title="@(userConfig.GetText("actions"))" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group" data-toggle="tooltip" title="@(userConfig.PureLine("H5341") + "\r\n" + userConfig.PureLine("H5351") +
-                        "\r\n" + userConfig.PureLine("H5352") + "\r\n" + userConfig.PureLine("H5353"))">
+                                                                                     "\r\n" + userConfig.PureLine("H5352") + "\r\n" + userConfig.PureLine("H5353"))">
                     @if (context.Name != Roles.MiddlewareServer && context.Name != Roles.Anonymous)
                     {
                         <button type="button" class="btn btn-sm btn-success" @onclick="() => AddToRole(context)">@(userConfig.GetText("assign_user_group"))</button>
-                        @if(context.Users.Count > 0)
+                        @if (context.Users.Count > 0)
                         {
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveFromRole(context)">@(userConfig.GetText("remove_user_group"))</button>
                         }
@@ -58,8 +60,8 @@
     </Table>
 </div>
 
-<SearchUser @bind-Display="AddMode" AddUser="AddUserFromLdap" AddGroup="AddGroupFromLdap" UserSearchMode="true" GroupSearchMode="true" Title="@(actRole.Name)"/>
-<RemoveUser @bind-Display="RemoveUserMode" Remove="RemoveUser" Users="actRole.Users" Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Label="@(userConfig.GetText("user_group"))"/>
+<SearchUser @bind-Display="AddMode" AddUser="AddUserFromLdap" AddGroup="AddGroupFromLdap" UserSearchMode="true" GroupSearchMode="true" Title="@(actRole.Name)" />
+<RemoveUser @bind-Display="RemoveUserMode" Remove="RemoveUser" Users="actRole.Users" Title="@(userConfig.GetText("remove_user_group_from_role") + ": " + actRole.Name)" Label="@(userConfig.GetText("user_group"))" />
 
 
 @code
@@ -109,7 +111,7 @@
 
     private async Task AddGroupFromLdap(string groupDn)
     {
-        await AddUserToRole(new UiUser(){ Dn = groupDn , Name = (new DistName(groupDn)).Group});
+        await AddUserToRole(new UiUser() { Dn = groupDn, Name = (new DistName(groupDn)).Group });
     }
 
     private async Task AddUserToRole(UiUser user)
@@ -138,6 +140,7 @@
                     actRole.Users.Add(user);
                     roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                     AddMode = false;
+
                     JwtEventService.PermissionsChanged(user.Dn);
 
                     Log.WriteAudit(

@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using FWO.Services.EventMediator
 @using FWO.Services.EventMediator.Events
@@ -21,7 +22,7 @@
 @inject AuthenticationStateProvider authenticationProvider
 @inject ProtectedSessionStorage sessionStorage
 @inject CircuitHandler circuitHandler
-@inject IEventMediator EventMediator
+@inject TokenService tokenService
 
 @implements IDisposable
 
@@ -56,13 +57,15 @@
 </div>
 
 <PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)" Size=PopupSize.Small>
+
     <Body>
         <p>@(reloginDialogText)</p>
         <div class="input-group">
             <div class="input-group-prepend">
                 <span class="input-group-text"><span class="@Icons.Locked"></span></span>
             </div>
-            <input type="password" class="form-control @reloginCssClass" @bind="password" placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
+            <input type="password" class="form-control @reloginCssClass" @bind="password"
+                   placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
         </div>
         @if (!string.IsNullOrEmpty(reloginErrorMessage))
         {
@@ -73,7 +76,9 @@
         <div class="btn-group">
             @if (reloginAbortable)
             {
-                <button type="button" class="btn btn-secondary" @onclick="@(() => showReloginDialog = false)">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-secondary" @onclick="@(() => showReloginDialog = false)">
+                    @(userConfig.GetText("cancel"))
+                </button>
             }
             else
             {
@@ -84,7 +89,7 @@
     </Footer>
 </PopUp>
 
-<KeyboardInput/>
+<KeyboardInput />
 
 @code
 {
@@ -111,39 +116,79 @@
 
     private Timer? UIMessageQueTimer;
 
-    private bool _disposed = false;
+    private string? LastLocation;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
+        await CheckAndRefreshTokenAsync();
+
         JwtEventService.OnPermissionChanged += OnPermissionsChanged;
-        JwtEventService.OnJwtAboutToExpire += OnJwtAboutToExpire;
         JwtEventService.OnJwtExpired += OnJwtExpired;
 
-        alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
+        NavigationManager.LocationChanged += OnLocationChanged;
+
+        user = authenticationStateTask!.Result.User;
+
+        alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate,
+MonitorQueries.subscribeAlertChanges);
 
         UIMessageQueTimer = new()
-            {
-                AutoReset = true,
-                Enabled = false,
-                Interval = 500
-            };
+        {
+            AutoReset = true,
+            Enabled = false,
+            Interval = 500
+        };
 
         UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
-
-        EventMediator.Subscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService), _ => OnUserSessionClosedEvent(_.EventArgs));
     }
 
-    private void OnUserSessionClosedEvent(UserSessionClosedEventArgs? e)
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        if (e == null || string.IsNullOrEmpty(e.UserDn))
+        if (LastLocation != e.Location)
         {
-            return;
-        }
+            LastLocation = e.Location;
 
-        JwtEventService.RemoveJwtTimers(e.UserDn);
+            await CheckAndRefreshTokenAsync();
+        }
+    }
+
+    private async Task CheckAndRefreshTokenAsync()
+    {
+        try
+        {
+            if (await tokenService.IsAccessTokenExpired())
+            {
+                Log.WriteDebug("Token Check", "Access token expired, attempting refresh...");
+
+                bool refreshed = await tokenService.RefreshAccessToken();
+
+                if (refreshed)
+                {
+                    string? newAccessToken = await tokenService.GetAccessToken();
+
+                    if (!string.IsNullOrEmpty(newAccessToken))
+                    {
+                        apiConnection.SetAuthHeader(newAccessToken);
+                        middlewareClient.SetAuthenticationToken(newAccessToken);
+                        userConfig.User.Jwt = newAccessToken;
+                    }
+                }
+                else
+                {
+                    await InvokeAsync(() =>
+                    {
+                        ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable:
+false);
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.WriteError("Token Check", "Error during token check/refresh", ex);
+        }
     }
 
     private async Task KeyHandler(KeyboardEventArgs ev)
@@ -167,7 +212,8 @@
     {
         if (userDn == userConfig.User.Dn)
         {
-            ShowReloginDialog(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), reloginAbortable: true);
+            ShowReloginDialog(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), reloginAbortable:
+true);
         }
     }
 
@@ -175,7 +221,8 @@
     {
         if (userDn == userConfig.User.Dn)
         {
-            ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
+            ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable:
+            false);
         }
     }
 
@@ -199,8 +246,10 @@
         }
         try
         {
-            RestResponse<string> authResponse = await ( (AuthStateProvider)authenticationProvider ).Authenticate(userConfig.User.Name,
-                password, apiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ( (CircuitHandlerService)circuitHandler ));
+            RestResponse<TokenPair> authResponse = await ((AuthStateProvider)authenticationProvider)
+            .Authenticate(userConfig.User.Name, password, apiConnection, middlewareClient, globalConfig, userConfig,
+            ((CircuitHandlerService)circuitHandler));
+
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 showReloginDialog = false;
@@ -209,7 +258,8 @@
                 return;
             }
             // There was an error trying to authenticate the user. Probably invalid credentials
-            errorMessage = ( authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content );
+            errorMessage = (authResponse.Content != null ? userConfig.GetApiText(authResponse.Content) : "Middleware Api Error: " +
+            authResponse.Content);
         }
         catch (Exception ex)
         {
@@ -223,7 +273,8 @@
     private void OnAlertUpdate(List<Alert> alerts)
     {
         user = authenticationStateTask!.Result.User;
-        showAlert = ( user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || user.IsInRole(Roles.Auditor) ) && alerts.Count() > 0;
+        showAlert = (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || user.IsInRole(Roles.Auditor)) &&
+        alerts.Count() > 0;
         InvokeAsync(StateHasChanged);
     }
 
@@ -248,11 +299,11 @@
             }
 
             UIMessage uiMessage = new()
-                {
-                    Message = message,
-                    Title = title,
-                    Type = type
-                };
+            {
+                Message = message,
+                Title = title,
+                Type = type
+            };
 
             Timer messageTimer = new Timer(showtime.Value);
             messageTimer.Elapsed += (sender, e) => HideMessage(sender, e, uiMessage.Id);
@@ -282,12 +333,12 @@
 
     private void OnUIMessageTimerTick(object? _, ElapsedEventArgs __)
     {
-        if(UIMessageQueTimer is null)
+        if (UIMessageQueTimer is null)
         {
             return;
         }
 
-        if(UIMessageQue == null || UIMessageQue.Count == 0)
+        if (UIMessageQue == null || UIMessageQue.Count == 0)
         {
             UIMessageQueTimer.Stop();
             return;
@@ -318,7 +369,8 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
+    private void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag =
+    false)
     {
         int severity = 0;
         string cause = "";
@@ -354,7 +406,8 @@
                 if (!showReloginDialog)
                 {
                     showReloginDialog = true;
-                    ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime: -1);
+                    ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime:
+                    -1);
                 }
                 return;
             }
@@ -368,7 +421,7 @@
             else
             {
                 string role = "";
-                if(apiConnection is GraphQlApiConnection)
+                if (apiConnection is GraphQlApiConnection)
                 {
                     role = ((GraphQlApiConnection)apiConnection).GetActRole();
                 }
@@ -376,16 +429,18 @@
                 {
                     try
                     {
-                        JwtReader jwtReader = new (userConfig.User.Jwt);
+                        JwtReader jwtReader = new(userConfig.User.Jwt);
                         Task.Run(async () => await jwtReader.Validate());
                         role = jwtReader.GetRole();
                     }
                     catch (Exception) { }
                 }
-                Log.WriteError(( title != "" ? title : "Unspecified Error" ), ( message != "" ? message : "Unspecified error occured: " ), exception, userConfig.User.Name, role);
+                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "),
+exception, userConfig.User.Name, role);
                 severity = 2;
-                cause = ( title != "" ? title : userConfig.GetText("unspecified_error") );
-                description = $"{( message != "" ? message : userConfig.GetText("E0001") )}" + ( ErrorFlag ? $": {exception.Message}" : "" ) + " . " + userConfig.GetText("E0002");
+                cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
+                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" :
+"") + " . " + userConfig.GetText("E0002");
             }
         }
         ShowMessage(cause, description, messageType);
@@ -403,7 +458,8 @@
                 suspectedCause = cause,
                 description = description,
             };
-            ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addUiLogEntry, Variables) ).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addUiLogEntry,
+            Variables)).ReturnIds;
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");
@@ -435,35 +491,14 @@
 
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected void Dispose(bool disposing)
-    {
-        if (_disposed)
+        if (UIMessageQueTimer is not null)
         {
-            return;
+            UIMessageQueTimer.Stop();
+            UIMessageQueTimer.Elapsed -= OnUIMessageTimerTick;
+            UIMessageQueTimer.Dispose();
         }
 
-        _disposed = true;
-
-        if (disposing)
-        {
-            JwtEventService.OnPermissionChanged -= OnPermissionsChanged;
-            JwtEventService.OnJwtAboutToExpire -= OnJwtAboutToExpire;
-            JwtEventService.OnJwtExpired -= OnJwtExpired;
-
-            if (UIMessageQueTimer is not null)
-            {
-                UIMessageQueTimer.Stop();
-                UIMessageQueTimer.Elapsed -= OnUIMessageTimerTick;
-                UIMessageQueTimer.Dispose();
-            }
-
-            alertSubscription?.Dispose();
-
-            EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService));
-        }
+        alertSubscription?.Dispose();
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

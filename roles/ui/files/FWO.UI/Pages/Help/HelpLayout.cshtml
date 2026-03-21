@@ -11,9 +11,10 @@
     <title>Online Help FWORCH</title>
     <link rel="stylesheet" href="/css/bootstrap/bootstrap.min.css">
     <link href="/css/site.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="~/css/help-code.css" />
 </head>
 <body>
-    <nav class="navbar bg-gray navbar-help navbar-expand-sm shadow w-100 sticky-top">  
+    <nav class="navbar bg-gray navbar-help navbar-expand-sm shadow w-100 sticky-top">
         <a class="navbar-brand" href="/help/?lang=@($"{userConfig.GetUserLanguage()}")">
             <img src="/images/FWO_logo_navbar.png">&nbsp;@userConfig.GetText("fworch_long")
         </a>
@@ -54,7 +55,7 @@
                     <a class="nav-link" href="/help/API/?lang=@($"{userConfig.GetUserLanguage()}")">
                         <span class="@Icons.Api"></span> @userConfig.GetText("api")
                     </a>
-                </li>                
+                </li>
             </ul>
         </div>
     </nav>
@@ -64,4 +65,3 @@
     </div>
 </body>
 </html>
-

@@ -37,6 +37,7 @@ import re
 import shlex
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 import urllib3
 
@@ -205,6 +206,68 @@ def parse_add_users_by_pattern(entries: list[str]) -> dict[str, str]:
     if not add_users_by_pattern:
         raise argparse.ArgumentTypeError("add_users_by_pattern must contain at least one LEVEL:PATTERN mapping")
     return add_users_by_pattern
+
+
+def _normalize_responsibles_columns_from_dict(
+    responsibles_columns_value: dict[Any, Any],
+) -> dict[str, tuple[str, ...]]:
+    normalized_responsibles_columns: dict[str, tuple[str, ...]] = {}
+    level_name: Any
+    headers_value: Any
+    for level_name, headers_value in responsibles_columns_value.items():
+        if not isinstance(level_name, str) or level_name.strip() == "":
+            raise argparse.ArgumentTypeError("config key responsiblesColumns must use non-empty string levels")
+        if not isinstance(headers_value, list):
+            raise argparse.ArgumentTypeError(
+                f"config key responsiblesColumns level '{level_name}' must contain a JSON array of headers"
+            )
+        headers_list: list[Any] = cast("list[Any]", headers_value)
+        normalized_headers: list[str] = []
+        header_value: Any
+        for header_value in headers_list:
+            if not isinstance(header_value, str) or header_value.strip() == "":
+                raise argparse.ArgumentTypeError(
+                    f"config key responsiblesColumns level '{level_name}' must contain non-empty string headers"
+                )
+            normalized_headers.append(header_value.strip())
+        if len(normalized_headers) == 0:
+            raise argparse.ArgumentTypeError(
+                f"config key responsiblesColumns level '{level_name}' must contain at least one header"
+            )
+        normalized_responsibles_columns[level_name.strip()] = tuple(normalized_headers)
+    return normalized_responsibles_columns
+
+
+def resolve_responsibles_columns_headers(
+    config_file: str,
+    cli_responsibles_columns: list[str] | None,
+    logger: logging.Logger,
+) -> dict[str, tuple[str, ...]] | None:
+    if cli_responsibles_columns:
+        return parse_responsibles_columns(cli_responsibles_columns)
+
+    responsibles_columns_value: Any = read_custom_config_with_default(config_file, "responsiblesColumns", None, logger)
+    if responsibles_columns_value is None:
+        responsibles_columns_value = read_custom_config_with_default(config_file, "responsibles_columns", None, logger)
+    if responsibles_columns_value is None:
+        return None
+    if isinstance(responsibles_columns_value, list):
+        responsibles_columns_list: list[Any] = cast("list[Any]", responsibles_columns_value)
+        string_entries: list[str] = []
+        entry_value: Any
+        for entry_value in responsibles_columns_list:
+            if not isinstance(entry_value, str):
+                raise argparse.ArgumentTypeError(
+                    "config key responsiblesColumns list must contain only LEVEL:HEADER strings"
+                )
+            string_entries.append(entry_value)
+        return parse_responsibles_columns(string_entries)
+    if isinstance(responsibles_columns_value, dict):
+        responsibles_columns_dict: dict[Any, Any] = cast("dict[Any, Any]", responsibles_columns_value)
+        return _normalize_responsibles_columns_from_dict(responsibles_columns_dict)
+    raise argparse.ArgumentTypeError(
+        "config key responsiblesColumns must be a JSON object or a list of LEVEL:HEADER entries"
+    )
 
 
 def resolve_local_repo_base_dir(
@@ -474,9 +537,9 @@ if __name__ == "__main__":
     criticality_recert_period_mapping: dict[str, int] | None = None
     if args.criticalityRecertPeriodMapping:
         criticality_recert_period_mapping = parse_criticality_recert_period_mapping(args.criticalityRecertPeriodMapping)
-    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None
-    if args.responsiblesColumns:
-        responsibles_columns_headers = parse_responsibles_columns(args.responsiblesColumns)
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+        args.config, args.responsiblesColumns, logger
+    )
     add_users_by_pattern: dict[str, str] | None = None
     if args.add_users_by_pattern:
         add_users_by_pattern = parse_add_users_by_pattern(args.add_users_by_pattern)

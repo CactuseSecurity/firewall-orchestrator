@@ -16,6 +16,7 @@ from scripts.customizing.app_data_import.get_owner_data3_from_normalized_csvs im
     parse_included_owners_filters,
     parse_responsibles_columns,
     resolve_local_repo_base_dir,
+    resolve_responsibles_columns_headers,
 )
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 from scripts.customizing.fwo_custom_lib.basic_helpers import (
@@ -706,6 +707,65 @@ class AppDataImportTests(unittest.TestCase):
             resolved: str = resolve_local_repo_base_dir(str(config_path), cli_repo_dir, self.logger)
 
             self.assertEqual(resolved, cli_repo_dir)
+
+    def test_resolve_responsibles_columns_headers_reads_camel_case_config_list(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """
+                    {
+                      "responsiblesColumns": ["1:TISO UserID", "TISO Backup", "2:Owner UserID"]
+                    }
+                    """
+                )
+
+            resolved: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+                str(config_path), None, self.logger
+            )
+
+            self.assertEqual(resolved, {"1": ("TISO UserID", "TISO Backup"), "2": ("Owner UserID",)})
+
+    def test_resolve_responsibles_columns_headers_reads_snake_case_config_object(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """
+                    {
+                      "responsibles_columns": {
+                        "1": ["TISO UserID"],
+                        "2": ["Owner UserID", "Owner Backup"]
+                      }
+                    }
+                    """
+                )
+
+            resolved: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+                str(config_path), None, self.logger
+            )
+
+            self.assertEqual(resolved, {"1": ("TISO UserID",), "2": ("Owner UserID", "Owner Backup")})
+
+    def test_resolve_responsibles_columns_headers_prefers_cli_over_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """
+                    {
+                      "responsibles_columns": {
+                        "1": ["Config TISO"]
+                      }
+                    }
+                    """
+                )
+
+            resolved: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+                str(config_path), ["1:Cli TISO"], self.logger
+            )
+
+            self.assertEqual(resolved, {"1": ("Cli TISO",)})
 
     def test_get_owner_data3_imports_owner_lifecycle_state_from_override_column(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

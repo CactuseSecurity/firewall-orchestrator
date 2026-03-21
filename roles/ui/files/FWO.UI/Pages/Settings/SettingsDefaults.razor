@@ -139,6 +139,18 @@
                 <input type="time" step="60" @bind="configData!.DailyCheckStartAt" />
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5424a"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("dailyCheckModules")):</label>
+            <div class="form-group row col-sm-9">
+                @foreach (DailyCheckModule module in Enum.GetValues(typeof(DailyCheckModule)))
+                {
+                    <div class="form-group col-sm-3">
+                        <input id="cbx_daily_@module.ToString()" type="checkbox" @bind="dailyCheckModulesVisibleDict[module]" />
+                        <label for="cbx_daily_@module.ToString()" class="col-form-label">@(userConfig.GetText(module.ToString()))</label>
+                    </div>
+                }
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5452"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportDuration")):</label>
             <div class="col-sm-2">
@@ -234,7 +246,9 @@ else
     private DateTime autoDiscStartDate = DateTime.Today;
     private DateTime autoDiscStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private List<Module> availableModules { get; set; } = [];
+    private List<DailyCheckModule> dailyCheckModules { get; set; } = [];
     private Dictionary<Module, bool> modulesVisibleDict = [];
+    private Dictionary<DailyCheckModule, bool> dailyCheckModulesVisibleDict = [];
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
@@ -249,10 +263,16 @@ else
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
             autoDiscStartDate = autoDiscStartTime = configData.AutoDiscoverStartAt;
             availableModules = JsonSerializer.Deserialize<List<Module>>(string.IsNullOrEmpty(configData.AvailableModules) ? ModuleGroups.AllModulesNumList() : configData.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
+            dailyCheckModules = JsonSerializer.Deserialize<List<DailyCheckModule>>(string.IsNullOrEmpty(configData.DailyCheckModules) ? DailyCheckModuleGroups.AllModulesNumList() : configData.DailyCheckModules) ?? throw new JsonException("Config data could not be parsed.");
             modulesVisibleDict = [];
             foreach (Module module in Enum.GetValues(typeof(Module)).Cast<Module>())
             {
                 modulesVisibleDict.Add(module, availableModules.Contains(module));
+            }
+            dailyCheckModulesVisibleDict = [];
+            foreach(DailyCheckModule module in Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>())
+            {
+                dailyCheckModulesVisibleDict.Add(module, dailyCheckModules.Contains(module));
             }
             InitComplete = true;
         }
@@ -296,6 +316,15 @@ else
                     }
                 }
                 configData.AvailableModules = JsonSerializer.Serialize(availableModules);
+                dailyCheckModules = [];
+                foreach (DailyCheckModule module in dailyCheckModulesVisibleDict.Keys)
+                {
+                    if (dailyCheckModulesVisibleDict[module])
+                    {
+                        dailyCheckModules.Add(module);
+                    }
+                }
+                configData.DailyCheckModules = JsonSerializer.Serialize(dailyCheckModules);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

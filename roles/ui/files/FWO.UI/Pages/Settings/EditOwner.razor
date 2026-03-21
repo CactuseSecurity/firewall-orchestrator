@@ -547,7 +547,8 @@
             criticality = string.IsNullOrWhiteSpace(ActOwner.Criticality) ? null : ActOwner.Criticality,
             commSvcPossible = ActOwner.CommSvcPossible,
             recertActive = ActOwner.RecertActive,
-            ownerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId
+            ownerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId,
+            decommDate = ActOwner.DecommDate
         };
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
         if (returnIds == null)
@@ -572,6 +573,7 @@
 
     private async Task UpdateOwnerInDb()
     {
+        DateTime? decommDate = GetDecommDateAfterLifecycleChange();
         var variables = new
         {
             id = ActOwner.Id,
@@ -583,7 +585,8 @@
             criticality = string.IsNullOrWhiteSpace(ActOwner.Criticality) ? null : ActOwner.Criticality,
             ownerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId,
             commSvcPossible = ActOwner.CommSvcPossible,
-            recertActive = ActOwner.RecertActive
+            recertActive = ActOwner.RecertActive,
+            decommDate
         };
         int updatedId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwner, variables)).UpdatedId;
         if (updatedId != ActOwner.Id)
@@ -592,6 +595,7 @@
             return;
         }
 
+        ActOwner.DecommDate = decommDate;
         await UpdateOwnerResponsiblesInDb(ActOwner);
         await EnsureOwnerResponsibleRolesFromConfig(ActOwner);
         await DeleteRuleOwners();
@@ -816,6 +820,15 @@
         return originalActiveState != currentActiveState;
     }
 
+    private DateTime? GetDecommDateAfterLifecycleChange()
+    {
+        return OwnerLifeCycleState.GetDecommDate(
+            ActOwner.DecommDate,
+            GetOwnerLifeCycleState(OriginalOwnerLifeCycleStateId),
+            GetOwnerLifeCycleState(ActOwner.OwnerLifeCycleStateId),
+            DateTime.UtcNow);
+    }
+
     private bool TryGetOwnerLifeCycleStateActive(int? ownerLifeCycleStateId, out bool activeState)
     {
         OwnerLifeCycleState? state = OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ownerLifeCycleStateId);
@@ -827,6 +840,11 @@
 
         activeState = state.ActiveState;
         return true;
+    }
+
+    private OwnerLifeCycleState? GetOwnerLifeCycleState(int? ownerLifeCycleStateId)
+    {
+        return OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ownerLifeCycleStateId);
     }
 
     private static HashSet<string> BuildOwnedIpKeys(IEnumerable<NwObjectElement> ipAddresses)

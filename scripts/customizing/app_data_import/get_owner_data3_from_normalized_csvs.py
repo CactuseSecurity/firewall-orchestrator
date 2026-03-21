@@ -37,7 +37,6 @@ import re
 import shlex
 import sys
 from pathlib import Path
-from typing import Any, cast
 
 import urllib3
 
@@ -61,6 +60,10 @@ from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
     parse_csv_separator_arg,
+)
+from scripts.customizing.fwo_custom_lib.responsibles_config import (
+    parse_responsibles_columns as parse_responsibles_columns_from_lib,
+    resolve_responsibles_columns_headers as resolve_responsibles_columns_headers_from_lib,
 )
 
 base_dir: str = "/usr/local/fworch/"
@@ -146,51 +149,6 @@ def _parse_level_mapping(entry_value: str) -> tuple[str, str] | None:
     return split_entry[0].strip(), split_entry[1].strip()
 
 
-def _validate_responsibles_columns(responsibles: dict[str, list[str]]) -> None:
-    if not responsibles:
-        raise argparse.ArgumentTypeError("responsiblesColumns must contain at least one LEVEL:HEADER mapping")
-    level_name: str
-    headers_list: list[str]
-    for level_name, headers_list in responsibles.items():
-        if len(headers_list) == 0:
-            raise argparse.ArgumentTypeError(
-                f"invalid responsiblesColumns entry for level '{level_name}', expected at least one header"
-            )
-        if any(header == "" for header in headers_list):
-            raise argparse.ArgumentTypeError(
-                f"invalid responsiblesColumns entry for level '{level_name}', headers must not be empty"
-            )
-
-
-def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[str, ...]]:
-    responsibles_columns: dict[str, list[str]] = {}
-    current_level: str | None = None
-    expanded_entries: list[str] = _expand_responsibles_entries(columns_entries)
-    entry: str
-    for entry in expanded_entries:
-        level_mapping: tuple[str, str] | None = _parse_level_mapping(entry)
-        if level_mapping is not None:
-            level: str = level_mapping[0]
-            first_header: str = level_mapping[1]
-            if level == "":
-                raise argparse.ArgumentTypeError(f"invalid responsiblesColumns entry '{entry}', expected LEVEL:HEADER")
-            current_level = level
-            responsibles_columns[current_level] = []
-            if first_header != "":
-                responsibles_columns[current_level].append(first_header)
-            continue
-        if current_level is None:
-            raise argparse.ArgumentTypeError(f"invalid responsiblesColumns entry '{entry}', expected LEVEL:HEADER")
-        responsibles_columns[current_level].append(entry.strip())
-
-    _validate_responsibles_columns(responsibles_columns)
-
-    normalized_responsibles_columns: dict[str, tuple[str, ...]] = {
-        level: tuple(headers) for level, headers in responsibles_columns.items()
-    }
-    return normalized_responsibles_columns
-
-
 def parse_add_users_by_pattern(entries: list[str]) -> dict[str, str]:
     add_users_by_pattern: dict[str, str] = {}
     expanded_entries: list[str] = _expand_responsibles_entries(entries)
@@ -208,34 +166,8 @@ def parse_add_users_by_pattern(entries: list[str]) -> dict[str, str]:
     return add_users_by_pattern
 
 
-def _normalize_responsibles_columns_from_dict(
-    responsibles_columns_value: dict[Any, Any],
-) -> dict[str, tuple[str, ...]]:
-    normalized_responsibles_columns: dict[str, tuple[str, ...]] = {}
-    level_name: Any
-    headers_value: Any
-    for level_name, headers_value in responsibles_columns_value.items():
-        if not isinstance(level_name, str) or level_name.strip() == "":
-            raise argparse.ArgumentTypeError("config key responsiblesColumns must use non-empty string levels")
-        if not isinstance(headers_value, list):
-            raise argparse.ArgumentTypeError(
-                f"config key responsiblesColumns level '{level_name}' must contain a JSON array of headers"
-            )
-        headers_list: list[Any] = cast("list[Any]", headers_value)
-        normalized_headers: list[str] = []
-        header_value: Any
-        for header_value in headers_list:
-            if not isinstance(header_value, str) or header_value.strip() == "":
-                raise argparse.ArgumentTypeError(
-                    f"config key responsiblesColumns level '{level_name}' must contain non-empty string headers"
-                )
-            normalized_headers.append(header_value.strip())
-        if len(normalized_headers) == 0:
-            raise argparse.ArgumentTypeError(
-                f"config key responsiblesColumns level '{level_name}' must contain at least one header"
-            )
-        normalized_responsibles_columns[level_name.strip()] = tuple(normalized_headers)
-    return normalized_responsibles_columns
+def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[str, ...]]:
+    return parse_responsibles_columns_from_lib(columns_entries)
 
 
 def resolve_responsibles_columns_headers(
@@ -243,31 +175,7 @@ def resolve_responsibles_columns_headers(
     cli_responsibles_columns: list[str] | None,
     logger: logging.Logger,
 ) -> dict[str, tuple[str, ...]] | None:
-    if cli_responsibles_columns:
-        return parse_responsibles_columns(cli_responsibles_columns)
-
-    responsibles_columns_value: Any = read_custom_config_with_default(config_file, "responsiblesColumns", None, logger)
-    if responsibles_columns_value is None:
-        responsibles_columns_value = read_custom_config_with_default(config_file, "responsibles_columns", None, logger)
-    if responsibles_columns_value is None:
-        return None
-    if isinstance(responsibles_columns_value, list):
-        responsibles_columns_list: list[Any] = cast("list[Any]", responsibles_columns_value)
-        string_entries: list[str] = []
-        entry_value: Any
-        for entry_value in responsibles_columns_list:
-            if not isinstance(entry_value, str):
-                raise argparse.ArgumentTypeError(
-                    "config key responsiblesColumns list must contain only LEVEL:HEADER strings"
-                )
-            string_entries.append(entry_value)
-        return parse_responsibles_columns(string_entries)
-    if isinstance(responsibles_columns_value, dict):
-        responsibles_columns_dict: dict[Any, Any] = cast("dict[Any, Any]", responsibles_columns_value)
-        return _normalize_responsibles_columns_from_dict(responsibles_columns_dict)
-    raise argparse.ArgumentTypeError(
-        "config key responsiblesColumns must be a JSON object or a list of LEVEL:HEADER entries"
-    )
+    return resolve_responsibles_columns_headers_from_lib(config_file, logger, cli_responsibles_columns)
 
 
 def resolve_local_repo_base_dir(

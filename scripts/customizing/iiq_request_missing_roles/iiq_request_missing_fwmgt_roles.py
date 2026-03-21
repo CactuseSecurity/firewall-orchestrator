@@ -29,6 +29,7 @@ from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_ip_data_from_csv,
     parse_csv_separator_arg,
 )
+from scripts.customizing.fwo_custom_lib.responsibles_config import resolve_responsibles_columns_headers
 from scripts.customizing.iiq_request_missing_roles.iiq_client import IIQClient
 
 __version__ = "2026-01-08"
@@ -222,98 +223,6 @@ def resolve_git_depth(
     if depth_value is None:
         return None
     return parse_git_depth_arg(str(depth_value))
-
-
-def _normalize_responsibles_level_name(level_name: Any) -> str:
-    if not isinstance(level_name, str) or level_name.strip() == "":
-        raise argparse.ArgumentTypeError("config key responsiblesColumns must use non-empty string levels")
-    return level_name.strip()
-
-
-def _normalize_responsibles_headers(level_name: str, headers_value: Any) -> tuple[str, ...]:
-    if not isinstance(headers_value, list):
-        raise argparse.ArgumentTypeError(
-            f"config key responsiblesColumns level '{level_name}' must contain a JSON array of headers"
-        )
-    headers_list: list[Any] = cast("list[Any]", headers_value)
-
-    normalized_headers: list[str] = []
-    header_value: Any
-    for header_value in headers_list:
-        if not isinstance(header_value, str) or header_value.strip() == "":
-            raise argparse.ArgumentTypeError(
-                f"config key responsiblesColumns level '{level_name}' must contain non-empty string headers"
-            )
-        normalized_headers.append(header_value.strip())
-
-    if len(normalized_headers) == 0:
-        raise argparse.ArgumentTypeError(
-            f"config key responsiblesColumns level '{level_name}' must contain at least one header"
-        )
-    return tuple(normalized_headers)
-
-
-def _parse_responsibles_columns_list(entries: list[str]) -> dict[str, tuple[str, ...]]:
-    responsibles_columns_headers: dict[str, list[str]] = {}
-    current_level: str | None = None
-    entry_value: str
-    for entry_value in entries:
-        if ":" in entry_value:
-            level_name, header_name = entry_value.split(":", 1)
-            normalized_level_name: str = _normalize_responsibles_level_name(level_name)
-            current_level = normalized_level_name
-            responsibles_columns_headers.setdefault(current_level, [])
-            normalized_header_name: str = header_name.strip()
-            if normalized_header_name:
-                responsibles_columns_headers[current_level].append(normalized_header_name)
-            continue
-        if current_level is None:
-            raise argparse.ArgumentTypeError(
-                f"invalid responsiblesColumns entry '{entry_value}', expected LEVEL:HEADER"
-            )
-        normalized_header_name = entry_value.strip()
-        if normalized_header_name == "":
-            raise argparse.ArgumentTypeError(
-                f"invalid responsiblesColumns entry '{entry_value}', expected LEVEL:HEADER"
-            )
-        responsibles_columns_headers[current_level].append(normalized_header_name)
-
-    normalized_responsibles_columns: dict[str, tuple[str, ...]] = {}
-    level_name: str
-    headers_list: list[str]
-    for level_name, headers_list in responsibles_columns_headers.items():
-        normalized_responsibles_columns[level_name] = _normalize_responsibles_headers(level_name, headers_list)
-    if not normalized_responsibles_columns:
-        raise argparse.ArgumentTypeError("config key responsiblesColumns must contain at least one LEVEL:HEADER entry")
-    return normalized_responsibles_columns
-
-
-def resolve_responsibles_columns_headers(
-    config_file: str,
-    logger: logging.Logger,
-) -> dict[str, tuple[str, ...]] | None:
-    responsibles_columns_value: Any = read_custom_config_with_default(config_file, "responsiblesColumns", None, logger)
-    if responsibles_columns_value is None:
-        responsibles_columns_value = read_custom_config_with_default(config_file, "responsibles_columns", None, logger)
-    if responsibles_columns_value is None:
-        return None
-    if isinstance(responsibles_columns_value, list):
-        string_entries: list[str] = cast("list[str]", responsibles_columns_value)
-        return _parse_responsibles_columns_list(string_entries)
-    if not isinstance(responsibles_columns_value, dict):
-        raise argparse.ArgumentTypeError(
-            "config key responsiblesColumns must be a JSON object or a list of LEVEL:HEADER entries"
-        )
-    responsibles_columns_dict: dict[Any, Any] = cast("dict[Any, Any]", responsibles_columns_value)
-
-    responsibles_columns_headers: dict[str, tuple[str, ...]] = {}
-    level_name: Any
-    headers_value: Any
-    for level_name, headers_value in responsibles_columns_dict.items():
-        normalized_level_name: str = _normalize_responsibles_level_name(level_name)
-        normalized_headers: tuple[str, ...] = _normalize_responsibles_headers(normalized_level_name, headers_value)
-        responsibles_columns_headers[normalized_level_name] = normalized_headers
-    return responsibles_columns_headers
 
 
 def request_all_roles(

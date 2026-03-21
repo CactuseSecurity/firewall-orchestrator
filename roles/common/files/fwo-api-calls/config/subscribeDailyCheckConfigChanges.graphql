@@ -1,6 +1,7 @@
 ﻿subscription subscribeDailyCheckConfigChanges {
   config (where: { _or: [
     {config_key: {_eq: "dailyCheckStartAt"}},
+    {config_key: {_eq: "dailyCheckModules"}},
     {config_key: {_eq: "recRefreshDaily"}},
     {config_key: {_eq: "recertificationMode"}},
     {config_key: {_eq: "recCheckActive"}},

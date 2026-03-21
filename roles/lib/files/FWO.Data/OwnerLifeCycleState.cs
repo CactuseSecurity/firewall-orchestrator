@@ -41,5 +41,25 @@ namespace FWO.Data
         {
             return ActiveState ? Name : $"{Name} ({inactiveText})";
         }
+
+        public static DateTime? GetDecommDate(DateTime? currentDecommDate, OwnerLifeCycleState? oldState, OwnerLifeCycleState? newState, DateTime nowUtc)
+        {
+            if (newState == null)
+            {
+                return currentDecommDate;
+            }
+
+            if (!newState.ActiveState && currentDecommDate == null)
+            {
+                return nowUtc;
+            }
+
+            if (oldState == null || oldState.ActiveState == newState.ActiveState)
+            {
+                return currentDecommDate;
+            }
+
+            return newState.ActiveState ? null : nowUtc;
+        }
     }
 }

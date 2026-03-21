@@ -51,6 +51,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     read_custom_config_with_default,
 )
 from scripts.customizing.fwo_custom_lib.git_helpers import (
+    cleanup_repo_target_dir,
     parse_git_depth_arg,
     read_file_from_git_repo,
     update_git_repo,
@@ -495,115 +496,119 @@ if __name__ == "__main__":
     recert_repo_target_dir: str = str(local_repo_base_path / "recert-repo")
 
     import_from_folder: str | None = args.import_from_folder
-    if import_from_folder:
-        base_dir = import_from_folder
-        app_data_repo_target_dir = import_from_folder
-    else:
-        base_dir = app_data_repo_target_dir
-        app_data_repo_url: str | None = build_git_repo_url(
-            cmdb_git_repo_url_without_protocol,
-            cmdb_git_username,
-            cmdb_git_password,
-            logger,
-            "CMDB",
-        )
-        repo_updated: bool = False
-        if app_data_repo_url:
-            repo_updated = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger, depth=git_depth)
-        if not repo_updated:
-            logger.warning("trying to read csv files from folder given as parameter...")
-
-    #############################################
-    # 2. get app list with activated recertification
-
-    if recert_active_repo_url and recert_active_file_name:
-        recert_repo_url: str | None = build_git_repo_url(
-            recert_active_repo_url,
-            cmdb_git_username,
-            cmdb_git_password,
-            logger,
-            "recertification activation",
-        )
-        recert_activation_data: str | None = None
-        if recert_repo_url:
-            recert_activation_data = read_file_from_git_repo(
-                recert_repo_url,
-                recert_repo_target_dir,
-                recert_active_file_name,
+    try:
+        if import_from_folder:
+            base_dir = import_from_folder
+            app_data_repo_target_dir = import_from_folder
+        else:
+            base_dir = app_data_repo_target_dir
+            app_data_repo_url: str | None = build_git_repo_url(
+                cmdb_git_repo_url_without_protocol,
+                cmdb_git_username,
+                cmdb_git_password,
                 logger,
-                depth=git_depth,
+                "CMDB",
             )
-        recert_activation_lines: list[str] = []
-        if recert_activation_data:
-            recert_activation_lines = recert_activation_data.splitlines()
-        recert_active_app_list = recert_activation_lines
-        logger.info("found %s apps with active recertification", len(recert_active_app_list))
-    else:
-        recert_active_app_list: list[str] = []
-        logger.info("no recertification activation source configured; skipping activation of recertification import")
+            repo_updated: bool = False
+            if app_data_repo_url:
+                repo_updated = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger, depth=git_depth)
+            if not repo_updated:
+                logger.warning("trying to read csv files from folder given as parameter...")
 
-    #############################################
-    # 3. get app data from CSV files
-    app_list: list[Owner] = []
-    re_owner_file_pattern: re.Pattern[str] = re.compile(csv_owner_file_pattern)
-    for file_path in Path(app_data_repo_target_dir).iterdir():
-        if re_owner_file_pattern.match(file_path.name):
-            extract_app_data_from_csv(
-                file_path.name,
-                app_list,
-                ldap_path,
-                import_source_string,
-                Owner,
+        #############################################
+        # 2. get app list with activated recertification
+
+        if recert_active_repo_url and recert_active_file_name:
+            recert_repo_url: str | None = build_git_repo_url(
+                recert_active_repo_url,
+                cmdb_git_username,
+                cmdb_git_password,
                 logger,
-                debug_level,
-                base_dir=base_dir,
-                recert_active_app_list=recert_active_app_list,
-                default_recert_active_state=default_recert_active_state,
-                column_patterns=owner_header_patterns,
-                valid_app_id_prefixes=valid_app_id_prefixes,
-                included_owners_filters=included_owners_filters,
-                csv_separator=csv_separator,
-                fallback_owner_lifecycle=fallback_owner_lifecycle,
-                composite_id_fields=composite_id_fields,
-                composite_id_fields_delimiter_str=composite_id_fields_delimiter_str,
-                composite_id_fields_max_length=composite_id_fields_max_length,
-                criticality_column_header=criticality_column_header,
-                criticality_recert_period_mapping=criticality_recert_period_mapping,
-                responsibles_columns_headers=responsibles_columns_headers,
-                add_users_by_pattern=add_users_by_pattern,
+                "recertification activation",
             )
+            recert_activation_data: str | None = None
+            if recert_repo_url:
+                recert_activation_data = read_file_from_git_repo(
+                    recert_repo_url,
+                    recert_repo_target_dir,
+                    recert_active_file_name,
+                    logger,
+                    depth=git_depth,
+                )
+            recert_activation_lines: list[str] = []
+            if recert_activation_data:
+                recert_activation_lines = recert_activation_data.splitlines()
+            recert_active_app_list = recert_activation_lines
+            logger.info("found %s apps with active recertification", len(recert_active_app_list))
+        else:
+            recert_active_app_list: list[str] = []
+            logger.info("no recertification activation source configured; skipping activation of recertification import")
 
-    app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)
+        #############################################
+        # 3. get app data from CSV files
+        app_list: list[Owner] = []
+        re_owner_file_pattern: re.Pattern[str] = re.compile(csv_owner_file_pattern)
+        for file_path in Path(app_data_repo_target_dir).iterdir():
+            if re_owner_file_pattern.match(file_path.name):
+                extract_app_data_from_csv(
+                    file_path.name,
+                    app_list,
+                    ldap_path,
+                    import_source_string,
+                    Owner,
+                    logger,
+                    debug_level,
+                    base_dir=base_dir,
+                    recert_active_app_list=recert_active_app_list,
+                    default_recert_active_state=default_recert_active_state,
+                    column_patterns=owner_header_patterns,
+                    valid_app_id_prefixes=valid_app_id_prefixes,
+                    included_owners_filters=included_owners_filters,
+                    csv_separator=csv_separator,
+                    fallback_owner_lifecycle=fallback_owner_lifecycle,
+                    composite_id_fields=composite_id_fields,
+                    composite_id_fields_delimiter_str=composite_id_fields_delimiter_str,
+                    composite_id_fields_max_length=composite_id_fields_max_length,
+                    criticality_column_header=criticality_column_header,
+                    criticality_recert_period_mapping=criticality_recert_period_mapping,
+                    responsibles_columns_headers=responsibles_columns_headers,
+                    add_users_by_pattern=add_users_by_pattern,
+                )
 
-    re_app_server_file_pattern: re.Pattern[str] = re.compile(csv_app_server_file_pattern)
-    for file_path in Path(app_data_repo_target_dir).iterdir():
-        if re_app_server_file_pattern.match(file_path.name):
-            if debug_level > 0:
-                logger.info("importing IP data from file %s ...", file_path.name)
-            extract_ip_data_from_csv(
-                file_path.name,
-                app_dict,
-                Appip,
-                logger,
-                debug_level,
-                base_dir=base_dir,
-                column_patterns=ip_header_patterns,
-                csv_separator=csv_separator,
-            )
+        app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)
 
-    #############################################
-    # 4. write owners to json file using the same and basename path as this script, just replacing .py with .json
-    write_owners_to_json(app_dict, __file__, logger=logger)
+        re_app_server_file_pattern: re.Pattern[str] = re.compile(csv_app_server_file_pattern)
+        for file_path in Path(app_data_repo_target_dir).iterdir():
+            if re_app_server_file_pattern.match(file_path.name):
+                if debug_level > 0:
+                    logger.info("importing IP data from file %s ...", file_path.name)
+                extract_ip_data_from_csv(
+                    file_path.name,
+                    app_dict,
+                    Appip,
+                    logger,
+                    debug_level,
+                    base_dir=base_dir,
+                    column_patterns=ip_header_patterns,
+                    csv_separator=csv_separator,
+                )
 
-    #############################################
-    # 5. Some statistics
-    if debug_level > 0:
-        logger.info("total #apps: %s", len(app_dict))
-        apps_with_ip: int = 0
-        for owner in app_dict.values():
-            apps_with_ip += 1 if len(owner.app_servers) > 0 else 0
-        logger.info("#apps with ip addresses: %s", apps_with_ip)
-        total_ips: int = 0
-        for owner in app_dict.values():
-            total_ips += len(owner.app_servers)
-        logger.info("#ip addresses in total: %s", total_ips)
+        #############################################
+        # 4. write owners to json file using the same and basename path as this script, just replacing .py with .json
+        write_owners_to_json(app_dict, __file__, logger=logger)
+
+        #############################################
+        # 5. Some statistics
+        if debug_level > 0:
+            logger.info("total #apps: %s", len(app_dict))
+            apps_with_ip: int = 0
+            for owner in app_dict.values():
+                apps_with_ip += 1 if len(owner.app_servers) > 0 else 0
+            logger.info("#apps with ip addresses: %s", apps_with_ip)
+            total_ips: int = 0
+            for owner in app_dict.values():
+                total_ips += len(owner.app_servers)
+            logger.info("#ip addresses in total: %s", total_ips)
+    finally:
+        if import_from_folder is None:
+            cleanup_repo_target_dir(app_data_repo_target_dir)

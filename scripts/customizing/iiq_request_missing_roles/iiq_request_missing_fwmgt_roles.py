@@ -23,7 +23,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     read_custom_config,
     read_custom_config_with_default,
 )
-from scripts.customizing.fwo_custom_lib.git_helpers import parse_git_depth_arg, update_git_repo
+from scripts.customizing.fwo_custom_lib.git_helpers import cleanup_repo_target_dir, parse_git_depth_arg, update_git_repo
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
@@ -572,41 +572,45 @@ if __name__ == "__main__":
         logger=logger,
     )
 
-    if import_from_folder:
-        csv_file_base_dir: str = import_from_folder
-    else:
-        git_repo_url: str = read_custom_config(args.config, "cmdbGitRepoUrl", logger)
-        git_username: str = read_custom_config(args.config, "cmdbGitUsername", logger)
-        git_password: str = read_custom_config(args.config, "cmdbGitPassword", logger)
-        csv_file_base_dir = cmdb_repo_target_dir
-        get_git_repo(git_repo_url, git_username, git_password, cmdb_repo_target_dir, depth=git_depth)
+    try:
+        if import_from_folder:
+            csv_file_base_dir: str = import_from_folder
+        else:
+            git_repo_url: str = read_custom_config(args.config, "cmdbGitRepoUrl", logger)
+            git_username: str = read_custom_config(args.config, "cmdbGitUsername", logger)
+            git_password: str = read_custom_config(args.config, "cmdbGitPassword", logger)
+            csv_file_base_dir = cmdb_repo_target_dir
+            get_git_repo(git_repo_url, git_username, git_password, cmdb_repo_target_dir, depth=git_depth)
 
-    logger.info_if(0, "getting owners from file")
+        logger.info_if(0, "getting owners from file")
 
-    owners: dict[str, Owner]
-    tisos: dict[str, str]
-    owners, tisos = get_owners_from_csv_files(
-        csv_owner_file_pattern,
-        csv_app_server_file_pattern,
-        csv_file_base_dir,
-        ldap_path,
-        logger,
-        debug,
-        owner_header_patterns=owner_header_patterns,
-        ip_header_patterns=ip_header_patterns,
-        responsibles_columns_headers=responsibles_columns_headers,
-        csv_separator=csv_separator,
-    )
+        owners: dict[str, Owner]
+        tisos: dict[str, str]
+        owners, tisos = get_owners_from_csv_files(
+            csv_owner_file_pattern,
+            csv_app_server_file_pattern,
+            csv_file_base_dir,
+            ldap_path,
+            logger,
+            debug,
+            owner_header_patterns=owner_header_patterns,
+            ip_header_patterns=ip_header_patterns,
+            responsibles_columns_headers=responsibles_columns_headers,
+            csv_separator=csv_separator,
+        )
 
-    tiso_orgids: dict[str, str] = get_tisos_orgids(tisos, iiq_client, exit_after_dump=args.just_dump_tiso_org_ids)
+        tiso_orgids: dict[str, str] = get_tisos_orgids(tisos, iiq_client, exit_after_dump=args.just_dump_tiso_org_ids)
 
-    stats: dict[str, Any] = init_statistics()
+        stats: dict[str, Any] = init_statistics()
 
-    request_all_roles(owners, tisos, tiso_orgids, iiq_client, stats, first, args.run_workflow)
+        request_all_roles(owners, tisos, tiso_orgids, iiq_client, stats, first, args.run_workflow)
 
-    if debug > 0:
-        logger.debug("Stats: %s", json.dumps(stats, indent=3))
+        if debug > 0:
+            logger.debug("Stats: %s", json.dumps(stats, indent=3))
 
-    write_stats_to_file(stats, LOG_DIR)
+        write_stats_to_file(stats, LOG_DIR)
+    finally:
+        if import_from_folder is None:
+            cleanup_repo_target_dir(cmdb_repo_target_dir)
 
     sys.exit(0)

@@ -25,6 +25,11 @@ def _remove_repo_target_path(repo_target_path: Path) -> None:
     repo_target_path.unlink()
 
 
+def cleanup_repo_target_dir(git_repo_target_dir: str) -> None:
+    repo_target_path: Path = Path(git_repo_target_dir)
+    _remove_repo_target_path(repo_target_path)
+
+
 def update_git_repo(
     repo_url: str,
     git_repo_target_dir: str,

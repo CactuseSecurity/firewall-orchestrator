@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from scripts.customizing.fwo_custom_lib.git_helpers import (
+    cleanup_repo_target_dir,
     parse_git_depth_arg,
     read_file_from_git_repo,
     update_git_repo,
@@ -155,4 +156,18 @@ def test_read_file_from_git_repo_removes_repo_directory_after_read() -> None:
         )
 
     assert file_contents == "file content"
+    rmtree_mock.assert_called_once_with(repo_path_mock)
+
+
+def test_cleanup_repo_target_dir_removes_existing_directory() -> None:
+    repo_path_mock: Mock = Mock()
+    repo_path_mock.exists.return_value = True
+    repo_path_mock.is_dir.return_value = True
+
+    with (
+        patch("scripts.customizing.fwo_custom_lib.git_helpers.Path", return_value=repo_path_mock),
+        patch("scripts.customizing.fwo_custom_lib.git_helpers.shutil.rmtree") as rmtree_mock,
+    ):
+        cleanup_repo_target_dir(REPO_TARGET_DIR)
+
     rmtree_mock.assert_called_once_with(repo_path_mock)

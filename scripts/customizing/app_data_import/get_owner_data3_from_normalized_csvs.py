@@ -115,7 +115,8 @@ def build_git_repo_url(
         logger.warning("%s git repo url missing in config; skipping repository access", repo_purpose)
         return None
 
-    normalized_repo_url: str = repo_url_without_protocol.removeprefix("https://").removeprefix("http://")
+    normalized_repo_url: str = repo_url_without_protocol.removeprefix("https://")
+    normalized_repo_url = normalized_repo_url.removeprefix("http://")
     if git_username and git_password:
         return f"https://{git_username}:{git_password}@{normalized_repo_url}"
 
@@ -182,7 +183,10 @@ def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[st
 
     _validate_responsibles_columns(responsibles_columns)
 
-    return {level: tuple(headers) for level, headers in responsibles_columns.items()}
+    normalized_responsibles_columns: dict[str, tuple[str, ...]] = {
+        level: tuple(headers) for level, headers in responsibles_columns.items()
+    }
+    return normalized_responsibles_columns
 
 
 def parse_add_users_by_pattern(entries: list[str]) -> dict[str, str]:
@@ -218,7 +222,9 @@ def apply_owner_column_overrides(
 ) -> dict[str, str]:
     updated_patterns: dict[str, str] = dict(owner_header_patterns)
     if lifecycle_state_column.strip():
-        updated_patterns["owner_lifecycle_state"] = rf"^\s*{re.escape(lifecycle_state_column.strip())}\s*$"
+        normalized_lifecycle_state_column: str = lifecycle_state_column.strip()
+        escaped_lifecycle_state_column: str = re.escape(normalized_lifecycle_state_column)
+        updated_patterns["owner_lifecycle_state"] = rf"^\s*{escaped_lifecycle_state_column}\s*$"
     return updated_patterns
 
 
@@ -406,9 +412,8 @@ if __name__ == "__main__":
         help="optional git clone/pull depth; if omitted, no depth is passed to git",
     )
 
-    args: argparse.Namespace = parser.parse_args(
-        normalize_option_value_args(sys.argv[1:], ("--compositeIdFieldsDelimiterStr",))
-    )
+    normalized_argv: list[str] = normalize_option_value_args(sys.argv[1:], ("--compositeIdFieldsDelimiterStr",))
+    args: argparse.Namespace = parser.parse_args(normalized_argv)
 
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()
@@ -441,8 +446,10 @@ if __name__ == "__main__":
     csv_separator: str = (
         args.csvSeparator
         if args.csvSeparator is not None
-        else parse_csv_separator_arg(read_custom_config_with_default(args.config, "csvSeparator", ";", logger))
+        else read_custom_config_with_default(args.config, "csvSeparator", ";", logger)
     )
+    if args.csvSeparator is None:
+        csv_separator = parse_csv_separator_arg(csv_separator)
     default_recert_active_state: bool = args.default_recertification_active_state
     if args.filter_columns is None:
         filter_columns: list[str] = ["Aktive Firewallregel"]
@@ -454,7 +461,8 @@ if __name__ == "__main__":
             args.include_values_groups,
         )
     except argparse.ArgumentTypeError as err:
-        parser.error(str(err))
+        error_message: str = str(err)
+        parser.error(error_message)
     lifecycle_state_column: str = args.lifecycleState
     fallback_owner_lifecycle: str = args.fallback_owner_lifecycle
     local_repo_base_dir: str = resolve_local_repo_base_dir(args.config, args.local_repo_base_dir, logger)
@@ -462,17 +470,15 @@ if __name__ == "__main__":
     composite_id_fields_delimiter_str: str = args.compositeIdFieldsDelimiterStr
     composite_id_fields_max_length: list[int] | None = args.compositeIdFieldsMaxLength
     criticality_column_header: str | None = args.criticalityColumnHeader
-    criticality_recert_period_mapping: dict[str, int] | None = (
-        parse_criticality_recert_period_mapping(args.criticalityRecertPeriodMapping)
-        if args.criticalityRecertPeriodMapping
-        else None
-    )
-    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = (
-        parse_responsibles_columns(args.responsiblesColumns) if args.responsiblesColumns else None
-    )
-    add_users_by_pattern: dict[str, str] | None = (
-        parse_add_users_by_pattern(args.add_users_by_pattern) if args.add_users_by_pattern else None
-    )
+    criticality_recert_period_mapping: dict[str, int] | None = None
+    if args.criticalityRecertPeriodMapping:
+        criticality_recert_period_mapping = parse_criticality_recert_period_mapping(args.criticalityRecertPeriodMapping)
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None
+    if args.responsiblesColumns:
+        responsibles_columns_headers = parse_responsibles_columns(args.responsiblesColumns)
+    add_users_by_pattern: dict[str, str] | None = None
+    if args.add_users_by_pattern:
+        add_users_by_pattern = parse_add_users_by_pattern(args.add_users_by_pattern)
     git_depth: int | None = args.depth
     owner_header_patterns = apply_owner_column_overrides(owner_header_patterns, lifecycle_state_column)
 
@@ -501,11 +507,9 @@ if __name__ == "__main__":
             logger,
             "CMDB",
         )
-        repo_updated: bool = (
-            update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger, depth=git_depth)
-            if app_data_repo_url
-            else False
-        )
+        repo_updated: bool = False
+        if app_data_repo_url:
+            repo_updated = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger, depth=git_depth)
         if not repo_updated:
             logger.warning("trying to read csv files from folder given as parameter...")
 
@@ -520,18 +524,19 @@ if __name__ == "__main__":
             logger,
             "recertification activation",
         )
-        recert_activation_data: str | None = (
-            read_file_from_git_repo(
+        recert_activation_data: str | None = None
+        if recert_repo_url:
+            recert_activation_data = read_file_from_git_repo(
                 recert_repo_url,
                 recert_repo_target_dir,
                 recert_active_file_name,
                 logger,
                 depth=git_depth,
             )
-            if recert_repo_url
-            else None
-        )
-        recert_active_app_list: list[str] = recert_activation_data.splitlines() if recert_activation_data else []
+        recert_activation_lines: list[str] = []
+        if recert_activation_data:
+            recert_activation_lines = recert_activation_data.splitlines()
+        recert_active_app_list = recert_activation_lines
         logger.info("found %s apps with active recertification", len(recert_active_app_list))
     else:
         recert_active_app_list: list[str] = []

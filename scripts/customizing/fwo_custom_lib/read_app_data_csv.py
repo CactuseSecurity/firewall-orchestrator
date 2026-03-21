@@ -218,7 +218,8 @@ def _split_app_id_external(app_id_external: str) -> tuple[str, str]:
 
 def _build_user_from_pattern(app_id_external: str, user_pattern: str) -> str:
     app_prefix, app_id = _split_app_id_external(app_id_external)
-    return user_pattern.replace("@@AppPrefix@@", app_prefix).replace("@@AppId@@", app_id)
+    pattern_with_prefix: str = user_pattern.replace("@@AppPrefix@@", app_prefix)
+    return pattern_with_prefix.replace("@@AppId@@", app_id)
 
 
 def _build_pattern_responsibles(
@@ -308,7 +309,8 @@ def build_dn(user_id: str, ldap_path: str, logger: logging.Logger) -> str:
 
 def _normalize_headers(headers: list[str]) -> list[str]:
     # Strip whitespace and BOM to make header matching resilient.
-    return [h.strip().lstrip("\ufeff") for h in headers]
+    normalized_headers: list[str] = [h.strip().lstrip("\ufeff") for h in headers]
+    return normalized_headers
 
 
 def _get_alternate_csv_separator(configured_separator: str) -> str | None:
@@ -329,7 +331,9 @@ def _should_retry_with_alternate_separator(rows: list[list[str]], configured_sep
 
 def _read_csv_rows(csv_file_name: str, csv_separator: str, csv_encoding: str) -> list[list[str]]:
     with open(csv_file_name, newline="", encoding=csv_encoding) as csv_file_handle:
-        return list(csv.reader(csv_file_handle, delimiter=csv_separator))
+        csv_reader = csv.reader(csv_file_handle, delimiter=csv_separator)
+        rows: list[list[str]] = list(csv_reader)
+        return rows
 
 
 def _read_csv_rows_for_encoding(
@@ -483,10 +487,12 @@ def _find_composite_id_columns(
 ) -> tuple[int, ...] | None:
     if not composite_id_fields:
         return None
-    return tuple(
-        _find_required_header_index_by_name(headers, header_name, csv_file_name, logger)
-        for header_name in composite_id_fields
-    )
+    resolved_columns: list[int] = []
+    header_name: str
+    for header_name in composite_id_fields:
+        resolved_column: int = _find_required_header_index_by_name(headers, header_name, csv_file_name, logger)
+        resolved_columns.append(resolved_column)
+    return tuple(resolved_columns)
 
 
 def _find_responsibles_columns(
@@ -501,12 +507,13 @@ def _find_responsibles_columns(
     responsible_level: str
     responsible_headers: tuple[str, ...]
     for responsible_level, responsible_headers in responsibles_columns_headers.items():
-        resolved_headers: tuple[int, ...] = tuple(
-            resolved_index
-            for header_name in responsible_headers
-            if (resolved_index := _find_responsibles_header_index(headers, header_name, csv_file_name, logger))
-            is not None
-        )
+        resolved_headers_list: list[int] = []
+        header_name: str
+        for header_name in responsible_headers:
+            resolved_index: int | None = _find_responsibles_header_index(headers, header_name, csv_file_name, logger)
+            if resolved_index is not None:
+                resolved_headers_list.append(resolved_index)
+        resolved_headers: tuple[int, ...] = tuple(resolved_headers_list)
         if resolved_headers:
             responsibles_columns[responsible_level] = resolved_headers
     return responsibles_columns
@@ -643,17 +650,13 @@ def parse_app_line(
     criticality: str = _get_criticality(line, context.criticality_column)
     responsibles: dict[str, list[str]]
     if context.responsibles_columns is not None:
-        responsibles = _build_responsibles_dns(
-            _get_responsibles(line, context.responsibles_columns),
-            context.ldap_path,
-            context.logger,
-        )
+        resolved_responsibles: dict[str, list[str]] = _get_responsibles(line, context.responsibles_columns)
+        responsibles = _build_responsibles_dns(resolved_responsibles, context.ldap_path, context.logger)
     else:
         responsibles = {}
     if context.add_users_by_pattern is not None:
-        responsibles = _merge_responsibles(
-            responsibles, _build_pattern_responsibles(app_id, context.add_users_by_pattern)
-        )
+        pattern_responsibles: dict[str, list[str]] = _build_pattern_responsibles(app_id, context.add_users_by_pattern)
+        responsibles = _merge_responsibles(responsibles, pattern_responsibles)
     main_user_dn: str = _get_main_user_dn_from_responsibles(responsibles)
     recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
     mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
@@ -665,20 +668,19 @@ def parse_app_line(
         context.logger.warning("adding app without main user: %s", app_id)
     criticality_value: str | None = criticality if context.criticality_column >= 0 else None
     responsibles_value: dict[str, list[str]] | None = responsibles or None
-    app_list.append(
-        context.owner_cls(
-            app_id_external=app_id,
-            name=app_name,
-            main_user=main_user_dn,
-            recert_period_days=recert_period_days,
-            days_until_first_recert=recert_period_days,
-            recert_active=False,
-            import_source=context.import_source_string,
-            owner_lifecycle_state=owner_lifecycle_state,
-            criticality=criticality_value,
-            responsibles=responsibles_value,
-        )
+    owner: Owner = context.owner_cls(
+        app_id_external=app_id,
+        name=app_name,
+        main_user=main_user_dn,
+        recert_period_days=recert_period_days,
+        days_until_first_recert=recert_period_days,
+        recert_active=False,
+        import_source=context.import_source_string,
+        owner_lifecycle_state=owner_lifecycle_state,
+        criticality=criticality_value,
+        responsibles=responsibles_value,
     )
+    app_list.append(owner)
     return count_skips
 
 
@@ -919,8 +921,9 @@ def extract_ip_data_from_csv(
 
     count_skips: int = 0
     for line in ip_data:
-        count_skips += parse_single_ip_line(
+        line_skip_count: int = parse_single_ip_line(
             line, app_id_column_no, ip_column_no, app_dict, valid_app_id_prefixes, app_ip_cls, logger, debug_level
         )
+        count_skips += line_skip_count
     if debug_level > 0:
         logger.info("%s: #total lines %s, skipped: %s", csv_file_path, len(ip_data), count_skips)

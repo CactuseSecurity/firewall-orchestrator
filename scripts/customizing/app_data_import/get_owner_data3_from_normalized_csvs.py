@@ -540,6 +540,8 @@ if __name__ == "__main__":
     responsibles_columns_headers: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
         args.config, args.responsiblesColumns, logger
     )
+    if responsibles_columns_headers is not None:
+        logger.debug("resolved responsiblesColumns=%s", responsibles_columns_headers)
     add_users_by_pattern: dict[str, str] | None = None
     if args.add_users_by_pattern:
         add_users_by_pattern = parse_add_users_by_pattern(args.add_users_by_pattern)

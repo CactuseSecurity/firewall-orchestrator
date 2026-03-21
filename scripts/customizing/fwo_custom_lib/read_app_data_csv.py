@@ -516,6 +516,13 @@ def _find_responsibles_columns(
         resolved_headers: tuple[int, ...] = tuple(resolved_headers_list)
         if resolved_headers:
             responsibles_columns[responsible_level] = resolved_headers
+    if len(responsibles_columns) == 0:
+        logger.warning(
+            "configured responsiblesColumns matched no columns in %s; configured=%s; headers=%s",
+            csv_file_name,
+            responsibles_columns_headers,
+            headers,
+        )
     return responsibles_columns
 
 

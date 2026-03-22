@@ -196,6 +196,7 @@ namespace FWO.Test
             {"ticket","Ticket" },
             {"tasks","Tasks" },
             {"requester","Requester" },
+            {"reference_date","Reference date" },
             {"created","Created" },
             {"closed","Closed" },
             {"task_number","Task Number" },
@@ -339,7 +340,12 @@ namespace FWO.Test
             {"TicketChangeReport","Ticket Change Report"},
             {"modRequestOnlyOwnObjects","Request only own objects"},
             {"H5668","Request only own objects help"},
-            {"change_id","Change-ID"}
+            {"change_id","Change-ID"},
+            {"H1517","Reference date tooltip"},
+            {"H1518","Task type tooltip"},
+            {"H1519","State tooltip"},
+            {"H1520","Show full ticket tooltip"},
+            {"H1521","Phase tooltip"}
         };
 
         public override string GetText(string key)

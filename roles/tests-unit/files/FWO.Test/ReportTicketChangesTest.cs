@@ -40,12 +40,17 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)new List<WfState> { new() { Id = 9, Name = "done" } });
                 }
-                if (typeof(QueryResponseType) == typeof(List<GlobalStateMatrixHelper>) && query == ConfigQueries.getConfigItemByKey)
+                if (typeof(QueryResponseType) == typeof(List<GlobalStateMatrixHelper>))
                 {
-                    string stateMatrix = """
-                        [{"config_value":"{\"config_value\":{\"request\":{\"matrix\":{},\"derived_states\":{},\"lowest_input_state\":0,\"lowest_start_state\":0,\"lowest_end_state\":49,\"active\":true},\"implementation\":{\"matrix\":{},\"derived_states\":{},\"lowest_input_state\":99,\"lowest_start_state\":210,\"lowest_end_state\":249,\"active\":true}}}"}]
-                        """;
-                    return Task.FromResult(System.Text.Json.JsonSerializer.Deserialize<QueryResponseType>(stateMatrix)!);
+                    return Task.FromResult((QueryResponseType)(object)new List<GlobalStateMatrixHelper>
+                    {
+                        new()
+                        {
+                            ConfData = """
+                                {"config_value":{"request":{"matrix":{},"derived_states":{},"lowest_input_state":0,"lowest_start_state":0,"lowest_end_state":49,"active":true},"implementation":{"matrix":{},"derived_states":{},"lowest_input_state":99,"lowest_start_state":210,"lowest_end_state":249,"active":true}}}
+                                """
+                        }
+                    });
                 }
                 throw new NotImplementedException();
             }
@@ -185,6 +190,143 @@ namespace FWO.Test
             Assert.That(html, Does.Not.Contain("<th>Deadline</th>"));
             Assert.That(html, Does.Contain("<td>done</td>"));
             Assert.That(html, Does.Contain(">1<"));
+            Assert.That(html, Does.Contain(">Tasks<"));
+            Assert.That(html, Does.Contain(">Request task<"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketChangeReport_ExportToHtml_ShowsRequestTasksForTicketCreationReferenceDate()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.TicketCreation;
+            template.ReportParams.WorkflowFilter.ShowFullTicket = false;
+            template.ReportParams.WorkflowFilter.TaskTypes = [WfTaskType.access];
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 1002,
+                    Title = "Created ticket",
+                    StateId = 9,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 301,
+                            TaskNumber = 7,
+                            Title = "Visible request task",
+                            StateId = 9,
+                            TaskType = WfTaskType.access.ToString()
+                        }
+                    ],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            string html = report.ExportToHtml();
+
+            Assert.That(html, Does.Contain(">Visible request task<"));
+            Assert.That(html, Does.Contain(">7<"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketChangeReport_ExportToHtml_FiltersRequestTasksByTaskType()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.TicketCreation;
+            template.ReportParams.WorkflowFilter.ShowFullTicket = false;
+            template.ReportParams.WorkflowFilter.TaskTypes = [WfTaskType.access];
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 1003,
+                    Title = "Task type filtered ticket",
+                    StateId = 9,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 401,
+                            TaskNumber = 1,
+                            Title = "Access task",
+                            StateId = 9,
+                            TaskType = WfTaskType.access.ToString()
+                        },
+                        new WfReqTask
+                        {
+                            Id = 402,
+                            TaskNumber = 2,
+                            Title = "Rule delete task",
+                            StateId = 9,
+                            TaskType = WfTaskType.rule_delete.ToString()
+                        }
+                    ],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            string html = report.ExportToHtml();
+
+            Assert.That(html, Does.Contain(">Access task<"));
+            Assert.That(html, Does.Not.Contain(">Rule delete task<"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketReport_ExportToHtml_FiltersRequestTasksByTaskType()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.ShowFullTicket = false;
+            template.ReportParams.WorkflowFilter.TaskTypes = [WfTaskType.access];
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 1004,
+                    Title = "Ticket report task filter",
+                    StateId = 9,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 501,
+                            TaskNumber = 1,
+                            Title = "Shown access task",
+                            StateId = 9,
+                            TaskType = WfTaskType.access.ToString()
+                        },
+                        new WfReqTask
+                        {
+                            Id = 502,
+                            TaskNumber = 2,
+                            Title = "Hidden rule modify task",
+                            StateId = 9,
+                            TaskType = WfTaskType.rule_modify.ToString()
+                        }
+                    ],
+                    Requester = new UiUser { Name = "reporter" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            string html = report.ExportToHtml();
+
+            Assert.That(html, Does.Contain(">Shown access task<"));
+            Assert.That(html, Does.Not.Contain(">Hidden rule modify task<"));
         }
     }
 }

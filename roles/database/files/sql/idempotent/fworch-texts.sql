@@ -1166,6 +1166,8 @@ INSERT INTO txt VALUES ('event', 			    'German', 	'Ereignis');
 INSERT INTO txt VALUES ('event', 			    'English', 	'Event');
 INSERT INTO txt VALUES ('phase', 			    'German', 	'Phase');
 INSERT INTO txt VALUES ('phase', 			    'English', 	'Phase');
+INSERT INTO txt VALUES ('reference_date',       'German',   'Bezugsdatum');
+INSERT INTO txt VALUES ('reference_date',       'English',  'Reference date');
 INSERT INTO txt VALUES ('task_type', 			'German', 	'Tasktyp');
 INSERT INTO txt VALUES ('task_type', 			'English', 	'Task type');
 INSERT INTO txt VALUES ('action_type', 		    'German', 	'Aktionstyp');
@@ -4380,6 +4382,8 @@ INSERT INTO txt VALUES ('H1519', 'German',  'Status: Mehrfachauswahl der Ticket-
 INSERT INTO txt VALUES ('H1519', 'English', 'State: Multiselect of ticket states. Without an explicit selection, tickets of all states are considered.');
 INSERT INTO txt VALUES ('H1520', 'German',  'Vollst&auml;ndiges Ticket anzeigen: Ist diese Option aktiviert, werden zu jedem gefundenen Ticket alle enthaltenen Request Tasks, Implementierungs-Tasks und Freigaben angezeigt. Ist sie deaktiviert, werden in den Details nur Objekte angezeigt, deren Referenzdatum im gew&auml;hlten Zeitraum liegt.');
 INSERT INTO txt VALUES ('H1520', 'English', 'Show full ticket: If this option is enabled, every matching ticket shows all contained request tasks, implementation tasks and approvals. If it is disabled, the details only show objects whose reference date lies within the selected time range.');
+INSERT INTO txt VALUES ('H1521', 'German',  'Phase: Beschr&auml;nkt die Ticketauswahl auf den Statusbereich der gew&auml;hlten aktiven Workflow-Phase. In der Statusauswahl werden dann nur Status angeboten, die in dieser Phase verwendet werden.');
+INSERT INTO txt VALUES ('H1521', 'English', 'Phase: Restricts the ticket selection to the status range of the selected active workflow phase. The state dropdown then only offers states that are used in this phase.');
 
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.

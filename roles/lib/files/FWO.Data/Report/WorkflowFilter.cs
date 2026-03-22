@@ -20,7 +20,7 @@ namespace FWO.Data.Report
     public class WorkflowFilter
     {
         [JsonProperty("reference_date"), JsonPropertyName("reference_date")]
-        public WorkflowReferenceDate ReferenceDate { get; set; } = WorkflowReferenceDate.TicketCreation;
+        public WorkflowReferenceDate ReferenceDate { get; set; } = WorkflowReferenceDate.AnyActivity;
 
         [JsonProperty("task_types"), JsonPropertyName("task_types")]
         public List<WfTaskType> TaskTypes { get; set; } = DefaultTaskTypes();

@@ -2,21 +2,26 @@
 @using FWO.Data.Workflow
 @using FWO.Api.Client
 @using FWO.Api.Client.Queries
+@using FWO.Basics
+@using FWO.Services.Workflow
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
 <div class="p-3">
     <h5 class="text-left">@(userConfig.GetText("workflow"))</h5>
-    <div class="mt-3">
-        <h6 class="text-left text-white">@(userConfig.GetText("reference_date"))</h6>
-        <Dropdown ElementType="WorkflowReferenceDate" @bind-SelectedElement="WorkflowFilter.ReferenceDate"
-                  ElementToString="ReferenceDateToString" Elements="availableReferenceDates">
-            <ElementTemplate>
-                @(ReferenceDateToString(context))
-            </ElementTemplate>
-        </Dropdown>
-    </div>
+    @if (SelectedReportType == ReportType.TicketChangeReport)
+    {
+        <div class="mt-3">
+            <h6 class="text-left text-white">@(userConfig.GetText("reference_date"))</h6>
+            <Dropdown ElementType="WorkflowReferenceDate" @bind-SelectedElement="WorkflowFilter.ReferenceDate"
+                      ElementToString="ReferenceDateToString" Elements="availableReferenceDates">
+                <ElementTemplate>
+                    @(ReferenceDateToString(context))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    }
     <div class="mt-3">
         <h6 class="text-left text-white">@(userConfig.GetText("task_type"))</h6>
         <Dropdown ElementType="WfTaskType?" SelectedElements="selectedTaskTypesForUi" SelectedElementsChanged="TaskTypesChanged"
@@ -26,6 +31,18 @@
             </ElementTemplate>
         </Dropdown>
     </div>
+    @if (SelectedReportType == ReportType.TicketReport || SelectedReportType == ReportType.TicketChangeReport)
+    {
+        <div class="mt-3">
+            <h6 class="text-left text-white">@(userConfig.GetText("phase"))</h6>
+            <Dropdown ElementType="string" SelectedElement="selectedPhase" SelectedElementChanged="PhaseChanged"
+                      ElementToString="PhaseToString" Elements="availablePhases" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                <ElementTemplate Context="phase">
+                    @(PhaseToString(phase))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    }
     <div class="mt-3">
         <h6 class="text-left text-white">@(userConfig.GetText("state"))</h6>
         <Dropdown ElementType="int?" SelectedElements="selectedStateIdsForUi" SelectedElementsChanged="StateIdsChanged"
@@ -45,26 +62,44 @@
 {
     private readonly List<WfTaskType> availableRealTaskTypes = [.. Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().Where(taskType => taskType != WfTaskType.master)];
     private readonly List<WorkflowReferenceDate> availableReferenceDates = [.. Enum.GetValues(typeof(WorkflowReferenceDate)).Cast<WorkflowReferenceDate>()];
+    private GlobalStateMatrix masterStateMatrix = new();
+    private List<string> availablePhases = [];
+    private string? selectedPhase;
     private IEnumerable<WfTaskType?> selectedTaskTypesForUi = [];
-    private List<WfState> availableStates = [];
+    private List<WfState> allStates = [];
     private IEnumerable<int?> selectedStateIdsForUi = [];
 
     private List<WfTaskType?> availableTaskTypes => [null, .. availableRealTaskTypes.Cast<WfTaskType?>()];
+    private List<WfState> availableStates => GetAvailableStates();
     private List<int?> availableStateIds => [null, .. availableStates.Select(state => (int?)state.Id)];
 
     [Parameter]
     public WorkflowFilter WorkflowFilter { get; set; } = new();
 
     [Parameter]
+    public ReportType SelectedReportType { get; set; }
+
+    [Parameter]
     public EventCallback<WorkflowFilter> WorkflowFilterChanged { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        availableStates = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+        allStates = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+        masterStateMatrix = GlobalStateMatrix.Create();
+        await masterStateMatrix.Init(apiConnection, WfTaskType.master);
+        availablePhases =
+        [
+            .. Enum.GetValues(typeof(WorkflowPhases))
+                .Cast<WorkflowPhases>()
+                .Where(phase => masterStateMatrix.GlobalMatrix.TryGetValue(phase, out StateMatrix? stateMatrix) && stateMatrix.Active)
+                .Select(phase => phase.ToString())
+        ];
     }
 
     protected override void OnParametersSet()
     {
+        selectedPhase = string.IsNullOrWhiteSpace(WorkflowFilter.Phase) ? null : WorkflowFilter.Phase;
+        PruneSelectedStatesToPhase();
         selectedTaskTypesForUi = BuildSelectedTaskTypesForUi();
         selectedStateIdsForUi = BuildSelectedStateIdsForUi();
     }
@@ -79,11 +114,16 @@
         return userConfig.GetText(referenceDate.ToString());
     }
 
+    private string PhaseToString(string phase)
+    {
+        return userConfig.GetText(phase);
+    }
+
     private string StateIdToString(int? stateId)
     {
         return stateId == null
             ? userConfig.GetText("all")
-            : availableStates.FirstOrDefault(state => state.Id == stateId)?.Name ?? stateId.ToString() ?? "";
+            : allStates.FirstOrDefault(state => state.Id == stateId)?.Name ?? stateId.ToString() ?? "";
     }
 
     private IEnumerable<WfTaskType?> BuildSelectedTaskTypesForUi()
@@ -122,6 +162,15 @@
         await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
     }
 
+    private async Task PhaseChanged(string? phase)
+    {
+        selectedPhase = phase;
+        WorkflowFilter.Phase = phase ?? "";
+        PruneSelectedStatesToPhase();
+        selectedStateIdsForUi = BuildSelectedStateIdsForUi();
+        await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+
     private async Task StateIdsChanged(IEnumerable<int?> stateIds)
     {
         List<int?> stateIdList = stateIds.ToList();
@@ -137,5 +186,62 @@
 
         selectedStateIdsForUi = BuildSelectedStateIdsForUi();
         await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+
+    private List<WfState> GetAvailableStates()
+    {
+        HashSet<int> usedStateIds = GetUsedActiveStateIds();
+        IEnumerable<WfState> statesInScope = allStates.Where(state => usedStateIds.Contains(state.Id));
+
+        if (string.IsNullOrWhiteSpace(WorkflowFilter.Phase) || !Enum.TryParse(WorkflowFilter.Phase, true, out WorkflowPhases phase))
+        {
+            return [.. statesInScope];
+        }
+
+        if (!masterStateMatrix.GlobalMatrix.TryGetValue(phase, out StateMatrix? stateMatrix))
+        {
+            return [.. statesInScope];
+        }
+
+        return [.. statesInScope.Where(state => state.Id >= stateMatrix.LowestInputState && state.Id < stateMatrix.LowestEndState)];
+    }
+
+    private void PruneSelectedStatesToPhase()
+    {
+        HashSet<int> allowedStateIds = [.. availableStates.Select(state => state.Id)];
+        if (WorkflowFilter.StateIds.Count == 0 || WorkflowFilter.StateIds.All(allowedStateIds.Contains))
+        {
+            return;
+        }
+
+        WorkflowFilter.StateIds = [.. WorkflowFilter.StateIds.Where(allowedStateIds.Contains)];
+    }
+
+    private HashSet<int> GetUsedActiveStateIds()
+    {
+        HashSet<int> usedStateIds = [];
+        foreach (KeyValuePair<WorkflowPhases, StateMatrix> phaseEntry in masterStateMatrix.GlobalMatrix.Where(entry => entry.Value.Active))
+        {
+            foreach (KeyValuePair<int, List<int>> transition in phaseEntry.Value.Matrix)
+            {
+                usedStateIds.Add(transition.Key);
+                foreach (int toState in transition.Value)
+                {
+                    usedStateIds.Add(toState);
+                }
+            }
+
+            foreach (KeyValuePair<int, int> derivedState in phaseEntry.Value.DerivedStates)
+            {
+                usedStateIds.Add(derivedState.Key);
+                usedStateIds.Add(derivedState.Value);
+            }
+
+            usedStateIds.Add(phaseEntry.Value.LowestInputState);
+            usedStateIds.Add(phaseEntry.Value.LowestStartedState);
+            usedStateIds.Add(phaseEntry.Value.LowestEndState);
+        }
+
+        return usedStateIds;
     }
 }

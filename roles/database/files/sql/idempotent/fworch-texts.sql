@@ -4209,6 +4209,8 @@ INSERT INTO txt VALUES ('H1145', 'English', '<li> filter for last hit of rules</
     <li>lasthit<2023-01-01 - only shows rules with hits before the year 2023 including those rules which have no hits at all</li>
     <li>lasthit>2022-12-31 - only shows rules which have hits in 2023 (or later). Rules without any hits are not shown.</li></ul>
 ');
+INSERT INTO txt VALUES ('H1146', 'German',  '<li> Workflow Ticket Report: Zus&auml;tzlich zu Tasktyp und Status kann eine Phase gew&auml;hlt werden. Ber&uuml;cksichtigt werden dann alle Tickets mit einem Ticket-Status ab dem "Niedrigsten Eingangsstatus" bis vor den "Niedrigsten Ausgangsstatus" der ausgew&auml;hlten Phase.</li>');
+INSERT INTO txt VALUES ('H1146', 'English', '<li> Workflow ticket report: In addition to task type and state a phase can be selected. The report then includes all tickets whose ticket state is greater than or equal to the selected phase''s "lowest input state" and smaller than its "lowest exit state".</li>');
 INSERT INTO txt VALUES ('H1201', 'German',  'Vorlagen k&ouml;nnen genutzt werden, um wiederkehrende Reports zu definieren. Diese werden f&uuml;r das Scheduling ben&ouml;tigt.
     Jeder Nutzer kann seine eigenen Vorlagen definieren und sie mit anderen teilen.<br>
     Beim Anlegen einer neuen Vorlage &uuml;ber die Schaltfl&auml;che "Als Vorlage speichern" wird ein Pop-Up-Fenster ge&ouml;ffnet, in dem Name und ein Kommentar vergeben werden k&ouml;nnen.

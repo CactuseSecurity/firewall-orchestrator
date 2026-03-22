@@ -5,6 +5,7 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Report;
+using FWO.Services.Workflow;
 using FWO.Api.Client.Queries;
 using NUnit.Framework;
 
@@ -16,6 +17,8 @@ namespace FWO.Test
     {
         private class ReportTicketChangesApiConnection(List<WfTicket> tickets) : ApiConnection
         {
+            public Dictionary<string, object>? LastQueryVariables { get; private set; }
+
             public override void SetAuthHeader(string jwt) { }
             public override void SetRole(string role) { }
             public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
@@ -30,11 +33,19 @@ namespace FWO.Test
             {
                 if (typeof(QueryResponseType) == typeof(List<WfTicket>))
                 {
+                    LastQueryVariables = variables as Dictionary<string, object>;
                     return Task.FromResult((QueryResponseType)(object)tickets);
                 }
                 if (typeof(QueryResponseType) == typeof(List<WfState>) && query == RequestQueries.getStates)
                 {
                     return Task.FromResult((QueryResponseType)(object)new List<WfState> { new() { Id = 9, Name = "done" } });
+                }
+                if (typeof(QueryResponseType) == typeof(List<GlobalStateMatrixHelper>) && query == ConfigQueries.getConfigItemByKey)
+                {
+                    string stateMatrix = """
+                        [{"config_value":"{\"config_value\":{\"request\":{\"matrix\":{},\"derived_states\":{},\"lowest_input_state\":0,\"lowest_start_state\":0,\"lowest_end_state\":49,\"active\":true},\"implementation\":{\"matrix\":{},\"derived_states\":{},\"lowest_input_state\":99,\"lowest_start_state\":210,\"lowest_end_state\":249,\"active\":true}}}"}]
+                        """;
+                    return Task.FromResult(System.Text.Json.JsonSerializer.Deserialize<QueryResponseType>(stateMatrix)!);
                 }
                 throw new NotImplementedException();
             }
@@ -54,7 +65,7 @@ namespace FWO.Test
         {
             ReportTemplate template = new();
             template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
-            ReportBase report = ReportBase.ConstructReport(template, new UserConfig());
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
             List<WfTicket> tickets =
             [
                 new()
@@ -83,9 +94,55 @@ namespace FWO.Test
             ReportTemplate template = new();
             template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
 
-            ReportBase report = ReportBase.ConstructReport(template, new UserConfig());
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
 
             Assert.That(report, Is.TypeOf<ReportTicketChanges>());
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_ConstructReportReturnsReportTickets()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+
+            Assert.That(report, Is.TypeOf<ReportTickets>());
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketReport_GenerateResolvesPhaseToStateRange()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.Phase = "implementation";
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            ReportTicketChangesApiConnection apiConnection = new([]);
+
+            await report.Generate(0, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(apiConnection.LastQueryVariables, Is.Not.Null);
+            Assert.That(apiConnection.LastQueryVariables!["phase_lowest_input_state"], Is.EqualTo(99));
+            Assert.That(apiConnection.LastQueryVariables!["phase_lowest_end_state"], Is.EqualTo(249));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketChangeReport_GenerateResolvesPhaseToStateRange()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.Phase = "implementation";
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            ReportTicketChangesApiConnection apiConnection = new([]);
+
+            await report.Generate(0, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(apiConnection.LastQueryVariables, Is.Not.Null);
+            Assert.That(apiConnection.LastQueryVariables!["phase_lowest_input_state"], Is.EqualTo(99));
+            Assert.That(apiConnection.LastQueryVariables!["phase_lowest_end_state"], Is.EqualTo(249));
         }
 
         [Test]
@@ -95,7 +152,7 @@ namespace FWO.Test
             ReportTemplate template = new();
             template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
             template.ReportParams.WorkflowFilter.ShowFullTicket = true;
-            ReportBase report = ReportBase.ConstructReport(template, new UserConfig());
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
             List<WfTicket> tickets =
             [
                 new()
@@ -108,7 +165,7 @@ namespace FWO.Test
                         new WfReqTask
                         {
                             Id = 201,
-                            TaskNumber = "REQ-1",
+                            TaskNumber = 1,
                             Title = "Request task",
                             StateId = 9
                         }
@@ -121,13 +178,13 @@ namespace FWO.Test
 
             string html = report.ExportToHtml();
 
-            StringAssert.Contains("<th>name</th>", html);
-            StringAssert.Contains("<th>created</th>", html);
-            StringAssert.Contains("<th>closed</th>", html);
-            StringAssert.DoesNotContain("<th>priority</th>", html);
-            StringAssert.DoesNotContain("<th>deadline</th>", html);
-            StringAssert.Contains("<td>done</td>", html);
-            StringAssert.Contains("REQ-1", html);
+            Assert.That(html, Does.Contain("<th>Name</th>"));
+            Assert.That(html, Does.Contain("<th>Created</th>"));
+            Assert.That(html, Does.Contain("<th>Closed</th>"));
+            Assert.That(html, Does.Not.Contain("<th>Priority</th>"));
+            Assert.That(html, Does.Not.Contain("<th>Deadline</th>"));
+            Assert.That(html, Does.Contain("<td>done</td>"));
+            Assert.That(html, Does.Contain(">1<"));
         }
     }
 }

@@ -16,7 +16,7 @@ namespace FWO.Test
             ReportFilters filters = new()
             {
                 ReportType = ReportType.TicketChangeReport,
-                WorkflowFilter = new() { ReferenceDate = WorkflowReferenceDate.TaskEnd, TaskTypes = [WfTaskType.access, WfTaskType.rule_modify], StateIds = [3, 7], ShowFullTicket = false }
+                WorkflowFilter = new() { ReferenceDate = WorkflowReferenceDate.TaskEnd, TaskTypes = [WfTaskType.access, WfTaskType.rule_modify], StateIds = [3, 7], Phase = "implementation", ShowFullTicket = false }
             };
 
             var reportParams = filters.ToReportParams();
@@ -24,6 +24,7 @@ namespace FWO.Test
             Assert.That(reportParams.WorkflowFilter.ReferenceDate, Is.EqualTo(WorkflowReferenceDate.TaskEnd));
             Assert.That(reportParams.WorkflowFilter.TaskTypes, Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.rule_modify }));
             Assert.That(reportParams.WorkflowFilter.StateIds, Is.EqualTo(new List<int> { 3, 7 }));
+            Assert.That(reportParams.WorkflowFilter.Phase, Is.EqualTo("implementation"));
             Assert.That(reportParams.WorkflowFilter.ShowFullTicket, Is.False);
         }
 
@@ -36,7 +37,7 @@ namespace FWO.Test
                 ReportParams =
                 {
                     ReportType = (int)ReportType.TicketChangeReport,
-                    WorkflowFilter = new() { ReferenceDate = WorkflowReferenceDate.Approved, TaskTypes = [WfTaskType.access, WfTaskType.rule_delete], StateIds = [9], ShowFullTicket = false }
+                    WorkflowFilter = new() { ReferenceDate = WorkflowReferenceDate.Approved, TaskTypes = [WfTaskType.access, WfTaskType.rule_delete], StateIds = [9], Phase = "review", ShowFullTicket = false }
                 }
             };
 
@@ -46,6 +47,7 @@ namespace FWO.Test
             Assert.That(filters.WorkflowFilter.ReferenceDate, Is.EqualTo(WorkflowReferenceDate.Approved));
             Assert.That(filters.WorkflowFilter.TaskTypes, Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.rule_delete }));
             Assert.That(filters.WorkflowFilter.StateIds, Is.EqualTo(new List<int> { 9 }));
+            Assert.That(filters.WorkflowFilter.Phase, Is.EqualTo("review"));
             Assert.That(filters.WorkflowFilter.ShowFullTicket, Is.False);
         }
     }

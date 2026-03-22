@@ -460,6 +460,9 @@ namespace FWO.Report.Filter
                     query.FullQuery = Queries.Compact(ConstructChangesQuery(query, paramString, filter));
                     break;
 
+                case ReportType.TicketReport:
+                    query.FullQuery = Queries.Compact(ConstructTicketQuery(query, filter));
+                    break;
                 case ReportType.TicketChangeReport:
                     query.FullQuery = Queries.Compact(ConstructTicketChangesQuery(query, filter));
                     break;
@@ -480,33 +483,64 @@ namespace FWO.Report.Filter
             }
         }
 
+        private static string ConstructTicketQuery(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            InitializeTicketQuery(query, filter);
+            return BuildTicketReportQuery("ticketReport", query.QueryParameters, BuildTicketFilters(query, filter));
+        }
+
         private static string ConstructTicketChangesQuery(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            InitializeTicketQuery(query, filter, true);
+            List<string> ticketFilters = BuildTicketFilters(query, filter);
+            ticketFilters.Add(BuildTicketReferenceDateFilter(filter.ReportParams.WorkflowFilter.ReferenceDate));
+            return BuildTicketReportQuery("ticketChangeReport", query.QueryParameters, ticketFilters);
+        }
+
+        private static void InitializeTicketQuery(DynGraphqlQuery query, ReportTemplate filter, bool includeTimeRange = false)
         {
             query.QueryParameters = [];
             query.QueryVariables = [];
 
-            query.QueryParameters.Add("$ticket_time_start: timestamp ");
-            query.QueryParameters.Add("$ticket_time_end: timestamp ");
-            query.QueryParameters.Add("$task_types: [String!] ");
-            (string ticketTimeStart, string ticketTimeEnd) = ResolveTimeRange(filter.ReportParams.TimeFilter);
-            query.QueryVariables["ticket_time_start"] = ticketTimeStart;
-            query.QueryVariables["ticket_time_end"] = ticketTimeEnd;
-            query.QueryVariables["task_types"] = filter.ReportParams.WorkflowFilter.TaskTypes.Select(taskType => taskType.ToString()).ToList();
+            if (includeTimeRange)
+            {
+                query.QueryParameters.Add("$ticket_time_start: timestamp ");
+                query.QueryParameters.Add("$ticket_time_end: timestamp ");
+                (string ticketTimeStart, string ticketTimeEnd) = ResolveTimeRange(filter.ReportParams.TimeFilter);
+                query.QueryVariables["ticket_time_start"] = ticketTimeStart;
+                query.QueryVariables["ticket_time_end"] = ticketTimeEnd;
+            }
 
-            List<string> ticketFilters = [];
-            ticketFilters.Add("{ reqtasks: { task_type: { _in: $task_types } } }");
+            query.QueryParameters.Add("$task_types: [String!] ");
+            query.QueryVariables["task_types"] = filter.ReportParams.WorkflowFilter.TaskTypes.Select(taskType => taskType.ToString()).ToList();
+        }
+
+        private static List<string> BuildTicketFilters(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            List<string> ticketFilters = ["{ reqtasks: { task_type: { _in: $task_types } } }"];
             if (filter.ReportParams.WorkflowFilter.StateIds.Count > 0)
             {
                 query.QueryParameters.Add("$state_ids: [Int!] ");
                 query.QueryVariables["state_ids"] = filter.ReportParams.WorkflowFilter.StateIds;
                 ticketFilters.Add("{ state_id: { _in: $state_ids } }");
             }
-            ticketFilters.Add(BuildTicketReferenceDateFilter(filter.ReportParams.WorkflowFilter.ReferenceDate));
 
-            string paramString = string.Join(" ", query.QueryParameters.ToArray());
+            if (!string.IsNullOrWhiteSpace(filter.ReportParams.WorkflowFilter.Phase))
+            {
+                query.QueryParameters.Add("$phase_lowest_input_state: Int! ");
+                query.QueryParameters.Add("$phase_lowest_end_state: Int! ");
+                ticketFilters.Add("{ state_id: { _gte: $phase_lowest_input_state, _lt: $phase_lowest_end_state } }");
+            }
+
+            return ticketFilters;
+        }
+
+        private static string BuildTicketReportQuery(string operationName, List<string> queryParameters, List<string> ticketFilters)
+        {
+            string paramString = string.Join(" ", queryParameters.ToArray());
             return $@"
                 {RequestQueries.ticketDetailsReqTaskOverviewFragment}
-                query ticketChangeReport ({paramString})
+                query {operationName} ({paramString})
                 {{
                     request_ticket(
                         where: {{

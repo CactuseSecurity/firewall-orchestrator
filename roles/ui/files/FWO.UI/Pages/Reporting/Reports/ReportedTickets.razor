@@ -1,5 +1,6 @@
 @using FWO.Data.Report
 @using FWO.Data.Workflow
+@using FWO.Basics
 @inject UserConfig userConfig
 
 @if (Tickets.Count > 0)
@@ -28,6 +29,7 @@
         {
             <DetailTemplate TableItem="WfTicket" Context="ticket">
                 <div class="p-2">
+                    <div class="small fw-bold mb-2">@(userConfig.GetText("tasks"))</div>
                     <Table class="table table-sm table-bordered mb-0" TableItem="WfReqTask" Items="GetDisplayedTasks(ticket)" PageSize="0">
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" />
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("task_number"))" Field="@(x => x.TaskNumber)" Sortable="false" Filterable="false" />
@@ -39,50 +41,48 @@
                         </Column>
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("start_time"))" Field="@(x => x.Start)" Sortable="false" Filterable="false" />
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("end_time"))" Field="@(x => x.Stop)" Sortable="false" Filterable="false" />
-                        @if (GetDisplayedTasks(ticket).Any(task => ShowNestedTaskDetails(task)))
-                        {
-                            <CustomRow TableItem="WfReqTask" IsActiveForItem="(task => ShowNestedTaskDetails(task))">
-                                <tr>
-                                    <td class="bg-light p-2" colspan="6">
-                                        @if (ShowImplementationTasks())
-                                        {
-                                            <div class="mb-2">
-                                                <div class="small fw-bold">@(userConfig.GetText("implementation"))</div>
-                                                <Table class="table table-sm table-bordered mb-0" TableItem="WfImplTask" Items="GetDisplayedImplementationTasks(context)" PageSize="0">
-                                                    <Column TableItem="WfImplTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" />
-                                                    <Column TableItem="WfImplTask" Title="@(userConfig.GetText("task_number"))" Field="@(x => x.TaskNumber)" Sortable="false" Filterable="false" />
-                                                    <Column TableItem="WfImplTask" Title="@(userConfig.GetText("name"))" Field="@(x => x.Title)" Sortable="false" Filterable="false" />
-                                                    <Column TableItem="WfImplTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="false" Filterable="false">
-                                                        <Template Context="implTask">
-                                                            @(ResolveStateName(implTask.StateId))
-                                                        </Template>
-                                                    </Column>
-                                                    <Column TableItem="WfImplTask" Title="@(userConfig.GetText("start_time"))" Field="@(x => x.Start)" Sortable="false" Filterable="false" />
-                                                    <Column TableItem="WfImplTask" Title="@(userConfig.GetText("end_time"))" Field="@(x => x.Stop)" Sortable="false" Filterable="false" />
-                                                </Table>
-                                            </div>
-                                        }
-                                        @if (ShowApprovals())
-                                        {
-                                            <div>
-                                                <div class="small fw-bold">@(userConfig.GetText("approval"))</div>
-                                                <Table class="table table-sm table-bordered mb-0" TableItem="WfApproval" Items="GetDisplayedApprovals(context)" PageSize="0">
-                                                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" />
-                                                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("name"))" Field="@(x => x.ApproverGroup)" Sortable="false" Filterable="false" />
-                                                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="false" Filterable="false">
-                                                        <Template Context="approval">
-                                                            @(ResolveStateName(approval.StateId))
-                                                        </Template>
-                                                    </Column>
-                                                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("opened"))" Field="@(x => x.DateOpened)" Sortable="false" Filterable="false" />
-                                                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("approved"))" Field="@(x => x.ApprovalDate)" Sortable="false" Filterable="false" />
-                                                </Table>
-                                            </div>
-                                        }
-                                    </td>
-                                </tr>
-                            </CustomRow>
-                        }
+                        <DetailTemplate TableItem="WfReqTask" Context="task">
+                            @if (ShowNestedTaskDetails(task))
+                            {
+                                <div class="bg-light p-2">
+                                    @if (HasDisplayedImplementationTasks(task))
+                                    {
+                                        <div class="mb-2">
+                                            <div class="small fw-bold">@(userConfig.GetText("implementation"))</div>
+                                            <Table class="table table-sm table-bordered mb-0" TableItem="WfImplTask" Items="GetDisplayedImplementationTasks(task)" PageSize="0">
+                                                <Column TableItem="WfImplTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" />
+                                                <Column TableItem="WfImplTask" Title="@(userConfig.GetText("task_number"))" Field="@(x => x.TaskNumber)" Sortable="false" Filterable="false" />
+                                                <Column TableItem="WfImplTask" Title="@(userConfig.GetText("name"))" Field="@(x => x.Title)" Sortable="false" Filterable="false" />
+                                                <Column TableItem="WfImplTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="false" Filterable="false">
+                                                    <Template Context="implTask">
+                                                        @(ResolveStateName(implTask.StateId))
+                                                    </Template>
+                                                </Column>
+                                                <Column TableItem="WfImplTask" Title="@(userConfig.GetText("start_time"))" Field="@(x => x.Start)" Sortable="false" Filterable="false" />
+                                                <Column TableItem="WfImplTask" Title="@(userConfig.GetText("end_time"))" Field="@(x => x.Stop)" Sortable="false" Filterable="false" />
+                                            </Table>
+                                        </div>
+                                    }
+                                    @if (HasDisplayedApprovals(task))
+                                    {
+                                        <div>
+                                            <div class="small fw-bold">@(userConfig.GetText("approval"))</div>
+                                            <Table class="table table-sm table-bordered mb-0" TableItem="WfApproval" Items="GetDisplayedApprovals(task)" PageSize="0">
+                                                <Column TableItem="WfApproval" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="false" Filterable="false" />
+                                                <Column TableItem="WfApproval" Title="@(userConfig.GetText("name"))" Field="@(x => x.ApproverGroup)" Sortable="false" Filterable="false" />
+                                                <Column TableItem="WfApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="false" Filterable="false">
+                                                    <Template Context="approval">
+                                                        @(ResolveStateName(approval.StateId))
+                                                    </Template>
+                                                </Column>
+                                                <Column TableItem="WfApproval" Title="@(userConfig.GetText("opened"))" Field="@(x => x.DateOpened)" Sortable="false" Filterable="false" />
+                                                <Column TableItem="WfApproval" Title="@(userConfig.GetText("approved"))" Field="@(x => x.ApprovalDate)" Sortable="false" Filterable="false" />
+                                            </Table>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </DetailTemplate>
                     </Table>
                 </div>
             </DetailTemplate>
@@ -99,10 +99,16 @@
     public Dictionary<int, string> StateNames { get; set; } = [];
 
     [Parameter]
+    public ReportType SelectedReportType { get; set; }
+
+    [Parameter]
     public WorkflowReferenceDate ReferenceDate { get; set; } = WorkflowReferenceDate.TicketCreation;
 
     [Parameter]
     public bool ShowFullTicket { get; set; } = true;
+
+    [Parameter]
+    public List<WfTaskType> TaskTypes { get; set; } = [];
 
     [Parameter]
     public string TimeRangeStart { get; set; } = "";
@@ -124,8 +130,15 @@
             return ticket.Tasks.OrderBy(task => task.Id).ToList();
         }
 
+        if (SelectedReportType == ReportType.TicketReport)
+        {
+            return FilterTasksByTaskType(ticket.Tasks);
+        }
+
         List<WfReqTask> tasks = ReferenceDate switch
         {
+            WorkflowReferenceDate.TicketCreation => ticket.Tasks.ToList(),
+            WorkflowReferenceDate.TicketClosure => ticket.Tasks.ToList(),
             WorkflowReferenceDate.TaskStart => ticket.Tasks
                 .Where(task => IsInSelectedTimeRange(task.Start))
                 .ToList(),
@@ -151,17 +164,32 @@
                 .ToList(),
             _ => []
         };
-        return tasks.OrderBy(task => task.Id).ToList();
+        return FilterTasksByTaskType(tasks);
     }
 
     private bool ShowNestedTaskDetails(WfReqTask task)
     {
-        return GetDisplayedImplementationTasks(task).Count > 0 || GetDisplayedApprovals(task).Count > 0;
+        return HasDisplayedImplementationTasks(task) || HasDisplayedApprovals(task);
+    }
+
+    private bool HasDisplayedImplementationTasks(WfReqTask task)
+    {
+        return ShowImplementationTasks() && GetDisplayedImplementationTasks(task).Count > 0;
+    }
+
+    private bool HasDisplayedApprovals(WfReqTask task)
+    {
+        return ShowApprovals() && GetDisplayedApprovals(task).Count > 0;
     }
 
     private bool ShowImplementationTasks()
     {
         if (ShowFullTicket)
+        {
+            return true;
+        }
+
+        if (SelectedReportType == ReportType.TicketReport)
         {
             return true;
         }
@@ -178,6 +206,11 @@
             return true;
         }
 
+        if (SelectedReportType == ReportType.TicketReport)
+        {
+            return true;
+        }
+
         return ReferenceDate == WorkflowReferenceDate.ApprovalOpened
             || ReferenceDate == WorkflowReferenceDate.Approved
             || ReferenceDate == WorkflowReferenceDate.AnyActivity;
@@ -186,6 +219,11 @@
     private List<WfImplTask> GetDisplayedImplementationTasks(WfReqTask task)
     {
         if (ShowFullTicket)
+        {
+            return task.ImplementationTasks.OrderBy(implTask => implTask.Id).ToList();
+        }
+
+        if (SelectedReportType == ReportType.TicketReport)
         {
             return task.ImplementationTasks.OrderBy(implTask => implTask.Id).ToList();
         }
@@ -209,6 +247,11 @@
     private List<WfApproval> GetDisplayedApprovals(WfReqTask task)
     {
         if (ShowFullTicket)
+        {
+            return task.Approvals.OrderBy(approval => approval.Id).ToList();
+        }
+
+        if (SelectedReportType == ReportType.TicketReport)
         {
             return task.Approvals.OrderBy(approval => approval.Id).ToList();
         }
@@ -257,5 +300,13 @@
         }
 
         return date >= start && date <= end;
+    }
+
+    private List<WfReqTask> FilterTasksByTaskType(IEnumerable<WfReqTask> tasks)
+    {
+        return tasks
+            .Where(task => TaskTypes.Count == 0 || TaskTypes.Any(taskType => task.TaskType == taskType.ToString()))
+            .OrderBy(task => task.Id)
+            .ToList();
     }
 }

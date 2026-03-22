@@ -28,6 +28,9 @@ namespace FWO.Data.Report
         [JsonProperty("state_ids"), JsonPropertyName("state_ids")]
         public List<int> StateIds { get; set; } = [];
 
+        [JsonProperty("phase"), JsonPropertyName("phase")]
+        public string Phase { get; set; } = "";
+
         [JsonProperty("show_full_ticket"), JsonPropertyName("show_full_ticket")]
         public bool ShowFullTicket { get; set; } = true;
 
@@ -39,6 +42,7 @@ namespace FWO.Data.Report
             ReferenceDate = workflowFilter.ReferenceDate;
             TaskTypes = workflowFilter.TaskTypes.Count > 0 ? [.. workflowFilter.TaskTypes] : DefaultTaskTypes();
             StateIds = [.. workflowFilter.StateIds];
+            Phase = workflowFilter.Phase;
             ShowFullTicket = workflowFilter.ShowFullTicket;
         }
 

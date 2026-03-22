@@ -172,6 +172,7 @@ namespace FWO.Report
                 ReportType.OwnerRecertification => new ReportOwnerRecerts(query, userConfig, repType),
                 ReportType.RecertificationEvent => new RecertificateOwner(query, userConfig, repType),
                 ReportType.RecertEventReport => new ReportRecertEvent(query, userConfig, repType, ruleTreeBuilder),
+                ReportType.TicketReport => new ReportTickets(query, userConfig, repType, reportFilter.ReportParams.WorkflowFilter),
                 ReportType.TicketChangeReport => new ReportTicketChanges(query, userConfig, repType, reportFilter.ReportParams.WorkflowFilter),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };

@@ -402,5 +402,56 @@ namespace FWO.Test
             StringAssert.Contains("state_id: { _in: $state_ids }", query.FullQuery);
             Assert.That(query.QueryVariables["state_ids"], Is.EqualTo(new List<int> { 2, 5 }));
         }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_UsesTaskTypeStateAndPhaseFiltersWithoutTimeRange()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.TaskTypes = [WfTaskType.access, WfTaskType.new_interface];
+            template.ReportParams.WorkflowFilter.StateIds = [2, 5];
+            template.ReportParams.WorkflowFilter.Phase = "implementation";
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("query ticketReport", query.FullQuery);
+            StringAssert.Contains("reqtasks: { task_type: { _in: $task_types } }", query.FullQuery);
+            StringAssert.Contains("state_id: { _in: $state_ids }", query.FullQuery);
+            StringAssert.Contains("state_id: { _gte: $phase_lowest_input_state, _lt: $phase_lowest_end_state }", query.FullQuery);
+            StringAssert.DoesNotContain("$ticket_time_start", query.FullQuery);
+            Assert.That(query.QueryVariables["task_types"], Is.EqualTo(new List<string> { WfTaskType.access.ToString(), WfTaskType.new_interface.ToString() }));
+            Assert.That(query.QueryVariables["state_ids"], Is.EqualTo(new List<int> { 2, 5 }));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketChangeReport_UsesTaskTypeStatePhaseAndTimeFilters()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Shortcut;
+            template.ReportParams.TimeFilter.TimeRangeShortcut = "today";
+            template.ReportParams.WorkflowFilter.TaskTypes = [WfTaskType.access, WfTaskType.new_interface];
+            template.ReportParams.WorkflowFilter.StateIds = [2, 5];
+            template.ReportParams.WorkflowFilter.Phase = "implementation";
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("query ticketChangeReport", query.FullQuery);
+            StringAssert.Contains("reqtasks: { task_type: { _in: $task_types } }", query.FullQuery);
+            StringAssert.Contains("state_id: { _in: $state_ids }", query.FullQuery);
+            StringAssert.Contains("state_id: { _gte: $phase_lowest_input_state, _lt: $phase_lowest_end_state }", query.FullQuery);
+            StringAssert.Contains("$ticket_time_start", query.FullQuery);
+            StringAssert.Contains("$ticket_time_end", query.FullQuery);
+            Assert.That(query.QueryVariables["task_types"], Is.EqualTo(new List<string> { WfTaskType.access.ToString(), WfTaskType.new_interface.ToString() }));
+            Assert.That(query.QueryVariables["state_ids"], Is.EqualTo(new List<int> { 2, 5 }));
+        }
     }
 }

@@ -171,7 +171,8 @@ class ManagementController(Management):
         """
         return hashlib.sha256(combination.encode()).hexdigest()
 
-    def get_mgm_details(self, api_conn: FwoApi, mgm_id: int) -> dict[str, Any]:
+    @staticmethod
+    def get_mgm_details(api_conn: FwoApi, mgm_id: int) -> dict[str, Any]:
         get_mgm_details_query = FwoApi.get_graphql_code(
             [
                 GRAPHQL_QUERY_PATH + "device/getSingleManagementDetails.graphql",

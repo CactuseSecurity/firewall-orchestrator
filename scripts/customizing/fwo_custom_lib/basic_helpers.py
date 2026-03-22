@@ -20,7 +20,8 @@ class FWOLogger(logging.Logger):
         self.debug_level = int(debug_level)
         log_level = logging.DEBUG if self.debug_level >= 1 else logging.INFO
         self.setLevel(log_level)
-        logging.getLogger().setLevel(log_level)
+        root_logger: logging.Logger = logging.getLogger()
+        root_logger.setLevel(log_level)
 
     def is_debug_level(self, min_debug: int) -> bool:
         return self.debug_level >= min_debug
@@ -177,7 +178,8 @@ def _load_custom_config(config_filename: str) -> dict[str, Any]:
         config_content: str = custom_config_fh.read()
     commentless_content: str = _strip_json_comments(config_content)
     sanitized_content: str = _strip_trailing_commas(commentless_content)
-    return json.loads(sanitized_content)
+    loaded_config: dict[str, Any] = json.loads(sanitized_content)
+    return loaded_config
 
 
 def read_custom_config(config_filename: str, key_to_get: str, logger: logging.Logger) -> Any:

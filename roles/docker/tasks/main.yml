@@ -3,11 +3,17 @@
     - set_fact:
         ansible_user: "{{ lookup('env','USER') }}"
         os_codename: "{{ ansible_lsb.codename | lower }}"
+        docker_repo_distribution: "{{ ansible_distribution | lower }}"
 
     # for trixie there is no docker image yet
     - set_fact:
         os_codename: bookworm
       when: "os_codename == 'trixie'"
+
+    - name: define docker repo urls
+      set_fact:
+        docker_repo_base_url: "https://download.docker.com/linux/{{ docker_repo_distribution }}"
+        docker_repo_release_url: "https://download.docker.com/linux/{{ docker_repo_distribution }}/dists/{{ os_codename }}/Release"
 
     - name: Install packages for docker download n installation
       package:
@@ -26,12 +32,18 @@
         mode: "0644"
       environment: "{{ proxy_env }}"
 
+    - name: validate docker apt repo metadata before changing apt source
+      uri:
+        url: "{{ docker_repo_release_url }}"
+        method: HEAD
+        status_code: 200
+      environment: "{{ proxy_env }}"
+
     - name: add docker repo
-      lineinfile:
-        path: "/etc/apt/sources.list.d/docker.list"
-        regexp: ".*https://download.docker.com/linux/.*"
-        create: true
-        line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ os_codename }} stable"
+      apt_repository:
+        filename: docker
+        repo: "deb [arch=amd64] {{ docker_repo_base_url }} {{ os_codename }} stable"
+        state: present
 
     - name: apt update
       apt: update_cache=true

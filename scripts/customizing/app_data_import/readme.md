@@ -36,6 +36,7 @@ Owner row import can be filtered via CLI parameters:
 - `--criticalityColumnHeader` (optional): owner CSV header used to import `criticality`; if omitted, `criticality` is not included in JSON output.
 - `--criticalityRecertPeriodMapping` (optional): list of mappings `PREFIX:DAYS` (for example `1:360 2:360 3:180 4:180 5:180`). If `criticality` starts with `PREFIX`, `recert_period_days` is set to `DAYS`; otherwise default logic applies.
 - `--responsiblesColumns` (optional): grouped mapping `LEVEL:HEADER [HEADER ...]`, where each `HEADER` may be either an exact column name or a regex that may match zero or one CSV column. Example: `1:"^UserID$" "^UserID Vertreter$" 2:"^UserIDs Mitwirkende$" 3:"^UserID Leiter OE$"`. Imports `responsibles` into owner JSON using the configured levels and column order. Missing matches are ignored; ambiguous regexes are rejected.
+- `--add_users_by_pattern` (optional): grouped mapping `LEVEL:PATTERN [LEVEL:PATTERN ...]` used to append generated users to `responsibles` without overwriting existing entries. Example: `1:"ROLE_@@AppId@@" 2:"A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"`.
 - `--compositeIdFields` (optional): list of owner CSV headers used to build `app_id_external` as a composite key.
 - `--compositeIdFieldsDelimiterStr` (default: empty): delimiter string used between composite id field values.
 - `--compositeIdFieldsMaxLength` (optional): list of max lengths per composite field; values are truncated before joining. Length must match `--compositeIdFields`.

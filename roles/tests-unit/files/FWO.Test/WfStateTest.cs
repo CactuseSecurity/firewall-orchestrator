@@ -30,6 +30,7 @@ namespace FWO.Test
             {
                 Id = 3,
                 Name = "state",
+                AutomaticOnly = true,
                 Actions =
                 [
                     new WfStateActionDataHelper { Action = new WfStateAction { Name = "A" } }
@@ -40,7 +41,16 @@ namespace FWO.Test
 
             Assert.That(copy.Id, Is.EqualTo(3));
             Assert.That(copy.Name, Is.EqualTo("state"));
+            Assert.That(copy.AutomaticOnly, Is.True);
             Assert.That(copy.Actions, Is.EqualTo(original.Actions));
+        }
+
+        [Test]
+        public void Automatic_DefaultsToFalse()
+        {
+            WfState state = new();
+
+            Assert.That(state.AutomaticOnly, Is.False);
         }
 
         [Test]

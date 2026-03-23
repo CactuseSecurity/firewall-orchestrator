@@ -6405,6 +6405,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -6425,6 +6426,7 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -6436,6 +6438,7 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -6447,6 +6450,7 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -12899,6 +12903,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -21959,6 +21964,7 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -21970,6 +21976,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -21981,6 +21988,7 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -21993,6 +22001,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],

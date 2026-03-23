@@ -100,7 +100,7 @@ namespace FWO.Services.Workflow
             else
             {
                 List<int> possibleStates = ActStateMatrix.getAllowedTransitions(statefulObject.StateId);
-                if (possibleStates.Count == 1)
+                if (possibleStates.Count >= 1)
                 {
                     statefulObject.StateId = possibleStates[0];
                     promotePossible = true;

@@ -2566,7 +2566,7 @@ INSERT INTO txt VALUES ('from_state',           'German',   'Von Status');
 INSERT INTO txt VALUES ('from_state',           'English',  'From state');
 INSERT INTO txt VALUES ('to_states',            'German',   'Nach Status');
 INSERT INTO txt VALUES ('to_states',            'English',  'To states');
-INSERT INTO txt VALUES ('allowed_transitions',  'German',   'erlaubte &Uuml;berg&auml;nge');
+INSERT INTO txt VALUES ('allowed_transitions',  'German',   'Erlaubte &Uuml;berg&auml;nge');
 INSERT INTO txt VALUES ('allowed_transitions',  'English',  'Allowed transitions');
 INSERT INTO txt VALUES ('special_states',       'German',   'Spezielle Status');
 INSERT INTO txt VALUES ('special_states',       'English',  'Special states');
@@ -2644,7 +2644,7 @@ INSERT INTO txt VALUES ('owner_responsible3',   'German',   'Weitere Verantwortl
 INSERT INTO txt VALUES ('owner_responsible3',   'English',  'Additional responsible persons (DN)');
 INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert setzen');
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
-INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset_to_default',     'German',   'Auf Vorgabewerte zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
 INSERT INTO txt VALUES ('option',		        'German', 	'Option');
 INSERT INTO txt VALUES ('option',		        'English', 	'Option');

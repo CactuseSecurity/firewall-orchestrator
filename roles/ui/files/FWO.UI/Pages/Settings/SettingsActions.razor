@@ -16,18 +16,18 @@
         <h3>@(userConfig.GetText("state_actions"))</h3>
         <HelpLink Page="settings/stateactions"/>
     </div>
-    @(userConfig.GetText("U5317"))
+    @(userConfig.GetText("U5317"))<br>
+    @(userConfig.GetText("H5501"))
     <hr />
-    <button type="button" class="btn btn-sm btn-success" data-toggle="tooltip" title="@(userConfig.PureLine("H5501"))" 
-        @onclick="AddAction">@(userConfig.GetText("add_action"))</button>
+    <button type="button" class="btn btn-sm btn-success" @onclick="AddAction">@(DisplayService.DisplayButton(userConfig, "add_action", Icons.Add))</button>
     <br><br>
     <div class="m-2 vheight75">
         <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfStateAction" Items="actions" PageSize="0" ColumnReorder="true">
             <Column TableItem="WfStateAction" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditAction(context)">@(userConfig.GetText("edit"))</button>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteAction(context)">@(userConfig.GetText("delete"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditAction(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteAction(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                     </div>
                 </Template>
             </Column>
@@ -287,13 +287,13 @@
             <div class="btn-group">
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAction">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAction">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
     </PopUp>

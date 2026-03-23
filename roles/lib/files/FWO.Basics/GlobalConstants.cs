@@ -162,6 +162,7 @@ namespace FWO.Basics
         public const string REQUESTING_APPNAME = "@@REQUESTING_APPNAME@@";
         public const string REQUESTING_APPID = "@@REQUESTING_APPID@@";
         public const string RULE_NUMBER = "@@RULE_NUMBER@@";
+        public const string RULE_TABLE = "@@RULE_TABLE@@";
         public const string SERVICENAME = "@@SERVICENAME@@";
         public const string SERVICES = "@@SERVICES@@";
         public const string SOURCES = "@@SOURCES@@";

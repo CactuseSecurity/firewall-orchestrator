@@ -11,10 +11,12 @@ from scripts.customizing.app_data_import.get_owner_data3_from_normalized_csvs im
     apply_owner_column_overrides,
     build_git_repo_url,
     normalize_option_value_args,
+    parse_add_users_by_pattern,
     parse_criticality_recert_period_mapping,
     parse_included_owners_filters,
     parse_responsibles_columns,
     resolve_local_repo_base_dir,
+    resolve_responsibles_columns_headers,
 )
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 from scripts.customizing.fwo_custom_lib.basic_helpers import (
@@ -65,7 +67,6 @@ class AppDataImportTests(unittest.TestCase):
             owner: Owner = app_list[0]
             self.assertEqual(owner.name, "My App")
             self.assertEqual(owner.app_id_external, "APP-001")
-            self.assertEqual(owner.main_user, "")
             self.assertEqual(owner.recert_period_days, 365)
             self.assertEqual(owner.import_source, self.import_source)
             self.assertEqual(owner.owner_lifecycle_state, "unknown")
@@ -92,6 +93,30 @@ class AppDataImportTests(unittest.TestCase):
 
             self.assertEqual(len(app_list), 1)
             self.assertEqual(app_list[0].app_id_external, "APP-001")
+
+    def test_extract_app_data_from_csv_auto_detects_comma_separator_when_semicolon_is_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nMy App,APP-001,user1,false\n")
+
+            app_list: list[Owner] = []
+            with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+                extract_app_data_from_csv(
+                    "owners.csv",
+                    app_list,
+                    self.ldap_path,
+                    self.import_source,
+                    Owner,
+                    self.logger,
+                    self.debug_level,
+                    base_dir=tmpdir,
+                    csv_separator=";",
+                )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(app_list[0].app_id_external, "APP-001")
+            self.assertTrue(any("alternate separator ','" in message for message in log_context.output))
 
     def test_extract_app_data_from_csv_reads_cp1252_encoded_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -146,7 +171,7 @@ class AppDataImportTests(unittest.TestCase):
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
                 fh.write("col: Alfabet-ID,col: IP\nAPP-001,10.0.0.1\n")
 
-            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-001": owner}
 
             extract_ip_data_from_csv(
@@ -172,7 +197,7 @@ class AppDataImportTests(unittest.TestCase):
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
                 fh.write("col: Alfabet-ID;col: IP\nAPP-001;10.0.0.1\n")
 
-            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-001": owner}
 
             extract_ip_data_from_csv(
@@ -188,13 +213,37 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(len(owner.app_servers), 1)
             self.assertEqual(str(owner.app_servers[0].ip_start), "10.0.0.1")
 
+    def test_extract_ip_data_from_csv_auto_detects_semicolon_separator_when_comma_is_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ip_csv_path: Path = Path(tmpdir) / "ips.csv"
+            with open(ip_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Alfabet-ID;col: IP\nAPP-001;10.0.0.1\n")
+
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
+            app_dict: dict[str, Owner] = {"APP-001": owner}
+
+            with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+                extract_ip_data_from_csv(
+                    "ips.csv",
+                    app_dict,
+                    Appip,
+                    self.logger,
+                    self.debug_level,
+                    base_dir=tmpdir,
+                    csv_separator=",",
+                )
+
+            self.assertEqual(len(owner.app_servers), 1)
+            self.assertEqual(str(owner.app_servers[0].ip_start), "10.0.0.1")
+            self.assertTrue(any("alternate separator ';'" in message for message in log_context.output))
+
     def test_extract_ip_data_from_csv_reads_cp1252_encoded_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             ip_csv_path: Path = Path(tmpdir) / "ips.csv"
             ip_csv_content: str = "col: Alfabet-ID,col: IP,Kommentar\nAPP-001,10.0.0.1,ä\n"
             ip_csv_path.write_bytes(ip_csv_content.encode("cp1252"))
 
-            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-001": owner}
 
             with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
@@ -240,7 +289,6 @@ class AppDataImportTests(unittest.TestCase):
             owner: Owner = app_list[0]
             self.assertEqual(owner.name, "My Other App")
             self.assertEqual(owner.app_id_external, "APP-002")
-            self.assertEqual(owner.main_user, "")
             self.assertEqual(owner.recert_period_days, 182)
 
     def test_extract_app_data_from_csv_applies_default_recert_active_state(self) -> None:
@@ -283,7 +331,7 @@ class AppDataImportTests(unittest.TestCase):
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
                 fh.write("Identifier,IP Address\nAPP-003,10.0.0.0/30\n")
 
-            owner: Owner = Owner("My App", "APP-003", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-003", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-003": owner}
             header_patterns: dict[str, str] = {"app_id": r"Identifier", "ip": r"IP Address"}
 
@@ -517,7 +565,7 @@ class AppDataImportTests(unittest.TestCase):
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
                 fh.write("col: Alfabet-ID\nAPP-001\n")
 
-            owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-001": owner}
 
             with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
@@ -657,6 +705,65 @@ class AppDataImportTests(unittest.TestCase):
             resolved: str = resolve_local_repo_base_dir(str(config_path), cli_repo_dir, self.logger)
 
             self.assertEqual(resolved, cli_repo_dir)
+
+    def test_resolve_responsibles_columns_headers_reads_camel_case_config_list(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """
+                    {
+                      "responsiblesColumns": ["1:TISO UserID", "TISO Backup", "2:Owner UserID"]
+                    }
+                    """
+                )
+
+            resolved: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+                str(config_path), None, self.logger
+            )
+
+            self.assertEqual(resolved, {"1": ("TISO UserID", "TISO Backup"), "2": ("Owner UserID",)})
+
+    def test_resolve_responsibles_columns_headers_reads_snake_case_config_object(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """
+                    {
+                      "responsibles_columns": {
+                        "1": ["TISO UserID"],
+                        "2": ["Owner UserID", "Owner Backup"]
+                      }
+                    }
+                    """
+                )
+
+            resolved: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+                str(config_path), None, self.logger
+            )
+
+            self.assertEqual(resolved, {"1": ("TISO UserID",), "2": ("Owner UserID", "Owner Backup")})
+
+    def test_resolve_responsibles_columns_headers_prefers_cli_over_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path: Path = Path(tmpdir) / "customizingConfig.json"
+            with open(config_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    """
+                    {
+                      "responsibles_columns": {
+                        "1": ["Config TISO"]
+                      }
+                    }
+                    """
+                )
+
+            resolved: dict[str, tuple[str, ...]] | None = resolve_responsibles_columns_headers(
+                str(config_path), ["1:Cli TISO"], self.logger
+            )
+
+            self.assertEqual(resolved, {"1": ("Cli TISO",)})
 
     def test_get_owner_data3_imports_owner_lifecycle_state_from_override_column(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -900,6 +1007,18 @@ class AppDataImportTests(unittest.TestCase):
             },
         )
 
+    def test_parse_add_users_by_pattern_parses_grouped_entries(self) -> None:
+        parsed: dict[str, str] = parse_add_users_by_pattern(
+            ["1:ROLE_@@AppId@@", "2:A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"]
+        )
+        self.assertEqual(
+            parsed,
+            {
+                "1": "ROLE_@@AppId@@",
+                "2": "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT",
+            },
+        )
+
     def test_extract_app_data_from_csv_imports_responsibles_when_configured(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
@@ -1031,6 +1150,38 @@ class AppDataImportTests(unittest.TestCase):
             owner_json: dict[str, object] = app_list[0].to_json()
             self.assertEqual(owner_json.get("responsibles"), {"1": ["CN=uid-main"]})
 
+    def test_extract_app_data_from_csv_warns_when_all_configured_responsibles_columns_miss(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,UserID\n"
+                    "App Partial,APP-033,user33,false,uid-main\n"
+                )
+
+            app_list: list[Owner] = []
+            with self.assertLogs("app-data-import-tests", level="WARNING") as log_context:
+                extract_app_data_from_csv(
+                    "owners.csv",
+                    app_list,
+                    self.ldap_path,
+                    self.import_source,
+                    Owner,
+                    self.logger,
+                    self.debug_level,
+                    base_dir=tmpdir,
+                    responsibles_columns_headers={
+                        "2": (r"^Missing Collaborator$",),
+                    },
+                )
+
+            self.assertEqual(len(app_list), 1)
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertIsNone(owner_json.get("responsibles"))
+            self.assertTrue(
+                any("configured responsiblesColumns matched no columns" in message for message in log_context.output)
+            )
+
     def test_extract_app_data_from_csv_leaves_responsibles_empty_when_not_configured(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
@@ -1079,7 +1230,6 @@ class AppDataImportTests(unittest.TestCase):
             )
 
             self.assertEqual(len(app_list), 1)
-            self.assertEqual(app_list[0].main_user, "CN=uid-main")
             owner_json: dict[str, object] = app_list[0].to_json()
             self.assertEqual(
                 owner_json.get("responsibles"),
@@ -1089,7 +1239,7 @@ class AppDataImportTests(unittest.TestCase):
                 },
             )
 
-    def test_extract_app_data_from_csv_uses_custom_level_two_responsible_pattern(self) -> None:
+    def test_extract_app_data_from_csv_adds_users_by_pattern(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             with open(owner_csv_path, "w", encoding="utf-8") as fh:
@@ -1105,7 +1255,7 @@ class AppDataImportTests(unittest.TestCase):
                 self.logger,
                 self.debug_level,
                 base_dir=tmpdir,
-                level_two_responsible_pattern="ROLE_@@AppId@@_@@AppPrefix@@",
+                add_users_by_pattern={"2": "ROLE_@@AppId@@_@@AppPrefix@@"},
             )
 
             self.assertEqual(len(app_list), 1)
@@ -1113,6 +1263,45 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(
                 owner_json.get("responsibles"),
                 {"2": ["ROLE_018_APP"]},
+            )
+
+    def test_extract_app_data_from_csv_adds_users_by_pattern_without_overwriting_existing_responsibles(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,UserID,UserIDs Mitwirkende\n"
+                    "Fallback App,APP-018,user18,false,uid-main,uid-collab\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                responsibles_columns_headers={
+                    "1": ("UserID",),
+                    "2": ("UserIDs Mitwirkende",),
+                },
+                add_users_by_pattern={
+                    "1": "ROLE_@@AppId@@",
+                    "2": "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT",
+                },
+            )
+
+            self.assertEqual(len(app_list), 1)
+            owner_json: dict[str, object] = app_list[0].to_json()
+            self.assertEqual(
+                owner_json.get("responsibles"),
+                {
+                    "1": ["CN=uid-main", "ROLE_018"],
+                    "2": ["CN=uid-collab", "A_APP_018_FW_RULEMGT"],
+                },
             )
 
     def test_extract_app_data_from_csv_splits_multi_user_responsibles_values(self) -> None:
@@ -1151,9 +1340,8 @@ class AppDataImportTests(unittest.TestCase):
                     "30": ["CN=R8M4"],
                 },
             )
-            self.assertEqual(app_list[0].main_user, "")
 
-    def test_extract_app_data_from_csv_uses_custom_level_two_pattern_without_separator(self) -> None:
+    def test_extract_app_data_from_csv_adds_users_by_pattern_without_separator(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             with open(owner_csv_path, "w", encoding="utf-8") as fh:
@@ -1169,7 +1357,7 @@ class AppDataImportTests(unittest.TestCase):
                 self.logger,
                 self.debug_level,
                 base_dir=tmpdir,
-                level_two_responsible_pattern="A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT",
+                add_users_by_pattern={"2": "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"},
             )
 
             self.assertEqual(len(app_list), 1)
@@ -1179,7 +1367,7 @@ class AppDataImportTests(unittest.TestCase):
                 {"2": ["A_APP_017_FW_RULEMGT"]},
             )
 
-    def test_extract_app_data_from_csv_handles_long_separator_free_ids(self) -> None:
+    def test_extract_app_data_from_csv_handles_long_separator_free_ids_for_add_users_by_pattern(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             long_app_id: str = f"APP{'7' * 20000}"
@@ -1198,7 +1386,7 @@ class AppDataImportTests(unittest.TestCase):
                 self.logger,
                 self.debug_level,
                 base_dir=tmpdir,
-                level_two_responsible_pattern="A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT",
+                add_users_by_pattern={"2": "A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"},
             )
 
             self.assertEqual(len(app_list), 1)

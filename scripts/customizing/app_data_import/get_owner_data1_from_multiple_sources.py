@@ -28,11 +28,11 @@ from asyncio.log import logger
 from pathlib import Path
 from typing import Any
 
-import git  # apt install python3-git # or: pip install git
 import requests
 import urllib3
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
+from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"
@@ -40,7 +40,6 @@ repo_target_dir: str = base_dir_etc + "cmdb-repo"
 default_config_file_name: str = base_dir_etc + "secrets/customizingConfig.json"
 default_rlm_import_file_name: str = base_dir_etc + "getOwnersFromTufinRlm.json"
 import_source_string: str = "tufinRlm"
-git_any: Any = git
 
 # TUFIN settings:
 api_url_path_rlm_login: str = "apps/public/rlm/oauth/token"
@@ -256,6 +255,7 @@ if __name__ == "__main__":
     args: argparse.Namespace = parser.parse_args()
 
     owners_by_id: dict[str, dict[str, Any]] = {}
+    main_owners_by_id: dict[str, str] = {}
 
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()
@@ -277,13 +277,8 @@ if __name__ == "__main__":
     # 1. get all owners
     # get cmdb repo
     repo_url: str = f"https://{git_username}:{git_password}@{git_repo_url}"
-    if Path(repo_target_dir).exists():
-        # If the repository already exists, open it and perform a pull
-        repo: Any = git_any.Repo(repo_target_dir)
-        origin: Any = repo.remotes.origin
-        origin.pull()
-    else:
-        repo = git_any.Repo.clone_from(repo_url, repo_target_dir)
+    if not update_git_repo(repo_url, repo_target_dir, logger):
+        sys.exit(1)
 
     df_all_apps: list[list[str]] = []
     csv_file: str
@@ -316,13 +311,13 @@ if __name__ == "__main__":
                     owner[1]: {
                         "app_id_external": app_id,
                         "name": app_name,
-                        "main_user": main_user_dn,
                         "modellers": [],
                         "import_source": import_source_string,
                         "app_servers": [],
                     }
                 }
             )
+            main_owners_by_id[app_id] = main_user_dn
 
     ######################################################
     # 2. now add data from RLM (add. users, server data)
@@ -353,7 +348,7 @@ if __name__ == "__main__":
         uid: str
         for uid in rlm_owner["owner"]["members"]:
             dn: str = build_dn(uid, ldap_path)
-            if app_id in owners_by_id and dn != owners_by_id[app_id]["main_user"]:  # leave out main owner
+            if app_id in owners_by_id and dn != main_owners_by_id.get(app_id, ""):  # leave out main owner
                 users.append(dn)
 
         # enrich modeller users and servers

@@ -231,7 +231,24 @@ else
             {
                 if(action.ActionType == nameof(StateActionTypes.AutoPromote))
                 {
-                    usedStateIds.Add(Convert.ToInt32(action.ExternalParams));
+                    if (WfStateAction.TryParseAutoPromoteParams(action.ExternalParams, out int? toState, out ConditionalAutoPromoteParams? conditionalParams))
+                    {
+                        if (toState != null && toState >= 0)
+                        {
+                            usedStateIds.Add((int)toState);
+                        }
+                        if (conditionalParams != null)
+                        {
+                            if (conditionalParams.IfCompliantState >= 0)
+                            {
+                                usedStateIds.Add(conditionalParams.IfCompliantState);
+                            }
+                            if (conditionalParams.IfNotCompliantState >= 0)
+                            {
+                                usedStateIds.Add(conditionalParams.IfNotCompliantState);
+                            }
+                        }
+                    }
                 }
                 else if(action.ActionType == nameof(StateActionTypes.AddApproval))
                 {

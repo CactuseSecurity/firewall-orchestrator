@@ -1180,6 +1180,18 @@ INSERT INTO txt VALUES ('to_state', 		    'German', 	'Zielstatus');
 INSERT INTO txt VALUES ('to_state', 		    'English', 	'to State');
 INSERT INTO txt VALUES ('automatic', 		    'German', 	'Automatisch');
 INSERT INTO txt VALUES ('automatic', 		    'English', 	'Automatic');
+INSERT INTO txt VALUES ('Conditional',        'German',   'Bedingt');
+INSERT INTO txt VALUES ('Conditional',        'English',  'Conditional');
+INSERT INTO txt VALUES ('to_be_called',       'German',   'Aufzurufen');
+INSERT INTO txt VALUES ('to_be_called',       'English',  'To be called');
+INSERT INTO txt VALUES ('ifCompliantState',   'German',   'Falls konform Status');
+INSERT INTO txt VALUES ('ifCompliantState',   'English',  'If compliant state');
+INSERT INTO txt VALUES ('ifNotCompliantState','German',   'Falls nicht konform Status');
+INSERT INTO txt VALUES ('ifNotCompliantState','English',  'If not compliant state');
+INSERT INTO txt VALUES ('checkResultLabel',   'German',   'Pruefergebnis-Label');
+INSERT INTO txt VALUES ('checkResultLabel',   'English',  'Check result label');
+INSERT INTO txt VALUES ('PolicyCheck',        'German',   'Policy-Pruefung');
+INSERT INTO txt VALUES ('PolicyCheck',        'English',  'Policy Check');
 INSERT INTO txt VALUES ('free_text', 			'German', 	'Freitext');
 INSERT INTO txt VALUES ('free_text', 			'English', 	'Free Text');
 INSERT INTO txt VALUES ('back_to_ticket', 		'German', 	'Zur&uuml;ck zum Ticket');
@@ -5745,6 +5757,10 @@ INSERT INTO txt VALUES ('H5527', 'German',  'Email verschicken: Es kann zwischen
 ');
 INSERT INTO txt VALUES ('H5527', 'English', 'Send Email: There are different options for the direct recipients and optionally for the recipients in Cc to be chosen.
     Furtheron subject and body of the email message have to be defined here.
+');
+INSERT INTO txt VALUES ('H5528', 'German',  'Bedingt: Waehlt einen Pruefaufruf aus. Fuer "Policy-Pruefung" wird eine Mehrfachauswahl der verfuegbaren Policies angeboten. Optional kann ein Label gesetzt werden; dann wird dieses mit dem Pruefergebnis "true" oder "false" in den AdditionalInfo der geprueften Request Tasks gespeichert. Geprueft werden nur die in den Request Tasks des aufrufenden Tickets angeforderten Regeln. Der Status "Falls konform" wird nur verwendet, wenn alle ausgewaehlten Policies ohne Verstoss pruefen. Andernfalls wird "Falls nicht konform" verwendet.
+');
+INSERT INTO txt VALUES ('H5528', 'English', 'Conditional: Select a check to execute. For "Policy Check", a multiselect of the available policies is shown. You can optionally set a label; if set, that label is stored with the check result "true" or "false" in the AdditionalInfo of the checked request tasks. Only the rules requested in the request tasks of the calling ticket are checked. The "If compliant state" target is used only if all selected policies pass without violations. Otherwise, the "If not compliant state" target is used.
 ');
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nnen beliebig viele neue Status angelegt bzw. vorhandene Status umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Status sind weitgehend frei w&auml;hlbar.
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.

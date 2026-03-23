@@ -554,7 +554,7 @@ namespace FWO.Report
         {
             bool showRule = true;
 
-            if (rule.Compliance == ComplianceViolationType.None || rule.Action != "accept")
+            if (rule.Compliance == ComplianceViolationType.None || rule.Action != RuleActions.Accept)
             {
                 showRule = false;
             }

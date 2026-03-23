@@ -30,6 +30,11 @@ namespace FWO.Data.Workflow
         OnAssignment = 15
     }
 
+    public enum ToBeCalled
+    {
+        PolicyCheck = 1
+    }
+
     public class WfStateAction
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -76,6 +81,51 @@ namespace FWO.Data.Workflow
             }
             return false;
         }
+
+        public static bool TryParseAutoPromoteParams(string externalParams, out int? toStateId, out ConditionalAutoPromoteParams? conditionalParams)
+        {
+            toStateId = null;
+            conditionalParams = null;
+
+            if (string.IsNullOrWhiteSpace(externalParams))
+            {
+                return true;
+            }
+
+            if (int.TryParse(externalParams, out int parsedStateId))
+            {
+                toStateId = parsedStateId;
+                return true;
+            }
+
+            try
+            {
+                conditionalParams = System.Text.Json.JsonSerializer.Deserialize<ConditionalAutoPromoteParams>(externalParams);
+                return conditionalParams != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    public class ConditionalAutoPromoteParams
+    {
+        [JsonProperty("to_be_called"), JsonPropertyName("to_be_called")]
+        public ToBeCalled ToBeCalled { get; set; } = ToBeCalled.PolicyCheck;
+
+        [JsonProperty("policy_ids"), JsonPropertyName("policy_ids")]
+        public List<int> PolicyIds { get; set; } = [];
+
+        [JsonProperty("check_result_label"), JsonPropertyName("check_result_label")]
+        public string CheckResultLabel { get; set; } = "";
+
+        [JsonProperty("if_compliant_state"), JsonPropertyName("if_compliant_state")]
+        public int IfCompliantState { get; set; }
+
+        [JsonProperty("if_not_compliant_state"), JsonPropertyName("if_not_compliant_state")]
+        public int IfNotCompliantState { get; set; }
     }
 
     public class WfStateActionDataHelper

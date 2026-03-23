@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
@@ -100,7 +101,7 @@ namespace FWO.Services.Workflow
             switch (action.ActionType)
             {
                 case nameof(StateActionTypes.AutoPromote):
-                    int? toState = action.ExternalParams != "" ? Convert.ToInt32(action.ExternalParams) : null;
+                    int? toState = await GetAutoPromoteTargetState(action.ExternalParams, statefulObject, scope);
                     if (toState == null || states.FirstOrDefault(x => x.Id == toState) != null)
                     {
                         await wfHandler.AutoPromote(statefulObject, scope, toState);
@@ -359,6 +360,116 @@ namespace FWO.Services.Workflow
             {
                 Log.WriteError("Write Alert", $"Could not write Alert for Workflow: ", exc);
             }
+        }
+
+        private async Task<int?> GetAutoPromoteTargetState(string externalParams, WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            if (!WfStateAction.TryParseAutoPromoteParams(externalParams, out int? toState, out ConditionalAutoPromoteParams? conditionalParams))
+            {
+                throw new JsonException("Extparams could not be parsed.");
+            }
+
+            if (conditionalParams == null)
+            {
+                return toState;
+            }
+
+            return await EvaluateConditionalAutoPromote(conditionalParams, statefulObject, scope) ? conditionalParams.IfCompliantState : conditionalParams.IfNotCompliantState;
+        }
+
+        private Task<bool> EvaluateConditionalAutoPromote(ConditionalAutoPromoteParams conditionalParams, WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            return conditionalParams.ToBeCalled switch
+            {
+                ToBeCalled.PolicyCheck => ExecutePolicyCheck(conditionalParams.PolicyIds, conditionalParams.CheckResultLabel, statefulObject, scope),
+                _ => Task.FromResult(false)
+            };
+        }
+
+        private async Task<bool> ExecutePolicyCheck(IEnumerable<int> selectedPolicyIds, string checkResultLabel, WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            try
+            {
+                if (wfHandler.MiddlewareClient == null)
+                {
+                    return false;
+                }
+
+                List<WfReqTask> requestedRuleTasks = GetRequestedRuleTasksForCallingTicket(statefulObject, scope);
+                List<long> requestedRuleTaskIds = requestedRuleTasks
+                    .Select(task => task.Id)
+                    .Where(taskId => taskId > 0)
+                    .Distinct()
+                    .ToList();
+                if (requestedRuleTaskIds.Count == 0)
+                {
+                    return false;
+                }
+
+                ComplianceRuleCheckParameters parameters = new()
+                {
+                    PolicyIds = selectedPolicyIds.ToList(),
+                    RequestTaskIds = requestedRuleTaskIds
+                };
+                bool isCompliant = (await wfHandler.MiddlewareClient.CheckRequestedRulesAgainstPolicies(parameters)).Data;
+                await AttachPolicyCheckResultLabel(requestedRuleTasks, checkResultLabel, isCompliant);
+                return isCompliant;
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Policy Check", "Conditional compliance evaluation failed.", exc);
+                return false;
+            }
+        }
+
+        private async Task AttachPolicyCheckResultLabel(IEnumerable<WfReqTask> requestTasks, string checkResultLabel, bool isCompliant)
+        {
+            if (string.IsNullOrWhiteSpace(checkResultLabel))
+            {
+                return;
+            }
+
+            foreach (WfReqTask requestTask in requestTasks)
+            {
+                await wfHandler.SetAddInfoInReqTask(requestTask, checkResultLabel.Trim(), isCompliant.ToString().ToLowerInvariant());
+            }
+        }
+
+        private List<WfReqTask> GetRequestedRuleTasksForCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            WfTicket? ticket = GetCallingTicket(statefulObject, scope);
+            if (ticket == null)
+            {
+                return [];
+            }
+
+            return ticket.Tasks
+                .Where(task => task.ManagementId != null)
+                .Where(task => task.GetNwObjectElements(ElemFieldType.source).Count > 0)
+                .Where(task => task.GetNwObjectElements(ElemFieldType.destination).Count > 0)
+                .Where(task => task.GetServiceElements().Count > 0)
+                .ToList();
+        }
+
+        private WfTicket? GetCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            if (scope == WfObjectScopes.Ticket && statefulObject is WfTicket ticket)
+            {
+                return ticket;
+            }
+
+            if (wfHandler.ActTicket.Tasks.Count > 0)
+            {
+                return wfHandler.ActTicket;
+            }
+
+            return scope switch
+            {
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => new WfTicket { Tasks = [reqTask] },
+                WfObjectScopes.ImplementationTask when wfHandler.ActReqTask.Id > 0 => new WfTicket { Tasks = [wfHandler.ActReqTask] },
+                WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => new WfTicket { Tasks = [wfHandler.ActReqTask] },
+                _ => null
+            };
         }
 
         private List<WfStateAction> GetRelevantActions(WfStatefulObject statefulObject, WfObjectScopes scope, bool toState = true)

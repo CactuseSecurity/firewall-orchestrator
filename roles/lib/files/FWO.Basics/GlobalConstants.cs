@@ -198,4 +198,13 @@ namespace FWO.Basics
         public const Char DEACTIVATE = 'X';
         public const Char REACTIVATE = 'R';
     }
+
+    public struct RuleActions
+    {
+        public const string Accept = "accept";
+        public const string Deny = "deny";
+        public const string Any = "any";
+        public const string Reject = "reject";
+        public const string Drop = "drop";
+    }
 }

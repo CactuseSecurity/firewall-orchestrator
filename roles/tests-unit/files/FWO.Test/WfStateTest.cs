@@ -66,5 +66,32 @@ namespace FWO.Test
             Assert.That(WfStateAction.IsReadonlyType(StateActionTypes.SendEmail.ToString()), Is.False);
             Assert.That(WfStateAction.IsReadonlyType("NotAType"), Is.False);
         }
+
+        [Test]
+        public void TryParseAutoPromoteParams_ParsesLegacyStateId()
+        {
+            bool parsed = WfStateAction.TryParseAutoPromoteParams("7", out int? toStateId, out ConditionalAutoPromoteParams? conditionalParams);
+
+            Assert.That(parsed, Is.True);
+            Assert.That(toStateId, Is.EqualTo(7));
+            Assert.That(conditionalParams, Is.Null);
+        }
+
+        [Test]
+        public void TryParseAutoPromoteParams_ParsesConditionalPayload()
+        {
+            string payload = "{\"to_be_called\":\"PolicyCheck\",\"policy_ids\":[1,2],\"check_result_label\":\"policy_check\",\"if_compliant_state\":3,\"if_not_compliant_state\":4}";
+
+            bool parsed = WfStateAction.TryParseAutoPromoteParams(payload, out int? toStateId, out ConditionalAutoPromoteParams? conditionalParams);
+
+            Assert.That(parsed, Is.True);
+            Assert.That(toStateId, Is.Null);
+            Assert.That(conditionalParams, Is.Not.Null);
+            Assert.That(conditionalParams?.ToBeCalled, Is.EqualTo(ToBeCalled.PolicyCheck));
+            Assert.That(conditionalParams?.PolicyIds, Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(conditionalParams?.CheckResultLabel, Is.EqualTo("policy_check"));
+            Assert.That(conditionalParams?.IfCompliantState, Is.EqualTo(3));
+            Assert.That(conditionalParams?.IfNotCompliantState, Is.EqualTo(4));
+        }
     }
 }

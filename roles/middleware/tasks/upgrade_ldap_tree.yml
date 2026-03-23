@@ -17,6 +17,14 @@
   with_fileglob:
     - "../templates/upgrade/*.ldif.j2"
 
+- name: create middleware ldif directory
+  file:
+    path: "{{ middleware_ldif_dir }}"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: true
+
 - name: copy the upgrade ldif templates to target
   template:
     src: "../templates/upgrade/{{ item }}.ldif.j2"

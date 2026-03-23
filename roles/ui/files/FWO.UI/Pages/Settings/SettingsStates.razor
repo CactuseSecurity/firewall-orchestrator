@@ -271,6 +271,7 @@ else
             if(AddStateMode)
             {
                 states.Add(actState);
+                states = states.OrderBy(x => x.Id).ToList();
                 foreach(var action in actState.Actions)
                 {
                     await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id });

@@ -37,6 +37,7 @@ namespace FWO.Services.Workflow
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
 
+        public HashSet<int> AutomaticOnlyStates { get; set; } = [];
         public Dictionary<WorkflowPhases, bool> PhaseActive = [];
         public bool IsLastActivePhase = true;
         public int MinImplTasksNeeded;
@@ -46,12 +47,14 @@ namespace FWO.Services.Workflow
         {
             GlobalStateMatrix glbStateMatrix = new();
             await glbStateMatrix.Init(apiConnection, taskType);
+            List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             Matrix = glbStateMatrix.GlobalMatrix[phase].Matrix;
             DerivedStates = glbStateMatrix.GlobalMatrix[phase].DerivedStates;
             LowestInputState = glbStateMatrix.GlobalMatrix[phase].LowestInputState;
             LowestStartedState = glbStateMatrix.GlobalMatrix[phase].LowestStartedState;
             LowestEndState = glbStateMatrix.GlobalMatrix[phase].LowestEndState;
             Active = glbStateMatrix.GlobalMatrix[phase].Active;
+            AutomaticOnlyStates = states.Where(state => state.AutomaticOnly).Select(state => state.Id).ToHashSet();
             foreach (var phas in glbStateMatrix.GlobalMatrix)
             {
                 PhaseActive.Add(phas.Key, glbStateMatrix.GlobalMatrix[phas.Key].Active);
@@ -77,9 +80,19 @@ namespace FWO.Services.Workflow
             return false;
         }
 
-        public List<int> getAllowedTransitions(int stateIn)
+        public List<int> getAllowedTransitions(int stateIn, bool allowAutomaticOnlyStates = false)
         {
-            return Matrix.TryGetValue(stateIn, out List<int>? value) ? value : [];
+            if (!Matrix.TryGetValue(stateIn, out List<int>? value))
+            {
+                return [];
+            }
+
+            if (allowAutomaticOnlyStates)
+            {
+                return value;
+            }
+
+            return value.Where(stateId => !AutomaticOnlyStates.Contains(stateId)).ToList();
         }
 
         public int getDerivedStateFromSubStates(List<int> statesIn)

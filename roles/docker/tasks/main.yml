@@ -44,6 +44,7 @@
         filename: docker
         repo: "deb [arch=amd64] {{ docker_repo_base_url }} {{ os_codename }} stable"
         state: present
+        update_cache: false
 
     - name: apt update
       apt: update_cache=true

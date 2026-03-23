@@ -256,7 +256,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 })
                 .ToList(),
             ServiceShort = DisplayServicesPlain(item, userConfig),
-            ChangeID = item.CustomFields,
+            ChangeID = CustomFieldResolver.ExtractCustomFieldValue<string>(item, userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "") ?? notFound,
             Name = item.Name ?? notFound,
             CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
             LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,

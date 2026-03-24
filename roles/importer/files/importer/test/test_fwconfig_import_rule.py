@@ -42,3 +42,35 @@ class TestFwConfigImportRule:
         assert rule_changes[0]["change_action"] == "C"
         assert rule_changes[0]["new_rule_id"] == new_rule_id
         assert rule_changes[0]["old_rule_id"] == old_rule_id
+
+    def test_write_changelog_rules_uses_current_mgm_id_for_sub_management(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        # Arrange
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+
+        fwconfig_import_rule.import_details.state.mgm_details.mgm_id = 3
+        fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id = 7
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+
+        added_rule = mocker.Mock(rule_uid="added-rule-uid")
+
+        # Act
+        fwconfig_import_rule.write_changelog_rules(
+            added_rules=[added_rule],
+            removed_rules=[],
+            changed_rules=[],
+        )
+
+        # Assert
+        fwconfig_import_rule.import_details.api_call.call.assert_called_once()
+        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        rule_changes = query_variables["rule_changes"]
+
+        assert len(rule_changes) == 1
+        assert rule_changes[0]["change_action"] == "I"
+        assert rule_changes[0]["mgm_id"] == fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id
+        assert rule_changes[0]["mgm_id"] != fwconfig_import_rule.import_details.state.mgm_details.mgm_id

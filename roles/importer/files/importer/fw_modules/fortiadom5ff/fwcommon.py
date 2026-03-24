@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import datetime, timezone
 from typing import Any, cast
 
 import fwo_const
@@ -545,7 +546,7 @@ def normalize_time_objects(native_config: dict[str, Any], normalized_config_adom
 
     # Get time objects from native
     time_objects_from_native = [
-        TimeObject.model_validate(to_time_object_dict(item))
+        to_time_object(item)
         for native_time_object in native_config.get("time_objects", [])
         for item in native_time_object.get("data", [])
     ]
@@ -569,12 +570,42 @@ def normalize_time_objects(native_config: dict[str, Any], normalized_config_adom
     normalized_config_adom.update({"time_objects": time_object_by_uid})
 
 
-def to_time_object_dict(d: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "time_obj_uid": d.get(
-            "name"
-        ),  # uid for forti is tricky, as it is not explicitly given for time objects, but we need a unique identifier for them, so using the name as uid for now, as it is unique within the manager and there is no better alternative
-        "time_obj_name": d.get("name"),
-        "start_time": d.get("start_time"),
-        "end_time": d.get("end_time"),
-    }
+def to_time_object(d: dict[str, Any]) -> TimeObject:
+    def parse_schedule_timestamp(value: list[str] | str | None, field_name: str) -> str | None:
+        # format is like: "start": ["12:00", "2026/02/17"]
+        # or: "start": "00:00 2020/01/01"
+        # or: "start": "12:00" -> currently not supported
+        if value is None:
+            return None
+        if isinstance(value, str):
+            if value == "00:00":
+                return None
+            value = value.split()
+        if len(value) != 2:  # noqa: PLR2004
+            FWOLogger.warning(
+                f"Found time object with currently unsupported date/time format for {field_name} in time object {d.get('name', '')}: {value}"
+            )
+            return None
+        time_part, date_part = value
+        # format needs to be 1970-01-01T00:00:00
+        try:
+            dt = datetime.strptime(date_part + " " + time_part, "%Y/%m/%d %H:%M").replace(tzinfo=timezone.utc)
+            return dt.strftime("%Y-%m-%dT%H:%M:%S")
+        except ValueError as e:
+            FWOLogger.warning(f"Error parsing date/time for {field_name} in time object {d.get('name', '')}: {e}")
+            return None
+
+    name = d.get("name")
+
+    if not name:
+        raise ImportInterruptionError("Time object missing name field, cannot normalize.")
+
+    start_time = parse_schedule_timestamp(d.get("start"), "start")
+    end_time = parse_schedule_timestamp(d.get("end"), "end")
+
+    return TimeObject(
+        time_obj_uid=name,
+        time_obj_name=name,
+        start_time=start_time,
+        end_time=end_time,
+    )

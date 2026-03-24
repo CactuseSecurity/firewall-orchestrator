@@ -72,6 +72,18 @@ query RuleDetailById(
                 svc_port
             }
         }
+        rule_times(
+            where: {
+                removed: { _is_null: true }
+                time_object: { removed: { _is_null: true } }
+            }
+        ) {
+            time_obj_id
+            time_object {
+                time_obj_id
+                time_obj_name
+            }
+        }
         rule_custom_fields
         rule_name
         rule_last_seen

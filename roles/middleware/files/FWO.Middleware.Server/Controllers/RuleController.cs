@@ -261,7 +261,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
             LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
             Action = item.Action,
-            AdoIT = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound
+            AdoIT = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound,
+            Comment = item.Comment ?? notFound
         }).ToList();
     }
 
@@ -516,6 +517,7 @@ public class RuleDetail
     public string ChangeID { get; set; } = "";
     public string AdoIT { get; set; } = "";
     public string Name { get; set; } = "";
+    public string Comment { get; set; } = "";
     public string CreationDate { get; set; } = "";
     public string LastHitDate { get; set; } = "";
     public string Action { get; set; } = "";

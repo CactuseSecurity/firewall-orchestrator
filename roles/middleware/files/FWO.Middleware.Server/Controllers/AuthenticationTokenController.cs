@@ -41,7 +41,7 @@ namespace FWO.Middleware.Server.Controllers
         /// Generates a new access and refresh token pair for a user based on the provided authentication parameters.
         /// </summary>
         /// <remarks>This endpoint is typically used during user login to obtain tokens for subsequent
-        /// authenticated requests. The access token is stored in the database as a hash for security purposes. Ensure
+        /// authenticated requests. The refresh token is stored in the database as a hash for security purposes. Ensure
         /// that the credentials provided are valid to receive a token pair.</remarks>
         /// <param name="parameters">The authentication parameters containing the user's credentials. Must include a valid username and password.
         /// Cannot be null.</param>
@@ -65,10 +65,10 @@ namespace FWO.Middleware.Server.Controllers
 
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
 
-                await authManager.AuthorizeUserAsync(user, validatePassword: true);
+                UiUser? authenticatedUser = await authManager.AuthenticateAndBuildUserAsync(user, validatePassword: true);
 
-                // Creates access and refresh token and stores the access token hash in DB
-                TokenPair tokenPair = await authManager.CreateTokenPair(user);
+                // Creates access and refresh token and stores the refresh token hash in DB
+                TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedUser);
 
                 return Ok(tokenPair);
             }
@@ -98,18 +98,20 @@ namespace FWO.Middleware.Server.Controllers
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
                 UiUser adminUser = new() { Name = parameters.AdminUsername, Password = parameters.AdminPassword };
 
-                await authManager.AuthorizeUserAsync(adminUser, validatePassword: true);
+                UiUser authenticatedAdminUser = await authManager.AuthenticateAndBuildUserAsync(adminUser, validatePassword: true)
+                    ?? throw new AuthenticationException("Provided admin credentials are invalid.");
 
-                if (!adminUser.Roles.Contains(Roles.Admin))
+                if (!authenticatedAdminUser.Roles.Contains(Roles.Admin))
                 {
                     throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
                 }
 
                 UiUser targetUser = new() { Name = parameters.TargetUserName, Dn = parameters.TargetUserDn };
 
-                await authManager.AuthorizeUserAsync(targetUser, validatePassword: false, parameters.Lifetime);
+                UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
+                    ?? throw new AuthenticationException("Provided target user credentials are invalid.");
 
-                TokenPair tokenPair = await authManager.CreateTokenPair(targetUser, parameters.Lifetime);
+                TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedTargetUser, parameters.Lifetime);
 
                 return Ok(tokenPair);
             }
@@ -346,25 +348,25 @@ namespace FWO.Middleware.Server.Controllers
         }
 
         /// <summary>
-        /// Validates user credentials and retrieves user information. Returns a jwt containing it.
+        /// Validates user credentials and retrieves a fully populated UI user context.
         /// </summary>
-        /// <param name="user">User to validate. Must contain username / dn and password if <paramref name="validatePassword"/> == true.</param>
-        /// <param name="validatePassword">Check password if true.</param>
-        /// <param name="lifetime">Set the lifetime of the jwt (optional)</param>
-        /// <returns>Jwt, User infos (dn, email, groups, roles, tenant), if credentials are valid.</returns>
-        public async Task<string> AuthorizeUserAsync(UiUser? user, bool validatePassword, TimeSpan? lifetime = null)
+        /// <param name="user">User to validate. Must contain username or dn and password if <paramref name="validatePassword"/> is true. If null, no authentication is performed and null is returned.</param>
+        /// <param name="validatePassword">True to validate the user's password during authentication.</param>
+        /// <returns>An authenticated user including dn, groups, roles, tenant, db id, and ownerships, or null for anonymous access.</returns>
+        public async Task<UiUser?> AuthenticateAndBuildUserAsync(UiUser? user, bool validatePassword)
         {
             // Case: anonymous user
             if (user == null)
-                return await jwtWriter.CreateJWT();
+            {
+                return null;
+            }
 
             // Retrieve ldap entry for user (throws exception if credentials are invalid)
             (LdapEntry ldapUser, Ldap ldap) = await AuthenticateInAnyLdap(user, validatePassword);
 
             // Get dn of user
             user.Dn = ldapUser.Dn;
-            Log.WriteInfo(UserAuthentication,
-                $"User {user.Name} authenticated with dn={user.Dn}, selected_ldap=({AuthLoggingHelper.FormatSelectedLdap(ldap)})");
+            Log.WriteInfo(UserAuthentication, $"User {user.Name} authenticated with dn={user.Dn}, selected_ldap=({AuthLoggingHelper.FormatSelectedLdap(ldap)})");
 
             // Get email of user
             user.Email = Ldap.GetEmail(ldapUser);
@@ -373,8 +375,7 @@ namespace FWO.Middleware.Server.Controllers
 
             // Get groups of user
             user.Groups = await GetGroups(ldapUser, ldap);
-            Log.WriteInfo(UserAuthentication,
-                $"Resolved groups for user dn={user.Dn}: {AuthLoggingHelper.FormatResolvedGroups(user.Groups)}");
+            Log.WriteInfo(UserAuthentication, $"Resolved groups for user dn={user.Dn}: {AuthLoggingHelper.FormatResolvedGroups(user.Groups)}");
 
             // Get roles of user
             user.Roles = await GetRoles(user);
@@ -386,8 +387,20 @@ namespace FWO.Middleware.Server.Controllers
             // Remember the hosting ldap
             user.LdapConnection.Id = ldap.Id;
 
-            // Create JWT for validated user with roles and tenant
-            return await jwtWriter.CreateJWT(user, lifetime);
+            return await UiUserHandler.HandleUiUserAtLogin(apiConnection, user);
+        }
+
+        /// <summary>
+        /// Validates the user, builds the login context, and returns a signed JWT.
+        /// </summary>
+        /// <param name="user">User to validate. Must contain username or dn and password if <paramref name="validatePassword"/> is true. If null, an anonymous JWT is returned.</param>
+        /// <param name="validatePassword">True to validate the user's password during authentication.</param>
+        /// <param name="lifetime">Optional JWT lifetime override.</param>
+        /// <returns>A signed JWT for the authenticated user or an anonymous JWT if <paramref name="user"/> is null.</returns>
+        public async Task<string> AuthorizeUserAsync(UiUser? user, bool validatePassword, TimeSpan? lifetime = null)
+        {
+            UiUser? authenticatedUser = await AuthenticateAndBuildUserAsync(user, validatePassword);
+            return await jwtWriter.CreateJWT(authenticatedUser, lifetime);
         }
 
         public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
@@ -718,11 +731,11 @@ namespace FWO.Middleware.Server.Controllers
         }
 
         /// <summary>
-        /// Create access and refresh token pair for given user
+        /// Creates an access-token and refresh-token pair for the given user.
         /// </summary>
-        /// <param name="user"></param>
-        /// <param name="accessTokenLifetime"></param>
-        /// <returns></returns>
+        /// <param name="user">The authenticated user for whom the token pair is created. If null, an anonymous access token without a refresh token is created.</param>
+        /// <param name="accessTokenLifetime">Optional access-token lifetime override.</param>
+        /// <returns>A token pair containing the signed access token and, for authenticated users, a persisted refresh token with its expiration metadata.</returns>
         public async Task<TokenPair> CreateTokenPair(UiUser? user = null, TimeSpan? accessTokenLifetime = null)
         {
             TimeSpan accessLifetime = accessTokenLifetime ?? TimeSpan.FromHours(await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours)));

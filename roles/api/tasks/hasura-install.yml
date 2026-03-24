@@ -281,7 +281,19 @@
 
 - name: install generated Hasura systemd service
   copy:
-    content: "{{ (api_hasura_systemd_unit.systemd_units | dict2items | first).value }}"
+    content: >-
+      {{
+        (
+          api_hasura_systemd_unit.systemd_units
+          | dict2items
+          | first
+        ).value
+        | regex_replace(
+            '\\[Service\\]\\n',
+            '[Service]\nStandardOutput=journal\nStandardError=journal\nSyslogIdentifier=' ~ product_name ~ '-api\n',
+            1
+          )
+      }}
     dest: "/lib/systemd/system/{{ api_service_name }}.service"
     backup: true
     mode: "0644"
@@ -296,6 +308,8 @@
     state: absent
   become: true
   loop: "{{ api_legacy_service_names | default([]) }}"
+  when:
+    - item != api_service_name
 
 - name: clear hasura service failed state
   command: "systemctl reset-failed {{ api_service_name }}"

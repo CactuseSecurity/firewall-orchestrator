@@ -120,19 +120,19 @@
         file:
             path: /etc/systemd/system/slapd.service.d/override.conf
             state: absent
-        when: ansible_os_family == "Debian"
+        when: ansible_facts['distribution'] == "Debian"
 
       - name: Create dir to enable TLS for slapd service
         file:
             path: /etc/systemd/system/slapd.service.d
             recurse: true
-        when: ansible_os_family != "Debian"
+        when: ansible_facts['distribution'] != "Debian"
 
       - name: Enable TLS for slapd service
         template:
             src: override.conf.j2
             dest: /etc/systemd/system/slapd.service.d/override.conf
-        when: ansible_os_family != "Debian"
+        when: ansible_facts['distribution'] != "Debian"
 
       - name: Start the slapd service
         block:

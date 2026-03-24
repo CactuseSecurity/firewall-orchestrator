@@ -44,6 +44,35 @@
     - api_hasura_release_access is defined
     - api_hasura_release_access.status | default(0) != 200
 
+- name: collect installed Hasura service unit candidates
+  stat:
+    path: "/lib/systemd/system/{{ item }}.service"
+  loop: "{{ [api_service_name] + (api_legacy_service_names | default([])) }}"
+  register: api_service_unit_candidates
+  when: installation_mode == "upgrade"
+
+- name: pick installed Hasura service name for upgrade reuse
+  set_fact:
+    api_existing_service_name: >-
+      {{
+        (
+          api_service_unit_candidates.results
+          | selectattr('stat.exists')
+          | map(attribute='item')
+          | list
+          | first
+        ) | default('')
+      }}
+  when: installation_mode == "upgrade"
+
+- name: reuse installed Hasura service name during upgrade fallback
+  set_fact:
+    api_service_name: "{{ api_existing_service_name }}"
+  when:
+    - installation_mode == "upgrade"
+    - api_use_existing_hasura_on_upgrade | default(false) | bool
+    - api_existing_service_name | length > 0
+
 - name: stop MW for upgrading
   ansible.builtin.systemd:
     name: "{{ product_name }}-middleware"

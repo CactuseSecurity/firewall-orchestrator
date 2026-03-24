@@ -220,7 +220,6 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <param name="request">Refresh token request</param>
         /// <returns>New token pair if refresh token is valid</returns>
-        [Authorize]
         [HttpPost("Refresh")]
         public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
         {
@@ -281,7 +280,6 @@ namespace FWO.Middleware.Server.Controllers
         /// An <see cref="ActionResult"/> indicating success if the token is revoked;
         /// otherwise, a bad request or unauthorized result with an error message.
         /// </returns>
-        [Authorize]
         [HttpPost("Revoke")]
         public async Task<ActionResult> RevokeToken([FromBody] RefreshTokenRequest request)
         {

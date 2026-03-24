@@ -176,3 +176,57 @@ tim@acantha24:~/dev/tim/fwo$
 Notes:
 - 160000 - sub module
 - 120000 - symbolic link
+## Troubleshooting: pre-commit Python / Ruff / Pyright
+
+If `git commit` fails with messages like:
+
+```text
+Warning: No virtual environment found. Assuming python (with ruff and pyright) is available in base environment.
+Error: 'python -m ruff' is not available. Please install ruff in the active environment.
+```
+
+### 1. What was the error?
+
+The repository-managed pre-commit hook (`.githooks/pre-commit`) failed before creating the commit.
+The hook requires `python`, `ruff`, and `pyright` to be available in the active environment.
+
+### 2. Why does it occur?
+
+This typically happens when:
+
+- no local `.venv` is present or active, and no conda env is active,
+- `python` points to a different interpreter than expected,
+- required tooling is missing from the active interpreter,
+- project Python dependencies are not installed yet.
+
+In this repo, `core.hooksPath` is set to `.githooks`, so these checks run automatically on commit.
+
+### 3. Suggested changes
+
+Recommended setup (repo root):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -U pip
+python -m pip install -r roles\importer\files\importer\requirements.txt -r scripts\customizing\app_data_import\requirements-for-app-data-import.txt
+```
+
+Optional validation:
+
+```powershell
+python -m ruff --version
+python -m pyright --version
+```
+
+Then retry commit.
+
+Notes:
+
+- `ruff` is pinned in this repo (`ruff==0.15.0`).
+
+Temporary bypass only if absolutely necessary:
+
+```powershell
+git commit --no-verify
+```

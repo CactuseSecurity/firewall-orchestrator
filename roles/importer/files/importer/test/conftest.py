@@ -15,9 +15,11 @@ from model_controllers.management_controller import (
     ManagementController,
     ManagerInfo,
 )
+from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.fwconfigmanager import FwConfigManager
 from pytest_mock import MockerFixture
 from services.group_flats_mapper import GroupFlatsMapper
+from services.uid2id_mapper import Uid2IdMapper
 from states.global_state import GlobalState
 from states.import_state import ImportState
 from states.management_state import ManagementState
@@ -43,14 +45,25 @@ def api_connection(mocker: MockerFixture) -> FwoApi:
 def import_state(
     api_call: FwoApiCall,
     api_connection: FwoApi,
+    mocker: MockerFixture,
 ) -> ImportState:
     super_management_id = 1
+    mock_mgm = mocker.Mock(mgm_id=super_management_id)
+
+    mocker.patch("states.import_state.ManagementController.get_mgm_details", return_value={})
+    mocker.patch("states.import_state.ManagementController.from_json", return_value=mock_mgm)
+    mocker.patch.object(ImportState, "set_core_data", return_value=None)
+
+    api_call.get_last_complete_import = mocker.Mock(return_value=(0, ""))
+    api_call.get_config_value = mocker.Mock(return_value="30")
 
     import_state = ImportState(
         api_connection,
         api_call,
         mgm_id=super_management_id,
     )
+
+    import_state.super_uid2id_mapper = Uid2IdMapper(import_state)
 
     import_state.link_types = {
         "ordered": 2,
@@ -165,3 +178,15 @@ def fw_config_manager() -> FwConfigManager:
         sub_manager_ids=[],
         configs=[],
     )
+
+
+@pytest.fixture
+def uid2id_mapper(import_state: ImportState) -> Uid2IdMapper:
+    return (
+        import_state.super_uid2id_mapper if import_state.super_uid2id_mapper is not None else Uid2IdMapper(import_state)
+    )
+
+
+@pytest.fixture
+def rb_link_controller() -> RulebaseLinkController:
+    return RulebaseLinkController()

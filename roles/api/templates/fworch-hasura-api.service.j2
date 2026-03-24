@@ -1,0 +1,23 @@
+[Unit]
+Description={{ product_name }} API
+{% if 'databaseserver' in group_names -%}
+After=network.target remote-fs.target nss-lookup.target postgresql.service
+{% else -%}
+After=network.target remote-fs.target nss-lookup.target
+{%- endif %}
+
+[Service]
+Restart=on-failure
+SuccessExitStatus=0 137 143
+WorkingDirectory={{ fworch_home }}
+ExecStart=/bin/bash -c '\
+  exec /usr/bin/podman run --rm --replace --name {{ api_container_name }} --network host --pull never --user 1001:1001 --env-file {{ api_env_file }} {{ api_hasura_image }} \
+'
+ExecStop=-/usr/bin/podman stop -t 2 {{ api_container_name }}
+ExecStopPost=-/usr/bin/podman rm -f {{ api_container_name }}
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{ product_name }}-api
+
+[Install]
+WantedBy=default.target

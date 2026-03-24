@@ -103,7 +103,7 @@
         lineinfile:
             path: /etc/default/slapd
             regexp: "^SLAPD_SERVICES="
-            line: SLAPD_SERVICES="ldap://{{ openldap_server }}/ ldaps:///"
+            line: 'SLAPD_SERVICES="{{ openldap_server_services }}"'
 
       - name: Initialize ldap config
         command: slapadd -F {{ openldap_server_app_path }}/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif
@@ -116,22 +116,65 @@
             owner: openldap
 
       ### systemctl
+      - name: Remove Debian slapd override
+        file:
+            path: /etc/systemd/system/slapd.service.d/override.conf
+            state: absent
+        when: ansible_os_family == "Debian"
+
       - name: Create dir to enable TLS for slapd service
         file:
             path: /etc/systemd/system/slapd.service.d
             recurse: true
+        when: ansible_os_family != "Debian"
 
       - name: Enable TLS for slapd service
         template:
             src: override.conf.j2
             dest: /etc/systemd/system/slapd.service.d/override.conf
+        when: ansible_os_family != "Debian"
 
       - name: Start the slapd service
-        systemd:
-            name: slapd
-            state: restarted
-            enabled: true
-            daemon_reload: true
+        block:
+            - name: Restart and enable slapd
+              systemd:
+                  name: slapd
+                  state: restarted
+                  enabled: true
+                  daemon_reload: true
+        rescue:
+            - name: Read rendered slapd unit
+              command: systemctl cat slapd
+              register: slapd_unit
+              changed_when: false
+              failed_when: false
+
+            - name: Read slapd systemd status
+              command: systemctl status slapd --no-pager -l
+              register: slapd_status
+              changed_when: false
+              failed_when: false
+
+            - name: Read slapd journal
+              command: journalctl -xeu slapd.service --no-pager -n 100
+              register: slapd_journal
+              changed_when: false
+              failed_when: false
+
+            - name: Validate slapd config with slaptest
+              command: slaptest -F {{ openldap_server_app_path }}/slapd.d -u
+              register: slapd_slaptest
+              changed_when: false
+              failed_when: false
+
+            - name: Fail with slapd diagnostics
+              fail:
+                  msg:
+                      - "slapd failed to start"
+                      - "systemctl cat slapd: {{ slapd_unit.stdout | default('') }}"
+                      - "systemctl status slapd: {{ slapd_status.stdout | default('') }}"
+                      - "journalctl -xeu slapd.service: {{ slapd_journal.stdout | default('') }}"
+                      - "slaptest -F {{ openldap_server_app_path }}/slapd.d -u: {{ slapd_slaptest.stdout | default('') }} {{ slapd_slaptest.stderr | default('') }}"
 
   become: true
   when: installation_mode == "new"

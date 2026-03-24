@@ -1,13 +1,12 @@
-# installs docker and the hasura image in a container
+# installs Hasura CLI and runs Hasura in a Podman-managed container
 
-- name: Install packages for python pip3 n virtualenv
+- name: Install packages for Hasura CLI download
   package:
     name: "{{ item }}"
     state: present
   loop:
     - python3-pip
     - python3-virtualenv
-    - python3-docker
   become: true
 
 - name: read dbadmin pwd from secrets file
@@ -93,12 +92,10 @@
     path: "{{ api_hasura_cli_bin }}"
   register: api_cli_check
 
-# Only send Authorization when a token is provided.
 - name: build GitHub auth header
   set_fact:
     api_github_auth_header: "{{ {'Authorization': 'Bearer ' ~ api_github_token} if api_github_token is defined else {} }}"
 
-# only download new version of api cli, when not restoring from backup:
 - name: Get Hasura release info from GitHub (authenticated)
   uri:
     url: "https://api.github.com/repos/hasura/graphql-engine/releases/tags/{{ api_hasura_version }}"
@@ -195,13 +192,7 @@
       HASURA_GRAPHQL_V1_BOOLEAN_NULL_COLLAPSE: "true"
       HASURA_GRAPHQL_CORS_DOMAIN: "*"
       HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS: "{{ api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS }}"
-      HASURA_GRAPHQL_JWT_SECRET: '
-        {
-        "type": "{{ api_hasura_jwt_alg|quote }}",
-        "key": "{{ api_hasura_jwt_secret | regex_replace(''\n'', ''\\n'') }}",
-        "claims_namespace_path": "$"
-        }
-        '
+      HASURA_GRAPHQL_JWT_SECRET: "{{ {'type': api_hasura_jwt_alg, 'key': api_hasura_jwt_secret | regex_replace('\n', '\\n'), 'claims_namespace_path': '$'} | to_json }}"
       HTTP_PROXY: "{{ http_proxy }}"
       HTTPS_PROXY: "{{ https_proxy }}"
       http_proxy: "{{ http_proxy }}"
@@ -214,108 +205,43 @@
     var: hasura_env
   when: debug_level > '1'
 
-- name: get existing hasura container info
-  docker_container_info:
-    name: "{{ api_container_name }}"
-  register: existing_hasura_container_info
+- name: check whether the requested Hasura image is already available locally
+  command: "/usr/bin/podman image exists {{ api_hasura_image }}"
+  register: api_hasura_image_check
   become: true
-  become_user: "{{ fworch_user }}"
+  changed_when: false
+  failed_when: false
 
-- name: set hasura container reuse mode
+- name: set Hasura image reuse mode
   set_fact:
-    api_reuse_existing_hasura_container: >-
+    api_reuse_existing_hasura_image: >-
       {{
         installation_mode == "upgrade"
         and (api_use_existing_hasura_on_upgrade | default(false) | bool)
-        and (existing_hasura_container_info.exists | default(false) | bool)
+        and api_hasura_image_check.rc == 0
       }}
 
-- name: request Docker Hub token for hasura/graphql-engine
-  uri:
-    url: "https://auth.docker.io/token?service=registry.docker.io&scope=repository:hasura/graphql-engine:pull"
-    method: GET
-    return_content: true
-  register: dockerhub_token
+- name: pull Hasura image with Podman
+  command: "/usr/bin/podman pull {{ api_hasura_image }}"
+  register: api_podman_pull
   environment: "{{ proxy_env }}"
-  failed_when: dockerhub_token.status | default(-1) != 200
-  when: not api_reuse_existing_hasura_container | bool
-
-- name: check Docker Hub manifest access for hasura/graphql-engine:{{ api_hasura_version }}
-  uri:
-    url: "https://registry-1.docker.io/v2/hasura/graphql-engine/manifests/{{ api_hasura_version }}"
-    method: HEAD
-    headers:
-      Authorization: "Bearer {{ dockerhub_token.json.token }}"
-      Accept: "application/vnd.docker.distribution.manifest.v2+json"
-    status_code:
-      - 200
-  register: dockerhub_manifest_check
-  environment: "{{ proxy_env }}"
-  failed_when: false
-  when: not api_reuse_existing_hasura_container | bool
-
-- name: fail if Docker Hub manifest access is blocked
-  fail:
-    msg: >-
-      Cannot access Docker Hub manifest for hasura/graphql-engine:{{ api_hasura_version }}
-      (HTTP {{ dockerhub_manifest_check.status | default('unknown') }}). This typically indicates
-      blocked registry access or proxy restrictions. Ensure the host can reach registry-1.docker.io
-      or configure a registry mirror.
+  become: true
+  changed_when: api_podman_pull.rc == 0
   when:
-    - not api_reuse_existing_hasura_container | bool
-    - dockerhub_manifest_check.status | default(0) != 200
+    - not api_reuse_existing_hasura_image | bool
+    - api_hasura_image_check.rc != 0
 
-- name: start existing hasura container during upgrade
-  docker_container:
-    name: "{{ api_container_name }}"
-    state: started
-    container_default_behavior: no_defaults
-  register: docker_return
+- name: write Hasura env file for Podman
+  copy:
+    dest: "{{ api_env_file }}"
+    mode: "0640"
+    owner: "root"
+    group: "{{ fworch_group }}"
+    content: |
+      {% for item in hasura_env | dictsort %}
+      {{ item.0 }}={{ item.1 }}
+      {% endfor %}
   become: true
-  become_user: "{{ fworch_user }}"
-  environment: "{{ proxy_env }}"
-  when: api_reuse_existing_hasura_container | bool
-
-- name: start hasura container
-  docker_container:
-    name: "{{ api_container_name }}"
-    image: hasura/graphql-engine:{{ api_hasura_version }}
-    state: started
-    network_mode: host
-    networks_cli_compatible: true
-    log_driver: syslog
-    log_options:
-      syslog-address: "{{ syslog_proto }}://{{ syslog_host }}:{{ syslog_port }}"
-      syslog-facility: daemon
-      tag: "{{ api_container_name }}"
-    recreate: true
-    image_name_mismatch: recreate
-    env: "{{ hasura_env }}"
-    container_default_behavior: no_defaults
-    user: "1001:1001" # hasura user and group id
-    pull: false
-  register: docker_return
-  become: true
-  become_user: "{{ fworch_user }}"
-  environment: "{{ proxy_env }}"
-  when: not api_reuse_existing_hasura_container | bool
-
-- name: show docker result
-  debug:
-    var: docker_return
-  when: debug_level > '1'
-
-- name: Get info on container
-  docker_container_info:
-    name: "{{ api_container_name }}"
-  register: result
-  become: true
-  become_user: "{{ fworch_user }}"
-
-- name: Print the status of the container in case of problems only
-  fail:
-    msg: "The container status is: {{ result }}"
-  when: result.exists and result.container['State']['Status'] == 'exited'
 
 - name: copy hasura systemd service script
   template:
@@ -326,11 +252,23 @@
     owner: "root"
   become: true
 
-- name: make hasura docker container run at host startup
+- name: remove legacy Docker API service unit
+  file:
+    path: "/lib/systemd/system/{{ item }}.service"
+    state: absent
+  become: true
+  loop: "{{ api_legacy_service_names | default([]) }}"
+
+- name: clear hasura service failed state
+  command: "systemctl reset-failed {{ api_service_name }}"
+  become: true
+
+- name: ensure hasura service is running
   systemd:
     name: "{{ api_service_name }}"
-    daemon_reload: true
+    state: started
     enabled: true
+    daemon_reload: true
   become: true
 
 - name: wait for hasura port to become available
@@ -338,13 +276,8 @@
     port: "{{ api_port }}"
     host: "{{ api_local_listening_ip_address }}"
     connect_timeout: 1
-    delay: 10
-    timeout: 25
-
-- name: check for existing api dir from restore
-  stat:
-    path: "{{ api_home }}/{{ product_name }}"
-  register: api_metadata_check
+    delay: 3
+    timeout: 30
 
 - name: import API metadata via metadata API directly from local file
   uri:
@@ -358,20 +291,6 @@
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
   when: not api_rollback_is_running | bool
-  # do not install latest metadata in case of rollback
   environment:
     http_proxy: ""
     https_proxy: ""
-  # do not use http proxy for metadata import
-
-- name: clear hasura service failed state
-  command: "systemctl reset-failed {{ api_service_name }}"
-  become: true
-
-- name: ensure hasura systemd service is running
-  systemd:
-    name: "{{ api_service_name }}"
-    state: started
-    enabled: true
-    daemon_reload: true
-  become: true

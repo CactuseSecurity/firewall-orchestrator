@@ -31,6 +31,7 @@ namespace FWO.Middleware.Server
         private Dictionary<string, int> ownerResponsibleTypeIdByName = new(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, int> ownerLifeCycleStateIdsByName = new(StringComparer.OrdinalIgnoreCase);
         private Dictionary<int, bool> ownerLifeCycleStateActiveById = [];
+        private bool hasImmediateAppDecommNotificationForImport;
         private ModellingNamingConvention NamingConvention = new();
         private UserConfig userConfig = new();
         private const string LogMessageTitle = "Import App Data";
@@ -57,6 +58,7 @@ namespace FWO.Middleware.Server
             await InitLdap();
             await InitResponsibleTypes();
             await InitOwnerLifeCycleStates();
+            hasImmediateAppDecommNotificationForImport = await LoadHasImmediateAppDecommNotification();
             List<string> failedImports = [];
             var ownerChangeTracker = new OwnerChangeImportTracker(apiConnection);
 
@@ -264,6 +266,11 @@ namespace FWO.Middleware.Server
                 existingApp.Id,
                 newActiveState ? ChangelogActionType.REACTIVATE : ChangelogActionType.DEACTIVATE,
                 importSource);
+
+            if (!newActiveState && hasImmediateAppDecommNotificationForImport)
+            {
+                await CheckActiveRulesSync(existingApp);
+            }
         }
 
         private async Task AddOwnerChangeIfNeeded(
@@ -307,6 +314,38 @@ namespace FWO.Middleware.Server
 
             activeState = false;
             return false;
+        }
+
+        private OwnerLifeCycleState? GetOwnerLifeCycleState(int? ownerLifeCycleStateId)
+        {
+            if (ownerLifeCycleStateId.HasValue && ownerLifeCycleStateActiveById.TryGetValue(ownerLifeCycleStateId.Value, out bool activeState))
+            {
+                return new OwnerLifeCycleState
+                {
+                    Id = ownerLifeCycleStateId.Value,
+                    ActiveState = activeState
+                };
+            }
+
+            return null;
+        }
+
+        private DateTime? GetDecommDateAfterLifecycleChange(FwoOwner existingApp, int? ownerLifeCycleStateId)
+        {
+            return OwnerLifeCycleState.GetDecommDate(
+                existingApp.DecommDate,
+                GetOwnerLifeCycleState(existingApp.OwnerLifeCycleStateId),
+                GetOwnerLifeCycleState(ownerLifeCycleStateId),
+                DateTime.UtcNow);
+        }
+
+        private DateTime? GetDecommDateForNewOwner(int? ownerLifeCycleStateId)
+        {
+            return OwnerLifeCycleState.GetDecommDate(
+                null,
+                null,
+                GetOwnerLifeCycleState(ownerLifeCycleStateId),
+                DateTime.UtcNow);
         }
 
         private async Task<string?> NormalizeImportedUserReference(ModellingImportAppData incomingApp, string? importedIdentifier, string fieldName)
@@ -395,6 +434,27 @@ namespace FWO.Middleware.Server
             return null;
         }
 
+        /// <summary>
+        /// Checks whether the owner still has active rules after a lifecycle transition to an inactive state.
+        /// </summary>
+        /// <param name="owner">Owner to check.</param>
+        protected virtual async Task CheckActiveRulesSync(FwoOwner owner)
+        {
+            await new OwnerActiveRuleCheck(apiConnection, globalConfig).CheckActiveRulesSync(owner);
+        }
+
+        /// <summary>
+        /// Loads whether an immediate owner decommission notification exists.
+        /// This is intended to be called once per whole import run.
+        /// </summary>
+        protected virtual async Task<bool> LoadHasImmediateAppDecommNotification()
+        {
+            List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(
+                NotificationQueries.getNotifications,
+                new { client = NotificationClient.AppDecomm.ToString() });
+            return notifications.Any(notification => notification.Deadline == NotificationDeadline.None);
+        }
+
         private static bool LooksLikeDistinguishedName(string identifier)
         {
             return identifier.Contains('=') && identifier.Contains(',');
@@ -412,7 +472,8 @@ namespace FWO.Middleware.Server
                 ownerLifeCycleStateId,
                 importSource = incomingApp.ImportSource,
                 commSvcPossible = false,
-                recertActive = false
+                recertActive = false,
+                decommDate = GetDecommDateForNewOwner(ownerLifeCycleStateId)
             };
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
             if (returnIds != null)
@@ -438,6 +499,7 @@ namespace FWO.Middleware.Server
                 criticality = incomingApp.Criticality,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
                 ownerLifeCycleStateId,
+                decommDate = GetDecommDateAfterLifecycleChange(existingApp, ownerLifeCycleStateId),
                 commSvcPossible = existingApp.CommSvcPossible,
                 recertActive = incomingApp.RecertActive || existingApp.RecertActive
             };

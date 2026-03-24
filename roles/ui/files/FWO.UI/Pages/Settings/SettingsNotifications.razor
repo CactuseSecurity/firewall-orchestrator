@@ -49,6 +49,19 @@
                 </div>
             </div>
         </div>
+        <hr />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5725"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("ownerActiveRuleNotifications")):</label>
+            <div class="col-sm-8">
+                <EditNotifications Client="NotificationClient.AppDecomm" />
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5726"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("ownerActiveRuleEmailBody")):</label>
+            <div class="col-sm-8">
+                <textarea class="form-control form-control-sm w-100" rows="10" @bind="configData.OwnerActiveRuleEmailBody"></textarea>
+            </div>
+        </div>
     </form>
     <hr />
     <AuthorizeView Roles="@Roles.Admin">

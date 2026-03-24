@@ -1,0 +1,80 @@
+query getActiveRulesByOwner($ownerId: Int!) {
+  rule(
+    where: {
+      removed: {_is_null: true},
+      rule_owners: {
+        owner_id: {_eq: $ownerId},
+        removed: {_is_null: true}
+      }
+    }
+  ) {
+    rule_uid
+    rule_id
+    mgm_id
+    rule_froms(order_by:{ object: {obj_id: asc}}){
+      object{
+        obj_name
+        obj_ip
+        obj_ip_end
+        objgrp_flats(
+          where: {
+            active: { _eq: true }
+            removed: { _is_null: true }
+          }
+        ) {
+          id_flat: objgrp_flat_id
+          byFlatId: objectByObjgrpFlatMemberId {
+            obj_id
+            obj_name
+            obj_ip
+            obj_ip_end
+            obj_member_refs
+            type: stm_obj_typ {
+              name: obj_typ_name
+            }
+          }
+        }
+      }
+    }
+    rule_tos(order_by: { object: { obj_name: asc } }) {
+      object {
+        obj_name
+        obj_ip
+        obj_ip_end
+        objgrp_flats(
+          where: {
+            active: { _eq: true }
+            removed: { _is_null: true }
+          }
+        ) {
+          id_flat: objgrp_flat_id
+          byFlatId: objectByObjgrpFlatMemberId {
+            obj_id
+            obj_name
+            obj_ip
+            obj_ip_end
+            obj_member_refs
+            type: stm_obj_typ {
+              name: obj_typ_name
+            }
+          }
+        }
+      }
+    }
+    rule_services(order_by: { service: { svc_name: asc } }) {
+      service {
+        svc_name
+        ip_proto_id
+        protocol_name: stm_ip_proto {
+          name: ip_proto_name
+        }
+        svc_port
+      }
+    }
+    rule_custom_fields
+    rule_name
+    rule_metadatum {
+      rule_last_hit
+    }
+  }
+}

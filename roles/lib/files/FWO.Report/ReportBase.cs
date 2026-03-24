@@ -94,7 +94,7 @@ namespace FWO.Report
 </html>");
 
         public readonly DynGraphqlQuery Query;
-        protected UserConfig userConfig;
+        public UserConfig userConfig;
         public ReportType ReportType { get; set; }
         public ReportData ReportData { get; set; } = new();
         public int CustomWidth { get; set; } = 0;

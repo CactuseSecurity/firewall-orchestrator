@@ -9,6 +9,7 @@ mutation newOwner(
   $importSource: String
   $commSvcPossible: Boolean
   $recertActive: Boolean
+  $decommDate: timestamp
   ) {
   insert_owner(objects: {
     name: $name
@@ -21,6 +22,7 @@ mutation newOwner(
     import_source: $importSource
     common_service_possible: $commSvcPossible
     recert_active: $recertActive
+    decomm_date: $decommDate
   }) {
     returning {
       newId: id

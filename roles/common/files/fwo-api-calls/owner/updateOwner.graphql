@@ -9,6 +9,7 @@ mutation updateOwner(
   $criticality: String
   $commSvcPossible: Boolean
   $recertActive: Boolean
+  $decommDate: timestamp
   ) {
   update_owner_by_pk(
     pk_columns: { id: $id }
@@ -23,6 +24,7 @@ mutation updateOwner(
       common_service_possible: $commSvcPossible
       active: true
       recert_active: $recertActive
+      decomm_date: $decommDate
   }) {
     updatedId: id
   }

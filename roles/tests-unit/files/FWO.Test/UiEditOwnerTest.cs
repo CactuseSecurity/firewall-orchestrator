@@ -48,6 +48,16 @@ namespace FWO.Test
             field.SetValue(component, value);
         }
 
+        private static void SetPrivateProperty<T>(EditOwner component, string propertyName, T value)
+        {
+            PropertyInfo? property = typeof(EditOwner).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(EditOwner).FullName, propertyName);
+            }
+            property.SetValue(component, value);
+        }
+
         private static IRenderedComponent<EditOwner> RenderEditOwner(
             Bunit.TestContext context,
             FwoOwner owner,
@@ -274,6 +284,28 @@ namespace FWO.Test
             bool changed = (bool)GetPrivateMethod("HasRelevantOwnerMappingChanges").Invoke(editOwner.Instance, null)!;
 
             Assert.That(changed, Is.True);
+        }
+
+        [Test]
+        public async Task EditOwner_GetDecommDateAfterLifecycleChange_SetsDateForDeactivateAndClearsForReactivate()
+        {
+            await using Bunit.TestContext context = new();
+            FwoOwner owner = new() { Id = 7, Name = "Owner C", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, ownerLifeCycleStates:
+            [
+                new() { Id = 1, Name = "active", ActiveState = true },
+                new() { Id = 2, Name = "inactive", ActiveState = false }
+            ]);
+
+            owner.OwnerLifeCycleStateId = 2;
+            DateTime? decommDate = (DateTime?)GetPrivateMethod("GetDecommDateAfterLifecycleChange").Invoke(editOwner.Instance, null);
+            Assert.That(decommDate, Is.Not.Null);
+
+            SetPrivateProperty(editOwner.Instance, "OriginalOwnerLifeCycleStateId", 2);
+            owner.DecommDate = DateTime.UtcNow.AddDays(-1);
+            owner.OwnerLifeCycleStateId = 1;
+            DateTime? reactivatedDate = (DateTime?)GetPrivateMethod("GetDecommDateAfterLifecycleChange").Invoke(editOwner.Instance, null);
+            Assert.That(reactivatedDate, Is.Null);
         }
 
         [Test]

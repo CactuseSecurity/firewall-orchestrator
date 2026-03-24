@@ -42,7 +42,7 @@ namespace FWO.Test
                 string scriptContent = "#!/usr/bin/env python3\n"
                     + "import sys\n"
                     + $"with open(r\"{outputFile}\", \"w\", encoding=\"utf-8\") as file:\n"
-                    + "    file.write(\" \".join(sys.argv[1:]))\n";
+                    + "    file.write(\"\\n\".join(sys.argv[1:]))\n";
 
                 File.WriteAllText(scriptPath, scriptContent);
 #pragma warning disable CA1416 // Validate platform compatibility
@@ -53,10 +53,25 @@ namespace FWO.Test
                 GlobalConfig globalConfig = new SimulatedGlobalConfig();
                 TestDataImportBase importer = new(apiConnection, globalConfig);
 
-                bool executed = importer.ExecuteScript(scriptPath, "-f foldername");
+                bool executed = importer.ExecuteScript(
+                    scriptPath,
+                    "--criticalityRecertPeriodMapping \"1:360\" \"2:180\" \"3:90\" --compositeIdFields \"Applikation\" \"Teilapplikation\""
+                );
 
                 Assert.That(executed, Is.True);
-                Assert.That(File.ReadAllText(outputFile), Is.EqualTo("-f foldername"));
+                Assert.That(
+                    File.ReadAllLines(outputFile),
+                    Is.EqualTo(
+                    [
+                        "--criticalityRecertPeriodMapping",
+                        "1:360",
+                        "2:180",
+                        "3:90",
+                        "--compositeIdFields",
+                        "Applikation",
+                        "Teilapplikation"
+                    ])
+                );
             }
             finally
             {
@@ -89,6 +104,28 @@ namespace FWO.Test
             }
         }
 
+        [Test]
+        public void ParseCommandLineArgumentsPreservesQuotedValues()
+        {
+            List<string> arguments = TestDataImportBase.GetArguments(
+                "--filterColumn \"Aktive Firewallregel\" --includeValues \"Ja\" --compositeIdFields \"Applikation\" \"Teilapplikation\""
+            );
+
+            Assert.That(
+                arguments,
+                Is.EqualTo(
+                [
+                    "--filterColumn",
+                    "Aktive Firewallregel",
+                    "--includeValues",
+                    "Ja",
+                    "--compositeIdFields",
+                    "Applikation",
+                    "Teilapplikation"
+                ])
+            );
+        }
+
         private sealed class TestDataImportBase : DataImportBase
         {
             public TestDataImportBase(ApiConnection apiConnection, GlobalConfig globalConfig)
@@ -104,6 +141,11 @@ namespace FWO.Test
             public void ReadImportFile(string filepath)
             {
                 ReadFile(filepath);
+            }
+
+            public static List<string> GetArguments(string args)
+            {
+                return ParseCommandLineArguments(args);
             }
 
             public string ImportFile => importFile;

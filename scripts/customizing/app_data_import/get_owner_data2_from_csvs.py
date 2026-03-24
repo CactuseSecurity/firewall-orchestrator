@@ -31,17 +31,16 @@ from asyncio.log import logger
 from pathlib import Path
 from typing import Any
 
-import git  # apt install python3-git # or: pip install git
 import urllib3
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
+from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"
 repo_target_dir: str = base_dir_etc + "cmdb-repo"
 default_config_file_name: str = f"{base_dir_etc}secrets/customizingConfig.json"
 import_source_string: str = "tufinRlm"  # change this to "cmdb-csv-export"? or will this break anything?
-git_any: Any = git
 
 
 def build_dn(user_id: str, ldap_path: str) -> str:
@@ -93,7 +92,6 @@ def _add_app_from_line(
     app_data[app_id] = {
         "app_id_external": app_id,
         "name": app_name,
-        "main_user": main_user_dn,
         "BISO": biso_dn,
         "modellers": [],
         "import_source": import_source_string,
@@ -191,13 +189,8 @@ if __name__ == "__main__":
     #############################################
     # 1. get CSV files from github repo
     repo_url: str = "https://" + git_username + ":" + git_password + "@" + git_repo_url
-    if Path(repo_target_dir).exists():
-        # If the repository already exists, open it and perform a pull
-        repo: Any = git_any.Repo(repo_target_dir)
-        origin: Any = repo.remotes.origin
-        origin.pull()
-    else:
-        repo = git_any.Repo.clone_from(repo_url, repo_target_dir)
+    if not update_git_repo(repo_url, repo_target_dir, logger):
+        sys.exit(1)
 
     #############################################
     # 2. get app data from CSV files
@@ -217,7 +210,6 @@ if __name__ == "__main__":
                 {
                     "name": app_info["name"],
                     "app_id_external": app_info["app_id_external"],
-                    "main_user": app_info["main_user"],
                     "modellers": app_info["modellers"],
                     "criticality": app_info.get("criticality", None),
                     "import_source": app_info["import_source"],

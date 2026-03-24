@@ -237,7 +237,7 @@ namespace FWO.Middleware.Server.Controllers
 
                 if (tokenInfo == null)
                 {
-                    return BadRequest("Invalid or expired refresh token");
+                    return Unauthorized("Invalid or expired refresh token");
                 }
 
                 UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = tokenInfo.UserId });

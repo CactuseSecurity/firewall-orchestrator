@@ -107,7 +107,7 @@ namespace FWO.Test
             public override Task<RestResponse<bool>> CheckRequestedRulesAgainstPolicies(ComplianceRuleCheckParameters parameters)
             {
                 Parameters = parameters;
-                return Task.FromResult(new RestResponse<bool>() { Data = Result });
+                return Task.FromResult(new RestResponse<bool>(new RestRequest()) { Data = Result });
             }
         }
 
@@ -122,6 +122,32 @@ namespace FWO.Test
                     Scope = scope,
                     Phase = phase
                 }
+            };
+        }
+
+        private static WfTicket CreateTicket(params WfReqTask[] tasks)
+        {
+            return new WfTicket
+            {
+                StateId = 1,
+                Tasks = [.. tasks]
+            };
+        }
+
+        private static WfReqTask CreateEligibleRequestTask(long id, int managementId = 1, string title = "Allow request")
+        {
+            return new WfReqTask
+            {
+                Id = id,
+                ManagementId = managementId,
+                Title = title,
+                Elements =
+                [
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.0.1/32", Name = "src" },
+                    new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.1.1/32", Name = "dst" },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 443, ProtoId = 6, Name = "https" },
+                    new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = $"rule-{id}" }
+                ]
             };
         }
 
@@ -253,26 +279,7 @@ namespace FWO.Test
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, middlewareClient, WorkflowPhases.request);
             ActionHandler handler = new(apiConn, wfHandler);
             await handler.Init();
-            WfTicket ticket = new()
-            {
-                StateId = 1,
-                Tasks =
-                [
-                    new WfReqTask
-                    {
-                        Id = 11,
-                        ManagementId = 1,
-                        Title = "Allow request",
-                        Elements =
-                        [
-                            new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.0.1/32", Name = "src" },
-                            new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.1.1/32", Name = "dst" },
-                            new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 443, ProtoId = 6, Name = "https" },
-                            new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = "rule-1" }
-                        ]
-                    }
-                ]
-            };
+            WfTicket ticket = CreateTicket(CreateEligibleRequestTask(11));
             WfStateAction action = new()
             {
                 ActionType = StateActionTypes.AutoPromote.ToString(),
@@ -301,26 +308,7 @@ namespace FWO.Test
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, middlewareClient, WorkflowPhases.request);
             ActionHandler handler = new(apiConn, wfHandler);
             await handler.Init();
-            WfTicket ticket = new()
-            {
-                StateId = 1,
-                Tasks =
-                [
-                    new WfReqTask
-                    {
-                        Id = 12,
-                        ManagementId = 1,
-                        Title = "Allow request",
-                        Elements =
-                        [
-                            new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.0.1/32", Name = "src" },
-                            new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.1.1/32", Name = "dst" },
-                            new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 443, ProtoId = 6, Name = "https" },
-                            new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = "rule-1" }
-                        ]
-                    }
-                ]
-            };
+            WfTicket ticket = CreateTicket(CreateEligibleRequestTask(12));
             WfStateAction action = new()
             {
                 ActionType = StateActionTypes.AutoPromote.ToString(),
@@ -332,6 +320,87 @@ namespace FWO.Test
             Assert.That(ticket.StateId, Is.EqualTo(3));
             Assert.That(middlewareClient.Parameters?.RequestTaskIds, Is.EqualTo(new List<long> { 12 }));
             Assert.That(ticket.Tasks[0].GetAddInfoValue("policy_check"), Is.EqualTo("false"));
+        }
+
+        [Test]
+        public async Task PerformAction_AutoPromoteConditionalPolicyCheckWithLabel_PersistsTrueResult()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
+            SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
+            ActionHandlerTestMiddlewareClient middlewareClient = new() { Result = true };
+            WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, middlewareClient, WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler);
+            await handler.Init();
+            WfTicket ticket = CreateTicket(CreateEligibleRequestTask(13));
+            WfStateAction action = new()
+            {
+                ActionType = StateActionTypes.AutoPromote.ToString(),
+                ExternalParams = "{\"to_be_called\":\"PolicyCheck\",\"policy_ids\":[5],\"check_result_label\":\"policy_check\",\"if_compliant_state\":2,\"if_not_compliant_state\":3}"
+            };
+
+            await handler.PerformAction(action, ticket, WfObjectScopes.Ticket);
+
+            Assert.That(ticket.StateId, Is.EqualTo(2));
+            Assert.That(ticket.Tasks[0].GetAddInfoValue("policy_check"), Is.EqualTo("true"));
+        }
+
+        [Test]
+        public async Task PerformAction_AutoPromoteConditionalPolicyCheckWithoutLabel_DoesNotWriteAdditionalInfo()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
+            SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
+            ActionHandlerTestMiddlewareClient middlewareClient = new() { Result = true };
+            WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, middlewareClient, WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler);
+            await handler.Init();
+            WfTicket ticket = CreateTicket(CreateEligibleRequestTask(14));
+            WfStateAction action = new()
+            {
+                ActionType = StateActionTypes.AutoPromote.ToString(),
+                ExternalParams = "{\"to_be_called\":\"PolicyCheck\",\"policy_ids\":[5],\"check_result_label\":\"\",\"if_compliant_state\":2,\"if_not_compliant_state\":3}"
+            };
+
+            await handler.PerformAction(action, ticket, WfObjectScopes.Ticket);
+
+            Assert.That(ticket.Tasks[0].AdditionalInfo, Is.Null.Or.Empty);
+        }
+
+        [Test]
+        public async Task PerformAction_AutoPromoteConditionalPolicyCheck_OnlyEligibleTasksAreCheckedAndLabelled()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
+            SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
+            ActionHandlerTestMiddlewareClient middlewareClient = new() { Result = true };
+            WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, middlewareClient, WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler);
+            await handler.Init();
+            WfReqTask eligibleTask = CreateEligibleRequestTask(15);
+            WfReqTask ineligibleTask = new()
+            {
+                Id = 16,
+                ManagementId = 1,
+                Title = "Incomplete request",
+                Elements =
+                [
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.0.1/32", Name = "src" },
+                    new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = "rule-incomplete" }
+                ]
+            };
+            WfTicket ticket = CreateTicket(eligibleTask, ineligibleTask);
+            WfStateAction action = new()
+            {
+                ActionType = StateActionTypes.AutoPromote.ToString(),
+                ExternalParams = "{\"to_be_called\":\"PolicyCheck\",\"policy_ids\":[5],\"check_result_label\":\"policy_check\",\"if_compliant_state\":2,\"if_not_compliant_state\":3}"
+            };
+
+            await handler.PerformAction(action, ticket, WfObjectScopes.Ticket);
+
+            Assert.That(middlewareClient.Parameters?.RequestTaskIds, Is.EqualTo(new List<long> { 15 }));
+            Assert.That(eligibleTask.GetAddInfoValue("policy_check"), Is.EqualTo("true"));
+            Assert.That(ineligibleTask.GetAddInfoValue("policy_check"), Is.EqualTo(""));
         }
 
     }

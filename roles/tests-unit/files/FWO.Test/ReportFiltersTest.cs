@@ -16,7 +16,15 @@ namespace FWO.Test
             ReportFilters filters = new()
             {
                 ReportType = ReportType.TicketChangeReport,
-                WorkflowFilter = new() { ReferenceDate = WorkflowReferenceDate.TaskEnd, TaskTypes = [WfTaskType.access, WfTaskType.rule_modify], StateIds = [3, 7], Phase = "implementation", ShowFullTicket = false }
+                WorkflowFilter = new()
+                {
+                    ReferenceDate = WorkflowReferenceDate.TaskEnd,
+                    TaskTypes = [WfTaskType.access, WfTaskType.rule_modify],
+                    StateIds = [3, 7],
+                    Phase = "implementation",
+                    LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.value, Value = "true" },
+                    ShowFullTicket = false
+                }
             };
 
             var reportParams = filters.ToReportParams();
@@ -25,6 +33,9 @@ namespace FWO.Test
             Assert.That(reportParams.WorkflowFilter.TaskTypes, Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.rule_modify }));
             Assert.That(reportParams.WorkflowFilter.StateIds, Is.EqualTo(new List<int> { 3, 7 }));
             Assert.That(reportParams.WorkflowFilter.Phase, Is.EqualTo("implementation"));
+            Assert.That(reportParams.WorkflowFilter.LabelFilter.Name, Is.EqualTo("policy_check"));
+            Assert.That(reportParams.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(WorkflowLabelFilterMode.value));
+            Assert.That(reportParams.WorkflowFilter.LabelFilter.Value, Is.EqualTo("true"));
             Assert.That(reportParams.WorkflowFilter.ShowFullTicket, Is.False);
         }
 
@@ -37,7 +48,15 @@ namespace FWO.Test
                 ReportParams =
                 {
                     ReportType = (int)ReportType.TicketChangeReport,
-                    WorkflowFilter = new() { ReferenceDate = WorkflowReferenceDate.Approved, TaskTypes = [WfTaskType.access, WfTaskType.rule_delete], StateIds = [9], Phase = "review", ShowFullTicket = false }
+                    WorkflowFilter = new()
+                    {
+                        ReferenceDate = WorkflowReferenceDate.Approved,
+                        TaskTypes = [WfTaskType.access, WfTaskType.rule_delete],
+                        StateIds = [9],
+                        Phase = "review",
+                        LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.not_existing },
+                        ShowFullTicket = false
+                    }
                 }
             };
 
@@ -48,6 +67,9 @@ namespace FWO.Test
             Assert.That(filters.WorkflowFilter.TaskTypes, Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.rule_delete }));
             Assert.That(filters.WorkflowFilter.StateIds, Is.EqualTo(new List<int> { 9 }));
             Assert.That(filters.WorkflowFilter.Phase, Is.EqualTo("review"));
+            Assert.That(filters.WorkflowFilter.LabelFilter.Name, Is.EqualTo("policy_check"));
+            Assert.That(filters.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(WorkflowLabelFilterMode.not_existing));
+            Assert.That(filters.WorkflowFilter.LabelFilter.Value, Is.EqualTo(string.Empty));
             Assert.That(filters.WorkflowFilter.ShowFullTicket, Is.False);
         }
     }

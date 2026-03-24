@@ -680,6 +680,8 @@ INSERT INTO txt VALUES ('number', 				'German', 	'Nr.');
 INSERT INTO txt VALUES ('number', 				'English', 	'No.');
 INSERT INTO txt VALUES ('name', 				'German', 	'Name');
 INSERT INTO txt VALUES ('name', 				'English', 	'Name');
+INSERT INTO txt VALUES ('label',                'German',   'Label');
+INSERT INTO txt VALUES ('label',                'English',  'Label');
 INSERT INTO txt VALUES ('user_deleted',		    'German', 	'Nutzer gel&ouml;scht');
 INSERT INTO txt VALUES ('user_deleted',		    'English', 	'User deleted');
 INSERT INTO txt VALUES ('user_added',		    'German', 	'Nutzer hinzugef&uuml;gt');
@@ -1170,6 +1172,12 @@ INSERT INTO txt VALUES ('reference_date',       'German',   'Bezugsdatum');
 INSERT INTO txt VALUES ('reference_date',       'English',  'Reference date');
 INSERT INTO txt VALUES ('task_type', 			'German', 	'Tasktyp');
 INSERT INTO txt VALUES ('task_type', 			'English', 	'Task type');
+INSERT INTO txt VALUES ('not_existing',         'German',   'Nicht vorhanden');
+INSERT INTO txt VALUES ('not_existing',         'English',  'Not existing');
+INSERT INTO txt VALUES ('existing',             'German',   'Vorhanden');
+INSERT INTO txt VALUES ('existing',             'English',  'Existing');
+INSERT INTO txt VALUES ('value',                'German',   'Wert');
+INSERT INTO txt VALUES ('value',                'English',  'Value');
 INSERT INTO txt VALUES ('action_type', 		    'German', 	'Aktionstyp');
 INSERT INTO txt VALUES ('action_type', 		    'English', 	'Action type');
 INSERT INTO txt VALUES ('external_params', 		'German', 	'Externe Parameter');
@@ -4103,6 +4111,7 @@ INSERT INTO txt VALUES ('H1101', 'German',  '<li> Alle Filter sind schreibungsun
     <li> Klammern k&ouml;nnen genutzt werden, um die Filterausdr&uuml;cke zu strukturieren.</li>
     <li> Anf&uuml;hrungszeichen (") k&ouml;nnen optional f&uuml;r Wertdefinitionen genutzt werden. Wenn Leerzeichen im Wert vorkommen (z.B. f&uuml;r Datum/Zeit-Werte), m&uuml;ssen sie genutzt werden.</li>
     <li> Muss ein Gateway ausgew&auml;hlt werden, kann dies manuell oder &uuml;ber die linke Randleiste, von wo die Auswahl automatisch in den Filter integriert wird, erfolgen.</li>
+    <li> Workflow-Ticket-Reports unterst&uuml;tzen zus&auml;tzlich die Filterleisten-Schl&uuml;sselw&ouml;rter tasktype, state/states und phase; Workflow-Ticket&auml;nderungen zus&auml;tzlich reference_date.</li>
     <li> Zeitfilterung funktioniert zur Zeit nur f&uuml;r Zeitpunkte vor dem letzten Import, der einen Config Change gefunden hat. </li>
     <li> Regeln werden immer in voller Tiefe durchsucht, d.h. alle Gruppen in Quell-, Ziel- und Dienstfeldern werden aufgel&ouml;st.
         Zur Zeit gibt es noch keine M&ouml;glichkeit, nur auf der obersten Regelebene zu suchen.</li>
@@ -4115,6 +4124,7 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> Brackets can be used for structuring the filter statement.</li>
     <li> Quotation marks (") can be used optionally for the value definition. If there are white spaces in the value (e.g. for date/time values) the quotation marks have to be used.</li>
     <li> If a gateway has to be selected, this can be done manually or via the left sidebar, from where the selection is automatically integrated to the filter.</li>
+    <li> Workflow ticket reports additionally support the filter-line keywords tasktype, state/states and phase; workflow ticket change reports additionally support reference_date.</li>
     <li> Time filtering currently only works for points in time before the last import that found a config change. </li>
     <li> Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
         There is currently no option to only search at the rule top-level.</li>
@@ -4180,6 +4190,10 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, devi
     <li>lasthit (last-hit, last-used, last-usage, last-use): Filtern nach Regel-Nutzung - aktuell unterst&uuml;tzt f&uuml;r FortiManager und Check Point >=R80.</li>
     <li>not-used-for-days (unused, unused-days, not-used): nicht genutzt seit der vorgegebenen Anzahl von Tagen oder gar nicht</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
+    <li>tasktype (task-type, task_type): Workflow-Ticket-Reports nach Request-Tasktypen filtern</li>
+    <li>state/states (state_ids, state-ids): Workflow-Ticket-Reports nach Ticket-Status filtern</li>
+    <li>phase: Workflow-Ticket-Reports auf den Statusbereich einer aktiven Workflow-Phase einschr&auml;nken</li>
+    <li>reference_date (reference-date, referencedate): Workflow-Ticket&auml;nderungen auf ein bestimmtes Bezugsdatum oder Ereignis beziehen</li>
 ');
 INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, device, dev): Additionally to the specific device selection in the <a href="/help/reporting/leftside">left sidebar</a>
     the selected devices can be further restricted here by device names.</li>
@@ -4196,6 +4210,10 @@ INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, devi
     <li>lasthit (last-hit, last-used, last-usage, last-use): filter by rule usage - supported for FortiManager and Check Point >=R80 only.</li>
     <li>not-used-for-days (unused, unused-days, not-used): not used for the given number of days or never</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
+    <li>tasktype (task-type, task_type): filter workflow ticket reports by request task types</li>
+    <li>state/states (state_ids, state-ids): filter workflow ticket reports by ticket states</li>
+    <li>phase: restrict workflow ticket reports to the state range of an active workflow phase</li>
+    <li>reference_date (reference-date, referencedate): use a specific reference date or event for workflow ticket change reports</li>
 ');
 INSERT INTO txt VALUES ('H1131', 'German',  '<li>and (&)</li><li>or (|)</li><li>not (!)</li><li>eq (=, :)</li><li>neq</li><li>(</li><li>)</li>');
 INSERT INTO txt VALUES ('H1131', 'English', '<li>and (&)</li><li>or (|)</li><li>not (!)</li><li>eq (=, :)</li><li>neq</li><li>(</li><li>)</li>');
@@ -4227,8 +4245,8 @@ INSERT INTO txt VALUES ('H1145', 'English', '<li> filter for last hit of rules</
     <li>lasthit<2023-01-01 - only shows rules with hits before the year 2023 including those rules which have no hits at all</li>
     <li>lasthit>2022-12-31 - only shows rules which have hits in 2023 (or later). Rules without any hits are not shown.</li></ul>
 ');
-INSERT INTO txt VALUES ('H1146', 'German',  '<li> Workflow Ticket Report: Zus&auml;tzlich zu Tasktyp und Status kann eine Phase gew&auml;hlt werden. Ber&uuml;cksichtigt werden dann alle Tickets mit einem Ticket-Status ab dem "Niedrigsten Eingangsstatus" bis vor den "Niedrigsten Ausgangsstatus" der ausgew&auml;hlten Phase.</li>');
-INSERT INTO txt VALUES ('H1146', 'English', '<li> Workflow ticket report: In addition to task type and state a phase can be selected. The report then includes all tickets whose ticket state is greater than or equal to the selected phase''s "lowest input state" and smaller than its "lowest exit state".</li>');
+INSERT INTO txt VALUES ('H1146', 'German',  '<li> Workflow-Ticket-Reports unterst&uuml;tzen in der Filterleiste tasktype, state/states und phase, z.B. tasktype=access,new_interface and state=49 and phase=implementation.</li><li> Workflow-Ticket&auml;nderungen unterst&uuml;tzen zus&auml;tzlich reference_date, z.B. reference_date=ImplementationStart.</li>');
+INSERT INTO txt VALUES ('H1146', 'English', '<li> Workflow ticket reports support tasktype, state/states and phase in the filter line, for example tasktype=access,new_interface and state=49 and phase=implementation.</li><li> Workflow ticket change reports additionally support reference_date, for example reference_date=ImplementationStart.</li>');
 INSERT INTO txt VALUES ('H1201', 'German',  'Vorlagen k&ouml;nnen genutzt werden, um wiederkehrende Reports zu definieren. Diese werden f&uuml;r das Scheduling ben&ouml;tigt.
     Jeder Nutzer kann seine eigenen Vorlagen definieren und sie mit anderen teilen.<br>
     Beim Anlegen einer neuen Vorlage &uuml;ber die Schaltfl&auml;che "Als Vorlage speichern" wird ein Pop-Up-Fenster ge&ouml;ffnet, in dem Name und ein Kommentar vergeben werden k&ouml;nnen.
@@ -4390,16 +4408,20 @@ INSERT INTO txt VALUES ('H1515', 'German',  'Nur bei Workflow: Ticket-&Auml;nder
 INSERT INTO txt VALUES ('H1515', 'English', 'Only for Workflow: Ticket Changes: workflow-specific parameters to restrict the displayed tickets and their details.');
 INSERT INTO txt VALUES ('H1516', 'German',  'F&uuml;r Workflow: Ticket-&Auml;nderungen stehen folgende Parameter zur Verf&uuml;gung:');
 INSERT INTO txt VALUES ('H1516', 'English', 'For Workflow: Ticket Changes the following parameters are available:');
-INSERT INTO txt VALUES ('H1517', 'German',  'Referenzdatum: Legt fest, auf welches Datum oder Ereignis der gew&auml;hlte Zeitraum angewendet wird, z.B. Ticket-Erstellung, Ticket-Abschluss, Aufgabenstart, Aufgabenende, Freigaben oder beliebige Aktivit&auml;t.');
-INSERT INTO txt VALUES ('H1517', 'English', 'Reference date: Defines which date or event the selected time range is applied to, e.g. ticket creation, ticket closure, task start, task end, approvals or any activity.');
-INSERT INTO txt VALUES ('H1518', 'German',  'Tasktyp: Mehrfachauswahl der zu ber&uuml;cksichtigenden Request-Tasktypen. Die Option "alle" ist vorbelegt und w&auml;hlt alle verf&uuml;gbaren Typen aus.');
-INSERT INTO txt VALUES ('H1518', 'English', 'Task type: Multiselect of request task types to be considered. The option "all" is selected by default and represents all available types.');
-INSERT INTO txt VALUES ('H1519', 'German',  'Status: Mehrfachauswahl der Ticket-Statuswerte. Ohne explizite Auswahl werden Tickets aller Status ber&uuml;cksichtigt.');
-INSERT INTO txt VALUES ('H1519', 'English', 'State: Multiselect of ticket states. Without an explicit selection, tickets of all states are considered.');
+INSERT INTO txt VALUES ('H1517', 'German',  'Referenzdatum: Legt fest, auf welches Datum oder Ereignis der gew&auml;hlte Zeitraum angewendet wird, z.B. Ticket-Erstellung, Ticket-Abschluss, Aufgabenstart, Aufgabenende, Freigaben oder beliebige Aktivit&auml;t. Bei Workflow-Ticket&auml;nderungen kann derselbe Filter auch in der Filterleiste mit reference_date=... gesetzt werden.');
+INSERT INTO txt VALUES ('H1517', 'English', 'Reference date: Defines which date or event the selected time range is applied to, e.g. ticket creation, ticket closure, task start, task end, approvals or any activity. For workflow ticket change reports the same filter can also be set in the filter line with reference_date=....');
+INSERT INTO txt VALUES ('H1518', 'German',  'Tasktyp: Mehrfachauswahl der zu ber&uuml;cksichtigenden Request-Tasktypen. Die Option "alle" ist vorbelegt und w&auml;hlt alle verf&uuml;gbaren Typen aus. Derselbe Filter kann auch in der Filterleiste mit tasktype=... gesetzt werden.');
+INSERT INTO txt VALUES ('H1518', 'English', 'Task type: Multiselect of request task types to be considered. The option "all" is selected by default and represents all available types. The same filter can also be set in the filter line with tasktype=....');
+INSERT INTO txt VALUES ('H1519', 'German',  'Status: Mehrfachauswahl der Ticket-Statuswerte. Ohne explizite Auswahl werden Tickets aller Status ber&uuml;cksichtigt. Derselbe Filter kann auch in der Filterleiste mit state=... oder states=... gesetzt werden.');
+INSERT INTO txt VALUES ('H1519', 'English', 'State: Multiselect of ticket states. Without an explicit selection, tickets of all states are considered. The same filter can also be set in the filter line with state=... or states=....');
 INSERT INTO txt VALUES ('H1520', 'German',  'Vollst&auml;ndiges Ticket anzeigen: Ist diese Option aktiviert, werden zu jedem gefundenen Ticket alle enthaltenen Request Tasks, Implementierungs-Tasks und Freigaben angezeigt. Ist sie deaktiviert, werden in den Details nur Objekte angezeigt, deren Referenzdatum im gew&auml;hlten Zeitraum liegt.');
 INSERT INTO txt VALUES ('H1520', 'English', 'Show full ticket: If this option is enabled, every matching ticket shows all contained request tasks, implementation tasks and approvals. If it is disabled, the details only show objects whose reference date lies within the selected time range.');
-INSERT INTO txt VALUES ('H1521', 'German',  'Phase: Beschr&auml;nkt die Ticketauswahl auf den Statusbereich der gew&auml;hlten aktiven Workflow-Phase. In der Statusauswahl werden dann nur Status angeboten, die in dieser Phase verwendet werden.');
-INSERT INTO txt VALUES ('H1521', 'English', 'Phase: Restricts the ticket selection to the status range of the selected active workflow phase. The state dropdown then only offers states that are used in this phase.');
+INSERT INTO txt VALUES ('H1521', 'German',  'Phase: Beschr&auml;nkt die Ticketauswahl auf den Statusbereich der gew&auml;hlten aktiven Workflow-Phase. In der Statusauswahl werden dann nur Status angeboten, die in dieser Phase verwendet werden. Derselbe Filter kann auch in der Filterleiste mit phase=... gesetzt werden.');
+INSERT INTO txt VALUES ('H1521', 'English', 'Phase: Restricts the ticket selection to the status range of the selected active workflow phase. The state dropdown then only offers states that are used in this phase. The same filter can also be set in the filter line with phase=....');
+INSERT INTO txt VALUES ('H1522', 'German',  'Label: Filtert Workflow-Tickets &uuml;ber ein zus&auml;tzliches Info-Feld in den Request Tasks. Der Dialog erlaubt Name und erwarteten Zustand oder Wert des Labels zu definieren.');
+INSERT INTO txt VALUES ('H1522', 'English', 'Label: Filters workflow tickets by an additional info field on the request tasks. The dialog allows defining the label name and the expected label state or value.');
+INSERT INTO txt VALUES ('H1523', 'German',  'Name: Referenziert einen Schl&uuml;ssel im AdditionalInfo-Feld des Request Tasks, z.B. ein Label, das zuvor durch eine Action gesetzt wurde.');
+INSERT INTO txt VALUES ('H1523', 'English', 'Name: References a key in the request task additional info field, for example a label that was set earlier by an action.');
 
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.

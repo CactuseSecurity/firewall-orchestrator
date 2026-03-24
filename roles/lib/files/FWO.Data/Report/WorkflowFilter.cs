@@ -17,6 +17,35 @@ namespace FWO.Data.Report
         AnyActivity
     }
 
+    public enum WorkflowLabelFilterMode
+    {
+        not_existing,
+        existing,
+        value
+    }
+
+    public class WorkflowLabelFilter
+    {
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
+        [JsonProperty("mode"), JsonPropertyName("mode")]
+        public WorkflowLabelFilterMode Mode { get; set; } = WorkflowLabelFilterMode.existing;
+
+        [JsonProperty("value"), JsonPropertyName("value")]
+        public string Value { get; set; } = "";
+
+        public WorkflowLabelFilter()
+        { }
+
+        public WorkflowLabelFilter(WorkflowLabelFilter workflowLabelFilter)
+        {
+            Name = workflowLabelFilter.Name;
+            Mode = workflowLabelFilter.Mode;
+            Value = workflowLabelFilter.Value;
+        }
+    }
+
     public class WorkflowFilter
     {
         [JsonProperty("reference_date"), JsonPropertyName("reference_date")]
@@ -31,6 +60,9 @@ namespace FWO.Data.Report
         [JsonProperty("phase"), JsonPropertyName("phase")]
         public string Phase { get; set; } = "";
 
+        [JsonProperty("label_filter"), JsonPropertyName("label_filter")]
+        public WorkflowLabelFilter LabelFilter { get; set; } = new();
+
         [JsonProperty("show_full_ticket"), JsonPropertyName("show_full_ticket")]
         public bool ShowFullTicket { get; set; } = true;
 
@@ -43,6 +75,7 @@ namespace FWO.Data.Report
             TaskTypes = workflowFilter.TaskTypes.Count > 0 ? [.. workflowFilter.TaskTypes] : DefaultTaskTypes();
             StateIds = [.. workflowFilter.StateIds];
             Phase = workflowFilter.Phase;
+            LabelFilter = new(workflowFilter.LabelFilter);
             ShowFullTicket = workflowFilter.ShowFullTicket;
         }
 

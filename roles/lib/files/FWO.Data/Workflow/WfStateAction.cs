@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace FWO.Data.Workflow
 {
@@ -112,6 +113,8 @@ namespace FWO.Data.Workflow
 
     public class ConditionalAutoPromoteParams
     {
+        [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
+        [System.Text.Json.Serialization.JsonConverter(typeof(JsonStringEnumConverter))]
         [JsonProperty("to_be_called"), JsonPropertyName("to_be_called")]
         public ToBeCalled ToBeCalled { get; set; } = ToBeCalled.PolicyCheck;
 

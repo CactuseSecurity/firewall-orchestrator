@@ -52,22 +52,69 @@
             </ElementTemplate>
         </Dropdown>
     </div>
+    <div class="mt-3" data-toggle="tooltip" title="@(userConfig.PureLine("H1522"))">
+        <h6 class="text-left text-white">@(userConfig.GetText("label"))</h6>
+        <div class="input-group">
+            <input type="text" class="form-control form-control-sm" value="@GetLabelFilterSummary()" readonly />
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="OpenLabelFilterDialog">@(DisplayService.DisplayButton(userConfig, "change", Icons.Edit))</button>
+        </div>
+    </div>
     <div class="form-check mt-3" data-toggle="tooltip" title="@(userConfig.PureLine("H1520"))">
         <input class="form-check-input" id="showFullTicket" type="checkbox" @bind="WorkflowFilter.ShowFullTicket" />
         <label class="form-check-label text-white" for="showFullTicket">@(userConfig.GetText("show_full_ticket"))</label>
     </div>
 </div>
 
+<PopUp Size=PopupSize.Small Title="@(userConfig.GetText("label"))" Show="@showLabelFilterDialog" OnClose="CloseLabelFilterDialog">
+    <Body>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H1523"))">
+            <label for="workflowLabelName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+            <div class="col-sm-9">
+                <input id="workflowLabelName" type="text" class="form-control form-control-sm" @bind="labelFilterDraft.Name" />
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <label for="workflowLabelMode" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("select")):</label>
+            <div class="col-sm-9">
+                <Dropdown ElementType="WorkflowLabelFilterMode" @bind-SelectedElement="labelFilterDraft.Mode" ElementToString="LabelFilterModeToString" Elements="availableLabelFilterModes">
+                    <ElementTemplate Context="mode">
+                        @(LabelFilterModeToString(mode))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        @if (labelFilterDraft.Mode == WorkflowLabelFilterMode.value)
+        {
+            <div class="form-group row mt-2">
+                <label for="workflowLabelValue" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("value")):</label>
+                <div class="col-sm-9">
+                    <input id="workflowLabelValue" type="text" class="form-control form-control-sm" @bind="labelFilterDraft.Value" />
+                </div>
+            </div>
+        }
+        <div class="mt-3 d-flex justify-content-end">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-primary" @onclick="ApplyLabelFilterDialog">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteLabelFilterDialog">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseLabelFilterDialog">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+            </div>
+        </div>
+    </Body>
+</PopUp>
+
 @code
 {
     private readonly List<WfTaskType> availableRealTaskTypes = [.. Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().Where(taskType => taskType != WfTaskType.master)];
     private readonly List<WorkflowReferenceDate> availableReferenceDates = [.. Enum.GetValues(typeof(WorkflowReferenceDate)).Cast<WorkflowReferenceDate>()];
+    private readonly List<WorkflowLabelFilterMode> availableLabelFilterModes = [.. Enum.GetValues(typeof(WorkflowLabelFilterMode)).Cast<WorkflowLabelFilterMode>()];
     private GlobalStateMatrix masterStateMatrix = new();
     private List<string> availablePhases = [];
     private string? selectedPhase;
     private IEnumerable<WfTaskType?> selectedTaskTypesForUi = [];
     private List<WfState> allStates = [];
     private IEnumerable<int?> selectedStateIdsForUi = [];
+    private bool showLabelFilterDialog;
+    private WorkflowLabelFilter labelFilterDraft = new();
 
     private List<WfTaskType?> availableTaskTypes => [null, .. availableRealTaskTypes.Cast<WfTaskType?>()];
     private List<WfState> availableStates => GetAvailableStates();
@@ -135,6 +182,26 @@
             : allStates.FirstOrDefault(state => state.Id == stateId)?.Name ?? stateId.ToString() ?? "";
     }
 
+    private string LabelFilterModeToString(WorkflowLabelFilterMode mode)
+    {
+        return userConfig.GetText(mode.ToString());
+    }
+
+    private string GetLabelFilterSummary()
+    {
+        if (string.IsNullOrWhiteSpace(WorkflowFilter.LabelFilter.Name))
+        {
+            return userConfig.GetText("all");
+        }
+
+        if (WorkflowFilter.LabelFilter.Mode == WorkflowLabelFilterMode.value)
+        {
+            return $"{WorkflowFilter.LabelFilter.Name}: {WorkflowFilter.LabelFilter.Value}";
+        }
+
+        return $"{WorkflowFilter.LabelFilter.Name}: {LabelFilterModeToString(WorkflowFilter.LabelFilter.Mode)}";
+    }
+
     private IEnumerable<WfTaskType?> BuildSelectedTaskTypesForUi()
     {
         if (WorkflowFilter.TaskTypes.Count == availableRealTaskTypes.Count)
@@ -194,6 +261,31 @@
         }
 
         selectedStateIdsForUi = BuildSelectedStateIdsForUi();
+        await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+
+    private void OpenLabelFilterDialog()
+    {
+        labelFilterDraft = new(WorkflowFilter.LabelFilter);
+        showLabelFilterDialog = true;
+    }
+
+    private void CloseLabelFilterDialog()
+    {
+        showLabelFilterDialog = false;
+    }
+
+    private async Task ApplyLabelFilterDialog()
+    {
+        WorkflowFilter.LabelFilter = new(labelFilterDraft);
+        showLabelFilterDialog = false;
+        await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+
+    private async Task DeleteLabelFilterDialog()
+    {
+        WorkflowFilter.LabelFilter = new();
+        showLabelFilterDialog = false;
         await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
     }
 

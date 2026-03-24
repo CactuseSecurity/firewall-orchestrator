@@ -152,6 +152,7 @@ namespace FWO.Report
         {
             DynGraphqlQuery query = Compiler.Compile(reportFilter);
             ReportType repType = (ReportType)reportFilter.ReportParams.ReportType;
+            WorkflowFilter workflowFilter = BuildEffectiveWorkflowFilter(query, reportFilter.ReportParams.WorkflowFilter);
             return repType switch
             {
                 ReportType.Statistics => new ReportStatistics(query, userConfig, repType),
@@ -172,10 +173,37 @@ namespace FWO.Report
                 ReportType.OwnerRecertification => new ReportOwnerRecerts(query, userConfig, repType),
                 ReportType.RecertificationEvent => new RecertificateOwner(query, userConfig, repType),
                 ReportType.RecertEventReport => new ReportRecertEvent(query, userConfig, repType, ruleTreeBuilder),
-                ReportType.TicketReport => new ReportTickets(query, userConfig, repType, reportFilter.ReportParams.WorkflowFilter),
-                ReportType.TicketChangeReport => new ReportTicketChanges(query, userConfig, repType, reportFilter.ReportParams.WorkflowFilter),
+                ReportType.TicketReport => new ReportTickets(query, userConfig, repType, workflowFilter),
+                ReportType.TicketChangeReport => new ReportTicketChanges(query, userConfig, repType, workflowFilter),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
+        }
+
+        private static WorkflowFilter BuildEffectiveWorkflowFilter(DynGraphqlQuery query, WorkflowFilter workflowFilter)
+        {
+            WorkflowFilter effectiveWorkflowFilter = new(workflowFilter);
+
+            if (query.WorkflowTaskTypes.Count > 0)
+            {
+                effectiveWorkflowFilter.TaskTypes = [.. query.WorkflowTaskTypes];
+            }
+
+            if (query.WorkflowStateIds.Count > 0)
+            {
+                effectiveWorkflowFilter.StateIds = [.. query.WorkflowStateIds];
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.WorkflowPhase))
+            {
+                effectiveWorkflowFilter.Phase = query.WorkflowPhase;
+            }
+
+            if (query.WorkflowReferenceDateFilter.HasValue)
+            {
+                effectiveWorkflowFilter.ReferenceDate = query.WorkflowReferenceDateFilter.Value;
+            }
+
+            return effectiveWorkflowFilter;
         }
 
         public static string GetLinkAddress(OutputLocation location, string reportId, string type, int chapterNumber, long id, ReportType reportType)

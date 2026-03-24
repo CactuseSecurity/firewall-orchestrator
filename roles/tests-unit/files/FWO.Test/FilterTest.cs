@@ -453,5 +453,107 @@ namespace FWO.Test
             Assert.That(query.QueryVariables["task_types"], Is.EqualTo(new List<string> { WfTaskType.access.ToString(), WfTaskType.new_interface.ToString() }));
             Assert.That(query.QueryVariables["state_ids"], Is.EqualTo(new List<int> { 2, 5 }));
         }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_FilterLineAppliesWorkflowTaskTypeStateAndPhaseFilters()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "tasktype=access,new_interface and states=2,5 and phase=implementation"
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("query ticketReport", query.FullQuery);
+            StringAssert.Contains("reqtasks: { task_type: { _in: $task_types } }", query.FullQuery);
+            StringAssert.Contains("state_id: { _in: $state_ids }", query.FullQuery);
+            StringAssert.Contains("state_id: { _gte: $phase_lowest_input_state, _lt: $phase_lowest_end_state }", query.FullQuery);
+            Assert.That(query.QueryVariables["task_types"], Is.EqualTo(new List<string> { WfTaskType.access.ToString(), WfTaskType.new_interface.ToString() }));
+            Assert.That(query.QueryVariables["state_ids"], Is.EqualTo(new List<int> { 2, 5 }));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketChangeReport_FilterLineAppliesReferenceDateFilter()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "reference_date=ImplementationStart"
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("impltasks: { _and: [{ start: { _gte: $ticket_time_start } }", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_FiltersByWorkflowLabelValueTrue()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.value, Value = "true" };
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("reqtasks: { additional_info: { _ilike: $labelValuePattern0 } }", query.FullQuery);
+            Assert.That(query.QueryVariables["labelValuePattern0"], Is.EqualTo("%\"policy_check\":\"true\"%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_FiltersByWorkflowLabelNotExisting()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.not_existing };
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("_not: { reqtasks: { additional_info: { _ilike: $labelKeyPattern0 } } }", query.FullQuery);
+            Assert.That(query.QueryVariables["labelKeyPattern0"], Is.EqualTo("%\"policy_check\":%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_FilterLineSupportsSingularStateAlias()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "state=49"
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("query ticketReport", query.FullQuery);
+            Assert.That(query.QueryVariables["state_ids"], Is.EqualTo(new List<int> { 49 }));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_FilterLineDoesNotBreakPlainTextStatusSearch()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "status49"
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("query ticketReport", query.FullQuery);
+            Assert.That(query.QueryVariables, Does.ContainKey("task_types"));
+            Assert.That(query.QueryVariables, Does.Not.ContainKey("state_ids"));
+        }
     }
 }

@@ -32,7 +32,7 @@ jobs:
         run: |
           cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
           ansible-playbook -e force_install=true site.yml -K
-          
+
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
         if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
         run: |
@@ -40,6 +40,13 @@ jobs:
           dotnet restore
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
+
+      - name: Run JWT refresh integration tests
+        if: ${{ env.FWO_RUN_INTEGRATION_TESTS == 'true' }}
+        run: |
+          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
+          dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
+
 
   python-code-check:
     name: Python Code Check

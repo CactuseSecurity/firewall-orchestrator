@@ -41,7 +41,7 @@ namespace FWO.Test
 
             bool usingLocalIntegrationMode = string.Equals(Environment.GetEnvironmentVariable("FWO_RUN_INTEGRATION_TESTS"), "true", StringComparison.OrdinalIgnoreCase);
 
-            bool runningInGitHubActions = string.Equals(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"), "true", StringComparison.OrdinalIgnoreCase);
+            bool runningInGitHubActions = string.Equals(Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS"), "true", StringComparison.OrdinalIgnoreCase);
 
             Log.WriteInfo("JWT Integration Tests", $"Enabled={usingLocalIntegrationMode}, using test user '{username}'.");
 

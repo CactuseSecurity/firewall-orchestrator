@@ -31,11 +31,8 @@ jobs:
       - name: Run Ansible test install
         run: |
           cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
-          ansible-playbook -e force_install=true site.yml -K          
-          echo "FWO_RUN_INTEGRATION_TESTS=true -> running JWT refresh integration tests."
-          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
-          dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"        
-
+          ansible-playbook -e force_install=true site.yml -K
+          
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
         if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
         run: |

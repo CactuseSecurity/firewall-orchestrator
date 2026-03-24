@@ -86,15 +86,33 @@
           changed_when: false
           failed_when: false
 
+        - name: check for microsoft apt signing keyring before ubuntu fallback repair
+          stat:
+            path: /usr/share/keyrings/microsoft-prod.gpg
+          register: dotnet_ms_keyring_ubuntu_fallback_before
+
         - name: install ms package list (ubuntu fallback)
           apt:
             deb: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
-          when: "'install ok installed' not in dotnet_ms_repo_pkg_status_ubuntu_fallback.stdout"
+          when: >
+            'install ok installed' not in dotnet_ms_repo_pkg_status_ubuntu_fallback.stdout
+            or not dotnet_ms_keyring_ubuntu_fallback_before.stat.exists
 
-        - name: check for microsoft apt signing keyring (ubuntu fallback)
+        - name: remove legacy microsoft apt source file before ubuntu fallback repair
+          file:
+            path: /etc/apt/sources.list.d/microsoft-prod.list
+            state: absent
+
+        - name: check for microsoft apt signing keyring after ubuntu fallback repair
           stat:
             path: /usr/share/keyrings/microsoft-prod.gpg
           register: dotnet_ms_keyring_ubuntu_fallback
+
+        - name: ensure microsoft apt signing key is present for ubuntu fallback
+          apt_key:
+            url: https://packages.microsoft.com/keys/microsoft.asc
+            state: present
+          when: not dotnet_ms_keyring_ubuntu_fallback.stat.exists
 
         - name: ensure microsoft apt repo for dotnet on ubuntu fallback
           apt_repository:

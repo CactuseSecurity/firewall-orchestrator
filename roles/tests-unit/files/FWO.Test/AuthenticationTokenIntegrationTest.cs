@@ -230,6 +230,21 @@ namespace FWO.Test
             [
                 client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
                 client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
                 client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest)
             ];
 
@@ -240,7 +255,7 @@ namespace FWO.Test
             int unauthorizedCount = responses.Count(response => response.StatusCode == HttpStatusCode.Unauthorized);
 
             Assert.That(successCount, Is.EqualTo(1), "Exactly one concurrent refresh request should succeed.");
-            Assert.That(unauthorizedCount, Is.EqualTo(2), "All other concurrent refresh requests should be rejected.");
+            Assert.That(unauthorizedCount, Is.EqualTo(refreshTasks.Length - 1), "All other concurrent refresh requests should be rejected.");
         }
 
         #endregion

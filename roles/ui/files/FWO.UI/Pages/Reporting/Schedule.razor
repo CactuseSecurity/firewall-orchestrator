@@ -271,10 +271,12 @@
             reportSchedules = (await apiConnection.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules));
             reportSchedulesSubscription = apiConnection.GetSubscription<List<ReportSchedule>>(HandleSubscriptionError, OnReportScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
             reportTemplates = await apiConnection.SendQueryAsync<List<ReportTemplate>>(ReportQueries.getReportTemplates, new { userId = uiUserDbId });
-            reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
-                                                           showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport() &&
-                                                           modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null ||
-                                                           showComplianceReport && ((ReportType)rt.ReportParams.ReportType).IsComplianceReport())).ToList();
+            reportTemplates = reportTemplates.Where(rt =>
+            {
+                ReportType reportType = (ReportType)rt.ReportParams.ReportType;
+                bool modellingOwnerAllowed = modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null;
+                return reportType.IsVisibleTemplateType(showRuleRelatedReports, showModellingReports, showComplianceReport, modellingOwnerAllowed);
+            }).ToList();
             authenticationState = await authenticationStateTask!;
         }
         catch (Exception exception)

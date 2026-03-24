@@ -476,6 +476,186 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void TicketReport_FilterLineAppliesClosedPhaseFilter()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = $"phase={GlobalConst.kClosed}"
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("state_id: { _gte: $phase_lowest_input_state }", query.FullQuery);
+            StringAssert.DoesNotContain("$phase_lowest_end_state", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_FilterLineRejectsUnknownWorkflowPhase()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "phase=imaginary"
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+
+            Assert.Throws<SemanticException>(() => Compiler.Compile(template));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RulesReport_LastHitLessThanIncludesNullHits()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit<2025-01-01"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("rule_last_hit", query.RuleWhereStatement);
+            StringAssert.Contains("_is_null: true", query.RuleWhereStatement);
+            StringAssert.Contains("_or:", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RulesReport_LastHitEqualsThisYearUsesStartOfCurrentYear()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit=\"this year\""
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            string expected = new DateTime(DateTime.Now.Year, 1, 1, 0, 0, 0).ToString(DynGraphqlQuery.fullTimeFormat);
+            Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RulesReport_LastHitRejectsInvalidTimeRangeFormat()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit=definitely-not-a-date"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            Assert.Throws<SyntaxException>(() => Compiler.Compile(template));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void ChangesReport_LastHitGreaterThanUsesNestedRuleMetadataWithoutNullHits()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit>2025-01-01"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Changes;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("rule: { rule_metadatum:{ rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("_is_null: true", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("_or:", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void ReportTypeFilter_ParsesStatisticsAliasAndAddsStatisticsRuleFilter()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "type=statistic"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.ReportType, Is.EqualTo(ReportType.Statistics));
+            StringAssert.Contains("rule_head_text: {_is_null: true}", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void ReportTypeFilter_RejectsUnknownReportType()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "reporttype=imaginary"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            Assert.Throws<SemanticException>(() => Compiler.Compile(template));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void BoolFilter_RemoveBuildsRuleToBeRemovedFilter()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "remove=true"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["remove0"], Is.EqualTo("true"));
+            StringAssert.Contains("rule_to_be_removed", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void BoolFilter_RejectsInvalidBooleanValue()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "disabled=maybe"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            Assert.Throws<SemanticException>(() => Compiler.Compile(template));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void IntFilter_UnusedBuildsLastHitCutoffFilter()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "unused=30"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables.ContainsKey("cut0"), Is.True);
+            StringAssert.Contains("rule_last_hit", query.RuleWhereStatement);
+            StringAssert.Contains("_is_null: true", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void IntFilter_RejectsInvalidIntegerValue()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "unused=abc"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            Assert.Throws<SemanticException>(() => Compiler.Compile(template));
+        }
+
+        [Test]
+        [Parallelizable]
         public void TicketChangeReport_FilterLineAppliesReferenceDateFilter()
         {
             ReportTemplate template = new()

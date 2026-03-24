@@ -9,6 +9,7 @@ namespace FWO.Report.Filter.Ast
     {
         private static readonly HashSet<string> AllowedPhases =
         [
+            "closed",
             "request",
             "approval",
             "planning",

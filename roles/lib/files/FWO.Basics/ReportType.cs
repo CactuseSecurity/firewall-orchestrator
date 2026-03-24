@@ -153,6 +153,14 @@ namespace FWO.Basics
             return CustomSortReportType([.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>()], ruleRelated, modellingRelated);
         }
 
+        public static bool IsVisibleTemplateType(this ReportType reportType, bool ruleRelated, bool modellingRelated, bool complianceRelated, bool modellingOwnerAllowed = true)
+        {
+            return ruleRelated && reportType.IsDeviceRelatedReport()
+                || modellingRelated && reportType.IsModellingReport() && modellingOwnerAllowed
+                || complianceRelated && reportType.IsComplianceReport()
+                || reportType.IsWorkflowReport();
+        }
+
         public static List<ReportType> CustomSortReportType(List<ReportType> ListIn, bool ruleRelated, bool modellingRelated)
         {
             List<ReportType> ListOut = [];
@@ -174,10 +182,7 @@ namespace FWO.Basics
             ];
             foreach (var reportType in orderedReportTypeList.Where(r => ListIn.Contains(r)))
             {
-                if (reportType == ReportType.Undefined
-                    || ruleRelated && reportType.IsDeviceRelatedReport()
-                    || modellingRelated && reportType.IsModellingReport()
-                    || reportType.IsWorkflowReport())
+                if (reportType == ReportType.Undefined || reportType.IsVisibleTemplateType(ruleRelated, modellingRelated, false))
                 {
                     ListOut.Add(reportType);
                 }

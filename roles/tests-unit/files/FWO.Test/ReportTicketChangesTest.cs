@@ -152,6 +152,23 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public async Task TicketReport_GenerateResolvesClosedPhaseToOpenEndedStateRange()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.Phase = GlobalConst.kClosed;
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            ReportTicketChangesApiConnection apiConnection = new([]);
+
+            await report.Generate(0, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(apiConnection.LastQueryVariables, Is.Not.Null);
+            Assert.That(apiConnection.LastQueryVariables!["phase_lowest_input_state"], Is.EqualTo(249));
+            Assert.That(apiConnection.LastQueryVariables.ContainsKey("phase_lowest_end_state"), Is.False);
+        }
+
+        [Test]
+        [Parallelizable]
         public async Task TicketChangeReport_ExportToHtml_UsesCurrentColumnsAndStateNames()
         {
             ReportTemplate template = new();

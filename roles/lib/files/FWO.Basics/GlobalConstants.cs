@@ -50,6 +50,7 @@ namespace FWO.Basics
         public const string kUpdatable = "updatable";
         public const string kNAT = "NAT";
         public const string k_demo = "_demo";
+        public const string kClosed = "closed";
 
         public const string kPlaceholderMarker = "@@";
         public const string kModellerGroup = "ModellerGroup_";

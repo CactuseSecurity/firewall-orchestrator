@@ -1,8 +1,10 @@
 using FWO.Basics;
+using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Report.Filter.FilterTypes;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace FWO.Test
 {
@@ -71,6 +73,68 @@ namespace FWO.Test
             Assert.That(filters.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(WorkflowLabelFilterMode.not_existing));
             Assert.That(filters.WorkflowFilter.LabelFilter.Value, Is.EqualTo(string.Empty));
             Assert.That(filters.WorkflowFilter.ShowFullTicket, Is.False);
+        }
+
+        [Test]
+        public void ToReportParams_UsesReducedDeviceFilterForUnusedRulesAndCopiesCreationTolerance()
+        {
+            SimulatedUserConfig userConfig = new();
+            ReportFilters filters = new();
+            filters.Init(userConfig, true);
+            filters.ReportType = ReportType.UnusedRules;
+            filters.ReducedDeviceFilter = new DeviceFilter(
+            [
+                new ManagementSelect
+                {
+                    Id = 7,
+                    Devices = [new DeviceSelect { Id = 70, Name = "gw70", Selected = true }]
+                }
+            ]);
+            filters.UnusedDays = 21;
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.DeviceFilter.Managements, Has.Count.EqualTo(1));
+            Assert.That(reportParams.DeviceFilter.Managements[0].Id, Is.EqualTo(7));
+            Assert.That(reportParams.UnusedFilter.UnusedForDays, Is.EqualTo(21));
+            Assert.That(reportParams.UnusedFilter.CreationTolerance, Is.EqualTo(userConfig.CreationTolerance));
+        }
+
+        [Test]
+        public void ToReportParams_UsesTenantFromUserWhenNoTenantSelected()
+        {
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Tenant = new Tenant { Id = 4 };
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.Rules
+            };
+            filters.Init(userConfig, true);
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.TenantFilter.IsActive, Is.True);
+            Assert.That(reportParams.TenantFilter.TenantId, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void SetDisplayedTimeSelection_ForTicketChangeReportOpenEnd_UsesFromText()
+        {
+            SimulatedUserConfig userConfig = new();
+            ReportFilters filters = new();
+            filters.Init(userConfig, true);
+            filters.ReportType = ReportType.TicketChangeReport;
+            filters.TimeFilter = new()
+            {
+                TimeRangeType = TimeRangeType.Fixeddates,
+                OpenEnd = true,
+                StartTime = new DateTime(2025, 1, 2, 3, 4, 5)
+            };
+
+            filters.SetDisplayedTimeSelection();
+
+            StringAssert.StartsWith("from ", filters.DisplayedTimeSelection);
+            StringAssert.Contains(filters.TimeFilter.StartTime.ToString(), filters.DisplayedTimeSelection);
         }
     }
 }

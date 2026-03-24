@@ -17,6 +17,29 @@ namespace FWO.Data.Report
         AnyActivity
     }
 
+    internal static class WorkflowReferenceDateSerialization
+    {
+        public static WorkflowReferenceDate Parse(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return WorkflowReferenceDate.AnyActivity;
+            }
+
+            if (Enum.TryParse(value.Trim(), true, out WorkflowReferenceDate referenceDate))
+            {
+                return referenceDate;
+            }
+
+            throw new JsonException($"Unknown workflow reference date '{value}'.");
+        }
+
+        public static string Format(WorkflowReferenceDate value)
+        {
+            return value.ToString();
+        }
+    }
+
     public enum WorkflowLabelFilterMode
     {
         not_existing,
@@ -49,7 +72,14 @@ namespace FWO.Data.Report
     public class WorkflowFilter
     {
         [JsonProperty("reference_date"), JsonPropertyName("reference_date")]
-        public WorkflowReferenceDate ReferenceDate { get; set; } = WorkflowReferenceDate.AnyActivity;
+        public string ReferenceDateRaw { get; set; } = WorkflowReferenceDateSerialization.Format(WorkflowReferenceDate.AnyActivity);
+
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public WorkflowReferenceDate ReferenceDate
+        {
+            get => WorkflowReferenceDateSerialization.Parse(ReferenceDateRaw);
+            set => ReferenceDateRaw = WorkflowReferenceDateSerialization.Format(value);
+        }
 
         [JsonProperty("task_types"), JsonPropertyName("task_types")]
         public List<WfTaskType> TaskTypes { get; set; } = DefaultTaskTypes();

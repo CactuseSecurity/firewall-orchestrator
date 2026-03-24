@@ -213,16 +213,26 @@ namespace FWO.Report
                 return;
             }
 
-            if (!Enum.TryParse(workflowFilter.Phase, true, out WorkflowPhases phase))
+            string normalizedPhase = workflowFilter.Phase.Trim();
+
+            if (string.Equals(normalizedPhase, GlobalConst.kClosed, StringComparison.OrdinalIgnoreCase))
             {
-                throw new ArgumentException($"Unknown workflow phase '{workflowFilter.Phase}'.");
+                StateMatrix stateMatrix = new();
+                await stateMatrix.Init(WorkflowPhases.request, apiConnection, WfTaskType.master);
+                Query.QueryVariables["phase_lowest_input_state"] = stateMatrix.MinTicketCompleted;
+                return;
             }
 
-            GlobalStateMatrix stateMatrix = GlobalStateMatrix.Create();
-            await stateMatrix.Init(apiConnection, WfTaskType.master);
-            if (!stateMatrix.GlobalMatrix.TryGetValue(phase, out StateMatrix? phaseMatrix))
+            if (!Enum.TryParse(normalizedPhase, true, out WorkflowPhases phase))
             {
-                throw new InvalidOperationException($"Workflow phase '{workflowFilter.Phase}' is missing in the master state matrix.");
+                throw new ArgumentException($"Unknown workflow phase '{normalizedPhase}'.");
+            }
+
+            GlobalStateMatrix glbStateMatrix = GlobalStateMatrix.Create();
+            await glbStateMatrix.Init(apiConnection, WfTaskType.master);
+            if (!glbStateMatrix.GlobalMatrix.TryGetValue(phase, out StateMatrix? phaseMatrix))
+            {
+                throw new InvalidOperationException($"Workflow phase '{normalizedPhase}' is missing in the master state matrix.");
             }
 
             Query.QueryVariables["phase_lowest_input_state"] = phaseMatrix.LowestInputState;

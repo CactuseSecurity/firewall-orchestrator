@@ -534,8 +534,15 @@ namespace FWO.Report.Filter
             if (!string.IsNullOrWhiteSpace(ResolveWorkflowPhase(query, filter.ReportParams.WorkflowFilter)))
             {
                 query.QueryParameters.Add("$phase_lowest_input_state: Int! ");
-                query.QueryParameters.Add("$phase_lowest_end_state: Int! ");
-                ticketFilters.Add("{ state_id: { _gte: $phase_lowest_input_state, _lt: $phase_lowest_end_state } }");
+                if (string.Equals(ResolveWorkflowPhase(query, filter.ReportParams.WorkflowFilter), GlobalConst.kClosed, StringComparison.OrdinalIgnoreCase))
+                {
+                    ticketFilters.Add("{ state_id: { _gte: $phase_lowest_input_state } }");
+                }
+                else
+                {
+                    query.QueryParameters.Add("$phase_lowest_end_state: Int! ");
+                    ticketFilters.Add("{ state_id: { _gte: $phase_lowest_input_state, _lt: $phase_lowest_end_state } }");
+                }
             }
 
             string? labelFilter = BuildTicketLabelFilter(query, filter.ReportParams.WorkflowFilter.LabelFilter);

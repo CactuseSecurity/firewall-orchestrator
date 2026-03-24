@@ -4246,6 +4246,37 @@
                     "allow_aggregations": true
                   }
                 }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "abs_change_id",
+                      "control_id",
+                      "log_rule_id",
+                      "new_rule_id",
+                      "old_rule_id",
+                      "documented",
+                      "implicit_change",
+                      "security_relevant",
+                      "change_action",
+                      "change_request_info",
+                      "unique_name",
+                      "change_type_id",
+                      "dev_id",
+                      "doku_admin",
+                      "import_admin",
+                      "mgm_id",
+                      "changelog_rule_comment",
+                      "change_time",
+                      "docu_time"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
               ]
             },
             {
@@ -11420,23 +11451,24 @@
                     "check": {},
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
+                      "decomm_date",
                       "id",
-                      "last_recertifier",
-                      "owner_lifecycle_state_id",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ]
                   },
                   "comment": ""
@@ -11451,6 +11483,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11477,6 +11510,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11503,6 +11537,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11529,6 +11564,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11555,6 +11591,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11581,6 +11618,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11625,6 +11663,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11651,6 +11690,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11691,6 +11731,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11731,6 +11772,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11758,6 +11800,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11784,6 +11827,7 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
+                      "decomm_date",
                       "id",
                       "import_source",
                       "is_default",
@@ -11809,23 +11853,24 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
+                      "decomm_date",
                       "id",
-                      "last_recertifier",
-                      "owner_lifecycle_state_id",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {},
                     "check": null
@@ -16304,20 +16349,7 @@
                     "computed_fields": [
                       "rule_relevant_for_tenant"
                     ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "mgm_id": {
-                            "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "rule_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },
@@ -17451,22 +17483,7 @@
                     "computed_fields": [
                       "rule_from_relevant_for_tenant"
                     ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "rule": {
-                            "mgm_id": {
-                              "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule_from_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },
@@ -19275,22 +19292,7 @@
                     "computed_fields": [
                       "rule_to_relevant_for_tenant"
                     ],
-                    "filter": {
-                      "_and": [
-                        {
-                          "rule": {
-                            "mgm_id": {
-                              "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule_to_relevant_for_tenant": {
-                            "_eq": "true"
-                          }
-                        }
-                      ]
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },

@@ -187,6 +187,10 @@ namespace FWO.Middleware.Server
             {
                 return (DateTime)extDeadline;
             }
+            else if (deadline == NotificationDeadline.DecommissionDate && owner.DecommDate != null)
+            {
+                return (DateTime)owner.DecommDate;
+            }
             return DateTime.Now;
         }
 

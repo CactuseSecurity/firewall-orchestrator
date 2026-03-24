@@ -206,7 +206,7 @@ class ChangeLogger:
             f"old_{typ}_id": old_rule_id,
             "control_id": self._import_state.import_id,
             "change_action": change_action,
-            "mgm_id": self._import_state.mgm_details.mgm_id,
+            "mgm_id": self._import_state.mgm_details.current_mgm_id,
             "change_type_id": change_typ,
             "change_time": import_time,
             "unique_name": unique_name,

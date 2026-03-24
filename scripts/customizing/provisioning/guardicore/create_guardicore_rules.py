@@ -494,7 +494,7 @@ def extract_id_string_from_label_value(label_value: str) -> str | None:
     if not match:
         return None
     id_string = match.group(1).strip()
-    return id_string if id_string else None
+    return id_string or None
 
 
 def extract_nwgroup_name_from_label_value(label_value: str) -> str | None:
@@ -507,7 +507,7 @@ def extract_nwgroup_name_from_label_value(label_value: str) -> str | None:
         return None
 
     nwgroup_name = value_without_id.rsplit(" - ", 1)[-1].strip() if " - " in value_without_id else value_without_id
-    return nwgroup_name if nwgroup_name else None
+    return nwgroup_name or None
 
 
 def normalize_guardicore_label_key(key: str) -> str:

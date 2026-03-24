@@ -241,14 +241,19 @@ namespace FWO.Middleware.Server.Controllers
                 }
 
                 UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = tokenInfo.UserId });
-                UiUser? user = users.FirstOrDefault();
+                UiUser? storedUser = users.FirstOrDefault();
 
-                if (user == null)
+                if (storedUser == null)
                 {
                     return Unauthorized("User not found");
                 }
 
-                user.Roles = await authManager.GetRoles(user);
+                UiUser? user = await authManager.AuthenticateAndBuildUserAsync(storedUser, validatePassword: false, updateLoginState: false);
+
+                if (user == null)
+                {
+                    return Unauthorized("User could not be reconstructed for refresh");
+                }
 
                 // Consume the old refresh token exactly once before minting a new pair.
                 int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
@@ -350,8 +355,9 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <param name="user">User to validate. Must contain username or dn and password if <paramref name="validatePassword"/> is true. If null, no authentication is performed and null is returned.</param>
         /// <param name="validatePassword">True to validate the user's password during authentication.</param>
+        /// <param name="updateLoginState">True to persist login-related local UI-user updates such as last-login timestamps and first-time creation.</param>
         /// <returns>An authenticated user including dn, groups, roles, tenant, db id, and ownerships, or null for anonymous access.</returns>
-        public async Task<UiUser?> AuthenticateAndBuildUserAsync(UiUser? user, bool validatePassword)
+        public async Task<UiUser?> AuthenticateAndBuildUserAsync(UiUser? user, bool validatePassword, bool updateLoginState = true)
         {
             // Case: anonymous user
             if (user == null)
@@ -385,7 +391,7 @@ namespace FWO.Middleware.Server.Controllers
             // Remember the hosting ldap
             user.LdapConnection.Id = ldap.Id;
 
-            return await UiUserHandler.HandleUiUserAtLogin(apiConnection, user);
+            return await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: updateLoginState, createIfMissing: updateLoginState);
         }
 
         /// <summary>

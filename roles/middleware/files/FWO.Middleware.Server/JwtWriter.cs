@@ -30,7 +30,7 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-		/// create jwt for given user
+		/// create jwt for the given user
 		/// </summary>
 		/// <returns>generated token</returns>
 		public async Task<string> CreateJWT(UiUser? user = null, TimeSpan? lifetime = null)
@@ -46,12 +46,9 @@ namespace FWO.Middleware.Server
             // if lifetime was speciefied use it, otherwise use standard lifetime
             TimeSpan accessLifetime = lifetime ?? TimeSpan.FromHours(await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours)));
 
-            ClaimsIdentity subject;
-            if (user != null)
-                subject = SetClaims(await UiUserHandler.HandleUiUserAtLogin(apiConnection, user));
-            else
-                subject = SetClaims(new UiUser() { Name = "", Password = "", Dn = Roles.Anonymous, Roles = [Roles.Anonymous] });
-            // adding uiuser.uiuser_id as x-hasura-user-id to JWT
+            ClaimsIdentity subject = user != null
+                ? SetClaims(user)
+                : SetClaims(new UiUser() { Name = "", Password = "", Dn = Roles.Anonymous, Roles = [Roles.Anonymous] });
 
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken

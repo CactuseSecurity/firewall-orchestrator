@@ -88,12 +88,14 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// if the user logs in for the first time, user details (excluding password) are written to DB bia API
-        /// the database id is retrieved and added to the user 
-        /// the user id is needed for allowing access to report_templates
+        /// Loads and synchronizes the local UI-user context needed for JWT claim generation.
         /// </summary>
-        /// <returns> user including its db id </returns>
-        public static async Task<UiUser> HandleUiUserAtLogin(ApiConnection apiConnection, UiUser user)
+        /// <param name="apiConnection">API connection used to read and update UI-user metadata.</param>
+        /// <param name="user">The authenticated user whose local UI context should be synchronized.</param>
+        /// <param name="updateLastLogin">True to update the persisted last-login timestamp.</param>
+        /// <param name="createIfMissing">True to create the user in the local database if no record exists yet.</param>
+        /// <returns>The given user enriched with local database id, password-change flag, and ownership information.</returns>
+        public static async Task<UiUser> SynchronizeUiUserContext(ApiConnection apiConnection, UiUser user, bool updateLastLogin = true, bool createIfMissing = true)
         {
             bool userSetInDb = false;
             try
@@ -103,7 +105,9 @@ namespace FWO.Middleware.Server
                 if (existingUsers.Length > 0)
                 {
                     user.DbId = existingUsers[0].DbId;
-                    user.PasswordMustBeChanged = await UpdateLastLogin(apiConnection, user.DbId);
+                    user.PasswordMustBeChanged = updateLastLogin
+                        ? await UpdateLastLogin(apiConnection, user.DbId)
+                        : existingUsers[0].PasswordMustBeChanged;
                     userSetInDb = true;
                 }
                 else
@@ -119,10 +123,26 @@ namespace FWO.Middleware.Server
 
             if (!userSetInDb)
             {
+                if (!createIfMissing)
+                {
+                    throw new KeyNotFoundException($"User {user.Name} with dn {user.Dn} could not be found in the local database.");
+                }
+
                 Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to internal database.");
                 await UpsertUiUser(apiConnection, user, true);
             }
             return user;
+        }
+
+        /// <summary>
+        /// if the user logs in for the first time, user details (excluding password) are written to DB bia API
+        /// the database id is retrieved and added to the user 
+        /// the user id is needed for allowing access to report_templates
+        /// </summary>
+        /// <returns> user including its db id </returns>
+        public static async Task<UiUser> HandleUiUserAtLogin(ApiConnection apiConnection, UiUser user)
+        {
+            return await SynchronizeUiUserContext(apiConnection, user, updateLastLogin: true, createIfMissing: true);
         }
 
         /// <summary>

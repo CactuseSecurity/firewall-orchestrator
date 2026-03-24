@@ -252,6 +252,15 @@
   when:
     - not api_reuse_existing_hasura_image | bool
 
+- name: force remove existing Hasura container before recreation
+  command: "podman rm -f {{ api_container_name }}"
+  register: api_force_remove_hasura_container
+  changed_when: api_force_remove_hasura_container.rc == 0
+  failed_when: false
+  become: true
+  when:
+    - not api_reuse_existing_hasura_image | bool
+
 - name: ensure Hasura container exists
   containers.podman.podman_container:
     name: "{{ api_container_name }}"

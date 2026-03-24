@@ -22,7 +22,7 @@ namespace FWO.Middleware.Server.Controllers;
 /// <remarks>
 /// This controller uses the central API connection to expose a filtered rule search meant for administrative overview of existing rules.
 /// </remarks>
-// [Authorize]
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class RuleController(ApiConnection apiConnection) : ControllerBase
@@ -42,7 +42,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     /// or a suitable error result on failure.
     /// </returns>
     [HttpPost("GetRulesByFilter")]
-    // [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     public async Task<ActionResult<RulesByFilterResponse>> GetRulesByFilter(
         [FromBody] RulesByFilterRequest request)
     {

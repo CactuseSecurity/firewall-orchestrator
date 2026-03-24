@@ -4,6 +4,8 @@ using System.Net.Http.Json;
 using FWO.Data.Middleware;
 using FWO.Logging;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Net;
 using FWO.Test.DataGenerators;
 using Microsoft.Extensions.Configuration;
 using FWO.Test.Helpers;
@@ -192,6 +194,34 @@ namespace FWO.Test
             // Assert
             Assert.That(firstResponse.IsSuccessStatusCode, Is.True);
             Assert.That(secondResponse.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Unauthorized));
+        }
+
+        [Test]
+        [Category("Authentication")]
+        [Category("TokenRefresh")]
+        [Category("Security")]
+        public async Task RefreshToken_WithConcurrentRequests_OnlyOneSucceeds()
+        {
+            // Arrange
+            TokenPair initialTokens = await GetValidTokenPair();
+            RefreshTokenRequest refreshRequest = new() { RefreshToken = initialTokens.RefreshToken };
+
+            // Act
+            Task<HttpResponseMessage>[] refreshTasks =
+            [
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
+                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest)
+            ];
+
+            HttpResponseMessage[] responses = await Task.WhenAll(refreshTasks);
+
+            // Assert
+            int successCount = responses.Count(response => response.IsSuccessStatusCode);
+            int unauthorizedCount = responses.Count(response => response.StatusCode == HttpStatusCode.Unauthorized);
+
+            Assert.That(successCount, Is.EqualTo(1), "Exactly one concurrent refresh request should succeed.");
+            Assert.That(unauthorizedCount, Is.EqualTo(2), "All other concurrent refresh requests should be rejected.");
         }
 
         #endregion

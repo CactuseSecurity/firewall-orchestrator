@@ -249,8 +249,14 @@ namespace FWO.Middleware.Server.Controllers
 
                 user.Roles = await authManager.GetRoles(user);
 
-                // Revoke the old refresh token (token rotation for security)
-                await authManager.RevokeRefreshToken(request.RefreshToken);
+                // Consume the old refresh token exactly once before minting a new pair.
+                int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
+
+                if (revokedTokens != 1)
+                {
+                    Log.WriteWarning("Token Refresh", $"Refresh token for user {user.Name} was already consumed or revoked.");
+                    return Unauthorized("Invalid or expired refresh token");
+                }
 
                 // Create new token pair
                 TokenPair newTokens = await authManager.CreateTokenPair(user);
@@ -293,7 +299,12 @@ namespace FWO.Middleware.Server.Controllers
                     return Unauthorized("Invalid or expired refresh token");
                 }
 
-                await authManager.RevokeRefreshToken(request.RefreshToken);
+                int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
+
+                if (revokedTokens != 1)
+                {
+                    return Unauthorized("Invalid or expired refresh token");
+                }
 
                 Log.WriteInfo("Token Refresh", $"Successfully revoked refresh token");
 
@@ -671,9 +682,11 @@ namespace FWO.Middleware.Server.Controllers
         }
 
         /// <summary>
-        /// Revokes a refresh token by marking it as revoked
+        /// Revokes a refresh token by marking it as revoked.
         /// </summary>
-        public async Task RevokeRefreshToken(string refreshToken)
+        /// <param name="refreshToken">The refresh token to revoke.</param>
+        /// <returns>The number of refresh-token rows that were revoked.</returns>
+        public async Task<int> RevokeRefreshToken(string refreshToken)
         {
             try
             {
@@ -685,7 +698,8 @@ namespace FWO.Middleware.Server.Controllers
                     revokedAt = DateTime.UtcNow
                 };
 
-                await apiConnection.SendQueryAsync<object>(AuthQueries.revokeRefreshToken, mutationVariables);
+                ReturnId revokeResult = await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.revokeRefreshToken, mutationVariables);
+                return revokeResult.AffectedRows;
             }
             catch (Exception ex)
             {

@@ -244,6 +244,14 @@
       {% endfor %}
   become: true
 
+- name: remove existing Hasura container before recreation
+  containers.podman.podman_container:
+    name: "{{ api_container_name }}"
+    state: absent
+  become: true
+  when:
+    - not api_reuse_existing_hasura_image | bool
+
 - name: ensure Hasura container exists
   containers.podman.podman_container:
     name: "{{ api_container_name }}"
@@ -265,8 +273,6 @@
     new: true
     no_header: true
     restart_policy: on-failure
-    stop_timeout: 2
-    after: "{{ api_hasura_systemd_after }}"
     use_names: true
   register: api_hasura_systemd_unit
   become: true

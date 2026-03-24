@@ -15,6 +15,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       RUNNING_ON_GITHUB_ACTIONS: true
+      FWO_RUN_INTEGRATION_TESTS: "true"
+      FWO_TEST_USERNAME: "integration_user_jwt_refresh_test"
+      FWO_TEST_PASSWORD: "testpassword"
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -37,6 +40,20 @@ jobs:
           dotnet restore
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
+
+      - name: Report JWT integration test mode
+        if: ${{ env.FWO_RUN_INTEGRATION_TESTS == 'true' }}
+        run: echo "FWO_RUN_INTEGRATION_TESTS=true -> running JWT refresh integration tests."
+
+      - name: Report JWT integration test mode skipped
+        if: ${{ env.FWO_RUN_INTEGRATION_TESTS != 'true' }}
+        run: echo "FWO_RUN_INTEGRATION_TESTS!=true -> skipping JWT refresh integration tests."
+
+      - name: Run JWT refresh integration tests
+        if: ${{ env.FWO_RUN_INTEGRATION_TESTS == 'true' }}
+        run: |
+          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
+          dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
 
 
   python-code-check:

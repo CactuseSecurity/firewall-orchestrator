@@ -68,3 +68,4 @@ cov.xml
 .coverage
 .DS_Store
 .dotnet
+FWO.local.runsettings

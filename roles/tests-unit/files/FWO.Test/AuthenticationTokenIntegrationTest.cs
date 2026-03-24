@@ -39,19 +39,13 @@ namespace FWO.Test
             string username = !string.IsNullOrWhiteSpace(configuredUsername) ? configuredUsername : DefaultCiUsername;
             string password = !string.IsNullOrWhiteSpace(configuredPassword) ? configuredPassword : DefaultCiPassword;
 
-            bool usingLocalIntegrationMode = string.Equals(
-                Environment.GetEnvironmentVariable("FWO_RUN_INTEGRATION_TESTS"),
-                "true",
-                StringComparison.OrdinalIgnoreCase);
+            bool usingLocalIntegrationMode = string.Equals(Environment.GetEnvironmentVariable("FWO_RUN_INTEGRATION_TESTS"), "true", StringComparison.OrdinalIgnoreCase);
 
-            bool runningInGitHubActions = string.Equals(
-                Environment.GetEnvironmentVariable("GITHUB_ACTIONS"),
-                "true",
-                StringComparison.OrdinalIgnoreCase);
+            bool runningInGitHubActions = string.Equals(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"), "true", StringComparison.OrdinalIgnoreCase);
 
-            if (usingLocalIntegrationMode
-                && !runningInGitHubActions
-                && (string.IsNullOrWhiteSpace(configuredUsername) || string.IsNullOrWhiteSpace(configuredPassword)))
+            Log.WriteInfo("JWT Integration Tests", $"Enabled={usingLocalIntegrationMode}, using test user '{username}'.");
+
+            if (usingLocalIntegrationMode && !runningInGitHubActions && (string.IsNullOrWhiteSpace(configuredUsername) || string.IsNullOrWhiteSpace(configuredPassword)))
             {
                 Assert.Ignore("JWT integration tests require FWO_TEST_USERNAME and FWO_TEST_PASSWORD in local integration environments.");
             }

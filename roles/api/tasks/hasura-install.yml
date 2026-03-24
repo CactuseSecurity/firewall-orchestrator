@@ -205,31 +205,32 @@
     var: hasura_env
   when: debug_level > '1'
 
-- name: check whether the requested Hasura image is already available locally
-  command: "/usr/bin/podman image exists {{ api_hasura_image }}"
-  register: api_hasura_image_check
-  become: true
-  changed_when: false
-  failed_when: false
-
 - name: set Hasura image reuse mode
   set_fact:
     api_reuse_existing_hasura_image: >-
       {{
         installation_mode == "upgrade"
         and (api_use_existing_hasura_on_upgrade | default(false) | bool)
-        and api_hasura_image_check.rc == 0
+        and api_hasura_keep_existing_container | default(true) | bool
       }}
 
-- name: pull Hasura image with Podman
-  command: "/usr/bin/podman pull {{ api_hasura_image }}"
-  register: api_podman_pull
+- name: set Hasura systemd dependencies
+  set_fact:
+    api_hasura_systemd_after: >-
+      {{
+        ['network.target', 'remote-fs.target', 'nss-lookup.target']
+        + (['postgresql.service'] if 'databaseserver' in group_names else [])
+      }}
+
+- name: ensure Hasura image is present
+  containers.podman.podman_image:
+    name: "{{ api_hasura_image }}"
+    state: present
   environment: "{{ proxy_env }}"
   become: true
-  changed_when: api_podman_pull.rc == 0
   when:
     - not api_reuse_existing_hasura_image | bool
-    - api_hasura_image_check.rc != 0
+    - api_rollback_is_running | default(false) | bool == false
 
 - name: write Hasura env file for Podman
   copy:
@@ -243,14 +244,45 @@
       {% endfor %}
   become: true
 
-- name: copy hasura systemd service script
-  template:
-    src: "{{ api_service_name }}.service.j2"
+- name: ensure Hasura container exists
+  containers.podman.podman_container:
+    name: "{{ api_container_name }}"
+    image: "{{ api_hasura_image }}"
+    state: created
+    recreate: true
+    rm: true
+    network:
+      - host
+    user: "1001:1001"
+    env: "{{ hasura_env }}"
+  become: true
+  when:
+    - not api_reuse_existing_hasura_image | bool
+
+- name: generate Hasura systemd unit content
+  containers.podman.podman_generate_systemd:
+    name: "{{ api_container_name }}"
+    new: true
+    no_header: true
+    restart_policy: on-failure
+    stop_timeout: 2
+    after: "{{ api_hasura_systemd_after }}"
+    use_names: true
+  register: api_hasura_systemd_unit
+  become: true
+  when:
+    - not api_reuse_existing_hasura_image | bool
+
+- name: install generated Hasura systemd service
+  copy:
+    content: "{{ (api_hasura_systemd_unit.systemd_units | dict2items | first).value }}"
     dest: "/lib/systemd/system/{{ api_service_name }}.service"
     backup: true
     mode: "0644"
     owner: "root"
   become: true
+  when:
+    - not api_reuse_existing_hasura_image | bool
 
 - name: remove legacy Docker API service unit
   file:

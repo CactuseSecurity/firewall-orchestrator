@@ -44,6 +44,35 @@
     - api_hasura_release_access is defined
     - api_hasura_release_access.status | default(0) != 200
 
+- name: collect installed Hasura service unit candidates
+  stat:
+    path: "/lib/systemd/system/{{ item }}.service"
+  loop: "{{ [api_service_name] + (api_legacy_service_names | default([])) }}"
+  register: api_service_unit_candidates
+  when: installation_mode == "upgrade"
+
+- name: pick installed Hasura service name for upgrade reuse
+  set_fact:
+    api_existing_service_name: >-
+      {{
+        (
+          api_service_unit_candidates.results
+          | selectattr('stat.exists')
+          | map(attribute='item')
+          | list
+          | first
+        ) | default('')
+      }}
+  when: installation_mode == "upgrade"
+
+- name: reuse installed Hasura service name during upgrade fallback
+  set_fact:
+    api_service_name: "{{ api_existing_service_name }}"
+  when:
+    - installation_mode == "upgrade"
+    - api_use_existing_hasura_on_upgrade | default(false) | bool
+    - api_existing_service_name | length > 0
+
 - name: stop MW for upgrading
   ansible.builtin.systemd:
     name: "{{ product_name }}-middleware"
@@ -59,15 +88,43 @@
   when: installation_mode == "upgrade" and not (api_use_existing_hasura_on_upgrade | default(false) | bool)
   failed_when: false
 
-- name: stop API container for upgrading
-  docker_container:
-    name: "{{ api_container_name }}"
+- name: stop legacy Hasura services for upgrading
+  ansible.builtin.systemd:
+    name: "{{ item }}"
     state: stopped
-    container_default_behavior: no_defaults
+    enabled: false
   become: true
-  become_user: "{{ fworch_user }}"
+  loop: "{{ api_legacy_service_names | default([]) }}"
   when: installation_mode == "upgrade" and not (api_use_existing_hasura_on_upgrade | default(false) | bool)
   failed_when: false
+
+- name: check whether Docker is installed
+  stat:
+    path: /usr/bin/docker
+  register: api_docker_binary
+  when: installation_mode == "upgrade"
+
+- name: stop legacy Docker API container for upgrading
+  command: "/usr/bin/docker stop {{ api_container_name }}"
+  become: true
+  register: api_stop_legacy_docker_container
+  changed_when: api_stop_legacy_docker_container.rc == 0
+  failed_when: false
+  when:
+    - installation_mode == "upgrade"
+    - not (api_use_existing_hasura_on_upgrade | default(false) | bool)
+    - api_docker_binary.stat.exists | default(false)
+
+- name: remove legacy Docker API container for upgrading
+  command: "/usr/bin/docker rm {{ api_container_name }}"
+  become: true
+  register: api_remove_legacy_docker_container
+  changed_when: api_remove_legacy_docker_container.rc == 0
+  failed_when: false
+  when:
+    - installation_mode == "upgrade"
+    - not (api_use_existing_hasura_on_upgrade | default(false) | bool)
+    - api_docker_binary.stat.exists | default(false)
 
 - name: stop UI for upgrading
   ansible.builtin.systemd:

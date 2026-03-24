@@ -45,7 +45,6 @@
           copy:
             dest: /etc/apparmor.d/chrome
             content: |
-              abi <abi/4.0>,
               include <tunables/global>
 
               profile /usr/local/fworch/bin/**/chrome flags=(unconfined) {
@@ -58,7 +57,7 @@
               }
             mode: "0644"
           notify:
-            - Reload and Restart AppArmor
+            - Reload Chrome AppArmor profile
 
       when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04
 

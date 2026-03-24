@@ -13,6 +13,10 @@
       set_fact:
         dotnet_package_name: "dotnet-sdk-{{ dotnet_version }}"
 
+    - name: decide whether dotnet script fallback is required
+      set_fact:
+        use_dotnet_install_script: "{{ ansible_facts['distribution']|lower == 'debian' and (ansible_facts['distribution_release']|lower == debian_testing_release_name or ansible_facts['distribution_major_version'] | int >= 13) }}"
+
     # for all distros except ubuntu >=22.04 we need to include a package source
     - block:
 
@@ -46,15 +50,19 @@
         apt:
           update_cache: true
 
-      when: ansible_facts['distribution']|lower != 'ubuntu' or 
-        (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
+      when:
+        - not use_dotnet_install_script
+        - ansible_facts['distribution']|lower != 'ubuntu' or
+          (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
 
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present
+      when: not use_dotnet_install_script
 
     - name: apt update
       apt:
         update_cache: true
+      when: not use_dotnet_install_script
 
     - block:
       - name: Install {{ dotnet_package_name }} from current apt sources
@@ -156,6 +164,7 @@
         - ansible_facts['distribution']|lower == 'ubuntu'
         - ansible_facts['distribution_major_version'] is version('22', '>=')
         - ansible_architecture == "x86_64"
+        - not use_dotnet_install_script
 
     - name: Install dotnet-sdk-{{ dotnet_version }} on distro defaults
       package:
@@ -163,8 +172,40 @@
         state: present
       when:
         - ansible_architecture == "x86_64"
+        - not use_dotnet_install_script
         - ansible_facts['distribution']|lower != 'ubuntu' or
           (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
+
+    - name: Install dotnet sdk {{ dotnet_version }} with dotnet-install script on Debian testing
+      block:
+        - name: download dotnet-install script for Debian testing
+          get_url:
+            url: https://dot.net/v1/dotnet-install.sh
+            dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
+            mode: "0755"
+          register: dotnet_install_script_download_debian
+          until: dotnet_install_script_download_debian is succeeded
+          retries: 3
+          delay: 5
+
+        - name: install dotnet sdk {{ dotnet_version }} with dotnet-install script on Debian testing
+          command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir /usr/share/dotnet"
+
+        - name: ensure dotnet symlink exists on Debian testing
+          file:
+            src: /usr/share/dotnet/dotnet
+            dest: /usr/bin/dotnet
+            state: link
+            force: true
+
+        - name: verify dotnet sdk {{ dotnet_version }} is installed on Debian testing
+          command: /usr/share/dotnet/dotnet --list-sdks
+          register: dotnet_sdks_after_script_install_debian
+          changed_when: false
+          failed_when: dotnet_version not in dotnet_sdks_after_script_install_debian.stdout
+      when:
+        - ansible_architecture == "x86_64"
+        - use_dotnet_install_script
 
     - debug: 
         msg:

@@ -157,7 +157,7 @@ namespace FWO.Test
             HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest);
 
             // Assert
-            Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Unauthorized));
+            Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
         }
 
         [Test]

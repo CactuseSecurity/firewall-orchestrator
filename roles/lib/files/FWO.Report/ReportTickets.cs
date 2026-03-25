@@ -15,6 +15,11 @@ namespace FWO.Report
         /// <inheritdoc />
         protected override List<WfReqTask> GetDisplayedTasks(WfTicket ticket)
         {
+            if (!ReportData.WorkflowFilter.DetailedView)
+            {
+                return [];
+            }
+
             if (ReportData.WorkflowFilter.ShowFullTicket)
             {
                 return ticket.Tasks.OrderBy(task => task.Id).ToList();

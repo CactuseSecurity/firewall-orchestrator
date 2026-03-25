@@ -25,6 +25,7 @@ namespace FWO.Test
                     StateIds = [3, 7],
                     Phase = "implementation",
                     LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.value, Value = "true" },
+                    DetailedView = true,
                     ShowFullTicket = false
                 }
             };
@@ -38,6 +39,7 @@ namespace FWO.Test
             Assert.That(reportParams.WorkflowFilter.LabelFilter.Name, Is.EqualTo("policy_check"));
             Assert.That(reportParams.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(WorkflowLabelFilterMode.value));
             Assert.That(reportParams.WorkflowFilter.LabelFilter.Value, Is.EqualTo("true"));
+            Assert.That(reportParams.WorkflowFilter.DetailedView, Is.True);
             Assert.That(reportParams.WorkflowFilter.ShowFullTicket, Is.False);
         }
 
@@ -57,6 +59,7 @@ namespace FWO.Test
                         StateIds = [9],
                         Phase = "review",
                         LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.not_existing },
+                        DetailedView = true,
                         ShowFullTicket = false
                     }
                 }
@@ -72,6 +75,7 @@ namespace FWO.Test
             Assert.That(filters.WorkflowFilter.LabelFilter.Name, Is.EqualTo("policy_check"));
             Assert.That(filters.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(WorkflowLabelFilterMode.not_existing));
             Assert.That(filters.WorkflowFilter.LabelFilter.Value, Is.EqualTo(string.Empty));
+            Assert.That(filters.WorkflowFilter.DetailedView, Is.True);
             Assert.That(filters.WorkflowFilter.ShowFullTicket, Is.False);
         }
 

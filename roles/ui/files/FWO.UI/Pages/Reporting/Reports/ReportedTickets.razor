@@ -25,7 +25,15 @@
         </Column>
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("created"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
-        @if (Tickets.Any(ticket => GetDisplayedTasks(ticket).Count > 0))
+        @if (HasLabelColumn())
+        {
+            <Column TableItem="WfTicket" Title="@LabelName" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                <Template Context="ticket">
+                    @(GetLabelValue(ticket))
+                </Template>
+            </Column>
+        }
+        @if (DetailedView && Tickets.Any(ticket => GetDisplayedTasks(ticket).Count > 0))
         {
             <DetailTemplate TableItem="WfTicket" Context="ticket">
                 <div class="p-2">
@@ -105,6 +113,12 @@
     public WorkflowReferenceDate ReferenceDate { get; set; } = WorkflowReferenceDate.TicketCreation;
 
     [Parameter]
+    public string LabelName { get; set; } = "";
+
+    [Parameter]
+    public bool DetailedView { get; set; }
+
+    [Parameter]
     public bool ShowFullTicket { get; set; } = true;
 
     [Parameter]
@@ -123,8 +137,36 @@
         return StateNames.TryGetValue(stateId, out string? stateName) ? stateName : stateId.ToString();
     }
 
+    private bool HasLabelColumn()
+    {
+        return !string.IsNullOrWhiteSpace(LabelName);
+    }
+
+    private string GetLabelValue(WfTicket ticket)
+    {
+        if (!HasLabelColumn())
+        {
+            return "";
+        }
+
+        List<string> labelValues =
+        [
+            .. ticket.Tasks
+                .Select(task => task.GetAddInfoValue(LabelName))
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct()
+        ];
+
+        return string.Join(", ", labelValues);
+    }
+
     private List<WfReqTask> GetDisplayedTasks(WfTicket ticket)
     {
+        if (!DetailedView)
+        {
+            return [];
+        }
+
         if (ShowFullTicket)
         {
             return ticket.Tasks.OrderBy(task => task.Id).ToList();
@@ -184,12 +226,12 @@
 
     private bool ShowImplementationTasks()
     {
-        if (ShowFullTicket)
+        if (!DetailedView)
         {
-            return true;
+            return false;
         }
 
-        if (SelectedReportType == ReportType.TicketReport)
+        if (ShowFullTicket || SelectedReportType == ReportType.TicketReport)
         {
             return true;
         }
@@ -201,12 +243,12 @@
 
     private bool ShowApprovals()
     {
-        if (ShowFullTicket)
+        if (!DetailedView)
         {
-            return true;
+            return false;
         }
 
-        if (SelectedReportType == ReportType.TicketReport)
+        if (ShowFullTicket || SelectedReportType == ReportType.TicketReport)
         {
             return true;
         }
@@ -218,12 +260,12 @@
 
     private List<WfImplTask> GetDisplayedImplementationTasks(WfReqTask task)
     {
-        if (ShowFullTicket)
+        if (!DetailedView)
         {
-            return task.ImplementationTasks.OrderBy(implTask => implTask.Id).ToList();
+            return [];
         }
 
-        if (SelectedReportType == ReportType.TicketReport)
+        if (ShowFullTicket || SelectedReportType == ReportType.TicketReport)
         {
             return task.ImplementationTasks.OrderBy(implTask => implTask.Id).ToList();
         }
@@ -246,12 +288,12 @@
 
     private List<WfApproval> GetDisplayedApprovals(WfReqTask task)
     {
-        if (ShowFullTicket)
+        if (!DetailedView)
         {
-            return task.Approvals.OrderBy(approval => approval.Id).ToList();
+            return [];
         }
 
-        if (SelectedReportType == ReportType.TicketReport)
+        if (ShowFullTicket || SelectedReportType == ReportType.TicketReport)
         {
             return task.Approvals.OrderBy(approval => approval.Id).ToList();
         }

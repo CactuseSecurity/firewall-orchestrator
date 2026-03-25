@@ -55,6 +55,10 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("created")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("closed")}</th>");
+            if (HasLabelColumn())
+            {
+                report.AppendLine($"<th>{workflowFilter.LabelFilter.Name}</th>");
+            }
             report.AppendLine("</tr>");
 
             foreach (WfTicket ticket in ReportData.Tickets.OrderBy(ticket => ticket.Id))
@@ -67,12 +71,16 @@ namespace FWO.Report
                 report.AppendLine($"<td>{ResolveStateName(ticket.StateId)}</td>");
                 report.AppendLine($"<td>{ticket.CreationDate}</td>");
                 report.AppendLine($"<td>{ticket.CompletionDate}</td>");
+                if (HasLabelColumn())
+                {
+                    report.AppendLine($"<td>{GetLabelValue(ticket)}</td>");
+                }
                 report.AppendLine("</tr>");
 
                 List<WfReqTask> displayedTasks = GetDisplayedTasks(ticket);
                 if (displayedTasks.Count > 0)
                 {
-                    report.AppendLine("<tr><td colspan=\"7\">");
+                    report.AppendLine($"<tr><td colspan=\"{GetTicketColumnCount()}\">");
                     report.AppendLine($"<b>{userConfig.GetText("tasks")}</b>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
@@ -201,6 +209,34 @@ namespace FWO.Report
         private string ResolveStateName(int stateId)
         {
             return ReportData.WorkflowStateNames.TryGetValue(stateId, out string? stateName) ? stateName : stateId.ToString();
+        }
+
+        private bool HasLabelColumn()
+        {
+            return !string.IsNullOrWhiteSpace(workflowFilter.LabelFilter.Name);
+        }
+
+        private int GetTicketColumnCount()
+        {
+            return HasLabelColumn() ? 8 : 7;
+        }
+
+        private string GetLabelValue(WfTicket ticket)
+        {
+            if (!HasLabelColumn())
+            {
+                return "";
+            }
+
+            List<string> labelValues =
+            [
+                .. ticket.Tasks
+                    .Select(task => task.GetAddInfoValue(workflowFilter.LabelFilter.Name))
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Distinct()
+            ];
+
+            return string.Join(", ", labelValues);
         }
 
         /// <summary>

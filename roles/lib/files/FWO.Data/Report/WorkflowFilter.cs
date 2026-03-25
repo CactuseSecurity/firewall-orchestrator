@@ -93,8 +93,11 @@ namespace FWO.Data.Report
         [JsonProperty("label_filter"), JsonPropertyName("label_filter")]
         public WorkflowLabelFilter LabelFilter { get; set; } = new();
 
+        [JsonProperty("detailed_view"), JsonPropertyName("detailed_view")]
+        public bool DetailedView { get; set; } = false;
+
         [JsonProperty("show_full_ticket"), JsonPropertyName("show_full_ticket")]
-        public bool ShowFullTicket { get; set; } = true;
+        public bool ShowFullTicket { get; set; } = false;
 
         public WorkflowFilter()
         { }
@@ -106,6 +109,7 @@ namespace FWO.Data.Report
             StateIds = [.. workflowFilter.StateIds];
             Phase = workflowFilter.Phase;
             LabelFilter = new(workflowFilter.LabelFilter);
+            DetailedView = workflowFilter.DetailedView;
             ShowFullTicket = workflowFilter.ShowFullTicket;
         }
 

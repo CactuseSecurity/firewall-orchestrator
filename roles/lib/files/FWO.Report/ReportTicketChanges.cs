@@ -15,6 +15,11 @@ namespace FWO.Report
         /// <inheritdoc />
         protected override List<WfReqTask> GetDisplayedTasks(WfTicket ticket)
         {
+            if (!ReportData.WorkflowFilter.DetailedView)
+            {
+                return [];
+            }
+
             if (ReportData.WorkflowFilter.ShowFullTicket)
             {
                 return ticket.Tasks.OrderBy(task => task.Id).ToList();
@@ -42,6 +47,11 @@ namespace FWO.Report
         /// <inheritdoc />
         protected override bool ShowImplementationTasks()
         {
+            if (!ReportData.WorkflowFilter.DetailedView)
+            {
+                return false;
+            }
+
             return ReportData.WorkflowFilter.ShowFullTicket
                 || ReportData.WorkflowFilter.ReferenceDate == WorkflowReferenceDate.ImplementationStart
                 || ReportData.WorkflowFilter.ReferenceDate == WorkflowReferenceDate.ImplementationEnd
@@ -51,6 +61,11 @@ namespace FWO.Report
         /// <inheritdoc />
         protected override bool ShowApprovals()
         {
+            if (!ReportData.WorkflowFilter.DetailedView)
+            {
+                return false;
+            }
+
             return ReportData.WorkflowFilter.ShowFullTicket
                 || ReportData.WorkflowFilter.ReferenceDate == WorkflowReferenceDate.ApprovalOpened
                 || ReportData.WorkflowFilter.ReferenceDate == WorkflowReferenceDate.Approved
@@ -60,6 +75,11 @@ namespace FWO.Report
         /// <inheritdoc />
         protected override List<WfImplTask> GetDisplayedImplementationTasks(WfReqTask task)
         {
+            if (!ReportData.WorkflowFilter.DetailedView)
+            {
+                return [];
+            }
+
             if (ReportData.WorkflowFilter.ShowFullTicket)
             {
                 return task.ImplementationTasks.OrderBy(implTask => implTask.Id).ToList();
@@ -79,6 +99,11 @@ namespace FWO.Report
         /// <inheritdoc />
         protected override List<WfApproval> GetDisplayedApprovals(WfReqTask task)
         {
+            if (!ReportData.WorkflowFilter.DetailedView)
+            {
+                return [];
+            }
+
             if (ReportData.WorkflowFilter.ShowFullTicket)
             {
                 return task.Approvals.OrderBy(approval => approval.Id).ToList();

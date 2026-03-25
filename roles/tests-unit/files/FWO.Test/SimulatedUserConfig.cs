@@ -351,7 +351,8 @@ namespace FWO.Test
             {"H1518","Task type tooltip"},
             {"H1519","State tooltip"},
             {"H1520","Show full ticket tooltip"},
-            {"H1521","Phase tooltip"}
+            {"H1521","Phase tooltip"},
+            {"detailed_view","Detailed View"}
         };
 
         public override string GetText(string key)

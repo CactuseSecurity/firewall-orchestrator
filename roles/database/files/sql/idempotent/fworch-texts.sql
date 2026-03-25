@@ -1808,6 +1808,8 @@ INSERT INTO txt VALUES ('show_full_rules',		'German', 	'vollst&auml;ndige Regeln
 INSERT INTO txt VALUES ('show_full_rules',		'English', 	'show full rules');
 INSERT INTO txt VALUES ('show_full_ticket',		'German', 	'vollst&auml;ndiges Ticket anzeigen');
 INSERT INTO txt VALUES ('show_full_ticket',		'English', 	'show full ticket');
+INSERT INTO txt VALUES ('detailed_view',		'German', 	'Detaillierte Ansicht');
+INSERT INTO txt VALUES ('detailed_view',		'English', 	'Detailed View');
 INSERT INTO txt VALUES ('analyse_remaining_rules','German', 'Verbleibende Regeln analysieren');
 INSERT INTO txt VALUES ('analyse_remaining_rules','English','Analyse remaining rules');
 INSERT INTO txt VALUES ('rules_for_deleted_conns','German', 'Regeln von gel&ouml;schten Verbindungen');

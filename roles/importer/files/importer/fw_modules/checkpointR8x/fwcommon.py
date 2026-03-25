@@ -508,27 +508,16 @@ def define_global_rulebase_link(
 
 
 def define_initial_rulebase_links(device_config: dict[str, Any], ordered_layer_uids: list[str], is_global: bool):
-    device_config["rulebase_links"].extend(
-        [
-            {
-                "from_rulebase_uid": None,
-                "from_rule_uid": None,
-                "to_rulebase_uid": ordered_layer_uids[0],
-                "type": "ordered",
-                "is_global": is_global,
-                "is_initial": True,
-                "is_section": False,
-            },
-            {
-                "from_rulebase_uid": ordered_layer_uids[0],
-                "from_rule_uid": None,
-                "to_rulebase_uid": ordered_layer_uids[1],
-                "type": "ordered",
-                "is_global": is_global,
-                "is_initial": False,
-                "is_section": False,
-            },
-        ]
+    device_config["rulebase_links"].append(
+        {
+            "from_rulebase_uid": None,
+            "from_rule_uid": None,
+            "to_rulebase_uid": ordered_layer_uids[0],
+            "type": "ordered",
+            "is_global": is_global,
+            "is_initial": True,
+            "is_section": False,
+        }
     )
 
 

@@ -15,6 +15,8 @@ from models.fw_common import FwCommon
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManager
 from models.import_state import ImportState
+from models.rulebase import Rulebase
+from models.rulebase_link import RulebaseLinkUidBased
 from utils.conversion_utils import convert_list_to_dict
 
 
@@ -94,6 +96,7 @@ def get_config(
         FWOLogger.info("completed getting config")
         return 0, normalized_config
     # we already have a native config (from file import)
+    add_standard_rulebase(config_in)
     return 0, config_in
 
 
@@ -187,7 +190,32 @@ def normalize_config(
         )
         config_in.ManagerSet.append(manager)
 
+    add_standard_rulebase(config_in)
     return config_in
+
+
+def add_standard_rulebase(config_in: FwConfigManagerListController) -> None:
+    for manager in config_in.ManagerSet:
+        for config in manager.configs:
+            if not any(rb.name == "Standard Rulebase" for rb in config.rulebases):
+                rb = Rulebase(name="Standard Rulebase", uid="Standard", mgm_uid=manager.manager_uid, rules={})
+                config.rulebases.append(rb)
+                for gw in config.gateways:
+                    gw.RulebaseLinks[0].from_rulebase_uid = rb.uid
+                    gw.RulebaseLinks[0].from_rule_uid = None
+                    gw.RulebaseLinks[0].is_initial = False
+                    gw.RulebaseLinks.insert(
+                        0,
+                        RulebaseLinkUidBased(
+                            from_rule_uid=None,
+                            from_rulebase_uid=None,
+                            to_rulebase_uid=rb.uid,
+                            link_type="i",
+                            is_global=False,
+                            is_initial=True,
+                            is_section=False,
+                        ),
+                    )
 
 
 def ensure_native_domains(native_config: dict[str, Any], import_state: ImportState) -> None:

@@ -31,6 +31,11 @@ namespace FWO.Report.Data.ViewData
         public string RulebaseName { get; set; } = "";
         public string Enabled { get; set; } = "";
         public string RuleTime { get; set; } = "";
+        public string ExpirationTime
+        {
+            get => RuleTime;
+            set => RuleTime = value;
+        }
 
         public Rule? DataObject { get; set; }
         public bool Show { get; set; } = true;

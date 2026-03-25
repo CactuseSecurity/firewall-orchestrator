@@ -1790,6 +1790,8 @@ INSERT INTO txt VALUES ('share_link', 	        'German',	'Link teilen');
 INSERT INTO txt VALUES ('share_link', 	        'English',	'Share Link');
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopieren');
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
+INSERT INTO txt VALUES ('workflow_filters',		'German', 	'Workflow-Filter');
+INSERT INTO txt VALUES ('workflow_filters',	    'English', 	'Workflow Filters');
 INSERT INTO txt VALUES ('rule_filters',		    'German', 	'Regel-Filter');
 INSERT INTO txt VALUES ('rule_filters',			'English', 	'Rule Filters');
 INSERT INTO txt VALUES ('variance_filters',		'German', 	'Soll-Ist-Filter');
@@ -4426,6 +4428,8 @@ INSERT INTO txt VALUES ('H1522', 'German',  'Label: Filtert Workflow-Tickets &uu
 INSERT INTO txt VALUES ('H1522', 'English', 'Label: Filters workflow tickets by an additional info field on the request tasks. The dialog allows defining the label name and the expected label state or value.');
 INSERT INTO txt VALUES ('H1523', 'German',  'Name: Referenziert einen Schl&uuml;ssel im AdditionalInfo-Feld des Request Tasks, z.B. ein Label, das zuvor durch eine Action gesetzt wurde.');
 INSERT INTO txt VALUES ('H1523', 'English', 'Name: References a key in the request task additional info field, for example a label that was set earlier by an action.');
+INSERT INTO txt VALUES ('H1524', 'German',  'Detaillierte Ansicht: Ist diese Option aktiviert, werden Request Tasks und deren Details im Bericht angezeigt. Der CSV-Export steht nur zur Verf&uuml;gung, wenn diese Option deaktiviert ist.');
+INSERT INTO txt VALUES ('H1524', 'English', 'Detailed view: If this option is enabled, request tasks and their details are shown in the report. CSV export is only available when this option is disabled.');
 
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.

@@ -427,5 +427,84 @@ namespace FWO.Test
             Assert.That(html, Does.Contain("<th>policy_check</th>"));
             Assert.That(html, Does.Contain("<td>true</td>"));
         }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketReport_ExportToHtml_ShowsWorkflowFiltersInHeader()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.TaskTypes = [WfTaskType.access];
+            template.ReportParams.WorkflowFilter.Phase = "implementation";
+            template.ReportParams.WorkflowFilter.StateIds = [9];
+            template.ReportParams.WorkflowFilter.DetailedView = true;
+            template.ReportParams.WorkflowFilter.ShowFullTicket = false;
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.existing };
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+
+            await report.Generate(0, new ReportTicketChangesApiConnection([]), _ => Task.CompletedTask, CancellationToken.None);
+
+            string html = report.ExportToHtml();
+
+            Assert.That(html, Does.Contain("<p>Workflow Filters:"));
+            Assert.That(html, Does.Contain("Task type: access"));
+            Assert.That(html, Does.Contain("Phase: Implementation"));
+            Assert.That(html, Does.Contain("State: done"));
+            Assert.That(html, Does.Contain("Label: policy_check (existing)"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketReport_ExportToCsv_ReturnsCompactTicketRowsWhenDetailedViewIsDisabled()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.DetailedView = false;
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.existing };
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 1007,
+                    Title = "Csv ticket report",
+                    StateId = 9,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 801,
+                            TaskNumber = 1,
+                            Title = "Request task",
+                            StateId = 9,
+                            AdditionalInfo = "{\"policy_check\":\"true\"}"
+                        }
+                    ],
+                    Requester = new UiUser { Name = "reporter" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            string csv = report.ExportToCsv();
+
+            Assert.That(csv, Does.Contain("\"Id\",\"Name\",\"Tasks\",\"Requester\",\"State\",\"Created\",\"Closed\",\"policy_check\""));
+            Assert.That(csv, Does.Contain("\"1007\",\"Csv ticket report\",\"1\",\"reporter\",\"done\""));
+            Assert.That(csv, Does.Contain("\"true\""));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketReport_ExportToCsv_ThrowsWhenDetailedViewIsEnabled()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.DetailedView = true;
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+
+            await report.Generate(0, new ReportTicketChangesApiConnection([]), _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(() => report.ExportToCsv(), Throws.TypeOf<NotImplementedException>());
+        }
     }
 }

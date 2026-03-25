@@ -143,6 +143,13 @@ namespace FWO.Basics
             };
         }
 
+        public static bool SupportsCsvExport(this ReportType reportType, bool detailedView = false)
+        {
+            return reportType.IsResolvedReport()
+                || reportType.IsComplianceReport()
+                || reportType.IsWorkflowReport() && !detailedView;
+        }
+
         public static List<ReportType> AllReportTypes()
         {
             return [.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>().Where(r => r != ReportType.Undefined)];

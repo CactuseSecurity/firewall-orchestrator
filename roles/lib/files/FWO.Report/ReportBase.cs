@@ -226,7 +226,7 @@ namespace FWO.Report
             return $"<span class=\"{symbol}\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"{linkAddress}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
-        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
+        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? otherFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
@@ -236,7 +236,7 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 ReplaceDateOfConfig(timeFilter);
                 ReplaceOwnerFilter(ownerFilter);
-                ReplaceOtherFilter(deviceFilter);
+                ReplaceOtherFilter(otherFilter);
 
                 string htmlToC = BuildHTMLToC(htmlReport.ToString());
 
@@ -294,17 +294,21 @@ namespace FWO.Report
             }
         }
 
-        private void ReplaceOtherFilter(string? deviceFilter)
+        private void ReplaceOtherFilter(string? otherFilter)
         {
-            if (deviceFilter != null && ReportType != ReportType.RecertEventReport)
+            if (otherFilter != null && ReportType != ReportType.RecertEventReport)
             {
-                if (ReportType.IsRulebaseReport())
+                if (ReportType.IsWorkflowReport())
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("managements") + ": " + deviceFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("workflow_filters") + ": " + otherFilter);
+                }
+                else if (ReportType.IsRulebaseReport())
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("managements") + ": " + otherFilter);
                 }
                 else
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + otherFilter);
                 }
             }
             else
@@ -313,7 +317,7 @@ namespace FWO.Report
             }
         }
 
-        private static string ToUtcString(string? timestring)
+        protected static string ToUtcString(string? timestring)
         {
             try
             {

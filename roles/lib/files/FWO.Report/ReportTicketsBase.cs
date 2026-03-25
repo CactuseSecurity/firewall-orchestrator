@@ -33,7 +33,44 @@ namespace FWO.Report
         /// <inheritdoc />
         public override string ExportToCsv()
         {
-            throw new NotImplementedException();
+            if (ReportData.WorkflowFilter.DetailedView)
+            {
+                throw new NotImplementedException("CSV export is only supported for workflow reports with detailed view disabled.");
+            }
+
+            StringBuilder report = new();
+            report.Append(DisplayWorkflowReportHeaderCsv());
+            report.Append($"\"{userConfig.GetText("id")}\",");
+            report.Append($"\"{userConfig.GetText("name")}\",");
+            report.Append($"\"{userConfig.GetText("tasks")}\",");
+            report.Append($"\"{userConfig.GetText("requester")}\",");
+            report.Append($"\"{userConfig.GetText("state")}\",");
+            report.Append($"\"{userConfig.GetText("created")}\",");
+            report.Append($"\"{userConfig.GetText("closed")}\"");
+            if (HasLabelColumn())
+            {
+                report.Append($",\"{workflowFilter.LabelFilter.Name}\"");
+            }
+            report.AppendLine("");
+
+            foreach (WfTicket ticket in ReportData.Tickets.OrderBy(ticket => ticket.Id))
+            {
+                report.Append(OutputCsv(ticket.Id.ToString()));
+                report.Append(OutputCsv(ticket.Title));
+                report.Append(OutputCsv(ticket.Tasks.Count.ToString()));
+                report.Append(OutputCsv(ticket.Requester?.Name));
+                report.Append(OutputCsv(ResolveStateName(ticket.StateId)));
+                report.Append(OutputCsv(ticket.CreationDate.ToString()));
+                report.Append(OutputCsv(ticket.CompletionDate.ToString()));
+                if (HasLabelColumn())
+                {
+                    report.Append(OutputCsv(GetLabelValue(ticket)));
+                }
+                report.Length--;
+                report.AppendLine("");
+            }
+
+            return report.ToString();
         }
 
         /// <inheritdoc />
@@ -172,7 +209,7 @@ namespace FWO.Report
             }
 
             report.AppendLine("</table>");
-            return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report, BuildWorkflowFilterSummary());
         }
 
         /// <inheritdoc />
@@ -219,6 +256,75 @@ namespace FWO.Report
         private int GetTicketColumnCount()
         {
             return HasLabelColumn() ? 8 : 7;
+        }
+
+        private string BuildWorkflowFilterSummary()
+        {
+            List<string> filterParts = [];
+            int allRealTaskTypesCount = Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().Count(taskType => taskType != WfTaskType.master);
+
+            if (ReportType == ReportType.TicketChangeReport && ReportData.WorkflowFilter.ReferenceDate != WorkflowReferenceDate.AnyActivity)
+            {
+                filterParts.Add($"{userConfig.GetText("reference_date")}: {userConfig.GetText(ReportData.WorkflowFilter.ReferenceDate.ToString())}");
+            }
+
+            if (ReportData.WorkflowFilter.TaskTypes.Count > 0 && ReportData.WorkflowFilter.TaskTypes.Count < allRealTaskTypesCount)
+            {
+                string taskTypes = string.Join(", ", ReportData.WorkflowFilter.TaskTypes.Select(taskType => userConfig.GetText(taskType.ToString())));
+                filterParts.Add($"{userConfig.GetText("task_type")}: {taskTypes}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(ReportData.WorkflowFilter.Phase))
+            {
+                filterParts.Add($"{userConfig.GetText("phase")}: {userConfig.GetText(ReportData.WorkflowFilter.Phase)}");
+            }
+
+            if (ReportData.WorkflowFilter.StateIds.Count > 0)
+            {
+                string states = string.Join(", ", ReportData.WorkflowFilter.StateIds.Select(ResolveStateName));
+                filterParts.Add($"{userConfig.GetText("state")}: {states}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(ReportData.WorkflowFilter.LabelFilter.Name))
+            {
+                string labelFilter = ReportData.WorkflowFilter.LabelFilter.Mode == WorkflowLabelFilterMode.value
+                    ? $"{ReportData.WorkflowFilter.LabelFilter.Name}={ReportData.WorkflowFilter.LabelFilter.Value}"
+                    : $"{ReportData.WorkflowFilter.LabelFilter.Name} ({userConfig.GetText(ReportData.WorkflowFilter.LabelFilter.Mode.ToString())})";
+                filterParts.Add($"{userConfig.GetText("label")}: {labelFilter}");
+            }
+
+            return string.Join("; ", filterParts);
+        }
+
+        private string DisplayWorkflowReportHeaderCsv()
+        {
+            StringBuilder report = new();
+            report.AppendLine($"# report type: {userConfig.GetText(ReportType.ToString())}");
+            report.AppendLine($"# report generation date: {DateTime.Now.ToUniversalTime():yyyy-MM-ddTHH:mm:ssK} (UTC)");
+            if (ReportType == ReportType.TicketChangeReport
+                && Query.QueryVariables.TryGetValue("ticket_time_start", out object? startObj)
+                && Query.QueryVariables.TryGetValue("ticket_time_end", out object? endObj))
+            {
+                report.AppendLine($"# change time: from {ToUtcString(startObj?.ToString())}, until {ToUtcString(endObj?.ToString())}");
+            }
+            string workflowFilters = BuildWorkflowFilterSummary();
+            if (!string.IsNullOrWhiteSpace(workflowFilters))
+            {
+                report.AppendLine($"# workflow filter: {workflowFilters}");
+            }
+            if (!string.IsNullOrWhiteSpace(Query.RawFilter))
+            {
+                report.AppendLine($"# other filters: {Query.RawFilter}");
+            }
+            report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
+            report.AppendLine($"# data protection level: For internal use only");
+            report.AppendLine("#");
+            return report.ToString();
+        }
+
+        private static string OutputCsv(string? input)
+        {
+            return $"\"{input?.Replace("\"", "\"\"") ?? ""}\",";
         }
 
         private string GetLabelValue(WfTicket ticket)

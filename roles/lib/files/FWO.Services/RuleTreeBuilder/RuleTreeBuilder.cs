@@ -226,15 +226,22 @@ namespace FWO.Services.RuleTreeBuilder
         {
             if (RuleTree.LastAddedItem != null)
             {
-                RuleTreeItem lastAddedItem = (RuleTreeItem)RuleTree.LastAddedItem;
+                RuleTreeItem lastAddedItem = RuleTree.LastAddedItem;
+
+                lastAddedItem.IsExpanded = true;
+                lastAddedItem.IsVisible = true;
 
                 for (int i = 0; i < rulebase.Rules.Count(); i++)
                 {
                     Rule newRule = GetUniqueRuleObject(rulebase.Rules[i]);
 
-                    RuleTreeItem ruleItem = new();
-                    ruleItem.IsRule = true;
-                    ruleItem.Data = newRule;
+                    RuleTreeItem ruleItem = new()
+                    {
+                        IsRule = true,
+                        Data = newRule,
+                        IsExpanded = true,
+                        IsVisible = true
+                    };
 
                     SetParentForTreeItem(ruleItem, link, lastAddedItem);
 

@@ -380,12 +380,17 @@ def process_devices(
                 cp_manager_api_base_url,
             )
         else:
-            define_initial_rulebase_links(device_config, ordered_layer_uids, is_global=False)
+            define_initial_rulebase_links(device_config, ordered_layer_uids, policy_structure, is_global=False)
 
         policy_structure_dict = next(
-            (policy for policy in policy_structure if policy["uid"] == ordered_layer_uids[0]),
-            {"uid": ordered_layer_uids[0]},
+            (
+                policy
+                for policy in policy_structure
+                if any(access_layer["uid"] in ordered_layer_uids for access_layer in policy["access-layers"])
+            ),
+            {"uid": ""},
         )
+
         add_ordered_layers_to_native_config(
             ordered_layer_uids,
             get_rules_params(import_state),
@@ -459,6 +464,7 @@ def handle_global_rulebase_links(
                     ordered_layer_uids,
                     native_config_global_domain,
                     global_policy_rulebases_uid_list,
+                    global_policy_structure,
                 )
 
                 return global_ordered_layer_count
@@ -472,11 +478,12 @@ def define_global_rulebase_link(
     ordered_layer_uids: list[str],
     native_config_global_domain: dict[str, Any],
     global_policy_rulebases_uid_list: list[str],
+    policy_structure: list[dict[str, Any]],
 ):
     """
     Links initial and placeholder rule for global rulebases
     """
-    define_initial_rulebase_links(device_config, global_ordered_layer_uids, is_global=True)
+    define_initial_rulebase_links(device_config, global_ordered_layer_uids, policy_structure, is_global=True)
 
     # parse global rulebases, find place-holders and link local rulebases
     placeholder_link_index = 0
@@ -507,18 +514,47 @@ def define_global_rulebase_link(
                     placeholder_link_index += 1
 
 
-def define_initial_rulebase_links(device_config: dict[str, Any], ordered_layer_uids: list[str], is_global: bool):
-    device_config["rulebase_links"].append(
-        {
-            "from_rulebase_uid": None,
-            "from_rule_uid": None,
-            "to_rulebase_uid": ordered_layer_uids[0],
-            "type": "ordered",
-            "is_global": is_global,
-            "is_initial": True,
-            "is_section": False,
-        }
+def define_initial_rulebase_links(
+    device_config: dict[str, Any],
+    ordered_layer_uids: list[str],
+    policy_structures: list[dict[str, Any]],
+    is_global: bool,
+):
+
+    for policy in policy_structures:
+        device_config["rulebase_links"].append(
+            {
+                "from_rulebase_uid": None,
+                "from_rule_uid": None,
+                "to_rulebase_uid": policy["uid"],
+                "type": "ordered",
+                "is_global": is_global,
+                "is_initial": True,
+                "is_section": False,
+            }
+        )
+
+    """ policy_structure = next(
+        (policy for policy in policy_structures if policy["uid"] == ordered_layer_uids[0]),
+        {"uid": ordered_layer_uids[0]},
     )
+    access_layers_uuids = [access_layer["uid"] for access_layer in policy_structure.get("access-layers", [])]  # pyright: ignore[reportArgumentType]
+
+    contains_any_uuid = any(uid in access_layers_uuids for uid in ordered_layer_uids)
+    if contains_any_uuid:
+        device_config["rulebase_links"].append(
+            {
+                "from_rulebase_uid": None,
+                "from_rule_uid": None,
+                "to_rulebase_uid": ordered_layer_uids[0],
+                "type": "ordered",
+                "is_global": is_global,
+                "is_initial": True,
+                "is_section": False,
+            }
+        )
+    else:
+        del ordered_layer_uids[0] """
 
 
 def get_rules_params(import_state: ImportState) -> dict[str, Any]:
@@ -613,8 +649,8 @@ def get_ordered_layer_uids(
     ordered_layer_uids: list[str] = []
     for policy in policy_structure:
         found_target_in_policy = False
-        if "uid" in policy:
-            ordered_layer_uids.extend([policy["uid"]])
+        # if "uid" in policy:
+        #    ordered_layer_uids.extend([policy["uid"]])
         for target in policy["targets"]:
             if target["uid"] == device_config["uid"] or target["uid"] == "all":
                 found_target_in_policy = True

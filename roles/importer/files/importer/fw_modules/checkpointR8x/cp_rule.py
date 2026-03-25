@@ -66,7 +66,9 @@ def normalize_rulebases_for_each_link_destination(
     normalized_config_global: dict[str, Any],
 ):
     for rulebase_link in gateway["rulebase_links"]:
-        if rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["to_rulebase_uid"] != "":
+        if (
+            rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["to_rulebase_uid"] != ""
+        ) and rulebase_link["to_rulebase_uid"] not in [policy["uid"] for policy in native_config.get("policies", [])]:
             rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
                 native_config["rulebases"], rulebase_link["to_rulebase_uid"]
             )

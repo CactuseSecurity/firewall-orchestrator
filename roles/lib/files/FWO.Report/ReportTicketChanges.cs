@@ -3,6 +3,7 @@ using FWO.Config.Api;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Report.Filter;
+using System.Globalization;
 
 namespace FWO.Report
 {
@@ -143,12 +144,14 @@ namespace FWO.Report
                 return false;
             }
 
-            if (!Query.QueryVariables.TryGetValue("ticket_time_start", out object? startObj) || !DateTime.TryParse(startObj?.ToString(), out DateTime start))
+            if (!Query.QueryVariables.TryGetValue("ticket_time_start", out object? startObj)
+                || !DateTime.TryParse(startObj?.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime start))
             {
                 return true;
             }
 
-            if (!Query.QueryVariables.TryGetValue("ticket_time_end", out object? endObj) || !DateTime.TryParse(endObj?.ToString(), out DateTime end))
+            if (!Query.QueryVariables.TryGetValue("ticket_time_end", out object? endObj)
+                || !DateTime.TryParse(endObj?.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime end))
             {
                 return true;
             }

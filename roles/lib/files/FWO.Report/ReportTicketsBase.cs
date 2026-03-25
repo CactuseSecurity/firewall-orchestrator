@@ -18,7 +18,7 @@ namespace FWO.Report
         : ReportBase(query, userConfig, reportType)
     {
         /// <inheritdoc />
-        public override async Task Generate(int _, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
+        public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             await ResolvePhaseFilterAsync(apiConnection);
             List<WfTicket> tickets = await apiConnection.SendQueryAsync<List<WfTicket>>(Query.FullQuery, Query.QueryVariables);
@@ -84,128 +84,12 @@ namespace FWO.Report
         {
             StringBuilder report = new();
             report.AppendLine("<table>");
-            report.AppendLine("<tr>");
-            report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("tasks")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("requester")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("created")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("closed")}</th>");
-            if (HasLabelColumn())
-            {
-                report.AppendLine($"<th>{workflowFilter.LabelFilter.Name}</th>");
-            }
-            report.AppendLine("</tr>");
+            AppendTicketTableHeader(report);
 
             foreach (WfTicket ticket in ReportData.Tickets.OrderBy(ticket => ticket.Id))
             {
-                report.AppendLine("<tr>");
-                report.AppendLine($"<td>{ticket.Id}</td>");
-                report.AppendLine($"<td>{ticket.Title}</td>");
-                report.AppendLine($"<td>{ticket.Tasks.Count}</td>");
-                report.AppendLine($"<td>{ticket.Requester?.Name}</td>");
-                report.AppendLine($"<td>{ResolveStateName(ticket.StateId)}</td>");
-                report.AppendLine($"<td>{ticket.CreationDate}</td>");
-                report.AppendLine($"<td>{ticket.CompletionDate}</td>");
-                if (HasLabelColumn())
-                {
-                    report.AppendLine($"<td>{GetLabelValue(ticket)}</td>");
-                }
-                report.AppendLine("</tr>");
-
-                List<WfReqTask> displayedTasks = GetDisplayedTasks(ticket);
-                if (displayedTasks.Count > 0)
-                {
-                    report.AppendLine($"<tr><td colspan=\"{GetTicketColumnCount()}\">");
-                    report.AppendLine($"<b>{userConfig.GetText("tasks")}</b>");
-                    report.AppendLine("<table>");
-                    report.AppendLine("<tr>");
-                    report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("task_number")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("start_time")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("end_time")}</th>");
-                    report.AppendLine("</tr>");
-
-                    foreach (WfReqTask task in displayedTasks)
-                    {
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{task.Id}</td>");
-                        report.AppendLine($"<td>{task.TaskNumber}</td>");
-                        report.AppendLine($"<td>{task.Title}</td>");
-                        report.AppendLine($"<td>{ResolveStateName(task.StateId)}</td>");
-                        report.AppendLine($"<td>{task.Start}</td>");
-                        report.AppendLine($"<td>{task.Stop}</td>");
-                        report.AppendLine("</tr>");
-
-                        if (ShowImplementationTasks())
-                        {
-                            List<WfImplTask> implementationTasks = GetDisplayedImplementationTasks(task);
-                            if (implementationTasks.Count > 0)
-                            {
-                                report.AppendLine($"<tr><td colspan=\"6\"><b>{userConfig.GetText("implementation")}</b>");
-                                report.AppendLine("<table>");
-                                report.AppendLine("<tr>");
-                                report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("task_number")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("start_time")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("end_time")}</th>");
-                                report.AppendLine("</tr>");
-
-                                foreach (WfImplTask implTask in implementationTasks)
-                                {
-                                    report.AppendLine("<tr>");
-                                    report.AppendLine($"<td>{implTask.Id}</td>");
-                                    report.AppendLine($"<td>{implTask.TaskNumber}</td>");
-                                    report.AppendLine($"<td>{implTask.Title}</td>");
-                                    report.AppendLine($"<td>{ResolveStateName(implTask.StateId)}</td>");
-                                    report.AppendLine($"<td>{implTask.Start}</td>");
-                                    report.AppendLine($"<td>{implTask.Stop}</td>");
-                                    report.AppendLine("</tr>");
-                                }
-
-                                report.AppendLine("</table></td></tr>");
-                            }
-                        }
-
-                        if (ShowApprovals())
-                        {
-                            List<WfApproval> approvals = GetDisplayedApprovals(task);
-                            if (approvals.Count > 0)
-                            {
-                                report.AppendLine($"<tr><td colspan=\"6\"><b>{userConfig.GetText("approval")}</b>");
-                                report.AppendLine("<table>");
-                                report.AppendLine("<tr>");
-                                report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("opened")}</th>");
-                                report.AppendLine($"<th>{userConfig.GetText("approved")}</th>");
-                                report.AppendLine("</tr>");
-
-                                foreach (WfApproval approval in approvals)
-                                {
-                                    report.AppendLine("<tr>");
-                                    report.AppendLine($"<td>{approval.Id}</td>");
-                                    report.AppendLine($"<td>{approval.ApproverGroup}</td>");
-                                    report.AppendLine($"<td>{ResolveStateName(approval.StateId)}</td>");
-                                    report.AppendLine($"<td>{approval.DateOpened}</td>");
-                                    report.AppendLine($"<td>{approval.ApprovalDate}</td>");
-                                    report.AppendLine("</tr>");
-                                }
-
-                                report.AppendLine("</table></td></tr>");
-                            }
-                        }
-                    }
-
-                    report.AppendLine("</table>");
-                    report.AppendLine("</td></tr>");
-                }
+                AppendTicketRow(report, ticket);
+                AppendTaskDetailsSection(report, ticket);
             }
 
             report.AppendLine("</table>");
@@ -246,6 +130,164 @@ namespace FWO.Report
         private string ResolveStateName(int stateId)
         {
             return ReportData.WorkflowStateNames.TryGetValue(stateId, out string? stateName) ? stateName : stateId.ToString();
+        }
+
+        private void AppendTicketTableHeader(StringBuilder report)
+        {
+            report.AppendLine("<tr>");
+            report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("tasks")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("requester")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("created")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("closed")}</th>");
+            if (HasLabelColumn())
+            {
+                report.AppendLine($"<th>{workflowFilter.LabelFilter.Name}</th>");
+            }
+            report.AppendLine("</tr>");
+        }
+
+        private void AppendTicketRow(StringBuilder report, WfTicket ticket)
+        {
+            report.AppendLine("<tr>");
+            report.AppendLine($"<td>{ticket.Id}</td>");
+            report.AppendLine($"<td>{ticket.Title}</td>");
+            report.AppendLine($"<td>{ticket.Tasks.Count}</td>");
+            report.AppendLine($"<td>{ticket.Requester?.Name}</td>");
+            report.AppendLine($"<td>{ResolveStateName(ticket.StateId)}</td>");
+            report.AppendLine($"<td>{ticket.CreationDate}</td>");
+            report.AppendLine($"<td>{ticket.CompletionDate}</td>");
+            if (HasLabelColumn())
+            {
+                report.AppendLine($"<td>{GetLabelValue(ticket)}</td>");
+            }
+            report.AppendLine("</tr>");
+        }
+
+        private void AppendTaskDetailsSection(StringBuilder report, WfTicket ticket)
+        {
+            List<WfReqTask> displayedTasks = GetDisplayedTasks(ticket);
+            if (displayedTasks.Count == 0)
+            {
+                return;
+            }
+
+            report.AppendLine($"<tr><td colspan=\"{GetTicketColumnCount()}\">");
+            report.AppendLine($"<b>{userConfig.GetText("tasks")}</b>");
+            report.AppendLine("<table>");
+            AppendTaskTableHeader(report);
+
+            foreach (WfReqTask task in displayedTasks)
+            {
+                AppendTaskRow(report, task);
+                AppendImplementationTasks(report, task);
+                AppendApprovals(report, task);
+            }
+
+            report.AppendLine("</table>");
+            report.AppendLine("</td></tr>");
+        }
+
+        private void AppendTaskTableHeader(StringBuilder report)
+        {
+            report.AppendLine("<tr>");
+            report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("task_number")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("start_time")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("end_time")}</th>");
+            report.AppendLine("</tr>");
+        }
+
+        private void AppendTaskRow(StringBuilder report, WfReqTask task)
+        {
+            report.AppendLine("<tr>");
+            report.AppendLine($"<td>{task.Id}</td>");
+            report.AppendLine($"<td>{task.TaskNumber}</td>");
+            report.AppendLine($"<td>{task.Title}</td>");
+            report.AppendLine($"<td>{ResolveStateName(task.StateId)}</td>");
+            report.AppendLine($"<td>{task.Start}</td>");
+            report.AppendLine($"<td>{task.Stop}</td>");
+            report.AppendLine("</tr>");
+        }
+
+        private void AppendImplementationTasks(StringBuilder report, WfReqTask task)
+        {
+            if (!ShowImplementationTasks())
+            {
+                return;
+            }
+
+            List<WfImplTask> implementationTasks = GetDisplayedImplementationTasks(task);
+            if (implementationTasks.Count == 0)
+            {
+                return;
+            }
+
+            report.AppendLine($"<tr><td colspan=\"6\"><b>{userConfig.GetText("implementation")}</b>");
+            report.AppendLine("<table>");
+            report.AppendLine("<tr>");
+            report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("task_number")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("start_time")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("end_time")}</th>");
+            report.AppendLine("</tr>");
+
+            foreach (WfImplTask implTask in implementationTasks)
+            {
+                report.AppendLine("<tr>");
+                report.AppendLine($"<td>{implTask.Id}</td>");
+                report.AppendLine($"<td>{implTask.TaskNumber}</td>");
+                report.AppendLine($"<td>{implTask.Title}</td>");
+                report.AppendLine($"<td>{ResolveStateName(implTask.StateId)}</td>");
+                report.AppendLine($"<td>{implTask.Start}</td>");
+                report.AppendLine($"<td>{implTask.Stop}</td>");
+                report.AppendLine("</tr>");
+            }
+
+            report.AppendLine("</table></td></tr>");
+        }
+
+        private void AppendApprovals(StringBuilder report, WfReqTask task)
+        {
+            if (!ShowApprovals())
+            {
+                return;
+            }
+
+            List<WfApproval> approvals = GetDisplayedApprovals(task);
+            if (approvals.Count == 0)
+            {
+                return;
+            }
+
+            report.AppendLine($"<tr><td colspan=\"6\"><b>{userConfig.GetText("approval")}</b>");
+            report.AppendLine("<table>");
+            report.AppendLine("<tr>");
+            report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("opened")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("approved")}</th>");
+            report.AppendLine("</tr>");
+
+            foreach (WfApproval approval in approvals)
+            {
+                report.AppendLine("<tr>");
+                report.AppendLine($"<td>{approval.Id}</td>");
+                report.AppendLine($"<td>{approval.ApproverGroup}</td>");
+                report.AppendLine($"<td>{ResolveStateName(approval.StateId)}</td>");
+                report.AppendLine($"<td>{approval.DateOpened}</td>");
+                report.AppendLine($"<td>{approval.ApprovalDate}</td>");
+                report.AppendLine("</tr>");
+            }
+
+            report.AppendLine("</table></td></tr>");
         }
 
         private bool HasLabelColumn()

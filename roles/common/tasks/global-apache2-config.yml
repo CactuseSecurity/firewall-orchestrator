@@ -40,5 +40,6 @@
       service:
         name: "{{ webserver_package_name }}"
         state: restarted
+      when: installation_mode != "upgrade"
 
   become: true

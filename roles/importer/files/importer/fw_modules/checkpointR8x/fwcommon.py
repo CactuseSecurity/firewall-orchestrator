@@ -197,8 +197,8 @@ def normalize_config(
 def add_standard_rulebase(config_in: FwConfigManagerListController) -> None:
     for manager in config_in.ManagerSet:
         for config in manager.configs:
-            if not any(rb.name == "Standard Rulebase" for rb in config.rulebases):
-                rb = Rulebase(name="Standard Rulebase", uid="Standard", mgm_uid=manager.manager_uid, rules={})
+            if not any(rb.name == "Standard" for rb in config.rulebases):
+                rb = Rulebase(name="Standard", uid="Standard", mgm_uid=manager.manager_uid, rules={})
                 config.rulebases.append(rb)
                 for gw in config.gateways:
                     gw.RulebaseLinks[0].from_rulebase_uid = rb.uid
@@ -210,7 +210,7 @@ def add_standard_rulebase(config_in: FwConfigManagerListController) -> None:
                             from_rule_uid=None,
                             from_rulebase_uid=None,
                             to_rulebase_uid=rb.uid,
-                            link_type="i",
+                            link_type="ordered",
                             is_global=False,
                             is_initial=True,
                             is_section=False,

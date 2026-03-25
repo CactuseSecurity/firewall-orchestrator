@@ -36,6 +36,16 @@
     - name: enable global security settings
       command: "a2enconf security"
 
+    - name: remove duplicate FWO custom apache listener lines during upgrade
+      lineinfile:
+        path: /etc/apache2/ports.conf
+        regexp: '^\s*Listen {{ item }}\s*$'
+        state: absent
+      loop:
+        - "{{ middleware_web_listener_port }}"
+        - "{{ api_web_port }}"
+      when: installation_mode == "upgrade"
+
     - name: restart apache
       service:
         name: "{{ webserver_package_name }}"

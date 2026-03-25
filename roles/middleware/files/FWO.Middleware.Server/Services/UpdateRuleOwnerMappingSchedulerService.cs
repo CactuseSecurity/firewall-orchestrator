@@ -11,7 +11,7 @@ namespace FWO.Middleware.Server.Services
     /// </summary>
     public class UpdateRuleOwnerMappingSchedulerService : QuartzSchedulerServiceBase<UpdateRuleOwnerMappingJob>
     {
-        private const string JobKeyName = "UpdateRuleOwnerMappingJob";
+        private const string JobKeyName = "UpdateRuleOwnerMappingNotifyJob";
         private const string TriggerKeyName = "UpdateRuleOwnerMappingTrigger";
         private const string SchedulerName = "UpdateRuleOwnerMappingScheduler";
 

@@ -342,6 +342,7 @@ def get_rulebases(
     native_config_domain: dict[str, Any] | None,
     device_config: dict[str, Any] | None,
     policy_rulebases_uid_list: list[str],
+    policy_structure: dict[str, Any],
     is_global: bool = False,
     access_type: str = "access",
     rulebase_uid: str | None = None,
@@ -362,6 +363,11 @@ def get_rulebases(
         native_config_rulebase_key = "nat_rulebases"
     else:
         FWOLogger.error('access_type is neither "access" nor "nat", but ' + access_type)
+
+    if not any(rb["uid"] == policy_structure["uid"] for rb in native_config_domain[native_config_rulebase_key]):
+        native_config_domain[native_config_rulebase_key].append(
+            {"uid": policy_structure["uid"], "name": policy_structure["name"], "chunks": []}
+        )
 
     # get uid of rulebase
     if rulebase_uid is None:
@@ -401,6 +407,7 @@ def get_rulebases(
         show_params_rules,
         is_global,
         policy_rulebases_uid_list,
+        policy_structure=policy_structure,
     )
 
 
@@ -524,6 +531,7 @@ def get_inline_layers_recursively(
     show_params_rules: dict[str, Any],
     is_global: bool,
     policy_rulebases_uid_list: list[str],
+    policy_structure: dict[str, Any],
 ) -> list[str]:
     """
     Takes current_rulebase, splits sections into sub-rulebases and searches for layerguards to fetch
@@ -563,6 +571,7 @@ def get_inline_layers_recursively(
                             is_global=is_global,
                             access_type="access",
                             rulebase_uid=rule["inline-layer"],
+                            policy_structure=policy_structure,
                         )
 
     return policy_rulebases_uid_list

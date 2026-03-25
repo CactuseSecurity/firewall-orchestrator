@@ -4,7 +4,7 @@ from typing import Any
 
 import fwo_const
 import fwo_globals
-from fw_modules.checkpointR8x import cp_const, cp_gateway, cp_getter, cp_network, cp_rule, cp_service
+from fw_modules.checkpointR8x import cp_const, cp_gateway, cp_getter, cp_nat, cp_network, cp_rule, cp_service
 from fwo_base import ConfigAction
 from fwo_exceptions import FwLoginFailedError, FwoImporterError, ImportInterruptionError
 from fwo_log import FWOLogger
@@ -15,8 +15,6 @@ from models.fw_common import FwCommon
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManager
 from models.import_state import ImportState
-from models.rulebase import Rulebase
-from models.rulebase_link import RulebaseLinkUidBased
 from utils.conversion_utils import convert_list_to_dict
 
 
@@ -96,7 +94,6 @@ def get_config(
         FWOLogger.info("completed getting config")
         return 0, normalized_config
     # we already have a native config (from file import)
-    add_standard_rulebase(config_in)
     return 0, config_in
 
 
@@ -190,32 +187,7 @@ def normalize_config(
         )
         config_in.ManagerSet.append(manager)
 
-    add_standard_rulebase(config_in)
     return config_in
-
-
-def add_standard_rulebase(config_in: FwConfigManagerListController) -> None:
-    for manager in config_in.ManagerSet:
-        for config in manager.configs:
-            if not any(rb.name == "Standard" for rb in config.rulebases):
-                rb = Rulebase(name="Standard", uid="Standard", mgm_uid=manager.manager_uid, rules={})
-                config.rulebases.append(rb)
-                for gw in config.gateways:
-                    gw.RulebaseLinks[0].from_rulebase_uid = rb.uid
-                    gw.RulebaseLinks[0].from_rule_uid = None
-                    gw.RulebaseLinks[0].is_initial = False
-                    gw.RulebaseLinks.insert(
-                        0,
-                        RulebaseLinkUidBased(
-                            from_rule_uid=None,
-                            from_rulebase_uid=None,
-                            to_rulebase_uid=rb.uid,
-                            link_type="ordered",
-                            is_global=False,
-                            is_initial=True,
-                            is_section=False,
-                        ),
-                    )
 
 
 def ensure_native_domains(native_config: dict[str, Any], import_state: ImportState) -> None:
@@ -257,6 +229,7 @@ def normalize_single_manager_config(
     cp_network.normalize_time_objects(native_config, normalized_config_dict)
     FWOLogger.info("completed normalizing time objects")
     cp_gateway.normalize_gateways(native_config, import_state, normalized_config_dict)
+    cp_nat.normalize_nat_rules(native_config, import_state, normalized_config_dict)
     cp_rule.normalize_rulebases(
         native_config,
         native_config_global,
@@ -407,8 +380,12 @@ def process_devices(
                 cp_manager_api_base_url,
             )
         else:
-            define_initial_rulebase(device_config, ordered_layer_uids, is_global=False)
+            define_initial_rulebase_links(device_config, ordered_layer_uids, is_global=False)
 
+        policy_structure_dict = next(
+            (policy for policy in policy_structure if policy["uid"] == ordered_layer_uids[0]),
+            {"uid": ordered_layer_uids[0]},
+        )
         add_ordered_layers_to_native_config(
             ordered_layer_uids,
             get_rules_params(import_state),
@@ -418,9 +395,10 @@ def process_devices(
             device_config,
             is_global=False,
             global_ordered_layer_count=global_ordered_layer_count,
+            policy_structure=policy_structure_dict,
         )
 
-        handle_nat_rules(device, native_config_domain, sid, import_state)
+        handle_nat_rules(native_config_domain, sid, import_state)
 
         native_config_domain["gateways"].append(device_config)
 
@@ -473,6 +451,7 @@ def handle_global_rulebase_links(
                     device_config,
                     is_global=True,
                     global_ordered_layer_count=global_ordered_layer_count,
+                    policy_structure=global_policy,
                 )
                 define_global_rulebase_link(
                     device_config,
@@ -497,7 +476,7 @@ def define_global_rulebase_link(
     """
     Links initial and placeholder rule for global rulebases
     """
-    define_initial_rulebase(device_config, global_ordered_layer_uids, is_global=True)
+    define_initial_rulebase_links(device_config, global_ordered_layer_uids, is_global=True)
 
     # parse global rulebases, find place-holders and link local rulebases
     placeholder_link_index = 0
@@ -528,17 +507,28 @@ def define_global_rulebase_link(
                     placeholder_link_index += 1
 
 
-def define_initial_rulebase(device_config: dict[str, Any], ordered_layer_uids: list[str], is_global: bool):
-    device_config["rulebase_links"].append(
-        {
-            "from_rulebase_uid": None,
-            "from_rule_uid": None,
-            "to_rulebase_uid": ordered_layer_uids[0],
-            "type": "ordered",
-            "is_global": is_global,
-            "is_initial": True,
-            "is_section": False,
-        }
+def define_initial_rulebase_links(device_config: dict[str, Any], ordered_layer_uids: list[str], is_global: bool):
+    device_config["rulebase_links"].extend(
+        [
+            {
+                "from_rulebase_uid": None,
+                "from_rule_uid": None,
+                "to_rulebase_uid": ordered_layer_uids[0],
+                "type": "ordered",
+                "is_global": is_global,
+                "is_initial": True,
+                "is_section": False,
+            },
+            {
+                "from_rulebase_uid": ordered_layer_uids[0],
+                "from_rule_uid": None,
+                "to_rulebase_uid": ordered_layer_uids[1],
+                "type": "ordered",
+                "is_global": is_global,
+                "is_initial": False,
+                "is_section": False,
+            },
+        ]
     )
 
 
@@ -551,15 +541,15 @@ def get_rules_params(import_state: ImportState) -> dict[str, Any]:
     }
 
 
-def handle_nat_rules(device: dict[str, Any], native_config_domain: dict[str, Any], sid: str, import_state: ImportState):
-    if device.get("package_name"):
+def handle_nat_rules(native_config_domain: dict[str, Any], sid: str, import_state: ImportState):
+    if "rulebases" in native_config_domain and len(native_config_domain["rulebases"]) > 0:
+        first_rulebase_name = native_config_domain["rulebases"][0]["name"]
         show_params_rules: dict[str, Any] = {
             "limit": import_state.fwo_config.api_fetch_size,
             "use-object-dictionary": cp_const.use_object_dictionary,
-            "details-level": "standard",
-            "package": device["package_name"],
+            "package": first_rulebase_name,
         }
-        FWOLogger.debug(f"Getting NAT rules for package: {device['package_name']}", 4)
+        FWOLogger.debug(f"Getting NAT rules for package: {first_rulebase_name}", 4)
         nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
             import_state.mgm_details.build_fw_api_string(),
             sid,
@@ -583,6 +573,7 @@ def add_ordered_layers_to_native_config(
     device_config: dict[str, Any],
     is_global: bool,
     global_ordered_layer_count: int,
+    policy_structure: dict[str, Any],
 ) -> list[str]:
     """
     Fetches ordered layers and links them
@@ -601,6 +592,7 @@ def add_ordered_layers_to_native_config(
             is_global=is_global,
             access_type="access",
             rulebase_uid=ordered_layer_uid,
+            policy_structure=policy_structure,
         )
 
         # link to next ordered layer
@@ -632,6 +624,8 @@ def get_ordered_layer_uids(
     ordered_layer_uids: list[str] = []
     for policy in policy_structure:
         found_target_in_policy = False
+        if "uid" in policy:
+            ordered_layer_uids.extend([policy["uid"]])
         for target in policy["targets"]:
             if target["uid"] == device_config["uid"] or target["uid"] == "all":
                 found_target_in_policy = True

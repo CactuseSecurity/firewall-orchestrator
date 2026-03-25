@@ -185,4 +185,6 @@ apache_security_headers:
     - 'Header always set X-Frame-Options "SAMEORIGIN"'
     - 'Header always set X-Content-Type-Options "nosniff"'
 
+apache_ssl_protocol: "SSLProtocol -all +TLSv1.2 +TLSv1.3"
+
 apache_global_settings_file: /etc/apache2/conf-available/security.conf

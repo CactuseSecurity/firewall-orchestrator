@@ -3,6 +3,9 @@
 This roles installs the OpenLDAP server on the target machine. It has the
 option to enable/disable SSL by setting it in defaults or overriding it.
 
+For FWO installer use, Debian-family targets are expected to be Debian >= 12
+or Ubuntu >= 20.04.
+
 ## Requirements
 
 This role requires Ansible 1.4 or higher, and platform requirements are listed
@@ -21,6 +24,7 @@ openldap_servercountry: US                     # The self signed ssl certificate
 openldap_serverstate: Oregon
 openldap_serverlocation: Portland
 openldap_serverorganization: IT
+openldap_serverservices: ldap://127.0.0.1/ ldaps:///   # Derived from SSL setting
 ```
 
 ## Example: Configure an OpenLDAP server with SSL
@@ -42,6 +46,14 @@ openldap_serverorganization: IT
 ## Dependencies
 
 None
+
+## Notes
+
+- The role writes `SLAPD_SERVICES` to `/etc/default/slapd`.
+- The systemd drop-in consumes that value so the listener configuration is
+  defined in one place.
+- When `openldap_server_enable_ssl` is `false`, the role starts `slapd`
+  without `ldaps:///`.
 
 ## License
 

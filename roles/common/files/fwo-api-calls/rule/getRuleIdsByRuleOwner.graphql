@@ -1,4 +1,4 @@
-query GetRuleIdsByRuleOwner($ownerId: Int!, $owner_mapping_source: bigint!) {
+query GetRuleIdsByRuleOwner($ownerId: Int!, $owner_mapping_source: smallint!) {
     rule_owner(
         where: {
             owner_mapping_source_id: { _eq: $owner_mapping_source }

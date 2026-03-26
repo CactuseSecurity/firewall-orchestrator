@@ -53,7 +53,8 @@
     - name: add port to apache
       lineinfile:
         path: "/etc/apache2/ports.conf"
-        line: "    Listen {{ api_web_port }}"
+        line: "Listen {{ api_web_port }}"
+        regexp: '^\s*Listen {{ api_web_port }}\s*$'
         insertafter: "<IfModule ssl_module>"
 
     - name: restart apache

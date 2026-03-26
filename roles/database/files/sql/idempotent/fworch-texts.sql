@@ -271,6 +271,10 @@ INSERT INTO txt VALUES ('RecertDate',       	'German',	'Rezertifizierungsdatum')
 INSERT INTO txt VALUES ('RecertDate', 	    	'English',	'Recertification Date');
 INSERT INTO txt VALUES ('RequestDate',       	'German',	'Antragsdatum');
 INSERT INTO txt VALUES ('RequestDate', 	    	'English',	'Request Date');
+INSERT INTO txt VALUES ('RuleExpiry',       	'German',	'Ablaufdatum');
+INSERT INTO txt VALUES ('RuleExpiry', 	    	'English',	'Expiry Date');
+INSERT INTO txt VALUES ('DecommissionDate',     'German',	'Stilllegungsdatum');
+INSERT INTO txt VALUES ('DecommissionDate', 	'English',	'Decommission Date');
 INSERT INTO txt VALUES ('Public',       		'German',	'&Ouml;ffentlich');
 INSERT INTO txt VALUES ('Public', 	    		'English',	'Public');
 INSERT INTO txt VALUES ('Restricted',       	'German',	'Beschr&auml;nkt');
@@ -285,6 +289,20 @@ INSERT INTO txt VALUES ('NameField',            'German',   'Namensfeld');
 INSERT INTO txt VALUES ('NameField',            'English',  'Name field');
 INSERT INTO txt VALUES ('Manual',               'German',   'Manuell');
 INSERT INTO txt VALUES ('Manual',               'English',  'Manual');
+INSERT INTO txt VALUES ('DemoData',             'German', 	'Demo-Daten');
+INSERT INTO txt VALUES ('DemoData',             'English', 	'Demo data');
+INSERT INTO txt VALUES ('Imports',              'German', 	'Importe');
+INSERT INTO txt VALUES ('Imports',              'English', 	'Imports');
+INSERT INTO txt VALUES ('RecertRefresh',        'German', 	'Zertifizierungs-Aktualisierung');
+INSERT INTO txt VALUES ('RecertRefresh',        'English', 	'Recertification refresh');
+INSERT INTO txt VALUES ('RecertCheck',          'German', 	'Zertifizierungs-Check');
+INSERT INTO txt VALUES ('RecertCheck',          'English', 	'Recertification check');
+INSERT INTO txt VALUES ('UnansweredInterfaceRequests','German','Unbeantwortete Interface-Anfragen');
+INSERT INTO txt VALUES ('UnansweredInterfaceRequests','English','Unanswered interface requests');
+INSERT INTO txt VALUES ('RuleExpiryCheck',      'German', 	'Ablaufdatum-Check');
+INSERT INTO txt VALUES ('RuleExpiryCheck',      'English', 	'Rule expiry check');
+INSERT INTO txt VALUES ('OwnerActiveRules',     'German', 	'Aktive Regeln von deaktivierten Eigent&uuml;mern');
+INSERT INTO txt VALUES ('OwnerActiveRules',     'English', 	'Active rules of decommissioned owners');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -427,6 +445,8 @@ INSERT INTO txt VALUES ('api', 		            'German',	'API');
 INSERT INTO txt VALUES ('api', 		            'English',	'API');
 INSERT INTO txt VALUES ('workflow', 			'German',	'Workflow');
 INSERT INTO txt VALUES ('workflow', 			'English',	'Workflow');
+INSERT INTO txt VALUES ('modules', 			    'German',	'Module');
+INSERT INTO txt VALUES ('modules', 			    'English',	'Modules');
 INSERT INTO txt VALUES ('planning', 			'German',	'Planung');
 INSERT INTO txt VALUES ('planning', 			'English',	'Planning');
 INSERT INTO txt VALUES ('implementation', 		'German',	'Implementierung');
@@ -766,6 +786,8 @@ INSERT INTO txt VALUES ('install_on',		    'German', 	'Installiere auf');
 INSERT INTO txt VALUES ('install_on',		    'English', 	'Install On');
 INSERT INTO txt VALUES ('uid',		            'German', 	'UID');
 INSERT INTO txt VALUES ('uid',		            'English', 	'UID');
+INSERT INTO txt VALUES ('change_id',            'German',   '&Auml;nderungs-ID');
+INSERT INTO txt VALUES ('change_id',            'English',  'Change-ID');
 INSERT INTO txt VALUES ('created',		        'German', 	'Angelegt');
 INSERT INTO txt VALUES ('created',		        'English', 	'Created');
 INSERT INTO txt VALUES ('last_modified',		'German', 	'Zuletzt ge&auml;ndert');
@@ -1972,8 +1994,12 @@ INSERT INTO txt VALUES ('change_notification_sub','German', 'Einstellungen f&uum
 INSERT INTO txt VALUES ('change_notification_sub','English','Change Notification Event Trigger Settings');
 INSERT INTO txt VALUES ('owner_mapping',        'German',   'Eigent&uuml;merzuordnung');
 INSERT INTO txt VALUES ('owner_mapping',        'English',  'Owner Mapping');
-INSERT INTO txt VALUES ('custom_field_key',     'German',   'Custom-Feld-Schl&uuml;ssel');
-INSERT INTO txt VALUES ('custom_field_key',     'English',  'Custom Field key');
+INSERT INTO txt VALUES ('custom_field_Owner_key',     'German',   'Custom-Feld-Eigent&uuml;mer-Schl&uuml;ssel');
+INSERT INTO txt VALUES ('custom_field_Owner_key',     'English',  'Custom Field Owner key');
+INSERT INTO txt VALUES ('custom_field_ChangeID_key',     'German',   'Custom-Feld-&Äuml;nderungsID-Schl&uuml;ssel');
+INSERT INTO txt VALUES ('custom_field_ChangeID_key',     'English',  'Custom Field ChangeID key');
+INSERT INTO txt VALUES ('custom_field_import_Settings',    'German', 	'Custom-Feld-Einstellungen');
+INSERT INTO txt VALUES ('custom_field_import_Settings',    'English', 	'Custom Field Settings');
 INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');
 INSERT INTO txt VALUES ('edit_email',           'English', 	'Edit email settings');
 INSERT INTO txt VALUES ('email_sender',         'German', 	'Email-Absendeadresse');
@@ -2250,6 +2276,8 @@ INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungsze
 INSERT INTO txt VALUES ('dataRetentionTime',    'English', 	'Data retention time (in days)');
 INSERT INTO txt VALUES ('dailyCheckStartAt',    'German', 	'Startzeit t&auml;glicher Check');
 INSERT INTO txt VALUES ('dailyCheckStartAt',    'English', 	'Daily check start at');
+INSERT INTO txt VALUES ('dailyCheckModules',    'German', 	'Module t&auml;glicher Check');
+INSERT INTO txt VALUES ('dailyCheckModules',    'English', 	'Daily check modules');
 INSERT INTO txt VALUES ('maxImportDuration',    'German', 	'Max erlaubte Importdauer (in Stunden)');
 INSERT INTO txt VALUES ('maxImportDuration',    'English', 	'Max allowed import duration (in hours)');
 INSERT INTO txt VALUES ('maxImportInterval',    'German', 	'Max erlaubtes Importintervall (in Stunden)');
@@ -2324,6 +2352,18 @@ INSERT INTO txt VALUES ('recCheckActive',       'German',	'Rezert Check - aktiv'
 INSERT INTO txt VALUES ('recCheckActive',       'English',	'Recert Check - active');
 INSERT INTO txt VALUES ('recCheckNotifications','German',	'Rezert Check - Benachrichtigungen');
 INSERT INTO txt VALUES ('recCheckNotifications','English',	'Recert Check - Notifications');
+INSERT INTO txt VALUES ('ruleExpiryNotifications','German', 'Regelablauf - Benachrichtigungen');
+INSERT INTO txt VALUES ('ruleExpiryNotifications','English','Rule Expiry - Notifications');
+INSERT INTO txt VALUES ('ruleExpiryEmailBody',   'German',  'Regelablauf - Email-Text');
+INSERT INTO txt VALUES ('ruleExpiryEmailBody',   'English', 'Rule Expiry - Email body');
+INSERT INTO txt VALUES ('ownerActiveRuleNotifications','German', 'Aktive Regeln - Benachrichtigungen');
+INSERT INTO txt VALUES ('ownerActiveRuleNotifications','English', 'Active Rules - Notifications');
+INSERT INTO txt VALUES ('ownerActiveRuleEmailBody',   'German',  'Aktive Regeln - Email-Text');
+INSERT INTO txt VALUES ('ownerActiveRuleEmailBody',   'English', 'Active Rules - Email body');
+INSERT INTO txt VALUES ('ruleExpiryInitiatorKeys','German',  'Regelablauf - Initiator-Texte');
+INSERT INTO txt VALUES ('ruleExpiryInitiatorKeys','English', 'Rule Expiry - Initiator texts');
+INSERT INTO txt VALUES ('ruleExpiryInitiator',   'German',  'Initiator des Ablaufs');
+INSERT INTO txt VALUES ('ruleExpiryInitiator',   'English', 'Expiry initiator');
 INSERT INTO txt VALUES ('recCheckEmailSubject', 'German',	'Rezert Check - Email Betreff');
 INSERT INTO txt VALUES ('recCheckEmailSubject', 'English',	'Recert Check - Email subject');
 INSERT INTO txt VALUES ('recCheckEmailUpcomingText','German','Rezert Check - Text anstehend');
@@ -2522,14 +2562,12 @@ INSERT INTO txt VALUES ('assign_state_to',      'German',   'Status zuordnen zu:
 INSERT INTO txt VALUES ('assign_state_to',      'English',  'Assign state to: ');
 INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
-INSERT INTO txt VALUES ('manage_lifecycles',    'German',   'Produktions-Lifecycle-Status verwalten');
-INSERT INTO txt VALUES ('manage_lifecycles',    'English',  'Manage production lifecycles');
-INSERT INTO txt VALUES ('manage_owner_lc_state','German',   'Produktions-Lifecycle-Status &auml;ndern');
-INSERT INTO txt VALUES ('manage_owner_lc_state','English',  'Manage production lifecycle states');
+INSERT INTO txt VALUES ('lifecycle_states',     'German',   'Lifecycle-Status');
+INSERT INTO txt VALUES ('lifecycle_states',     'English',  'Lifecycle States');
+INSERT INTO txt VALUES ('owner_lifecycle_states','German',  'Eigent&uuml;mer-Lifecycle-Status');
+INSERT INTO txt VALUES ('owner_lifecycle_states','English', 'Owner Lifecycle States');
 INSERT INTO txt VALUES ('add_owner_lc_state',   'German',   'Lifecycle Status hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_owner_lc_state',   'English',  'Add Owner Lifecycle State');
-INSERT INTO txt VALUES ('owner_lc_states',      'German',   'Produktions-Status');
-INSERT INTO txt VALUES ('owner_lc_states',      'English',  'Production Lifecycle States');
 INSERT INTO txt VALUES ('edit_owner_lc_state',  'German',   'Lifecycle Status bearbeiten');
 INSERT INTO txt VALUES ('edit_owner_lc_state',  'English',  'Edit Owner Lifecycle State');
 INSERT INTO txt VALUES ('delete_owner_lc_state','German',   'Lifecycle Status l&ouml;schen');
@@ -2801,6 +2839,8 @@ INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Modu
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
 INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
+INSERT INTO txt VALUES ('notifications',   		'German', 	'Benachrichtigungen');
+INSERT INTO txt VALUES ('notifications',   		'English', 	'Notifications');
 INSERT INTO txt VALUES ('reminders',            'German', 	'Erinnerungsbenachrichtigungen');
 INSERT INTO txt VALUES ('reminders',            'English',  'Reminders');
 INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
@@ -3203,6 +3243,8 @@ INSERT INTO txt VALUES ('U5015', 'German',  'Verwaltung der Workflow-Voreinstell
 INSERT INTO txt VALUES ('U5015', 'English', 'Administration of workflow settings (only by admin)');
 INSERT INTO txt VALUES ('U5016', 'German',  'Verwaltung der externen Auftr&auml;ge (nur f&uuml;r Admin)');
 INSERT INTO txt VALUES ('U5016', 'English', 'Administration of external requests (only by admin)');
+INSERT INTO txt VALUES ('U5017', 'German',  'Verwaltung der Modul-Einstellungen (nur f&uuml;r Admin)');
+INSERT INTO txt VALUES ('U5017', 'English', 'Administration of module settings (only by admin)');
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
 INSERT INTO txt VALUES ('U5102', 'German',  'L&ouml;scht alle Beispielmanagements (auf "_demo" endend) und alle zugeordneten Gateways');
@@ -3319,6 +3361,8 @@ INSERT INTO txt VALUES ('U5325', 'German',  'Mehrere Service-Uids mit Komma tren
 INSERT INTO txt VALUES ('U5325', 'English', 'Multiple service uids can be separated by using commas');
 INSERT INTO txt VALUES ('U5326', 'German',  'Verwaltung aller durch FW-&Auml;nderungen ausgel&ouml;sten Events');
 INSERT INTO txt VALUES ('U5326', 'English', 'Set the settings for all events triggerd by FW changes');
+INSERT INTO txt VALUES ('U5327', 'German',  'Verwaltung der Benachrichtigungs-Einstellungen f&uuml;r Regelablauf und aktive Regeln.');
+INSERT INTO txt VALUES ('U5327', 'English', 'Administration of notification settings for rule expiry and active rules.');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -5402,6 +5446,8 @@ INSERT INTO txt VALUES ('H5423', 'English', 'Message view time (in seconds): def
 ');
 INSERT INTO txt VALUES ('H5424', 'German',  'Startzeit t&auml;glicher Check: legt die Zeit fest, wann der t&auml;gliche Check durchgef&uuml;hrt werden soll.');
 INSERT INTO txt VALUES ('H5424', 'English', 'Daily check start at: defines the time when the daily check should happen.');
+INSERT INTO txt VALUES ('H5424a', 'German',  'Module t&auml;glicher Check: legt fest, welche Teile des t&auml;glichen Checks ausgef&uuml;hrt werden sollen.');
+INSERT INTO txt VALUES ('H5424a', 'English', 'Daily check modules: defines which parts of the daily check should be executed.');
 INSERT INTO txt VALUES ('H5425', 'German',  'Hostname der UI: URL der UI, wird z. B. f&uuml;r Links in Email-Benachrichtigungen ben&ouml;tigt.');
 INSERT INTO txt VALUES ('H5425', 'English', 'UI Hostname: URL of the UI, needed e.g. for links in email notifications.');
 INSERT INTO txt VALUES ('H5426', 'German',  'Autodiscover-Intervall (in Stunden): legt das Intervall fest, in dem die Autodiscovery durchgef&uuml;hrt werden soll.');
@@ -6124,6 +6170,8 @@ INSERT INTO txt VALUES ('H5667', 'English', 'Rollout removed App Servers: App se
 ');
 INSERT INTO txt VALUES ('H5668', 'German',  'Nur eigene Objekte beantragen: In Beantragungen werden nur eigene Gruppenobjekte aus genutzten Schnittstellen ber&uuml;cksichtigt. Falls Gruppenobjekte anderer Eigent&uuml;mer enthalten sind, die in Produktion nicht gefunden wurden, wird die Beantragung der Verbindung unterdr&uuml;ckt.');
 INSERT INTO txt VALUES ('H5668', 'English', 'Request only own objects: Requests include only own group objects from used interfaces. If group objects of other owners are included that are not found in production, the request for that connection is suppressed.');
+INSERT INTO txt VALUES ('H5669', 'German',  'Aktiv: Steuert, ob der Tr&auml;ger des Lifecycle-Status als aktiv gewertet wird.');
+INSERT INTO txt VALUES ('H5669', 'English', 'Active: Controls whether the holder of the lifecycle state is considered as active.');
 INSERT INTO txt VALUES ('H5670', 'German',  'Diese Seite konfiguriert die Importplanung f&uuml;r Eigent&uuml;mer/App-Daten und Subnetze, die Quellpfade sowie die LDAP-Gruppenverwaltung.');
 INSERT INTO txt VALUES ('H5670', 'English', 'This page configures the owner/app data import and subnet import schedules, source paths, and LDAP group handling.');
 INSERT INTO txt VALUES ('H5671', 'German',  'Konfigurieren Sie Importpfade, Startzeiten und Warteintervalle f&uuml;r App-Daten und Subnetzdaten.');
@@ -6136,7 +6184,14 @@ INSERT INTO txt VALUES ('H5675', 'German',  'Nur Administratoren k&ouml;nnen &Au
 INSERT INTO txt VALUES ('H5675', 'English', 'Only administrators can save changes.');
 INSERT INTO txt VALUES ('H5676', 'German',  'Wenn aktiviert, werden Benutzer aus Eigent&uuml;mergruppen entfernt, die nicht im Import enthalten sind. Andernfalls werden nur neue Benutzer hinzugef&uuml;gt.');
 INSERT INTO txt VALUES ('H5676', 'English', 'If enabled, users not listed in the import are removed from owner groups. Otherwise only new users are added.');
-
+INSERT INTO txt VALUES ('H5677', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für den Owner repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.
+');
+INSERT INTO txt VALUES ('H5677', 'English', 'Enter the keys that represent the Owner field. You can add multiple keys by clicking the + button.
+');
+INSERT INTO txt VALUES ('H5678', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für die &Auml;nderungsId repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.
+');
+INSERT INTO txt VALUES ('H5678', 'English', 'Enter the keys that represent the ChangeId field. You can add multiple keys by clicking the + button.
+');
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
     Die hier gemachten &Auml;nderungen werden in der UI beim n&auml;chsten Login sichtbar, bei Hilfetexten erst nach dem n&auml;chsten Restart.
@@ -6161,6 +6216,20 @@ INSERT INTO txt VALUES ('H5704', 'German',  'In der Tabelle der Suchergebnisse k
 INSERT INTO txt VALUES ('H5704', 'English', 'In the table of search results new texts can be defined per key, existing texts can be marked for deletion by setting the "Delete" flag.
     If only a text is removed, the system text will be overwritten by an empty text! All changes get effective only by pressing the "Save" button.
 ');
+INSERT INTO txt VALUES ('H5720', 'German',  'Diese Seite beschreibt die Einstellungen f&uuml;r Regelablauf-Benachrichtigungen. Konfiguriert werden Versandintervalle, Mail-Textvorlage und die Zuordnung von Initiator-Schl&uuml;sseln zu Anzeigetexten.');
+INSERT INTO txt VALUES ('H5720', 'English', 'This page describes the settings for rule expiry notifications. You can configure sending intervals, email body template and the mapping of initiator keys to display texts.');
+INSERT INTO txt VALUES ('H5721', 'German',  'Regelablauf - Benachrichtigungen: Konfiguration der Versandintervalle und Empf&auml;nger f&uuml;r RuleTimer-Benachrichtigungen.');
+INSERT INTO txt VALUES ('H5721', 'English', 'Rule expiry notifications: Configure intervals and recipients for RuleTimer notifications.');
+INSERT INTO txt VALUES ('H5722', 'German',  'Regelablauf - Email-Text: Vorlage f&uuml;r den Mail-Text. Platzhalter wie @@APPNAME@@, @@APPID@@, @@TIME_INTERVAL@@ und @@RULE_TABLE@@ werden ersetzt. @@RULE_TABLE@@ definiert die Einf&uuml;geposition der Regeltabelle.');
+INSERT INTO txt VALUES ('H5722', 'English', 'Rule expiry email body: Template for the mail body. Placeholders like @@APPNAME@@, @@APPID@@, @@TIME_INTERVAL@@ and @@RULE_TABLE@@ are replaced. @@RULE_TABLE@@ defines where the rule table is inserted.');
+INSERT INTO txt VALUES ('H5723', 'German',  'Regelablauf - Initiator-Texte: Zuordnung von Suffix-Schl&uuml;sseln aus dem Time-Objektnamen zu Anzeige-Texten im Report.');
+INSERT INTO txt VALUES ('H5723', 'English', 'Rule expiry initiator texts: Mapping of suffix keys from time-object names to display texts in the report.');
+INSERT INTO txt VALUES ('H5724', 'German',  'Neuen Initiator-Eintrag hinzuf&uuml;gen: Schl&uuml;ssel und Text erfassen und mit Plus &uuml;bernehmen.');
+INSERT INTO txt VALUES ('H5724', 'English', 'Add a new initiator entry: Enter key and text and confirm with the plus button.');
+INSERT INTO txt VALUES ('H5725', 'German',  'Aktive Regeln - Benachrichtigungen: Konfiguration der Empf&auml;nger f&uuml;r Benachrichtigungen, wenn ein Owner noch aktive Regeln besitzt.');
+INSERT INTO txt VALUES ('H5725', 'English', 'Active rules notifications: Configure recipients for notifications when an owner still has active rules.');
+INSERT INTO txt VALUES ('H5726', 'German',  'Aktive Regeln - Email-Text: Vorlage f&uuml;r den Mail-Text. Platzhalter wie @@APPNAME@@, @@APPID@@ und @@RULE_TABLE@@ werden ersetzt. @@RULE_TABLE@@ definiert die Einf&uuml;geposition der Regeltabelle.');
+INSERT INTO txt VALUES ('H5726', 'English', 'Active rules email body: Template for the mail body. Placeholders like @@APPNAME@@, @@APPID@@ and @@RULE_TABLE@@ are replaced. @@RULE_TABLE@@ defines where the rule table is inserted.');
 INSERT INTO txt VALUES ('H5801', 'German',  'Compliance-Check-Intervall (in Minuten): legt das Intervall fest, in dem der Compliance-Check durchgef&uuml;hrt werden soll.');
 INSERT INTO txt VALUES ('H5801', 'English', 'Compliance Check sleep time (in minutes): defines the interval in which the compliance check should be performed.');
 INSERT INTO txt VALUES ('H5802', 'German',  'Compliance-Check-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r den Compliance-Check gerechnet werden.');

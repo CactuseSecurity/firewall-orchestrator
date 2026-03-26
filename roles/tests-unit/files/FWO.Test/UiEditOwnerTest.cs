@@ -1,10 +1,14 @@
 using Bunit;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Workflow;
 using FWO.Middleware.Client;
+using FWO.Services.EventMediator;
+using FWO.Services.EventMediator.Interfaces;
 using FWO.Ui.Pages.Settings;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -44,12 +48,23 @@ namespace FWO.Test
             field.SetValue(component, value);
         }
 
+        private static void SetPrivateProperty<T>(EditOwner component, string propertyName, T value)
+        {
+            PropertyInfo? property = typeof(EditOwner).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(EditOwner).FullName, propertyName);
+            }
+            property.SetValue(component, value);
+        }
+
         private static IRenderedComponent<EditOwner> RenderEditOwner(
             Bunit.TestContext context,
             FwoOwner owner,
             bool readOnly,
             List<OwnerResponsibleType>? responsibleTypes = null,
-            List<FwoOwner>? existingOwners = null)
+            List<FwoOwner>? existingOwners = null,
+            List<OwnerLifeCycleState>? ownerLifeCycleStates = null)
         {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
@@ -59,6 +74,7 @@ namespace FWO.Test
             context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<UserConfig>(new EditOwnerTestUserConfig());
             context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton<IEventMediator>(new EventMediator());
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<EditOwner>(child => child
@@ -67,7 +83,7 @@ namespace FWO.Test
                     .Add(p => p.ActOwner, owner)
                     .Add(p => p.OwnerResponsibleTypes, responsibleTypes ?? [])
                     .Add(p => p.Tenants, [])
-                    .Add(p => p.OwnerLifeCycleStates, [])
+                    .Add(p => p.OwnerLifeCycleStates, ownerLifeCycleStates ?? [])
                     .Add(p => p.ExistingOwners, existingOwners ?? [])));
 
             return wrapper.FindComponent<EditOwner>();
@@ -237,6 +253,62 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditOwner_HasRelevantOwnerMappingChanges_ReturnsTrue_ForLifecycleActivityChange()
+        {
+            await using Bunit.TestContext context = new();
+            FwoOwner owner = new() { Id = 5, Name = "Owner A", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, ownerLifeCycleStates:
+            [
+                new() { Id = 1, Name = "inactive", ActiveState = false },
+                new() { Id = 2, Name = "active", ActiveState = true }
+            ]);
+            owner.OwnerLifeCycleStateId = 2;
+
+            bool changed = (bool)GetPrivateMethod("HasRelevantOwnerMappingChanges").Invoke(editOwner.Instance, null)!;
+
+            Assert.That(changed, Is.True);
+        }
+
+        [Test]
+        public async Task EditOwner_HasRelevantOwnerMappingChanges_ReturnsTrue_ForOwnedIpChange()
+        {
+            await using Bunit.TestContext context = new();
+            FwoOwner owner = new() { Id = 6, Name = "Owner B", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
+
+            List<NwObjectElement> originalIps = [new("10.0.0.1/32", 1)];
+            List<NwObjectElement> currentIps = [new("10.0.0.2/32", 1)];
+            SetPrivateField(editOwner.Instance, "OriginalOwnedIpKeys", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "10.0.0.1/32|10.0.0.1/32" });
+            SetPrivateField(editOwner.Instance, "ActIpAddresses", currentIps);
+
+            bool changed = (bool)GetPrivateMethod("HasRelevantOwnerMappingChanges").Invoke(editOwner.Instance, null)!;
+
+            Assert.That(changed, Is.True);
+        }
+
+        [Test]
+        public async Task EditOwner_GetDecommDateAfterLifecycleChange_SetsDateForDeactivateAndClearsForReactivate()
+        {
+            await using Bunit.TestContext context = new();
+            FwoOwner owner = new() { Id = 7, Name = "Owner C", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, ownerLifeCycleStates:
+            [
+                new() { Id = 1, Name = "active", ActiveState = true },
+                new() { Id = 2, Name = "inactive", ActiveState = false }
+            ]);
+
+            owner.OwnerLifeCycleStateId = 2;
+            DateTime? decommDate = (DateTime?)GetPrivateMethod("GetDecommDateAfterLifecycleChange").Invoke(editOwner.Instance, null);
+            Assert.That(decommDate, Is.Not.Null);
+
+            SetPrivateProperty(editOwner.Instance, "OriginalOwnerLifeCycleStateId", 2);
+            owner.DecommDate = DateTime.UtcNow.AddDays(-1);
+            owner.OwnerLifeCycleStateId = 1;
+            DateTime? reactivatedDate = (DateTime?)GetPrivateMethod("GetDecommDateAfterLifecycleChange").Invoke(editOwner.Instance, null);
+            Assert.That(reactivatedDate, Is.Null);
+        }
+
+        [Test]
         public void EditOwner_FormatOwnerResponsibles_UsesUserOrGroupNameAndJoins()
         {
             string dnUser = "CN=Max Mustermann,OU=Users,DC=example,DC=com";
@@ -314,6 +386,16 @@ namespace FWO.Test
     {
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
+            if (query == OwnerQueries.getNetworkOwnerships)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<NwObjectElement>());
+            }
+
+            if (query == OwnerQueries.getRuleOwnerships)
+            {
+                return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
+            }
+
             throw new NotImplementedException();
         }
     }

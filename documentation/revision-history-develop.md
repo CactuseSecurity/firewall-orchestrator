@@ -368,3 +368,15 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.11 - 04.03.2026 DEVELOP
 - new config value for requesting only own objects
+
+# 9.0.12 - 12.03.2026 DEVELOP
+- new config values for rule expiry notification
+
+# 9.0.13 - 12.03.2026 DEVELOP
+- mark lifecycle states as active
+
+# 9.0.14 - 17.03.2026 DEVELOP
+- prepare owner decommission notification
+
+# 9.0.15 - 12.03.2026 DEVELOP
+- rename OwnerSourceCustomFieldKey to CustomFieldOwnerKey in config

@@ -404,6 +404,7 @@ namespace FWO.Report
                 "AdoITID",
                 "Comment",
                 "LastModified",
+                "ExpirationTime",
                 "RulebaseId",
                 "RulebaseName",
                 "Enabled"

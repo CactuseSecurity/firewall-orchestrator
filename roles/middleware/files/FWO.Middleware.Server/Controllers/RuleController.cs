@@ -77,10 +77,10 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                         "The field Action must be filled with either \"accept\", \"deny\" or \"any\".");
                 }
 
-                if (queryFilter.MaxPrefixLength < 0 || queryFilter.MaxPrefixLength > 32)
+                if (queryFilter.MinPrefixLength < 0 || queryFilter.MinPrefixLength > 32)
                 {
                     return BadRequest(
-                        $"The value for MaxPrefixLength {queryFilter.MaxPrefixLength} must be between 0 and 32.");
+                        $"The value for MinPrefixLength {queryFilter.MinPrefixLength} must be between 0 and 32.");
                 }
 
                 if (string.IsNullOrEmpty(queryFilter.InField))
@@ -92,7 +92,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 rules = await FilterRules(
                     ipAddress,
                     queryFilter.Action,
-                    queryFilter.MaxPrefixLength,
+                    queryFilter.MinPrefixLength,
                     queryFilter.InField,
                     userConfig
                 );
@@ -135,7 +135,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         {
             info += $"IpAddress: {request.Query.IpAddress}"
                     + "Filter: {"
-                    + $"MaxPrefixLength: {request.Query.Filter.MaxPrefixLength}"
+                    + $"MinPrefixLength: {request.Query.Filter.MinPrefixLength}"
                     + $"InField: {request.Query.Filter.InField}"
                     + $"Action: {request.Query.Filter.Action}"
                     + "}";
@@ -184,7 +184,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             .ToList();
     }
 
-    private async Task<List<RuleDetail>> FilterRules(IPAddress ipAddress, string action, int maxPrefix,
+    private async Task<List<RuleDetail>> FilterRules(IPAddress ipAddress, string action, int minPrefix,
         string inField, UserConfig userConfig)
     {
         IpFilterHelper ipHelper = new IpFilterHelper();
@@ -205,10 +205,10 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
             bool isInRange = inField switch
             {
-                FilterFields.Source => ipHelper.IsInRange(ipAddress, maxPrefix, sourceObjects),
-                FilterFields.Destination => ipHelper.IsInRange(ipAddress, maxPrefix, destObjects),
-                FilterFields.Both => ipHelper.IsInRange(ipAddress, maxPrefix, sourceObjects) ||
-                                     ipHelper.IsInRange(ipAddress, maxPrefix, destObjects),
+                FilterFields.Source => ipHelper.IsInRange(ipAddress, minPrefix, sourceObjects),
+                FilterFields.Destination => ipHelper.IsInRange(ipAddress, minPrefix, destObjects),
+                FilterFields.Both => ipHelper.IsInRange(ipAddress, minPrefix, sourceObjects) ||
+                                     ipHelper.IsInRange(ipAddress, minPrefix, destObjects),
                 _ => throw new ArgumentException($"Invalid InField: {inField}")
             };
 
@@ -234,7 +234,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 {
                     Name = s.Name,
                     Type = s.Type.Name,
-                    Ip = s.IP
+                    Ip = DisplayBase.DisplayIp(s.IP, s.IpEnd)
                 })
                 .ToList(),
             SourceShort = DisplaySourceOrDestinationPlain(item, isSource: true, userConfig),
@@ -243,7 +243,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 {
                     Name = d.Name,
                     Type = d.Type.Name,
-                    Ip = d.IP
+                    Ip = DisplayBase.DisplayIp(d.IP, d.IpEnd)
                 })
                 .ToList(),
             DestinationShort = DisplaySourceOrDestinationPlain(item, isSource: false, userConfig),
@@ -256,12 +256,14 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 })
                 .ToList(),
             ServiceShort = DisplayServicesPlain(item, userConfig),
-            ChangeID = item.CustomFields,
+            ChangeID = CustomFieldResolver.ExtractCustomFieldValue<string>(item, userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "") ?? notFound,
             Name = item.Name ?? notFound,
             CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
             LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
             Action = item.Action,
-            AdoIT = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound
+            AdoIT = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound,
+            Comment = item.Comment ?? notFound,
+            Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
         }).ToList();
     }
 
@@ -389,7 +391,7 @@ public sealed class IpFilterHelper
 {
     private readonly Dictionary<string, IPAddress?> _parseCache = new();
 
-    public bool IsInRange(IPAddress ipAddress, int maxPrefix, List<NetworkObject> objects)
+    public bool IsInRange(IPAddress ipAddress, int minPrefix, List<NetworkObject> objects)
     {
         var cleanedObjects = objects.Where(obj => obj.Type.Name != "group");
 
@@ -402,19 +404,19 @@ public sealed class IpFilterHelper
             {
                 continue;
             }
-
-            bool ipInRange = IsInRange(ipAddress, start, end);
+            
             int rangePrefix = CommonPrefixLength(start, end);
 
-            if (rangePrefix >= maxPrefix && ipInRange)
-            {
-                return true;
-            }
-
-            if (rangePrefix < maxPrefix)
+            if (rangePrefix < minPrefix)
             {
                 break;
             }
+            
+            if (IsInRange(ipAddress, start, end))
+            {
+                return true;
+            }
+            
         }
 
         return false;
@@ -427,7 +429,7 @@ public sealed class IpFilterHelper
         var sanitized = SanitizeIpString(ipString);
         if (_parseCache.TryGetValue(sanitized, out var cached))
             return cached;
-        
+
         IPAddress.TryParse(sanitized, out var parsed);
         _parseCache[sanitized] = parsed;
 
@@ -492,7 +494,7 @@ public class RulesByFilterResponse
 
 public class RuleFilter
 {
-    public int MaxPrefixLength { get; set; }
+    public int MinPrefixLength { get; set; }
     public string InField { get; set; } = "";
     public string Action { get; set; } = "";
 }
@@ -516,6 +518,8 @@ public class RuleDetail
     public string ChangeID { get; set; } = "";
     public string AdoIT { get; set; } = "";
     public string Name { get; set; } = "";
+    public List<string> Time { get; set; } = [];
+    public string Comment { get; set; } = "";
     public string CreationDate { get; set; } = "";
     public string LastHitDate { get; set; } = "";
     public string Action { get; set; } = "";

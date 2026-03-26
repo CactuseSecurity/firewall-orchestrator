@@ -234,6 +234,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("dailyCheckStartAt"), JsonPropertyName("dailyCheckStartAt")]
         public DateTime DailyCheckStartAt { get; set; } = DateTime.Now;
 
+        [JsonProperty("dailyCheckModules"), JsonPropertyName("dailyCheckModules")]
+        public string DailyCheckModules { get; set; } = "";
+
         [JsonProperty("maxImportDuration"), JsonPropertyName("maxImportDuration")]
         public int MaxImportDuration { get; set; } = 4;
 
@@ -309,8 +312,11 @@ namespace FWO.Config.Api.Data
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;
 
-        [JsonProperty("OwnerSourceCustomFieldKey"), JsonPropertyName("OwnerSourceCustomFieldKey")]
-        public string OwnerSourceCustomFieldKey { get; set; } = "";
+        [JsonProperty("CustomFieldOwnerKey"), JsonPropertyName("CustomFieldOwnerKey")]
+        public string CustomFieldOwnerKey { get; set; } = "";
+
+        [JsonProperty("CustomFieldChangeIdKey"), JsonPropertyName("CustomFieldChangeIdKey")]
+        public string CustomFieldChangeIdKey { get; set; } = "";
 
         [JsonProperty("rolesWithAppDataImport"), JsonPropertyName("rolesWithAppDataImport")]
         public string RolesWithAppDataImport { get; set; } = "[]";
@@ -365,6 +371,15 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modUnansweredReqEmailBody"), JsonPropertyName("modUnansweredReqEmailBody")]
         public string ModUnansweredReqEmailBody { get; set; } = "";
+
+        [JsonProperty("ruleExpiryEmailBody"), JsonPropertyName("ruleExpiryEmailBody")]
+        public string RuleExpiryEmailBody { get; set; } = "";
+
+        [JsonProperty("ownerActiveRuleEmailBody"), JsonPropertyName("ownerActiveRuleEmailBody")]
+        public string OwnerActiveRuleEmailBody { get; set; } = "";
+
+        [JsonProperty("ruleExpiryInitiatorKeys"), JsonPropertyName("ruleExpiryInitiatorKeys")]
+        public string RuleExpiryInitiatorKeys { get; set; } = "";
 
         [JsonProperty("modReqTicketTitle"), JsonPropertyName("modReqTicketTitle")]
         public string ModReqTicketTitle { get; set; } = "";

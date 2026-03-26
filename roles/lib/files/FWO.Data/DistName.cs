@@ -29,43 +29,34 @@ namespace FWO.Data
             {
                 while (lastValue == false)
                 {
-                    int IndexPrefixDelim = dn.IndexOf('=');
-                    if (IndexPrefixDelim > 0)
+                    int indexPrefixDelim = dn.IndexOf('=');
+                    if (indexPrefixDelim > 0)
                     {
-                        string Name = dn[..IndexPrefixDelim];
-                        string Value;
-                        dn = dn[(IndexPrefixDelim + 1)..];
-                        int IndexValueDelim = dn.IndexOf(',');
-                        if (IndexValueDelim > 0)
-                        {
-                            Value = dn[..IndexValueDelim];
-                            dn = dn[(IndexValueDelim + 1)..];
-                        }
-                        else
-                        {
-                            Value = dn;
-                            lastValue = true;
-                        }
-                        switch (Name.ToLower())
+                        string name = dn[..indexPrefixDelim];
+                        (string value, string remainingDn) = ReadDnValue(dn[(indexPrefixDelim + 1)..]);
+                        dn = remainingDn;
+                        lastValue = dn.Length == 0;
+
+                        switch (name.ToLower())
                         {
                             case "uid":
                             case "samaccountname":
                             case "userprincipalname":
                             case "mail":
-                                UserName = Value;
+                                UserName = value;
                                 break;
                             case "cn":
                                 if (UserName == "")
                                 {
                                     // the first one may be the user if not delivered as uid or a role or a group
-                                    UserName = Value;
-                                    Role = Value;
-                                    Group = Value;
+                                    UserName = value;
+                                    Role = value;
+                                    Group = value;
                                 }
                                 else
                                 {
                                     // following ones belong to the path
-                                    Path.Add(Value);
+                                    Path.Add(value);
                                 }
                                 break;
                             case "ou":
@@ -73,12 +64,12 @@ namespace FWO.Data
                             case "l":
                             case "st":
                             case "street":
-                                Path.Add(Value);
+                                Path.Add(value);
                                 break;
                             case "dc":
                             case "c":
-                                Root.Add(Value);
-                                Path.Add(Value);
+                                Root.Add(value);
+                                Path.Add(value);
                                 break;
                             default:
                                 break;
@@ -90,6 +81,43 @@ namespace FWO.Data
                     }
                 }
             }
+        }
+
+        private static (string value, string remainingDn) ReadDnValue(string dn)
+        {
+            bool escaped = false;
+            System.Text.StringBuilder value = new();
+
+            for (int i = 0; i < dn.Length; i++)
+            {
+                char currentChar = dn[i];
+                if (escaped)
+                {
+                    value.Append(currentChar);
+                    escaped = false;
+                    continue;
+                }
+
+                if (currentChar == '\\')
+                {
+                    escaped = true;
+                    continue;
+                }
+
+                if (currentChar == ',')
+                {
+                    return (value.ToString(), dn[(i + 1)..]);
+                }
+
+                value.Append(currentChar);
+            }
+
+            if (escaped)
+            {
+                value.Append('\\');
+            }
+
+            return (value.ToString(), "");
         }
 
         public bool IsInternal()

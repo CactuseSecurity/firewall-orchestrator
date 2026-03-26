@@ -13,6 +13,7 @@ namespace FWO.Test
         static readonly DistName dn1 = new("");
         static readonly DistName dn2 = new("uid=intuser2,ou=users,ou=tenant2,dc=fworch,dc=internal");
         static readonly DistName dn3 = new("cn=usergroup3,ou=groups,dc=somewhere,dc=de");
+        static readonly DistName dn4 = new(@"cn=Mustermann\, Max,ou=users,dc=example,dc=com");
 
         [SetUp]
         public void Initialize()
@@ -46,6 +47,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual("groups", dn3.Path[0]);
             ClassicAssert.AreEqual("", dn3.GetTenantNameViaLdapTenantLevel(0));
             ClassicAssert.AreEqual(false, dn3.IsInternal());
+
+            ClassicAssert.AreEqual("Mustermann, Max", dn4.UserName);
+            ClassicAssert.AreEqual("Mustermann, Max", dn4.Role);
+            ClassicAssert.AreEqual("Mustermann, Max", dn4.Group);
+            ClassicAssert.AreEqual(2, dn4.Root.Count);
+            ClassicAssert.AreEqual("users", dn4.Path[0]);
         }
     }
 }

@@ -32,6 +32,31 @@
     padding: 0.5rem 0.625rem;
 }
 
+.tree-view__header-button {
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    gap: 0.35rem;
+    justify-content: space-between;
+    padding: 0;
+    text-align: left;
+    width: 100%;
+}
+
+.tree-view__header-title {
+    display: block;
+}
+
+.tree-view__sort-indicator {
+    color: var(--bs-secondary-color);
+    flex: 0 0 auto;
+    font-size: 0.8rem;
+}
+
 .tree-view__node {
     display: contents;
 }

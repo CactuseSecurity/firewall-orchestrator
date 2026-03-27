@@ -11,7 +11,17 @@
             @foreach (var column in Columns)
             {
                 <div class="@GetHeaderCellClasses(column)">
-                    @column.Title
+                    @if (IsColumnSortable(column))
+                    {
+                        <button class="tree-view__header-button" type="button" @onclick="() => ToggleSort(column.Key)">
+                            <span>@column.Title</span>
+                            <span class="tree-view__sort-indicator">@GetSortIndicator(column.Key)</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="tree-view__header-title">@column.Title</span>
+                    }
                 </div>
             }
         </div>
@@ -19,7 +29,7 @@
 
     @if (Nodes.Count > 0)
     {
-        @foreach (var node in Nodes)
+        @foreach (var node in GetSortedNodes(Nodes))
         {
             @RenderNode(node, 0)
         }
@@ -69,6 +79,17 @@
     public string EmptyText { get; set; } = "No data";
 
     private bool HasColumns => Columns.Count > 0;
+    private string? ActiveSortColumnKey { get; set; }
+    private bool SortDescending { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (ActiveSortColumnKey != null && Columns.All(column => column.Key != ActiveSortColumnKey))
+        {
+            ActiveSortColumnKey = null;
+            SortDescending = false;
+        }
+    }
 
     private RenderFragment RenderNode(T node, int level) => @<div>
         @if (ShouldRenderNode?.Invoke(node) != false)
@@ -128,7 +149,7 @@
                     @if (node.IsExpanded && context.HasChildren)
                     {
                         <div class="tree-node-children">
-                            @foreach (var child in node.Children.OfType<T>())
+                            @foreach (var child in GetSortedChildren(node))
                             {
                                 @RenderNode(child, level + 1)
                             }
@@ -204,7 +225,7 @@
 
         @if (context.Node.IsExpanded && context.HasChildren)
         {
-            @foreach (var child in context.Node.Children.OfType<T>())
+            @foreach (var child in GetSortedChildren(context.Node))
             {
                 @RenderNode(child, context.Level + 1)
             }
@@ -266,9 +287,100 @@
         return column.TooltipSelector?.Invoke(context) ?? string.Empty;
     }
 
+    private bool IsColumnSortable(TreeViewColumn<T> column)
+    {
+        return column.SortComparer != null
+            || column.TooltipSelector != null
+            || column.TextSelector != null
+            || column.HtmlSelector != null;
+    }
+
+    private string GetSortIndicator(string columnKey)
+    {
+        if (ActiveSortColumnKey != columnKey)
+        {
+            return "↕";
+        }
+
+        return SortDescending ? "▼" : "▲";
+    }
+
     private bool IsHierarchyColumn(TreeViewColumn<T> column)
     {
         return column.IsHierarchyColumn || (!Columns.Any(col => col.IsHierarchyColumn) && ReferenceEquals(column, Columns[0]));
+    }
+
+    private IEnumerable<T> GetSortedChildren(T node)
+    {
+        return GetSortedNodes(node.Children.OfType<T>());
+    }
+
+    private IEnumerable<T> GetSortedNodes(IEnumerable<T> nodes)
+    {
+        if (ActiveSortColumnKey == null)
+        {
+            return nodes;
+        }
+
+        TreeViewColumn<T>? activeColumn = Columns.FirstOrDefault(column => column.Key == ActiveSortColumnKey);
+        if (activeColumn == null || !IsColumnSortable(activeColumn))
+        {
+            return nodes;
+        }
+
+        IOrderedEnumerable<T> orderedNodes = nodes.OrderBy(node => node, Comparer<T>.Create((left, right) => CompareNodes(activeColumn, left, right)));
+
+        return SortDescending ? orderedNodes.Reverse() : orderedNodes;
+    }
+
+    private int CompareNodes(TreeViewColumn<T> column, T left, T right)
+    {
+        if (column.SortComparer != null)
+        {
+            return column.SortComparer(left, right);
+        }
+
+        return StringComparer.OrdinalIgnoreCase.Compare(GetSortValue(column, left), GetSortValue(column, right));
+    }
+
+    private string GetSortValue(TreeViewColumn<T> column, T node)
+    {
+        var context = new TreeViewNodeContext<T>(
+            node,
+            0,
+            node.Children.Count > 0,
+            () => Task.CompletedTask,
+            () => Task.CompletedTask);
+
+        if (column.TooltipSelector != null)
+        {
+            return column.TooltipSelector(context);
+        }
+
+        if (column.TextSelector != null)
+        {
+            return column.TextSelector(context);
+        }
+
+        if (column.HtmlSelector != null)
+        {
+            return column.HtmlSelector(context);
+        }
+
+        return string.Empty;
+    }
+
+    private void ToggleSort(string columnKey)
+    {
+        if (ActiveSortColumnKey == columnKey)
+        {
+            SortDescending = !SortDescending;
+        }
+        else
+        {
+            ActiveSortColumnKey = columnKey;
+            SortDescending = false;
+        }
     }
 
     private RenderFragment RenderCellValue(TreeViewColumn<T> column, TreeViewNodeContext<T> context) => builder =>

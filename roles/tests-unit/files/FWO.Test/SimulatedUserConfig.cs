@@ -85,6 +85,7 @@ namespace FWO.Test
             {"devices","Devices"},
             {"owners","Owners"},
             {"filter","Filter"},
+            {"search","Search"},
             {"id","Id"},
             {"ip","Ip"},
             {"group","Group"},
@@ -332,7 +333,7 @@ namespace FWO.Test
 
         public override string GetText(string key)
         {
-            return DummyTranslate[key];
+            return DummyTranslate.TryGetValue(key, out string? value) ? value : key;
         }
 
         public static ConfigItem[] GetAsConfigs()

@@ -17,6 +17,7 @@
     <ul>
         @(Html.Raw(userConfig.GetText("H1402")))
         <li><b>LastModified</b> shows the import date when the rule last changed (Rules, Compliance, Recertification).</li>
+        <li>Rule reports now keep the original tree structure. Use <b>@userConfig.GetText("search")</b> to filter the tree and expand matching branches, and use <b>@userConfig.GetText("filter")</b> to hide or re-enable individual columns.</li>
     </ul>
     @(Html.Raw(userConfig.GetText("H1403")))
 </div>

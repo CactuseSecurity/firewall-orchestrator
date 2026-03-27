@@ -1,0 +1,64 @@
+.tree-view {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.tree-view-empty {
+    color: var(--bs-secondary-color);
+    font-size: 0.875rem;
+}
+
+.tree-node {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.tree-node-default {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tree-node-toggle {
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.85rem;
+    justify-content: center;
+    min-height: 1.5rem;
+    min-width: 1.5rem;
+    padding: 0;
+}
+
+.tree-node-toggle-placeholder {
+    cursor: default;
+    visibility: hidden;
+}
+
+.tree-node-label {
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+}
+
+.tree-node-label-disabled {
+    color: var(--bs-secondary-color);
+}
+
+.tree-node-detail {
+    margin-left: 1.75rem;
+}
+
+.tree-node-children {
+    border-left: 1px solid var(--bs-border-color-translucent);
+    margin-left: 0.75rem;
+    padding-left: 0.75rem;
+}

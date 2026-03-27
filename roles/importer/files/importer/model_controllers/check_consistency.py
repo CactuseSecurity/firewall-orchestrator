@@ -475,7 +475,7 @@ class FwConfigImportCheckConsistency:
                 if rule.rule_uid is None:
                     rules_missing_uid += 1
                     continue
-                if rule.rule_uid in seen_rule_uids:
+                if rule.rule_uid in seen_rule_uids and rule.rule_type != "nat":
                     duplicate_rule_uids.append(rule.rule_uid)
                 seen_rule_uids.add(rule.rule_uid)
                 if rule.rule_src == "" or rule.rule_dst == "":

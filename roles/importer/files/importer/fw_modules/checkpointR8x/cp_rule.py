@@ -472,7 +472,7 @@ def check_and_add_section_header(
     src_rulebase: dict[str, Any],
     target_rulebase: Rulebase,
     layer_name: str,
-    import_id: str,
+    import_id: int,
     section_header_uids: set[str],
 ):
     # TODO: re-implement
@@ -483,7 +483,7 @@ def insert_section_header_rule(
     _target_rulebase: Rulebase,
     _section_name: str,
     _layer_name: str,
-    _import_id: str,
+    _import_id: int,
     _src_rulebase_uid: str,
     _section_header_uids: set[str],
     _parent_uid: str,

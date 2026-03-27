@@ -229,7 +229,7 @@ def normalize_single_manager_config(
     cp_network.normalize_time_objects(native_config, normalized_config_dict)
     FWOLogger.info("completed normalizing time objects")
     cp_gateway.normalize_gateways(native_config, import_state, normalized_config_dict)
-    cp_nat.normalize_nat_rules(native_config, import_state, normalized_config_dict)
+
     cp_rule.normalize_rulebases(
         native_config,
         native_config_global,
@@ -238,6 +238,7 @@ def normalize_single_manager_config(
         normalized_config_global,
         is_global_loop_iteration,
     )
+    cp_nat.normalize_nat_rules(native_config, import_state, normalized_config_dict)
     if not parsing_config_only:  # get config from cp fw mgr
         cp_getter.logout(import_state.mgm_details.build_fw_api_string(), sid)
     FWOLogger.info("completed normalizing rulebases")

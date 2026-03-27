@@ -60,12 +60,12 @@ namespace FWO.Test
                 .Add(p => p.SelectedRules, selectedRules)
                 .Add(p => p.SelectedRulesChanged, EventCallback.Factory.Create<List<Rule>>(this, rules => selectedRules = rules)));
 
-            cut.FindAll(".rules-report__row--header")
+            cut.FindAll(".tree-view__row--header")
                 .First(row => row.TextContent.Contains("Section A"))
                 .QuerySelector("button")!
                 .Click();
 
-            cut.FindAll(".rules-report__row").First(row => row.TextContent.Contains("Alpha")).Click();
+            cut.FindAll(".tree-view__row").First(row => row.TextContent.Contains("Alpha")).Click();
 
             cut.WaitForAssertion(() =>
             {
@@ -94,8 +94,8 @@ namespace FWO.Test
 
             cut.WaitForAssertion(() =>
             {
-                Assert.That(cut.Find(".rules-report__header").TextContent, Does.Not.Contain("Name"));
-                Assert.That(cut.FindAll(".rules-report__row").Any(row => row.TextContent.Contains("Alpha")), Is.False);
+                Assert.That(cut.Find(".tree-view__header").TextContent, Does.Not.Contain("Name"));
+                Assert.That(cut.FindAll(".tree-view__row").Any(row => row.TextContent.Contains("Alpha")), Is.False);
             });
         }
 

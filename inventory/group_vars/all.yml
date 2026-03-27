@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.0.15"
+product_version: "9.0.16"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -184,5 +184,8 @@ apache_security_headers:
     - 'Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"'
     - 'Header always set X-Frame-Options "SAMEORIGIN"'
     - 'Header always set X-Content-Type-Options "nosniff"'
+
+apache_ssl_protocol: "SSLProtocol -all +TLSv1.2 +TLSv1.3"
+apache_ssl_cipher_suite: "SSLCipherSuite ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:!aNULL:!MD5:!DSS:!SHA1"
 
 apache_global_settings_file: /etc/apache2/conf-available/security.conf

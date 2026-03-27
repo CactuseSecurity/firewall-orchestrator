@@ -404,7 +404,7 @@ def process_devices(
             policy_structure=policy_structure_dict,
         )
 
-        handle_nat_rules(native_config_domain, sid, import_state)
+        handle_nat_rules(native_config_domain, sid, import_state, policy_structure)
 
         native_config_domain["gateways"].append(device_config)
 
@@ -552,16 +552,16 @@ def get_rules_params(import_state: ImportState) -> dict[str, Any]:
     }
 
 
-def handle_nat_rules(native_config_domain: dict[str, Any], sid: str, import_state: ImportState):
-    return
-    if "rulebases" in native_config_domain and len(native_config_domain["rulebases"]) > 0:
-        first_rulebase_name = native_config_domain["rulebases"][0]["name"]
+def handle_nat_rules(
+    native_config_domain: dict[str, Any], sid: str, import_state: ImportState, policy_structure: list[dict[str, Any]]
+):
+    for policy in policy_structure:
         show_params_rules: dict[str, Any] = {
             "limit": import_state.fwo_config.api_fetch_size,
             "use-object-dictionary": cp_const.use_object_dictionary,
-            "package": first_rulebase_name,
+            "package": policy["name"],
         }
-        FWOLogger.debug(f"Getting NAT rules for package: {first_rulebase_name}", 4)
+        FWOLogger.debug(f"Getting NAT rules for package: {policy['name']}", 4)
         nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
             import_state.mgm_details.build_fw_api_string(),
             sid,
@@ -572,8 +572,6 @@ def handle_nat_rules(native_config_domain: dict[str, Any], sid: str, import_stat
             native_config_domain["nat_rulebases"].append(nat_rules)
         else:
             native_config_domain["nat_rulebases"].append({"nat_rule_chunks": []})
-    else:
-        native_config_domain["nat_rulebases"].append({"nat_rule_chunks": []})
 
 
 def add_ordered_layers_to_native_config(

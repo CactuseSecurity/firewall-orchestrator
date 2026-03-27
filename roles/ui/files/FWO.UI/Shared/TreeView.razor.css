@@ -4,9 +4,170 @@
     gap: 0.35rem;
 }
 
+.tree-view--table {
+    gap: 0;
+    min-width: max-content;
+}
+
 .tree-view-empty {
     color: var(--bs-secondary-color);
     font-size: 0.875rem;
+}
+
+.tree-view__header {
+    background: var(--bs-secondary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-bottom: none;
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.tree-view__header-cell {
+    border-right: 1px solid var(--bs-border-color);
+    flex: 0 0 10rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.5rem 0.625rem;
+}
+
+.tree-view__node {
+    display: contents;
+}
+
+.tree-view__row {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-top: none;
+    display: flex;
+}
+
+.tree-view__row--interactive {
+    cursor: pointer;
+}
+
+.tree-view__row--interactive:hover {
+    background: var(--bs-secondary-bg);
+}
+
+.tree-view__row--selected {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.tree-view__row--header {
+    background: var(--bs-light-bg-subtle);
+}
+
+.tree-view__section {
+    align-items: center;
+    display: flex;
+    font-weight: 700;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.625rem;
+    width: 100%;
+}
+
+.tree-view__section-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tree-view__cell {
+    border-right: 1px solid var(--bs-border-color);
+    flex: 0 0 10rem;
+    min-width: 0;
+    padding: 0.5rem 0.625rem;
+}
+
+.tree-view__hierarchy {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tree-view__cell-content {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.tree-view__cell-content--clamp {
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    display: -webkit-box;
+    overflow: hidden;
+}
+
+.tree-view__detail {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-top: none;
+    padding: 0.75rem 1rem;
+}
+
+.tree-view__toggle {
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.85rem;
+    height: 1.5rem;
+    justify-content: center;
+    min-width: 1.5rem;
+    padding: 0;
+}
+
+.tree-view__toggle-placeholder {
+    visibility: hidden;
+}
+
+.tree-view__level-0 {
+    padding-left: 0.625rem;
+}
+
+.tree-view__level-1 {
+    padding-left: 1.5rem;
+}
+
+.tree-view__level-2 {
+    padding-left: 2.5rem;
+}
+
+.tree-view__level-3 {
+    padding-left: 3.5rem;
+}
+
+.tree-view__level-4 {
+    padding-left: 4.5rem;
+}
+
+.tree-view__level-5 {
+    padding-left: 5.5rem;
+}
+
+.tree-view__level-6 {
+    padding-left: 6.5rem;
+}
+
+.tree-view__level-7 {
+    padding-left: 7.5rem;
+}
+
+.tree-view__level-8 {
+    padding-left: 8.5rem;
+}
+
+.tree-view__level-9 {
+    padding-left: 9.5rem;
+}
+
+.tree-view__level-10 {
+    padding-left: 10.5rem;
 }
 
 .tree-node {

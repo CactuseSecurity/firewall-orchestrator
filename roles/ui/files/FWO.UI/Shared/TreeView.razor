@@ -4,7 +4,19 @@
 
 @typeparam T where T : ITreeViewItem
 
-<div class="tree-view">
+<div class="tree-view @(HasColumns ? "tree-view--table" : string.Empty)">
+    @if (HasColumns)
+    {
+        <div class="tree-view__header">
+            @foreach (var column in Columns)
+            {
+                <div class="@GetHeaderCellClasses(column)">
+                    @column.Title
+                </div>
+            }
+        </div>
+    }
+
     @if (Nodes.Count > 0)
     {
         @foreach (var node in Nodes)
@@ -14,7 +26,7 @@
     }
     else
     {
-        <div class="tree-view-empty">No data</div>
+        <div class="tree-view-empty">@EmptyText</div>
     }
 </div>
 
@@ -30,6 +42,9 @@
     public EventCallback<T> OnNodeSelected { get; set; }
 
     [Parameter]
+    public List<TreeViewColumn<T>> Columns { get; set; } = [];
+
+    [Parameter]
     public RenderFragment<TreeViewNodeContext<T>>? NodeContent { get; set; }
 
     [Parameter]
@@ -41,6 +56,20 @@
     [Parameter]
     public Func<T, bool>? ShouldRenderNode { get; set; }
 
+    [Parameter]
+    public Func<T, bool>? IsHeaderNode { get; set; }
+
+    [Parameter]
+    public Func<T, string>? HeaderTitleSelector { get; set; }
+
+    [Parameter]
+    public Func<T, bool>? IsNodeSelected { get; set; }
+
+    [Parameter]
+    public string EmptyText { get; set; } = "No data";
+
+    private bool HasColumns => Columns.Count > 0;
+
     private RenderFragment RenderNode(T node, int level) => @<div>
         @if (ShouldRenderNode?.Invoke(node) != false)
         {
@@ -51,55 +80,134 @@
                 () => ToggleNode(node),
                 () => SelectNode(node));
 
-            <div class="tree-node">
-                @if (NodeContent != null)
+            @if (HasColumns)
+            {
+                @RenderTableNode(context)
+            }
+            else
+            {
+                <div class="tree-node">
+                    @if (NodeContent != null)
+                    {
+                        @NodeContent(context)
+                    }
+                    else
+                    {
+                        <div class="tree-node-default">
+                            @if (context.HasChildren)
+                            {
+                                <button class="tree-node-toggle" type="button" @onclick="context.ToggleNodeAsync">
+                                    @(node.IsExpanded ? "▼" : "▶")
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="tree-node-toggle tree-node-toggle-placeholder"></span>
+                            }
+
+                            @if (node.IsSelectable)
+                            {
+                                <button class="tree-node-label" type="button" @onclick="context.SelectNodeAsync">
+                                    @node.Label
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="tree-node-label-disabled">@node.Label</span>
+                            }
+                        </div>
+                    }
+
+                    @if (DetailContent != null && IsDetailExpanded?.Invoke(node) == true)
+                    {
+                        <div class="tree-node-detail">
+                            @DetailContent(context)
+                        </div>
+                    }
+
+                    @if (node.IsExpanded && context.HasChildren)
+                    {
+                        <div class="tree-node-children">
+                            @foreach (var child in node.Children.OfType<T>())
+                            {
+                                @RenderNode(child, level + 1)
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>;
+
+    private RenderFragment RenderTableNode(TreeViewNodeContext<T> context) => @<div class="tree-view__node">
+        @if (IsHeaderNode?.Invoke(context.Node) == true)
+        {
+            <div class="tree-view__row tree-view__row--header">
+                <div class="tree-view__section @GetLevelClass(context.Level)">
+                    @if (context.HasChildren)
+                    {
+                        <button class="tree-view__toggle" type="button" @onclick="context.ToggleNodeAsync" @onclick:stopPropagation="true">
+                            @GetToggleSymbol(context.Node)
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="tree-view__toggle tree-view__toggle-placeholder"></span>
+                    }
+                    <span class="tree-view__section-title" title="@GetHeaderTitle(context.Node)">
+                        @GetHeaderTitle(context.Node)
+                    </span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="@GetTableRowClasses(context.Node)" @onclick="() => SelectNode(context.Node)">
+                @foreach (var column in Columns)
                 {
-                    @NodeContent(context)
-                }
-                else
-                {
-                    <div class="tree-node-default">
-                        @if (context.HasChildren)
+                    <div class="@GetCellClasses(column)">
+                        @if (IsHierarchyColumn(column))
                         {
-                            <button class="tree-node-toggle" type="button" @onclick="context.ToggleNodeAsync">
-                                @(node.IsExpanded ? "▼" : "▶")
-                            </button>
+                            <div class="tree-view__hierarchy @GetLevelClass(context.Level)">
+                                @if (context.HasChildren)
+                                {
+                                    <button class="tree-view__toggle" type="button" @onclick="context.ToggleNodeAsync" @onclick:stopPropagation="true">
+                                        @GetToggleSymbol(context.Node)
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="tree-view__toggle tree-view__toggle-placeholder"></span>
+                                }
+                                <span class="@GetContentClasses(column)" title="@GetTooltip(column, context)">
+                                    @RenderCellValue(column, context)
+                                </span>
+                            </div>
                         }
                         else
                         {
-                            <span class="tree-node-toggle tree-node-toggle-placeholder"></span>
-                        }
-
-                        @if (node.IsSelectable)
-                        {
-                            <button class="tree-node-label" type="button" @onclick="context.SelectNodeAsync">
-                                @node.Label
-                            </button>
-                        }
-                        else
-                        {
-                            <span class="tree-node-label-disabled">@node.Label</span>
-                        }
-                    </div>
-                }
-
-                @if (DetailContent != null && IsDetailExpanded?.Invoke(node) == true)
-                {
-                    <div class="tree-node-detail">
-                        @DetailContent(context)
-                    </div>
-                }
-
-                @if (node.IsExpanded && context.HasChildren)
-                {
-                    <div class="tree-node-children">
-                        @foreach (var child in node.Children.OfType<T>())
-                        {
-                            @RenderNode(child, level + 1)
+                            <span class="@GetContentClasses(column)" title="@GetTooltip(column, context)">
+                                @RenderCellValue(column, context)
+                            </span>
                         }
                     </div>
                 }
             </div>
+
+            @if (DetailContent != null && IsDetailExpanded?.Invoke(context.Node) == true)
+            {
+                <div class="tree-view__detail">
+                    @DetailContent(context)
+                </div>
+            }
+        }
+
+        @if (context.Node.IsExpanded && context.HasChildren)
+        {
+            @foreach (var child in context.Node.Children.OfType<T>())
+            {
+                @RenderNode(child, context.Level + 1)
+            }
         }
     </div>;
 
@@ -114,5 +222,76 @@
     {
         await OnNodeSelected.InvokeAsync(node);
         await InvokeAsync(StateHasChanged);
+    }
+
+    private string GetHeaderCellClasses(TreeViewColumn<T> column)
+    {
+        return $"tree-view__header-cell {column.HeaderClass}".Trim();
+    }
+
+    private string GetCellClasses(TreeViewColumn<T> column)
+    {
+        return $"tree-view__cell {column.CellClass}".Trim();
+    }
+
+    private string GetContentClasses(TreeViewColumn<T> column)
+    {
+        return $"tree-view__cell-content {(column.ClampContent ? "tree-view__cell-content--clamp" : string.Empty)}".Trim();
+    }
+
+    private string GetTableRowClasses(T node)
+    {
+        List<string> classes = ["tree-view__row"];
+
+        if (OnNodeSelected.HasDelegate)
+        {
+            classes.Add("tree-view__row--interactive");
+        }
+
+        if (IsNodeSelected?.Invoke(node) == true)
+        {
+            classes.Add("tree-view__row--selected");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private string GetHeaderTitle(T node)
+    {
+        return HeaderTitleSelector?.Invoke(node) ?? node.Label;
+    }
+
+    private string GetTooltip(TreeViewColumn<T> column, TreeViewNodeContext<T> context)
+    {
+        return column.TooltipSelector?.Invoke(context) ?? string.Empty;
+    }
+
+    private bool IsHierarchyColumn(TreeViewColumn<T> column)
+    {
+        return column.IsHierarchyColumn || (!Columns.Any(col => col.IsHierarchyColumn) && ReferenceEquals(column, Columns[0]));
+    }
+
+    private RenderFragment RenderCellValue(TreeViewColumn<T> column, TreeViewNodeContext<T> context) => builder =>
+    {
+        if (column.HtmlSelector != null)
+        {
+            builder.AddContent(0, (MarkupString)column.HtmlSelector(context));
+            return;
+        }
+
+        if (column.TextSelector != null)
+        {
+            builder.AddContent(1, column.TextSelector(context));
+        }
+    };
+
+    private static string GetToggleSymbol(T node)
+    {
+        return node.IsExpanded ? "▼" : "▶";
+    }
+
+    private static string GetLevelClass(int level)
+    {
+        return $"tree-view__level-{Math.Min(level, 10)}";
     }
 }

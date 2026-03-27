@@ -18,7 +18,9 @@ class ImportStatisticsController:
             + self.statistics.user_object_change_count
             + self.statistics.zone_object_add_count
             + self.statistics.zone_object_delete_count
-            + self.statistics.zone_object_change_count
+            + self.statistics.time_object_add_count
+            + self.statistics.time_object_delete_count
+            + self.statistics.time_object_change_count
             + self.statistics.rule_add_count
             + self.statistics.rule_delete_count
             + self.statistics.rule_change_count
@@ -44,6 +46,7 @@ class ImportStatisticsController:
         self.collect_nw_obj_change_details(result)
         self.collect_svc_obj_change_details(result)
         self.collect_usr_obj_change_details(result)
+        self.collect_time_obj_change_details(result)
         self.collect_zone_obj_change_details(result)
         self.collect_rule_change_details(result)
         self.collect_inconsistent_deletion_details(result)
@@ -78,8 +81,14 @@ class ImportStatisticsController:
             result["zone_object_add_count"] = self.statistics.zone_object_add_count
         if self.statistics.zone_object_delete_count > 0:
             result["zone_object_delete_count"] = self.statistics.zone_object_delete_count
-        if self.statistics.zone_object_change_count > 0:
-            result["zone_object_change_count"] = self.statistics.zone_object_change_count
+
+    def collect_time_obj_change_details(self, result: dict[str, int]):
+        if self.statistics.time_object_add_count > 0:
+            result["time_object_add_count"] = self.statistics.time_object_add_count
+        if self.statistics.time_object_delete_count > 0:
+            result["time_object_delete_count"] = self.statistics.time_object_delete_count
+        if self.statistics.time_object_change_count > 0:
+            result["time_object_change_count"] = self.statistics.time_object_change_count
 
     def collect_rule_change_details(self, result: dict[str, int]):
         if self.statistics.rule_add_count > 0:

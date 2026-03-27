@@ -3,7 +3,11 @@ include = [
     "roles/importer/files/importer",
     "scripts"
 ]
+extraPaths = ["roles/importer/files/importer"]
+venv = ".venv"
+
 exclude = [
+    "**/.*",
     "**/node_modules",
     "**/__pycache__",
     ".git",
@@ -16,18 +20,15 @@ exclude = [
     "scripts/release_lock.py"    
 ]
 
-venvPath = "."
-venv = ".venv"
-
 typeCheckingMode = "strict"
 reportMissingImports = false
 reportMissingTypeStubs = true
 
 [tool.ruff]
-required-version = "0.14.8"
+required-version = "0.15.0"
 line-length = 120
 indent-width = 4
-target-version = "py313"
+target-version = "py310"
 exclude = [
     ".bzr",
     ".direnv",

@@ -1,5 +1,6 @@
 from copy import deepcopy
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, cast
 
 import fwo_const
 from fw_modules.fortiadom5ff import fmgr_getter
@@ -18,6 +19,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.import_state import ImportState
 from models.management import Management
+from models.time_object import TimeObject
 from utils.conversion_utils import convert_list_to_dict
 
 
@@ -150,6 +152,7 @@ def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
         "nat_rulebases": [],
         "zones": [],
         "gateways": [],
+        "time_objects": [],
     }
 
 
@@ -189,6 +192,10 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
             is_global_loop_iteration,
         )
 
+        normalized_time_objects = normalized_config_adom.get("time_objects", {})
+        if not isinstance(normalized_time_objects, dict):
+            normalized_time_objects = {}
+
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT,
             network_objects=convert_list_to_dict(normalized_config_adom.get("network_objects", []), "obj_uid"),
@@ -196,6 +203,7 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
             zone_objects=convert_list_to_dict(normalized_config_adom.get("zone_objects", []), "zone_name"),
             rulebases=normalized_config_adom.get("policies", []),
             gateways=normalized_config_adom.get("gateways", []),
+            time_objects=cast("dict[str, TimeObject]", normalized_time_objects),
         )
 
         # TODO: identify the correct manager
@@ -266,6 +274,8 @@ def normalize_single_manager_config(
         is_global_loop_iteration,
     )
     FWOLogger.info("completed normalizing rulebases for manager: " + native_config.get("domain_name", ""))
+    normalize_time_objects(native_config, normalized_config_adom)
+    FWOLogger.info("completed normalizing time objects for manager: " + native_config.get("domain_name", ""))
 
     normalize_gateways(native_config, normalized_config_adom)
 
@@ -452,6 +462,18 @@ def get_objects(
             limit=limit,
         )
 
+    # schedules: /pm/config/adom/root/obj/firewall/schedule/onetime, /pm/config/adom/root/obj/firewall/schedule/recurring, /pm/config/adom/root/obj/firewall/schedule/group
+    # get schedules:
+    for object_type in ["onetime", "recurring", "group"]:
+        fmgr_getter.update_config_with_fortinet_api_call(
+            native_config_domain["time_objects"],
+            sid,
+            fm_api_url,
+            api_base_path + "firewall/schedule/" + object_type,
+            "schedule_obj_" + adom_scope + "_" + "firewall/schedule/" + object_type,
+            limit=limit,
+        )
+
     # get one arbitrary device and vdom to get dynamic objects
     # they are equal across all adoms, vdoms, devices
     if arbitrary_vdom_for_updateable_objects is None:
@@ -515,3 +537,73 @@ def normalize_links(rulebase_links: list[dict[str, Any]]) -> list[dict[str, Any]
             if link["from_rule_uid"] is not None:
                 link["from_rule_uid"] = None
     return rulebase_links
+
+
+def normalize_time_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any]):
+    time_object_by_uid: dict[str, TimeObject] = {}
+
+    # Get time objects from native
+    time_objects_from_native = [
+        to_time_object(item)
+        for native_time_object in native_config.get("time_objects", [])
+        for item in native_time_object.get("data", [])
+    ]
+
+    for rulebase in native_config.get("rulebases", []):  # include nat rulebases?
+        for rule in rulebase.get("data", []):
+            if "schedule" in rule and rule["schedule"] is not None:
+                schedule_ref: list[str] = rule["schedule"]
+
+                # Find the time object in native config that matches the schedule reference
+
+                matching_time_objects = [obj for obj in time_objects_from_native if obj.time_obj_name in schedule_ref]
+
+                if matching_time_objects:
+                    time_object_by_uid.update({time_obj.time_obj_uid: time_obj for time_obj in matching_time_objects})
+                else:
+                    FWOLogger.warning(
+                        f"Schedule reference {schedule_ref} in rule {rule['name']} does not match any known time object."
+                    )
+
+    normalized_config_adom.update({"time_objects": time_object_by_uid})
+
+
+def to_time_object(d: dict[str, Any]) -> TimeObject:
+    def parse_schedule_timestamp(value: list[str] | str | None, field_name: str) -> str | None:
+        # format is like: "start": ["12:00", "2026/02/17"]
+        # or: "start": "00:00 2020/01/01"
+        # or: "start": "12:00" -> currently not supported
+        if value is None:
+            return None
+        if isinstance(value, str):
+            if value == "00:00":
+                return None
+            value = value.split()
+        if len(value) != 2:  # noqa: PLR2004
+            FWOLogger.warning(
+                f"Found time object with currently unsupported date/time format for {field_name} in time object {d.get('name', '')}: {value}"
+            )
+            return None
+        time_part, date_part = value
+        # format needs to be 1970-01-01T00:00:00
+        try:
+            dt = datetime.strptime(date_part + " " + time_part, "%Y/%m/%d %H:%M").replace(tzinfo=timezone.utc)
+            return dt.strftime("%Y-%m-%dT%H:%M:%S")
+        except ValueError as e:
+            FWOLogger.warning(f"Error parsing date/time for {field_name} in time object {d.get('name', '')}: {e}")
+            return None
+
+    name = d.get("name")
+
+    if not name:
+        raise ImportInterruptionError("Time object missing name field, cannot normalize.")
+
+    start_time = parse_schedule_timestamp(d.get("start"), "start")
+    end_time = parse_schedule_timestamp(d.get("end"), "end")
+
+    return TimeObject(
+        time_obj_uid=name,
+        time_obj_name=name,
+        start_time=start_time,
+        end_time=end_time,
+    )

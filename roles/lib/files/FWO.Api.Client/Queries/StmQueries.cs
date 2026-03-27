@@ -8,7 +8,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRuleActions;
         public static readonly string getTracking;
 
-
         static StmQueries()
         {
             try

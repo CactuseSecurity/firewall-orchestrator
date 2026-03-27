@@ -28,12 +28,12 @@
 
 - hosts: apiserver
   roles:
-    - { role: docker, when: "not installation_mode == 'uninstall'" }
+    - { role: podman, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
     - api
 
-# do not put this into the same play as docker (handler needs to run inbetween!)
+# do not put this into the same play as podman (runtime needs to be installed first)
 - hosts: apiserver 
   roles:
     - { role: api, when: "not installation_mode == 'uninstall'" }

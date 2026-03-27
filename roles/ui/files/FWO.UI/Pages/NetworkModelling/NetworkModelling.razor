@@ -129,7 +129,8 @@
                                     @(DisplayService.DisplayButton(userConfig, "add_connection", Icons.Add))
                                 </button>
                             </div>
-                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
+                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()"
+                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
                         </Tab>
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                             <div class="d-flex justify-content-between">
@@ -147,7 +148,8 @@
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
-                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())"/>
+                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)"
+                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())"/>
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {
@@ -159,18 +161,19 @@
                                         @(DisplayService.DisplayButton(userConfig, "add_common_service", Icons.Add))
                                     </button>
                                </div>
-                                <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
+                                <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetCommonServices()"
+                                    @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
                             </Tab>
                         }
                     </TabSet>
                 </div>
                 <ConfirmDelete @bind-Display="appHandler!.DeleteConnMode"
-                    PerformAction="async () => {await appHandler!.DeleteConnection(); appHandler!.RestoreTab(); StateHasChanged();}"
+                    PerformAction="DeleteConnection"
                     Title="@userConfig.GetText(appHandler!.ConnToDelete.IsInterface ? "delete_interface" : "delete_connection")"
                     DeleteMessage="@appHandler!.Message" DeleteAllowed="appHandler!.DeleteAllowed" AllowedRoles="@Roles.Modeller" />
                 <DecommissionInterfacePopup @bind-Display="appHandler.DecommissionInterfaceMode" ConnHandler="appHandler.ConnHandler"
                     PossibleInterfaces="appHandler.GetInterfaces()" RefreshParent="async () => {await DefaultInit.DoNothing();}" />
-                <InterfaceUsersPopup @bind-Display="appHandler.ShowUsingConnectionsMode" InterfaceName="@(appHandler.InterfaceName)" UsingConnections="appHandler.UsingConnections"/>
+                <InterfaceUsersPopup @bind-Display="appHandler.ShowUsingConnectionsMode" InterfaceName="@(appHandler.InterfaceName)" UsingConnections="appHandler.UsingConnections" App="selectedApp"/>
             }
         </div>
     }
@@ -405,7 +408,7 @@ else
     {
         if (!IsModellingWriteAllowedForSelectedApp())
         {
-            DisplayMessageInUi(null, userConfig.GetText("request_fw_change"), userConfig.GetText("C9012"), true);
+            DisplayMessageInUi(null, userConfig.GetText("request_fw_change"), userConfig.GetText("E9104"), true);
             return;
         }
         showFwChange = true;
@@ -415,18 +418,29 @@ else
     {
         if (!IsModellingWriteAllowedForSelectedApp() || appHandler == null)
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_connection"), userConfig.GetText("C9012"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_connection"), userConfig.GetText("E9104"), true);
             return;
         }
 
         await appHandler.AddConnection();
     }
 
+    private async Task DeleteConnection()
+    {
+        if (appHandler == null)
+        {
+            return;
+        }
+        await appHandler.DeleteConnection();
+        appHandler.RestoreTab();
+        StateHasChanged();
+    }
+
     private async Task AddInterface()
     {
         if (!IsModellingWriteAllowedForSelectedApp() || appHandler == null)
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_interface"), userConfig.GetText("C9012"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_interface"), userConfig.GetText("E9104"), true);
             return;
         }
 
@@ -437,7 +451,7 @@ else
     {
         if (!IsModellingWriteAllowedForSelectedApp() || appHandler == null)
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_common_service"), userConfig.GetText("C9012"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_common_service"), userConfig.GetText("E9104"), true);
             return;
         }
 
@@ -448,7 +462,7 @@ else
     {
         if (!HasRecertWriteAccess() || !IsRecertificationAllowedForSelectedApp())
         {
-            DisplayMessageInUi(null, userConfig.GetText("recertify"), userConfig.GetText("C9012"), true);
+            DisplayMessageInUi(null, userConfig.GetText("recertify"), userConfig.GetText("E9104"), true);
             return;
         }
         showRecert = true;

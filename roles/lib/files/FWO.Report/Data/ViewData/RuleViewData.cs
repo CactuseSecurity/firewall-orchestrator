@@ -30,6 +30,12 @@ namespace FWO.Report.Data.ViewData
         public string RulebaseId { get; set; } = "";
         public string RulebaseName { get; set; } = "";
         public string Enabled { get; set; } = "";
+        public string RuleTime { get; set; } = "";
+        public string ExpirationTime
+        {
+            get => RuleTime;
+            set => RuleTime = value;
+        }
 
         public Rule? DataObject { get; set; }
         public bool Show { get; set; } = true;
@@ -63,6 +69,7 @@ namespace FWO.Report.Data.ViewData
             AdoITID = SafeCall(rule, "AdoITID", () => GetFromCustomField(rule, ["field-3", "AdoIT"]));
             Comment = SafeCall(rule, "Comment", () => rule.Comment ?? "");
             LastModified = SafeCall(rule, "LastModified", () => RuleDisplayBase.DisplayLastModified(rule));
+            RuleTime = SafeCall(rule, "RuleTime", () => natRuleDisplayHtml.DisplayRuleTime(rule));
             RulebaseId = SafeCall(rule, "RulebaseId", () => rule.RulebaseId.ToString());
             RulebaseName = SafeCall(rule, "RulebaseName", () => rule.Rulebase?.Name ?? "");
             Enabled = SafeCall(rule, "Enabled", () => RuleDisplayBase.DisplayEnabled(rule, outputLocation));

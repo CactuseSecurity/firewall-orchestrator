@@ -18,6 +18,11 @@ fragment connectionDetails on modelling_connection {
   removed
   removal_date
   interface_permission
+  owner {
+    id
+    name
+    app_id_external
+  }
   permitted_owners {
     owner {
       id

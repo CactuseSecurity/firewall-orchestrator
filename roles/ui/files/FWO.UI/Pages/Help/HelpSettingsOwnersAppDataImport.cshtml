@@ -16,11 +16,26 @@
     <p>
         @(Html.Raw(userConfig.GetText("H5670")))
     </p>
+    <h4>@(userConfig.GetText("appserver_import"))</h4>
     <ul>
+        <li>@(Html.Raw(userConfig.GetText("H9055")))</li>
+    </ul>
+    <h4>@(userConfig.GetText("import_app_data"))</h4>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5611")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5611a")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5612")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5613")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5671")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5672")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5676")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5673")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5674")))</li>
+    </ul>
+    <h4>@(userConfig.GetText("import_subnet_data"))</h4>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5614")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5615")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5616")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5675")))</li>
     </ul>
 </div>

@@ -4,12 +4,10 @@ using FWO.Basics;
 using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Config.Api;
-using FWO.Logging;
 using FWO.Mail;
 using FWO.Encryption;
 using FWO.Report;
 using FWO.Services;
-using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {
@@ -57,15 +55,36 @@ namespace FWO.Middleware.Server
         /// <param name="extDeadline">Deadline date e.g. from ticket, if not defined by owner (only for InterfaceClient)</param>
         /// <param name="content">Text for notification (e.g. email body)</param>
         /// <param name="report">Optional report to be sent as attachment</param>
+        /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotifications(FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null)
+        public async Task<int> SendNotificationsIfDue(FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null, string timeIntervalText = "")
         {
             int emailsSent = 0;
             foreach (var notification in Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
             {
-                emailsSent += await SendNotification(notification, owner, extDeadline, content, report);
+                emailsSent += await SendNotificationIfDue(notification, owner, extDeadline, content, report, timeIntervalText);
             }
             return emailsSent;
+        }
+
+        /// <summary>
+        /// Sends a single notification without checking if it is currently due.
+        /// </summary>
+        /// <param name="notification">Notification to send.</param>
+        /// <param name="owner">Owner for whom the notification is sent.</param>
+        /// <param name="content">Text for notification (e.g. email body).</param>
+        /// <param name="report">Optional report to be sent as attachment.</param>
+        /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
+        /// <returns>number of emails sent</returns>
+        public async Task<int> SendNotification(FwoNotification notification, FwoOwner owner, string content, ReportBase? report = null, string timeIntervalText = "")
+        {
+            // Later: Handle other channels here when implemented
+            await SendEmail(notification, content, owner, report, timeIntervalText);
+            if (!CheckedNotificationIds.Contains(notification.Id))
+            {
+                CheckedNotificationIds.Add(notification.Id);
+            }
+            return 1;
         }
 
         /// <summary>
@@ -76,21 +95,15 @@ namespace FWO.Middleware.Server
         /// <param name="extDeadline">Deadline date e.g. from ticket, if not defined by owner (only for InterfaceClient)</param>
         /// <param name="content">Text for notification (e.g. email body)</param>
         /// <param name="report">Optional report to be sent as attachment</param>
+        /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotification(FwoNotification notification, FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null)
+        public async Task<int> SendNotificationIfDue(FwoNotification notification, FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null, string timeIntervalText = "")
         {
-            int emailsSent = 0;
-            if (SendNow(owner, extDeadline, notification))
+            if (IsNotificationDue(owner, extDeadline, notification))
             {
-                // Later: Handle other channels here when implemented
-                await SendEmail(notification, content, owner, report);
-                if (!CheckedNotificationIds.Contains(notification.Id))
-                {
-                    CheckedNotificationIds.Add(notification.Id);
-                }
-                emailsSent++;
+                return await SendNotification(notification, owner, content, report, timeIntervalText);
             }
-            return emailsSent;
+            return 0;
         }
 
         /// <summary>
@@ -104,7 +117,14 @@ namespace FWO.Middleware.Server
             return updatedNotifications;
         }
 
-        private static bool SendNow(FwoOwner owner, DateTime? extDeadline, FwoNotification notification)
+        /// <summary>
+        /// Checks whether a notification is currently due for sending.
+        /// </summary>
+        /// <param name="owner">Owner context used for owner-based deadlines.</param>
+        /// <param name="extDeadline">External deadline (e.g. request date, rule expiry date).</param>
+        /// <param name="notification">Notification configuration to evaluate.</param>
+        /// <returns>True if the notification should be sent now; otherwise false.</returns>
+        public static bool IsNotificationDue(FwoOwner owner, DateTime? extDeadline, FwoNotification notification)
         {
             if (notification.Deadline == NotificationDeadline.None)
             {
@@ -163,6 +183,14 @@ namespace FWO.Middleware.Server
             {
                 return (DateTime)extDeadline;
             }
+            else if (deadline == NotificationDeadline.RuleExpiry && extDeadline != null)
+            {
+                return (DateTime)extDeadline;
+            }
+            else if (deadline == NotificationDeadline.DecommissionDate && owner.DecommDate != null)
+            {
+                return (DateTime)owner.DecommDate;
+            }
             return DateTime.Now;
         }
 
@@ -171,21 +199,24 @@ namespace FWO.Middleware.Server
             return await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = notificationClient.ToString() });
         }
 
-        private async Task SendEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null)
+        private async Task SendEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null, string timeIntervalText = "")
         {
             string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
             EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
                 GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
 
-            MailData? mail = await PrepareEmail(notification, content, owner, report);
+            MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText);
 
             await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
         }
 
-        private async Task<MailData> PrepareEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null)
+        private async Task<MailData> PrepareEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null, string timeIntervalText = "")
         {
-            string subject = notification.EmailSubject.Replace(Placeholder.APPNAME, owner.Name).Replace(Placeholder.APPID, owner.ExtAppId);
-            string body = content;
+            string subject = notification.EmailSubject
+                .Replace(Placeholder.APPNAME, owner.Name)
+                .Replace(Placeholder.APPID, owner.ExtAppId)
+                .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
+            string body = content.Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
             FormFile? attachment = null;
             if (report != null)
             {

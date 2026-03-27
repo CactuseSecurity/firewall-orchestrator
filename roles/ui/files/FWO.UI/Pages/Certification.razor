@@ -103,6 +103,12 @@
             </AuthorizeView>
         }
     </div>
+    @if (ShowNoRecertifiableOwnersHint())
+    {
+        <div class="alert alert-warning mt-2 mb-0" role="alert">
+            @userConfig.GetText("no_recertifiable_owners_assigned")
+        </div>
+    }
     <hr />
     <RulesReport Recertification="true" ReadonlyMode="@( !CanWriteSelectedOwner() )" Managements="managementsReport"
                  RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"
@@ -314,7 +320,7 @@
     {
         if (!CanWriteSelectedOwner())
         {
-            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("C9012"), true);
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("E9104"), true);
             return;
         }
         AddCommentMode = true;
@@ -329,7 +335,7 @@
     {
         if (!CanWriteSelectedOwner())
         {
-            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("C9012"), true);
+            DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("E9104"), true);
             return;
         }
         bool shortened = false;
@@ -442,5 +448,16 @@
         bool hasRecertifierRole = authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
 
         return RecertificationOwnerSelection.CanWriteSelectedOwner(selectedOwner, isAdmin, hasRecertifierRole, recertifiableOwnerIds);
+    }
+
+    private bool ShowNoRecertifiableOwnersHint()
+    {
+        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+        bool hasRecertifierRole = authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
+        return RecertificationOwnerSelection.ShowNoRecertifiableOwnersHint(
+            isAdmin,
+            hasRecertifierRole,
+            collectedOwnerships.Count,
+            recertifiableOwnerIds.Count);
     }
 }

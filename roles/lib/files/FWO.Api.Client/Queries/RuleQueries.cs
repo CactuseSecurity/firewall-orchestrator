@@ -34,6 +34,14 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRulesWithViolationsInTimespanByChunk;
         public static readonly string getRulesWithCurrentViolationsByChunk;
         public static readonly string getRulesForSelectedManagements;
+        public static readonly string getRulesForOwnerMapping;
+        public static readonly string getChangedRulesForRuleOwnerMapping;
+        public static readonly string getRulesForRuleOwner;
+        public static readonly string getRulesForRuleOwnerByOwnerToUpdate;
+        public static readonly string getRuleDetailsById;
+        public static readonly string getTimeBasedRulesByOwner;
+        public static readonly string getRuleIdsByRuleOwner;
+        public static readonly string getActiveRulesByOwner;
 
 
         static RuleQueries()
@@ -107,6 +115,14 @@ namespace FWO.Api.Client.Queries
                 getRulesForSelectedManagements = ruleDetailsFragments + GetQueryText("rule/getRulesForSelectedManagements.graphql");
                 countRules = GetQueryText("rule/countRules.graphql");
                 countActiveRules = GetQueryText("rule/countActiveRules.graphql");
+                getRulesForOwnerMapping = GetQueryText("rule/getRulesForOwnerMapping.graphql");
+                getChangedRulesForRuleOwnerMapping = GetQueryText("rule/getChangedRulesForRuleOwnerMapping.graphql");
+                getRulesForRuleOwner = GetQueryText("rule/getRulesForRuleOwner.graphql");
+                getRulesForRuleOwnerByOwnerToUpdate = GetQueryText("rule/getRulesForRuleOwnerByOwnerToUpdate.graphql");
+                getRuleDetailsById = GetQueryText("rule/getRuleDetailByID.graphql");
+                getTimeBasedRulesByOwner = GetQueryText("rule/getTimeBasedRulesByOwner.graphql");
+                getRuleIdsByRuleOwner = GetQueryText("rule/getRuleIdsByRuleOwner.graphql");
+                getActiveRulesByOwner = GetQueryText("rule/getActiveRulesByOwner.graphql");
             }
             catch (Exception exception)
             {

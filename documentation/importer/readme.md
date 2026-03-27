@@ -35,7 +35,7 @@ user@test:~$
 
 ### Lint Setup
 
-ruff und pre-commit sind in den requirements
+ruff and pre-commit are in requirements.txt
 
 ```
 pip install -r .\roles\importer\files\importer\requirements.txt

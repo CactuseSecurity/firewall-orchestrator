@@ -136,6 +136,9 @@ def mock_api_call_response(api_call: FwoApiCall):
                     "insert_rule_to_zone": {
                         "affected_rows": len(query_variables.get("ruleToZones", [])),
                     },
+                    "insert_rule_time": {
+                        "affected_rows": len(query_variables.get("ruleTimes", [])),
+                    },
                     "update_rule_from": {
                         "affected_rows": len(query_variables.get("ruleFroms", [])),
                     },
@@ -159,6 +162,9 @@ def mock_api_call_response(api_call: FwoApiCall):
                     },
                     "update_rule_to_zone": {
                         "affected_rows": len(query_variables.get("ruleToZones", [])),
+                    },
+                    "update_rule_time": {
+                        "affected_rows": len(query_variables.get("ruleTimes", [])),
                     },
                 }
             )

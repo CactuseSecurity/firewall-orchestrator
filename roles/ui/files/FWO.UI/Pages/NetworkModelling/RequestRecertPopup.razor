@@ -59,7 +59,7 @@
                     <br>
                     @(userConfig.GetText("U9028"))
                     <br><br>
-                    <ConnectionTable Connections="ModellingErrors" @bind-AppHandler="AppHandler" Readonly="true"/>
+                    <ConnectionTable Connections="ModellingErrors" @bind-AppHandler="AppHandler" Readonly="true" PopupMode="true"/>
                 }
             }
             @if(ImplementationError)
@@ -72,13 +72,13 @@
                 {
                     <br>
                     <h5>@(userConfig.GetText("connections_not_implemented"))</h5>
-                    <ConnectionTable Connections="VarianceResult.ConnsNotImplemented" @bind-AppHandler="AppHandler" Readonly="true"/>
+                    <ConnectionTable Connections="VarianceResult.ConnsNotImplemented" @bind-AppHandler="AppHandler" Readonly="true" PopupMode="true"/>
                 }
                 @if(VarianceResult.RuleDifferences.Count > 0)
                 {
                     <br>
                     <h5>@(userConfig.GetText("connections_with_diffs"))</h5>
-                    <ConnectionTable Connections="VarianceResult.RuleDifferences.Select(d => d.ModelledConnection).ToList()" @bind-AppHandler="AppHandler" Readonly="true"/>
+                    <ConnectionTable Connections="VarianceResult.RuleDifferences.Select(d => d.ModelledConnection).ToList()" @bind-AppHandler="AppHandler" Readonly="true" PopupMode="true"/>
                 }
                 @if(RulesFromDeletedConns.Count > 0)
                 {
@@ -264,7 +264,7 @@
     {
         if (!CanRecertify || !HasRecertWriteAccess())
         {
-            DisplayMessageInUi(null, userConfig.GetText("recertify"), userConfig.GetText("C9012"), true);
+            DisplayMessageInUi(null, userConfig.GetText("recertify"), userConfig.GetText("E9104"), true);
             return;
         }
         try

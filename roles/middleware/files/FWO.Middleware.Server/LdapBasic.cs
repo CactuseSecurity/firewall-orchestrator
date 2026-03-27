@@ -335,6 +335,36 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Determines whether the given LDAP entry represents a group object.
+        /// </summary>
+        /// <param name="entry">LDAP entry to classify.</param>
+        /// <returns>True if the entry is a group; otherwise false.</returns>
+        public static bool IsGroupEntry(LdapEntry entry)
+        {
+            return HasAttribute(entry, "member")
+                || HasAttribute(entry, "uniqueMember")
+                || HasAttribute(entry, "uniquemember")
+                || GetAttributeValues(entry, "objectClass").Any(value =>
+                    value.Equals("group", StringComparison.OrdinalIgnoreCase)
+                    || value.Equals("groupOfNames", StringComparison.OrdinalIgnoreCase)
+                    || value.Equals("groupOfUniqueNames", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool HasAttribute(LdapEntry entry, string attributeName)
+        {
+            return entry.GetAttributeSet().ContainsKey(attributeName);
+        }
+
+        private static IEnumerable<string> GetAttributeValues(LdapEntry entry, string attributeName)
+        {
+            if (entry.GetAttributeSet().ContainsKey(attributeName))
+            {
+                return entry.Get(attributeName).StringValueArray;
+            }
+            return [];
+        }
+
+        /// <summary>
         /// Get the tenant name for the given user
         /// </summary>
         /// <returns>tenant name of the given user</returns>

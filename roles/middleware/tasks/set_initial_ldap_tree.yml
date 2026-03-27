@@ -15,6 +15,14 @@
       ldap://{{ openldap_server }}:{{ (openldap_port | default(389) | int == 636) | ternary(389, openldap_port | default(389)) }}
       {%- endif %}
 
+- name: create middleware ldif directory
+  file:
+    path: "{{ middleware_ldif_dir }}"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: true
+
 - name: copy the ldif templates to system
   template:
     src: "{{ item }}"

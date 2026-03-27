@@ -23,3 +23,7 @@ roles/sample-data-connect-sting/** -linguist-detectable
 roles/sample-data/** -linguist-detectable
 roles/test/** -linguist-detectable
 #############################################################
+
+# Git canonical EOL policy
+* text=auto eol=lf
+

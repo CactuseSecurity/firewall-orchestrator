@@ -1,6 +1,8 @@
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Report.Data.ViewData;
 using FWO.Test.Mocks;
+using FWO.Api.Client.Queries;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -141,6 +143,80 @@ namespace FWO.Test
             Assert.That(multiple.Compliance == ComplianceViolationType.MultipleViolations);
             Assert.That(singular.ViolationDetails == controlSingular);
             Assert.That(singular.Compliance == ComplianceViolationType.ServiceViolation);
+        }
+
+        [Test]
+        public void CreateQueryVariables_UsesConfiguredRelevantManagementIds()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceCheckRelevantManagements = "9,10"
+            };
+            UserConfig userConfig = new(globalConfig);
+            MockReportCompliance report = new(new(""), userConfig, Basics.ReportType.ComplianceReport);
+
+            Dictionary<string, object> queryVariables = report.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithCurrentViolationsByChunk);
+
+            Assert.That(queryVariables.ContainsKey("mgm_ids"), Is.True);
+            Assert.That((List<int>)queryVariables["mgm_ids"], Is.EqualTo(new List<int> { 9, 10 }));
+        }
+
+        [Test]
+        public void CreateQueryVariables_UsesLoadedManagementIdsWhenNoConfiguredFilter()
+        {
+            MockReportCompliance report = new(new(""), new(), Basics.ReportType.ComplianceReport)
+            {
+                Managements =
+                [
+                    new Management { Id = 3 },
+                    new Management { Id = 4 }
+                ]
+            };
+
+            Dictionary<string, object> queryVariables = report.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithCurrentViolationsByChunk);
+
+            Assert.That(queryVariables.ContainsKey("mgm_ids"), Is.True);
+            Assert.That((List<int>)queryVariables["mgm_ids"], Is.EqualTo(new List<int> { 3, 4 }));
+        }
+
+        [Test]
+        public void ExportToCsv_IncludesExpirationTimeColumnAndValue()
+        {
+            MockReportCompliance report = new(new(""), new(), Basics.ReportType.ComplianceReport);
+            report.RuleViewData =
+            [
+                new RuleViewData
+                {
+                    MgmtId = "1",
+                    MgmtName = "Mgmt",
+                    Uid = "uid-1",
+                    Name = "Rule 1",
+                    Source = "src",
+                    SourceShort = "src-short",
+                    Destination = "dst",
+                    DestinationShort = "dst-short",
+                    Services = "svc",
+                    ServicesShort = "svc-short",
+                    Action = "accept",
+                    InstallOn = "fw1",
+                    Compliance = "FALSE",
+                    ViolationDetails = "detail",
+                    ChangeID = "chg-1",
+                    AdoITID = "ado-1",
+                    Comment = "comment",
+                    LastModified = "2026-03-24",
+                    ExpirationTime = "2026-12-24 11:22:33",
+                    RulebaseId = "7",
+                    RulebaseName = "rb",
+                    Enabled = "TRUE",
+                    Show = true
+                }
+            ];
+
+            string csv = report.ExportToCsv();
+
+            Assert.That(csv, Does.Contain("\"ExpirationTime\""));
+            Assert.That(csv, Does.Contain("\"2026-12-24 11:22:33\""));
         }
 
         private List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)

@@ -52,9 +52,7 @@ namespace FWO.Basics
         public const string k_demo = "_demo";
 
         public const string kPlaceholderMarker = "@@";
-        public const char kAppIdSeparator = '-'; // hard-coded could be moved to settings
         public const string kModellerGroup = "ModellerGroup_";
-        public const string kLdapGroupPattern = kModellerGroup + Placeholder.AppId;
         public const string kImportChangeNotify = "importChangeNotify";
         public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";
@@ -73,6 +71,10 @@ namespace FWO.Basics
         public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
 
         public const int MaxUploadFileSize = 5 * 1024 * 1024; // 5 MB
+
+        // qad: these two strings should be replaced by customer specific setting values asap
+        public const string kField2 = "field-2";
+        public const string kDatumRegelpr = "Datum-Regelpruefung";
     }
 
     public struct PageName
@@ -124,10 +126,6 @@ namespace FWO.Basics
 
     public struct Placeholder
     {
-        public const string ExternalAppId = "@@ExternalAppId@@";
-        public const string AppId = "@@AppId@@";
-        public const string AppPrefix = "@@AppPrefix@@";
-
         public const string APPNAME = "@@APPNAME@@";
         public const string APPID = "@@APPID@@";
 
@@ -164,6 +162,7 @@ namespace FWO.Basics
         public const string REQUESTING_APPNAME = "@@REQUESTING_APPNAME@@";
         public const string REQUESTING_APPID = "@@REQUESTING_APPID@@";
         public const string RULE_NUMBER = "@@RULE_NUMBER@@";
+        public const string RULE_TABLE = "@@RULE_TABLE@@";
         public const string SERVICENAME = "@@SERVICENAME@@";
         public const string SERVICES = "@@SERVICES@@";
         public const string SOURCES = "@@SOURCES@@";
@@ -171,7 +170,32 @@ namespace FWO.Basics
         public const string TASKCOMMENT = "@@TASKCOMMENT@@";
         public const string TASKS = "@@TASKS@@";
         public const string TICKET_SUBJECT = "@@TICKET_SUBJECT@@";
+        public const string TIME_INTERVAL = "@@TIME_INTERVAL@@";
         public const string TYPE = "@@TYPE@@";
         public const string USER_NAME = "@@USER_NAME@@";
+    }
+
+    public enum OwnerMappingSourceStm
+    {
+        IpBased = 1,
+        CustomField = 2,
+        NameField = 3,
+        Manual = 4
+    }
+
+    public struct ImportType
+    {
+        public const int RULE = 1;
+        public const int OWNER = 2;
+        public const int ADMIN_VIA_REINITIALIZE_BTN = 3;
+    }
+
+    public struct ChangelogActionType
+    {
+        public const Char INSERT = 'I';
+        public const Char CHANGE = 'C';
+        public const Char DELETE = 'D';
+        public const Char DEACTIVATE = 'X';
+        public const Char REACTIVATE = 'R';
     }
 }

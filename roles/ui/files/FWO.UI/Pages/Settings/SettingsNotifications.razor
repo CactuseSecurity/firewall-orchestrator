@@ -1,0 +1,199 @@
+@using FWO.Data
+@using FWO.Basics
+@using System.Text.Json
+
+@page "/settings/notifications"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("notifications"))</h3>
+    <HelpLink Page="settings/notifications" />
+</div>
+@(userConfig.GetText("U5327"))
+<hr />
+
+@if(configData != null)
+{
+    <form onsubmit="return false">
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5721"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleExpiryNotifications")):</label>
+            <div class="col-sm-8">
+                <EditNotifications Client="NotificationClient.RuleTimer" />
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5722"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleExpiryEmailBody")):</label>
+            <div class="col-sm-8">
+                <textarea class="form-control form-control-sm w-100" rows="10" @bind="configData.RuleExpiryEmailBody"></textarea>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5723"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleExpiryInitiatorKeys")):</label>
+            <div class="col-sm-8">
+                <EditList ElementType="RuleExpiryInitiatorText" Elements="initiatorKeys.ToArray()" ElementsToAdd="initiatorKeysToAdd" ElementsToDelete="initiatorKeysToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-2 border bg-transparent">@context.Key</div>
+                            <div class="col-sm-7 border bg-transparent">@context.Text</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row mt-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5724"))">
+                    <input type="text" class="col-sm-2" placeholder="@userConfig.GetText("key")" @bind="actInitiatorKey.Key" />
+                    <input type="text" class="col-sm-8" placeholder="@userConfig.GetText("text")" @bind="actInitiatorKey.Text" />
+                    <button type="button" class="col-sm-1 btn btn-sm btn-primary" @onclick="AddInitiatorKey" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                </div>
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5725"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("ownerActiveRuleNotifications")):</label>
+            <div class="col-sm-8">
+                <EditNotifications Client="NotificationClient.AppDecomm" />
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5726"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("ownerActiveRuleEmailBody")):</label>
+            <div class="col-sm-8">
+                <textarea class="form-control form-control-sm w-100" rows="10" @bind="configData.OwnerActiveRuleEmailBody"></textarea>
+            </div>
+        </div>
+    </form>
+    <hr />
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized>
+    </AuthorizeView>
+}
+else
+{
+    <Loading />
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+    private List<RuleExpiryInitiatorText> initiatorKeys = [];
+    private List<RuleExpiryInitiatorText> initiatorKeysToAdd = [];
+    private List<RuleExpiryInitiatorText> initiatorKeysToDelete = [];
+    private RuleExpiryInitiatorText actInitiatorKey = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            initiatorKeys = ParseInitiatorKeys(configData.RuleExpiryInitiatorKeys);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData != null)
+            {
+                PrepareConfigData();
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+                initiatorKeysToAdd = [];
+                initiatorKeysToDelete = [];
+                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+    private void AddInitiatorKey()
+    {
+        string key = actInitiatorKey.Key.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return;
+        }
+
+        bool duplicateInExisting = initiatorKeys.Any(entry => entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
+        bool duplicateInAdd = initiatorKeysToAdd.Any(entry => entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
+        if (duplicateInExisting || duplicateInAdd)
+        {
+            return;
+        }
+
+        initiatorKeysToAdd.Add(new RuleExpiryInitiatorText
+        {
+            Key = key,
+            Text = actInitiatorKey.Text.Trim()
+        });
+        actInitiatorKey = new();
+    }
+
+    private void PrepareConfigData()
+    {
+        foreach (RuleExpiryInitiatorText entryToDelete in initiatorKeysToDelete)
+        {
+            initiatorKeys.Remove(entryToDelete);
+        }
+        foreach (RuleExpiryInitiatorText entryToAdd in initiatorKeysToAdd)
+        {
+            initiatorKeys.Add(entryToAdd);
+        }
+
+        Dictionary<string, string> keyTexts = new(StringComparer.OrdinalIgnoreCase);
+        foreach (RuleExpiryInitiatorText entry in initiatorKeys.Where(entry => !string.IsNullOrWhiteSpace(entry.Key)))
+        {
+            keyTexts[entry.Key.Trim()] = entry.Text.Trim();
+        }
+        configData!.RuleExpiryInitiatorKeys = JsonSerializer.Serialize(keyTexts);
+    }
+
+    private static List<RuleExpiryInitiatorText> ParseInitiatorKeys(string? serializedKeys)
+    {
+        if (string.IsNullOrWhiteSpace(serializedKeys))
+        {
+            return [];
+        }
+
+        try
+        {
+            Dictionary<string, string>? keyTexts = JsonSerializer.Deserialize<Dictionary<string, string>>(serializedKeys);
+            if (keyTexts == null)
+            {
+                return [];
+            }
+            return keyTexts
+                .Select(keyText => new RuleExpiryInitiatorText { Key = keyText.Key, Text = keyText.Value })
+                .ToList();
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private sealed class RuleExpiryInitiatorText
+    {
+        public string Key { get; set; } = "";
+        public string Text { get; set; } = "";
+    }
+}

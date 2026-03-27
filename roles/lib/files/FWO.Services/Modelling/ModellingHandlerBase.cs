@@ -195,13 +195,13 @@ namespace FWO.Services.Modelling
         {
             if (!IsOwner)
             {
-                DisplayMessageInUi(null, userConfig.GetText("delete_connection"), userConfig.GetText("C9012"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_connection"), userConfig.GetText("E9104"), true);
                 return false;
             }
 
             try
             {
-                if (ConnToDelete.RequestedOnFw || ConnToDelete.IsPublished)
+                if (ConnToDelete.RequestedOnFw || ConnToDelete.IsPublished || ConnToDelete.TicketId != null)
                 {
                     if ((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionRemove, new { id = ConnToDelete.Id, removalDate = DateTime.Now })).UpdatedId == ConnToDelete.Id)
                     {
@@ -241,7 +241,7 @@ namespace FWO.Services.Modelling
                         conn.SrcFromInterface = interf[0].SourceFilled();
                         conn.DstFromInterface = interf[0].DestinationFilled();
                         conn.InterfaceIsDecommissioned = interf[0].GetBoolProperty(ConState.Decommissioned.ToString());
-                        conn.InterfaceNoPermission = !interf[0].PermittedOwnerWrappers.Any(w => w.Owner != null && w.Owner.Id == conn.AppId);
+                        conn.InterfaceNoPermission = EvaluateInterfaceNoPermission(interf[0], conn.AppId ?? Application.Id);
                         if (interf[0].IsRequested)
                         {
                             conn.InterfaceIsRequested = true;
@@ -283,6 +283,16 @@ namespace FWO.Services.Modelling
             conn.ServiceGroups = interf.ServiceGroups;
             conn.ExtraConfigsFromInterface = interf.ExtraConfigs;
             return interf.Name ?? "";
+        }
+
+        protected static bool EvaluateInterfaceNoPermission(ModellingConnection interf, int ownerId)
+        {
+            return interf.InterfacePermission switch
+            {
+                nameof(InterfacePermissions.Private) => interf.AppId != ownerId,
+                nameof(InterfacePermissions.Public) => false,
+                _ => !interf.PermittedOwnerWrappers.Any(w => w.Owner != null && w.Owner.Id == ownerId),
+            };
         }
 
         private static void SetRelevantProps(ModellingConnection conn, ModellingConnection interf)

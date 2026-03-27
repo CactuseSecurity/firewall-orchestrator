@@ -23,7 +23,7 @@
         <details class="rules-report__column-filter">
             <summary>
                 <span class="@Icons.Filter"></span>
-                @(userConfig.GetText("filter"))
+                @(userConfig.GetText("columns"))
             </summary>
             <div class="rules-report__column-options">
                 @foreach (var column in GetAllColumns())
@@ -75,6 +75,7 @@
                                           Columns="@GetVisibleColumns()"
                                           IsHeaderNode="IsHeaderNode"
                                           HeaderTitleSelector="GetHeaderTitle"
+                                          OnColumnHidden="HideColumn"
                                           OnNodeSelected="@CreateRuleSelectionCallback(management.Name ?? string.Empty, device.Name ?? string.Empty)"
                                           IsNodeSelected="IsRuleSelected"
                                           DetailContent="@RenderRuleDetail()"
@@ -198,6 +199,11 @@
     private bool IsColumnVisible(string columnKey)
     {
         return !_hiddenColumns.Contains(columnKey);
+    }
+
+    private void HideColumn(string columnKey)
+    {
+        SetColumnVisibility(columnKey, false);
     }
 
     private List<TreeViewColumn<RuleTreeItem>> GetVisibleColumns()

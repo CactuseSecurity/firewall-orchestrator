@@ -404,19 +404,19 @@ public sealed class IpFilterHelper
             {
                 continue;
             }
-            
+
             int rangePrefix = CommonPrefixLength(start, end);
 
             if (rangePrefix < minPrefix)
             {
                 break;
             }
-            
+
             if (IsInRange(ipAddress, start, end))
             {
                 return true;
             }
-            
+
         }
 
         return false;

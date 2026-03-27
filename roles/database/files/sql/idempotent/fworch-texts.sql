@@ -654,6 +654,8 @@ INSERT INTO txt VALUES ('no_device_selected',	'German', 	'Kein Device ausgew&aum
 INSERT INTO txt VALUES ('no_device_selected',	'English', 	'No device(s) selected.');
 INSERT INTO txt VALUES ('filter', 				'German', 	'Filter');
 INSERT INTO txt VALUES ('filter', 				'English', 	'filter');
+INSERT INTO txt VALUES ('columns', 				'German', 	'Spalten');
+INSERT INTO txt VALUES ('columns', 				'English', 	'Columns');
 INSERT INTO txt VALUES ('number', 				'German', 	'Nr.');
 INSERT INTO txt VALUES ('number', 				'English', 	'No.');
 INSERT INTO txt VALUES ('name', 				'German', 	'Name');

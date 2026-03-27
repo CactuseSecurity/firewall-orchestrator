@@ -85,6 +85,7 @@ namespace FWO.Test
             {"devices","Devices"},
             {"owners","Owners"},
             {"filter","Filter"},
+            {"columns","Columns"},
             {"search","Search"},
             {"id","Id"},
             {"ip","Ip"},

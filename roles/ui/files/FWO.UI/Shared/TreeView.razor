@@ -11,17 +11,29 @@
             @foreach (var column in Columns)
             {
                 <div class="@GetHeaderCellClasses(column)">
-                    @if (IsColumnSortable(column))
-                    {
-                        <button class="tree-view__header-button" type="button" @onclick="() => ToggleSort(column.Key)">
-                            <span>@column.Title</span>
-                            <span class="tree-view__sort-indicator">@GetSortIndicator(column.Key)</span>
-                        </button>
-                    }
-                    else
-                    {
-                        <span class="tree-view__header-title">@column.Title</span>
-                    }
+                    <div class="tree-view__header-content">
+                        @if (IsColumnSortable(column))
+                        {
+                            <button class="tree-view__header-button" type="button" @onclick="() => ToggleSort(column.Key)">
+                                <span>@column.Title</span>
+                                <span class="tree-view__sort-indicator">@GetSortIndicator(column.Key)</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="tree-view__header-title">@column.Title</span>
+                        }
+
+                        @if (OnColumnHidden.HasDelegate)
+                        {
+                            <button class="tree-view__header-remove"
+                                    type="button"
+                                    @onclick="() => HideColumn(column.Key)"
+                                    @onclick:stopPropagation="true">
+                                x
+                            </button>
+                        }
+                    </div>
                 </div>
             }
         </div>
@@ -74,6 +86,9 @@
 
     [Parameter]
     public Func<T, bool>? IsNodeSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnColumnHidden { get; set; }
 
     [Parameter]
     public string EmptyText { get; set; } = "No data";
@@ -381,6 +396,11 @@
             ActiveSortColumnKey = columnKey;
             SortDescending = false;
         }
+    }
+
+    private async Task HideColumn(string columnKey)
+    {
+        await OnColumnHidden.InvokeAsync(columnKey);
     }
 
     private RenderFragment RenderCellValue(TreeViewColumn<T> column, TreeViewNodeContext<T> context) => builder =>

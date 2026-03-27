@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
 using Bunit;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -131,6 +132,35 @@ namespace FWO.Test
             {
                 IReadOnlyList<IElement> rows = cut.FindAll(".tree-view__row");
                 Assert.That(rows.First().TextContent, Does.Contain("Ten"));
+            });
+        }
+
+        [Test]
+        public void HeaderCloseButtonHidesColumnAndUnchecksCheckbox()
+        {
+            (ManagementReport management, DeviceReport device, RuleTreeBuilder builder, _) = BuildTreeWithSection();
+            Services.AddSingleton<IRuleTreeBuilder>(builder);
+
+            IRenderedComponent<RulesReport> cut = Render<RulesReport>(parameters => parameters
+                .Add(p => p.Managements, new List<ManagementReport> { management })
+                .Add(p => p.SelectedReportType, ReportType.Rules)
+                .Add(p => p.SelectedRules, new List<Rule>()));
+
+            IElement nameHeaderRemoveButton = cut.FindAll(".tree-view__header-cell")
+                .First(header => header.TextContent.Contains("Name"))
+                .QuerySelector(".tree-view__header-remove")!;
+
+            nameHeaderRemoveButton.Click();
+
+            cut.WaitForAssertion(() =>
+            {
+                Assert.That(cut.Find(".tree-view__header").TextContent, Does.Not.Contain("Name"));
+
+                IHtmlInputElement nameToggle = (IHtmlInputElement)cut.FindAll(".rules-report__column-option")
+                    .First(option => option.TextContent.Contains("Name"))
+                    .QuerySelector("input")!;
+
+                Assert.That(nameToggle.IsChecked, Is.False);
             });
         }
 

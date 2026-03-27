@@ -32,6 +32,13 @@
     padding: 0.5rem 0.625rem;
 }
 
+.tree-view__header-content {
+    align-items: center;
+    display: flex;
+    gap: 0.35rem;
+    width: 100%;
+}
+
 .tree-view__header-button {
     align-items: center;
     background: transparent;
@@ -49,6 +56,24 @@
 
 .tree-view__header-title {
     display: block;
+    flex: 1 1 auto;
+}
+
+.tree-view__header-remove {
+    background: transparent;
+    border: none;
+    border-radius: 0.25rem;
+    color: var(--bs-secondary-color);
+    cursor: pointer;
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0 0.15rem;
+}
+
+.tree-view__header-remove:hover {
+    background: rgba(var(--bs-danger-rgb), 0.12);
+    color: var(--bs-danger);
 }
 
 .tree-view__sort-indicator {

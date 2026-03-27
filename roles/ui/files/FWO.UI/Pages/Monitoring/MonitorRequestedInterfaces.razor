@@ -350,11 +350,13 @@ else
 
         foreach (long ticketId in ticketIds)
         {
-            WfTicket? ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
-            if (ticket?.Tasks == null)
+            ApiResponse<WfTicket> ticketResponse = await apiConnection.SendQuerySafeAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
+            if (ticketResponse.HasErrors || ticketResponse.Result?.Tasks == null)
             {
                 continue;
             }
+
+            WfTicket ticket = ticketResponse.Result;
 
             foreach (WfReqTask task in ticket.Tasks)
             {

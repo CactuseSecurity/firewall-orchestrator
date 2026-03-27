@@ -228,6 +228,36 @@ namespace FWO.Test
             Assert.That(GetPrivateField<string>(component, "RejectRemovedTicketsReason"), Is.EqualTo(string.Empty));
         }
 
+        [Test]
+        public async Task ResolveRequestingAppsFromTickets_IgnoresMissingTickets()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                SafeTicketById =
+                {
+                    [501] = new ApiResponse<WfTicket>("missing ticket")
+                }
+            };
+            await using Bunit.TestContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+
+            SetPrivateField(component, "RequestedInterfaces", new List<ModellingConnection>
+            {
+                new() { Id = 1, Name = "if-1", TicketId = 501 }
+            });
+            SetPrivateField(component, "OwnersById", new Dictionary<int, FwoOwner>
+            {
+                { 7, new FwoOwner { Id = 7, Name = "Owner 7" } }
+            });
+
+            Task resolveTask = (Task)GetPrivateMethod("ResolveRequestingAppsFromTickets").Invoke(component, null)!;
+            await resolveTask;
+
+            Assert.That(GetPrivateField<Dictionary<int, FwoOwner>>(component, "RequestingAppByConnectionId"), Is.Empty);
+            Assert.That(GetPrivateField<Dictionary<int, int>>(component, "TicketStateIdByConnectionId"), Is.Empty);
+            Assert.That(GetPrivateField<Dictionary<int, DateTime>>(component, "TicketCreationDateByConnectionId"), Is.Empty);
+        }
+
         private static void PrepareRows(
             MonitorRequestedInterfaces component,
             List<ModellingConnection> connections,
@@ -245,6 +275,7 @@ namespace FWO.Test
     internal sealed class MonitorRequestedInterfacesTestApiConn : SimulatedApiConnection
     {
         private static readonly string stateMatrixJson = BuildStateMatrixJson();
+        public Dictionary<long, ApiResponse<WfTicket>> SafeTicketById { get; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
@@ -278,6 +309,22 @@ namespace FWO.Test
             }
 
             throw new NotImplementedException();
+        }
+
+        public override Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        {
+            if (typeof(QueryResponseType) == typeof(WfTicket) && query == RequestQueries.getTicketById)
+            {
+                long ticketId = Convert.ToInt64(variables?.GetType().GetProperty("id")?.GetValue(variables) ?? 0L);
+                if (SafeTicketById.TryGetValue(ticketId, out ApiResponse<WfTicket>? response))
+                {
+                    return Task.FromResult((ApiResponse<QueryResponseType>)(object)response);
+                }
+
+                return Task.FromResult((ApiResponse<QueryResponseType>)(object)new ApiResponse<WfTicket>("ticket not configured"));
+            }
+
+            return base.SendQuerySafeAsync<QueryResponseType>(query, variables, operationName);
         }
 
         private static string BuildStateMatrixJson()

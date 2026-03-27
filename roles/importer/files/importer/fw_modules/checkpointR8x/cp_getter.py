@@ -364,11 +364,6 @@ def get_rulebases(
     else:
         FWOLogger.error('access_type is neither "access" nor "nat", but ' + access_type)
 
-    if not any(rb["uid"] == policy_structure["uid"] for rb in native_config_domain[native_config_rulebase_key]):
-        native_config_domain[native_config_rulebase_key].append(
-            {"uid": policy_structure["uid"], "name": policy_structure["name"], "chunks": []}
-        )
-
     # get uid of rulebase
     if rulebase_uid is None:
         if rulebase_name is not None:

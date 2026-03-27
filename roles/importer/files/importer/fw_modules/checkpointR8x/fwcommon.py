@@ -380,15 +380,16 @@ def process_devices(
                 cp_manager_api_base_url,
             )
         else:
-            define_initial_rulebase_links(device_config, ordered_layer_uids, policy_structure, is_global=False)
+            define_initial_rulebase_links(
+                device_config,
+                policy_structure,
+                is_global=False,
+                native_config_domain=native_config_global_domain,
+            )
 
         policy_structure_dict = next(
-            (
-                policy
-                for policy in policy_structure
-                if any(access_layer["uid"] in ordered_layer_uids for access_layer in policy["access-layers"])
-            ),
-            {"uid": ""},
+            (policy for policy in policy_structure if policy["uid"] == ordered_layer_uids[0]),
+            {"uid": ordered_layer_uids[0]},
         )
 
         add_ordered_layers_to_native_config(
@@ -460,7 +461,6 @@ def handle_global_rulebase_links(
                 )
                 define_global_rulebase_link(
                     device_config,
-                    global_ordered_layer_uids,
                     ordered_layer_uids,
                     native_config_global_domain,
                     global_policy_rulebases_uid_list,
@@ -474,7 +474,6 @@ def handle_global_rulebase_links(
 
 def define_global_rulebase_link(
     device_config: dict[str, Any],
-    global_ordered_layer_uids: list[str],
     ordered_layer_uids: list[str],
     native_config_global_domain: dict[str, Any],
     global_policy_rulebases_uid_list: list[str],
@@ -483,7 +482,12 @@ def define_global_rulebase_link(
     """
     Links initial and placeholder rule for global rulebases
     """
-    define_initial_rulebase_links(device_config, global_ordered_layer_uids, policy_structure, is_global=True)
+    define_initial_rulebase_links(
+        device_config,
+        policy_structure,
+        is_global=True,
+        native_config_domain=native_config_global_domain,
+    )
 
     # parse global rulebases, find place-holders and link local rulebases
     placeholder_link_index = 0
@@ -516,12 +520,16 @@ def define_global_rulebase_link(
 
 def define_initial_rulebase_links(
     device_config: dict[str, Any],
-    ordered_layer_uids: list[str],
     policy_structures: list[dict[str, Any]],
     is_global: bool,
+    native_config_domain: dict[str, Any] | None,
 ):
-
+    if native_config_domain is None:
+        native_config_domain = {"rulebases": []}
     for policy in policy_structures:
+        if not any(rb["uid"] == policy["uid"] for rb in native_config_domain["rulebases"]):
+            native_config_domain["rulebases"].append({"uid": policy["uid"], "name": policy["name"], "chunks": []})
+
         device_config["rulebase_links"].append(
             {
                 "from_rulebase_uid": None,
@@ -534,28 +542,6 @@ def define_initial_rulebase_links(
             }
         )
 
-    """ policy_structure = next(
-        (policy for policy in policy_structures if policy["uid"] == ordered_layer_uids[0]),
-        {"uid": ordered_layer_uids[0]},
-    )
-    access_layers_uuids = [access_layer["uid"] for access_layer in policy_structure.get("access-layers", [])]  # pyright: ignore[reportArgumentType]
-
-    contains_any_uuid = any(uid in access_layers_uuids for uid in ordered_layer_uids)
-    if contains_any_uuid:
-        device_config["rulebase_links"].append(
-            {
-                "from_rulebase_uid": None,
-                "from_rule_uid": None,
-                "to_rulebase_uid": ordered_layer_uids[0],
-                "type": "ordered",
-                "is_global": is_global,
-                "is_initial": True,
-                "is_section": False,
-            }
-        )
-    else:
-        del ordered_layer_uids[0] """
-
 
 def get_rules_params(import_state: ImportState) -> dict[str, Any]:
     return {
@@ -567,6 +553,7 @@ def get_rules_params(import_state: ImportState) -> dict[str, Any]:
 
 
 def handle_nat_rules(native_config_domain: dict[str, Any], sid: str, import_state: ImportState):
+    return
     if "rulebases" in native_config_domain and len(native_config_domain["rulebases"]) > 0:
         first_rulebase_name = native_config_domain["rulebases"][0]["name"]
         show_params_rules: dict[str, Any] = {
@@ -622,8 +609,13 @@ def add_ordered_layers_to_native_config(
 
         # link to next ordered layer
         # in case of mds: domain ordered layers are linked once there is no global ordered layer counterpart
-        if (is_global or ordered_layer_index >= global_ordered_layer_count - 1) and (
-            ordered_layer_index < len(ordered_layer_uids) - 1
+        if (
+            (is_global or ordered_layer_index >= global_ordered_layer_count - 1)
+            and (ordered_layer_index < len(ordered_layer_uids) - 1)
+            and not any(
+                link["to_rulebase_uid"] == ordered_layer_uids[ordered_layer_index + 1]
+                for link in device_config["rulebase_links"]
+            )
         ):
             device_config["rulebase_links"].append(
                 {
@@ -649,8 +641,8 @@ def get_ordered_layer_uids(
     ordered_layer_uids: list[str] = []
     for policy in policy_structure:
         found_target_in_policy = False
-        # if "uid" in policy:
-        #    ordered_layer_uids.extend([policy["uid"]])
+        if "uid" in policy:
+            ordered_layer_uids.extend([policy["uid"]])
         for target in policy["targets"]:
             if target["uid"] == device_config["uid"] or target["uid"] == "all":
                 found_target_in_policy = True

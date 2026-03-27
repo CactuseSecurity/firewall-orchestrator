@@ -66,9 +66,7 @@ def normalize_rulebases_for_each_link_destination(
     normalized_config_global: dict[str, Any],
 ):
     for rulebase_link in gateway["rulebase_links"]:
-        if (
-            rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["to_rulebase_uid"] != ""
-        ) and rulebase_link["to_rulebase_uid"] not in [policy["uid"] for policy in native_config.get("policies", [])]:
+        if rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["to_rulebase_uid"] != "":
             rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
                 native_config["rulebases"], rulebase_link["to_rulebase_uid"]
             )
@@ -187,6 +185,10 @@ def parse_rulebase_chunk(
     policy_structure: list[dict[str, Any]],
 ):
     for chunk in rulebase_to_parse["chunks"]:
+        if "rulebase" not in chunk:
+            FWOLogger.debug("found unparsable rulebase chunk: " + str(chunk), 9)
+            continue
+
         for rule in chunk["rulebase"]:
             if "rule-number" in rule:
                 parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure)

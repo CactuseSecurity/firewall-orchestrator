@@ -1,26 +1,63 @@
-﻿@using FWO.Report
-@using FWO.Report.Data
-@using FWO.Ui.Display
+@using System.Net
+@using System.Text.RegularExpressions
+@using FWO.Report
 @using FWO.Services.RuleTreeBuilder
+@using FWO.Ui.Display
+@using FWO.Ui.Shared
 
 @inject UserConfig userConfig
 @inject IRuleTreeBuilder ruleTreeBuilder
+
+@if (ShouldShowTreeToolbar())
+{
+    <div class="rules-report__toolbar">
+        <div class="rules-report__search">
+            <label class="rules-report__search-label" for="rules-report-search">@(userConfig.GetText("search"))</label>
+            <input id="rules-report-search"
+                   class="form-control form-control-sm"
+                   type="search"
+                   value="@_searchTerm"
+                   @oninput="UpdateSearchTerm" />
+        </div>
+
+        <details class="rules-report__column-filter">
+            <summary>
+                <span class="@Icons.Filter"></span>
+                @(userConfig.GetText("filter"))
+            </summary>
+            <div class="rules-report__column-options">
+                @foreach (var column in GetAvailableColumns())
+                {
+                    <label class="rules-report__column-option">
+                        <input type="checkbox"
+                               checked="@IsColumnVisible(column.Key)"
+                               @onchange="args => SetColumnVisibility(column.Key, args.Value as bool? ?? false)" />
+                        <span>@column.Title</span>
+                    </label>
+                }
+            </div>
+        </details>
+    </div>
+}
 
 @foreach (var management in Managements)
 {
     @if (management.ContainsRules())
     {
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-            @if(Recertification || SelectedReportType.IsRulebaseReport())
+            @if (SelectedReportType.IsRulebaseReport())
             {
-                @foreach(var rulebase in management.Rulebases)
+                @foreach (var rulebase in management.Rulebases)
                 {
                     var rulebaseRules = ReportRules.GetRulesByRulebaseId(rulebase.Id, management);
-                    @if(rulebaseRules.Length > 0)
+                    @if (rulebaseRules.Length > 0)
                     {
                         <Collapse Title="@rulebase.Name" Style="@("secondary")" StartToggled="true">
-                            <RuleBaseReport Recertification="Recertification" ReadonlyMode="ReadonlyMode" SelectedReportType="SelectedReportType"
-                                Rules="[.. rulebaseRules]" @bind-SelectedRules="SelectedRules" RulesPerPage="RulesPerPage"/>
+                            <RuleBaseReport ReadonlyMode="ReadonlyMode"
+                                            SelectedReportType="SelectedReportType"
+                                            Rules="[.. rulebaseRules]"
+                                            @bind-SelectedRules="SelectedRules"
+                                            RulesPerPage="RulesPerPage" />
                         </Collapse>
                     }
                 }
@@ -32,30 +69,148 @@
                     @if (device.ContainsRules() && _ruleDisplay != null)
                     {
                         <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
-                            <TreeView T="RuleTreeItem" Nodes="@GetRuleTree(management, device).Children">
+                            <div class="rules-report__tree">
+                                <div class="rules-report__header">
+                                    <div class="rules-report__header-cell rules-report__header-cell--number">
+                                        @(userConfig.GetText("number"))
+                                    </div>
 
-                            </TreeView>
+                                    @if (SelectedReportType == ReportType.Recertification)
+                                    {
+                                        @if (IsColumnVisible(ColumnNextRecertDate))
+                                        {
+                                            <div class="rules-report__header-cell">@(userConfig.GetText("next_recert_date"))</div>
+                                        }
+                                        @if (IsColumnVisible(ColumnOwner))
+                                        {
+                                            <div class="rules-report__header-cell">@(userConfig.GetText("owner"))</div>
+                                        }
+                                        @if (IsColumnVisible(ColumnIpMatches))
+                                        {
+                                            <div class="rules-report__header-cell">@(userConfig.GetText("ip_matches"))</div>
+                                        }
+                                        @if (IsColumnVisible(ColumnLastHit))
+                                        {
+                                            <div class="rules-report__header-cell">@(userConfig.GetText("last_hit"))</div>
+                                        }
+                                        @if (IsColumnVisible(ColumnLastModified))
+                                        {
+                                            <div class="rules-report__header-cell">LastModified</div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @if (ShouldShowLastHitColumn() && IsColumnVisible(ColumnLastHit))
+                                        {
+                                            <div class="rules-report__header-cell">@(userConfig.GetText("last_hit"))</div>
+                                        }
+                                        @if (ShouldShowLastModifiedAfterLastHit() && IsColumnVisible(ColumnLastModified))
+                                        {
+                                            <div class="rules-report__header-cell">LastModified</div>
+                                        }
+                                    }
+
+                                    @if (IsColumnVisible(ColumnName))
+                                    {
+                                        <div class="rules-report__header-cell">@(userConfig.GetText("name"))</div>
+                                    }
+                                    @if (IsColumnVisible(ColumnSourceZone))
+                                    {
+                                        <div class="rules-report__header-cell">@(userConfig.GetText("source_zone"))</div>
+                                    }
+                                    @if (IsColumnVisible(ColumnSource))
+                                    {
+                                        <div class="rules-report__header-cell">@(userConfig.GetText("source"))</div>
+                                    }
+                                    @if (IsColumnVisible(ColumnDestinationZone))
+                                    {
+                                        <div class="rules-report__header-cell">@(userConfig.GetText("destination_zone"))</div>
+                                    }
+                                    @if (IsColumnVisible(ColumnDestination))
+                                    {
+                                        <div class="rules-report__header-cell">@(userConfig.GetText("destination"))</div>
+                                    }
+                                    @if (IsColumnVisible(ColumnServices))
+                                    {
+                                        <div class="rules-report__header-cell">@(userConfig.GetText("services"))</div>
+                                    }
+
+                                    @if (SelectedReportType == ReportType.NatRules)
+                                    {
+                                        @if (IsColumnVisible(ColumnTranslatedSource))
+                                        {
+                                            <div class="rules-report__header-cell rules-report__header-cell--translated">@(userConfig.GetText("trans_source"))</div>
+                                        }
+                                        @if (IsColumnVisible(ColumnTranslatedDestination))
+                                        {
+                                            <div class="rules-report__header-cell rules-report__header-cell--translated">@(userConfig.GetText("trans_destination"))</div>
+                                        }
+                                        @if (IsColumnVisible(ColumnTranslatedServices))
+                                        {
+                                            <div class="rules-report__header-cell rules-report__header-cell--translated">@(userConfig.GetText("trans_services"))</div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @if (IsColumnVisible(ColumnAction))
+                                        {
+                                            <div class="rules-report__header-cell">@(userConfig.GetText("action"))</div>
+                                        }
+                                        @if (IsColumnVisible(ColumnTrack))
+                                        {
+                                            <div class="rules-report__header-cell">@(userConfig.GetText("track"))</div>
+                                        }
+                                    }
+
+                                    @if (IsColumnVisible(ColumnEnabled))
+                                    {
+                                        <div class="rules-report__header-cell">@(userConfig.GetText("enabled"))</div>
+                                    }
+                                    @if (IsColumnVisible(ColumnEnforcingDevices))
+                                    {
+                                        <div class="rules-report__header-cell">@(userConfig.GetText("enforcing_devices"))</div>
+                                    }
+                                    @if (IsColumnVisible(ColumnUid))
+                                    {
+                                        <div class="rules-report__header-cell">@(userConfig.GetText("uid"))</div>
+                                    }
+                                    @if (IsColumnVisible(ColumnComment))
+                                    {
+                                        <div class="rules-report__header-cell">@(userConfig.GetText("comment"))</div>
+                                    }
+                                    @if (!ShouldShowLastModifiedAfterLastHit()
+                                        && SelectedReportType != ReportType.Recertification
+                                        && IsColumnVisible(ColumnLastModified))
+                                    {
+                                        <div class="rules-report__header-cell">LastModified</div>
+                                    }
+                                </div>
+
+                                <TreeView T="RuleTreeItem"
+                                          Nodes="@GetRootNodes(management, device)"
+                                          NodeContent="@RenderRuleNode(management.Name ?? string.Empty, device.Name ?? string.Empty)"
+                                          DetailContent="@RenderRuleDetail()"
+                                          IsDetailExpanded="ShouldShowRuleDetail"
+                                          ShouldRenderNode="ShouldRenderNode" />
+                            </div>
                         </Collapse>
                     }
                 }
             }
-        
         </Collapse>
     }
 }
 
 @code
 {
-    #region Parameters
+    [Parameter]
+    public List<ManagementReport> Managements { get; set; } = [];
 
     [Parameter]
-    public List<ManagementReport> Managements { get; set; } = new ();
+    public bool ReadonlyMode { get; set; }
 
     [Parameter]
-    public bool ReadonlyMode { get; set; } = false;
-
-    [Parameter]
-    public bool Recertification { get; set; } = false;
+    public bool Recertification { get; set; }
 
     [Parameter]
     public int RulesPerPage { get; set; }
@@ -75,65 +230,54 @@
     [Parameter]
     public EventCallback<int> WidthChanged { get; set; }
 
-    #endregion
+    private const string ColumnAction = "action";
+    private const string ColumnComment = "comment";
+    private const string ColumnDestination = "destination";
+    private const string ColumnDestinationZone = "destination_zone";
+    private const string ColumnEnabled = "enabled";
+    private const string ColumnEnforcingDevices = "enforcing_devices";
+    private const string ColumnIpMatches = "ip_matches";
+    private const string ColumnLastHit = "last_hit";
+    private const string ColumnLastModified = "last_modified";
+    private const string ColumnName = "name";
+    private const string ColumnNextRecertDate = "next_recert_date";
+    private const string ColumnOwner = "owner";
+    private const string ColumnServices = "services";
+    private const string ColumnSource = "source";
+    private const string ColumnSourceZone = "source_zone";
+    private const string ColumnTrack = "track";
+    private const string ColumnTranslatedDestination = "trans_destination";
+    private const string ColumnTranslatedServices = "trans_services";
+    private const string ColumnTranslatedSource = "trans_source";
+    private const string ColumnUid = "uid";
 
-    #region Consts - Private
+    private readonly HashSet<string> _hiddenColumns = [];
+    private readonly Dictionary<RuleTreeItem, bool> _nodeVisibility = [];
 
-    private const int ColumnsCount = 14;
-
-    #endregion
-
-    #region Fields
-
-    // private ITable<RuleTreeItem>? _reportTable;
-    private bool[] _emptyColumns = new bool[ColumnsCount];
-
+    private string _searchTerm = string.Empty;
     private NatRuleDisplayHtml? _ruleDisplay;
-    private bool _showLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
 
-    private Rule? _lastClickedRule = null;
-    
-    #endregion
-
-    #region Methods - Overrides
-    
     protected override void OnInitialized()
     {
         _ruleDisplay = new NatRuleDisplayHtml(userConfig);
-        // TODO: are we using NatRuleDisplayHtml for non-NAT rules?
     }
 
-    #endregion
-
-    #region Methods - Private
-
-    private string GetTableRowClasses(Rule rule)
+    protected override void OnParametersSet()
     {
-        string classes = "";
-        if(rule.SectionHeader != null)
-        {
-            classes = "hide-all-but-second-child second-child-full-width ";
-        }
-        return classes;
+        RefreshSearchVisibility();
     }
 
-    private OutputLocation GetActLocation()
+    private sealed record RuleReportColumn(string Key, string Title);
+
+    private bool ShouldShowTreeToolbar()
     {
-        return Recertification ? OutputLocation.certification : OutputLocation.report;
+        return !SelectedReportType.IsRulebaseReport()
+            && Managements.Any(management => management.ContainsRules() && management.Devices.Any(device => device.ContainsRules()));
     }
 
-    private IEnumerable<Rule> GetAllInlineRecursive(IEnumerable<Rule> rules, Dictionary<string, List<Rule>> dictRuleInlines)
+    private List<RuleTreeItem> GetRootNodes(ManagementReport managementReport, DeviceReport deviceReport)
     {
-        foreach (var r in rules)
-        {
-            yield return r;
-
-            if (dictRuleInlines.TryGetValue(r.DisplayOrderNumberString, out var children) && children.Count > 0)
-            {
-                foreach (var c in GetAllInlineRecursive(children, dictRuleInlines))
-                    yield return c;
-            }
-        }
+        return GetRuleTree(managementReport, deviceReport).Children.ToList();
     }
 
     private RuleTreeItem GetRuleTree(ManagementReport managementReport, DeviceReport deviceReport)
@@ -146,288 +290,618 @@
         return new();
     }
 
-    private string GetToggleArrow(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
+    private void UpdateSearchTerm(ChangeEventArgs args)
     {
-        // Get corresponding tree item for rule
+        _searchTerm = args.Value?.ToString() ?? string.Empty;
+        RefreshSearchVisibility();
+    }
 
-        RuleTreeItem ruleTree = ruleTreeBuilder.RuleTreeCache[(managementReport.Id, deviceReport.Id)];
-        RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;     
-
-        if (treeItem == null)
+    private void SetColumnVisibility(string columnKey, bool isVisible)
+    {
+        if (isVisible)
         {
-            throw new Exception("No tree item found for rule");
-        }  
-
-        // Print hidden span for rows (rules or dummy rules for rulebase headers) which are not expandable
-
-        if (!treeItem.Children.Any())
-        {
-            return $"<span style=\"visibility:hidden;\">{Icons.HtmlArrowCollapsed}</span>";
-        }
-
-        // Show correct arrow
-
-        if (treeItem.IsExpanded)
-        {
-            return Icons.HtmlArrowExpanded;
+            _hiddenColumns.Remove(columnKey);
         }
         else
         {
-            return Icons.HtmlArrowCollapsed;
+            _hiddenColumns.Add(columnKey);
         }
     }
 
-    private void OnNumberIconClickToggle(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
+    private bool IsColumnVisible(string columnKey)
     {
-        // Capture clicked rule
-
-        _lastClickedRule = rule;
-
-        // Get corresponding tree item for rule
-
-        RuleTreeItem ruleTree = ruleTreeBuilder.RuleTreeCache[(managementReport.Id, deviceReport.Id)];
-        RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;
-
-        if (treeItem != null)
-        {
-            // Update exapandable state
-
-            treeItem.IsExpanded = !treeItem.IsExpanded;       
-        }
-
-        InvokeAsync(StateHasChanged);
+        return !_hiddenColumns.Contains(columnKey);
     }
 
-    #endregion
-}
+    private IEnumerable<RuleReportColumn> GetAvailableColumns()
+    {
+        if (SelectedReportType == ReportType.Recertification)
+        {
+            yield return new(ColumnNextRecertDate, userConfig.GetText("next_recert_date"));
+            yield return new(ColumnOwner, userConfig.GetText("owner"));
+            yield return new(ColumnIpMatches, userConfig.GetText("ip_matches"));
+            yield return new(ColumnLastHit, userConfig.GetText("last_hit"));
+            yield return new(ColumnLastModified, "LastModified");
+        }
+        else
+        {
+            if (ShouldShowLastHitColumn())
+            {
+                yield return new(ColumnLastHit, userConfig.GetText("last_hit"));
+            }
 
+            yield return new(ColumnLastModified, "LastModified");
+        }
 
+        yield return new(ColumnName, userConfig.GetText("name"));
+        yield return new(ColumnSourceZone, userConfig.GetText("source_zone"));
+        yield return new(ColumnSource, userConfig.GetText("source"));
+        yield return new(ColumnDestinationZone, userConfig.GetText("destination_zone"));
+        yield return new(ColumnDestination, userConfig.GetText("destination"));
+        yield return new(ColumnServices, userConfig.GetText("services"));
 
+        if (SelectedReportType == ReportType.NatRules)
+        {
+            yield return new(ColumnTranslatedSource, userConfig.GetText("trans_source"));
+            yield return new(ColumnTranslatedDestination, userConfig.GetText("trans_destination"));
+            yield return new(ColumnTranslatedServices, userConfig.GetText("trans_services"));
+        }
+        else
+        {
+            yield return new(ColumnAction, userConfig.GetText("action"));
+            yield return new(ColumnTrack, userConfig.GetText("track"));
+        }
 
+        yield return new(ColumnEnabled, userConfig.GetText("enabled"));
+        yield return new(ColumnEnforcingDevices, userConfig.GetText("enforcing_devices"));
+        yield return new(ColumnUid, userConfig.GetText("uid"));
+        yield return new(ColumnComment, userConfig.GetText("comment"));
+    }
 
+    private bool ShouldShowLastHitColumn()
+    {
+        return SelectedReportType == ReportType.UnusedRules
+            || SelectedReportType == ReportType.AppRules
+            || SelectedReportType == ReportType.Recertification;
+    }
 
+    private bool ShouldShowLastModifiedAfterLastHit()
+    {
+        return SelectedReportType == ReportType.UnusedRules
+            || SelectedReportType == ReportType.AppRules;
+    }
 
-
-
-
-
-
-
-
-
-  @* 
-                @foreach (var device in management.Devices)
-              {
-                    @if (device.ContainsRules() && _ruleDisplay != null)
+    private RenderFragment<TreeViewNodeContext<RuleTreeItem>> RenderRuleNode(string managementName, string deviceName) => context => @<div>
+        @if (IsHeaderNode(context.Node))
+        {
+            <div class="rules-report__row rules-report__row--header">
+                <div class="rules-report__header-node @GetDepthClass(context.Level)">
+                    @if (context.HasChildren)
                     {
-                        <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
-                            <Table SelectedItems="new List<RuleTreeItem>()"
-                                RowClickAction="@(async ruleTreeItem => 
-                                {
-                                    ruleTreeItem.Data?.DeviceName = device.Name ?? ""; 
+                        <button class="rules-report__toggle" type="button" @onclick="context.ToggleNodeAsync" @onclick:stopPropagation="true">
+                            @GetToggleSymbol(context.Node)
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="rules-report__toggle rules-report__toggle-placeholder"></span>
+                    }
+                    <span class="rules-report__header-title" title="@GetHeaderTitle(context.Node)">
+                        @GetHeaderTitle(context.Node)
+                    </span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="@GetRuleRowClasses(context.Node)" @onclick="() => ToggleRuleSelection(context.Node, managementName, deviceName)">
+                <div class="rules-report__cell rules-report__cell--number @GetDepthClass(context.Level)">
+                    @if (context.HasChildren)
+                    {
+                        <button class="rules-report__toggle" type="button" @onclick="context.ToggleNodeAsync" @onclick:stopPropagation="true">
+                            @GetToggleSymbol(context.Node)
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="rules-report__toggle rules-report__toggle-placeholder"></span>
+                    }
+                    <span class="rules-report__cell-content" title="@GetPlainNumber(context.Node.Data)">
+                        @((MarkupString)RuleDisplayBase.DisplayNumber(context.Node.Data))
+                    </span>
+                </div>
 
-                                    if (!SelectedRules.Remove(ruleTreeItem.Data!)) 
-                                    {
-                                        SelectedRules.Add(ruleTreeItem.Data!);
-                                    }
-
-                                    await SelectedRulesChanged.InvokeAsync(SelectedRules);
-                                })"
-                                style="font-size:small" 
-                                TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" 
-                                TableItem="RuleTreeItem"
-                                Items="@GetRuleTreeItems(management, device)" 
-                                ShowSearchBar="false"
-                                PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(item => GetTableRowClasses(item.Data!))"
-                                @ref="_reportTable">
-                                
-                                @if (_emptyColumns[0] == false)
-                                {
-                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(ruleTreeItem => ruleTreeItem.Data!.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
-                                        <Template>
-                                            <span style="cursor:pointer; white-space:nowrap;" @onclick="() => OnNumberIconClickToggle(ruleTreeItem.Data!, management, device)">
-                                                @((MarkupString)GetToggleArrow(ruleTreeItem.Data!, management, device))@((MarkupString)RuleDisplayHtml.DisplayNumber(ruleTreeItem.Data!))
-                                            </span>
-                                        </Template>
-                                    </Column>
-                                }
-                                
-                                @if(SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules)
-                                {
-                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("last_hit"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Metadata.LastHit)" Sortable="false" Filterable="false">
-                                        <Template>
-                                            @((MarkupString)RuleDisplayHtml.DisplayLastHit(ruleTreeItem.Data!.Metadata))
-                                        </Template>
-                                    </Column>
-                                    @if (_showLastModifiedAfterLastHit && _emptyColumns[13] == false)
-                                    {
-                                        <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="LastModified" Field="@(ruleTreeItem => ruleTreeItem.Data!.LastModified)" Sortable="true" Filterable="false" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)RuleDisplayBase.DisplayLastModified(ruleTreeItem.Data!))
-                                            </Template>
-                                        </Column>
-                                    }
-                                }
-                            
-                                @if(SelectedReportType.IsComplianceReport())
-                                {
-                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="Compliance" Field="@(ruleTreeItem => ruleTreeItem.Data!.Compliance)" Sortable="true" Filterable="true" Hideable="true">
-                                        <Template>
-                                            @((MarkupString)RuleDisplayHtml.DisplayIsCompliant(ruleTreeItem.Data!, GetActLocation()))
-                                        </Template>
-                                    </Column>
-                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="Violation Details" Field="@(ruleTreeItem => ruleTreeItem.Data!.ViolationDetails)" Sortable="true" Filterable="true" Hideable="true">
-                                        <Template>
-                                            @((MarkupString)RuleDisplayHtml.DisplayViolationDetails(ruleTreeItem.Data!))
-                                        </Template>
-                                    </Column>
-                                }
-
-                            @if (_emptyColumns[1] == false)
-                            {
-                                <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("name"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true" />
-                            }
-
-                            @if (_emptyColumns[2] == false)
-                            {
-                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("source_zone"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.RuleFromZones)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)RuleDisplayHtml.DisplaySourceZones(ruleTreeItem.Data!))
-                                    </Template>
-                                </Column>
-                            }
-                        
-                            @if (_emptyColumns[3] == false)
-                            {
-                            <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("source"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)_ruleDisplay.DisplaySource(ruleTreeItem.Data!, GetActLocation(), SelectedReportType))
-                                    </Template>
-                                </Column>
-                            }
-   
-                            @if (_emptyColumns[4] == false)
-                            {
-                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("destination_zone"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.RuleToZones)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)RuleDisplayHtml.DisplayDestinationZones(ruleTreeItem.Data!))
-                                    </Template>
-                                </Column>
-                            }
- 
-                            @if (_emptyColumns[5] == false)
-                            {
-                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("destination"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)_ruleDisplay.DisplayDestination(ruleTreeItem.Data!, GetActLocation(), SelectedReportType))
-                                    </Template>
-                                </Column>
-                            }
-
-                            @if (_emptyColumns[6] == false)
-                            {
-                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("services"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)_ruleDisplay.DisplayServices(ruleTreeItem.Data!, GetActLocation(), SelectedReportType))
-                                    </Template>
-                                </Column>
-                            }
-
-                            @if(SelectedReportType == ReportType.NatRules)
-                            {
-                                    <Column Class="table-active" TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("trans_source"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                        <Template>
-                                                @((MarkupString)_ruleDisplay.DisplayTranslatedSource(ruleTreeItem.Data!, GetActLocation()))
-                                        </Template>
-                                    </Column>
-                                    <Column Class="table-active" TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("trans_destination"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                        <Template>
-                                            @((MarkupString)_ruleDisplay.DisplayTranslatedDestination(ruleTreeItem.Data!, GetActLocation()))
-                                        </Template>
-                                    </Column>
-                                    <Column Class="table-active" TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("trans_services"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                        <Template>
-                                            @((MarkupString)_ruleDisplay.DisplayTranslatedService(ruleTreeItem.Data!, GetActLocation()))
-                                        </Template>
-                                    </Column>
-                            }
-
-                            @if (_emptyColumns[7] == false && SelectedReportType != ReportType.NatRules)
-                            {
-                                <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("action"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Action)" Sortable="true" Filterable="false" Hideable="true" />
-                            }
-
-                            @if (_emptyColumns[8] == false && SelectedReportType != ReportType.NatRules)
-                            {
-                                <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("track"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Track)" Sortable="true" Filterable="false" Hideable="true" />
-                            }
-
-                            @if (_emptyColumns[9] == false)
-                            {
-                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("enabled"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Disabled)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)RuleDisplayHtml.DisplayEnabled(ruleTreeItem.Data!, GetActLocation()))
-                                    </Template>
-                                </Column>
-                            }
-
-                            @if (_emptyColumns[10] == false)
-                            {
-                                <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("enforcing_devices"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)RuleDisplayHtml.DisplayEnforcingGateways(ruleTreeItem.Data!, GetActLocation(), SelectedReportType))
-                                    </Template>
-                                </Column>
-                            }
-
-                            @if (_emptyColumns[11] == false)
-                            {
-                                <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("uid"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Uid)" Sortable="true" Filterable="false" Hideable="true" />
-                            }
-
-                            @if (_emptyColumns[12] == false)
-                            {
-                                <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("comment"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Comment)" Sortable="true" Filterable="false" Hideable="true" />
-                            }
-
-                            @if (_emptyColumns[13] == false)
-                            {
-                                @if (!_showLastModifiedAfterLastHit)
-                                {
-                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="LastModified" Field="@(ruleTreeItem => ruleTreeItem.Data!.LastModified)" Sortable="true" Filterable="false" Hideable="true">
-                                        <Template>
-                                            @((MarkupString)RuleDisplayBase.DisplayLastModified(ruleTreeItem.Data!))
-                                        </Template>
-                                    </Column>
-                                }
-                            }
-
-                            <DetailTemplate TableItem="RuleTreeItem">
-                                <RuleDetails Rule="context.Data!"/>
-                            </DetailTemplate>
-
-                            <CustomRow TableItem="RuleTreeItem" IsActiveForItem="(ruleTreeItem => !String.IsNullOrEmpty(ruleTreeItem.Data!.SectionHeader))">
-                                <tr>
-                                    <td>                          
-                                        <div style="cursor:pointer; white-space:nowrap;" @onclick="() => OnNumberIconClickToggle(context.Data!, management, device)">
-                                            @((MarkupString)GetToggleArrow(context.Data!, management, device))@((MarkupString)RuleDisplayHtml.DisplayNumber(context.Data!))
-                                        </div>                                        
-                             
-                                    </td>
-
-                                    <td class="bg-light" colspan="@(_reportTable?.Columns.Count)">
-                                        <div class="font-weight-bold">@(context.Data!.SectionHeader)</div>
-                                    </td>
-                                </tr>
-                            </CustomRow>  
-
-                            <Pager ShowPageNumber="true" ShowTotalCount="true" />
-                        </Table>
-                    </Collapse>
-
-
-
-
-
+                @if (SelectedReportType == ReportType.Recertification)
+                {
+                    @if (IsColumnVisible(ColumnNextRecertDate))
+                    {
+                        <div class="rules-report__cell" title="@GetPlainNextRecert(context.Node.Data)">
+                            <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                                @((MarkupString)RuleDisplayHtml.DisplayNextRecert(context.Node.Data.Metadata))
+                            </span>
+                        </div>
+                    }
+                    @if (IsColumnVisible(ColumnOwner))
+                    {
+                        <div class="rules-report__cell" title="@GetPlainOwner(context.Node.Data)">
+                            <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                                @((MarkupString)RuleDisplayHtml.DisplayOwner(context.Node.Data.Metadata))
+                            </span>
+                        </div>
+                    }
+                    @if (IsColumnVisible(ColumnIpMatches))
+                    {
+                        <div class="rules-report__cell" title="@GetPlainIpMatches(context.Node.Data)">
+                            <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                                @((MarkupString)RuleDisplayHtml.DisplayRecertIpMatches(context.Node.Data.Metadata))
+                            </span>
+                        </div>
+                    }
+                    @if (IsColumnVisible(ColumnLastHit))
+                    {
+                        <div class="rules-report__cell" title="@GetPlainLastHit(context.Node.Data)">
+                            <span class="rules-report__cell-content">
+                                @((MarkupString)RuleDisplayHtml.DisplayLastHit(context.Node.Data.Metadata))
+                            </span>
+                        </div>
+                    }
+                    @if (IsColumnVisible(ColumnLastModified))
+                    {
+                        <div class="rules-report__cell" title="@GetPlainLastModified(context.Node.Data)">
+                            <span class="rules-report__cell-content">
+                                @((MarkupString)RuleDisplayBase.DisplayLastModified(context.Node.Data))
+                            </span>
+                        </div>
+                    }
                 }
-            } *@
+                else
+                {
+                    @if (ShouldShowLastHitColumn() && IsColumnVisible(ColumnLastHit))
+                    {
+                        <div class="rules-report__cell" title="@GetPlainLastHit(context.Node.Data)">
+                            <span class="rules-report__cell-content">
+                                @((MarkupString)RuleDisplayHtml.DisplayLastHit(context.Node.Data.Metadata))
+                            </span>
+                        </div>
+                    }
+                    @if (ShouldShowLastModifiedAfterLastHit() && IsColumnVisible(ColumnLastModified))
+                    {
+                        <div class="rules-report__cell" title="@GetPlainLastModified(context.Node.Data)">
+                            <span class="rules-report__cell-content">
+                                @((MarkupString)RuleDisplayBase.DisplayLastModified(context.Node.Data))
+                            </span>
+                        </div>
+                    }
+                }
+
+                @if (IsColumnVisible(ColumnName))
+                {
+                    <div class="rules-report__cell" title="@GetPlainName(context.Node.Data)">
+                        <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                            @context.Node.Data.Name
+                        </span>
+                    </div>
+                }
+                @if (IsColumnVisible(ColumnSourceZone))
+                {
+                    <div class="rules-report__cell" title="@GetPlainSourceZones(context.Node.Data)">
+                        <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                            @((MarkupString)RuleDisplayBase.DisplaySourceZones(context.Node.Data))
+                        </span>
+                    </div>
+                }
+                @if (IsColumnVisible(ColumnSource))
+                {
+                    <div class="rules-report__cell" title="@GetPlainSource(context.Node.Data)">
+                        <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                            @((MarkupString)_ruleDisplay!.DisplaySource(context.Node.Data, GetActLocation(), SelectedReportType))
+                        </span>
+                    </div>
+                }
+                @if (IsColumnVisible(ColumnDestinationZone))
+                {
+                    <div class="rules-report__cell" title="@GetPlainDestinationZones(context.Node.Data)">
+                        <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                            @((MarkupString)RuleDisplayBase.DisplayDestinationZones(context.Node.Data))
+                        </span>
+                    </div>
+                }
+                @if (IsColumnVisible(ColumnDestination))
+                {
+                    <div class="rules-report__cell" title="@GetPlainDestination(context.Node.Data)">
+                        <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                            @((MarkupString)_ruleDisplay!.DisplayDestination(context.Node.Data, GetActLocation(), SelectedReportType))
+                        </span>
+                    </div>
+                }
+                @if (IsColumnVisible(ColumnServices))
+                {
+                    <div class="rules-report__cell" title="@GetPlainServices(context.Node.Data)">
+                        <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                            @((MarkupString)_ruleDisplay!.DisplayServices(context.Node.Data, GetActLocation(), SelectedReportType))
+                        </span>
+                    </div>
+                }
+
+                @if (SelectedReportType == ReportType.NatRules)
+                {
+                    @if (IsColumnVisible(ColumnTranslatedSource))
+                    {
+                        <div class="rules-report__cell rules-report__cell--translated" title="@GetPlainTranslatedSource(context.Node.Data)">
+                            <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                                @((MarkupString)_ruleDisplay!.DisplayTranslatedSource(context.Node.Data, GetActLocation()))
+                            </span>
+                        </div>
+                    }
+                    @if (IsColumnVisible(ColumnTranslatedDestination))
+                    {
+                        <div class="rules-report__cell rules-report__cell--translated" title="@GetPlainTranslatedDestination(context.Node.Data)">
+                            <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                                @((MarkupString)_ruleDisplay!.DisplayTranslatedDestination(context.Node.Data, GetActLocation()))
+                            </span>
+                        </div>
+                    }
+                    @if (IsColumnVisible(ColumnTranslatedServices))
+                    {
+                        <div class="rules-report__cell rules-report__cell--translated" title="@GetPlainTranslatedServices(context.Node.Data)">
+                            <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                                @((MarkupString)_ruleDisplay!.DisplayTranslatedService(context.Node.Data, GetActLocation()))
+                            </span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    @if (IsColumnVisible(ColumnAction))
+                    {
+                        <div class="rules-report__cell" title="@GetPlainAction(context.Node.Data)">
+                            <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                                @context.Node.Data.Action
+                            </span>
+                        </div>
+                    }
+                    @if (IsColumnVisible(ColumnTrack))
+                    {
+                        <div class="rules-report__cell" title="@GetPlainTrack(context.Node.Data)">
+                            <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                                @context.Node.Data.Track
+                            </span>
+                        </div>
+                    }
+                }
+
+                @if (IsColumnVisible(ColumnEnabled))
+                {
+                    <div class="rules-report__cell" title="@GetPlainEnabled(context.Node.Data)">
+                        <span class="rules-report__cell-content">
+                            @((MarkupString)RuleDisplayHtml.DisplayEnabled(context.Node.Data, GetActLocation()))
+                        </span>
+                    </div>
+                }
+                @if (IsColumnVisible(ColumnEnforcingDevices))
+                {
+                    <div class="rules-report__cell" title="@GetPlainEnforcingDevices(context.Node.Data)">
+                        <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                            @((MarkupString)RuleDisplayHtml.DisplayEnforcingGateways(context.Node.Data, GetActLocation(), SelectedReportType))
+                        </span>
+                    </div>
+                }
+                @if (IsColumnVisible(ColumnUid))
+                {
+                    <div class="rules-report__cell" title="@GetPlainUid(context.Node.Data)">
+                        <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                            @context.Node.Data.Uid
+                        </span>
+                    </div>
+                }
+                @if (IsColumnVisible(ColumnComment))
+                {
+                    <div class="rules-report__cell" title="@GetPlainComment(context.Node.Data)">
+                        <span class="rules-report__cell-content rules-report__cell-content--clamp">
+                            @context.Node.Data.Comment
+                        </span>
+                    </div>
+                }
+                @if (!ShouldShowLastModifiedAfterLastHit()
+                    && SelectedReportType != ReportType.Recertification
+                    && IsColumnVisible(ColumnLastModified))
+                {
+                    <div class="rules-report__cell" title="@GetPlainLastModified(context.Node.Data)">
+                        <span class="rules-report__cell-content">
+                            @((MarkupString)RuleDisplayBase.DisplayLastModified(context.Node.Data))
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+    </div>;
+
+    private RenderFragment<TreeViewNodeContext<RuleTreeItem>> RenderRuleDetail() => context => @<div class="rules-report__detail">
+        <RuleDetails Rule="context.Node.Data" />
+    </div>;
+
+    private async Task ToggleRuleSelection(RuleTreeItem node, string managementName, string deviceName)
+    {
+        if (!node.IsRule)
+        {
+            return;
+        }
+
+        node.Data.ManagementName = managementName;
+        node.Data.DeviceName = deviceName;
+        node.Data.RulebaseName = ResolveRulebaseName(node);
+
+        if (!SelectedRules.Remove(node.Data))
+        {
+            SelectedRules.Add(node.Data);
+        }
+
+        await SelectedRulesChanged.InvokeAsync(SelectedRules);
+    }
+
+    private bool ShouldShowRuleDetail(RuleTreeItem node)
+    {
+        return node.IsRule && SelectedRules.Contains(node.Data);
+    }
+
+    private bool ShouldRenderNode(RuleTreeItem node)
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            return true;
+        }
+
+        return _nodeVisibility.TryGetValue(node, out bool isVisible) && isVisible;
+    }
+
+    private void RefreshSearchVisibility()
+    {
+        _nodeVisibility.Clear();
+
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            return;
+        }
+
+        foreach (var root in GetAllRuleTrees())
+        {
+            ApplySearchVisibility(root, _searchTerm.Trim());
+        }
+    }
+
+    private IEnumerable<RuleTreeItem> GetAllRuleTrees()
+    {
+        foreach (var management in Managements)
+        {
+            foreach (var device in management.Devices.Where(dev => dev.ContainsRules()))
+            {
+                yield return GetRuleTree(management, device);
+            }
+        }
+    }
+
+    private bool ApplySearchVisibility(RuleTreeItem node, string searchTerm)
+    {
+        bool childVisible = false;
+        foreach (var child in node.Children)
+        {
+            childVisible |= ApplySearchVisibility(child, searchTerm);
+        }
+
+        bool selfVisible = GetSearchText(node).Contains(searchTerm, StringComparison.OrdinalIgnoreCase);
+        bool isVisible = selfVisible || childVisible;
+        _nodeVisibility[node] = isVisible;
+
+        if (childVisible)
+        {
+            node.IsExpanded = true;
+        }
+
+        return isVisible;
+    }
+
+    private string GetSearchText(RuleTreeItem node)
+    {
+        if (!node.IsRule)
+        {
+            return node.Header ?? string.Empty;
+        }
+
+        Rule rule = node.Data;
+        return string.Join(
+            " ",
+            new[]
+            {
+                node.Header,
+                GetPlainNumber(rule),
+                GetPlainName(rule),
+                GetPlainSourceZones(rule),
+                GetPlainSource(rule),
+                GetPlainDestinationZones(rule),
+                GetPlainDestination(rule),
+                GetPlainServices(rule),
+                GetPlainTranslatedSource(rule),
+                GetPlainTranslatedDestination(rule),
+                GetPlainTranslatedServices(rule),
+                GetPlainAction(rule),
+                GetPlainTrack(rule),
+                GetPlainEnabled(rule),
+                GetPlainEnforcingDevices(rule),
+                GetPlainUid(rule),
+                GetPlainComment(rule),
+                GetPlainLastHit(rule),
+                GetPlainLastModified(rule),
+                GetPlainNextRecert(rule),
+                GetPlainOwner(rule),
+                GetPlainIpMatches(rule)
+            }.Where(value => !string.IsNullOrWhiteSpace(value)));
+    }
+
+    private bool IsHeaderNode(RuleTreeItem node)
+    {
+        return !node.IsRule;
+    }
+
+    private string GetHeaderTitle(RuleTreeItem node)
+    {
+        if (!string.IsNullOrWhiteSpace(node.Header))
+        {
+            return node.Header;
+        }
+
+        return userConfig.GetText("name");
+    }
+
+    private string ResolveRulebaseName(RuleTreeItem node)
+    {
+        RuleTreeItem? current = node.Parent;
+
+        while (current != null)
+        {
+            if (!string.IsNullOrWhiteSpace(current.Header))
+            {
+                return current.Header;
+            }
+
+            current = current.Parent;
+        }
+
+        return node.Data.Rulebase?.Name ?? node.Data.RulebaseName;
+    }
+
+    private string GetRuleRowClasses(RuleTreeItem node)
+    {
+        return $"rules-report__row {(SelectedRules.Contains(node.Data) ? "rules-report__row--selected" : string.Empty)}".Trim();
+    }
+
+    private string GetDepthClass(int level)
+    {
+        return $"rules-report__depth-{Math.Min(level, 10)}";
+    }
+
+    private static string GetToggleSymbol(RuleTreeItem node)
+    {
+        return node.IsExpanded ? "▼" : "▶";
+    }
+
+    private OutputLocation GetActLocation()
+    {
+        return Recertification ? OutputLocation.certification : OutputLocation.report;
+    }
+
+    private static string NormalizeMarkup(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        string withoutTags = Regex.Replace(value, "<.*?>", " ");
+        return WebUtility.HtmlDecode(withoutTags).Replace('\n', ' ').Replace('\r', ' ').Trim();
+    }
+
+    private static string GetPlainLastModified(Rule rule)
+    {
+        return NormalizeMarkup(RuleDisplayBase.DisplayLastModified(rule));
+    }
+
+    private static string GetPlainNumber(Rule rule)
+    {
+        return NormalizeMarkup(RuleDisplayBase.DisplayNumber(rule));
+    }
+
+    private static string GetPlainSourceZones(Rule rule)
+    {
+        return NormalizeMarkup(RuleDisplayBase.DisplaySourceZones(rule));
+    }
+
+    private static string GetPlainDestinationZones(Rule rule)
+    {
+        return NormalizeMarkup(RuleDisplayBase.DisplayDestinationZones(rule));
+    }
+
+    private string GetPlainSource(Rule rule)
+    {
+        return NormalizeMarkup(_ruleDisplay?.DisplaySource(rule, GetActLocation(), SelectedReportType) ?? string.Empty);
+    }
+
+    private string GetPlainDestination(Rule rule)
+    {
+        return NormalizeMarkup(_ruleDisplay?.DisplayDestination(rule, GetActLocation(), SelectedReportType) ?? string.Empty);
+    }
+
+    private string GetPlainServices(Rule rule)
+    {
+        return NormalizeMarkup(_ruleDisplay?.DisplayServices(rule, GetActLocation(), SelectedReportType) ?? string.Empty);
+    }
+
+    private string GetPlainTranslatedSource(Rule rule)
+    {
+        return NormalizeMarkup(_ruleDisplay?.DisplayTranslatedSource(rule, GetActLocation()) ?? string.Empty);
+    }
+
+    private string GetPlainTranslatedDestination(Rule rule)
+    {
+        return NormalizeMarkup(_ruleDisplay?.DisplayTranslatedDestination(rule, GetActLocation()) ?? string.Empty);
+    }
+
+    private string GetPlainTranslatedServices(Rule rule)
+    {
+        return NormalizeMarkup(_ruleDisplay?.DisplayTranslatedService(rule, GetActLocation()) ?? string.Empty);
+    }
+
+    private static string GetPlainName(Rule rule)
+    {
+        return rule.Name ?? string.Empty;
+    }
+
+    private static string GetPlainAction(Rule rule)
+    {
+        return rule.Action ?? string.Empty;
+    }
+
+    private static string GetPlainTrack(Rule rule)
+    {
+        return rule.Track ?? string.Empty;
+    }
+
+    private static string GetPlainUid(Rule rule)
+    {
+        return rule.Uid ?? string.Empty;
+    }
+
+    private static string GetPlainComment(Rule rule)
+    {
+        return rule.Comment ?? string.Empty;
+    }
+
+    private static string GetPlainEnabled(Rule rule)
+    {
+        return rule.Disabled ? "disabled" : "enabled";
+    }
+
+    private string GetPlainEnforcingDevices(Rule rule)
+    {
+        return NormalizeMarkup(RuleDisplayHtml.DisplayEnforcingGateways(rule, GetActLocation(), SelectedReportType));
+    }
+
+    private static string GetPlainLastHit(Rule rule)
+    {
+        return NormalizeMarkup(RuleDisplayHtml.DisplayLastHit(rule.Metadata));
+    }
+
+    private static string GetPlainNextRecert(Rule rule)
+    {
+        return NormalizeMarkup(RuleDisplayHtml.DisplayNextRecert(rule.Metadata));
+    }
+
+    private static string GetPlainOwner(Rule rule)
+    {
+        return NormalizeMarkup(RuleDisplayHtml.DisplayOwner(rule.Metadata));
+    }
+
+    private static string GetPlainIpMatches(Rule rule)
+    {
+        return NormalizeMarkup(RuleDisplayHtml.DisplayRecertIpMatches(rule.Metadata));
+    }
+}

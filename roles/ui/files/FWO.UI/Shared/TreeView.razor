@@ -5,7 +5,7 @@
 @typeparam T where T : ITreeViewItem
 
 <div class="tree-view">
-    @if (Nodes != null && Nodes.Count > 0)
+    @if (Nodes.Count > 0)
     {
         @foreach (var node in Nodes)
         {
@@ -29,67 +29,90 @@
     [Parameter]
     public EventCallback<T> OnNodeSelected { get; set; }
 
-    private RenderFragment RenderNode(T node, int level) => @<div class="tree-node">
-        <div class="tree-node-content" style="margin-left: @(level * 20)px">
-            @if (node.Children.Count > 0)
-            {
-                <button class="tree-node-toggle" @onclick="@(async () => await ToggleNode(node))">
-                    @if (node.IsExpanded)
-                    {
-                        <span>▼</span>
-                    }
-                    else
-                    {
-                        <span>▶</span>
-                    }
-                </button>
-            }
-            else
-            {
-                <span class="tree-node-spacer"></span>
-            }
-            
-            @if (node.IsSelectable)
-            {
-                <button class="tree-node-label" @onclick="@(async () => await SelectNode(node))">
-                    @node.Label
-                </button>
-            }
-            else
-            {
-                <span class="tree-node-label-disabled">@node.Label</span>
-            }
+    [Parameter]
+    public RenderFragment<TreeViewNodeContext<T>>? NodeContent { get; set; }
 
-            @if (node.DisplayData != null)
-            {
-                @foreach (var kvp in node.DisplayData)
-                {  // TODO: Above left alignt, smaller and gray the Key            
-                    <span class="tree-node-data">@kvp.Value</span>
-                }
-            }
-        </div>
+    [Parameter]
+    public RenderFragment<TreeViewNodeContext<T>>? DetailContent { get; set; }
 
-        @if (node.IsExpanded && node.Children.Count > 0)
+    [Parameter]
+    public Func<T, bool>? IsDetailExpanded { get; set; }
+
+    [Parameter]
+    public Func<T, bool>? ShouldRenderNode { get; set; }
+
+    private RenderFragment RenderNode(T node, int level) => @<div>
+        @if (ShouldRenderNode?.Invoke(node) != false)
         {
-            <div class="tree-node-children">
-                @foreach (var child in node.Children)
+            var context = new TreeViewNodeContext<T>(
+                node,
+                level,
+                node.Children.Count > 0,
+                () => ToggleNode(node),
+                () => SelectNode(node));
+
+            <div class="tree-node">
+                @if (NodeContent != null)
                 {
-                    @RenderNode((T) child, level + 1)
+                    @NodeContent(context)
+                }
+                else
+                {
+                    <div class="tree-node-default">
+                        @if (context.HasChildren)
+                        {
+                            <button class="tree-node-toggle" type="button" @onclick="context.ToggleNodeAsync">
+                                @(node.IsExpanded ? "▼" : "▶")
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="tree-node-toggle tree-node-toggle-placeholder"></span>
+                        }
+
+                        @if (node.IsSelectable)
+                        {
+                            <button class="tree-node-label" type="button" @onclick="context.SelectNodeAsync">
+                                @node.Label
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="tree-node-label-disabled">@node.Label</span>
+                        }
+                    </div>
+                }
+
+                @if (DetailContent != null && IsDetailExpanded?.Invoke(node) == true)
+                {
+                    <div class="tree-node-detail">
+                        @DetailContent(context)
+                    </div>
+                }
+
+                @if (node.IsExpanded && context.HasChildren)
+                {
+                    <div class="tree-node-children">
+                        @foreach (var child in node.Children.OfType<T>())
+                        {
+                            @RenderNode(child, level + 1)
+                        }
+                    </div>
                 }
             </div>
         }
     </div>;
 
-    private async Task ToggleNode(ITreeViewItem node)
+    private async Task ToggleNode(T node)
     {
         node.IsExpanded = !node.IsExpanded;
-        await OnNodeToggled.InvokeAsync((T) node);
-        StateHasChanged();
+        await OnNodeToggled.InvokeAsync(node);
+        await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SelectNode(ITreeViewItem node)
+    private async Task SelectNode(T node)
     {
-        await OnNodeSelected.InvokeAsync((T) node);
-        StateHasChanged();
+        await OnNodeSelected.InvokeAsync(node);
+        await InvokeAsync(StateHasChanged);
     }
 }

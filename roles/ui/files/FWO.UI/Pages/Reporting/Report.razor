@@ -217,22 +217,14 @@
                 </div>
             }
         </div>
-        @if(currentReport != null && reportGenerationDuration != 0)
+        @if(_hasReportDuration)
         {
-            if(reportGenerationDuration < 600)
-            {
-                <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
-            }
-            else
-            {
-                <small>@(userConfig.GetText("report_duration")) @((reportGenerationDuration / 60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
-            }
-        }   
-        @if (currentReport != null && currentReport.ReportType != ReportType.Statistics && currentReport.ReportData.ElementsCount > 0)
-        {
-            <small> @(userConfig.GetText("report_elements")): @currentReport.ReportData.ElementsCount.</small>
+            <small>@GetReportDurationText()</small>
         }
-            
+        @if(_hasReportElementCount)
+        {
+            <small>@GetReportElementCountText()</small>
+        }
 
     </div>
 
@@ -322,6 +314,47 @@
     private bool _filterInitialViolations = false;
 
     private ComplianceReport? _complianceReport;
+
+    private bool _hasReportDuration => currentReport != null && reportGenerationDuration > 0;
+
+    private bool _hasReportElementCount => currentReport?.ReportType != ReportType.Statistics && currentReport?.ReportData.ElementsCount > 0;
+
+    /// <summary>
+    /// Formats the report runtime for the footer without embedding branching logic in the markup.
+    /// </summary>
+    private string GetReportDurationText()
+    {
+        TimeSpan generationTime = TimeSpan.FromSeconds(reportGenerationDuration);
+
+        // Display durations less than 1 second
+
+        if(generationTime.TotalSeconds < 1)
+        {
+            return $"{userConfig.GetText("report_duration")} <1 {userConfig.GetText("seconds")}.";
+        }
+
+        string reportDurationLabel = userConfig.GetText("report_duration");
+        double durationValue = generationTime.TotalSeconds;
+        string durationUnit = userConfig.GetText("seconds");
+
+        // Display durations above ten minutes (else display durations in between)
+        
+        if(generationTime.TotalMinutes >= 10)
+        {
+            durationValue = generationTime.TotalMinutes;
+            durationUnit = userConfig.GetText("minutes");
+        }
+
+        return $"{reportDurationLabel} {durationValue:0.00} {durationUnit}.";
+    }
+
+    /// <summary>
+    /// Formats the report element count shown in the footer.
+    /// </summary>
+    private string GetReportElementCountText()
+    {
+        return $"{userConfig.GetText("report_elements")}: {currentReport!.ReportData.ElementsCount}.";
+    }
 
 
     protected override async Task OnInitializedAsync()

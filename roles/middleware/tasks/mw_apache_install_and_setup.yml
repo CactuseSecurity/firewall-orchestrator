@@ -51,6 +51,7 @@
       lineinfile:
         path: "/etc/apache2/ports.conf"
         line: "Listen {{ middleware_web_listener_port }}"
+        regexp: '^\s*Listen {{ middleware_web_listener_port }}\s*$'
         insertafter: "<IfModule ssl_module>"
 
     - name: restart apache

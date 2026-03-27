@@ -16,5 +16,6 @@ namespace FWO.Ui.Shared
         public Func<TreeViewNodeContext<TNode>, string>? HtmlSelector { get; init; }
         public Func<TreeViewNodeContext<TNode>, string>? TextSelector { get; init; }
         public Func<TreeViewNodeContext<TNode>, string>? TooltipSelector { get; init; }
+        public Func<TNode, TNode, int>? SortComparer { get; init; }
     }
 }

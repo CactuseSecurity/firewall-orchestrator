@@ -99,23 +99,45 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void SortingNumberColumnUsesCustomNumericComparer()
+        {
+            (ManagementReport management, RuleTreeBuilder builder) = BuildFlatRuleTree(
+                CreateRule(1, "Ten", 10),
+                CreateRule(2, "Two", 2));
+
+            Services.AddSingleton<IRuleTreeBuilder>(builder);
+
+            IRenderedComponent<RulesReport> cut = Render<RulesReport>(parameters => parameters
+                .Add(p => p.Managements, new List<ManagementReport> { management })
+                .Add(p => p.SelectedReportType, ReportType.Rules)
+                .Add(p => p.SelectedRules, new List<Rule>()));
+
+            cut.FindAll(".tree-view__header-button")
+                .First(button => button.TextContent.Contains("No."))
+                .Click();
+
+            cut.WaitForAssertion(() =>
+            {
+                IReadOnlyList<IElement> rows = cut.FindAll(".tree-view__row");
+                Assert.That(rows.First().TextContent, Does.Contain("Two"));
+            });
+
+            cut.FindAll(".tree-view__header-button")
+                .First(button => button.TextContent.Contains("No."))
+                .Click();
+
+            cut.WaitForAssertion(() =>
+            {
+                IReadOnlyList<IElement> rows = cut.FindAll(".tree-view__row");
+                Assert.That(rows.First().TextContent, Does.Contain("Ten"));
+            });
+        }
+
         private static (ManagementReport management, DeviceReport device, RuleTreeBuilder builder, RuleTreeItem section) BuildTreeWithSection()
         {
-            Rule alpha = new()
-            {
-                Id = 1,
-                Name = "Alpha",
-                Uid = "rule-alpha",
-                Metadata = new RuleMetadata()
-            };
-
-            Rule beta = new()
-            {
-                Id = 2,
-                Name = "Beta",
-                Uid = "rule-beta",
-                Metadata = new RuleMetadata()
-            };
+            Rule alpha = CreateRule(1, "Alpha", 1);
+            Rule beta = CreateRule(2, "Beta", 2);
 
             RuleTreeItem root = new()
             {
@@ -177,6 +199,66 @@ namespace FWO.Test
             builder.RuleTreeCache[(management.Id, device.Id)] = root;
 
             return (management, device, builder, section);
+        }
+
+        private static (ManagementReport management, RuleTreeBuilder builder) BuildFlatRuleTree(params Rule[] rules)
+        {
+            RuleTreeItem root = new()
+            {
+                IsRoot = true,
+                IsExpanded = true
+            };
+
+            foreach (Rule rule in rules)
+            {
+                root.Children.Add(new RuleTreeItem
+                {
+                    IsRule = true,
+                    Data = rule,
+                    Parent = root
+                });
+            }
+
+            DeviceReport device = new()
+            {
+                Id = 1,
+                Name = "Device A",
+                RulebaseLinks =
+                [
+                    new RulebaseLink
+                    {
+                        IsInitial = true,
+                        FromRulebaseId = 1,
+                        NextRulebaseId = 1
+                    }
+                ]
+            };
+
+            ManagementReport management = new()
+            {
+                Id = 1,
+                Name = "Management A",
+                Devices = [device],
+                Rulebases = []
+            };
+
+            RuleTreeBuilder builder = new();
+            builder.RuleTreeCache[(management.Id, device.Id)] = root;
+
+            return (management, builder);
+        }
+
+        private static Rule CreateRule(long id, string name, int ruleOrderNumber)
+        {
+            return new()
+            {
+                Id = id,
+                Name = name,
+                Uid = $"rule-{name.ToLowerInvariant()}",
+                RuleOrderNumber = ruleOrderNumber,
+                DisplayOrderNumberString = ruleOrderNumber.ToString(),
+                Metadata = new RuleMetadata()
+            };
         }
     }
 }

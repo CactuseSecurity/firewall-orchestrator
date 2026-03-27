@@ -215,7 +215,8 @@
                 rule => RuleDisplayBase.DisplayNumber(rule),
                 GetPlainNumber,
                 "rules-report__column--number",
-                isHierarchyColumn: true)
+                isHierarchyColumn: true,
+                sortComparer: CompareByRuleOrderNumber)
         ];
 
         if (SelectedReportType == ReportType.Recertification)
@@ -278,7 +279,8 @@
         Func<Rule, string> tooltipSelector,
         string columnClass = "",
         bool clampContent = false,
-        bool isHierarchyColumn = false)
+        bool isHierarchyColumn = false,
+        Func<RuleTreeItem, RuleTreeItem, int>? sortComparer = null)
     {
         return new()
         {
@@ -289,7 +291,8 @@
             ClampContent = clampContent,
             IsHierarchyColumn = isHierarchyColumn,
             TextSelector = context => textSelector(context.Node.Data),
-            TooltipSelector = context => tooltipSelector(context.Node.Data)
+            TooltipSelector = context => tooltipSelector(context.Node.Data),
+            SortComparer = sortComparer ?? ((left, right) => CompareTreeItems(left, right, tooltipSelector))
         };
     }
 
@@ -300,7 +303,8 @@
         Func<Rule, string> tooltipSelector,
         string columnClass = "",
         bool clampContent = false,
-        bool isHierarchyColumn = false)
+        bool isHierarchyColumn = false,
+        Func<RuleTreeItem, RuleTreeItem, int>? sortComparer = null)
     {
         return new()
         {
@@ -311,8 +315,43 @@
             ClampContent = clampContent,
             IsHierarchyColumn = isHierarchyColumn,
             HtmlSelector = context => htmlSelector(context.Node.Data),
-            TooltipSelector = context => tooltipSelector(context.Node.Data)
+            TooltipSelector = context => tooltipSelector(context.Node.Data),
+            SortComparer = sortComparer ?? ((left, right) => CompareTreeItems(left, right, tooltipSelector))
         };
+    }
+
+    private static int CompareByRuleOrderNumber(RuleTreeItem left, RuleTreeItem right)
+    {
+        return CompareTreeItems(left, right, rule => rule.RuleOrderNumber.ToString(), (leftRule, rightRule) => leftRule.RuleOrderNumber.CompareTo(rightRule.RuleOrderNumber));
+    }
+
+    private static int CompareTreeItems(
+        RuleTreeItem left,
+        RuleTreeItem right,
+        Func<Rule, string> ruleValueSelector,
+        Func<Rule, Rule, int>? ruleComparer = null)
+    {
+        if (left.IsRule && right.IsRule)
+        {
+            if (ruleComparer != null)
+            {
+                return ruleComparer(left.Data, right.Data);
+            }
+
+            return StringComparer.OrdinalIgnoreCase.Compare(ruleValueSelector(left.Data), ruleValueSelector(right.Data));
+        }
+
+        return StringComparer.OrdinalIgnoreCase.Compare(GetNodeSortLabel(left, ruleValueSelector), GetNodeSortLabel(right, ruleValueSelector));
+    }
+
+    private static string GetNodeSortLabel(RuleTreeItem node, Func<Rule, string> ruleValueSelector)
+    {
+        if (node.IsRule)
+        {
+            return ruleValueSelector(node.Data);
+        }
+
+        return node.Header ?? string.Empty;
     }
 
     private bool ShouldShowLastHitColumn()

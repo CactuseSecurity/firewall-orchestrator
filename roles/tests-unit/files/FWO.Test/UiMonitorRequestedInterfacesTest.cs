@@ -258,6 +258,85 @@ namespace FWO.Test
             Assert.That(GetPrivateField<Dictionary<int, DateTime>>(component, "TicketCreationDateByConnectionId"), Is.Empty);
         }
 
+        [Test]
+        public async Task OrphanedRequestedInterfaceTicketsPopup_LoadsOnlyTicketsWithMissingInterfaces()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                TicketsByParametersResult =
+                [
+                    new WfTicket
+                    {
+                        Id = 501,
+                        StateId = 10,
+                        CreationDate = new DateTime(2026, 3, 28, 10, 15, 0),
+                        Tasks =
+                        {
+                            CreateTask(1, WfTaskType.new_interface, "if-removed-a"),
+                            CreateTask(2, WfTaskType.new_interface, "if-removed-b")
+                        }
+                    },
+                    new WfTicket
+                    {
+                        Id = 777,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(3, WfTaskType.new_interface, "if-still-exists")
+                        }
+                    },
+                    new WfTicket
+                    {
+                        Id = 888,
+                        StateId = 10,
+                        Tasks =
+                        {
+                            CreateTask(4, WfTaskType.new_interface, "if-still-exists-2")
+                        }
+                    }
+                ],
+                ConnectionById =
+                {
+                    [1] = [],
+                    [2] = [],
+                    [3] = [new ModellingConnection { Id = 3, Name = "existing-if" }],
+                    [4] = [new ModellingConnection { Id = 4, Name = "existing-if-2" }]
+                },
+                States =
+                [
+                    new WfState { Id = 10, Name = "In Progress" },
+                ]
+            };
+            await using Bunit.TestContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+
+            IRenderedComponent<OrphanedRequestedInterfaceTicketsPopup> component =
+                context.Render<OrphanedRequestedInterfaceTicketsPopup>(parameters => parameters
+                    .Add(p => p.Display, true));
+            component.WaitForAssertion(() =>
+            {
+                string markup = component.Markup;
+                Assert.That(markup, Does.Contain("501"));
+                Assert.That(markup, Does.Contain("In Progress"));
+                Assert.That(markup, Does.Contain("if-removed-a"));
+                Assert.That(markup, Does.Contain("if-removed-b"));
+                Assert.That(markup, Does.Contain("Close Tickets as rejected"));
+                Assert.That(markup, Does.Not.Contain("777"));
+                Assert.That(markup, Does.Not.Contain("888"));
+            });
+        }
+
+        private static WfReqTask CreateTask(int connId, WfTaskType taskType, string title = "")
+        {
+            WfReqTask task = new() { TaskType = taskType.ToString(), Title = title };
+            task.SetAddInfo(AdditionalInfoKeys.ConnId, connId.ToString());
+            return task;
+        }
+
         private static void PrepareRows(
             MonitorRequestedInterfaces component,
             List<ModellingConnection> connections,
@@ -276,6 +355,10 @@ namespace FWO.Test
     {
         private static readonly string stateMatrixJson = BuildStateMatrixJson();
         public Dictionary<long, ApiResponse<WfTicket>> SafeTicketById { get; } = [];
+        public Dictionary<int, List<ModellingConnection>> ConnectionById { get; } = [];
+        public List<ModellingConnection> RequestedInterfacesResult { get; set; } = [];
+        public List<WfTicket> TicketsByParametersResult { get; set; } = [];
+        public List<WfState> States { get; set; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
@@ -290,6 +373,17 @@ namespace FWO.Test
 
             if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getRequestedInterfaces)
             {
+                return Task.FromResult((QueryResponseType)(object)RequestedInterfacesResult);
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getConnectionById)
+            {
+                int connId = Convert.ToInt32(variables?.GetType().GetProperty("id")?.GetValue(variables) ?? 0);
+                if (ConnectionById.TryGetValue(connId, out List<ModellingConnection>? connections))
+                {
+                    return Task.FromResult((QueryResponseType)(object)connections);
+                }
+
                 return Task.FromResult((QueryResponseType)(object)new List<ModellingConnection>());
             }
 
@@ -300,7 +394,12 @@ namespace FWO.Test
 
             if (typeof(QueryResponseType) == typeof(List<WfState>) && query == RequestQueries.getStates)
             {
-                return Task.FromResult((QueryResponseType)(object)new List<WfState>());
+                return Task.FromResult((QueryResponseType)(object)States);
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<WfTicket>) && query == RequestQueries.getTicketsByParameters)
+            {
+                return Task.FromResult((QueryResponseType)(object)TicketsByParametersResult);
             }
 
             if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getInterfaceUsers)

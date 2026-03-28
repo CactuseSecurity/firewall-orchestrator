@@ -517,12 +517,10 @@ namespace FWO.Services.Modelling
                     continue;
                 }
 
-                if (!userConfig.ModRequestOnlyOwnObjects || svcGrp.AppId == owner.Id)
+                if ((!userConfig.ModRequestOnlyOwnObjects || svcGrp.AppId == owner.Id) &&
+                    TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_svc_grp") + svcGrp.Name && x.OnManagement?.Id == mgt.Id) == null)
                 {
-                    if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_svc_grp") + svcGrp.Name && x.OnManagement?.Id == mgt.Id) == null)
-                    {
-                        RequestNewServiceGroup(svcGrp, mgt);
-                    }
+                    RequestNewServiceGroup(svcGrp, mgt);
                 }
 
                 ReqElements.Add(new()

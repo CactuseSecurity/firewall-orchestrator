@@ -235,14 +235,14 @@ namespace FWO.Services.Modelling
                 {
                     RequestUpdateAppRole(appRole, mgt);
                 }
-
-                ReqElements.Add(new()
-                {
-                    RequestAction = RequestAction.create.ToString(),
-                    Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
-                    GroupName = appRole.IdString
-                });
             }
+
+            ReqElements.Add(new()
+            {
+                RequestAction = RequestAction.create.ToString(),
+                Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
+                GroupName = appRole.IdString
+            });
         }
 
         private async Task AnalyseAppZoneForRequest(Management mgt)
@@ -511,26 +511,26 @@ namespace FWO.Services.Modelling
         {
             foreach (ModellingServiceGroup svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
             {
+                if (userConfig.ModRolloutResolveServiceGroups)
+                {
+                    AddResolvedServiceGroup(svcGrp);
+                    continue;
+                }
+
                 if (!userConfig.ModRequestOnlyOwnObjects || svcGrp.AppId == owner.Id)
                 {
-                    if (userConfig.ModRolloutResolveServiceGroups)
+                    if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_svc_grp") + svcGrp.Name && x.OnManagement?.Id == mgt.Id) == null)
                     {
-                        AddResolvedServiceGroup(svcGrp);
-                    }
-                    else
-                    {
-                        if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_svc_grp") + svcGrp.Name && x.OnManagement?.Id == mgt.Id) == null)
-                        {
-                            RequestNewServiceGroup(svcGrp, mgt);
-                        }
-                        ReqElements.Add(new()
-                        {
-                            RequestAction = RequestAction.create.ToString(),
-                            Field = ElemFieldType.service.ToString(),
-                            GroupName = svcGrp.Name
-                        });
+                        RequestNewServiceGroup(svcGrp, mgt);
                     }
                 }
+
+                ReqElements.Add(new()
+                {
+                    RequestAction = RequestAction.create.ToString(),
+                    Field = ElemFieldType.service.ToString(),
+                    GroupName = svcGrp.Name
+                });
             }
         }
 

@@ -3069,6 +3069,10 @@ INSERT INTO txt VALUES ('reject_ticket',        'German',   'Auftrag als abgeleh
 INSERT INTO txt VALUES ('reject_ticket',        'English',  'Close Ticket as rejected');
 INSERT INTO txt VALUES ('reject_tickets',       'German',   'Auftr&auml;ge als abgelehnt schliessen');
 INSERT INTO txt VALUES ('reject_tickets',       'English',  'Close Tickets as rejected');
+INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'German', 'Offene Tickets zu gel&ouml;schten angeforderten Schnittstellen');
+INSERT INTO txt VALUES ('orphaned_requested_interface_tickets', 'English', 'Open tickets for deleted requested interfaces');
+INSERT INTO txt VALUES ('orphaned_requested_interface_tickets_empty', 'German', 'Es wurden keine offenen Tickets zu gel&ouml;schten angeforderten Schnittstellen gefunden.');
+INSERT INTO txt VALUES ('orphaned_requested_interface_tickets_empty', 'English', 'No open tickets for deleted requested interfaces were found.');
 INSERT INTO txt VALUES ('wait_cycles',          'German',   'Wartezyklen');
 INSERT INTO txt VALUES ('wait_cycles',          'English',  'Wait cycles');
 INSERT INTO txt VALUES ('attempts',             'German',   'Versuche');
@@ -6779,6 +6783,31 @@ INSERT INTO txt VALUES ('H7412', 'English', 'With "Show orphaned only" all orpha
 INSERT INTO txt VALUES ('H7413', 'German', 'Die Tabellen sind in Abschnitte gegliedert. &Uuml;ber die Aktionsspalte k&ouml;nnen verwaiste Eintr&auml;ge aus der Verbindung entfernt werden.
 ');
 INSERT INTO txt VALUES ('H7413', 'English', 'The tables are grouped in sections. Use the action column to remove orphaned entries from the connection.
+');
+
+INSERT INTO txt VALUES ('H7421', 'German', 'Diese Seite zeigt alle angeforderten Schnittstellen mit beantragender und angefragter Applikation, Ticket, Status und Erstellungsdatum.
+    Zus&auml;tzlich zeigt die Spalte "Verwendet in Verbindungs-IDs", in welchen bestehenden Verbindungen die Schnittstelle bereits referenziert wird.
+    &Uuml;ber die Aktionsspalte k&ouml;nnen Schnittstellendetails und das zugeh&ouml;rige Ticket angezeigt werden.
+    Bei offenen Vorg&auml;ngen erscheint auch eine Schaltfl&auml;che zur regul&auml;ren Ablehnung des Antrags als Admin mit dem &uuml;blichen Fenster.
+');
+INSERT INTO txt VALUES ('H7421', 'English', 'This page shows all requested interfaces together with requesting and requested application, ticket, state and creation date.
+    In addition, the column "Used In Connection Ids" shows in which existing connections the interface is already referenced.
+    The action column can be used to display interface details and the corresponding ticket.
+    For open items, a button is also shown for the regular rejection of the request by an admin using the usual popup.
+');
+INSERT INTO txt VALUES ('H7422', 'German', 'Mit dem Statusfilter kann die Liste auf einen konkreten Ticketzustand oder auf alle offenen Vorg&auml;nge eingeschr&auml;nkt werden.
+    Die Option "Gel&ouml;schte angeforderte Schnittstellen anzeigen" blendet stattdessen gel&ouml;schte Schnittstellen ein, damit deren urspr&uuml;ngliche Anfragen nachvollzogen und bereinigt werden k&ouml;nnen.
+');
+INSERT INTO txt VALUES ('H7422', 'English', 'The state filter can be used to restrict the list to one concrete ticket state or to all open items.
+    The option "Show removed requested interfaces" shows deleted interfaces instead, so their original requests can still be reviewed and cleaned up.
+');
+INSERT INTO txt VALUES ('H7423', 'German', 'Wenn entfernte angeforderte Schnittstellen noch offene Tickets besitzen, kann der Administrator diese gesammelt als abgelehnt schliessen.');
+INSERT INTO txt VALUES ('H7423', 'English', 'If deleted requested interfaces still have open tickets, the administrator can close those tickets together as rejected.');
+INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Tickets zu gel&ouml;schten angeforderten Schnittstellen" &ouml;ffnet eine separate Liste aller noch offenen New-Interface-Tickets, deren angeforderte Schnittstelle nicht mehr existiert.
+    Die Pr&uuml;fung erfolgt erst beim &Ouml;ffnen des Fensters und ist damit unabh&auml;ngig von der aktuell angezeigten Tabellenfilterung.
+');
+INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets for deleted requested interfaces" opens a separate list of all still open new-interface tickets whose requested interface does not exist anymore.
+    The check is performed only when opening the popup, so it is independent from the current table filter.
 ');
 
 INSERT INTO txt VALUES ('H8001', 'German',  'Das Workflow-Modul soll die Zusammenarbeit mehrerer beteiligter Akteure bei Arbeitsabl&auml;ufen im Umfeld der Netzwerkadministration unterst&uuml;tzen.

@@ -1,6 +1,7 @@
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report.Filter.Ast;
+using FWO.Basics;
 
 namespace FWO.Report.Filter
 {
@@ -20,7 +21,11 @@ namespace FWO.Report.Filter
 
         public static DynGraphqlQuery Compile(ReportTemplate template)
         {
-            Log.WriteDebug("Filter", $"Input: \"{template.Filter}\", Report Type: \"${template.ReportParams.ReportType}\", Device Filter: \"{template.ReportParams.DeviceFilter}\"");
+            ReportType reportType = (ReportType)template.ReportParams.ReportType;
+            string deviceFilterLogPart = reportType.IsDeviceRelatedReport()
+                ? $", Device Filter: \"{template.ReportParams.DeviceFilter}\""
+                : "";
+            Log.WriteDebug("Filter", $"Input: \"{template.Filter}\", Report Type: \"${template.ReportParams.ReportType}\"{deviceFilterLogPart}");
             return DynGraphqlQuery.GenerateQuery(template, CompileToAst(template.Filter));
         }
     }

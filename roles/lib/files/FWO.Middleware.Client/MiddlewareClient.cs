@@ -286,6 +286,13 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
+        public virtual async Task<RestResponse<bool>> CheckRequestedRulesAgainstPolicies(ComplianceRuleCheckParameters parameters)
+        {
+            RestRequest request = new("Compliance/CheckRequestedRulesAgainstPolicies", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<bool>(request);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposed) return;

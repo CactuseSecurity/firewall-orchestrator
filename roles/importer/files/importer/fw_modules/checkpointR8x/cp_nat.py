@@ -14,7 +14,7 @@ def normalize_nat_rules(
     native_nat_rulebases = native_config.get("nat_rulebases", [])
     if not native_nat_rulebases:
         return
-
+    seen_uids: set[str] = set()
     for gateway in native_config["gateways"]:
         for nat_rulebase in native_nat_rulebases:
             if "nat_rule_chunks" not in nat_rulebase:
@@ -70,6 +70,10 @@ def normalize_nat_rules(
                         )
 
                         for rule in src_rulebase["rulebase"]:
+                            uid = rule.get("uid")
+                            if uid in seen_uids:
+                                continue
+                            seen_uids.add(uid)
                             (rule_match, rule_xlate) = parse_nat_rule_transform(rule)
                             parse_single_rule(
                                 rule_match,
@@ -89,6 +93,10 @@ def normalize_nat_rules(
                             )
 
                     if "rule-number" in src_rulebase:  # rulebase is just a single rule (xlate rules do not count)
+                        uid = src_rulebase["uid"]
+                        if uid in seen_uids:
+                            continue
+                        seen_uids.add(uid)
                         (rule_match, rule_xlate) = parse_nat_rule_transform(src_rulebase)
                         parse_single_rule(
                             rule_match,
@@ -112,29 +120,29 @@ def normalize_nat_rules(
 def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     # TODO: cleanup certain fields (install-on, ....)
     nat_in_rule = {
-        "uid": nat_rule["uid"],
+        "uid": nat_rule["uid"] + "-original",
         "source": [nat_rule["original-source"]],
         "destination": [nat_rule["original-destination"]],
         "service": [nat_rule["original-service"]],
-        "action": {"name": "Drop"},
+        "action": {"name": "Drop", "type": "nat"},
         "track": {"type": {"name": "None"}},
         "type": "nat",
         "rule-number": 0,
         "source-negate": False,
         "destination-negate": False,
         "service-negate": False,
-        "install-on": [{"name": "Policy Targets"}],
+        "install-on": nat_rule["install-on"],
         "time": "",
         "enabled": nat_rule["enabled"],
         "comments": nat_rule["comments"],
         "rule_type": "access",
     }
     nat_out_rule = {
-        "uid": nat_rule["uid"],
+        "uid": nat_rule["uid"] + "-translated",
         "source": [nat_rule["translated-source"]],
         "destination": [nat_rule["translated-destination"]],
         "service": [nat_rule["translated-service"]],
-        "action": {"name": "Drop"},
+        "action": None,
         "track": {"type": {"name": "None"}},
         "type": "nat",
         "rule-number": 0,
@@ -142,7 +150,7 @@ def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], 
         "source-negate": False,
         "destination-negate": False,
         "service-negate": False,
-        "install-on": [{"name": "Policy Targets"}],
+        "install-on": nat_rule["install-on"],
         "time": "",
         "rule_type": "nat",
     }

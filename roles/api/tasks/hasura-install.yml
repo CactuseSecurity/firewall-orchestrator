@@ -244,6 +244,15 @@
       {% endfor %}
   become: true
 
+- name: stop Hasura service before container recreation
+  ansible.builtin.systemd:
+    name: "{{ api_service_name }}"
+    state: stopped
+  become: true
+  failed_when: false
+  when:
+    - not api_reuse_existing_hasura_image | bool
+
 - name: remove existing Hasura container before recreation
   containers.podman.podman_container:
     name: "{{ api_container_name }}"

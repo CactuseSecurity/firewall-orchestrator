@@ -21,22 +21,44 @@ namespace FWO.Ui.Auth
     {
         private ClaimsPrincipal user = new(new ClaimsIdentity());
 
-        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+        private readonly TokenService tokenService;
+
+        public AuthStateProvider(TokenService tokenService)
         {
-            return Task.FromResult(new AuthenticationState(user));
+            this.tokenService = tokenService;
         }
 
-        public async Task<RestResponse<string>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
-            GlobalConfig globalConfig, UserConfig userConfig, ProtectedSessionStorage sessionStorage, CircuitHandlerService circuitHandler)
+        public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+        {
+            return await Task.FromResult(new AuthenticationState(user));
+        }
+
+        public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
+            GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
             // There is no jwt in session storage. Get one from auth module.
             AuthenticationTokenGetParameters authenticationParameters = new() { Username = username, Password = password };
-            RestResponse<string> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
+            RestResponse<TokenPair> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
 
             if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
             {
-                string jwtString = apiAuthResponse.Data ?? throw new ArgumentException("no response data");
-                await Authenticate(jwtString, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler, sessionStorage);
+                string tokenPairJson = apiAuthResponse.Content ?? throw new ArgumentException("no response content");
+
+                TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(tokenPairJson) ?? throw new ArgumentException("failed to deserialize token pair");
+
+                if (string.IsNullOrWhiteSpace(tokenPair.AccessToken))
+                {
+                    throw new ArgumentException("no access token in response");
+                }
+                else if (string.IsNullOrWhiteSpace(tokenPair.RefreshToken))
+                {
+                    throw new ArgumentException("no refresh token in response");
+                }
+
+                await tokenService.SetTokenPair(tokenPair);
+
+                await Authenticate(tokenPair.AccessToken, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler);
+
                 Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
             }
 
@@ -44,7 +66,7 @@ namespace FWO.Ui.Auth
         }
 
         public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient,
-            GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler, ProtectedSessionStorage sessionStorage)
+            GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
             // Try to auth with jwt (validates it and creates user context on UI side).
             JwtReader jwtReader = new(jwtString);
@@ -62,9 +84,6 @@ namespace FWO.Ui.Auth
                 {
                     throw new AuthenticationException("not_authorized");
                 }
-
-                // Save jwt in session storage.
-                await sessionStorage.SetAsync("jwt", jwtString);
 
                 // Tell api connection to use jwt as authentication
                 apiConnection.SetAuthHeader(jwtString);
@@ -95,9 +114,6 @@ namespace FWO.Ui.Auth
                 Log.WriteDebug("Auth Claims", $"Parsed recertifiable owners: [{string.Join(", ", userConfig.User.RecertOwnerships)}]");
                 circuitHandler.User = userConfig.User;
 
-                // Add jwt expiry timer
-                JwtEventService.AddJwtTimers(userDn, (int)jwtReader.TimeUntilExpiry().TotalMilliseconds, 1000 * 60 * globalConfig.SessionTimeoutNoticePeriod);
-
                 if (!userConfig.User.PasswordMustBeChanged)
                 {
                     NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
@@ -105,14 +121,29 @@ namespace FWO.Ui.Auth
             }
             else
             {
-                Deauthenticate();
+                await Deauthenticate();
             }
         }
 
-        public void Deauthenticate()
+        /// <summary>
+        /// Deauthenticate the current user and clear session storage.
+        /// </summary>
+        /// <returns></returns>
+		public async Task Deauthenticate()
         {
-            user = new ClaimsPrincipal(new ClaimsIdentity());
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            try
+            {
+                await tokenService.RevokeTokens();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Deauthenticate", $"Token cleanup failed during logout: {ex.Message}");
+            }
+            finally
+            {
+                user = new ClaimsPrincipal(new ClaimsIdentity());
+                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            }
         }
 
         public void ConfirmPasswordChanged()

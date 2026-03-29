@@ -85,6 +85,114 @@
         ssh_key_file: .ssh/id_rsa
       become: true
 
+    - name: ensure subordinate id files exist
+      copy:
+        content: ""
+        dest: "{{ item }}"
+        force: false
+        mode: "0644"
+      loop:
+        - /etc/subuid
+        - /etc/subgid
+      become: true
+
+    - name: check existing subordinate uid entry for {{ fworch_user }}
+      command:
+        argv:
+          - grep
+          - -E
+          - "^{{ fworch_user }}:[0-9]+:[0-9]+$"
+          - /etc/subuid
+      register: fworch_subuid_entry
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: check existing subordinate gid entry for {{ fworch_user }}
+      command:
+        argv:
+          - grep
+          - -E
+          - "^{{ fworch_user }}:[0-9]+:[0-9]+$"
+          - /etc/subgid
+      register: fworch_subgid_entry
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: determine next free subordinate id range start
+      command:
+        argv:
+          - awk
+          - "-F:"
+          - -v
+          - min_start={{ fworch_subid_range_start_min }}
+          - |
+            BEGIN { max_end = min_start }
+            NF >= 3 {
+              start = $2 + 0
+              count = $3 + 0
+              end = start + count
+              if (end > max_end) max_end = end
+            }
+            END { print max_end }
+          - /etc/subuid
+          - /etc/subgid
+      register: fworch_next_subid_start
+      changed_when: false
+      become: true
+      when:
+        - fworch_subuid_entry.rc != 0
+        - fworch_subgid_entry.rc != 0
+
+    - name: define subordinate id entries for {{ fworch_user }}
+      set_fact:
+        fworch_subuid_line: >-
+          {{
+            fworch_subuid_entry.stdout
+            if fworch_subuid_entry.rc == 0 else
+            (
+              fworch_subgid_entry.stdout
+              if fworch_subgid_entry.rc == 0 else
+              fworch_user ~ ':' ~ fworch_next_subid_start.stdout ~ ':' ~ fworch_subid_range_size
+            )
+          }}
+        fworch_subgid_line: >-
+          {{
+            fworch_subgid_entry.stdout
+            if fworch_subgid_entry.rc == 0 else
+            (
+              fworch_subuid_entry.stdout
+              if fworch_subuid_entry.rc == 0 else
+              fworch_user ~ ':' ~ fworch_next_subid_start.stdout ~ ':' ~ fworch_subid_range_size
+            )
+          }}
+
+    - name: add subordinate uid entry for {{ fworch_user }}
+      lineinfile:
+        path: /etc/subuid
+        regexp: "^{{ fworch_user }}:"
+        line: "{{ fworch_subuid_line }}"
+        create: true
+      become: true
+
+    - name: add subordinate gid entry for {{ fworch_user }}
+      lineinfile:
+        path: /etc/subgid
+        regexp: "^{{ fworch_user }}:"
+        line: "{{ fworch_subgid_line }}"
+        create: true
+      become: true
+
+    - name: enable lingering for {{ fworch_user }}
+      command:
+        argv:
+          - loginctl
+          - enable-linger
+          - "{{ fworch_user }}"
+        creates: "/var/lib/systemd/linger/{{ fworch_user }}"
+      become: true
+
     - name: global apache config
       include_tasks: global-apache2-config.yml
       # vars:

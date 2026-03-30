@@ -500,5 +500,8 @@ exception, userConfig.User.Name, role);
 
         alertSubscription?.Dispose();
         NavigationManager.LocationChanged -= OnLocationChanged;
+        JwtEventService.OnPermissionChanged -= OnPermissionsChanged;
+        JwtEventService.OnJwtExpired -= OnJwtExpired;
+
     }
 }

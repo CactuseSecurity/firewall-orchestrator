@@ -1,5 +1,7 @@
 @using FWO.Data.Middleware
 @using FWO.Middleware.Client
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Services
 @using RestSharp
 @using System.Net
@@ -10,6 +12,7 @@
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
+@inject IEventMediator EventMediator
 
 <div class="input-group">
     <h3>@(userConfig.GetText("roles"))</h3>
@@ -141,7 +144,7 @@
                     roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                     AddMode = false;
 
-                    JwtEventService.PermissionsChanged(user.Dn);
+                    EventMediator.Publish(nameof(PermissionChangedEvent), new PermissionChangedEvent(new PermissionChangedEventArgs(user.Dn)));
 
                     Log.WriteAudit(
                         Title: $"Roles Settings",
@@ -181,6 +184,8 @@
                         actRole.Users.Remove(selectedUserToRemove);
                         roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                         RemoveUserMode = false;
+
+                        EventMediator.Publish(nameof(PermissionChangedEvent), new PermissionChangedEvent(new PermissionChangedEventArgs(selectedUserToRemove.Dn)));
 
                         Log.WriteAudit(
                             Title: $"Roles Settings",

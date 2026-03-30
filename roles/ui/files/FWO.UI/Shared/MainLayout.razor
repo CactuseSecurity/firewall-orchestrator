@@ -23,6 +23,7 @@
 @inject ProtectedSessionStorage sessionStorage
 @inject CircuitHandler circuitHandler
 @inject TokenService tokenService
+@inject IEventMediator EventMediator
 
 @implements IDisposable
 
@@ -124,8 +125,8 @@
 
         await CheckAndRefreshTokenAsync();
 
-        JwtEventService.OnPermissionChanged += OnPermissionsChanged;
-        JwtEventService.OnJwtExpired += OnJwtExpired;
+        EventMediator.Subscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent), _ => OnPermissionsChanged(_.EventArgs));
+        EventMediator.Subscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent), _ => OnJwtExpired(_.EventArgs));
 
         NavigationManager.LocationChanged += OnLocationChanged;
 
@@ -193,25 +194,17 @@
         reloginCssClass = "";
     }
 
-    private void OnPermissionsChanged(object? sender, string userDn)
+    private void OnPermissionsChanged(PermissionChangedEventArgs? e)
     {
-        if (userDn == userConfig.User.Dn)
+        if (e?.UserDn == userConfig.User.Dn)
         {
             ShowReloginDialog(userConfig.GetText("permissions"), userConfig.GetText("permissions_text"), reloginAbortable: true);
         }
     }
 
-    private void OnJwtAboutToExpire(object? sender, string userDn)
+    private void OnJwtExpired(JwtExpiredEventArgs? e)
     {
-        if (userDn == userConfig.User.Dn)
-        {
-            ShowReloginDialog(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), reloginAbortable: true);
-        }
-    }
-
-    private void OnJwtExpired(object? sender, string userDn)
-    {
-        if (userDn == userConfig.User.Dn)
+        if (e?.UserDn == userConfig.User.Dn)
         {
             ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
         }
@@ -240,8 +233,7 @@
         try
         {
             RestResponse<TokenPair> authResponse = await ((AuthStateProvider)authenticationProvider)
-            .Authenticate(userConfig.User.Name, password, apiConnection, middlewareClient, globalConfig, userConfig,
-            ((CircuitHandlerService)circuitHandler));
+                .Authenticate(userConfig.User.Name, password, apiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler));
 
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK)
             {
@@ -251,8 +243,7 @@
                 return;
             }
             // There was an error trying to authenticate the user. Probably invalid credentials
-            errorMessage = (authResponse.Content != null ? userConfig.GetApiText(authResponse.Content) : "Middleware Api Error: " +
-            authResponse.Content);
+            errorMessage = (authResponse.Content != null ? userConfig.GetApiText(authResponse.Content) : "Middleware Api Error: " + authResponse.Content);
         }
         catch (Exception ex)
         {
@@ -494,8 +485,8 @@
 
         alertSubscription?.Dispose();
         NavigationManager.LocationChanged -= OnLocationChanged;
-        JwtEventService.OnPermissionChanged -= OnPermissionsChanged;
-        JwtEventService.OnJwtExpired -= OnJwtExpired;
+        EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
+        EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));
 
     }
 }

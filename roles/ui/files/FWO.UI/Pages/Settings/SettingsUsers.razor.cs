@@ -85,10 +85,12 @@ namespace FWO.Ui.Pages.Settings
                 foreach (UserGetReturnParameters apiUser in middlewareServerResponse.Data)
                 {
                     UiUser user = new(apiUser);
-                    user.LdapConnection = connectedLdaps.FirstOrDefault(x => x.Id == user.LdapConnection.Id) ?? throw new ArgumentNullException(nameof(user.LdapConnection.Id));
+                    user.LdapConnection = connectedLdaps.FirstOrDefault(x => x.Id == user.LdapConnection.Id)
+                        ?? throw new InvalidOperationException("User LDAP connection could not be resolved.");
                     if(user.Tenant != null)
                     {
-                        user.Tenant.Name = tenants.FirstOrDefault(x => x.Id == user.Tenant.Id)?.Name ?? throw new ArgumentNullException(nameof(user.Tenant.Id));
+                        user.Tenant.Name = tenants.FirstOrDefault(x => x.Id == user.Tenant.Id)?.Name
+                            ?? throw new InvalidOperationException("User tenant could not be resolved.");
                     }
                     uiUsers.Add(user);
                 }
@@ -244,7 +246,7 @@ namespace FWO.Ui.Pages.Settings
                 foreach (var user in middlewareServerResponse.Data)
                 {
                     DistName distname = new DistName(user.UserDn);
-                    UiUser newUser = new UiUser()
+                    UiUser ldapUiUser = new UiUser()
                     {
                         Dn = user.UserDn,
                         Name = distname.UserName,
@@ -257,9 +259,9 @@ namespace FWO.Ui.Pages.Settings
                     string tenantName = distname.GetTenantNameViaLdapTenantLevel(internalLdap.TenantLevel);
                     if (tenantName != "")
                     {
-                        newUser.Tenant = new Tenant(){ Name = tenantName };
+                        ldapUiUser.Tenant = new Tenant(){ Name = tenantName };
                     }
-                    ldapUsers.Add(newUser);
+                    ldapUsers.Add(ldapUiUser);
                 }
             }
         }

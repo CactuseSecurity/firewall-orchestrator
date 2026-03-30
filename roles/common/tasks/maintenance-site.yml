@@ -20,6 +20,15 @@
       dest: "/var/www/html/men-at-work.png"
       mode: "0644"
 
+  - name: disable existing FWO apache sites before maintenance switch
+    command: "a2dissite {{ item }}"
+    loop:
+      - "{{ product_name }}-ui"
+      - "{{ product_name }}-api"
+      - "{{ product_name }}-mw"
+      - "{{ product_name }}-maintenance"
+    ignore_errors: true
+
   - name: enable apache2 required modules
     apache2_module: state=present name={{ item }}
     loop: "{{ apache2_required_modules }}"
@@ -33,10 +42,6 @@
 
   - name: enable apache2 maintenance web site
     command: "a2ensite {{ product_name }}-maintenance"
-    ignore_errors: true
-
-  - name: disable {{ product_name }} web site
-    command: "a2dissite {{ product_name }}-ui"
     ignore_errors: true
 
   - name: restart apache with maintenance site

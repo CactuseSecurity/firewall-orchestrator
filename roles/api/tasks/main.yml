@@ -18,6 +18,7 @@
     url: "https://api.github.com/repos/hasura/graphql-engine/releases/tags/{{ api_hasura_version }}"
     method: GET
     return_content: false
+    timeout: "{{ github_download_timeout }}"
   register: api_hasura_release_access
   environment: "{{ proxy_env }}"
   failed_when: false

@@ -170,13 +170,6 @@
                 {
                     user = (await authenticationProvider.GetAuthenticationStateAsync()).User;
                 }
-                else
-                {
-                    await InvokeAsync(() =>
-                    {
-                        ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
-                    });
-                }
             }
         }
         catch (Exception ex)
@@ -233,7 +226,7 @@
         try
         {
             RestResponse<TokenPair> authResponse = await ((AuthStateProvider)authenticationProvider)
-                .Authenticate(userConfig.User.Name, password, apiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler));
+                .Authenticate(userConfig.User.Name, password, apiConnection, middlewareClient, userConfig, ((CircuitHandlerService)circuitHandler));
 
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK)
             {

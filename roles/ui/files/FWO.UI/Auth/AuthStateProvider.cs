@@ -6,6 +6,8 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Client;
+using FWO.Services.EventMediator.Events;
+using FWO.Services.EventMediator.Interfaces;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using RestSharp;
@@ -16,23 +18,16 @@ using System.Security.Claims;
 
 namespace FWO.Ui.Auth
 {
-    public class AuthStateProvider : AuthenticationStateProvider
+    public class AuthStateProvider(TokenService tokenService, IEventMediator eventMediator) : AuthenticationStateProvider
     {
         private ClaimsPrincipal user = new(new ClaimsIdentity());
-
-        private readonly TokenService tokenService;
-
-        public AuthStateProvider(TokenService tokenService)
-        {
-            this.tokenService = tokenService;
-        }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             return await Task.FromResult(new AuthenticationState(user));
         }
 
-        public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient, GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
             // There is no jwt in session storage. Get one from auth module.
             AuthenticationTokenGetParameters authenticationParameters = new() { Username = username, Password = password };
@@ -55,7 +50,7 @@ namespace FWO.Ui.Auth
 
                 await tokenService.SetTokenPair(tokenPair);
 
-                await Authenticate(tokenPair.AccessToken, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler);
+                await Authenticate(tokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
 
                 Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
             }
@@ -63,14 +58,12 @@ namespace FWO.Ui.Auth
             return apiAuthResponse;
         }
 
-        public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
-            if (await ApplyJwtAsync(jwtString, apiConnection, middlewareClient, userConfig, circuitHandler))
+            if (!await TryApplyJwt(jwtString, apiConnection, middlewareClient, userConfig, circuitHandler))
             {
-                return;
+                await Deauthenticate();
             }
-
-            await Deauthenticate();
         }
 
         /// <summary>
@@ -87,10 +80,18 @@ namespace FWO.Ui.Auth
 
             if (refreshedTokenPair == null || string.IsNullOrWhiteSpace(refreshedTokenPair.AccessToken))
             {
+                PublishJwtExpired(userConfig.User.Dn);
                 return false;
             }
 
-            return await ApplyJwtAsync(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
+            bool jwtApplied = await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
+
+            if (!jwtApplied)
+            {
+                PublishJwtExpired(userConfig.User.Dn);
+            }
+
+            return jwtApplied;
         }
 
         /// <summary>
@@ -129,7 +130,7 @@ namespace FWO.Ui.Auth
         /// <param name="userConfig">Current user configuration to rebuild from the JWT claims.</param>
         /// <param name="circuitHandler">Circuit-scoped user context to update after the JWT is applied.</param>
         /// <returns>True if the JWT was valid and applied successfully; otherwise false.</returns>
-        private async Task<bool> ApplyJwtAsync(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        private async Task<bool> TryApplyJwt(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
             JwtReader jwtReader = new(jwtString);
 
@@ -186,6 +187,12 @@ namespace FWO.Ui.Auth
 
             return true;
         }
+
+        /// <summary>
+        /// Announces that the current user's JWT can no longer be refreshed and a re-login is required.
+        /// </summary>
+        /// <param name="userDn">Distinguished name of the affected user.</param>
+        private void PublishJwtExpired(string userDn) => eventMediator.Publish(nameof(JwtExpiredEvent), new JwtExpiredEvent(new(userDn)));
 
         // public async Task<int> GetTenantId(string jwtString)
         // {

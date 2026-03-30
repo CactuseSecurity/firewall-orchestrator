@@ -164,8 +164,7 @@
             {
                 try
                 {
-                    await ((AuthStateProvider)AuthService)
-                        .Authenticate(jwt, ApiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler));
+                    await ((AuthStateProvider)AuthService).Authenticate(jwt, ApiConnection, middlewareClient, userConfig, ((CircuitHandlerService)circuitHandler));
 
                     return;
                 }
@@ -222,9 +221,7 @@
 
             try
             {
-                RestResponse<TokenPair> authResponse = await ((AuthStateProvider)AuthService)
-                    .Authenticate(Username, Password, ApiConnection, middlewareClient, globalConfig, userConfig,
-((CircuitHandlerService)circuitHandler));
+                RestResponse<TokenPair> authResponse = await ((AuthStateProvider)AuthService).Authenticate(Username, Password, ApiConnection, middlewareClient, userConfig, ((CircuitHandlerService)circuitHandler));
 
                 if (authResponse.StatusCode == HttpStatusCode.OK)
                 {
@@ -290,12 +287,14 @@
             passwordChangeInProgress = true;
             try
             {
-                chgPwErrorMessage = await (new PasswordChanger(middlewareClient)).ChangePassword(oldPassword, newPassword1,
-                newPassword2, userConfig, globalConfig);
+                chgPwErrorMessage = await (new PasswordChanger(middlewareClient)).ChangePassword(oldPassword, newPassword1, newPassword2, userConfig, globalConfig);
+                
                 if (chgPwErrorMessage == "")
                 {
                     showPasswordChangeForm = false;
+
                     ((AuthStateProvider)AuthService).ConfirmPasswordChanged();
+
                     Log.WriteAudit("ChangePassword", $"user {Username} successfully changed password");
                 }
             }

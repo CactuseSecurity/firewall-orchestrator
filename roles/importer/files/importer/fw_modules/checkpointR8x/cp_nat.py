@@ -39,7 +39,7 @@ def normalize_nat_rules(
                 {
                     "from_rulebase_uid": normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"],
                     "to_rulebase_uid": normalized_nat_rulebase.uid,
-                    "link_type": "ordered",
+                    "link_type": "nat",
                     "is_initial": False,
                     "is_global": False,
                     "is_section": False,
@@ -62,7 +62,7 @@ def normalize_nat_rules(
                             {
                                 "from_rulebase_uid": normalized_nat_rulebase.uid,
                                 "to_rulebase_uid": section_rulebase.uid,
-                                "link_type": "concatenated",
+                                "link_type": "nat",
                                 "is_initial": False,
                                 "is_global": False,
                                 "is_section": False,
@@ -118,7 +118,6 @@ def normalize_nat_rules(
 
 
 def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    # TODO: cleanup certain fields (install-on, ....)
     nat_in_rule = {
         "uid": nat_rule["uid"] + "-original",
         "source": [nat_rule["original-source"]],

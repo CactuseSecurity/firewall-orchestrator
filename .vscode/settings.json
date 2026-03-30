@@ -5,6 +5,9 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "ms-dotnettools.csharp"
   },
+  "ruff.path": [
+    ".venv/Scripts/ruff.exe"
+  ],
   "files.associations": {
     "launch.template.json": "jsonc"
   },

@@ -8,7 +8,6 @@ using FWO.Logging;
 using FWO.Middleware.Client;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using RestSharp;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
@@ -33,8 +32,7 @@ namespace FWO.Ui.Auth
             return await Task.FromResult(new AuthenticationState(user));
         }
 
-        public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
-            GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient, GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
             // There is no jwt in session storage. Get one from auth module.
             AuthenticationTokenGetParameters authenticationParameters = new() { Username = username, Password = password };
@@ -65,64 +63,34 @@ namespace FWO.Ui.Auth
             return apiAuthResponse;
         }
 
-        public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient,
-            GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
-            // Try to auth with jwt (validates it and creates user context on UI side).
-            JwtReader jwtReader = new(jwtString);
-
-            if (await jwtReader.Validate())
+            if (await ApplyJwtAsync(jwtString, apiConnection, middlewareClient, userConfig, circuitHandler))
             {
-                // importer is not allowed to login
-                if (jwtReader.ContainsRole(Roles.Importer))
-                {
-                    throw new AuthenticationException("login_importer_error");
-                }
-
-                // anonymous has no authorization to login via UI
-                if (jwtReader.ContainsRole(Roles.Anonymous))
-                {
-                    throw new AuthenticationException("not_authorized");
-                }
-
-                // Tell api connection to use jwt as authentication
-                apiConnection.SetAuthHeader(jwtString);
-
-                // Tell middleware connection to use jwt as authentication
-                middlewareClient.SetAuthenticationToken(jwtString);
-
-                // Set user claims based on the jwt claims
-                ClaimsIdentity identity = new ClaimsIdentity
-                (
-                    claims: jwtReader.GetClaims(),
-                    authenticationType: "ldap",
-                    nameType: JwtRegisteredClaimNames.UniqueName,
-                    roleType: "role"
-                );
-
-                // Set user information
-                user = new ClaimsPrincipal(identity);
-                string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
-                await userConfig.SetUserInformation(userDn, apiConnection);
-                userConfig.User.Jwt = jwtString;
-                userConfig.User.Tenant = await GetTenantFromJwt(userConfig.User.Jwt, apiConnection);
-                userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
-                userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
-                userConfig.User.RecertOwnerships = await GetRecertifiableOwners(userConfig.User.Jwt);
-                Log.WriteDebug("Auth Claims", $"Parsed allowed roles: [{string.Join(", ", userConfig.User.Roles)}]");
-                Log.WriteDebug("Auth Claims", $"Parsed editable owners: [{string.Join(", ", userConfig.User.Ownerships)}]");
-                Log.WriteDebug("Auth Claims", $"Parsed recertifiable owners: [{string.Join(", ", userConfig.User.RecertOwnerships)}]");
-                circuitHandler.User = userConfig.User;
-
-                if (!userConfig.User.PasswordMustBeChanged)
-                {
-                    NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
-                }
+                return;
             }
-            else
+
+            await Deauthenticate();
+        }
+
+        /// <summary>
+        /// Refreshes the token pair and applies the resulting JWT to the UI authentication state.
+        /// </summary>
+        /// <param name="apiConnection">API connection that should receive the refreshed JWT.</param>
+        /// <param name="middlewareClient">Middleware client that should receive the refreshed JWT.</param>
+        /// <param name="userConfig">Current user configuration to rebuild from the refreshed JWT.</param>
+        /// <param name="circuitHandler">Circuit-scoped user context that should be updated after refresh.</param>
+        /// <returns>True if a valid JWT could be refreshed and applied; otherwise false.</returns>
+        public async Task<bool> RefreshAuthenticationState(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        {
+            TokenPair? refreshedTokenPair = await tokenService.RefreshTokenPair();
+
+            if (refreshedTokenPair == null || string.IsNullOrWhiteSpace(refreshedTokenPair.AccessToken))
             {
-                await Deauthenticate();
+                return false;
             }
+
+            return await ApplyJwtAsync(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
         }
 
         /// <summary>
@@ -142,6 +110,7 @@ namespace FWO.Ui.Auth
             finally
             {
                 user = new ClaimsPrincipal(new ClaimsIdentity());
+
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
             }
         }
@@ -149,6 +118,73 @@ namespace FWO.Ui.Auth
         public void ConfirmPasswordChanged()
         {
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user ?? throw new AuthenticationException("Password cannot be changed because user was not authenticated"))));
+        }
+
+        /// <summary>
+        /// Validates a JWT and applies its claims to the UI authentication state.
+        /// </summary>
+        /// <param name="jwtString">The JWT to validate and apply.</param>
+        /// <param name="apiConnection">API connection that should receive the JWT.</param>
+        /// <param name="middlewareClient">Middleware client that should receive the JWT.</param>
+        /// <param name="userConfig">Current user configuration to rebuild from the JWT claims.</param>
+        /// <param name="circuitHandler">Circuit-scoped user context to update after the JWT is applied.</param>
+        /// <returns>True if the JWT was valid and applied successfully; otherwise false.</returns>
+        private async Task<bool> ApplyJwtAsync(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        {
+            JwtReader jwtReader = new(jwtString);
+
+            if (!await jwtReader.Validate())
+            {
+                return false;
+            }
+
+            // importer is not allowed to login
+            if (jwtReader.ContainsRole(Roles.Importer))
+            {
+                throw new AuthenticationException("login_importer_error");
+            }
+
+            // anonymous has no authorization to login via UI
+            if (jwtReader.ContainsRole(Roles.Anonymous))
+            {
+                throw new AuthenticationException("not_authorized");
+            }
+
+            apiConnection.SetAuthHeader(jwtString);
+            middlewareClient.SetAuthenticationToken(jwtString);
+
+            ClaimsIdentity identity = new
+            (
+                claims: jwtReader.GetClaims(),
+                authenticationType: "ldap",
+                nameType: JwtRegisteredClaimNames.UniqueName,
+                roleType: "role"
+            );
+
+            user = new ClaimsPrincipal(identity);
+
+            string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
+
+            await userConfig.SetUserInformation(userDn, apiConnection);
+
+            userConfig.User.Jwt = jwtString;
+            userConfig.User.Tenant = await GetTenantFromJwt(userConfig.User.Jwt, apiConnection);
+            userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
+            userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
+            userConfig.User.RecertOwnerships = await GetRecertifiableOwners(userConfig.User.Jwt);
+
+            Log.WriteDebug("Auth Claims", $"Parsed allowed roles: [{string.Join(", ", userConfig.User.Roles)}]");
+            Log.WriteDebug("Auth Claims", $"Parsed editable owners: [{string.Join(", ", userConfig.User.Ownerships)}]");
+            Log.WriteDebug("Auth Claims", $"Parsed recertifiable owners: [{string.Join(", ", userConfig.User.RecertOwnerships)}]");
+
+            circuitHandler.User = userConfig.User;
+
+            if (!userConfig.User.PasswordMustBeChanged)
+            {
+                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            }
+
+            return true;
         }
 
         // public async Task<int> GetTenantId(string jwtString)

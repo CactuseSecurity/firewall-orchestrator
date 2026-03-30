@@ -66,28 +66,28 @@
             </div>
             <input type="password" class="form-control @reloginCssClass" @bind="password"
                    placeholder="@(userConfig.GetText("password"))" @bind:event="oninput" @onkeypress="@KeyHandler">
-        </div>
-        @if (!string.IsNullOrEmpty(reloginErrorMessage))
-        {
-            <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>
-        }
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            @if (reloginAbortable)
+            </div>
+            @if (!string.IsNullOrEmpty(reloginErrorMessage))
             {
-                <button type="button" class="btn btn-secondary" @onclick="@(() => showReloginDialog = false)">
-                    @(userConfig.GetText("cancel"))
-                </button>
+                <label class="mt-1 mb-1 text-danger">@reloginErrorMessage</label>
             }
-            else
-            {
-                <a class="btn btn-danger" href="/logout">@(userConfig.GetText("logout"))</a>
-            }
-            <button type="button" class="btn btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button>
-        </div>
-    </Footer>
-</PopUp>
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                @if (reloginAbortable)
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="@(() => showReloginDialog = false)">
+                        @(userConfig.GetText("cancel"))
+                    </button>
+                }
+                else
+                {
+                    <a class="btn btn-danger" href="/logout">@(userConfig.GetText("logout"))</a>
+                }
+                <button type="button" class="btn btn-primary" @onclick="Relogin">@(userConfig.GetText("relogin"))</button>
+            </div>
+        </Footer>
+    </PopUp>
 
 <KeyboardInput />
 
@@ -131,8 +131,7 @@
 
         user = authenticationStateTask!.Result.User;
 
-        alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate,
-MonitorQueries.subscribeAlertChanges);
+        alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
 
         UIMessageQueTimer = new()
         {
@@ -162,25 +161,19 @@ MonitorQueries.subscribeAlertChanges);
             {
                 Log.WriteDebug("Token Check", "Access token expired, attempting refresh...");
 
-                bool refreshed = await tokenService.RefreshAccessToken();
+                CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
+
+                bool refreshed = await ((AuthStateProvider)authenticationProvider).RefreshAuthenticationState(apiConnection, middlewareClient, userConfig, circuitHandlerService);
 
                 if (refreshed)
                 {
-                    string? newAccessToken = await tokenService.GetAccessToken();
-
-                    if (!string.IsNullOrEmpty(newAccessToken))
-                    {
-                        apiConnection.SetAuthHeader(newAccessToken);
-                        middlewareClient.SetAuthenticationToken(newAccessToken);
-                        userConfig.User.Jwt = newAccessToken;
-                    }
+                    user = (await authenticationProvider.GetAuthenticationStateAsync()).User;
                 }
                 else
                 {
                     await InvokeAsync(() =>
                     {
-                        ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable:
-false);
+                        ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
                     });
                 }
             }
@@ -212,8 +205,7 @@ false);
     {
         if (userDn == userConfig.User.Dn)
         {
-            ShowReloginDialog(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), reloginAbortable:
-true);
+            ShowReloginDialog(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), reloginAbortable: true);
         }
     }
 
@@ -221,8 +213,7 @@ true);
     {
         if (userDn == userConfig.User.Dn)
         {
-            ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable:
-            false);
+            ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
         }
     }
 
@@ -234,12 +225,14 @@ true);
         reloginDialogTitle = title;
         reloginDialogText = text;
         showReloginDialog = true;
+
         InvokeAsync(StateHasChanged);
     }
 
     private async Task Relogin()
     {
         string errorMessage = userConfig.GetText("relogin_error");
+
         if (password == null)
         {
             password = "";
@@ -273,8 +266,8 @@ true);
     private void OnAlertUpdate(List<Alert> alerts)
     {
         user = authenticationStateTask!.Result.User;
-        showAlert = (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || user.IsInRole(Roles.Auditor)) &&
-        alerts.Count() > 0;
+        showAlert = (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || user.IsInRole(Roles.Auditor)) && alerts.Count() > 0;
+
         InvokeAsync(StateHasChanged);
     }
 
@@ -349,6 +342,7 @@ true);
             UIMessage uiMessage = UIMessageQue.Dequeue();
             uiMessage.ShowTimer!.Start();
             UIMessages.Add(uiMessage);
+
             InvokeAsync(StateHasChanged);
         }
     }
@@ -369,8 +363,7 @@ true);
         InvokeAsync(StateHasChanged);
     }
 
-    private void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag =
-    false)
+    private void DisplayMessageInUi(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
     {
         int severity = 0;
         string cause = "";
@@ -406,8 +399,7 @@ true);
                 if (!showReloginDialog)
                 {
                     showReloginDialog = true;
-                    ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime:
-                    -1);
+                    ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Info, showtime: -1);
                 }
                 return;
             }
@@ -435,15 +427,17 @@ true);
                     }
                     catch (Exception) { }
                 }
-                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "),
-exception, userConfig.User.Name, role);
+                
+                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
+                
                 severity = 2;
                 cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
-                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" :
-"") + " . " + userConfig.GetText("E0002");
+                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
             }
         }
+
         ShowMessage(cause, description, messageType);
+
         Task.Run(async () => await AddUiLogEntry(severity, cause, description));
     }
 
@@ -458,8 +452,9 @@ exception, userConfig.User.Name, role);
                 suspectedCause = cause,
                 description = description,
             };
-            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addUiLogEntry,
-            Variables)).ReturnIds;
+
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addUiLogEntry, Variables)).ReturnIds;
+            
             if (returnIds == null)
             {
                 Log.WriteError("Write Log", "Log could not be written to database");
@@ -479,8 +474,7 @@ exception, userConfig.User.Name, role);
 
     public async Task setAlert(string title, string message)
     {
-        Log.WriteAlert($"source: \"{GlobalConst.kUi}\"",
-            $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
+        Log.WriteAlert($"source: \"{GlobalConst.kUi}\"", $"userId: \"{userConfig.User.DbId}\", title: \"{title}\", description: \"{message}\", alertCode: \"{AlertCode.UiError}\"");
         AlertHelper.AdditionalAlertData alertData = new()
         {
             UserId = userConfig.User.DbId,

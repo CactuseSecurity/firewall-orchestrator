@@ -55,11 +55,13 @@ namespace FWO.Ui.Services
             catch (CryptographicException ex)
             {
                 Log.WriteWarning("Token", $"Unreadable protected session token pair detected, clearing stored data: {ex.Message}");
+
                 await ClearStoredTokenPair();
             }
             catch (Exception ex)
             {
                 Log.WriteWarning("Token", $"Failed to restore token pair from session storage, clearing stored data: {ex.Message}");
+
                 await ClearStoredTokenPair();
             }
         }
@@ -72,6 +74,7 @@ namespace FWO.Ui.Services
         public async Task SetTokenPair(TokenPair tokenPair)
         {
             currentTokenPair = tokenPair;
+
             await sessionStorage.SetAsync(TOKEN_PAIR_KEY, tokenPair);
         }
 
@@ -82,6 +85,7 @@ namespace FWO.Ui.Services
         public async Task<string?> GetAccessToken()
         {
             await initializationTask.Value;
+
             return currentTokenPair?.AccessToken;
         }
 
@@ -107,22 +111,24 @@ namespace FWO.Ui.Services
             catch (Exception ex)
             {
                 Log.WriteWarning("Token Check", $"Failed to read JWT: {ex.Message}");
+
                 return true;
             }
         }
 
         /// <summary>
-        /// Refreshes the access token using the current refresh token.
+        /// Refreshes the token pair using the current refresh token.
         /// </summary>
-        /// <returns>True if refresh was successful, false otherwise.</returns>
-        public async Task<bool> RefreshAccessToken()
+        /// <returns>The refreshed token pair, or the current pair if no refresh is required. Returns null on failure.</returns>
+        public async Task<TokenPair?> RefreshTokenPair()
         {
             await initializationTask.Value;
 
             if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair.RefreshToken))
             {
                 Log.WriteWarning("Token Refresh", "No refresh token available");
-                return false;
+
+                return null;
             }
 
             await refreshSemaphore.WaitAsync();
@@ -131,7 +137,7 @@ namespace FWO.Ui.Services
             {
                 if (!await IsAccessTokenExpired())
                 {
-                    return true;
+                    return currentTokenPair;
                 }
 
                 RefreshTokenRequest refreshRequest = new()
@@ -147,20 +153,20 @@ namespace FWO.Ui.Services
 
                     Log.WriteInfo("Token Refresh", "Successfully refreshed access token");
 
-                    return true;
+                    return response.Data;
                 }
                 else
                 {
                     Log.WriteWarning("Token Refresh", $"Failed to refresh token: {response.ErrorMessage ?? response.Content}");
 
-                    return false;
+                    return null;
                 }
             }
             catch (Exception ex)
             {
                 Log.WriteError("Token Refresh", "Error refreshing access token", ex);
 
-                return false;
+                return null;
             }
             finally
             {

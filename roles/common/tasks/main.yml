@@ -120,6 +120,38 @@
       failed_when: false
       become: true
 
+    - name: fail if subordinate uid lookup failed unexpectedly
+      fail:
+        msg: "Failed to read existing subordinate uid entry for {{ fworch_user }} from /etc/subuid."
+      when:
+        - fworch_subuid_entry.rc not in [0, 1]
+
+    - name: fail if subordinate gid lookup failed unexpectedly
+      fail:
+        msg: "Failed to read existing subordinate gid entry for {{ fworch_user }} from /etc/subgid."
+      when:
+        - fworch_subgid_entry.rc not in [0, 1]
+
+    - name: fail if multiple subordinate uid entries exist for {{ fworch_user }}
+      fail:
+        msg: >-
+          Found multiple subordinate uid entries for {{ fworch_user }} in /etc/subuid:
+          {{ fworch_subuid_entry.stdout_lines | join(', ') }}.
+          Please remove duplicate entries before running the installer again.
+      when:
+        - fworch_subuid_entry.rc == 0
+        - fworch_subuid_entry.stdout_lines | length > 1
+
+    - name: fail if multiple subordinate gid entries exist for {{ fworch_user }}
+      fail:
+        msg: >-
+          Found multiple subordinate gid entries for {{ fworch_user }} in /etc/subgid:
+          {{ fworch_subgid_entry.stdout_lines | join(', ') }}.
+          Please remove duplicate entries before running the installer again.
+      when:
+        - fworch_subgid_entry.rc == 0
+        - fworch_subgid_entry.stdout_lines | length > 1
+
     - name: determine next free subordinate uid range start
       command:
         argv:
@@ -170,13 +202,13 @@
       set_fact:
         fworch_subuid_line: >-
           {{
-            fworch_subuid_entry.stdout
+            fworch_subuid_entry.stdout_lines[0]
             if fworch_subuid_entry.rc == 0 else
             fworch_user ~ ':' ~ fworch_next_subuid_start.stdout ~ ':' ~ fworch_subid_range_size
           }}
         fworch_subgid_line: >-
           {{
-            fworch_subgid_entry.stdout
+            fworch_subgid_entry.stdout_lines[0]
             if fworch_subgid_entry.rc == 0 else
             fworch_user ~ ':' ~ fworch_next_subgid_start.stdout ~ ':' ~ fworch_subid_range_size
           }}

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using FWO.Basics;
 using FWO.Basics.Interfaces;
 
@@ -218,9 +219,38 @@ namespace FWO.Logging
                 Console.ForegroundColor = (ConsoleColor)ForegroundColor;
             if (BackgroundColor != null)
                 Console.BackgroundColor = (ConsoleColor)BackgroundColor;
-            Console.Out.WriteLine(Text.SanitizeMand()); // TODO: async method ?
+            Console.Out.WriteLine(SanitizeForLogOutput(Text)); // TODO: async method ?
             Console.ResetColor();
             semaphore.Release();
+        }
+
+        /// <summary>
+        /// Preserves meaningful punctuation in log messages while removing control characters
+        /// that can break line-oriented log parsing or terminal output.
+        /// </summary>
+        private static string SanitizeForLogOutput(string text)
+        {
+            StringBuilder sanitizedText = new(text.Length);
+            bool previousCharacterWasSpace = false;
+
+            foreach (char currentCharacter in text)
+            {
+                if (currentCharacter == '\r' || currentCharacter == '\n' || currentCharacter == '\t')
+                {
+                    if (!previousCharacterWasSpace)
+                    {
+                        sanitizedText.Append(' ');
+                        previousCharacterWasSpace = true;
+                    }
+                }
+                else if (!char.IsControl(currentCharacter))
+                {
+                    sanitizedText.Append(currentCharacter);
+                    previousCharacterWasSpace = currentCharacter == ' ';
+                }
+            }
+
+            return sanitizedText.ToString().Trim();
         }
 
         public static void TryWriteLog(LogType logType, string title, string text, bool condition)

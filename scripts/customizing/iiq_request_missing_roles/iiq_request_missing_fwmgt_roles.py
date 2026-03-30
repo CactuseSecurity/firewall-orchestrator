@@ -44,6 +44,7 @@ __version__ = "2026-01-08"
 # "2025-10-28-01" fixing wrong match string resulting in unneccessary attempt to create already existing roles, leading to false positive errors in statistics
 # "2025-11-20-01" rework
 # "2026-01-08-01" ruffing
+# "2026-03-24-01" ensure log directory exists before writes
 
 FWO_BASE_DIR: str = "/usr/local/fworch/"
 FWO_TMP_DIR: str = FWO_BASE_DIR + "tmp/iiq_request_missing_fwmgt_roles/"
@@ -68,6 +69,10 @@ def is_valid_ipv4_address(address: str) -> bool:
         return False
 
     return True
+
+
+def ensure_log_dir(log_dir: str) -> None:
+    Path(log_dir).mkdir(parents=True, exist_ok=True)
 
 
 def get_owners_from_csv_files(
@@ -323,7 +328,7 @@ def init_statistics() -> dict[str, Any]:
 
 
 def write_stats_to_file(stats: dict[str, Any], log_dir: str) -> None:
-    Path(log_dir).mkdir(parents=True, exist_ok=True)
+    ensure_log_dir(log_dir)
     # Get current date as YYYY-MM-DD
     date_str: str = datetime.now().strftime("%Y-%m-%d")
     log_file: Path = Path(log_dir) / f"{date_str}_iiq_request.log"
@@ -334,6 +339,7 @@ if __name__ == "__main__":
     ALLOWED_STAGE_VALUES: set[str] = {"prod", "test"}
     ALLOWED_RUN_VALUES: set[bool] = {True, False}
 
+    ensure_log_dir(LOG_DIR)
     logger = get_logger()
 
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")

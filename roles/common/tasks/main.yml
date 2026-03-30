@@ -120,7 +120,7 @@
       failed_when: false
       become: true
 
-    - name: determine next free subordinate id range start
+    - name: determine next free subordinate uid range start
       command:
         argv:
           - awk
@@ -137,12 +137,33 @@
             }
             END { print max_end }
           - /etc/subuid
-          - /etc/subgid
-      register: fworch_next_subid_start
+      register: fworch_next_subuid_start
       changed_when: false
       become: true
       when:
         - fworch_subuid_entry.rc != 0
+
+    - name: determine next free subordinate gid range start
+      command:
+        argv:
+          - awk
+          - "-F:"
+          - -v
+          - min_start={{ fworch_subid_range_start_min }}
+          - |
+            BEGIN { max_end = min_start }
+            NF >= 3 {
+              start = $2 + 0
+              count = $3 + 0
+              end = start + count
+              if (end > max_end) max_end = end
+            }
+            END { print max_end }
+          - /etc/subgid
+      register: fworch_next_subgid_start
+      changed_when: false
+      become: true
+      when:
         - fworch_subgid_entry.rc != 0
 
     - name: define subordinate id entries for {{ fworch_user }}
@@ -151,21 +172,13 @@
           {{
             fworch_subuid_entry.stdout
             if fworch_subuid_entry.rc == 0 else
-            (
-              fworch_subgid_entry.stdout
-              if fworch_subgid_entry.rc == 0 else
-              fworch_user ~ ':' ~ fworch_next_subid_start.stdout ~ ':' ~ fworch_subid_range_size
-            )
+            fworch_user ~ ':' ~ fworch_next_subuid_start.stdout ~ ':' ~ fworch_subid_range_size
           }}
         fworch_subgid_line: >-
           {{
             fworch_subgid_entry.stdout
             if fworch_subgid_entry.rc == 0 else
-            (
-              fworch_subuid_entry.stdout
-              if fworch_subuid_entry.rc == 0 else
-              fworch_user ~ ':' ~ fworch_next_subid_start.stdout ~ ':' ~ fworch_subid_range_size
-            )
+            fworch_user ~ ':' ~ fworch_next_subgid_start.stdout ~ ':' ~ fworch_subid_range_size
           }}
 
     - name: add subordinate uid entry for {{ fworch_user }}

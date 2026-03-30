@@ -338,6 +338,45 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RefreshTokenPair_WhenResponseContainsContentButNoData_ShouldReturnNewPairAndUpdateToken()
+        {
+            // Arrange
+            string expiredToken = GenerateJwtToken(DateTime.UtcNow.AddHours(-1));
+            TokenPair oldTokenPair = new()
+            {
+                AccessToken = expiredToken,
+                RefreshToken = TEST_REFRESH_TOKEN,
+                AccessTokenExpires = DateTime.UtcNow.AddHours(-1),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(7)
+            };
+
+            string newAccessToken = GenerateJwtToken(DateTime.UtcNow.AddHours(2));
+            TokenPair newTokenPair = new()
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = "new_refresh_token",
+                AccessTokenExpires = DateTime.UtcNow.AddHours(2),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(14)
+            };
+
+            await tokenService!.SetTokenPair(oldTokenPair);
+            mockMiddlewareClient!.NextRefreshTokenResponse = newTokenPair;
+            mockMiddlewareClient.ReturnRefreshData = false;
+            mockMiddlewareClient.ShouldRefreshSucceed = true;
+
+            // Act
+            TokenPair? result = await tokenService.RefreshTokenPair();
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result!.AccessToken, Is.EqualTo(newAccessToken));
+            Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(1));
+
+            string? storedToken = await tokenService.GetAccessToken();
+            Assert.That(storedToken, Is.EqualTo(newAccessToken));
+        }
+
+        [Test]
         public async Task RefreshTokenPair_WhenTokenIsExpiredAndRefreshFails_ShouldReturnNull()
         {
             // Arrange

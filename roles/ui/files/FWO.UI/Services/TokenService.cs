@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using RestSharp;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace FWO.Ui.Services
 {
@@ -146,14 +147,15 @@ namespace FWO.Ui.Services
                 };
 
                 RestResponse<TokenPair> response = await middlewareClient.RefreshToken(refreshRequest);
+                TokenPair? refreshedTokenPair = ParseTokenPairResponse(response);
 
-                if (response.IsSuccessful && response.Data != null)
+                if (response.IsSuccessful && refreshedTokenPair != null)
                 {
-                    await SetTokenPair(response.Data);
+                    await SetTokenPair(refreshedTokenPair);
 
                     Log.WriteInfo("Token Refresh", "Successfully refreshed access token");
 
-                    return response.Data;
+                    return refreshedTokenPair;
                 }
                 else
                 {
@@ -171,6 +173,24 @@ namespace FWO.Ui.Services
             finally
             {
                 refreshSemaphore.Release();
+            }
+        }
+
+        private static TokenPair? ParseTokenPairResponse(RestResponse<TokenPair> response)
+        {
+            if (!response.IsSuccessful || string.IsNullOrWhiteSpace(response.Content))
+            {
+                return null;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<TokenPair>(response.Content);
+            }
+            catch (JsonException ex)
+            {
+                Log.WriteWarning("Token Refresh", $"Failed to deserialize refreshed token pair: {ex.Message}");
+                return null;
             }
         }
 

@@ -12,6 +12,7 @@ namespace FWO.Test.Mocks
     {
         public TokenPair? NextRefreshTokenResponse { get; set; }
         public bool ShouldRefreshSucceed { get; set; } = true;
+        public bool ReturnRefreshData { get; set; } = true;
         public bool ShouldRevokeSucceed { get; set; } = true;
         public int RefreshTokenCallCount { get; private set; }
         public int RevokeRefreshTokenCallCount { get; private set; }
@@ -36,7 +37,7 @@ namespace FWO.Test.Mocks
                 RestResponse<TokenPair> response = new(request)
                 {
                     StatusCode = HttpStatusCode.OK,
-                    Data = NextRefreshTokenResponse,
+                    Data = ReturnRefreshData ? NextRefreshTokenResponse : null,
                     ResponseStatus = ResponseStatus.Completed,
                     Content = System.Text.Json.JsonSerializer.Serialize(NextRefreshTokenResponse),
                     IsSuccessStatusCode = true
@@ -90,6 +91,7 @@ namespace FWO.Test.Mocks
             LastRevokeRequest = null;
             NextRefreshTokenResponse = null;
             ShouldRefreshSucceed = true;
+            ReturnRefreshData = true;
             ShouldRevokeSucceed = true;
         }
     }

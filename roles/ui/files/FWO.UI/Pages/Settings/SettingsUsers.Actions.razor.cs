@@ -109,15 +109,32 @@ namespace FWO.Ui.Pages.Settings
         EditMode = true;
     }
 
+    private void CloseEditMode()
+    {
+        EditMode = false;
+    }
+
+    private void CloseResetPasswordMode()
+    {
+        ResetPasswordMode = false;
+    }
+
     private void SynchronizeUserData(UiUser user)
     {
         if(selectedLdap != null)
         {
+            string? tenantName = selectedTenant?.Name;
+            if (selectedTenant?.Id == GlobalConst.kTenant0Id
+                && !string.IsNullOrEmpty(selectedLdap.GlobalTenantName))
+            {
+                tenantName = selectedLdap.GlobalTenantName;
+            }
+
             user.LdapConnection = selectedLdap;
             user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
             // todo: further dn specification maybe in ldapconnection?
             user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name +
-                (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant?.Id == GlobalConst.kTenant0Id && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant?.Name) : "") + "," + selectedLdap.UserSearchPath;
+                (selectedLdap.TenantLevel > 0 ? ",ou=" + tenantName : "") + "," + selectedLdap.UserSearchPath;
         }
         user.Groups = [];
         if(selectedGroup != null)
@@ -146,67 +163,12 @@ namespace FWO.Ui.Pages.Settings
             }
             if (AddMode)
             {
-                SynchronizeUserData(actUser);
-
-                if (CheckValues())
-                {
-                    // insert new user to ldap
-                    UserAddParameters parameters = new UserAddParameters
-                    {
-                        Email = actUser.Email,
-                        Firstname = actUser.Firstname,
-                        Lastname = actUser.Lastname,
-                        LdapId = actUser.LdapConnection.Id,
-                        Password = actUser.Password,
-                        UserDn = actUser.Dn,
-                        TenantId = (actUser.Tenant != null ? actUser.Tenant.Id : 0),
-                        PwChangeRequired = actUser.PasswordMustBeChanged
-                    };
-                    RestResponse<int> middlewareServerResponse = await middlewareClient.AddUser(parameters);
-                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
-                    {
-                        DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5213"), true);
-                    }
-                    else
-                    {
-                        actUser.DbId = middlewareServerResponse.Data;
-                        uiUsers.Add(actUser);
-                        await AddUserToGroupsInLdap(actUser);
-                        await AddUserToRolesInLdap(actUser);
-                        AddMode = false;
-                        EditMode = false;
-
-                        Log.WriteAudit(
-                            Title: $"Users Settings",
-                            Text: $"Added User: {actUser.Name} (DN: {actUser.Dn})",
-                            UserName: userConfig.User.Name,
-                            UserDN: userConfig.User.Dn);
-                    }
-                }
+                await HandleAddUserSave();
             }
             else
             {
-                // Update existing user in ldap --> currently only email; TODO: add first and last name
-                UserEditParameters parameters = new UserEditParameters {Email = actUser.Email, LdapId = actUser.LdapConnection.Id, UserId = actUser.DbId };
-                RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
-                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("update_user"), userConfig.GetText("E5214"), true);
-                }
-                else
-                {
-                    uiUsers[uiUsers.FindIndex(x => x.DbId == actUser.DbId)].Email = actUser.Email;
-                    EditMode = false;
-
-                    Log.WriteAudit(
-                        Title: $"Users Settings",
-                        Text: $"Edited User: {actUser.Name} (DN: {actUser.Dn})",
-                        UserName: userConfig.User.Name,
-                        UserDN: userConfig.User.Dn);
-                }
+                await HandleExistingUserSave();
             }
-
-
 
             AnalyseSampleUsers();
         }
@@ -214,6 +176,66 @@ namespace FWO.Ui.Pages.Settings
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_user"), "", true);
         }
+    }
+
+    private async Task HandleAddUserSave()
+    {
+        SynchronizeUserData(actUser);
+        if (!CheckValues())
+        {
+            return;
+        }
+
+        UserAddParameters parameters = new()
+        {
+            Email = actUser.Email,
+            Firstname = actUser.Firstname,
+            Lastname = actUser.Lastname,
+            LdapId = actUser.LdapConnection.Id,
+            Password = actUser.Password,
+            UserDn = actUser.Dn,
+            TenantId = (actUser.Tenant != null ? actUser.Tenant.Id : 0),
+            PwChangeRequired = actUser.PasswordMustBeChanged
+        };
+        RestResponse<int> middlewareServerResponse = await middlewareClient.AddUser(parameters);
+        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5213"), true);
+            return;
+        }
+
+        actUser.DbId = middlewareServerResponse.Data;
+        uiUsers.Add(actUser);
+        await AddUserToGroupsInLdap(actUser);
+        await AddUserToRolesInLdap(actUser);
+        AddMode = false;
+        EditMode = false;
+
+        Log.WriteAudit(
+            Title: $"Users Settings",
+            Text: $"Added User: {actUser.Name} (DN: {actUser.Dn})",
+            UserName: userConfig.User.Name,
+            UserDN: userConfig.User.Dn);
+    }
+
+    private async Task HandleExistingUserSave()
+    {
+        UserEditParameters parameters = new() { Email = actUser.Email, LdapId = actUser.LdapConnection.Id, UserId = actUser.DbId };
+        RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
+        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("update_user"), userConfig.GetText("E5214"), true);
+            return;
+        }
+
+        uiUsers[uiUsers.FindIndex(x => x.DbId == actUser.DbId)].Email = actUser.Email;
+        EditMode = false;
+
+        Log.WriteAudit(
+            Title: $"Users Settings",
+            Text: $"Edited User: {actUser.Name} (DN: {actUser.Dn})",
+            UserName: userConfig.User.Name,
+            UserDN: userConfig.User.Dn);
     }
 
     private bool CheckValues()
@@ -301,10 +323,10 @@ namespace FWO.Ui.Pages.Settings
             }
             else
             {
-                deleteMessage = userConfig.GetText("U5201") + actUser.Name + "?";
+                DeleteMessage = userConfig.GetText("U5201") + actUser.Name + "?";
                 if (!actUser.IsInternal())
                 {
-                    deleteMessage += userConfig.GetText("U5202");
+                    DeleteMessage += userConfig.GetText("U5202");
                 }
                 DeleteMode = true;
             }
@@ -436,22 +458,22 @@ namespace FWO.Ui.Pages.Settings
     {
         if (sampleUsers.Exists(user => user.DbId == userConfig.User.DbId))
         {
-            sampleRemoveMessage = userConfig.GetText("E5220");
-            sampleRemoveAllowed = false;
+            SampleRemoveMessage = userConfig.GetText("E5220");
+            SampleRemoveAllowed = false;
         }
         else
         {
-            sampleRemoveMessage = userConfig.GetText("U5203");
-            sampleRemoveAllowed = true;
+            SampleRemoveMessage = userConfig.GetText("U5203");
+            SampleRemoveAllowed = true;
         }
         SampleRemoveMode = true;
     }
 
     private async Task RemoveSampleData()
     {
-        showSampleRemoveButton = false;
+        ShowSampleRemoveButton = false;
         SampleRemoveMode = false;
-        workInProgress = true;
+        WorkInProgress = true;
         foreach (var user in sampleUsers)
         {
             try
@@ -461,7 +483,7 @@ namespace FWO.Ui.Pages.Settings
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), userConfig.GetText("E5221"), true);
-                    showSampleRemoveButton = true;
+                    ShowSampleRemoveButton = true;
                 }
                 else
                 {
@@ -474,7 +496,7 @@ namespace FWO.Ui.Pages.Settings
                 DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
             }
         }
-        workInProgress = false;
+        WorkInProgress = false;
         StateHasChanged();
     }
 

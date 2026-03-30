@@ -29,7 +29,7 @@
             <button type="button" class="btn btn-sm btn-info" disabled>@(userConfig.GetText("synchronize"))</button>
         </NotAuthorized>
     </AuthorizeView>
-    @if (showSampleRemoveButton)
+    @if (ShowSampleRemoveButton)
     {
         <button type="button" class="btn btn-sm btn-danger" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
     }
@@ -95,7 +95,7 @@
     </Table>
 </div>
 
-<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Size=PopupSize.Large OnClose="() => EditMode = false">
+<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Size=PopupSize.Large OnClose="@CloseEditMode">
     <Body>
         @if (EditMode)
         {
@@ -214,7 +214,7 @@
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <Dropdown ElementType="Role" ElementToString="@(r => r.Name)" @bind-SelectedElement="selectedRole" Elements="availableRoles" Nullable="true">
+                            <Dropdown ElementType="Role" ElementToString="@(r => r.Name)" @bind-SelectedElement="selectedRole" Elements="AvailableRoles" Nullable="true">
                                 <ElementTemplate Context="role">
                                     @role.Name
                                 </ElementTemplate>
@@ -244,7 +244,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Size=PopupSize.Small OnClose="() => ResetPasswordMode = false">
+<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Size=PopupSize.Small OnClose="@CloseResetPasswordMode">
     <Body>
         @if (ResetPasswordMode)
         {
@@ -277,6 +277,6 @@
     </Footer>
 </PopUp>
 
-<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_user")" DeleteMessage="@deleteMessage"/>
-<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@sampleRemoveMessage" DeleteAllowed="sampleRemoveAllowed"/>
-<InProgress Display="workInProgress"/>
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_user")" DeleteMessage="@DeleteMessage"/>
+<ConfirmDelete @bind-Display="SampleRemoveMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@SampleRemoveMessage" DeleteAllowed="SampleRemoveAllowed"/>
+<InProgress Display="WorkInProgress"/>

@@ -34,15 +34,15 @@ namespace FWO.Ui.Pages.Settings
     private List<Tenant> availableTenants = [];
     private List<UserGroup> groups = [];
     private List<Role> roles = [];
-    private List<Role> availableRoles = [];
+    private List<Role> AvailableRoles { get; set; } = [];
 
-    private bool EditMode = false;
-    private bool DeleteMode = false;
-    private bool SampleRemoveMode = false;
-    private bool sampleRemoveAllowed = false;
+    private bool EditMode { get; set; }
+    private bool DeleteMode { get; set; }
+    private bool SampleRemoveMode { get; set; }
+    private bool SampleRemoveAllowed { get; set; }
     private bool AddMode = false;
-    private bool showSampleRemoveButton = false;
-    private bool ResetPasswordMode = false;
+    private bool ShowSampleRemoveButton { get; set; }
+    private bool ResetPasswordMode { get; set; }
 
     private UiUser newUser = new();
     private UiUser actUser = new();
@@ -51,9 +51,9 @@ namespace FWO.Ui.Pages.Settings
     private Role? selectedRole;
     private UserGroup? selectedGroup;
 
-    private string deleteMessage = "";
-    private string sampleRemoveMessage = "";
-    private bool workInProgress = false;
+    private string DeleteMessage { get; set; } = "";
+    private string SampleRemoveMessage { get; set; } = "";
+    private bool WorkInProgress { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,7 +106,7 @@ namespace FWO.Ui.Pages.Settings
     private void AnalyseSampleUsers()
     {
         sampleUsers = [.. uiUsers.Where(u => u.Name.EndsWith(GlobalConst.k_demo))];
-        showSampleRemoveButton = (sampleUsers.Count > 0);
+        ShowSampleRemoveButton = (sampleUsers.Count > 0);
     }
 
     private async Task SynchronizeGroupsAndRoles()
@@ -119,7 +119,7 @@ namespace FWO.Ui.Pages.Settings
         await GetRolesFromInternalLdap();
         SynchronizeUsersToRoles();
 
-        availableRoles = roles.Where(x => (x.Name != Roles.Anonymous && x.Name != Roles.MiddlewareServer)).OrderBy(x => x.Name).ToList();
+        AvailableRoles = roles.Where(x => (x.Name != Roles.Anonymous && x.Name != Roles.MiddlewareServer)).OrderBy(x => x.Name).ToList();
     }
 
     private void SynchronizeUsersToGroups()

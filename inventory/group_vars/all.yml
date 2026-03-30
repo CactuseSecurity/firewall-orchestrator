@@ -47,6 +47,7 @@ http_proxy: "{{ lookup('env','http_proxy') }}"
 https_proxy: "{{ lookup('env','https_proxy') }}"
 no_proxy: "{{ lookup('env','no_proxy') }}"
 proxy_exceptions: "{{ lookup('env','no_proxy') }}"
+github_download_timeout: 60
 proxy_env:
         http_proxy: "{{ http_proxy }}"
         https_proxy: "{{ https_proxy }}"

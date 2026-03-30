@@ -371,9 +371,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return DisplayServiceProtocol(serviceChange.OldService.Protocol!.Name);
-                case 'I': return DisplayServiceProtocol(serviceChange.NewService.Protocol!.Name);
-                case 'C': return DisplayServiceProtocol(DisplayDiff(serviceChange.OldService.Protocol!.Name, serviceChange.NewService.Protocol!.Name));
+                case 'D': return DisplayServiceProtocol(serviceChange.OldService.Protocol?.Name ?? "");
+                case 'I': return DisplayServiceProtocol(serviceChange.NewService.Protocol?.Name ?? "");
+                case 'C': return DisplayServiceProtocol(DisplayDiff(serviceChange.OldService.Protocol?.Name ?? "", serviceChange.NewService.Protocol?.Name ?? ""));
                 default: return "";
             }
         }

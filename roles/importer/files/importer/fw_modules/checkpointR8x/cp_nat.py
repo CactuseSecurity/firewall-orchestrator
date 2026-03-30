@@ -35,16 +35,23 @@ def normalize_nat_rules(
                 )
                 continue
 
-            normalized_gateway["RulebaseLinks"].append(
-                {
-                    "from_rulebase_uid": normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"],
-                    "to_rulebase_uid": normalized_nat_rulebase.uid,
-                    "link_type": "nat",
-                    "is_initial": False,
-                    "is_global": False,
-                    "is_section": False,
-                }
-            )
+            if not any(
+                link
+                for link in normalized_gateway["RulebaseLinks"]
+                if link["to_rulebase_uid"] == normalized_nat_rulebase.uid
+                and link["link_type"] == "nat"
+                and link["from_rulebase_uid"] == normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"]
+            ):
+                normalized_gateway["RulebaseLinks"].append(
+                    {
+                        "from_rulebase_uid": normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"],
+                        "to_rulebase_uid": normalized_nat_rulebase.uid,
+                        "link_type": "ordered",
+                        "is_initial": False,
+                        "is_global": False,
+                        "is_section": False,
+                    }
+                )
 
             for chunk in nat_rulebase["nat_rule_chunks"]:
                 if "rulebase" not in chunk:
@@ -57,23 +64,33 @@ def normalize_nat_rules(
                             name=src_rulebase["name"],
                             rules={},
                         )
-                        normalized_config["policies"].append(section_rulebase)
-                        normalized_gateway["RulebaseLinks"].append(
-                            {
-                                "from_rulebase_uid": normalized_nat_rulebase.uid,
-                                "to_rulebase_uid": section_rulebase.uid,
-                                "link_type": "nat",
-                                "is_initial": False,
-                                "is_global": False,
-                                "is_section": False,
-                            }
-                        )
+
+                        if not any(rb for rb in normalized_config["policies"] if rb.uid == section_rulebase.uid):
+                            normalized_config["policies"].append(section_rulebase)
+
+                        if not any(
+                            link
+                            for link in normalized_gateway["RulebaseLinks"]
+                            if link["to_rulebase_uid"] == section_rulebase.uid
+                            and link["link_type"] == "nat"
+                            and link["from_rulebase_uid"] == normalized_nat_rulebase.uid
+                        ):
+                            normalized_gateway["RulebaseLinks"].append(
+                                {
+                                    "from_rulebase_uid": normalized_nat_rulebase.uid,
+                                    "to_rulebase_uid": section_rulebase.uid,
+                                    "link_type": "concatenated",
+                                    "is_initial": False,
+                                    "is_global": False,
+                                    "is_section": False,
+                                }
+                            )
 
                         for rule in src_rulebase["rulebase"]:
                             uid = rule.get("uid")
                             if uid in seen_uids:
                                 continue
-                            seen_uids.add(uid)
+                            # seen_uids.add(uid)
                             (rule_match, rule_xlate) = parse_nat_rule_transform(rule)
                             parse_single_rule(
                                 rule_match,
@@ -96,7 +113,7 @@ def normalize_nat_rules(
                         uid = src_rulebase["uid"]
                         if uid in seen_uids:
                             continue
-                        seen_uids.add(uid)
+                        # seen_uids.add(uid)
                         (rule_match, rule_xlate) = parse_nat_rule_transform(src_rulebase)
                         parse_single_rule(
                             rule_match,
@@ -114,17 +131,19 @@ def normalize_nat_rules(
                             gateway,
                             native_config["policies"],
                         )
-            normalized_config["policies"].append(normalized_nat_rulebase)
+
+            if not any(rb for rb in normalized_config["policies"] if rb.uid == normalized_nat_rulebase.uid):
+                normalized_config["policies"].append(normalized_nat_rulebase)
 
 
 def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     nat_in_rule = {
-        "uid": nat_rule["uid"] + "-original",
+        "uid": nat_rule["uid"] + "_original",
         "source": [nat_rule["original-source"]],
         "destination": [nat_rule["original-destination"]],
         "service": [nat_rule["original-service"]],
-        "action": [{"name": "accept", "type": "nat-action", "uid": nat_rule["uid"] + "-original-action"}],
-        "track": [{"type": "nat", "name": "None", "uid": nat_rule["uid"] + "-original"}],
+        "action": [{"name": "accept", "type": "nat-action", "uid": nat_rule["uid"] + "_original-action"}],
+        "track": [{"type": "nat", "name": "None", "uid": nat_rule["uid"] + "_original"}],
         "type": "nat",
         "rule-number": 0,
         "source-negate": False,
@@ -137,12 +156,12 @@ def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], 
         "rule_type": "access",
     }
     nat_out_rule = {
-        "uid": nat_rule["uid"] + "-translated",
+        "uid": nat_rule["uid"] + "_translated",
         "source": [nat_rule["translated-source"]],
         "destination": [nat_rule["translated-destination"]],
         "service": [nat_rule["translated-service"]],
-        "action": [{"name": "accept", "type": "nat-action", "uid": nat_rule["uid"] + "-translated-action"}],
-        "track": [{"type": "nat", "name": "None", "uid": nat_rule["uid"] + "-translated"}],
+        "action": [{"name": "accept", "type": "nat-action", "uid": nat_rule["uid"] + "_translated-action"}],
+        "track": [{"type": "nat", "name": "None", "uid": nat_rule["uid"] + "_translated"}],
         "type": "nat",
         "rule-number": 0,
         "enabled": True,

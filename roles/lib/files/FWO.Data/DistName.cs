@@ -1,4 +1,5 @@
 using FWO.Basics;
+using System.Text;
 
 namespace FWO.Data
 {
@@ -85,39 +86,74 @@ namespace FWO.Data
 
         private static (string value, string remainingDn) ReadDnValue(string dn)
         {
-            bool escaped = false;
-            System.Text.StringBuilder value = new();
+            StringBuilder value = new();
 
             for (int i = 0; i < dn.Length; i++)
             {
                 char currentChar = dn[i];
-                if (escaped)
-                {
-                    value.Append(currentChar);
-                    escaped = false;
-                    continue;
-                }
-
-                if (currentChar == '\\')
-                {
-                    escaped = true;
-                    continue;
-                }
 
                 if (currentChar == ',')
                 {
                     return (value.ToString(), dn[(i + 1)..]);
                 }
 
+                if (currentChar == '\\')
+                {
+                    if (TryReadHexEscapedValue(dn, ref i, out string hexEscapedValue))
+                    {
+                        value.Append(hexEscapedValue);
+                        continue;
+                    }
+
+                    if (i + 1 < dn.Length)
+                    {
+                        value.Append(dn[i + 1]);
+                        i++;
+                        continue;
+                    }
+                }
+
                 value.Append(currentChar);
             }
 
-            if (escaped)
+            return (value.ToString(), "");
+        }
+
+        private static bool TryReadHexEscapedValue(string dn, ref int currentIndex, out string decodedValue)
+        {
+            decodedValue = "";
+            if (currentIndex + 2 >= dn.Length || !IsHexPair(dn, currentIndex + 1))
             {
-                value.Append('\\');
+                return false;
             }
 
-            return (value.ToString(), "");
+            List<byte> escapedBytes = [];
+            int scanIndex = currentIndex;
+
+            do
+            {
+                escapedBytes.Add(Convert.ToByte(dn.Substring(scanIndex + 1, 2), 16));
+                scanIndex += 3;
+            }
+            while (scanIndex + 2 < dn.Length && dn[scanIndex] == '\\' && IsHexPair(dn, scanIndex + 1));
+
+            decodedValue = Encoding.UTF8.GetString([.. escapedBytes]);
+            currentIndex = scanIndex - 1;
+            return true;
+        }
+
+        private static bool IsHexPair(string value, int startIndex)
+        {
+            return startIndex + 1 < value.Length
+                && IsHexCharacter(value[startIndex])
+                && IsHexCharacter(value[startIndex + 1]);
+        }
+
+        private static bool IsHexCharacter(char character)
+        {
+            return (character >= '0' && character <= '9')
+                || (character >= 'a' && character <= 'f')
+                || (character >= 'A' && character <= 'F');
         }
 
         public bool IsInternal()

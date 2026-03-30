@@ -184,6 +184,12 @@
         create: true
       become: true
 
+    - name: check whether loginctl is available
+      stat:
+        path: /usr/bin/loginctl
+      register: loginctl_binary
+      become: true
+
     - name: enable lingering for {{ fworch_user }}
       command:
         argv:
@@ -191,7 +197,13 @@
           - enable-linger
           - "{{ fworch_user }}"
         creates: "/var/lib/systemd/linger/{{ fworch_user }}"
+      register: fworch_enable_linger
+      changed_when: fworch_enable_linger.rc == 0
+      failed_when: false
       become: true
+      when:
+        - ansible_service_mgr == "systemd"
+        - loginctl_binary.stat.exists
 
     - name: global apache config
       include_tasks: global-apache2-config.yml

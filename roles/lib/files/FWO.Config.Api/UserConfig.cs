@@ -195,7 +195,7 @@ namespace FWO.Config.Api
         {
             ThrowIfDisposed();
             string text = key;
-            string pattern = @"[A]\d\d\d\d";
+            string pattern = @"[Aa]\d{4}";
             Match m = Regex.Match(key, pattern);
             if (m.Success)
             {

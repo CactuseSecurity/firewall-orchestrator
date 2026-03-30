@@ -87,41 +87,45 @@ namespace FWO.Data
         private static (string value, string remainingDn) ReadDnValue(string dn)
         {
             StringBuilder value = new();
+            int index = 0;
 
-            for (int i = 0; i < dn.Length; i++)
+            while (index < dn.Length)
             {
-                char currentChar = dn[i];
+                char currentChar = dn[index];
 
                 if (currentChar == ',')
                 {
-                    return (value.ToString(), dn[(i + 1)..]);
+                    return (value.ToString(), dn[(index + 1)..]);
                 }
 
                 if (currentChar == '\\')
                 {
-                    if (TryReadHexEscapedValue(dn, ref i, out string hexEscapedValue))
+                    if (TryReadHexEscapedValue(dn, index, out string hexEscapedValue, out int nextIndex))
                     {
                         value.Append(hexEscapedValue);
+                        index = nextIndex;
                         continue;
                     }
 
-                    if (i + 1 < dn.Length)
+                    if (index + 1 < dn.Length)
                     {
-                        value.Append(dn[i + 1]);
-                        i++;
+                        value.Append(dn[index + 1]);
+                        index += 2;
                         continue;
                     }
                 }
 
                 value.Append(currentChar);
+                index++;
             }
 
             return (value.ToString(), "");
         }
 
-        private static bool TryReadHexEscapedValue(string dn, ref int currentIndex, out string decodedValue)
+        private static bool TryReadHexEscapedValue(string dn, int currentIndex, out string decodedValue, out int nextIndex)
         {
             decodedValue = "";
+            nextIndex = currentIndex;
             if (currentIndex + 2 >= dn.Length || !IsHexPair(dn, currentIndex + 1))
             {
                 return false;
@@ -138,7 +142,7 @@ namespace FWO.Data
             while (scanIndex + 2 < dn.Length && dn[scanIndex] == '\\' && IsHexPair(dn, scanIndex + 1));
 
             decodedValue = Encoding.UTF8.GetString([.. escapedBytes]);
-            currentIndex = scanIndex - 1;
+            nextIndex = scanIndex;
             return true;
         }
 

@@ -1,0 +1,255 @@
+@using FWO.Api.Client.Queries
+@using FWO.Config.Api
+@using FWO.Data.Modelling
+@using FWO.Data.Workflow
+@using FWO.Middleware.Client
+@using FWO.Services.Workflow
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject ApiConnection apiConnection
+@inject MiddlewareClient middlewareClient
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("orphaned_requested_interface_tickets"))" Show="@Display" Size="PopupSize.Large" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            @if (WorkInProgress)
+            {
+                <Loading />
+            }
+            else if (Tickets.Count > 0)
+            {
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+                       TableItem="OrphanedRequestedInterfaceTicketRow" Items="Tickets" PageSize="10">
+                    <Column TableItem="OrphanedRequestedInterfaceTicketRow" Title="@(userConfig.GetText("actions"))" Field="@(x => x.TicketId)" Sortable="false" Filterable="false">
+                        <Template>
+                            <button type="button" class="btn btn-sm btn-dark" @onclick="() => OpenTicket.InvokeAsync(context.TicketId)">
+                                @(DisplayService.DisplayButton(userConfig, "display_ticket", Icons.Display, "", Icons.Workflow))
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger ms-1" @onclick="() => RejectTicket(context.TicketId)">
+                                @(DisplayService.DisplayButton(userConfig, "reject", Icons.Reject))
+                            </button>
+                        </Template>
+                    </Column>
+                    <Column TableItem="OrphanedRequestedInterfaceTicketRow" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="true" />
+                    <Column TableItem="OrphanedRequestedInterfaceTicketRow" Title="@(userConfig.GetText("state"))" Field="@(x => x.TicketState)" Sortable="true" Filterable="true" />
+                    <Column TableItem="OrphanedRequestedInterfaceTicketRow" Title="@(userConfig.GetText("creation_date"))" Field="@(x => x.TicketCreationDate)" Sortable="true" Filterable="false">
+                        <Template>
+                            @(context.TicketCreationDate?.ToString("g") ?? "-")
+                        </Template>
+                    </Column>
+                    <Column TableItem="OrphanedRequestedInterfaceTicketRow" Title="@(userConfig.GetText("requested_interfaces"))" Field="@(x => x.InterfaceNames)" Sortable="true" Filterable="true" />
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                </Table>
+            }
+            else
+            {
+                <p>@(userConfig.GetText("orphaned_requested_interface_tickets_empty"))</p>
+            }
+        }
+    </Body>
+    <Footer>
+        @if (Tickets.Count > 0)
+        {
+            <button type="button" class="btn btn-sm btn-danger me-2" @onclick="RejectAllTickets">
+                @(DisplayService.DisplayButton(userConfig, "reject_tickets", Icons.Reject))
+            </button>
+        }
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "ok", Icons.Confirm))</button>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<long> OpenTicket { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<OrphanedRequestedInterfaceTicketRow> Tickets { get; set; } = [];
+    private WfStateDict States { get; set; } = new();
+    private StateMatrix NewInterfaceStateMatrix { get; set; } = new();
+    private bool WorkInProgress { get; set; } = false;
+    private bool LoadPending { get; set; } = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display && LoadPending)
+        {
+            await LoadOrphanedRequestedInterfaceTickets();
+            LoadPending = false;
+        }
+        else if (!Display)
+        {
+            LoadPending = true;
+            Tickets = [];
+        }
+    }
+
+    /// <summary>
+    /// Loads open new-interface tickets whose referenced interface ids no longer exist.
+    /// </summary>
+    private async Task LoadOrphanedRequestedInterfaceTickets()
+    {
+        try
+        {
+            WorkInProgress = true;
+            await EnsureStateMatrixInitialized();
+            await EnsureStatesInitialized();
+
+            List<WfTicket> openTickets = await apiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getTicketsByParameters, new
+            {
+                cutOffDate = DateTime.Now,
+                taskType = WfTaskType.new_interface.ToString(),
+                fromState = NewInterfaceStateMatrix.LowestInputState,
+                toState = NewInterfaceStateMatrix.LowestEndState
+            });
+            Tickets = [];
+            foreach (WfTicket ticket in openTickets)
+            {
+                List<string> missingInterfaceNames = [];
+                foreach (WfReqTask task in ticket.Tasks.Where(task => task.TaskType == WfTaskType.new_interface.ToString()))
+                {
+                    int connId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ConnId);
+                    if (connId <= 0)
+                    {
+                        continue;
+                    }
+
+                    List<ModellingConnection> existingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
+                        ModellingQueries.getConnectionById,
+                        new { id = connId });
+                    if (existingConnections.Count == 0)
+                    {
+                        missingInterfaceNames.Add(string.IsNullOrWhiteSpace(task.Title) ? connId.ToString() : task.Title);
+                    }
+                }
+
+                if (missingInterfaceNames.Count == 0)
+                {
+                    continue;
+                }
+                Tickets.Add(new()
+                {
+                    TicketId = ticket.Id,
+                    TicketState = States.GetName(ticket.StateId),
+                    TicketCreationDate = ticket.CreationDate,
+                    InterfaceNames = string.Join(", ", missingInterfaceNames.OrderBy(name => name))
+                });
+            }
+            Tickets = Tickets.OrderBy(ticket => ticket.TicketId).ToList();
+        }
+        catch (Exception exception)
+        {
+            Tickets = [];
+            DisplayMessageInUi(exception, userConfig.GetText("orphaned_requested_interface_tickets"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
+    }
+
+    /// <summary>
+    /// Initializes the state names used to render workflow state labels.
+    /// </summary>
+    private async Task EnsureStatesInitialized()
+    {
+        if (States.Name.Count > 0)
+        {
+            return;
+        }
+        await States.Init(apiConnection);
+    }
+
+    /// <summary>
+    /// Initializes the state matrix so open tickets can be identified reliably.
+    /// </summary>
+    private async Task EnsureStateMatrixInitialized()
+    {
+        if (NewInterfaceStateMatrix.LowestEndState > 0)
+        {
+            return;
+        }
+        await NewInterfaceStateMatrix.Init(WorkflowPhases.implementation, apiConnection, WfTaskType.new_interface);
+    }
+
+    /// <summary>
+    /// Rejects a single orphaned new-interface ticket and reloads the popup content.
+    /// </summary>
+    private async Task RejectTicket(long ticketId)
+    {
+        await RejectTickets([ticketId]);
+    }
+
+    /// <summary>
+    /// Rejects all currently listed orphaned new-interface tickets and reloads the popup content.
+    /// </summary>
+    private async Task RejectAllTickets()
+    {
+        await RejectTickets(Tickets.Select(ticket => ticket.TicketId));
+    }
+
+    /// <summary>
+    /// Closes the given orphaned tickets via workflow promotion.
+    /// </summary>
+    private async Task RejectTickets(IEnumerable<long> ticketIds)
+    {
+        if (authenticationStateTask?.Result.User == null)
+        {
+            return;
+        }
+
+        try
+        {
+            WorkInProgress = true;
+            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask.Result.User, middlewareClient, WorkflowPhases.implementation);
+            int rejectedCount = 0;
+            foreach (long ticketId in ticketIds.Distinct())
+            {
+                if (await ticketCreator.PromoteNewInterfaceImplTask(ticketId, ExtStates.Rejected, userConfig.GetText("U9036")))
+                {
+                    rejectedCount++;
+                }
+            }
+
+            DisplayMessageInUi(null, userConfig.GetText("reject_tickets"), $"{userConfig.GetText("U9018")} ({rejectedCount})", false);
+            await LoadOrphanedRequestedInterfaceTickets();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("reject_tickets"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        LoadPending = true;
+        Tickets = [];
+        _ = DisplayChanged.InvokeAsync(Display);
+    }
+
+    private sealed class OrphanedRequestedInterfaceTicketRow
+    {
+        public long TicketId { get; set; }
+        public string TicketState { get; set; } = "-";
+        public DateTime? TicketCreationDate { get; set; }
+        public string InterfaceNames { get; set; } = "-";
+    }
+}

@@ -156,7 +156,6 @@ namespace FWO.Report
             {
                 foreach (DeviceReport deviceReport in managementReport.Devices)
                 {
-                    ruleCount = 0;
                     scopedRuleTreeBuilder.Reset(managementReport.Rulebases, deviceReport.RulebaseLinks);
 
                     List<Rule> allRules = scopedRuleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks, managementReport.Id, deviceReport.Id);
@@ -170,7 +169,7 @@ namespace FWO.Report
                         rulesArray.Select(r => r.Id).Except(managementReport.ReportedRuleIds)
                     );
 
-                    ruleCount += allRules.Count;
+                    ruleCount += rulesArray.Count(rule => string.IsNullOrEmpty(rule.SectionHeader));
                 }
             }
 

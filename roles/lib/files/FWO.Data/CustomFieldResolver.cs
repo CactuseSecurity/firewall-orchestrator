@@ -18,9 +18,9 @@ namespace FWO.Data
         /// The deserialized custom field value when a matching key is found and can be converted to <typeparamref name="T"/>;
         /// otherwise, <see langword="default"/>.
         /// </returns>
-        public static T? ExtractCustomFieldValue<T>(Rule rule, string keysJson)
+        public static T? ExtractCustomFieldValue<T>(Rule? rule, string keysJson)
         {
-            if (string.IsNullOrWhiteSpace(rule.CustomFields) || string.IsNullOrWhiteSpace(keysJson))
+            if (rule == null || string.IsNullOrWhiteSpace(rule.CustomFields) || string.IsNullOrWhiteSpace(keysJson))
             {
                 return default;
             }

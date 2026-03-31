@@ -374,7 +374,18 @@ namespace FWO.Services
                 {
                     var minimalMatchedObjectsForOwner = matchByOwner.Value.ToDictionary(
                         dirKvp => dirKvp.Key,
-                        dirKvp => dirKvp.Value.Select(o => new { o.Id, o.Name, o.IP, o.IpEnd }).ToList()
+                        dirKvp => dirKvp.Value.Select(o => new
+                        {
+                            o.Id,
+                            o.Name,
+                            o.IP,
+                            o.IpEnd,
+                            OverlappingRanges = o.OverlappingRanges?.Select(r => new
+                            {
+                                Begin = r.Begin.ToString(),
+                                End = r.End.ToString()
+                            }).ToList()
+                        }).ToList()
                     );
 
                     newRuleOwners.Add(new RuleOwner
@@ -771,7 +782,7 @@ namespace FWO.Services
                             {
                                 if (!nw.IP.TryParseIPStringToRange(out var _))
                                 {
-                                    Console.WriteLine($"Ung�ltige IP in Regel {o.Id}: {nw.IP} - {nw.IpEnd}");
+                                    Console.WriteLine($"Ungueltige IP in Regel {o.Id}: {nw.IP} - {nw.IpEnd}");
                                 }
 
                                 var (range, version) = GetIpRangeAndVersion(nw.IP, nw.IpEnd);
@@ -831,12 +842,37 @@ namespace FWO.Services
 
                 foreach (var ownerId in matchingOwnerIds)
                 {
-                    var dictForOwner = matchesByOwner.GetValueOrDefault(ownerId) ?? new Dictionary<string, List<NetworkObject>>();
+                    if (!matchesByOwner.TryGetValue(ownerId, out var dictForOwner))
+                    {
+                        dictForOwner = new Dictionary<string, List<NetworkObject>>();
+                        matchesByOwner[ownerId] = dictForOwner;
+                    }
                     if (!dictForOwner.ContainsKey(direction))
+                    {
                         dictForOwner[direction] = new List<NetworkObject>();
+                    }
 
-                    dictForOwner[direction].Add(obj);
-                    matchesByOwner[ownerId] = dictForOwner;
+                    var overlappingRanges = new List<IPAddressRange>();
+
+                    overlappingRanges.AddRange(
+                        ownerNetworksPrepared.First(o => o.OwnerId == ownerId)
+                            .Ranges
+                            .Where(r => r != null)
+                            .Select(r => IpOperations.GetIntersection(ruleRange, r!.Range))
+                            .Where(intersection => intersection != null)!
+                    );
+
+                    if (overlappingRanges.Any())
+                    {
+                        dictForOwner[direction].Add(new NetworkObject
+                        {
+                            Id = obj.Id,
+                            Name = obj.Name,
+                            IP = obj.IP,
+                            IpEnd = obj.IpEnd,
+                            OverlappingRanges = overlappingRanges
+                        });
+                    }
                 }
             }
             return matchesByOwner;

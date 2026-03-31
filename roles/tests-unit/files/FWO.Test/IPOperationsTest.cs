@@ -437,5 +437,42 @@ namespace FWO.Test
             ClassicAssert.AreEqual("192.168.10.0", merged[0].Begin.ToString());
             ClassicAssert.AreEqual("192.168.10.255", merged[0].End.ToString());
         }
+
+        [Test]
+        public void GetIntersection_OverlapExists_ReturnsIntersection()
+        {
+            var rangeA = new IPAddressRange(IPAddress.Parse("192.168.1.0"), IPAddress.Parse("192.168.1.255"));
+            var rangeB = new IPAddressRange(IPAddress.Parse("192.168.1.128"), IPAddress.Parse("192.168.2.0"));
+
+            var intersection = IpOperations.GetIntersection(rangeA, rangeB);
+
+            Assert.IsNotNull(intersection);
+            Assert.AreEqual("192.168.1.128", intersection!.Begin.ToString());
+            Assert.AreEqual("192.168.1.255", intersection!.End.ToString());
+        }
+
+        [Test]
+        public void GetIntersection_NoOverlap_ReturnsNull()
+        {
+            var rangeA = new IPAddressRange(IPAddress.Parse("10.0.0.0"), IPAddress.Parse("10.0.0.255"));
+            var rangeB = new IPAddressRange(IPAddress.Parse("192.168.1.0"), IPAddress.Parse("192.168.1.255"));
+
+            var intersection = IpOperations.GetIntersection(rangeA, rangeB);
+
+            Assert.IsNull(intersection);
+        }
+
+        [Test]
+        public void GetIntersection_IPv6Overlap_ReturnsIntersection()
+        {
+            var rangeA = new IPAddressRange(IPAddress.Parse("2001:db8::1"), IPAddress.Parse("2001:db8::ff"));
+            var rangeB = new IPAddressRange(IPAddress.Parse("2001:db8::80"), IPAddress.Parse("2001:db8::1ff"));
+
+            var intersection = IpOperations.GetIntersection(rangeA, rangeB);
+
+            Assert.IsNotNull(intersection);
+            Assert.AreEqual("2001:db8::80", intersection!.Begin.ToString());
+            Assert.AreEqual("2001:db8::ff", intersection!.End.ToString());
+        }
     }
 }

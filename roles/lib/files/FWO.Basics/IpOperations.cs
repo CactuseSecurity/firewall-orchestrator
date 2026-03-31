@@ -222,6 +222,11 @@ namespace FWO.Basics
         /// </returns>
         public static IPAddressRange? GetIntersection(IPAddressRange a, IPAddressRange b)
         {
+            if (a.Begin.AddressFamily != b.Begin.AddressFamily)
+            {
+                return null;
+            }
+
             BigInteger startA = ToBigInteger(a.Begin);
             BigInteger endA = ToBigInteger(a.End);
             BigInteger startB = ToBigInteger(b.Begin);

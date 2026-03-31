@@ -1,5 +1,6 @@
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Report.Data.ViewData;
 using FWO.Test.Mocks;
 using FWO.Api.Client.Queries;
 using NUnit.Framework;
@@ -176,6 +177,46 @@ namespace FWO.Test
 
             Assert.That(queryVariables.ContainsKey("mgm_ids"), Is.True);
             Assert.That((List<int>)queryVariables["mgm_ids"], Is.EqualTo(new List<int> { 3, 4 }));
+        }
+
+        [Test]
+        public void ExportToCsv_IncludesExpirationTimeColumnAndValue()
+        {
+            MockReportCompliance report = new(new(""), new(), Basics.ReportType.ComplianceReport);
+            report.RuleViewData =
+            [
+                new RuleViewData
+                {
+                    MgmtId = "1",
+                    MgmtName = "Mgmt",
+                    Uid = "uid-1",
+                    Name = "Rule 1",
+                    Source = "src",
+                    SourceShort = "src-short",
+                    Destination = "dst",
+                    DestinationShort = "dst-short",
+                    Services = "svc",
+                    ServicesShort = "svc-short",
+                    Action = "accept",
+                    InstallOn = "fw1",
+                    Compliance = "FALSE",
+                    ViolationDetails = "detail",
+                    ChangeID = "chg-1",
+                    AdoITID = "ado-1",
+                    Comment = "comment",
+                    LastModified = "2026-03-24",
+                    ExpirationTime = "2026-12-24 11:22:33",
+                    RulebaseId = "7",
+                    RulebaseName = "rb",
+                    Enabled = "TRUE",
+                    Show = true
+                }
+            ];
+
+            string csv = report.ExportToCsv();
+
+            Assert.That(csv, Does.Contain("\"ExpirationTime\""));
+            Assert.That(csv, Does.Contain("\"2026-12-24 11:22:33\""));
         }
 
         private List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)

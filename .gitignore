@@ -1,6 +1,8 @@
 .vs/
 .vscode/launch.json
 .vscode/settings.local.json
+.vscode/settings.json
+.vscode/launch.json
 .test_data/
 roles/importer/venv/
 ansible_venv/
@@ -8,7 +10,6 @@ ansible_venv/
 **/.venv/
 **/__pycache__/
 **/*.pyc
-.vscode/launch.json
 
 # Created by https://www.toptal.com/developers/gitignore/api/jetbrains+iml
 # Edit at https://www.toptal.com/developers/gitignore?templates=jetbrains+iml
@@ -68,4 +69,5 @@ cov.xml
 .coverage
 .DS_Store
 .dotnet
+**/.codex/
 FWO.local.runsettings

@@ -13,6 +13,7 @@
 @using Microsoft.AspNetCore.Components.Server.Circuits;
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using RestSharp
+@using System.IdentityModel.Tokens.Jwt
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -116,8 +117,10 @@
     private Queue<UIMessage> UIMessageQue = [];
 
     private Timer? UIMessageQueTimer;
+    private PeriodicTaskRunner? tokenRefreshRunner;
 
     private string? LastLocation;
+    private static readonly TimeSpan TokenRefreshCheckInterval = TimeSpan.FromSeconds(30);
 
     protected override async Task OnInitializedAsync()
     {
@@ -142,6 +145,9 @@
         };
 
         UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
+
+        tokenRefreshRunner = new(() => InvokeAsync(CheckAndRefreshTokenAsync), TokenRefreshCheckInterval);
+        tokenRefreshRunner.Start();
     }
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -158,8 +164,16 @@
     {
         try
         {
+            if (!await tokenService.HasRefreshToken())
+            {
+                return;
+            }
+
             if (await tokenService.IsAccessTokenExpired())
             {
+#if DEBUG
+ShowMessage("Access Token expired", "Your Access Token is expired, attempting refresh...", MessageType.Info);
+#endif
                 Log.WriteDebug("Token Check", "Access token expired, attempting refresh...");
 
                 CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
@@ -169,6 +183,10 @@
                 if (refreshed)
                 {
                     user = (await authenticationProvider.GetAuthenticationStateAsync()).User;
+
+#if DEBUG
+ShowMessage("Access Token refreshed", $"Access Token was refreshed.", MessageType.Success);
+#endif
                 }
             }
         }
@@ -191,13 +209,18 @@
     {
         if (e?.UserDn == userConfig.User.Dn)
         {
-            ShowReloginDialog(userConfig.GetText("permissions"), userConfig.GetText("permissions_text"), reloginAbortable: true);
+            ShowReloginDialog(userConfig.GetText("permissions"), userConfig.GetText("permissions_text"), reloginAbortable: false);
         }
     }
 
     private void OnJwtExpired(JwtExpiredEventArgs? e)
     {
-        if (e?.UserDn == userConfig.User.Dn)
+        
+#if DEBUG
+        ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Error);
+#endif
+
+        if (user?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && e.UserDn == userConfig.User.Dn)
         {
             ShowReloginDialog(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), reloginAbortable: false);
         }
@@ -477,6 +500,7 @@
         }
 
         alertSubscription?.Dispose();
+        tokenRefreshRunner?.Dispose();
         NavigationManager.LocationChanged -= OnLocationChanged;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));

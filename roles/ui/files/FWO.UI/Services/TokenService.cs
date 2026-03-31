@@ -91,6 +91,17 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
+        /// Checks whether a refresh token is available for the current session.
+        /// </summary>
+        /// <returns>True if a refresh token is available; otherwise false.</returns>
+        public async Task<bool> HasRefreshToken()
+        {
+            await initializationTask.Value;
+
+            return currentTokenPair != null && !string.IsNullOrWhiteSpace(currentTokenPair.RefreshToken);
+        }
+
+        /// <summary>
         /// Checks if the current access token is expired or about to expire within the next minute.
         /// </summary>
         /// <returns></returns>

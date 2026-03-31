@@ -48,9 +48,7 @@ namespace FWO.Ui.Auth
                     throw new ArgumentException("no refresh token in response");
                 }
 
-                await tokenService.SetTokenPair(tokenPair);
-
-                await Authenticate(tokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
+                await ApplyTokenPair(tokenPair, apiConnection, middlewareClient, userConfig, circuitHandler);
 
                 Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
             }
@@ -76,11 +74,16 @@ namespace FWO.Ui.Auth
         /// <returns>True if a valid JWT could be refreshed and applied; otherwise false.</returns>
         public async Task<bool> RefreshAuthenticationState(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
+            if (!await tokenService.HasRefreshToken())
+            {
+                return false;
+            }
+
             TokenPair? refreshedTokenPair = await tokenService.RefreshTokenPair();
 
             if (refreshedTokenPair == null || string.IsNullOrWhiteSpace(refreshedTokenPair.AccessToken))
             {
-                PublishJwtExpired(userConfig.User.Dn);
+                PublishJwtExpiredForAuthenticatedUser();
                 return false;
             }
 
@@ -88,7 +91,7 @@ namespace FWO.Ui.Auth
 
             if (!jwtApplied)
             {
-                PublishJwtExpired(userConfig.User.Dn);
+                PublishJwtExpiredForAuthenticatedUser();
             }
 
             return jwtApplied;
@@ -186,6 +189,41 @@ namespace FWO.Ui.Auth
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Applies a validated login response to the UI state and persists the token pair only after login is accepted.
+        /// </summary>
+        /// <param name="tokenPair">Token pair returned from the middleware login endpoint.</param>
+        /// <param name="apiConnection">API connection that should receive the JWT.</param>
+        /// <param name="middlewareClient">Middleware client that should receive the JWT.</param>
+        /// <param name="userConfig">Current user configuration to rebuild from the JWT claims.</param>
+        /// <param name="circuitHandler">Circuit-scoped user context to update after the JWT is applied.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task ApplyTokenPair(TokenPair tokenPair, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        {
+            await Authenticate(tokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler);
+            await tokenService.SetTokenPair(tokenPair);
+        }
+
+        /// <summary>
+        /// Announces JWT expiry only for an authenticated user session.
+        /// </summary>
+        private void PublishJwtExpiredForAuthenticatedUser()
+        {
+            if (user.Identity?.IsAuthenticated != true)
+            {
+                return;
+            }
+
+            string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
+
+            if (string.IsNullOrWhiteSpace(userDn))
+            {
+                return;
+            }
+
+            PublishJwtExpired(userDn);
         }
 
         /// <summary>

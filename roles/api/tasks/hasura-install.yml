@@ -102,6 +102,7 @@
     method: GET
     headers: "{{ {'Accept': 'application/vnd.github+json'} | combine(api_github_auth_header) }}"
     return_content: true
+    timeout: "{{ github_download_timeout }}"
   register: hasura_release
   environment: "{{ proxy_env }}"
   failed_when: false
@@ -127,31 +128,51 @@
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
     - hasura_release.status | default(-1) == 200
 
-- name: download {{ api_hasura_version }} hasura cli binary via authenticated GitHub access
-  get_url:
-    url: "https://api.github.com/repos/hasura/graphql-engine/releases/assets/{{ hasura_cli_asset_id }}"
-    dest: "{{ api_hasura_cli_bin }}"
-    headers: "{{ {'Accept': 'application/octet-stream'} | combine(api_github_auth_header) }}"
-    force: true
-    mode: "0755"
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-  environment: "{{ proxy_env }}"
-  register: api_hasura_cli_download
-  retries: 3
-  delay: 5
-  until: api_hasura_cli_download is succeeded
-  become: true
+- name: download {{ api_hasura_version }} hasura cli binary
+  block:
+    - name: download {{ api_hasura_version }} hasura cli binary via authenticated GitHub access
+      get_url:
+        url: "https://api.github.com/repos/hasura/graphql-engine/releases/assets/{{ hasura_cli_asset_id }}"
+        dest: "{{ api_hasura_cli_bin }}"
+        headers: "{{ {'Accept': 'application/octet-stream'} | combine(api_github_auth_header) }}"
+        force: true
+        timeout: "{{ github_download_timeout }}"
+        mode: "0755"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+      environment: "{{ proxy_env }}"
+      register: api_hasura_cli_download
+      retries: 3
+      delay: 5
+      until: api_hasura_cli_download is succeeded
+      become: true
+      when: hasura_cli_asset_id is defined
+  rescue:
+    - name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download after asset API failure
+      get_url:
+        url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
+        dest: "{{ api_hasura_cli_bin }}"
+        force: true
+        timeout: "{{ github_download_timeout }}"
+        mode: "0755"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+      environment: "{{ proxy_env }}"
+      register: api_hasura_cli_download_fallback
+      retries: 3
+      delay: 5
+      until: api_hasura_cli_download_fallback is succeeded
+      become: true
   when:
     - not api_cli_check.stat.exists
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
-    - hasura_cli_asset_id is defined
 
-- name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download
+- name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download when no asset id was found
   get_url:
     url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
     dest: "{{ api_hasura_cli_bin }}"
     force: true
+    timeout: "{{ github_download_timeout }}"
     mode: "0755"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
@@ -243,6 +264,15 @@
       {{ item.0 }}={{ item.1 }}
       {% endfor %}
   become: true
+
+- name: stop Hasura service before container recreation
+  ansible.builtin.systemd:
+    name: "{{ api_service_name }}"
+    state: stopped
+  become: true
+  failed_when: false
+  when:
+    - not api_reuse_existing_hasura_image | bool
 
 - name: remove existing Hasura container before recreation
   containers.podman.podman_container:

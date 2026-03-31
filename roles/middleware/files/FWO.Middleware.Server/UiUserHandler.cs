@@ -42,48 +42,22 @@ namespace FWO.Middleware.Server
         public static async Task<int> GetExpirationTime(ApiConnection apiConnection, string lifetimeKey)
         {
             int expirationTime = GlobalConst.kSessionExpirationTimeDefault;
-
             PropertyInfo? property = typeof(ConfigData).GetProperty(lifetimeKey);
-            JsonPropertyAttribute? jsonPropertyAttr = property?.GetCustomAttribute<JsonPropertyAttribute>();
-
-            if (jsonPropertyAttr == null)
+            string? lifetimeKeyDBName = GetLifetimeKeyDbName(property);
+            if (string.IsNullOrEmpty(lifetimeKeyDBName))
             {
                 return expirationTime;
             }
 
             try
             {
-                string? lifetimeKeyDBName = jsonPropertyAttr.PropertyName;
-
-                if (string.IsNullOrEmpty(lifetimeKeyDBName))
-                {
-                    throw new ArgumentException("Lifetime key DB name is null or empty");
-                }
-
                 List<ConfExpirationTime> resultList = await apiConnection.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = lifetimeKeyDBName });
-
                 if (resultList.Count > 0)
                 {
                     return resultList[0].ExpirationValue;
                 }
-                else
-                {
-                    ConfigData defaultConfigValue = new();
-                    object? propertyValue = property?.GetValue(defaultConfigValue);
 
-                    if (propertyValue is int intPropertyValue && intPropertyValue >= 0)
-                    {
-                        return intPropertyValue;
-                    }
-
-                    //if no value is set in DB, take the default from config file and if that is not set, take the hardcoded constant
-                    return lifetimeKey switch
-                    {
-                        nameof(ConfigData.AccessTokenLifetimeHours) => (defaultConfigValue.AccessTokenLifetimeHours > 0) ? defaultConfigValue.AccessTokenLifetimeHours : expirationTime,
-                        nameof(ConfigData.RefreshTokenLifetimeDays) => (defaultConfigValue.RefreshTokenLifetimeDays > 0) ? defaultConfigValue.RefreshTokenLifetimeDays : expirationTime,
-                        _ => expirationTime,
-                    };
-                }
+                return GetDefaultExpirationTime(property, lifetimeKey, expirationTime);
             }
             catch (Exception exeption)
             {
@@ -91,6 +65,30 @@ namespace FWO.Middleware.Server
             }
 
             return expirationTime;
+        }
+
+        private static string? GetLifetimeKeyDbName(PropertyInfo? property)
+        {
+            return property?.GetCustomAttribute<JsonPropertyAttribute>()?.PropertyName;
+        }
+
+        private static int GetDefaultExpirationTime(PropertyInfo? property, string lifetimeKey, int expirationTime)
+        {
+            ConfigData defaultConfigValue = new();
+            object? propertyValue = property?.GetValue(defaultConfigValue);
+
+            if (propertyValue is int intPropertyValue && intPropertyValue >= 0)
+            {
+                return intPropertyValue;
+            }
+
+            // if no value is set in DB, take the default from config file and if that is not set, take the hardcoded constant
+            return lifetimeKey switch
+            {
+                nameof(ConfigData.AccessTokenLifetimeHours) => defaultConfigValue.AccessTokenLifetimeHours > 0 ? defaultConfigValue.AccessTokenLifetimeHours : expirationTime,
+                nameof(ConfigData.RefreshTokenLifetimeDays) => defaultConfigValue.RefreshTokenLifetimeDays > 0 ? defaultConfigValue.RefreshTokenLifetimeDays : expirationTime,
+                _ => expirationTime,
+            };
         }
 
         /// <summary>

@@ -65,6 +65,9 @@ namespace FWO.Data
         /// List of IP ranges that overlap with matched owner ranges.
         /// Used for IP-based owner mapping.
         /// </summary>
+        [JsonProperty("overlapping_ranges", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("overlapping_ranges")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public List<IPAddressRange>? OverlappingRanges { get; set; }
 
 

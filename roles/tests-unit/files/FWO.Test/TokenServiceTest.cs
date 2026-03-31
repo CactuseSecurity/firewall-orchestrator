@@ -123,6 +123,45 @@ namespace FWO.Test
 
         #endregion
 
+        #region GetTokenExpirations Tests
+
+        [Test]
+        public async Task GetTokenExpirations_WhenNoTokenExists_ShouldReturnNullValues()
+        {
+            // Act
+            (DateTime? accessExpiresAtUtc, DateTime? refreshExpiresAtUtc) = await tokenService!.GetTokenExpirations();
+
+            // Assert
+            Assert.That(accessExpiresAtUtc, Is.Null);
+            Assert.That(refreshExpiresAtUtc, Is.Null);
+        }
+
+        [Test]
+        public async Task GetTokenExpirations_WhenTokenExists_ShouldReturnStoredExpirationValues()
+        {
+            // Arrange
+            DateTime accessExpiration = new(2030, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+            DateTime refreshExpiration = new(2030, 1, 3, 4, 5, 6, DateTimeKind.Utc);
+            TokenPair tokenPair = new()
+            {
+                AccessToken = TEST_ACCESS_TOKEN,
+                RefreshToken = TEST_REFRESH_TOKEN,
+                AccessTokenExpires = accessExpiration,
+                RefreshTokenExpires = refreshExpiration
+            };
+
+            await tokenService!.SetTokenPair(tokenPair);
+
+            // Act
+            (DateTime? accessExpiresAtUtc, DateTime? refreshExpiresAtUtc) = await tokenService.GetTokenExpirations();
+
+            // Assert
+            Assert.That(accessExpiresAtUtc, Is.EqualTo(accessExpiration));
+            Assert.That(refreshExpiresAtUtc, Is.EqualTo(refreshExpiration));
+        }
+
+        #endregion
+
         #region IsAccessTokenExpired Tests
 
         [Test]

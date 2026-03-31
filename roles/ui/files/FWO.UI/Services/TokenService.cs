@@ -91,6 +91,17 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
+        /// Gets the full <see cref="TokenPair"/> info
+        /// </summary>
+        /// <returns>Token Pair object</returns>
+        public async Task<TokenPair?> GetTokenPair()
+        {
+            await initializationTask.Value;
+
+            return currentTokenPair;
+        }
+
+        /// <summary>
         /// Checks whether a refresh token is available for the current session.
         /// </summary>
         /// <returns>True if a refresh token is available; otherwise false.</returns>
@@ -99,6 +110,26 @@ namespace FWO.Ui.Services
             await initializationTask.Value;
 
             return currentTokenPair != null && !string.IsNullOrWhiteSpace(currentTokenPair.RefreshToken);
+        }
+
+        /// <summary>
+        /// Gets the current access and refresh token expiration timestamps.
+        /// </summary>
+        /// <returns>The current access and refresh token expiration timestamps, or null values when no token pair is stored.</returns>
+        public async Task<(DateTime? AccessTokenExpiresAtUtc, DateTime? RefreshTokenExpiresAtUtc)> GetTokenExpirations()
+        {
+            await initializationTask.Value;
+
+            if (currentTokenPair is null)
+            {
+                return (null, null);
+            }
+
+            return
+            (
+                NormalizeTokenExpiration(currentTokenPair.AccessTokenExpires),
+                NormalizeTokenExpiration(currentTokenPair.RefreshTokenExpires)
+            );
         }
 
         /// <summary>
@@ -132,7 +163,7 @@ namespace FWO.Ui.Services
         /// Refreshes the token pair using the current refresh token.
         /// </summary>
         /// <returns>The refreshed token pair, or the current pair if no refresh is required. Returns null on failure.</returns>
-        public async Task<TokenPair?> RefreshTokenPair()
+        public async Task<TokenPair?> RefreshTokenPair(bool force = false)
         {
             await initializationTask.Value;
 
@@ -147,7 +178,7 @@ namespace FWO.Ui.Services
 
             try
             {
-                if (!await IsAccessTokenExpired())
+                if (!force && !await IsAccessTokenExpired())
                 {
                     return currentTokenPair;
                 }
@@ -203,6 +234,20 @@ namespace FWO.Ui.Services
                 Log.WriteWarning("Token Refresh", $"Failed to deserialize refreshed token pair: {ex.Message}");
                 return null;
             }
+        }
+
+        private static DateTime? NormalizeTokenExpiration(DateTime expiration)
+        {
+            if (expiration == default)
+            {
+                return null;
+            }
+
+            return expiration.Kind switch
+            {
+                DateTimeKind.Unspecified => DateTime.SpecifyKind(expiration, DateTimeKind.Utc),
+                _ => expiration.ToUniversalTime()
+            };
         }
 
         /// <summary>

@@ -45,6 +45,27 @@
 </div>
 
 <div class="footer">
+    @if (IsDebugBuild)
+    {
+        <div class="ms-auto m-2 w-25">
+            <div class="alert alert-info py-2 px-3 small" role="status">
+                <div class="mb-2"><strong class="text-black">Debug Token Expiry</strong></div>
+                <div><strong class="text-primary">Access:</strong> @debugAccessTokenCountdown</div>
+                <div class="mb-2"><strong class="text-danger">Refresh:</strong> @debugRefreshTokenCountdown</div>
+                <button class="btn btn-sm btn-dark" @onclick="@(async () => await tokenService.RefreshTokenPair(force: true))">Refresh Tokens</button>
+                <button class="btn btn-sm btn-danger" @onclick="@(async () => { await tokenService.RevokeTokens(); EventMediator.Publish(nameof(JwtExpiredEvent), new JwtExpiredEvent(new(userConfig.User.Dn))); })">Revoke Tokens</button>
+                <button class="btn btn-sm btn-warning @Icons.Display" @onclick="@(_ => showTokens = !showTokens)"><span class="ps-1">Show</span></button>
+                @if (showTokens)
+                {
+                    TokenPair? token = tokenService.GetTokenPair().GetAwaiter().GetResult();
+                    <div class="mt-2">
+                        <div class="mb-2"><strong class="text-primary">Access:</strong> <p class="word-wrap">@token?.AccessToken</p></div>
+                        <div><strong class="text-danger">Refresh:</strong> <p class="word-wrap">@token?.RefreshToken</p></div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
     <div class="mx-2">
         @foreach (UIMessage uiMessage in UIMessages)
         {
@@ -57,8 +78,7 @@
         }
     </div>
 </div>
-
-<PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)" Size=PopupSize.Small>
+<PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)" Size=PopupSize.Auto>
 
     <Body>
         <p>@(reloginDialogText)</p>
@@ -112,6 +132,7 @@
     private bool reloginAbortable;
     private string? password;
     private ClaimsPrincipal? user;
+    private bool showTokens { get; set; }
 
     private List<UIMessage> UIMessages = [];
     private Queue<UIMessage> UIMessageQue = [];
@@ -121,6 +142,16 @@
 
     private string? LastLocation;
     private static readonly TimeSpan TokenRefreshCheckInterval = TimeSpan.FromSeconds(30);
+
+#if DEBUG
+    private const bool IsDebugBuild = true;
+#else
+    private const bool IsDebugBuild = false;
+#endif
+
+    private PeriodicTaskRunner? debugTokenClockRunner;
+    private string debugAccessTokenCountdown = "n/a";
+    private string debugRefreshTokenCountdown = "n/a";
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,6 +179,13 @@
 
         tokenRefreshRunner = new(() => InvokeAsync(CheckAndRefreshTokenAsync), TokenRefreshCheckInterval);
         tokenRefreshRunner.Start();
+
+        if (IsDebugBuild)
+        {
+            await UpdateDebugTokenCountdownAsync();
+            debugTokenClockRunner = new(() => InvokeAsync(UpdateDebugTokenCountdownAsync), TimeSpan.FromSeconds(1));
+            debugTokenClockRunner.Start();
+        }
     }
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -171,9 +209,10 @@
 
             if (await tokenService.IsAccessTokenExpired())
             {
-#if DEBUG
-ShowMessage("Access Token expired", "Your Access Token is expired, attempting refresh...", MessageType.Info);
-#endif
+                if (IsDebugBuild)
+                {
+                    ShowMessage("Access Token expired", "Your Access Token is expired, attempting refresh...", MessageType.Info);
+                }
                 Log.WriteDebug("Token Check", "Access token expired, attempting refresh...");
 
                 CircuitHandlerService circuitHandlerService = (CircuitHandlerService)circuitHandler;
@@ -184,9 +223,11 @@ ShowMessage("Access Token expired", "Your Access Token is expired, attempting re
                 {
                     user = (await authenticationProvider.GetAuthenticationStateAsync()).User;
 
-#if DEBUG
-ShowMessage("Access Token refreshed", $"Access Token was refreshed.", MessageType.Success);
-#endif
+                    if (IsDebugBuild)
+                    {
+                        ShowMessage("Access Token refreshed", "Access Token was refreshed.", MessageType.Success);
+                        await UpdateDebugTokenCountdownAsync();
+                    }
                 }
             }
         }
@@ -215,10 +256,10 @@ ShowMessage("Access Token refreshed", $"Access Token was refreshed.", MessageTyp
 
     private void OnJwtExpired(JwtExpiredEventArgs? e)
     {
-        
-#if DEBUG
-        ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Error);
-#endif
+        if (IsDebugBuild)
+        {
+            ShowMessage(userConfig.GetText("jwt_expired_title"), userConfig.GetText("jwt_expired_text"), MessageType.Error);
+        }
 
         if (user?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(e?.UserDn) && e.UserDn == userConfig.User.Dn)
         {
@@ -501,9 +542,43 @@ ShowMessage("Access Token refreshed", $"Access Token was refreshed.", MessageTyp
 
         alertSubscription?.Dispose();
         tokenRefreshRunner?.Dispose();
+        debugTokenClockRunner?.Dispose();
         NavigationManager.LocationChanged -= OnLocationChanged;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));
         EventMediator.Unsubscribe<JwtExpiredEvent>(nameof(JwtExpiredEvent));
 
+    }
+
+    private async Task UpdateDebugTokenCountdownAsync()
+    {
+        (DateTime? accessExpiresAtUtc, DateTime? refreshExpiresAtUtc) = await tokenService.GetTokenExpirations();
+
+        debugAccessTokenCountdown = FormatTokenExpiryCountdown(accessExpiresAtUtc);
+        debugRefreshTokenCountdown = FormatTokenExpiryCountdown(refreshExpiresAtUtc);
+
+        StateHasChanged();
+    }
+
+    private static string FormatTokenExpiryCountdown(DateTime? expiresAtUtc)
+    {
+        if (!expiresAtUtc.HasValue)
+        {
+            return "n/a";
+        }
+
+        TimeSpan remaining = expiresAtUtc.Value - DateTime.UtcNow;
+        string expiresAtLabel = expiresAtUtc.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+
+        if (remaining <= TimeSpan.Zero)
+        {
+            return $"expired {FormatDuration(remaining.Duration())} ago ({expiresAtLabel})";
+        }
+
+        return $"in {FormatDuration(remaining)} ({expiresAtLabel})";
+    }
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        return $"{Math.Floor(duration.TotalDays):00}d {duration.Hours:00}h {duration.Minutes:00}m {duration.Seconds:00}s";
     }
 }

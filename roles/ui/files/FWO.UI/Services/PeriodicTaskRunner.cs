@@ -8,7 +8,6 @@ namespace FWO.Ui.Services
         private readonly Func<Task> callback;
         private readonly TimeSpan interval;
         private readonly CancellationTokenSource cancellationTokenSource = new();
-        private Task? backgroundTask;
         private int started;
 
         /// <summary>
@@ -38,7 +37,7 @@ namespace FWO.Ui.Services
                 return;
             }
 
-            backgroundTask = RunAsync(cancellationTokenSource.Token);
+            _ = RunAsync(cancellationTokenSource.Token);
         }
 
         /// <inheritdoc />

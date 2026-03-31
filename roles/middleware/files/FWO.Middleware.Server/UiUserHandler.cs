@@ -69,6 +69,12 @@ namespace FWO.Middleware.Server
                 else
                 {
                     ConfigData defaultConfigValue = new();
+                    object? propertyValue = property?.GetValue(defaultConfigValue);
+
+                    if (propertyValue is int intPropertyValue && intPropertyValue >= 0)
+                    {
+                        return intPropertyValue;
+                    }
 
                     //if no value is set in DB, take the default from config file and if that is not set, take the hardcoded constant
                     return lifetimeKey switch

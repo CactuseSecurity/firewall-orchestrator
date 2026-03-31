@@ -1,3 +1,5 @@
+using FWO.Logging;
+
 namespace FWO.Ui.Services
 {
     /// <summary>
@@ -59,8 +61,9 @@ namespace FWO.Ui.Services
                     await callback();
                 }
             }
-            catch (OperationCanceledException)
+            catch (Exception ex)
             {
+                Log.WriteError(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} ran into an exception: {ex}", ex);
             }
         }
     }

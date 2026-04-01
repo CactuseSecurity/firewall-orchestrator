@@ -55,6 +55,7 @@ namespace FWO.Api.Client
         {
             Initialize(ApiServerUri);
             this.authTokenProvider = authTokenProvider;
+            RefreshAuthHeaderIfSupported();
         }
 
         public GraphQlApiConnection(string ApiServerUri)

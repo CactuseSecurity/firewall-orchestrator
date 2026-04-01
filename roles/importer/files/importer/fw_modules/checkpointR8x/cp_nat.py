@@ -23,7 +23,7 @@ def normalize_nat_rules(
             normalized_nat_rulebase = Rulebase(
                 uid="nat-rulebase-" + gateway["uid"],
                 mgm_uid=import_state.mgm_details.uid,
-                name="NAT Rulebase for " + gateway["name"],
+                name="NAT",
                 rules={},
             )
 

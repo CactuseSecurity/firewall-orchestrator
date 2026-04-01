@@ -2,9 +2,9 @@ mutation tryLockExternalRequest(
   $id: bigint!
   $states: [String!]
   $lockOwner: String!
-  $lockAcquiredAt: timestamp!
-  $lockExpiresAt: timestamp!
-  $currentTime: timestamp!
+  $lockAcquiredAt: timestamptz!
+  $lockExpiresAt: timestamptz!
+  $currentTime: timestamptz!
   ) {
   update_ext_request(
     where: {

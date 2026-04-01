@@ -1,8 +1,8 @@
 mutation renewExternalRequestLock(
   $id: bigint!
   $lockOwner: String!
-  $lockAcquiredAt: timestamp!
-  $lockExpiresAt: timestamp!
+  $lockAcquiredAt: timestamptz!
+  $lockExpiresAt: timestamptz!
   ) {
   update_ext_request(
     where: {

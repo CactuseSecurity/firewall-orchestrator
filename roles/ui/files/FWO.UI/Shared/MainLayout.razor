@@ -54,7 +54,7 @@
                 <div class="mb-2"><strong class="text-danger">Refresh:</strong> @debugRefreshTokenCountdown</div>
                 <button class="btn btn-sm btn-dark" @onclick="@(async () => await tokenService.RefreshTokenPair(force: true))">Refresh Tokens</button>
                 <button class="btn btn-sm btn-danger" @onclick="@(async () => { await tokenService.RevokeTokens(); EventMediator.Publish(nameof(JwtExpiredEvent), new JwtExpiredEvent(new(userConfig.User.Dn))); })">Revoke Tokens</button>
-                <button class="btn btn-sm btn-warning @Icons.Display" @onclick="@(_ => showTokens = !showTokens)"><span class="ps-1">Show</span></button>
+                <button class="btn btn-sm btn-warning @Icons.Display" @onclick="@(_ => showTokens = !showTokens)"><span class="ps-1">@(showTokens ? "Hide" : "Show")</span></button>
                 @if (showTokens)
                 {
                     TokenPair? token = tokenService.GetTokenPair().GetAwaiter().GetResult();

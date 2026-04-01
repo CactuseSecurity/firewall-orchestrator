@@ -75,7 +75,25 @@ namespace FWO.Services
             long? alertId = null;
             try
             {
+                bool reuseExactMatchingAlert = additionalAlertData.CompareDesc || additionalAlertData.CompareTitle;
                 List<Alert> openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
+                List<Alert> matchingAlerts = openAlerts.Where(x => x.AlertCode == alertCode
+                    && (x.ManagementId == additionalAlertData.MgmtId || (x.ManagementId == null && additionalAlertData.MgmtId == null))
+                    && (additionalAlertData.UserId == 0 || x.UserId == additionalAlertData.UserId)
+                    && (!additionalAlertData.CompareDesc || x.Description == description)
+                    && (!additionalAlertData.CompareTitle || x.Title == title))
+                    .OrderByDescending(x => x.Timestamp)
+                    .ThenByDescending(x => x.Id)
+                    .ToList();
+                if (reuseExactMatchingAlert && matchingAlerts.Count > 0)
+                {
+                    Alert retainedAlert = matchingAlerts[0];
+                    foreach (Alert duplicateAlert in matchingAlerts.Skip(1))
+                    {
+                        await AcknowledgeAlert(apiConnection, duplicateAlert.Id, additionalAlertData.UserId);
+                    }
+                    return retainedAlert.Id;
+                }
                 var Variables = new
                 {
                     source = source,
@@ -91,21 +109,15 @@ namespace FWO.Services
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAlert, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
-                    // Acknowledge older alert for same problem
                     alertId = returnIds[0].NewIdLong;
-                    Alert? existingAlert = openAlerts.FirstOrDefault(x => x.AlertCode == alertCode
-                        && (x.ManagementId == additionalAlertData.MgmtId || (x.ManagementId == null && additionalAlertData.MgmtId == null))
-                        && (additionalAlertData.UserId == 0 || x.UserId == additionalAlertData.UserId)
-                        && (!additionalAlertData.CompareDesc || x.Description == description)
-                        && (!additionalAlertData.CompareTitle || x.Title == title));
-                    if (existingAlert != null)
-                    {
-                        await AcknowledgeAlert(apiConnection, existingAlert.Id, additionalAlertData.UserId);
-                    }
                 }
                 else
                 {
                     Log.WriteError("Write Alert", "Log could not be written to database");
+                }
+                foreach (Alert duplicateAlert in matchingAlerts)
+                {
+                    await AcknowledgeAlert(apiConnection, duplicateAlert.Id, additionalAlertData.UserId);
                 }
                 LogAlert(title, description, source, alertCode, additionalAlertData.MgmtId, additionalAlertData.JsonData, additionalAlertData.DevId);
             }

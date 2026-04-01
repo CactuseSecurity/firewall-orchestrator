@@ -120,7 +120,13 @@ namespace FWO.Test
         [SetUp]
         public void Initialize()
         {
-
+            apiConnection.CloseHistoryMessage = null;
+            apiConnection.History.Clear();
+            apiConnection.AddHistoryMessage = null;
+            apiConnection.AddExtRequestVars = null;
+            apiConnection.FailUpdateExtRequestProcess = false;
+            apiConnection.FailUpdateExtRequestFinal = false;
+            userConfig.ModRolloutBundleTasks = true;
         }
 
         [Test]
@@ -275,6 +281,51 @@ namespace FWO.Test
             ClassicAssert.AreEqual(true, apiConnection.History[13].Contains("Task5"));
             ClassicAssert.AreEqual(true, apiConnection.History[14].Contains("changeType = 10"));
             ClassicAssert.AreEqual(true, apiConnection.History[14].Contains("Task5"));
+        }
+
+        [Test]
+        public async Task TestPatchStateReturnsFalseWhenStatePersistFails()
+        {
+            apiConnection.FailUpdateExtRequestProcess = true;
+            using ExternalRequestHandler externalRequestHandler = new(userConfig, apiConnection, null);
+            ExternalRequest externalRequest = new()
+            {
+                Id = 1,
+                TicketId = 1,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtQueryVariables = ""
+            };
+
+            bool success = await externalRequestHandler.PatchState(externalRequest);
+
+            ClassicAssert.IsFalse(success);
+        }
+
+        [Test]
+        public void TestHandleStateChangeThrowsWhenFinalAcknowledgementFails()
+        {
+            apiConnection.FailUpdateExtRequestFinal = true;
+            using ExternalRequestHandler externalRequestHandler = new(userConfig, apiConnection, null);
+            ExternalRequest externalRequest = new()
+            {
+                Id = 1,
+                TicketId = 1,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4711",
+                ExtQueryVariables = ""
+            };
+
+            InvalidOperationException? exception = ClassicAssert.ThrowsAsync<InvalidOperationException>(async () =>
+                await externalRequestHandler.HandleStateChange(externalRequest));
+
+            ClassicAssert.IsNotNull(exception);
+            InvalidOperationException nonNullException = exception!;
+            ClassicAssert.AreEqual("simulated final acknowledgement failure", nonNullException.Message);
+            ClassicAssert.AreEqual(1, apiConnection.History.Count);
+            ClassicAssert.IsNull(apiConnection.AddExtRequestVars);
+            apiConnection.FailUpdateExtRequestFinal = false;
         }
     }
 }

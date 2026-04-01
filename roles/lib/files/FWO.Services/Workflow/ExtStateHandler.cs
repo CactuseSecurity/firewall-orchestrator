@@ -13,7 +13,7 @@ namespace FWO.Services.Workflow
         public ExtStateHandler(ApiConnection apiConnection)
         {
             this.apiConnection = apiConnection;
-            Task.Run(Init).Wait();
+            Init().GetAwaiter().GetResult();
         }
 
         public async Task Init()

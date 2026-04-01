@@ -1,0 +1,26 @@
+mutation tryLockExternalRequest(
+  $id: bigint!
+  $states: [String!]
+  $lockOwner: String!
+  $lockAcquiredAt: timestamp!
+  $lockExpiresAt: timestamp!
+  $currentTime: timestamp!
+  ) {
+  update_ext_request(
+    where: {
+      id: { _eq: $id }
+      ext_request_state: { _in: $states }
+      _or: [
+        { locked: { _eq: false } }
+        { lock_expires_at: { _lt: $currentTime } }
+      ]
+    }
+    _set: {
+      locked: true
+      lock_owner: $lockOwner
+      lock_acquired_at: $lockAcquiredAt
+      lock_expires_at: $lockExpiresAt
+  }) {
+    affected_rows
+  }
+}

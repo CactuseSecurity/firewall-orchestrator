@@ -380,3 +380,6 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.15 - 12.03.2026 DEVELOP
 - rename OwnerSourceCustomFieldKey to CustomFieldOwnerKey in config
+
+# 9.0.17 - 31.03.2026 DEVELOP
+- external request lock leases with owner-based reclaim for crashed workers

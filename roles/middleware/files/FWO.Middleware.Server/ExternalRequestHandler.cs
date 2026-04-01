@@ -40,7 +40,7 @@ namespace FWO.Middleware.Server
             ApiConnection = apiConnection;
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
-            Task.Run(GetInternalGroups).Wait();
+            GetInternalGroups().GetAwaiter().GetResult();
             wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
         }
 
@@ -140,18 +140,15 @@ namespace FWO.Middleware.Server
 
         private async Task UpdateRequestState(ExternalRequest request)
         {
-            try
+            var Variables = new
             {
-                var Variables = new
-                {
-                    id = request.Id,
-                    extRequestState = request.ExtRequestState
-                };
-                await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
-            }
-            catch (Exception exception)
+                id = request.Id,
+                extRequestState = request.ExtRequestState
+            };
+            ReturnId result = await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
+            if (result.UpdatedIdLong != request.Id)
             {
-                Log.WriteError("External Request Handler", $"State update failed: ", exception);
+                throw new InvalidOperationException($"State update failed for external request {request.Id}.");
             }
         }
 
@@ -456,21 +453,18 @@ namespace FWO.Middleware.Server
 
         private async Task Acknowledge(ExternalRequest extRequest)
         {
-            try
+            var Variables = new
             {
-                var Variables = new
-                {
-                    id = extRequest.Id,
-                    extRequestState = extRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString() ?
-                        ExtStates.ExtReqAckRejected.ToString() :
-                        ExtStates.ExtReqAcknowledged.ToString(),
-                    finishDate = DateTime.Now
-                };
-                await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestFinal, Variables);
-            }
-            catch (Exception exception)
+                id = extRequest.Id,
+                extRequestState = extRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString() ?
+                    ExtStates.ExtReqAckRejected.ToString() :
+                    ExtStates.ExtReqAcknowledged.ToString(),
+                finishDate = DateTime.Now
+            };
+            ReturnId result = await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestFinal, Variables);
+            if (result.UpdatedIdLong != extRequest.Id)
             {
-                Log.WriteError("Acknowledge External Request", $"Runs into exception: ", exception);
+                throw new InvalidOperationException($"Acknowledgement update failed for external request {extRequest.Id}.");
             }
         }
 

@@ -118,7 +118,7 @@ create table ext_request
 (
 	id BIGSERIAL PRIMARY KEY,
     owner_id int,
-    ticket_id bigint,
+	ticket_id bigint,
 	task_number int,
 	ext_ticket_system varchar,
 	ext_request_type varchar,
@@ -132,5 +132,8 @@ create table ext_request
 	finish_date Timestamp,
 	wait_cycles int default 0,
 	attempts int default 0,
-	locked boolean default false
+	locked boolean default false,
+	lock_owner varchar,
+	lock_acquired_at Timestamp,
+	lock_expires_at Timestamp
 );

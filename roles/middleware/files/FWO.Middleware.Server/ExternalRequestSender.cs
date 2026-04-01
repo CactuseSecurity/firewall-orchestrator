@@ -5,6 +5,7 @@ using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
+using FWO.Services;
 using FWO.ExternalSystems;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using RestSharp;
@@ -18,6 +19,11 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class ExternalRequestSender : IDisposable
     {
+        private static readonly TimeSpan OverdueRequestThreshold = TimeSpan.FromHours(24);
+        private static readonly TimeSpan DefaultLockLeaseDuration = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan MinimumLockLeaseDuration = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan LockLeaseSafetyBuffer = TimeSpan.FromMinutes(2);
+
         /// <summary>
         /// Api Connection
         /// </summary>
@@ -30,6 +36,7 @@ namespace FWO.Middleware.Server
 
         private readonly UserConfig userConfig;
         private readonly SCClient? InjScClient;
+        private readonly string lockOwner = $"{Environment.MachineName}:{Guid.NewGuid():N}";
         ExternalTicketSystem? ExtTicketSystem;
         private bool disposed = false;
 
@@ -63,19 +70,25 @@ namespace FWO.Middleware.Server
         public async Task<List<string>> Run()
         {
             List<string> FailedRequests = [];
-            ExternalRequestDataHelper openRequests = await apiConnection.SendQueryAsync<ExternalRequestDataHelper>(ExtRequestQueries.getAndLockOpenRequests, new { states = openRequestStates });
-            foreach (ExternalRequest request in openRequests.ExternalRequests)
+            List<ExternalRequest> openRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests,
+                new { states = openRequestStates, currentTime = DateTime.Now });
+            foreach (ExternalRequest request in openRequests)
             {
                 await HandleRequest(request, FailedRequests);
             }
-            await ReleaseRemainingLocks(openRequests.ExternalRequests);
             return FailedRequests;
         }
 
         private async Task HandleRequest(ExternalRequest request, List<string> FailedRequests)
         {
+            bool requestFailed = false;
             try
             {
+                if (!await TryLockRequest(request))
+                {
+                    return;
+                }
+                await SetOverdueAlertIfNeeded(request);
                 ExtTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
                 if (request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
                     request.ExtRequestState == ExtStates.ExtReqFailed.ToString()) // try again
@@ -93,15 +106,30 @@ namespace FWO.Middleware.Server
                 {
                     await RefreshState(request);
                 }
-                if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new { id = request.Id, locked = false })).UpdatedIdLong == request.Id)
-                {
-                    request.Locked = false;
-                }
             }
             catch (Exception exception)
             {
+                requestFailed = true;
                 Log.WriteError(LogMessageTitle, "Runs into exception: ", exception);
                 FailedRequests.Add(RequestInfo(request));
+            }
+            finally
+            {
+                if (request.Locked)
+                {
+                    try
+                    {
+                        await UnlockRequest(request);
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.WriteError(LogMessageTitle, "Release Lock runs into exception: ", exception);
+                        if (!requestFailed)
+                        {
+                            FailedRequests.Add(RequestInfo(request));
+                        }
+                    }
+                }
             }
         }
 
@@ -110,27 +138,13 @@ namespace FWO.Middleware.Server
             return $"Request Id: {request.Id}, Internal TicketId: {request.TicketId}, TaskNo: {request.TaskNumber}";
         }
 
-        private async Task ReleaseRemainingLocks(List<ExternalRequest> requests)
-        {
-            try
-            {
-                foreach (ExternalRequest? request in requests.Where(r => r.Locked))
-                {
-                    await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new { id = request.Id, locked = false });
-                }
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError(LogMessageTitle, "Release Lock runs into exception: ", exception);
-            }
-        }
-
         private async Task SendRequest(ExternalRequest request)
         {
             ExternalTicket? ticket = ConstructTicket(request);
             try
             {
                 Log.WriteInfo(LogMessageTitle, $"Sending {RequestInfo(request)}");
+                await RenewLockRequest(request);
                 request.Attempts++;
                 RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
                 request.LastMessage = ticketIdResponse.Content;
@@ -196,6 +210,7 @@ namespace FWO.Middleware.Server
         private async Task RejectRequest(ExternalRequest request)
         {
             request.ExtRequestState = ExtStates.ExtReqRejected.ToString();
+            await RenewLockRequest(request);
             await UpdateRequestCreation(request);
             using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
             await extReqHandler.HandleStateChange(request);
@@ -247,6 +262,7 @@ namespace FWO.Middleware.Server
         {
             (request.ExtRequestState, request.LastMessage) = await PollState(request);
             await UpdateRequestProcess(request);
+            await RenewLockRequest(request);
             using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
             await extReqHandler.HandleStateChange(request);
         }
@@ -267,12 +283,20 @@ namespace FWO.Middleware.Server
                 {
                     throw new NotSupportedException("Ticket system not supported yet");
                 }
+                await RenewLockRequest(request);
                 return await ticket.GetNewState(request.ExtRequestState);
             }
             catch (Exception exc)
             {
                 request.LastMessage = exc.Message;
-                await UpdateRequestProcess(request);
+                try
+                {
+                    await UpdateRequestProcess(request);
+                }
+                catch (Exception updateException)
+                {
+                    throw new AggregateException(exc, updateException);
+                }
                 throw;
             }
         }
@@ -288,24 +312,25 @@ namespace FWO.Middleware.Server
                 waitCycles = request.WaitCycles,
                 attempts = request.Attempts
             };
-            await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestCreation, Variables);
+            ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestCreation, Variables);
+            if (result.UpdatedIdLong != request.Id)
+            {
+                throw new InvalidOperationException($"External request creation update failed for request {request.Id}.");
+            }
         }
 
         private async Task UpdateRequestProcess(ExternalRequest request)
         {
-            try
+            var Variables = new
             {
-                var Variables = new
-                {
-                    id = request.Id,
-                    extRequestState = request.ExtRequestState,
-                    processingResponse = request.LastMessage
-                };
-                await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
-            }
-            catch (Exception exception)
+                id = request.Id,
+                extRequestState = request.ExtRequestState,
+                processingResponse = request.LastMessage
+            };
+            ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
+            if (result.UpdatedIdLong != request.Id)
             {
-                Log.WriteError(LogMessageTitle, "UpdateRequestProcess failed: ", exception);
+                throw new InvalidOperationException($"External request process update failed for request {request.Id}.");
             }
         }
 
@@ -316,7 +341,117 @@ namespace FWO.Middleware.Server
                 id = request.Id,
                 waitCycles = --request.WaitCycles
             };
-            await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestWaitCycles, Variables);
+            ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestWaitCycles, Variables);
+            if (result.UpdatedIdLong != request.Id)
+            {
+                throw new InvalidOperationException($"External request wait cycle update failed for request {request.Id}.");
+            }
+        }
+
+        private async Task<bool> TryLockRequest(ExternalRequest request)
+        {
+            DateTime lockAcquiredAt = DateTime.Now;
+            DateTime lockExpiresAt = GetLockExpiration(request, lockAcquiredAt);
+            ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.tryLockExternalRequest,
+                new { id = request.Id, states = openRequestStates, lockOwner, lockAcquiredAt, lockExpiresAt, currentTime = lockAcquiredAt });
+            request.Locked = result.AffectedRows == 1;
+            if (request.Locked)
+            {
+                SetLockMetadata(request, lockAcquiredAt, lockExpiresAt);
+            }
+            return request.Locked;
+        }
+
+        private async Task RenewLockRequest(ExternalRequest request)
+        {
+            if (!request.Locked)
+            {
+                return;
+            }
+
+            DateTime lockAcquiredAt = DateTime.Now;
+            DateTime lockExpiresAt = GetLockExpiration(request, lockAcquiredAt);
+            ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.renewExternalRequestLock,
+                new { id = request.Id, lockOwner, lockAcquiredAt, lockExpiresAt });
+            if (result.AffectedRows != 1)
+            {
+                throw new InvalidOperationException($"External request lock renewal failed for request {request.Id}.");
+            }
+            SetLockMetadata(request, lockAcquiredAt, lockExpiresAt);
+        }
+
+        private async Task UnlockRequest(ExternalRequest request)
+        {
+            ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock,
+                new { id = request.Id, lockOwner, locked = false });
+            if (result.AffectedRows != 1)
+            {
+                throw new InvalidOperationException($"External request lock release failed for request {request.Id}.");
+            }
+            request.Locked = false;
+            request.LockOwner = null;
+            request.LockAcquiredAt = null;
+            request.LockExpiresAt = null;
+        }
+
+        private void SetLockMetadata(ExternalRequest request, DateTime lockAcquiredAt, DateTime lockExpiresAt)
+        {
+            request.LockOwner = lockOwner;
+            request.LockAcquiredAt = lockAcquiredAt;
+            request.LockExpiresAt = lockExpiresAt;
+        }
+
+        private static DateTime GetLockExpiration(ExternalRequest request, DateTime lockAcquiredAt)
+        {
+            return lockAcquiredAt + GetLockLeaseDuration(request);
+        }
+
+        private static TimeSpan GetLockLeaseDuration(ExternalRequest request)
+        {
+            try
+            {
+                ExternalTicketSystem? ticketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem);
+                if (ticketSystem?.ResponseTimeout > 0)
+                {
+                    TimeSpan systemLeaseDuration = TimeSpan.FromSeconds(ticketSystem.ResponseTimeout) + LockLeaseSafetyBuffer;
+                    return systemLeaseDuration > MinimumLockLeaseDuration ? systemLeaseDuration : MinimumLockLeaseDuration;
+                }
+            }
+            catch (JsonException)
+            {
+            }
+            return DefaultLockLeaseDuration;
+        }
+
+        private async Task SetOverdueAlertIfNeeded(ExternalRequest request)
+        {
+            if (request.CreationDate <= DateTime.MinValue.AddYears(1))
+            {
+                return;
+            }
+
+            if (DateTime.Now - request.CreationDate < OverdueRequestThreshold)
+            {
+                return;
+            }
+
+            string title = "External request overdue";
+            string description = $"{RequestInfo(request)} has been open since {request.CreationDate:O} in state {request.ExtRequestState}.";
+
+            await AlertHelper.SetAlert(apiConnection, title, description, GlobalConst.kExternalRequest, AlertCode.ExternalRequest,
+                new AlertHelper.AdditionalAlertData
+                {
+                    CompareDesc = true,
+                    CompareTitle = true,
+                    JsonData = new
+                    {
+                        request.Id,
+                        request.TicketId,
+                        request.TaskNumber,
+                        request.ExtRequestState,
+                        request.CreationDate
+                    }
+                });
         }
 
         /// <summary>

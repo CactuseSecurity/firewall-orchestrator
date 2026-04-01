@@ -59,6 +59,15 @@ namespace FWO.Data
         [JsonProperty("locked"), JsonPropertyName("locked")]
         public bool Locked { get; set; } = false;
 
+        [JsonProperty("lock_owner"), JsonPropertyName("lock_owner")]
+        public string? LockOwner { get; set; }
+
+        [JsonProperty("lock_acquired_at"), JsonPropertyName("lock_acquired_at")]
+        public DateTime? LockAcquiredAt { get; set; }
+
+        [JsonProperty("lock_expires_at"), JsonPropertyName("lock_expires_at")]
+        public DateTime? LockExpiresAt { get; set; }
+
         public string? LastMessage { get; set; }
     }
 

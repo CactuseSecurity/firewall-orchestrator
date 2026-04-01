@@ -18,4 +18,7 @@ fragment extRequestDetails on ext_request
     wait_cycles
     attempts
     locked
+    lock_owner
+    lock_acquired_at
+    lock_expires_at
 }

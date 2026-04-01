@@ -3,6 +3,7 @@ using GraphQL;
 using GraphQL.Client.Http;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace FWO.Api.Client
 {
@@ -35,8 +36,7 @@ namespace FWO.Api.Client
             // handle subscription terminating exceptions
             _internalExceptionHandler = (Exception exception) =>
             {
-                // Case: Jwt expired
-                if (exception.Message.Contains("JWTExpired"))
+                if (IsJwtExpired(exception))
                 {
                     RefreshAuthHeaderAfterExpiry();
                     // Quit subscription by throwing exception.
@@ -76,9 +76,7 @@ namespace FWO.Api.Client
                     {
                         try
                         {
-                            // If repsonse.Data == null -> Jwt expired - connection was closed
-                            // Leads to this method getting called again
-                            if (response.Data == null)
+                            if (IsJwtExpired(response))
                             {
                                 // Terminate subscription
                                 lock (_lock)
@@ -87,6 +85,10 @@ namespace FWO.Api.Client
                                     _subscription = null;
                                 }
                                 RefreshAuthHeaderAfterExpiry();
+                            }
+                            else if (response.Data == null)
+                            {
+                                throw new InvalidOperationException($"Subscription returned no data and no JWT-expiry marker for operation {_request.OperationName}.");
                             }
                             else
                             {
@@ -105,6 +107,44 @@ namespace FWO.Api.Client
                     }
                 });
             }
+        }
+
+        private static bool IsJwtExpired(Exception exception)
+        {
+            if (ContainsJwtExpiredMarker(exception.Message))
+            {
+                return true;
+            }
+
+            return exception.InnerException != null && IsJwtExpired(exception.InnerException);
+        }
+
+        private static bool IsJwtExpired(GraphQLResponse<dynamic> response)
+        {
+            if (response.Errors is not { Length: > 0 })
+            {
+                return false;
+            }
+
+            return response.Errors.Any(IsJwtExpired);
+        }
+
+        private static bool IsJwtExpired(GraphQLError error)
+        {
+            if (ContainsJwtExpiredMarker(error.Message))
+            {
+                return true;
+            }
+
+            return error.Extensions != null
+                && error.Extensions.TryGetValue("code", out object? code)
+                && string.Equals(Convert.ToString(code, CultureInfo.InvariantCulture), "invalid-jwt", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ContainsJwtExpiredMarker(string? text)
+        {
+            return !string.IsNullOrWhiteSpace(text)
+                && text.Contains("JWTExpired", StringComparison.OrdinalIgnoreCase);
         }
 
         private void ApiConnectionOnAuthHeaderChanged(object? sender, string jwt)

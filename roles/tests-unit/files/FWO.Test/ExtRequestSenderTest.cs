@@ -5,6 +5,7 @@ using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Middleware.Server;
 using FWO.ExternalSystems.Tufin.SecureChange;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -241,6 +242,24 @@ namespace FWO.Test
         {
             string normalizedMutation = ExtRequestQueries.tryLockExternalRequest.ReplaceLineEndings(" ");
             ClassicAssert.AreEqual(true, normalizedMutation.Contains("ext_request_state: { _in: $states }"));
+        }
+
+        [Test]
+        public void TestGetLockLeaseDurationFallsBackToDefaultOnInvalidTicketSystemJson()
+        {
+            ExternalRequest request = new()
+            {
+                Id = 99,
+                TicketId = 123,
+                ExtTicketSystem = "{invalid json"
+            };
+
+            MethodInfo? getLockLeaseDuration = typeof(ExternalRequestSender)
+                .GetMethod("GetLockLeaseDuration", BindingFlags.NonPublic | BindingFlags.Static);
+
+            TimeSpan leaseDuration = (TimeSpan)(getLockLeaseDuration?.Invoke(null, [request]) ?? TimeSpan.Zero);
+
+            ClassicAssert.AreEqual(TimeSpan.FromMinutes(15), leaseDuration);
         }
     }
 }

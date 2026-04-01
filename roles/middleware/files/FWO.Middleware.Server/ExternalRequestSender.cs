@@ -71,7 +71,7 @@ namespace FWO.Middleware.Server
         {
             List<string> FailedRequests = [];
             List<ExternalRequest> openRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests,
-                new { states = openRequestStates, currentTime = DateTime.Now });
+                new { states = openRequestStates, currentTime = DateTime.UtcNow });
             foreach (ExternalRequest request in openRequests)
             {
                 await HandleRequest(request, FailedRequests);
@@ -350,7 +350,7 @@ namespace FWO.Middleware.Server
 
         private async Task<bool> TryLockRequest(ExternalRequest request)
         {
-            DateTime lockAcquiredAt = DateTime.Now;
+            DateTime lockAcquiredAt = DateTime.UtcNow;
             DateTime lockExpiresAt = GetLockExpiration(request, lockAcquiredAt);
             ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.tryLockExternalRequest,
                 new { id = request.Id, states = openRequestStates, lockOwner, lockAcquiredAt, lockExpiresAt, currentTime = lockAcquiredAt });
@@ -369,7 +369,7 @@ namespace FWO.Middleware.Server
                 return;
             }
 
-            DateTime lockAcquiredAt = DateTime.Now;
+            DateTime lockAcquiredAt = DateTime.UtcNow;
             DateTime lockExpiresAt = GetLockExpiration(request, lockAcquiredAt);
             ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.renewExternalRequestLock,
                 new { id = request.Id, lockOwner, lockAcquiredAt, lockExpiresAt });
@@ -417,8 +417,10 @@ namespace FWO.Middleware.Server
                     return systemLeaseDuration > MinimumLockLeaseDuration ? systemLeaseDuration : MinimumLockLeaseDuration;
                 }
             }
-            catch (JsonException)
+            catch (JsonException exception)
             {
+                Log.WriteWarning(LogMessageTitle,
+                    $"{RequestInfo(request)} has invalid external ticket system configuration. Using default lock lease duration. Details: {exception.Message}");
             }
             return DefaultLockLeaseDuration;
         }
@@ -430,7 +432,7 @@ namespace FWO.Middleware.Server
                 return;
             }
 
-            if (DateTime.Now - request.CreationDate < OverdueRequestThreshold)
+            if (DateTime.UtcNow - request.CreationDate < OverdueRequestThreshold)
             {
                 return;
             }

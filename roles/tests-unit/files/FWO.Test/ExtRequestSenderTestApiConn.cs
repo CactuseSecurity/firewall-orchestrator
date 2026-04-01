@@ -106,26 +106,26 @@ namespace FWO.Test
                 [
                     new(){ Id = 1, TicketId = 1, ExtTicketSystem = serializedTicketSystem, ExtRequestState = ExtStates.ExtReqInitialized.ToString(),
                         WaitCycles = 2, Locked = InitiallyLockedRequestIds.Contains(1), LockOwner = InitiallyLockedRequestIds.Contains(1) ? "other-worker" : null,
-                        LockExpiresAt = ExpiredLockRequestIds.Contains(1) ? DateTime.Now.AddMinutes(-1) : DateTime.Now.AddMinutes(10),
-                        CreationDate = OverdueRequestIds.Contains(1) ? new DateTime(2000, 1, 1) : DateTime.Now }, // wait
+                        LockExpiresAt = ExpiredLockRequestIds.Contains(1) ? DateTime.UtcNow.AddMinutes(-1) : DateTime.UtcNow.AddMinutes(10),
+                        CreationDate = OverdueRequestIds.Contains(1) ? new DateTime(2000, 1, 1) : DateTime.UtcNow }, // wait
                     new(){ Id = 2, TicketId = 2, ExtTicketSystem = serializedTicketSystem, ExtRequestState = ExtStates.ExtReqInitialized.ToString(),
                         ExtRequestContent = TicketContent, Locked = InitiallyLockedRequestIds.Contains(2), LockOwner = InitiallyLockedRequestIds.Contains(2) ? "other-worker" : null,
-                        LockExpiresAt = ExpiredLockRequestIds.Contains(2) ? DateTime.Now.AddMinutes(-1) : DateTime.Now.AddMinutes(10),
-                        CreationDate = OverdueRequestIds.Contains(2) ? new DateTime(2000, 1, 1) : DateTime.Now }, // create
+                        LockExpiresAt = ExpiredLockRequestIds.Contains(2) ? DateTime.UtcNow.AddMinutes(-1) : DateTime.UtcNow.AddMinutes(10),
+                        CreationDate = OverdueRequestIds.Contains(2) ? new DateTime(2000, 1, 1) : DateTime.UtcNow }, // create
                     new(){ Id = 3, TicketId = 3, ExtTicketSystem = serializedTicketSystem, ExtRequestState = ExtStates.ExtReqFailed.ToString(),
                         ExtRequestContent = TicketContent, Locked = InitiallyLockedRequestIds.Contains(3), LockOwner = InitiallyLockedRequestIds.Contains(3) ? "other-worker" : null,
-                        LockExpiresAt = ExpiredLockRequestIds.Contains(3) ? DateTime.Now.AddMinutes(-1) : DateTime.Now.AddMinutes(10),
-                        CreationDate = OverdueRequestIds.Contains(3) ? new DateTime(2000, 1, 1) : DateTime.Now }, // create reject
+                        LockExpiresAt = ExpiredLockRequestIds.Contains(3) ? DateTime.UtcNow.AddMinutes(-1) : DateTime.UtcNow.AddMinutes(10),
+                        CreationDate = OverdueRequestIds.Contains(3) ? new DateTime(2000, 1, 1) : DateTime.UtcNow }, // create reject
                     new(){ Id = 4, TicketId = 4, ExtTicketSystem = serializedTicketSystem, ExtRequestState = ExtStates.ExtReqInProgress.ToString(),
                         ExtTicketId = "4711", Locked = InitiallyLockedRequestIds.Contains(4), LockOwner = InitiallyLockedRequestIds.Contains(4) ? "other-worker" : null,
-                        LockExpiresAt = ExpiredLockRequestIds.Contains(4) ? DateTime.Now.AddMinutes(-1) : DateTime.Now.AddMinutes(10),
-                        CreationDate = OverdueRequestIds.Contains(4) ? new DateTime(2000, 1, 1) : DateTime.Now }, // poll error
+                        LockExpiresAt = ExpiredLockRequestIds.Contains(4) ? DateTime.UtcNow.AddMinutes(-1) : DateTime.UtcNow.AddMinutes(10),
+                        CreationDate = OverdueRequestIds.Contains(4) ? new DateTime(2000, 1, 1) : DateTime.UtcNow }, // poll error
                     new(){ Id = 5, TicketId = 5, ExtTicketSystem = serializedTicketSystem, ExtRequestState = ExtStates.ExtReqInProgress.ToString(),
                         ExtTicketId = "4712", Locked = InitiallyLockedRequestIds.Contains(5), LockOwner = InitiallyLockedRequestIds.Contains(5) ? "other-worker" : null,
-                        LockExpiresAt = ExpiredLockRequestIds.Contains(5) ? DateTime.Now.AddMinutes(-1) : DateTime.Now.AddMinutes(10),
-                        CreationDate = OverdueRequestIds.Contains(5) ? new DateTime(2000, 1, 1) : DateTime.Now } // poll ok + new request
+                        LockExpiresAt = ExpiredLockRequestIds.Contains(5) ? DateTime.UtcNow.AddMinutes(-1) : DateTime.UtcNow.AddMinutes(10),
+                        CreationDate = OverdueRequestIds.Contains(5) ? new DateTime(2000, 1, 1) : DateTime.UtcNow } // poll ok + new request
                 ];
-                DateTime currentTime = ExtractDateTime(variables, "currentTime") ?? DateTime.Now;
+                DateTime currentTime = ExtractDateTime(variables, "currentTime") ?? DateTime.UtcNow;
                 openRequests = openRequests.Where(request => !request.Locked || request.LockExpiresAt < currentTime).ToList();
                 GraphQLResponse<dynamic> response = new() { Data = openRequests };
                 return response.Data;

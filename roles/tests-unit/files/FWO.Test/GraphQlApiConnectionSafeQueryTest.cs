@@ -24,6 +24,7 @@ namespace FWO.Test
         {
             private readonly Func<HttpRequestMessage, HttpResponseMessage> responder;
             private readonly Exception? exception;
+            public HttpRequestMessage? LastRequest { get; private set; }
 
             /// <summary>
             /// Create a handler that returns a fixed response.
@@ -47,6 +48,7 @@ namespace FWO.Test
             /// </summary>
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
+                LastRequest = request;
                 if (exception != null)
                 {
                     throw exception;
@@ -59,9 +61,11 @@ namespace FWO.Test
         /// <summary>
         /// Builds a GraphQlApiConnection instance with an injected GraphQLHttpClient using the provided handler.
         /// </summary>
-        private static GraphQlApiConnection CreateConnectionWithHandler(HttpMessageHandler handler)
+        private static GraphQlApiConnection CreateConnectionWithHandler(HttpMessageHandler handler, IAuthTokenProvider? authTokenProvider = null)
         {
-            GraphQlApiConnection connection = new("http://localhost");
+            GraphQlApiConnection connection = authTokenProvider != null
+                ? new("http://localhost", authTokenProvider)
+                : new("http://localhost");
             GraphQLHttpClient client = new(new GraphQLHttpClientOptions
             {
                 EndPoint = new Uri("http://localhost/graphql"),
@@ -75,6 +79,17 @@ namespace FWO.Test
                 throw new InvalidOperationException("graphQlClient field not found.");
             }
             field.SetValue(connection, client);
+
+            if (authTokenProvider != null)
+            {
+                FieldInfo? currentJwtField = typeof(GraphQlApiConnection).GetField("currentJwt", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (currentJwtField == null)
+                {
+                    throw new InvalidOperationException("currentJwt field not found.");
+                }
+                currentJwtField.SetValue(connection, "");
+                connection.RefreshAuthHeaderIfSupported();
+            }
 
             return connection;
         }
@@ -121,6 +136,46 @@ namespace FWO.Test
             Assert.That(response.Errors, Is.Not.Null);
             Assert.That(response.Errors![0], Does.Contain("network down"));
             Assert.That(response.Result, Is.Null);
+        }
+
+        /// <summary>
+        /// Provider-backed connections refresh the bearer token before sending requests.
+        /// </summary>
+        [Test]
+        public async Task SendQuerySafeAsync_UsesBearerTokenFromProvider()
+        {
+            StubHttpMessageHandler handler = new(_ => JsonResponse("{\"data\":{\"test\":\"ok\"}}"));
+            StubAuthTokenProvider authTokenProvider = new("provider-token");
+            using GraphQlApiConnection connection = CreateConnectionWithHandler(handler, authTokenProvider);
+
+            ApiResponse<string> response = await connection.SendQuerySafeAsync<string>("query { test }");
+            FieldInfo? currentJwtField = typeof(GraphQlApiConnection).GetField("currentJwt", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(response.HasErrors, Is.False);
+            Assert.That(currentJwtField, Is.Not.Null);
+            Assert.That(currentJwtField!.GetValue(connection), Is.EqualTo("provider-token"));
+            Assert.That(authTokenProvider.GetCalls, Is.GreaterThanOrEqualTo(1));
+        }
+
+        private sealed class StubAuthTokenProvider : IAuthTokenProvider
+        {
+            private readonly string token;
+
+            public int GetCalls { get; private set; }
+
+            public StubAuthTokenProvider(string token)
+            {
+                this.token = token;
+            }
+
+            public string GetBearerToken()
+            {
+                GetCalls++;
+                return token;
+            }
+
+            public void Invalidate()
+            { }
         }
     }
 }

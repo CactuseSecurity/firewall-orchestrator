@@ -18,6 +18,16 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class JwtWriter
     {
+        /// <summary>
+        /// Default lifetime for internally issued service JWTs used by the middleware itself.
+        /// </summary>
+        public static readonly TimeSpan InternalJwtLifetime = TimeSpan.FromHours(1);
+
+        /// <summary>
+        /// Lead time before expiry at which internal service JWTs should be rotated.
+        /// </summary>
+        public static readonly TimeSpan InternalJwtRefreshLeadTime = TimeSpan.FromMinutes(5);
+
         private readonly RsaSecurityKey jwtPrivateKey;
 
         /// <summary>
@@ -41,10 +51,17 @@ namespace FWO.Middleware.Server
                 Log.WriteDebug("Jwt generation", "Generating empty JWT (startup)");
 
             JwtSecurityTokenHandler tokenHandler = new();
+            TimeSpan accessLifetime;
 
-            GraphQlApiConnection apiConnection = new(ConfigFile.ApiServerUri, CreateJWTMiddlewareServer());
-            // if lifetime was speciefied use it, otherwise use standard lifetime
-            TimeSpan accessLifetime = lifetime ?? TimeSpan.FromHours(await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours)));
+            if (lifetime.HasValue)
+            {
+                accessLifetime = lifetime.Value;
+            }
+            else
+            {
+                GraphQlApiConnection apiConnection = new(ConfigFile.ApiServerUri, CreateJWTMiddlewareServer());
+                accessLifetime = TimeSpan.FromHours(await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours)));
+            }
 
             ClaimsIdentity subject = user != null
                 ? SetClaims(user)
@@ -58,7 +75,7 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.Add(user != null ? accessLifetime : TimeSpan.FromDays(365 * 10)), // Anonymous jwt is valid for ten years (does not violate security)
+                expires: DateTime.UtcNow.Add(accessLifetime),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
 
@@ -75,9 +92,9 @@ namespace FWO.Middleware.Server
         /// necessary because this JWT needs to be used within getClaims
         /// </summary>
         /// <returns>JWT for middleware-server role.</returns>
-        public string CreateJWTMiddlewareServer()
+        public string CreateJWTMiddlewareServer(TimeSpan? lifetime = null)
         {
-            return CreateJWTInternal(Roles.MiddlewareServer);
+            return CreateJWTInternal(Roles.MiddlewareServer, lifetime);
         }
 
         /// <summary>
@@ -85,13 +102,14 @@ namespace FWO.Middleware.Server
         /// necessary because this JWT needs to be used within getClaims
         /// </summary>
         /// <returns>JWT for reporter-viewall role.</returns>
-        public string CreateJWTReporterViewall()
+        public string CreateJWTReporterViewall(TimeSpan? lifetime = null)
         {
-            return CreateJWTInternal(Roles.ReporterViewAll);
+            return CreateJWTInternal(Roles.ReporterViewAll, lifetime);
         }
 
-        private string CreateJWTInternal(string role)
+        private string CreateJWTInternal(string role, TimeSpan? lifetime = null)
         {
+            TimeSpan internalLifetime = lifetime ?? InternalJwtLifetime;
             JwtSecurityTokenHandler tokenHandler = new();
             ClaimsIdentity subject = new();
             subject.AddClaim(new Claim("unique_name", role));
@@ -105,7 +123,7 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddYears(200),
+                expires: DateTime.UtcNow.Add(internalLifetime),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);

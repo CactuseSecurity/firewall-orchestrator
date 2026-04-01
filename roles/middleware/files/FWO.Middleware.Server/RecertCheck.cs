@@ -55,7 +55,8 @@ namespace FWO.Middleware.Server
                     EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
                         globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
                     JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
-                    ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
+                    IAuthTokenProvider reporterTokenProvider = new InternalServiceJwtProvider(jwtWriter.CreateJWTReporterViewall, JwtWriter.InternalJwtLifetime, JwtWriter.InternalJwtRefreshLeadTime);
+                    ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), reporterTokenProvider);
                     foreach (FwoOwner owner in owners)
                     {
                         emailsSent += await CheckRuleByRule(owner, apiConnectionReporter, emailConnection);

@@ -134,6 +134,6 @@ create table ext_request
 	attempts int default 0,
 	locked boolean default false,
 	lock_owner varchar,
-	lock_acquired_at Timestamp,
-	lock_expires_at Timestamp
+	lock_acquired_at Timestamp with time zone,
+	lock_expires_at Timestamp with time zone
 );

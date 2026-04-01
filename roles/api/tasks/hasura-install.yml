@@ -92,6 +92,14 @@
     path: "{{ api_hasura_cli_bin }}"
   register: api_cli_check
 
+- name: detect whether upgrade can reuse installed Hasura
+  set_fact:
+    api_hasura_upgrade_reuse_possible: >-
+      {{
+        installation_mode == "upgrade"
+        and (api_existing_service_name | default('') | length > 0)
+      }}
+
 - name: build GitHub auth header
   set_fact:
     api_github_auth_header: "{{ {'Authorization': 'Bearer ' ~ api_github_token} if api_github_token is defined else {} }}"
@@ -149,6 +157,48 @@
       when: hasura_cli_asset_id is defined
   rescue:
     - name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download after asset API failure
+      block:
+        - name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download after asset API failure
+          get_url:
+            url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
+            dest: "{{ api_hasura_cli_bin }}"
+            force: true
+            timeout: "{{ github_download_timeout }}"
+            mode: "0755"
+            owner: "{{ fworch_user }}"
+            group: "{{ fworch_group }}"
+          environment: "{{ proxy_env }}"
+          register: api_hasura_cli_download_fallback
+          retries: 3
+          delay: 5
+          until: api_hasura_cli_download_fallback is succeeded
+          become: true
+      rescue:
+        - name: fall back to existing Hasura after CLI download failure during upgrade
+          set_fact:
+            api_use_existing_hasura_on_upgrade: true
+          when: api_hasura_upgrade_reuse_possible | bool
+
+        - name: show Hasura CLI upgrade fallback decision
+          debug:
+            msg: >-
+              Hasura CLI download failed during upgrade, reusing the installed Hasura service/container
+              and continuing with metadata-only upgrade steps. Docker-to-Podman migration is deferred
+              until a later run can download the required artifacts.
+          when: api_hasura_upgrade_reuse_possible | bool
+
+        - name: fail when Hasura CLI download fails without upgrade fallback
+          fail:
+            msg: >-
+              Failed to download Hasura CLI and no existing Hasura service is available for upgrade fallback.
+          when: not api_hasura_upgrade_reuse_possible | bool
+  when:
+    - not api_cli_check.stat.exists
+    - not api_use_existing_hasura_on_upgrade | default(false) | bool
+
+- name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download when no asset id was found
+  block:
+    - name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download when no asset id was found
       get_url:
         url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
         dest: "{{ api_hasura_cli_bin }}"
@@ -163,25 +213,26 @@
       delay: 5
       until: api_hasura_cli_download_fallback is succeeded
       become: true
-  when:
-    - not api_cli_check.stat.exists
-    - not api_use_existing_hasura_on_upgrade | default(false) | bool
+  rescue:
+    - name: fall back to existing Hasura after direct CLI download failure during upgrade
+      set_fact:
+        api_use_existing_hasura_on_upgrade: true
+      when: api_hasura_upgrade_reuse_possible | bool
 
-- name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download when no asset id was found
-  get_url:
-    url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
-    dest: "{{ api_hasura_cli_bin }}"
-    force: true
-    timeout: "{{ github_download_timeout }}"
-    mode: "0755"
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-  environment: "{{ proxy_env }}"
-  register: api_hasura_cli_download_fallback
-  retries: 3
-  delay: 5
-  until: api_hasura_cli_download_fallback is succeeded
-  become: true
+    - name: show Hasura direct CLI upgrade fallback decision
+      debug:
+        msg: >-
+          Direct Hasura CLI download failed during upgrade, reusing the installed Hasura service/container
+          and continuing with metadata-only upgrade steps. Docker-to-Podman migration is deferred
+          until a later run can download the required artifacts.
+      when: api_hasura_upgrade_reuse_possible | bool
+
+    - name: fail when direct Hasura CLI download fails without upgrade fallback
+      fail:
+        msg: >-
+          Failed to download Hasura CLI from the release URL and no existing Hasura service is available
+          for upgrade fallback.
+      when: not api_hasura_upgrade_reuse_possible | bool
   when:
     - not api_cli_check.stat.exists
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
@@ -244,11 +295,34 @@
       }}
 
 - name: ensure Hasura image is present
-  containers.podman.podman_image:
-    name: "{{ api_hasura_image }}"
-    state: present
-  environment: "{{ proxy_env }}"
-  become: true
+  block:
+    - name: ensure Hasura image is present
+      containers.podman.podman_image:
+        name: "{{ api_hasura_image }}"
+        state: present
+      environment: "{{ proxy_env }}"
+      become: true
+  rescue:
+    - name: fall back to existing Hasura image after pull failure during upgrade
+      set_fact:
+        api_use_existing_hasura_on_upgrade: true
+        api_reuse_existing_hasura_image: true
+      when: api_hasura_upgrade_reuse_possible | bool
+
+    - name: show Hasura image upgrade fallback decision
+      debug:
+        msg: >-
+          Hasura image pull failed during upgrade, reusing the installed Hasura service/container
+          and continuing with metadata-only upgrade steps. Docker-to-Podman migration is deferred
+          until a later run can download the required artifacts.
+      when: api_hasura_upgrade_reuse_possible | bool
+
+    - name: fail when Hasura image pull fails without upgrade fallback
+      fail:
+        msg: >-
+          Failed to pull Hasura image {{ api_hasura_image }} and no existing Hasura service is available
+          for upgrade fallback.
+      when: not api_hasura_upgrade_reuse_possible | bool
   when:
     - not api_reuse_existing_hasura_image | bool
     - api_rollback_is_running | default(false) | bool == false

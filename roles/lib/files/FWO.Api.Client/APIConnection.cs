@@ -17,22 +17,7 @@ namespace FWO.Api.Client
             OnAuthHeaderChanged?.Invoke(sender, newAuthHeader);
         }
 
-        /// <summary>
-        /// Applies the given JWT to the connection.
-        /// </summary>
         public abstract void SetAuthHeader(string jwt);
-
-        /// <summary>
-        /// Refreshes the auth header when the concrete connection supports token providers.
-        /// </summary>
-        public virtual void RefreshAuthHeaderIfSupported()
-        { }
-
-        /// <summary>
-        /// Invalidates any cached auth token when the concrete connection supports token providers.
-        /// </summary>
-        public virtual void InvalidateAuthToken()
-        { }
 
         public abstract void SetRole(string role);
 

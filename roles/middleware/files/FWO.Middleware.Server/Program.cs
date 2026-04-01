@@ -1,6 +1,5 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
@@ -22,9 +21,8 @@ builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new Argume
 // Create Token Generator
 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
 
-// Keep the middleware-server GraphQL connection authenticated through a lazy internal JWT provider.
-IAuthTokenProvider middlewareApiTokenProvider = new InternalServiceJwtProvider(jwtWriter.CreateJWTMiddlewareServer, JwtWriter.InternalJwtLifetime, JwtWriter.InternalJwtRefreshLeadTime);
-ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), middlewareApiTokenProvider);
+// Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
+ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
 
 List<Ldap> connectedLdaps = [];
 int connectionAttemptsCount = 1;

@@ -63,6 +63,7 @@ builder.Services.AddScoped<TokenService>();
 
 // Create "anonymous" (empty) jwt
 MiddlewareClient middlewareClient = new(MiddlewareUri);
+ApiConnection apiConn = new GraphQlApiConnection(ApiUri);
 
 RestResponse<TokenPair> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
 bool connectionEstablished = createJWTResponse.IsSuccessful;
@@ -87,6 +88,7 @@ if (string.IsNullOrEmpty(createJWTResponse.Content))
 TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(createJWTResponse.Content) ?? throw new ArgumentException("failed to deserialize token pair");
 
 string jwt = tokenPair.AccessToken ?? throw new ArgumentException("Received empty jwt.");
+apiConn.SetAuthHeader(jwt);
 
 // Get all non-confidential configuration settings and add to a global service (for all users)
 GlobalConfig globalConfig = Task.Run(async () => await GlobalConfig.ConstructAsync(jwt, true, true)).Result;

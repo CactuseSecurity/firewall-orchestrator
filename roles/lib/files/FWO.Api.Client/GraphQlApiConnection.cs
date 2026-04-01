@@ -17,8 +17,6 @@ namespace FWO.Api.Client
         public string ApiServerUri { get; private set; } = "";
 
         private GraphQLHttpClient graphQlClient = null!;
-        private readonly IAuthTokenProvider? authTokenProvider;
-        private string currentJwt = "";
 
         private string prevRole = "";
 
@@ -51,13 +49,6 @@ namespace FWO.Api.Client
             SetAuthHeader(jwt);
         }
 
-        public GraphQlApiConnection(string ApiServerUri, IAuthTokenProvider authTokenProvider)
-        {
-            Initialize(ApiServerUri);
-            this.authTokenProvider = authTokenProvider;
-            RefreshAuthHeaderIfSupported();
-        }
-
         public GraphQlApiConnection(string ApiServerUri)
         {
             Initialize(ApiServerUri);
@@ -65,30 +56,9 @@ namespace FWO.Api.Client
 
         public override void SetAuthHeader(string jwt)
         {
-            if (string.Equals(currentJwt, jwt, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            currentJwt = jwt;
             graphQlClient.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
             graphQlClient.Options.ConfigureWebSocketConnectionInitPayload = httpClientOptions => new { headers = new { authorization = $"Bearer {jwt}" } };
             InvokeOnAuthHeaderChanged(this, jwt);
-        }
-
-        public override void RefreshAuthHeaderIfSupported()
-        {
-            if (authTokenProvider == null)
-            {
-                return;
-            }
-
-            SetAuthHeader(authTokenProvider.GetBearerToken());
-        }
-
-        public override void InvalidateAuthToken()
-        {
-            authTokenProvider?.Invalidate();
         }
 
         public override void SetRole(string role)
@@ -221,7 +191,6 @@ namespace FWO.Api.Client
         {
             try
             {
-                RefreshAuthHeaderIfSupported();
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
@@ -280,7 +249,6 @@ namespace FWO.Api.Client
         {
             try
             {
-                RefreshAuthHeaderIfSupported();
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
@@ -318,7 +286,6 @@ namespace FWO.Api.Client
         {
             try
             {
-                RefreshAuthHeaderIfSupported();
                 GraphQLRequest request = new(subscription, variables, operationName);
                 GraphQlApiSubscription<SubscriptionResponseType> newSub =
                     new(this, graphQlClient, request, exceptionHandler, subscriptionUpdateHandler);

@@ -38,7 +38,6 @@ namespace FWO.Api.Client
                 // Case: Jwt expired
                 if (exception.Message.Contains("JWTExpired"))
                 {
-                    RefreshAuthHeaderAfterExpiry();
                     // Quit subscription by throwing exception.
                     // This does NOT lead to a real thrown exception within the application but is instead handled by the graphql library
                     throw exception;
@@ -86,7 +85,6 @@ namespace FWO.Api.Client
                                     _subscription?.Dispose();
                                     _subscription = null;
                                 }
-                                RefreshAuthHeaderAfterExpiry();
                             }
                             else
                             {
@@ -111,19 +109,6 @@ namespace FWO.Api.Client
         {
             // Recreate subscription (CreateSubscription handles disposal + locking)
             CreateSubscription();
-        }
-
-        private void RefreshAuthHeaderAfterExpiry()
-        {
-            try
-            {
-                _apiConnection.InvalidateAuthToken();
-                _apiConnection.RefreshAuthHeaderIfSupported();
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError("GraphQL Subscription", "Failed to refresh auth header after JWT expiry.", exception);
-            }
         }
 
         protected override void Dispose(bool disposing)

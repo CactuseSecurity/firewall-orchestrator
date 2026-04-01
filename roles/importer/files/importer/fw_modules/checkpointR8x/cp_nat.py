@@ -21,9 +21,9 @@ def normalize_nat_rules(
                 continue
 
             normalized_nat_rulebase = Rulebase(
-                uid="nat-rulebase",
+                uid="nat-rulebase-" + gateway["uid"],
                 mgm_uid=import_state.mgm_details.uid,
-                name="NAT",
+                name="NAT Rulebase for " + gateway["name"],
                 rules={},
             )
 
@@ -39,7 +39,7 @@ def normalize_nat_rules(
                 link
                 for link in normalized_gateway["RulebaseLinks"]
                 if link["to_rulebase_uid"] == normalized_nat_rulebase.uid
-                and link["link_type"] == "nat"
+                # and link["link_type"] == "nat"
                 and link["from_rulebase_uid"] == normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"]
             ):
                 normalized_gateway["RulebaseLinks"].append(
@@ -72,7 +72,7 @@ def normalize_nat_rules(
                             link
                             for link in normalized_gateway["RulebaseLinks"]
                             if link["to_rulebase_uid"] == section_rulebase.uid
-                            and link["link_type"] == "nat"
+                            # and link["link_type"] == "nat"
                             and link["from_rulebase_uid"] == normalized_nat_rulebase.uid
                         ):
                             normalized_gateway["RulebaseLinks"].append(

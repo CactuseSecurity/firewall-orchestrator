@@ -25,6 +25,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getPolicyById;
 
         public static readonly string addCriterion;
+        public static readonly string addCriterionConditions;
         public static readonly string removeCriterion;
         public static readonly string updateCriterionMetadata;
         public static readonly string getCriteria;
@@ -60,6 +61,16 @@ namespace FWO.Api.Client.Queries
                 getPolicyById = GetQueryText("compliance/getPolicyById.graphql");
 
                 addCriterion = GetQueryText("compliance/addCriterion.graphql");
+                addCriterionConditions = Compact(@"
+                    mutation addCriterionConditions(
+                      $conditions: [compliance_criterion_condition_insert_input!]!
+                      ) {
+                      insert_compliance_criterion_condition(objects: $conditions) {
+                        returning {
+                          id
+                        }
+                      }
+                    }");
                 removeCriterion = GetQueryText("compliance/removeCriterion.graphql");
                 updateCriterionMetadata = GetQueryText("compliance/updateCriterionMetadata.graphql");
                 getCriteria = GetQueryText("compliance/getCriteria.graphql");

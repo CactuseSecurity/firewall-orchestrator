@@ -57,7 +57,7 @@
                         </EditList>
                         <div class="row col-sm-12 mt-2">
                             <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                            <input type="text" class="col-sm-8" @bind="ActForbiddenElement" />
+                            <input type="text" class="col-sm-8" @bind="ActForbiddenElement" @bind:event="oninput" />
                             <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddForbiddenUid"
                                 @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                         </div>
@@ -73,9 +73,9 @@
                                 </Dropdown>
                             </div>
                             <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("port")):</label>
-                            <input type="number" min="1" max="GlobalConst.kMaxPortNumber" class="col-sm-2" @bind="ActForbiddenPortStart" />
+                            <input type="number" min="1" max="GlobalConst.kMaxPortNumber" class="col-sm-2" @bind="ActForbiddenPortStart" @bind:event="oninput" />
                             <label class="col-sm-1 col-form-label col-form-label-sm text-center">-</label>
-                            <input type="number" min="1" max="GlobalConst.kMaxPortNumber" class="col-sm-2" @bind="ActForbiddenPortEnd" />
+                            <input type="number" min="1" max="GlobalConst.kMaxPortNumber" class="col-sm-2" @bind="ActForbiddenPortEnd" @bind:event="oninput" />
                         </div>
                         <div class="row col-sm-12 mt-2">
                             <div class="col-sm-10"></div>
@@ -139,6 +139,36 @@
     private int? ActForbiddenPortEnd = null;
     private bool PopupInitialized = false;
 
+    private sealed class CriterionConditionInsertInput
+    {
+        [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
+        public int? CriterionId { get; set; }
+
+        [JsonProperty("group_order"), JsonPropertyName("group_order")]
+        public int GroupOrder { get; set; }
+
+        [JsonProperty("position"), JsonPropertyName("position")]
+        public int Position { get; set; }
+
+        [JsonProperty("field"), JsonPropertyName("field")]
+        public string Field { get; set; } = "";
+
+        [JsonProperty("operator"), JsonPropertyName("operator")]
+        public string Operator { get; set; } = "";
+
+        [JsonProperty("value_string"), JsonPropertyName("value_string")]
+        public string? ValueString { get; set; }
+
+        [JsonProperty("value_int"), JsonPropertyName("value_int")]
+        public int? ValueInt { get; set; }
+
+        [JsonProperty("value_int_end"), JsonPropertyName("value_int_end")]
+        public int? ValueIntEnd { get; set; }
+
+        [JsonProperty("value_ref"), JsonPropertyName("value_ref")]
+        public long? ValueRef { get; set; }
+    }
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -198,12 +228,9 @@
         try
         {
             int oldCritId = SelectedCriterion.Id;
+            CapturePendingForbiddenElementInputs();
             ApplyForbiddenElementChanges();
 
-            if(!AddMode)
-            {
-                await RemoveCriterion(SelectedCriterion);
-            }
             await AddCriterion();
             if(AddMode)
             {
@@ -212,6 +239,7 @@
             else
             {
                 await UpdateUsingPolicies(oldCritId);
+                await RemoveCriterion(oldCritId);
             }
             Close();
         }
@@ -221,8 +249,32 @@
         }
     }
 
+    private void CapturePendingForbiddenElementInputs()
+    {
+        if (SelectedCriterion.CriterionType != CriterionType.ForbiddenService.ToString())
+        {
+            return;
+        }
+
+        string forbiddenUid = ActForbiddenElement.Trim();
+        if (forbiddenUid != "")
+        {
+            AddForbiddenElement(forbiddenUid);
+            ActForbiddenElement = "";
+        }
+
+        if (TryBuildStructuredForbiddenElement(out string? forbiddenElement) && forbiddenElement != null)
+        {
+            AddForbiddenElement(forbiddenElement);
+            SelectedProtocol = null;
+            ActForbiddenPortStart = null;
+            ActForbiddenPortEnd = null;
+        }
+    }
+
     private async Task AddCriterion()
     {
+        List<CriterionConditionInsertInput> conditionInsertObjects = GetConditionInsertObjects();
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion,
             new
             {
@@ -231,11 +283,47 @@
                 content = string.IsNullOrWhiteSpace(SelectedCriterion.Content) ? null : SelectedCriterion.Content,
                 comment = SelectedCriterion.Comment,
                 importSource = SelectedCriterion.ImportSource,
-                conditions = GetConditionInsertObjects()
+                conditions = Array.Empty<CriterionConditionInsertInput>()
             })).ReturnIds;
-        if(returnIds != null && returnIds.Length > 0)
+        if(returnIds == null || returnIds.Length == 0)
         {
-            SelectedCriterion.Id = returnIds[0].InsertedId;
+            throw new InvalidOperationException("Failed to create compliance criterion.");
+        }
+        if(returnIds[0].InsertedId <= 0)
+        {
+            throw new InvalidOperationException("Created compliance criterion did not return a valid ID.");
+        }
+
+        SelectedCriterion.Id = returnIds[0].InsertedId;
+
+        if (conditionInsertObjects.Count > 0)
+        {
+            await AddCriterionConditions(SelectedCriterion.Id, conditionInsertObjects);
+        }
+    }
+
+    private async Task AddCriterionConditions(int criterionId, List<CriterionConditionInsertInput> conditionInsertObjects)
+    {
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterionConditions,
+            new
+            {
+                conditions = conditionInsertObjects.Select(condition => new CriterionConditionInsertInput
+                {
+                    CriterionId = criterionId,
+                    GroupOrder = condition.GroupOrder,
+                    Position = condition.Position,
+                    Field = condition.Field,
+                    Operator = condition.Operator,
+                    ValueString = condition.ValueString,
+                    ValueInt = condition.ValueInt,
+                    ValueIntEnd = condition.ValueIntEnd,
+                    ValueRef = condition.ValueRef
+                }).ToList()
+            })).ReturnIds;
+
+        if (returnIds == null || returnIds.Length != conditionInsertObjects.Count)
+        {
+            throw new InvalidOperationException("Failed to create compliance criterion conditions.");
         }
     }
 
@@ -256,12 +344,12 @@
         }
     }
 
-    private async Task RemoveCriterion(ComplianceCriterion criterion)
+    private async Task RemoveCriterion(int criterionId)
     {
-        if(criterion.Removed == null)
+        if(criterionId > 0)
         {
             await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
-                new { id = criterion.Id, removed = DateTime.UtcNow });
+                new { id = criterionId, removed = DateTime.UtcNow });
         }
     }
 
@@ -496,7 +584,7 @@
         return IpProtocols.FirstOrDefault(protocol => protocol.Name.Equals(protocolToken, StringComparison.OrdinalIgnoreCase))?.Id;
     }
 
-    private List<object> GetConditionInsertObjects()
+    private List<CriterionConditionInsertInput> GetConditionInsertObjects()
     {
         if (SelectedCriterion.CriterionType != CriterionType.ForbiddenService.ToString())
         {
@@ -505,16 +593,16 @@
 
         return [.. (SelectedCriterion.Conditions ?? [])
             .Where(condition => condition.Removed == null)
-            .Select(condition => (object)new
+            .Select(condition => new CriterionConditionInsertInput
             {
-                group_order = condition.GroupOrder,
-                position = condition.Position,
-                field = condition.Field,
-                @operator = condition.Operator,
-                value_string = condition.ValueString,
-                value_int = condition.ValueInt,
-                value_int_end = condition.ValueIntEnd,
-                value_ref = condition.ValueRef
+                GroupOrder = condition.GroupOrder,
+                Position = condition.Position,
+                Field = condition.Field,
+                Operator = condition.Operator,
+                ValueString = condition.ValueString,
+                ValueInt = condition.ValueInt,
+                ValueIntEnd = condition.ValueIntEnd,
+                ValueRef = condition.ValueRef
             })];
     }
 }

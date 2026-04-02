@@ -30,7 +30,7 @@
             @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField)
             {
                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5677"))">
-                    <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_key"):</label>
+                    <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_Owner_key"):</label>
                     <div class="col-sm-5">
                         <EditList ElementType="string" Elements="OwnerKeys.ToArray()" ElementsToAdd="OwnerKeysToAdd"
                                   ElementsToDelete="OwnerKeysToDelete" StdLayout="false">

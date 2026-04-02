@@ -147,6 +147,8 @@
 
     protected override void OnParametersSet()
     {
+        NormalizeSelectedCriterion();
+
         if(Display && !PopupInitialized)
         {
             LoadForbiddenElements();
@@ -156,6 +158,13 @@
             ActForbiddenPortEnd = null;
             PopupInitialized = true;
         }
+    }
+
+    private void NormalizeSelectedCriterion()
+    {
+        SelectedCriterion ??= new();
+        SelectedCriterion.Content ??= "";
+        SelectedCriterion.Conditions ??= [];
     }
 
     private void AddForbiddenUid()
@@ -301,10 +310,12 @@
         ForbiddenElementsToAdd = [];
         ForbiddenElementsToDelete = [];
 
-        if (SelectedCriterion.CriterionType == CriterionType.ForbiddenService.ToString() && SelectedCriterion.Conditions.Any(condition => condition.Removed == null))
+        List<ComplianceCriterionCondition> activeConditions = [.. (SelectedCriterion.Conditions ?? [])
+            .Where(condition => condition.Removed == null)];
+
+        if (SelectedCriterion.CriterionType == CriterionType.ForbiddenService.ToString() && activeConditions.Count > 0)
         {
-            ActElements = [.. SelectedCriterion.Conditions
-                .Where(condition => condition.Removed == null)
+            ActElements = [.. activeConditions
                 .GroupBy(condition => condition.GroupOrder)
                 .OrderBy(group => group.Key)
                 .Select(FormatForbiddenConditionGroup)
@@ -312,7 +323,7 @@
             return;
         }
 
-        ActElements = [.. SelectedCriterion.Content
+        ActElements = [.. (SelectedCriterion.Content ?? "")
             .Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(element => element.Trim())
             .Where(element => element != "")];
@@ -492,7 +503,7 @@
             return [];
         }
 
-        return [.. SelectedCriterion.Conditions
+        return [.. (SelectedCriterion.Conditions ?? [])
             .Where(condition => condition.Removed == null)
             .Select(condition => (object)new
             {

@@ -381,5 +381,5 @@ A complete 80K lines rework of FWO, including
 # 9.0.15 - 12.03.2026 DEVELOP
 - rename OwnerSourceCustomFieldKey to CustomFieldOwnerKey in config
 
-# 9.0.16 - 01.04.2026 DEVELOP
+# 9.0.18 - 02.04.2026 DEVELOP
 - compliance: generic grouped criterion conditions for forbidden service checks

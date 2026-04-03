@@ -10,6 +10,20 @@ query getPolicies {
         criterion_type
         id
         name
+        conditions(where: { removed: { _is_null: true } }) {
+          id
+          criterion_id
+          group_order
+          position
+          field
+          operator
+          value_string
+          value_int
+          value_int_end
+          value_ref
+          created
+          removed
+        }
       }
     }
   }

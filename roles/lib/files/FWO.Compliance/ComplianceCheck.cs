@@ -103,6 +103,19 @@ namespace FWO.Compliance
         /// </summary>
         private readonly ParallelProcessor _parallelProcessor;
 
+        /// <summary>
+        /// Describes a forbidden-service matcher built from grouped generic criterion conditions.
+        /// </summary>
+        private sealed class ForbiddenServiceDefinition
+        {
+            public string LegacyUid { get; set; } = "";
+            public string ProtocolToken { get; set; } = "";
+            public int? PortStart { get; set; }
+            public int? PortEnd { get; set; }
+
+            public bool UsesServiceDefinition => !string.IsNullOrWhiteSpace(ProtocolToken) || PortStart != null || PortEnd != null;
+        }
+
         #endregion
 
         #region Ctor
@@ -762,7 +775,13 @@ namespace FWO.Compliance
 
                     if (complianceCheckResult.Service is NetworkService svc)
                     {
-                        violation.Details = $"{_userConfig.GetText("H5840")}: {svc.Name}";
+                        string displayService = DisplayBase.DisplayService(svc, false).ToString();
+                        if (string.IsNullOrWhiteSpace(displayService))
+                        {
+                            displayService = !string.IsNullOrWhiteSpace(svc.Name) ? svc.Name : svc.Uid;
+                        }
+
+                        violation.Details = $"{_userConfig.GetText("H5840")}: {displayService}";
                     }
                     else
                     {
@@ -851,17 +870,16 @@ namespace FWO.Compliance
         {
             bool ruleIsCompliant = true;
 
-            List<string> restrictedServices = [.. criterion.Content.Split(',').Select(s => s.Trim())
-            .Where(s => !string.IsNullOrEmpty(s))];
+            List<ForbiddenServiceDefinition> restrictedServices = GetForbiddenServiceDefinitions(criterion);
 
             if (restrictedServices.Count > 0)
             {
-                foreach (var service in rule.Services.Where(s => restrictedServices.Contains(s.Content.Uid)))
+                foreach (NetworkService service in GetRuleServices(rule).Where(service => restrictedServices.Any(definition => MatchesForbiddenService(service, definition))))
                 {
                     ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.ServiceViolation)
                     {
                         Criterion = criterion,
-                        Service = service.Content
+                        Service = service
                     };
 
                     CreateViolation(ComplianceViolationType.ServiceViolation, rule, complianceCheckResult);
@@ -870,6 +888,270 @@ namespace FWO.Compliance
             }
 
             return ruleIsCompliant;
+        }
+
+        /// <summary>
+        /// Builds the effective forbidden-service definitions for a criterion.
+        /// </summary>
+        /// <param name="criterion">Criterion containing grouped generic conditions or legacy content.</param>
+        /// <returns>Normalized service definitions.</returns>
+        private static List<ForbiddenServiceDefinition> GetForbiddenServiceDefinitions(ComplianceCriterion criterion)
+        {
+            List<ForbiddenServiceDefinition> forbiddenServiceDefinitions = [.. criterion.Conditions
+                .Where(condition => condition.Removed == null)
+                .OrderBy(condition => condition.GroupOrder)
+                .ThenBy(condition => condition.Position)
+                .GroupBy(condition => condition.GroupOrder)
+                .Select(MapForbiddenServiceDefinition)
+                .Where(definition => !string.IsNullOrWhiteSpace(definition.LegacyUid) || definition.UsesServiceDefinition)];
+
+            if (forbiddenServiceDefinitions.Count == 0 && !string.IsNullOrWhiteSpace(criterion.Content))
+            {
+                forbiddenServiceDefinitions = ParseForbiddenServiceDefinitions(criterion.Content);
+            }
+
+            return forbiddenServiceDefinitions;
+        }
+
+        /// <summary>
+        /// Maps a grouped generic condition set to a forbidden-service definition.
+        /// </summary>
+        /// <param name="conditionGroup">Condition group to map.</param>
+        /// <returns>Normalized service definition.</returns>
+        private static ForbiddenServiceDefinition MapForbiddenServiceDefinition(IEnumerable<ComplianceCriterionCondition> conditionGroup)
+        {
+            ForbiddenServiceDefinition definition = new();
+            bool groupIsSupported = true;
+
+            foreach (ComplianceCriterionCondition condition in conditionGroup)
+            {
+                switch (condition.Field)
+                {
+                    case ComplianceConditionFields.ServiceUid when condition.Operator == ComplianceConditionOperators.Equal:
+                        definition.LegacyUid = condition.ValueRef?.ToString() ?? condition.ValueString ?? "";
+                        break;
+
+                    case ComplianceConditionFields.Protocol when condition.Operator == ComplianceConditionOperators.Equal:
+                        definition.ProtocolToken = condition.ValueInt?.ToString() ?? condition.ValueString ?? condition.ValueRef?.ToString() ?? "";
+                        break;
+
+                    case ComplianceConditionFields.Port when condition.Operator == ComplianceConditionOperators.Overlaps || condition.Operator == ComplianceConditionOperators.Equal:
+                        definition.PortStart = condition.ValueInt;
+                        definition.PortEnd = condition.ValueIntEnd ?? condition.ValueInt;
+                        break;
+
+                    default:
+                        groupIsSupported = false;
+                        break;
+                }
+            }
+
+            return groupIsSupported ? definition : new ForbiddenServiceDefinition();
+        }
+
+        /// <summary>
+        /// Parses the comma-separated forbidden-service criterion content.
+        /// </summary>
+        /// <param name="criterionContent">Criterion content to parse.</param>
+        /// <returns>Normalized service definitions.</returns>
+        private static List<ForbiddenServiceDefinition> ParseForbiddenServiceDefinitions(string criterionContent)
+        {
+            return [.. criterionContent
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(ParseForbiddenServiceDefinition)
+                .Where(definition => !string.IsNullOrWhiteSpace(definition.LegacyUid) || definition.UsesServiceDefinition)];
+        }
+
+        /// <summary>
+        /// Parses a single forbidden-service entry.
+        /// </summary>
+        /// <param name="rawValue">Raw criterion value.</param>
+        /// <returns>Parsed definition.</returns>
+        private static ForbiddenServiceDefinition ParseForbiddenServiceDefinition(string rawValue)
+        {
+            string trimmedValue = rawValue.Trim();
+
+            if (string.IsNullOrWhiteSpace(trimmedValue))
+            {
+                return new ForbiddenServiceDefinition();
+            }
+
+            int separatorIndex = trimmedValue.IndexOf('/');
+            if (separatorIndex <= 0 || separatorIndex == trimmedValue.Length - 1)
+            {
+                return new ForbiddenServiceDefinition { LegacyUid = trimmedValue };
+            }
+
+            string portToken = trimmedValue[..separatorIndex].Trim();
+            string protocolToken = trimmedValue[(separatorIndex + 1)..].Trim();
+
+            if (!TryParseForbiddenPortToken(portToken, out int? portStart, out int? portEnd))
+            {
+                return new ForbiddenServiceDefinition { LegacyUid = trimmedValue };
+            }
+
+            return new ForbiddenServiceDefinition
+            {
+                ProtocolToken = protocolToken == "*" ? "" : protocolToken,
+                PortStart = portStart,
+                PortEnd = portEnd
+            };
+        }
+
+        /// <summary>
+        /// Parses the port portion of a forbidden-service entry.
+        /// </summary>
+        /// <param name="portToken">Port token to parse.</param>
+        /// <param name="portStart">Normalized port start.</param>
+        /// <param name="portEnd">Normalized port end.</param>
+        /// <returns><c>true</c> when the token could be parsed.</returns>
+        private static bool TryParseForbiddenPortToken(string portToken, out int? portStart, out int? portEnd)
+        {
+            portStart = null;
+            portEnd = null;
+
+            if (portToken == "*")
+            {
+                return true;
+            }
+
+            string[] rangeTokens = portToken.Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            if (rangeTokens.Length == 1
+                && int.TryParse(rangeTokens[0], out int singlePort)
+                && singlePort is > 0 and <= GlobalConst.kMaxPortNumber)
+            {
+                portStart = singlePort;
+                portEnd = singlePort;
+                return true;
+            }
+
+            if (rangeTokens.Length == 2
+                && int.TryParse(rangeTokens[0], out int rangeStart)
+                && int.TryParse(rangeTokens[1], out int rangeEnd)
+                && rangeStart is > 0 and <= GlobalConst.kMaxPortNumber
+                && rangeEnd is > 0 and <= GlobalConst.kMaxPortNumber
+                && rangeStart <= rangeEnd)
+            {
+                portStart = rangeStart;
+                portEnd = rangeEnd;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Collects all directly referenced services and flattened group members for a rule.
+        /// </summary>
+        /// <param name="rule">Rule whose services should be evaluated.</param>
+        /// <returns>Distinct service candidates.</returns>
+        private static List<NetworkService> GetRuleServices(Rule rule)
+        {
+            Dictionary<string, NetworkService> services = new();
+
+            foreach (NetworkService service in rule.Services.Select(wrapper => wrapper.Content))
+            {
+                AddServiceCandidate(services, service);
+
+                foreach (NetworkService flattenedService in service.ServiceGroupFlats
+                    .Where(groupFlat => groupFlat.Object != null)
+                    .Select(groupFlat => groupFlat.Object!))
+                {
+                    AddServiceCandidate(services, flattenedService);
+                }
+            }
+
+            return [.. services.Values];
+        }
+
+        /// <summary>
+        /// Adds a service candidate to the lookup if it was not seen before.
+        /// </summary>
+        /// <param name="services">Target lookup.</param>
+        /// <param name="service">Service to add.</param>
+        private static void AddServiceCandidate(IDictionary<string, NetworkService> services, NetworkService service)
+        {
+            string key = $"{service.Id}|{service.Uid}|{GetServiceProtocolId(service)}|{service.DestinationPort}|{service.DestinationPortEnd}|{service.Name}";
+
+            if (!services.ContainsKey(key))
+            {
+                services.Add(key, service);
+            }
+        }
+
+        /// <summary>
+        /// Evaluates whether a rule service matches a forbidden-service definition.
+        /// </summary>
+        /// <param name="service">Service to evaluate.</param>
+        /// <param name="definition">Forbidden-service definition.</param>
+        /// <returns><c>true</c> if the service is restricted.</returns>
+        private static bool MatchesForbiddenService(NetworkService service, ForbiddenServiceDefinition definition)
+        {
+            if (!definition.UsesServiceDefinition)
+            {
+                return string.Equals(service.Uid, definition.LegacyUid, StringComparison.Ordinal);
+            }
+
+            if (!string.IsNullOrWhiteSpace(definition.LegacyUid) && !string.Equals(service.Uid, definition.LegacyUid, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(definition.ProtocolToken) && !MatchesProtocol(service, definition.ProtocolToken))
+            {
+                return false;
+            }
+
+            if (definition.PortStart == null || definition.PortEnd == null)
+            {
+                return true;
+            }
+
+            if (!ServiceUsesPorts(service) || service.DestinationPort == null)
+            {
+                return false;
+            }
+
+            int servicePortEnd = service.DestinationPortEnd ?? service.DestinationPort.Value;
+            return service.DestinationPort.Value <= definition.PortEnd.Value
+                && servicePortEnd >= definition.PortStart.Value;
+        }
+
+        /// <summary>
+        /// Evaluates whether the service uses the requested protocol.
+        /// </summary>
+        /// <param name="service">Service to evaluate.</param>
+        /// <param name="protocolToken">Protocol name or ID from the criterion.</param>
+        /// <returns><c>true</c> if the protocols match.</returns>
+        private static bool MatchesProtocol(NetworkService service, string protocolToken)
+        {
+            if (int.TryParse(protocolToken, out int protocolId))
+            {
+                return GetServiceProtocolId(service) == protocolId;
+            }
+
+            return string.Equals(service.Protocol?.Name, protocolToken, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Returns the normalized protocol ID of a service.
+        /// </summary>
+        /// <param name="service">Service to inspect.</param>
+        /// <returns>Protocol ID if available.</returns>
+        private static int? GetServiceProtocolId(NetworkService service)
+        {
+            return service.ProtoId ?? service.Protocol?.Id;
+        }
+
+        /// <summary>
+        /// Indicates whether a service protocol supports destination ports.
+        /// </summary>
+        /// <param name="service">Service to inspect.</param>
+        /// <returns><c>true</c> when the protocol uses ports.</returns>
+        private static bool ServiceUsesPorts(NetworkService service)
+        {
+            int? protocolId = GetServiceProtocolId(service);
+            return protocolId == 6 || protocolId == 17;
         }
 
         /// <summary>

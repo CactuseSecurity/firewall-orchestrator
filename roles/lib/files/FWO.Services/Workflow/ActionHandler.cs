@@ -2,7 +2,6 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
-using FWO.Data.Middleware;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
@@ -18,6 +17,7 @@ namespace FWO.Services.Workflow
         private readonly ApiConnection apiConnection;
         private readonly WfHandler wfHandler;
         private readonly bool useInMwServer = false;
+        private readonly IRequestedRulePolicyChecker? requestedRulePolicyChecker;
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
         public bool DisplayConnectionMode = false;
@@ -26,12 +26,14 @@ namespace FWO.Services.Workflow
         private readonly string NoAuthUser = "No Auth User";
 
 
-        public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false)
+        public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false,
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null)
         {
             this.apiConnection = apiConnection;
             this.wfHandler = wfHandler;
             this.useInMwServer = useInMwServer;
             UserGroups = userGroups;
+            this.requestedRulePolicyChecker = requestedRulePolicyChecker ?? wfHandler.RequestedRulePolicyChecker;
         }
 
         public async Task Init()
@@ -390,28 +392,18 @@ namespace FWO.Services.Workflow
         {
             try
             {
-                if (wfHandler.MiddlewareClient == null)
-                {
-                    return false;
-                }
-
                 List<WfReqTask> requestedRuleTasks = GetRequestedRuleTasksForCallingTicket(statefulObject, scope);
-                List<long> requestedRuleTaskIds = requestedRuleTasks
-                    .Select(task => task.Id)
-                    .Where(taskId => taskId > 0)
-                    .Distinct()
-                    .ToList();
-                if (requestedRuleTaskIds.Count == 0)
+                if (requestedRuleTasks.Count == 0)
                 {
                     return false;
                 }
 
-                ComplianceRuleCheckParameters parameters = new()
+                if (requestedRulePolicyChecker == null)
                 {
-                    PolicyIds = selectedPolicyIds.ToList(),
-                    RequestTaskIds = requestedRuleTaskIds
-                };
-                bool isCompliant = (await wfHandler.MiddlewareClient.CheckRequestedRulesAgainstPolicies(parameters)).Data;
+                    return false;
+                }
+
+                bool isCompliant = await requestedRulePolicyChecker.AreRequestTasksCompliant(selectedPolicyIds, requestedRuleTasks);
                 await AttachPolicyCheckResultLabel(requestedRuleTasks, checkResultLabel, isCompliant);
                 return isCompliant;
             }

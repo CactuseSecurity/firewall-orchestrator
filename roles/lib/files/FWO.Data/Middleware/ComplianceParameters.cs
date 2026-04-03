@@ -13,9 +13,4 @@ namespace FWO.Data.Middleware
         public string UserDn { get; set; } = "";
     }
 
-    public class ComplianceRuleCheckParameters
-    {
-        public List<int> PolicyIds { get; set; } = [];
-        public List<long> RequestTaskIds { get; set; } = [];
-    }
 }

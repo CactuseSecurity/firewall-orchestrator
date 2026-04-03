@@ -1,14 +1,10 @@
-using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Config.Api;
-using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Logging;
 using FWO.Middleware.Client;
 using FWO.Services.Workflow;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 
 
@@ -261,7 +257,8 @@ namespace FWO.Services.Modelling
             await DisplaySelectedInterface(interf);
         }
 
-        public async Task ReplaceInterface(Task<AuthenticationState> authenticationStateTask, MiddlewareClient middlewareClient)
+        public async Task ReplaceInterface(Task<AuthenticationState> authenticationStateTask, MiddlewareClient middlewareClient,
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null)
         {
             try
             {
@@ -271,7 +268,7 @@ namespace FWO.Services.Modelling
                     await RemoveFromAllSelections();
                     if (await DeleteRequestedInterface())
                     {
-                        await UpdateTicket(authenticationStateTask, middlewareClient);
+                        await UpdateTicket(authenticationStateTask, middlewareClient, requestedRulePolicyChecker);
                     }
                     await RefreshParent();
                     Close();
@@ -319,7 +316,8 @@ namespace FWO.Services.Modelling
             return true;
         }
 
-        private async Task UpdateTicket(Task<AuthenticationState> authenticationStateTask, MiddlewareClient middlewareClient)
+        private async Task UpdateTicket(Task<AuthenticationState> authenticationStateTask, MiddlewareClient middlewareClient,
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null)
         {
             if (ActConn.TicketId != null)
             {
@@ -327,7 +325,7 @@ namespace FWO.Services.Modelling
                 {
                     // change referred connId ?
                     string comment = $"{userConfig.GetText("U9016")}: {IntConnHandler?.ActConn.Name}";
-                    TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
+                    TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation, requestedRulePolicyChecker);
                     if (await ticketCreator.PromoteNewInterfaceImplTask((long)ActConn.TicketId, ExtStates.Done, comment))
                     {
                         DisplayMessageInUi(null, comment, userConfig.GetText("U9013"), false);

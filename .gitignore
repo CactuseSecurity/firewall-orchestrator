@@ -69,4 +69,4 @@ cov.xml
 .coverage
 .DS_Store
 .dotnet
-**/.codex/
+.codex

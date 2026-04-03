@@ -1,0 +1,19 @@
+mutation renewExternalRequestLock(
+  $id: bigint!
+  $lockOwner: String!
+  $lockAcquiredAt: timestamptz!
+  $lockExpiresAt: timestamptz!
+  ) {
+  update_ext_request(
+    where: {
+      id: { _eq: $id }
+      locked: { _eq: true }
+      lock_owner: { _eq: $lockOwner }
+    }
+    _set: {
+      lock_acquired_at: $lockAcquiredAt
+      lock_expires_at: $lockExpiresAt
+    }) {
+    affected_rows
+  }
+}

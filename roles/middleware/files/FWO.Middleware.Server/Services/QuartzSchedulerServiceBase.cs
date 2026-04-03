@@ -161,6 +161,7 @@ namespace FWO.Middleware.Server.Services
                 .StartAt(startTime)
                 .WithSimpleSchedule(x => x
                     .WithInterval(Interval)
+                    .WithMisfireHandlingInstructionNextWithRemainingCount()
                     .RepeatForever())
                 .Build();
 

@@ -1,6 +1,6 @@
 
-query getOpenRequests ($states: [String!] ){
-  ext_request (where: { ext_request_state: {_in: $states} } order_by: { id: asc }){
+query getOpenRequests ($states: [String!], $currentTime: timestamptz! ){
+  ext_request (where: { ext_request_state: {_in: $states}, _or: [{locked: {_eq: false}}, {lock_expires_at: {_lt: $currentTime}}] } order_by: { id: asc }){
     ...extRequestDetails
     owner: owner {
       id

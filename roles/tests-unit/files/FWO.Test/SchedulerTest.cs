@@ -69,26 +69,32 @@ namespace FWO.Test
             List<string> ConsoleLogs = [];
             using StringWriter logOutput = new();
             TextWriter originalConsoleOut = Console.Out;
-            Console.SetOut(logOutput);
+            try
+            {
+                Console.SetOut(logOutput);
 
-            TestScheduler scheduler = await TestScheduler.CreateAsync(apiConnection);
+                TestScheduler scheduler = await TestScheduler.CreateAsync(apiConnection);
 
-            ClassicAssert.AreEqual(0, apiConnection.LogEntries.Count);
-            ClassicAssert.AreEqual(0, apiConnection.Alerts.Count);
-            ConsoleLogs.Add(logOutput.ToString());
-            ClassicAssert.AreEqual(true, ConsoleLogs[0].Contains("Scheduler-Test"));
-            ClassicAssert.AreEqual(true, ConsoleLogs[0].Contains("ScheduleTimer started."));
+                ClassicAssert.AreEqual(0, apiConnection.LogEntries.Count);
+                ClassicAssert.AreEqual(0, apiConnection.Alerts.Count);
+                ConsoleLogs.Add(logOutput.ToString());
+                ClassicAssert.AreEqual(true, ConsoleLogs[0].Contains("Scheduler-Test"));
+                ClassicAssert.AreEqual(true, ConsoleLogs[0].Contains("ScheduleTimer started."));
 
-            await Task.Delay(1500);
-            ClassicAssert.AreEqual(1, apiConnection.LogEntries.Count);
-            ClassicAssert.AreEqual(true, apiConnection.LogEntries[0].Contains("logDesc 1"));
-            ClassicAssert.AreEqual(1, apiConnection.Alerts.Count);
-            ClassicAssert.AreEqual(true, apiConnection.Alerts[0].Contains("alertDesc 1"));
-            ClassicAssert.AreEqual(1, apiConnection.AcknowledgedAlerts.Count);
-            ClassicAssert.AreEqual(7, apiConnection.AcknowledgedAlerts[0]);
-            ConsoleLogs.Add(logOutput.ToString());
-            ClassicAssert.AreEqual(true, ConsoleLogs[1].Contains("RecurringTimer started."));
-            Console.SetOut(originalConsoleOut);
+                await Task.Delay(1500);
+                ClassicAssert.AreEqual(1, apiConnection.LogEntries.Count);
+                ClassicAssert.AreEqual(true, apiConnection.LogEntries[0].Contains("logDesc 1"));
+                ClassicAssert.AreEqual(1, apiConnection.Alerts.Count);
+                ClassicAssert.AreEqual(true, apiConnection.Alerts[0].Contains("alertDesc 1"));
+                ClassicAssert.AreEqual(1, apiConnection.AcknowledgedAlerts.Count);
+                ClassicAssert.AreEqual(7, apiConnection.AcknowledgedAlerts[0]);
+                ConsoleLogs.Add(logOutput.ToString());
+                ClassicAssert.AreEqual(true, ConsoleLogs[1].Contains("RecurringTimer started."));
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
         }
     }
 }

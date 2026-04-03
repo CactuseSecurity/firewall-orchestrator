@@ -62,7 +62,7 @@ namespace FWO.Test
         [Test]
         public void InitThrowsWhenExtStateQueryFails()
         {
-            Assert.Throws<AggregateException>(() => new ExtStateHandler(new ExtStateErrorApiConn()));
+            Assert.Throws<InvalidOperationException>(() => new ExtStateHandler(new ExtStateErrorApiConn()));
         }
     }
 }

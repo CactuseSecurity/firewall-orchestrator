@@ -5,6 +5,7 @@ using FWO.Data.Workflow;
 using FWO.Services;
 using FWO.Services.Workflow;
 using AngleSharp.Common;
+using System.Text.RegularExpressions;
 
 namespace FWO.Test
 {
@@ -14,6 +15,8 @@ namespace FWO.Test
         public List<string> History = [];
         public string? AddHistoryMessage { get; set; }
         public string? AddExtRequestVars { get; set; }
+        public bool FailUpdateExtRequestProcess { get; set; } = false;
+        public bool FailUpdateExtRequestFinal { get; set; } = false;
         readonly string masterStateMatrix = "{\"config_value\":{\"request\":{\"matrix\":{\"0\":[0,49,620],\"49\":[49,620],\"620\":[620],\"1\":[1,2,3,4,630,631],\"2\":[1,2,3,4,630,631],\"3\":[3,4,630,631],\"4\":[4,630,631],\"630\":[630],\"631\":[631]},\"derived_states\":{\"0\":0,\"49\":49,\"620\":620,\"1\":1,\"2\":2,\"3\":3,\"4\":4,\"630\":630,\"631\":631},\"lowest_input_state\":0,\"lowest_start_state\":1,\"lowest_end_state\":49,\"active\":true},\"approval\":{\"matrix\":{\"49\":[60],\"60\":[60,99,610],\"99\":[99],\"610\":[610]},\"derived_states\":{\"49\":49,\"60\":60,\"99\":99,\"610\":610},\"lowest_input_state\":49,\"lowest_start_state\":60,\"lowest_end_state\":99,\"active\":false},\"planning\":{\"matrix\":{\"99\":[110],\"110\":[110,120,130,149],\"120\":[120,110,130,149],\"130\":[130,110,120,149,610],\"149\":[149],\"610\":[610]},\"derived_states\":{\"99\":99,\"110\":110,\"120\":110,\"130\":110,\"149\":149,\"610\":610},\"lowest_input_state\":99,\"lowest_start_state\":110,\"lowest_end_state\":149,\"active\":false},\"verification\":{\"matrix\":{\"149\":[160],\"160\":[160,199,610],\"199\":[199],\"610\":[610]},\"derived_states\":{\"149\":149,\"160\":160,\"199\":199,\"610\":610},\"lowest_input_state\":149,\"lowest_start_state\":160,\"lowest_end_state\":199,\"active\":false},\"implementation\":{\"matrix\":{\"99\":[210],\"210\":[210,220,249],\"220\":[220,210,249,610],\"249\":[249],\"610\":[610],\"49\":[49,600,610]},\"derived_states\":{\"99\":99,\"210\":210,\"220\":210,\"249\":249,\"610\":610,\"49\":49},\"lowest_input_state\":49,\"lowest_start_state\":210,\"lowest_end_state\":249,\"active\":true},\"review\":{\"matrix\":{\"249\":[260],\"260\":[260,270,299],\"270\":[210,270,260,299,610],\"299\":[299],\"610\":[610]},\"derived_states\":{\"249\":249,\"260\":260,\"270\":260,\"299\":299,\"610\":610},\"lowest_input_state\":249,\"lowest_start_state\":260,\"lowest_end_state\":299,\"active\":false},\"recertification\":{\"matrix\":{\"299\":[310],\"310\":[310,349,400],\"349\":[349],\"400\":[400]},\"derived_states\":{\"299\":299,\"310\":310,\"349\":349,\"400\":400},\"lowest_input_state\":299,\"lowest_start_state\":310,\"lowest_end_state\":349,\"active\":false}}}";
         readonly static WfReqElement srcARElem = new()
         {
@@ -144,6 +147,13 @@ namespace FWO.Test
 
         readonly static WfTicket ticket123 = new() { Id = 123, Title = "Ticket1", Tasks = [reqTask1, reqTask2, reqTask3, reqTask4, reqTask5, reqTask6, reqTask7, reqTask8] };
 
+        private static long ExtractId(object? variables)
+        {
+            string vars = variables?.ToString() ?? "";
+            Match idMatch = Regex.Match(vars, @"id = (\d+)");
+            return idMatch.Success ? long.Parse(idMatch.Groups[1].Value) : 0;
+        }
+
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
@@ -220,6 +230,14 @@ namespace FWO.Test
             }
             else if (responseType == typeof(ReturnId))
             {
+                if (query == ExtRequestQueries.updateExtRequestProcess && FailUpdateExtRequestProcess)
+                {
+                    throw new InvalidOperationException("simulated process update failure");
+                }
+                if (query == ExtRequestQueries.updateExtRequestFinal && FailUpdateExtRequestFinal)
+                {
+                    throw new InvalidOperationException("simulated final acknowledgement failure");
+                }
                 if (query == RequestQueries.updateRequestTaskAdditionalInfo && variables != null)
                 {
                     string? Vars = variables.ToString();
@@ -259,7 +277,7 @@ namespace FWO.Test
                         }
                     }
                 }
-                ReturnId returnId = new() { UpdatedIdLong = 1 };
+                ReturnId returnId = new() { UpdatedIdLong = ExtractId(variables) };
                 GraphQLResponse<dynamic> response = new() { Data = returnId };
                 return response.Data;
             }

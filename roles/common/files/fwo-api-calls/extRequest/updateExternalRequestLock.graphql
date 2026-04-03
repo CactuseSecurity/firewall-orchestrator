@@ -1,12 +1,19 @@
 mutation updateExternalRequestLock(
   $id: bigint!
+  $lockOwner: String!
   $locked: Boolean!
   ) {
-  update_ext_request_by_pk(
-    pk_columns: { id: $id }
+  update_ext_request(
+    where: {
+      id: { _eq: $id }
+      lock_owner: { _eq: $lockOwner }
+    }
     _set: {
       locked: $locked
+      lock_owner: null
+      lock_acquired_at: null
+      lock_expires_at: null
   }) {
-    updatedIdLong: id
+    affected_rows
   }
 }

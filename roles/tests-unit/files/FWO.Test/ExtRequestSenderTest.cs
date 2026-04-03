@@ -1,9 +1,11 @@
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
+using FWO.Api.Client.Queries;
 using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Middleware.Server;
 using FWO.ExternalSystems.Tufin.SecureChange;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -59,7 +61,22 @@ namespace FWO.Test
         [SetUp]
         public void Initialize()
         {
-
+            ExceptionMessage = "";
+            apiConnection.UpdateExtRequestCreation.Clear();
+            apiConnection.UpdateExtRequestProcess.Clear();
+            apiConnection.LockOperations.Clear();
+            apiConnection.TryLockStatesById.Clear();
+            apiConnection.Alerts.Clear();
+            apiConnection.AcknowledgedAlertIds.Clear();
+            apiConnection.OperationHistory.Clear();
+            apiConnection.TriedToGetLdapsForHandleStateChange = 0;
+            apiConnection.FailUpdateExtRequestProcessIds.Clear();
+            apiConnection.InitiallyLockedRequestIds.Clear();
+            apiConnection.ExpiredLockRequestIds.Clear();
+            apiConnection.ClosedBeforeLockIds.Clear();
+            apiConnection.UnavailableLockIds.Clear();
+            apiConnection.OverdueRequestIds.Clear();
+            apiConnection.ExistingOpenAlerts.Clear();
         }
 
         [Test]
@@ -81,19 +98,168 @@ namespace FWO.Test
             }
 
             ClassicAssert.AreEqual(true, ExceptionMessage.Contains("External Request(s) failed:"));
+            ClassicAssert.AreEqual(false, ExceptionMessage.Contains("Request Id: 3"));
             ClassicAssert.AreEqual(true, ExceptionMessage.Contains("Request Id: 4"));
             ClassicAssert.AreEqual(true, ExceptionMessage.Contains("Request Id: 5"));
             ClassicAssert.AreEqual(3, apiConnection.UpdateExtRequestCreation.Count);
-            ClassicAssert.AreEqual(false, apiConnection.UpdateExtRequestCreation[0].Contains("id = 1"));
-            ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestCreation[0].Contains("id = 2"));
-            ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestCreation[1].Contains("id = 3"));
-            ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestCreation[2].Contains("id = 3"));
+            ClassicAssert.AreEqual(false, apiConnection.UpdateExtRequestCreation.Any(update => update.Contains("id = 1")));
+            ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestCreation.Any(update => update.Contains("id = 2")));
+            ClassicAssert.AreEqual(2, apiConnection.UpdateExtRequestCreation.Count(update => update.Contains("id = 3")));
             ClassicAssert.AreEqual(2, apiConnection.UpdateExtRequestProcess.Count);
             ClassicAssert.AreEqual(2, apiConnection.UpdateExtRequestProcess.Count);
             ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestProcess[0].Contains("id = 4"));
             ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestProcess[1].Contains("id = 5"));
             ClassicAssert.AreEqual(3, apiConnection.TriedToGetLdapsForHandleStateChange);
         }
+
+        [Test]
+        public async Task TestExternalRequestSenderDoesNotAdvanceStateWhenPersistFails()
+        {
+            apiConnection.FailUpdateExtRequestProcessIds = [5];
+            SimulatedSCClient simulatedSCClient = new(ticketSystem);
+            ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig, simulatedSCClient);
+
+            List<string> failedRequests = await externalRequestSender.Run();
+
+            ClassicAssert.AreEqual(true, failedRequests.Any(req => req.Contains("Request Id: 5")));
+            ClassicAssert.AreEqual(false, apiConnection.UpdateExtRequestProcess.Any(update => update.Contains("id = 5") && update.Contains("ExtReqDone")));
+        }
+
+        [Test]
+        public async Task TestExternalRequestSenderSkipsActiveLockedRequests()
+        {
+            apiConnection.InitiallyLockedRequestIds = [1];
+            SimulatedSCClient simulatedSCClient = new(ticketSystem);
+            ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig, simulatedSCClient);
+
+            await externalRequestSender.Run();
+
+            ClassicAssert.AreEqual(false, apiConnection.LockOperations.Any(op => op.Contains("id = 1")));
+            ClassicAssert.AreEqual(true, apiConnection.LockOperations.Any(op => op.Contains("id = 2")));
+            ClassicAssert.AreEqual(true, apiConnection.LockOperations.Any(op => op.Contains("id = 5")));
+        }
+
+        [Test]
+        public async Task TestExternalRequestSenderReclaimsExpiredLockedRequests()
+        {
+            apiConnection.InitiallyLockedRequestIds = [1];
+            apiConnection.ExpiredLockRequestIds = [1];
+            SimulatedSCClient simulatedSCClient = new(ticketSystem);
+            ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig, simulatedSCClient);
+
+            await externalRequestSender.Run();
+
+            ClassicAssert.AreEqual(true, apiConnection.LockOperations.Any(op => op.Contains("id = 1")));
+            ClassicAssert.AreEqual(true, apiConnection.LockOperations.Any(op => op.Contains("id = 1") && op.Contains("lockOwner")));
+        }
+
+        [Test]
+        public async Task TestExternalRequestSenderAlertsOnOverdueRequest()
+        {
+            apiConnection.OverdueRequestIds = [4];
+            SimulatedSCClient simulatedSCClient = new(ticketSystem);
+            ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig, simulatedSCClient);
+
+            await externalRequestSender.Run();
+
+            ClassicAssert.AreEqual(true, apiConnection.Alerts.Any(alert => alert.Contains("External request overdue") && alert.Contains("Request Id: 4")));
+        }
+
+        [Test]
+        public async Task TestExternalRequestSenderDoesNotDuplicateExistingOverdueAlert()
+        {
+            apiConnection.OverdueRequestIds = [4];
+            apiConnection.ExistingOpenAlerts =
+            [
+                new()
+                {
+                    Id = 17,
+                    AlertCode = AlertCode.ExternalRequest,
+                    Title = "External request overdue",
+                    Description = "Request Id: 4, Internal TicketId: 4, TaskNo: 0 has been open since 2000-01-01T00:00:00.0000000 in state ExtReqInProgress."
+                }
+            ];
+            SimulatedSCClient simulatedSCClient = new(ticketSystem);
+            ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig, simulatedSCClient);
+
+            await externalRequestSender.Run();
+
+            ClassicAssert.AreEqual(0, apiConnection.Alerts.Count);
+        }
+
+        [Test]
+        public async Task TestExternalRequestSenderAcknowledgesDuplicateExistingOverdueAlerts()
+        {
+            apiConnection.OverdueRequestIds = [4];
+            apiConnection.ExistingOpenAlerts =
+            [
+                new()
+                {
+                    Id = 17,
+                    AlertCode = AlertCode.ExternalRequest,
+                    Title = "External request overdue",
+                    Description = "Request Id: 4, Internal TicketId: 4, TaskNo: 0 has been open since 2000-01-01T00:00:00.0000000 in state ExtReqInProgress.",
+                    Timestamp = new DateTime(2026, 1, 1)
+                },
+                new()
+                {
+                    Id = 18,
+                    AlertCode = AlertCode.ExternalRequest,
+                    Title = "External request overdue",
+                    Description = "Request Id: 4, Internal TicketId: 4, TaskNo: 0 has been open since 2000-01-01T00:00:00.0000000 in state ExtReqInProgress.",
+                    Timestamp = new DateTime(2026, 2, 1)
+                }
+            ];
+            SimulatedSCClient simulatedSCClient = new(ticketSystem);
+            ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig, simulatedSCClient);
+
+            await externalRequestSender.Run();
+
+            ClassicAssert.AreEqual(0, apiConnection.Alerts.Count);
+            ClassicAssert.AreEqual(1, apiConnection.AcknowledgedAlertIds.Count);
+            ClassicAssert.AreEqual(17, apiConnection.AcknowledgedAlertIds[0]);
+        }
+
+        [Test]
+        public async Task TestExternalRequestSenderDoesNotProcessRequestClosedBeforeLock()
+        {
+            apiConnection.ClosedBeforeLockIds = [2];
+            SimulatedSCClient simulatedSCClient = new(ticketSystem);
+            ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig, simulatedSCClient);
+
+            await externalRequestSender.Run();
+
+            ClassicAssert.AreEqual(false, apiConnection.UpdateExtRequestCreation.Any(update => update.Contains("id = 2")));
+            ClassicAssert.AreEqual(true, apiConnection.LockOperations.Any(op => op.Contains("id = 2")));
+            ClassicAssert.AreEqual(true, apiConnection.TryLockStatesById.ContainsKey(2));
+            ClassicAssert.AreEqual(true, apiConnection.TryLockStatesById[2].Contains(ExtStates.ExtReqInitialized.ToString()));
+            ClassicAssert.AreEqual(true, apiConnection.TryLockStatesById[2].Contains(ExtStates.ExtReqInProgress.ToString()));
+            ClassicAssert.AreEqual(false, apiConnection.TryLockStatesById[2].Contains(ExtStates.ExtReqAcknowledged.ToString()));
+        }
+
+        [Test]
+        public void TestTryLockExternalRequestMutationFiltersByOpenStates()
+        {
+            string normalizedMutation = ExtRequestQueries.tryLockExternalRequest.ReplaceLineEndings(" ");
+            ClassicAssert.AreEqual(true, normalizedMutation.Contains("ext_request_state: { _in: $states }"));
+        }
+
+        [Test]
+        public void TestGetLockLeaseDurationFallsBackToDefaultOnInvalidTicketSystemJson()
+        {
+            ExternalRequest request = new()
+            {
+                Id = 99,
+                TicketId = 123,
+                ExtTicketSystem = "{invalid json"
+            };
+
+            MethodInfo? getLockLeaseDuration = typeof(ExternalRequestSender)
+                .GetMethod("GetLockLeaseDuration", BindingFlags.NonPublic | BindingFlags.Static);
+
+            TimeSpan leaseDuration = (TimeSpan)(getLockLeaseDuration?.Invoke(null, [request]) ?? TimeSpan.Zero);
+
+            ClassicAssert.AreEqual(TimeSpan.FromMinutes(15), leaseDuration);
+        }
     }
 }
-

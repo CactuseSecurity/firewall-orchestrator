@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.0.16"
+product_version: "9.0.17"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -31,6 +31,8 @@ docker_network: ""
 user_id: 60320
 fworch_user: "{{ product_name }}"
 fworch_group: "{{ fworch_user }}"
+fworch_subid_range_start_min: 200000
+fworch_subid_range_size: 65536
 postgres_group: "postgres"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
@@ -45,6 +47,7 @@ http_proxy: "{{ lookup('env','http_proxy') }}"
 https_proxy: "{{ lookup('env','https_proxy') }}"
 no_proxy: "{{ lookup('env','no_proxy') }}"
 proxy_exceptions: "{{ lookup('env','no_proxy') }}"
+github_download_timeout: 60
 proxy_env:
         http_proxy: "{{ http_proxy }}"
         https_proxy: "{{ https_proxy }}"

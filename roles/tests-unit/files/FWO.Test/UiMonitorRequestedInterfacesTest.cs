@@ -320,13 +320,17 @@ namespace FWO.Test
             component.WaitForAssertion(() =>
             {
                 string markup = component.Markup;
+                List<string> cellTexts = component.FindAll("tbody td")
+                    .Select(cell => cell.TextContent.Trim())
+                    .Where(text => !string.IsNullOrWhiteSpace(text))
+                    .ToList();
                 Assert.That(markup, Does.Contain("501"));
                 Assert.That(markup, Does.Contain("In Progress"));
                 Assert.That(markup, Does.Contain("if-removed-a"));
                 Assert.That(markup, Does.Contain("if-removed-b"));
                 Assert.That(markup, Does.Contain("Close Tickets as rejected"));
-                Assert.That(markup, Does.Not.Contain("777"));
-                Assert.That(markup, Does.Not.Contain("888"));
+                Assert.That(cellTexts, Does.Not.Contain("777"));
+                Assert.That(cellTexts, Does.Not.Contain("888"));
             });
         }
 

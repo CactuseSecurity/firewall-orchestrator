@@ -8,7 +8,7 @@ do
    no_of_mgmgs_unwanted=$(psql -qtAX -d fworchdb -c "select count(*) from management where mgm_id IN ($sql_code)")
    next_mgm_to_delete=$(psql -qtAX -d fworchdb -c "select mgm_id from ($sql_code) AS old_mgm_ids limit 1")
    echo "total number of managements: $no_of_mgmgs, remaining managements to remove: $no_of_mgmgs_unwanted, next management to remove: $next_mgm_to_delete"
-   if [ "$next_mgm_to_delete" == "" ]
+   if [[ "$next_mgm_to_delete" == "" ]]
    then
       echo "No more managements to remove. Exiting."
       exit 0
@@ -17,4 +17,3 @@ do
    echo "executing: time psql -qtAX -d fworchdb -c delete from management where mgm_id=$next_mgm_to_delete"
    #time psql -d fworchdb -c "delete from management where mgm_id='$next_mgm_to_delete'"
 done
-

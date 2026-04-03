@@ -52,15 +52,21 @@
   when:
     - installation_mode == "upgrade"
     - hasura_admin_secret_file.stat.exists
-    - api_use_existing_hasura_on_upgrade | default(false) | bool
 
-- name: set hasura admin secret from existing file
+- name: cache existing hasura admin secret during upgrade
   set_fact:
-    api_hasura_admin_secret: "{{ existing_hasura_admin_secret['content'] | b64decode | trim }}"
+    api_existing_hasura_admin_secret: "{{ existing_hasura_admin_secret['content'] | b64decode | trim }}"
   when:
     - installation_mode == "upgrade"
     - hasura_admin_secret_file.stat.exists
+
+- name: set hasura admin secret from existing file
+  set_fact:
+    api_hasura_admin_secret: "{{ api_existing_hasura_admin_secret }}"
+  when:
+    - installation_mode == "upgrade"
     - api_use_existing_hasura_on_upgrade | default(false) | bool
+    - api_existing_hasura_admin_secret is defined
 
 - name: set static hasura admin pwd for test purposes only
   set_fact:
@@ -76,21 +82,29 @@
   when:
     - api_hasura_admin_secret is not defined
 
-- name: write hasura admin password to secrets directory
-  copy:
-    content: "{{ api_hasura_admin_secret }}\n"
-    dest: "{{ fworch_secrets_dir }}/hasura_admin_pwd"
-    mode: "0600"
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-  become: true
-  when:
-    - installation_mode != "upgrade" or not (api_use_existing_hasura_on_upgrade | default(false) | bool) or not hasura_admin_secret_file.stat.exists
-
 - name: check for existing hasura cli file
   stat:
     path: "{{ api_hasura_cli_bin }}"
   register: api_cli_check
+
+- name: detect whether upgrade can reuse installed Hasura
+  set_fact:
+    api_hasura_upgrade_reuse_possible: >-
+      {{
+        installation_mode == "upgrade"
+        and (api_existing_service_name | default('') | length > 0)
+        and hasura_admin_secret_file.stat.exists
+      }}
+
+- name: fail when Hasura upgrade reuse was requested without reusable state
+  fail:
+    msg: >-
+      Hasura upgrade fallback requires both an installed Hasura service unit and the existing
+      {{ fworch_secrets_dir }}/hasura_admin_pwd secret file.
+  when:
+    - installation_mode == "upgrade"
+    - api_use_existing_hasura_on_upgrade | default(false) | bool
+    - not api_hasura_upgrade_reuse_possible | bool
 
 - name: build GitHub auth header
   set_fact:
@@ -102,6 +116,7 @@
     method: GET
     headers: "{{ {'Accept': 'application/vnd.github+json'} | combine(api_github_auth_header) }}"
     return_content: true
+    timeout: "{{ github_download_timeout }}"
   register: hasura_release
   environment: "{{ proxy_env }}"
   failed_when: false
@@ -127,40 +142,107 @@
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
     - hasura_release.status | default(-1) == 200
 
-- name: download {{ api_hasura_version }} hasura cli binary via authenticated GitHub access
-  get_url:
-    url: "https://api.github.com/repos/hasura/graphql-engine/releases/assets/{{ hasura_cli_asset_id }}"
-    dest: "{{ api_hasura_cli_bin }}"
-    headers: "{{ {'Accept': 'application/octet-stream'} | combine(api_github_auth_header) }}"
-    force: true
-    mode: "0755"
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-  environment: "{{ proxy_env }}"
-  register: api_hasura_cli_download
-  retries: 3
-  delay: 5
-  until: api_hasura_cli_download is succeeded
-  become: true
+- name: download {{ api_hasura_version }} hasura cli binary
+  block:
+    - name: download {{ api_hasura_version }} hasura cli binary via authenticated GitHub access
+      get_url:
+        url: "https://api.github.com/repos/hasura/graphql-engine/releases/assets/{{ hasura_cli_asset_id }}"
+        dest: "{{ api_hasura_cli_bin }}"
+        headers: "{{ {'Accept': 'application/octet-stream'} | combine(api_github_auth_header) }}"
+        force: true
+        timeout: "{{ github_download_timeout }}"
+        mode: "0755"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+      environment: "{{ proxy_env }}"
+      register: api_hasura_cli_download
+      retries: 3
+      delay: 5
+      until: api_hasura_cli_download is succeeded
+      become: true
+      when: hasura_cli_asset_id is defined
+  rescue:
+    - name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download after asset API failure
+      block:
+        - name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download after asset API failure
+          get_url:
+            url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
+            dest: "{{ api_hasura_cli_bin }}"
+            force: true
+            timeout: "{{ github_download_timeout }}"
+            mode: "0755"
+            owner: "{{ fworch_user }}"
+            group: "{{ fworch_group }}"
+          environment: "{{ proxy_env }}"
+          register: api_hasura_cli_download_fallback
+          retries: 3
+          delay: 5
+          until: api_hasura_cli_download_fallback is succeeded
+          become: true
+      rescue:
+        - name: fall back to existing Hasura after CLI download failure during upgrade
+          set_fact:
+            api_use_existing_hasura_on_upgrade: true
+            api_service_name: "{{ api_existing_service_name }}"
+            api_hasura_admin_secret: "{{ api_existing_hasura_admin_secret }}"
+          when: api_hasura_upgrade_reuse_possible | bool
+
+        - name: show Hasura CLI upgrade fallback decision
+          debug:
+            msg: >-
+              Hasura CLI download failed during upgrade, reusing the installed Hasura service/container
+              and continuing with metadata-only upgrade steps. Docker-to-Podman migration is deferred
+              until a later run can download the required artifacts.
+          when: api_hasura_upgrade_reuse_possible | bool
+
+        - name: fail when Hasura CLI download fails without upgrade fallback
+          fail:
+            msg: >-
+              Failed to download Hasura CLI and no existing Hasura service is available for upgrade fallback.
+          when: not api_hasura_upgrade_reuse_possible | bool
   when:
     - not api_cli_check.stat.exists
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
-    - hasura_cli_asset_id is defined
 
-- name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download
-  get_url:
-    url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
-    dest: "{{ api_hasura_cli_bin }}"
-    force: true
-    mode: "0755"
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-  environment: "{{ proxy_env }}"
-  register: api_hasura_cli_download_fallback
-  retries: 3
-  delay: 5
-  until: api_hasura_cli_download_fallback is succeeded
-  become: true
+- name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download when no asset id was found
+  block:
+    - name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download when no asset id was found
+      get_url:
+        url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
+        dest: "{{ api_hasura_cli_bin }}"
+        force: true
+        timeout: "{{ github_download_timeout }}"
+        mode: "0755"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+      environment: "{{ proxy_env }}"
+      register: api_hasura_cli_download_fallback
+      retries: 3
+      delay: 5
+      until: api_hasura_cli_download_fallback is succeeded
+      become: true
+  rescue:
+    - name: fall back to existing Hasura after direct CLI download failure during upgrade
+      set_fact:
+        api_use_existing_hasura_on_upgrade: true
+        api_service_name: "{{ api_existing_service_name }}"
+        api_hasura_admin_secret: "{{ api_existing_hasura_admin_secret }}"
+      when: api_hasura_upgrade_reuse_possible | bool
+
+    - name: show Hasura direct CLI upgrade fallback decision
+      debug:
+        msg: >-
+          Direct Hasura CLI download failed during upgrade, reusing the installed Hasura service/container
+          and continuing with metadata-only upgrade steps. Docker-to-Podman migration is deferred
+          until a later run can download the required artifacts.
+      when: api_hasura_upgrade_reuse_possible | bool
+
+    - name: fail when direct Hasura CLI download fails without upgrade fallback
+      fail:
+        msg: >-
+          Failed to download Hasura CLI from the release URL and no existing Hasura service is available
+          for upgrade fallback.
+      when: not api_hasura_upgrade_reuse_possible | bool
   when:
     - not api_cli_check.stat.exists
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
@@ -176,6 +258,69 @@
   when:
     - not api_cli_check.stat.exists
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
+
+- name: set Hasura image reuse mode
+  set_fact:
+    api_reuse_existing_hasura_image: >-
+      {{
+        installation_mode == "upgrade"
+        and (api_use_existing_hasura_on_upgrade | default(false) | bool)
+        and api_hasura_keep_existing_container | default(true) | bool
+      }}
+
+- name: set Hasura systemd dependencies
+  set_fact:
+    api_hasura_systemd_after: >-
+      {{
+        ['network.target', 'remote-fs.target', 'nss-lookup.target']
+        + (['postgresql.service'] if 'databaseserver' in group_names else [])
+      }}
+
+- name: ensure Hasura image is present
+  block:
+    - name: ensure Hasura image is present
+      containers.podman.podman_image:
+        name: "{{ api_hasura_image }}"
+        state: present
+      environment: "{{ proxy_env }}"
+      become: true
+  rescue:
+    - name: fall back to existing Hasura image after pull failure during upgrade
+      set_fact:
+        api_use_existing_hasura_on_upgrade: true
+        api_reuse_existing_hasura_image: true
+        api_service_name: "{{ api_existing_service_name }}"
+        api_hasura_admin_secret: "{{ api_existing_hasura_admin_secret }}"
+      when: api_hasura_upgrade_reuse_possible | bool
+
+    - name: show Hasura image upgrade fallback decision
+      debug:
+        msg: >-
+          Hasura image pull failed during upgrade, reusing the installed Hasura service/container
+          and continuing with metadata-only upgrade steps. Docker-to-Podman migration is deferred
+          until a later run can download the required artifacts.
+      when: api_hasura_upgrade_reuse_possible | bool
+
+    - name: fail when Hasura image pull fails without upgrade fallback
+      fail:
+        msg: >-
+          Failed to pull Hasura image {{ api_hasura_image }} and no existing Hasura service is available
+          for upgrade fallback.
+      when: not api_hasura_upgrade_reuse_possible | bool
+  when:
+    - not api_reuse_existing_hasura_image | bool
+    - api_rollback_is_running | default(false) | bool == false
+
+- name: write hasura admin password to secrets directory
+  copy:
+    content: "{{ api_hasura_admin_secret }}\n"
+    dest: "{{ fworch_secrets_dir }}/hasura_admin_pwd"
+    mode: "0600"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: true
+  when:
+    - installation_mode != "upgrade" or not (api_use_existing_hasura_on_upgrade | default(false) | bool) or not hasura_admin_secret_file.stat.exists
 
 - name: set hasura env variable
   set_fact:
@@ -205,33 +350,6 @@
     var: hasura_env
   when: debug_level > '1'
 
-- name: set Hasura image reuse mode
-  set_fact:
-    api_reuse_existing_hasura_image: >-
-      {{
-        installation_mode == "upgrade"
-        and (api_use_existing_hasura_on_upgrade | default(false) | bool)
-        and api_hasura_keep_existing_container | default(true) | bool
-      }}
-
-- name: set Hasura systemd dependencies
-  set_fact:
-    api_hasura_systemd_after: >-
-      {{
-        ['network.target', 'remote-fs.target', 'nss-lookup.target']
-        + (['postgresql.service'] if 'databaseserver' in group_names else [])
-      }}
-
-- name: ensure Hasura image is present
-  containers.podman.podman_image:
-    name: "{{ api_hasura_image }}"
-    state: present
-  environment: "{{ proxy_env }}"
-  become: true
-  when:
-    - not api_reuse_existing_hasura_image | bool
-    - api_rollback_is_running | default(false) | bool == false
-
 - name: write Hasura env file for Podman
   copy:
     dest: "{{ api_env_file }}"
@@ -243,6 +361,15 @@
       {{ item.0 }}={{ item.1 }}
       {% endfor %}
   become: true
+
+- name: stop Hasura service before container recreation
+  ansible.builtin.systemd:
+    name: "{{ api_service_name }}"
+    state: stopped
+  become: true
+  failed_when: false
+  when:
+    - not api_reuse_existing_hasura_image | bool
 
 - name: remove existing Hasura container before recreation
   containers.podman.podman_container:

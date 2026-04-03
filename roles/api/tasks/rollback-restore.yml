@@ -1,0 +1,33 @@
+- name: collect installed Hasura service unit candidates for rollback
+  stat:
+    path: "/lib/systemd/system/{{ item }}.service"
+  loop: "{{ [api_service_name] + (api_legacy_service_names | default([])) }}"
+  register: api_restore_service_unit_candidates
+  become: true
+
+- name: pick Hasura service name for rollback restore
+  set_fact:
+    api_restore_service_name: >-
+      {{
+        (
+          api_restore_service_unit_candidates.results
+          | selectattr('stat.exists')
+          | map(attribute='item')
+          | list
+          | first
+        ) | default(api_service_name)
+      }}
+
+- name: clear Hasura service failed state during rollback
+  command: "systemctl reset-failed {{ api_restore_service_name }}"
+  become: true
+  failed_when: false
+
+- name: start Hasura service during rollback
+  ansible.builtin.systemd:
+    name: "{{ api_restore_service_name }}"
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true
+  failed_when: false

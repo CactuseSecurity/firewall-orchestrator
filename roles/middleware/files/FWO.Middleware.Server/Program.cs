@@ -6,18 +6,16 @@ using FWO.Logging;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Quartz;
 using System.Reflection;
 
-// Implicitly call static constructor so background lock process is started
-// (static constructor is only called after class is used in any way)
-Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
-
 object changesLock = new(); // LOCK
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
 
 // Create Token Generator
@@ -115,6 +113,20 @@ builder.Services.AddSwaggerGen(c =>
     });
     string documentationPath = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
     c.IncludeXmlComments(documentationPath);
+
+    //! Microsoft broke the current OpenAPI "AddSecurityRequirement" so we have to use the workaround with "OpenApiSecuritySchemeReference" until they fix it
+    c.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "JWT Authorization header using the Bearer scheme."
+    });
+
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("bearer", document)] = []
+    });
 });
 
 WebApplication app = builder.Build();
@@ -156,3 +168,21 @@ app.Services.GetRequiredService<ComplianceSchedulerService>();
 app.Services.GetRequiredService<UpdateRuleOwnerMappingSchedulerService>();
 
 await app.RunAsync();
+
+namespace FWO.Middleware.ServerTest
+{
+    /// <summary>
+    /// Entry point for the FWO Middleware Server application to make it accessible for testing
+    /// </summary>
+    public partial class Program
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Program"/> class.
+        /// Protected constructor to allow partial class for testing.
+        /// </summary>
+        protected Program()
+        {
+
+        }
+    }
+}

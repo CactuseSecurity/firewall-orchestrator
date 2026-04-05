@@ -80,6 +80,32 @@
                 "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "test_default",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "test",
+                "${workspaceFolder}/roles/tests-unit/files/FWO.Test/FWO.Test.csproj",
+                "--settings",
+                "${workspaceFolder}/FWO.default.runsettings"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "test_jwt_integration_local",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "test",
+                "${workspaceFolder}/roles/tests-unit/files/FWO.Test/FWO.Test.csproj",
+                "--filter",
+                "FullyQualifiedName~AuthenticationTokenIntegrationTest",
+                "--settings",
+                "${workspaceFolder}/FWO.local.runsettings"
+            ],
+            "problemMatcher": "$msCompile"
         }
     ]
 }

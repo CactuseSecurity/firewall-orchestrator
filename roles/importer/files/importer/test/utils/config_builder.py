@@ -14,7 +14,6 @@ from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
 from models.serviceobject import ServiceObject
 from netaddr import IPNetwork
-from services.service_provider import ServiceProvider
 from services.uid2id_mapper import Uid2IdMap, Uid2IdMapper
 
 from .uid_manager import UidManager
@@ -22,7 +21,9 @@ from .uid_manager import UidManager
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
+    from model_controllers.rulebase_link_controller import RulebaseLinkController
+    from states.management_state import ManagementState
+
 T = TypeVar("T")
 
 
@@ -346,9 +347,12 @@ class FwConfigBuilder:
             return pool
         return self._rng.sample(pool, count)
 
-    def update_rule_map_and_rulebase_map(self, config: FwConfigNormalized, import_id: int) -> None:
-        service_provider = ServiceProvider()
-        uid2id_mapper = service_provider.get_uid2id_mapper(import_id=import_id)
+    def update_rule_map_and_rulebase_map(
+        self,
+        management_state: ManagementState,
+        config: FwConfigNormalized,
+    ) -> None:
+        uid2id_mapper = management_state.uid2id_mapper
         uid2id_mapper.rulebase_uid2id = Uid2IdMap()
         uid2id_mapper.rule_uid2id = Uid2IdMap()
 
@@ -367,11 +371,10 @@ class FwConfigBuilder:
         self,
         rulebase_links: list[RulebaseLinkUidBased],
         gateway_id: int,
-        fwconfig_import_gateway: FwConfigImportGateway,
         uid2id_mapper: Uid2IdMapper,
+        rb_link_controller: RulebaseLinkController,
     ):
         new_rb_links: list[RulebaseLink] = []
-        rb_link_controller = fwconfig_import_gateway.get_rb_link_controller()
 
         for link_id, link in enumerate(rulebase_links):
             link_type = 0

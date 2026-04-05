@@ -14,7 +14,7 @@ from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import (
     FwConfigManagerListController,
 )
-from models.import_state import ImportState
+from states.import_state import ImportState
 
 """
     supported input formats:

@@ -3,13 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from model_controllers.import_state_controller import ImportStateController
     from models.fwconfig_normalized import FwConfigNormalized
     from models.networkobject import NetworkObject
     from models.serviceobject import ServiceObject
 import fwo_const
 from fwo_log import FWOLogger
-from services.service_provider import ServiceProvider
 
 MAX_RECURSION_LEVEL = 20
 CONFIG_NOT_SET_MESSAGE = "normalized config is not set"
@@ -20,13 +18,10 @@ class GroupFlatsMapper:
     Class is responsible for mapping group objects to their fully resolved members.
     """
 
-    import_state: ImportStateController
     normalized_config: FwConfigNormalized | None = None
     global_normalized_config: FwConfigNormalized | None = None
 
     def __init__(self):
-        global_state = ServiceProvider().get_global_state()
-        self.import_state = global_state.import_state
         self.network_object_flats: dict[str, set[str]] = {}
         self.service_object_flats: dict[str, set[str]] = {}
         self.user_flats: dict[str, set[str]] = {}

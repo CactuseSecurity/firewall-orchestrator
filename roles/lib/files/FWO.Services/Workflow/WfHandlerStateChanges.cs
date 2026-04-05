@@ -210,26 +210,32 @@ namespace FWO.Services.Workflow
             {
                 if (reqtask.StateId <= ActTicket.StateId)
                 {
-                    List<int> ticketStateList = [ActTicket.StateId];
-                    reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
-                    List<WfApproval> approvalsToUpdate = reqtask.Approvals.Where(x => x.StateId <= reqtask.StateId).ToList();
-                    foreach (WfApproval approval in approvalsToUpdate)
-                    {
-                        approval.StateId = reqtask.StateId;
-                    }
-                    if (dbAcc != null)
-                    {
-                        await dbAcc.UpdateReqTaskStateInDb(reqtask);
-                        foreach (WfApproval approval in approvalsToUpdate)
-                        {
-                            await dbAcc.UpdateApprovalInDb(approval);
-                        }
-                    }
+                    await UpdateReqTaskAndApprovalStatesFromTicket(reqtask);
                 }
                 if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
                     && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
                 {
                     await AutoCreateImplTasks(reqtask);
+                }
+            }
+        }
+
+        private async Task UpdateReqTaskAndApprovalStatesFromTicket(WfReqTask reqTask)
+        {
+            List<int> ticketStateList = [ActTicket.StateId];
+            reqTask.StateId = stateMatrixDict.Matrices[reqTask.TaskType].getDerivedStateFromSubStates(ticketStateList);
+            List<WfApproval> approvalsToUpdate = reqTask.Approvals.Where(x => x.StateId <= reqTask.StateId).ToList();
+            foreach (WfApproval approval in approvalsToUpdate)
+            {
+                approval.StateId = reqTask.StateId;
+            }
+
+            if (dbAcc != null)
+            {
+                await dbAcc.UpdateReqTaskStateInDb(reqTask);
+                foreach (WfApproval approval in approvalsToUpdate)
+                {
+                    await dbAcc.UpdateApprovalInDb(approval);
                 }
             }
         }

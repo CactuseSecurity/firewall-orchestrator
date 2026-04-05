@@ -56,7 +56,10 @@
                 </div>
             </div>
         }
-
+        @if(actReportFilters.ReportType.IsWorkflowReport())
+        {
+            <ReportWorkflowParamSelection @bind-WorkflowFilter="actReportFilters.WorkflowFilter" SelectedReportType="actReportFilters.ReportType" />
+        }
         @if (actReportFilters.ReportType.IsComplianceReport())
         {
             <div class="p-3">
@@ -192,6 +195,21 @@
                                                    @bind-SelectedRules="selectedItemsRuleReportTable" />
                                 break;
 
+                            case ReportType.TicketReport:
+                            case ReportType.TicketChangeReport:
+                                string ticketTimeStart = currentReport.Query.QueryVariables.ContainsKey("ticket_time_start") ? currentReport.Query.QueryVariables["ticket_time_start"]?.ToString() ?? string.Empty : string.Empty;
+                                string ticketTimeEnd = currentReport.Query.QueryVariables.ContainsKey("ticket_time_end") ? currentReport.Query.QueryVariables["ticket_time_end"]?.ToString() ?? string.Empty : string.Empty;
+                                <ReportedTickets Tickets="currentReport.ReportData.Tickets" StateNames="currentReport.ReportData.WorkflowStateNames"
+                                                 SelectedReportType="currentReport.ReportType"
+                                                 ReferenceDate="currentReport.ReportData.WorkflowFilter.ReferenceDate"
+                                                 LabelName="@currentReport.ReportData.WorkflowFilter.LabelFilter.Name"
+                                                 DetailedView="currentReport.ReportData.WorkflowFilter.DetailedView"
+                                                 ShowFullTicket="currentReport.ReportData.WorkflowFilter.ShowFullTicket"
+                                                 TaskTypes="currentReport.ReportData.WorkflowFilter.TaskTypes"
+                                                 TimeRangeStart="ticketTimeStart"
+                                                 TimeRangeEnd="ticketTimeEnd" />
+                                break;
+
                             default:
                                 break;
                         }
@@ -312,7 +330,7 @@
 
         if(generationTime.TotalSeconds < 1)
         {
-            return $"{userConfig.GetText("report_duration")} <1 {userConfig.GetText("seconds")}.";
+            return $"{userConfig.GetText("report_duration")} <1 {userConfig.GetText("seconds")}. ";
         }
 
         string reportDurationLabel = userConfig.GetText("report_duration");
@@ -327,7 +345,7 @@
             durationUnit = userConfig.GetText("minutes");
         }
 
-        return $"{reportDurationLabel} {durationValue:0.00} {durationUnit}.";
+        return $"{reportDurationLabel} {durationValue:0.00} {durationUnit}. ";
     }
 
     /// <summary>
@@ -394,9 +412,9 @@
                 CleanUri();
             }
 
-            // Hide right sidebar for compliance report.
+            // Hide right sidebar for compliance or workflow report.
 
-            if(newReportType.IsComplianceReport())
+            if(newReportType.IsComplianceReport() || newReportType.IsWorkflowReport())
             {
                 _showRightSidebar = false;
                 sidebarRightWidth = 0;                
@@ -677,6 +695,8 @@
             ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
             ReportType.Recertification,
             ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
+            ReportType.TicketReport,
+            ReportType.TicketChangeReport,
             ReportType.Statistics,
             ReportType.Connections,
             ReportType.AppRules,
@@ -686,7 +706,9 @@
         {
             if (ListIn.Contains(reportType))
             {
-                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport() || showModellingReports && reportType.IsModellingReport())
+                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport()
+                    || showModellingReports && reportType.IsModellingReport()
+                    || reportType.IsWorkflowReport())
                 {
                     ListOut.Add(reportType);
                 }

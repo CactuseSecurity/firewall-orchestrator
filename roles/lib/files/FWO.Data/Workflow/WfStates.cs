@@ -12,6 +12,9 @@ namespace FWO.Data.Workflow
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        [JsonProperty("automatic_only"), JsonPropertyName("automatic_only")]
+        public bool AutomaticOnly { get; set; } = false;
+
         [JsonProperty("actions"), JsonPropertyName("actions")]
         public List<WfStateActionDataHelper> Actions { get; set; } = [];
 
@@ -22,6 +25,7 @@ namespace FWO.Data.Workflow
         {
             Id = state.Id;
             Name = state.Name;
+            AutomaticOnly = state.AutomaticOnly;
             Actions = state.Actions;
         }
 

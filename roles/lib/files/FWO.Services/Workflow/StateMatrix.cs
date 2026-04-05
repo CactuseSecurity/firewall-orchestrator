@@ -42,6 +42,7 @@ namespace FWO.Services.Workflow
         public bool IsLastActivePhase = true;
         public int MinImplTasksNeeded;
         public int MinTicketCompleted;
+        public int ApprovalLowestEndState;
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
         {
@@ -55,6 +56,7 @@ namespace FWO.Services.Workflow
             LowestEndState = glbStateMatrix.GlobalMatrix[phase].LowestEndState;
             Active = glbStateMatrix.GlobalMatrix[phase].Active;
             AutomaticOnlyStates = states.Where(state => state.AutomaticOnly).Select(state => state.Id).ToHashSet();
+            ApprovalLowestEndState = glbStateMatrix.GlobalMatrix[WorkflowPhases.approval].LowestEndState;
             foreach (var phas in glbStateMatrix.GlobalMatrix)
             {
                 PhaseActive.Add(phas.Key, glbStateMatrix.GlobalMatrix[phas.Key].Active);

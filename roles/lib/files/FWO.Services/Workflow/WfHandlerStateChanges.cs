@@ -223,8 +223,10 @@ namespace FWO.Services.Workflow
         private async Task UpdateReqTaskAndApprovalStatesFromTicket(WfReqTask reqTask)
         {
             List<int> ticketStateList = [ActTicket.StateId];
-            reqTask.StateId = stateMatrixDict.Matrices[reqTask.TaskType].getDerivedStateFromSubStates(ticketStateList);
-            List<WfApproval> approvalsToUpdate = reqTask.Approvals.Where(x => x.StateId <= reqTask.StateId).ToList();
+            StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[reqTask.TaskType];
+            reqTask.StateId = reqTaskMatrix.getDerivedStateFromSubStates(ticketStateList);
+            List<WfApproval> approvalsToUpdate = reqTask.Approvals
+                .Where(x => x.StateId < reqTaskMatrix.ApprovalLowestEndState && x.StateId <= reqTask.StateId).ToList();
             foreach (WfApproval approval in approvalsToUpdate)
             {
                 approval.StateId = reqTask.StateId;

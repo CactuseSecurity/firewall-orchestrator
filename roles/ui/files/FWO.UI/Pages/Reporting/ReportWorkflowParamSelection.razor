@@ -179,20 +179,17 @@ else
                 </Dropdown>
             </div>
         </div>
-        @if (SelectedReportType == ReportType.TicketReport || SelectedReportType == ReportType.TicketChangeReport)
-        {
-            <div class="@FieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1521"))">
-                <label class="@FieldLabelClass">@(userConfig.GetText("phase")):</label>
-                <div class="@FieldContentClass">
-                    <Dropdown ElementType="string" SelectedElement="selectedPhase" SelectedElementChanged="PhaseChanged"
-                              ElementToString="PhaseToString" Elements="availablePhases" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
-                        <ElementTemplate Context="phase">
-                            @(PhaseToString(phase))
-                        </ElementTemplate>
-                    </Dropdown>
-                </div>
+        <div class="@FieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1521"))">
+            <label class="@FieldLabelClass">@(userConfig.GetText("phase")):</label>
+            <div class="@FieldContentClass">
+                <Dropdown ElementType="string" SelectedElement="selectedPhase" SelectedElementChanged="PhaseChanged"
+                          ElementToString="PhaseToString" Elements="availablePhases" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate Context="phase">
+                        @(PhaseToString(phase))
+                    </ElementTemplate>
+                </Dropdown>
             </div>
-        }
+        </div>
         <div class="@FieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1519"))">
             <label class="@FieldLabelClass">@(userConfig.GetText("state")):</label>
             <div class="@FieldContentClass">
@@ -222,7 +219,7 @@ else
                 </div>
             </div>
         </div>
-        @if (WorkflowFilter.DetailedView)
+        @if (WorkflowFilter.DetailedView && SelectedReportType == ReportType.TicketChangeReport)
         {
             <div class="@BooleanFieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1520"))">
                 <label class="@BooleanFieldLabelClass" for="@ShowFullTicketCheckboxId">@(userConfig.GetText("show_full_ticket")):</label>

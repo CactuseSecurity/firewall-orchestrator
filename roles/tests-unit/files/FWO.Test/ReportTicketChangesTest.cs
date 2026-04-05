@@ -304,6 +304,182 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public async Task TicketChangeReport_ExportToHtml_ShowsImplementationTasksForImplementationStartReferenceDate()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.DetailedView = true;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.ImplementationStart;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            template.ReportParams.TimeFilter.StartTime = new DateTime(2026, 1, 1, 0, 0, 0);
+            template.ReportParams.TimeFilter.EndTime = new DateTime(2026, 1, 31, 23, 59, 59);
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 10031,
+                    Title = "Implementation start ticket",
+                    StateId = 9,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 410,
+                            TaskNumber = 1,
+                            Title = "Request task with impl",
+                            StateId = 9,
+                            TaskType = WfTaskType.access.ToString(),
+                            ImplementationTasks =
+                            [
+                                new WfImplTask
+                                {
+                                    Id = 411,
+                                    TaskNumber = 1,
+                                    Title = "Visible implementation task",
+                                    StateId = 9,
+                                    Start = new DateTime(2026, 1, 10, 10, 0, 0)
+                                },
+                                new WfImplTask
+                                {
+                                    Id = 412,
+                                    TaskNumber = 2,
+                                    Title = "Hidden implementation task",
+                                    StateId = 9,
+                                    Start = new DateTime(2026, 2, 10, 10, 0, 0)
+                                }
+                            ]
+                        }
+                    ],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            string html = report.ExportToHtml();
+
+            Assert.That(html, Does.Contain(">Implementation<"));
+            Assert.That(html, Does.Contain(">Visible implementation task<"));
+            Assert.That(html, Does.Not.Contain(">Hidden implementation task<"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketChangeReport_ExportToHtml_ShowsApprovalsForApprovalOpenedReferenceDate()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.DetailedView = true;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.ApprovalOpened;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            template.ReportParams.TimeFilter.StartTime = new DateTime(2026, 1, 1, 0, 0, 0);
+            template.ReportParams.TimeFilter.EndTime = new DateTime(2026, 1, 31, 23, 59, 59);
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 10032,
+                    Title = "Approval opened ticket",
+                    StateId = 9,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 420,
+                            TaskNumber = 1,
+                            Title = "Request task with approvals",
+                            StateId = 9,
+                            TaskType = WfTaskType.access.ToString(),
+                            Approvals =
+                            [
+                                new WfApproval
+                                {
+                                    Id = 421,
+                                    ApproverGroup = "Visible approval",
+                                    StateId = 9,
+                                    DateOpened = new DateTime(2026, 1, 12, 9, 0, 0)
+                                },
+                                new WfApproval
+                                {
+                                    Id = 422,
+                                    ApproverGroup = "Hidden approval",
+                                    StateId = 9,
+                                    DateOpened = new DateTime(2026, 2, 12, 9, 0, 0)
+                                }
+                            ]
+                        }
+                    ],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            string html = report.ExportToHtml();
+
+            Assert.That(html, Does.Contain(">Approval<"));
+            Assert.That(html, Does.Contain(">Visible approval<"));
+            Assert.That(html, Does.Not.Contain(">Hidden approval<"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketChangeReport_ExportToHtml_ShowFullTicketOverridesReferenceDateFiltering()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.DetailedView = true;
+            template.ReportParams.WorkflowFilter.ShowFullTicket = true;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.ImplementationStart;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            template.ReportParams.TimeFilter.StartTime = new DateTime(2026, 1, 1, 0, 0, 0);
+            template.ReportParams.TimeFilter.EndTime = new DateTime(2026, 1, 31, 23, 59, 59);
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 10033,
+                    Title = "Full ticket",
+                    StateId = 9,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 430,
+                            TaskNumber = 1,
+                            Title = "Task outside range but still shown",
+                            StateId = 9,
+                            TaskType = WfTaskType.access.ToString(),
+                            ImplementationTasks =
+                            [
+                                new WfImplTask
+                                {
+                                    Id = 431,
+                                    TaskNumber = 1,
+                                    Title = "Implementation outside range but shown",
+                                    StateId = 9,
+                                    Start = new DateTime(2026, 2, 5, 10, 0, 0)
+                                }
+                            ]
+                        }
+                    ],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            string html = report.ExportToHtml();
+
+            Assert.That(html, Does.Contain(">Task outside range but still shown<"));
+            Assert.That(html, Does.Contain(">Implementation outside range but shown<"));
+        }
+
+        [Test]
+        [Parallelizable]
         public async Task TicketReport_ExportToHtml_FiltersRequestTasksByTaskType()
         {
             ReportTemplate template = new();

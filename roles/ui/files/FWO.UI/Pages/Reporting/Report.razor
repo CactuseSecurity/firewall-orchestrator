@@ -330,7 +330,7 @@
 
         if(generationTime.TotalSeconds < 1)
         {
-            return $"{userConfig.GetText("report_duration")} <1 {userConfig.GetText("seconds")}.";
+            return $"{userConfig.GetText("report_duration")} <1 {userConfig.GetText("seconds")}. ";
         }
 
         string reportDurationLabel = userConfig.GetText("report_duration");
@@ -345,7 +345,7 @@
             durationUnit = userConfig.GetText("minutes");
         }
 
-        return $"{reportDurationLabel} {durationValue:0.00} {durationUnit}.";
+        return $"{reportDurationLabel} {durationValue:0.00} {durationUnit}. ";
     }
 
     /// <summary>

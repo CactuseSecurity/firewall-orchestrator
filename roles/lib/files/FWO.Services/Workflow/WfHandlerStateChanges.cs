@@ -186,7 +186,7 @@ namespace FWO.Services.Workflow
 
         private async Task UpdateActTicketStateFromImplTasks()
         {
-            List<WfReqTask> tasks = new(ActTicket.Tasks);
+            List<WfReqTask> tasks = [.. ActTicket.Tasks];
             foreach (WfReqTask reqTask in tasks)
             {
                 await UpdateReqTaskStateFromImplTasks(reqTask);
@@ -205,21 +205,31 @@ namespace FWO.Services.Workflow
 
         private async Task UpdateRequestTasksFromTicket(bool createImplTasks = true)
         {
-            if (dbAcc != null)
+            List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
+            foreach (WfReqTask reqtask in requestTasks)
             {
-                foreach (WfReqTask reqtask in ActTicket.Tasks)
+                if (reqtask.StateId <= ActTicket.StateId)
                 {
-                    if (reqtask.StateId <= ActTicket.StateId)
+                    List<int> ticketStateList = [ActTicket.StateId];
+                    reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
+                    List<WfApproval> approvalsToUpdate = reqtask.Approvals.Where(x => x.StateId <= reqtask.StateId).ToList();
+                    foreach (WfApproval approval in approvalsToUpdate)
                     {
-                        List<int> ticketStateList = [ActTicket.StateId];
-                        reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
+                        approval.StateId = reqtask.StateId;
+                    }
+                    if (dbAcc != null)
+                    {
                         await dbAcc.UpdateReqTaskStateInDb(reqtask);
+                        foreach (WfApproval approval in approvalsToUpdate)
+                        {
+                            await dbAcc.UpdateApprovalInDb(approval);
+                        }
                     }
-                    if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
-                        && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
-                    {
-                        await AutoCreateImplTasks(reqtask);
-                    }
+                }
+                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
+                    && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
+                {
+                    await AutoCreateImplTasks(reqtask);
                 }
             }
         }

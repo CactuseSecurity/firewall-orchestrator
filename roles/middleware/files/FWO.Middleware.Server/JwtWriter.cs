@@ -88,6 +88,7 @@ namespace FWO.Middleware.Server
             JwtSecurityTokenHandler tokenHandler = new();
             ClaimsIdentity subject = new();
             subject.AddClaim(new Claim("unique_name", role));
+            subject.AddClaim(CreateJwtIdClaim());
             subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { role }), System.IdentityModel.Tokens.Jwt.JsonClaimValueTypes.JsonArray));
             subject.AddClaim(new Claim("x-hasura-default-role", role));
 
@@ -110,6 +111,7 @@ namespace FWO.Middleware.Server
         {
             ClaimsIdentity claimsIdentity = new();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
+            claimsIdentity.AddClaim(CreateJwtIdClaim());
             claimsIdentity.AddClaim(new Claim("x-hasura-user-id", user.DbId.ToString()));
             if (user.Dn != null && user.Dn.Length > 0)
                 claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
@@ -178,6 +180,11 @@ namespace FWO.Middleware.Server
                 Log.WriteError("User roles", $"User {user.Name} does not have any assigned roles.");
             }
             return defaultRole;
+        }
+
+        private static Claim CreateJwtIdClaim()
+        {
+            return new Claim("jti", Guid.NewGuid().ToString());
         }
 
         /// <summary>

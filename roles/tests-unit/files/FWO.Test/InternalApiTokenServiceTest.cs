@@ -41,12 +41,15 @@ namespace FWO.Test
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             JwtSecurityTokenHandler tokenHandler = new();
 
-            tokenService.CreateInitialMiddlewareToken();
+            string initialToken = tokenService.CreateInitialMiddlewareToken();
+            JwtSecurityToken initialParsedToken = tokenHandler.ReadJwtToken(initialToken);
 
             string refreshedToken = await tokenService.EnsureFreshTokenAsync(apiConnection, force: true);
             JwtSecurityToken parsedToken = tokenHandler.ReadJwtToken(refreshedToken);
 
             Assert.That(parsedToken.Claims.Any(claim => claim.Type == "x-hasura-default-role" && claim.Value == "middleware-server"), Is.True);
+            Assert.That(parsedToken.Id, Is.Not.EqualTo(initialParsedToken.Id));
+            Assert.That(refreshedToken, Is.Not.EqualTo(initialToken));
             apiConnection.Received(1).SetAuthHeader(refreshedToken);
         }
 
@@ -86,6 +89,7 @@ namespace FWO.Test
             JwtSecurityToken refreshedParsedToken = tokenHandler.ReadJwtToken(refreshedToken);
 
             Assert.That(refreshedParsedToken.ValidTo, Is.GreaterThan(initialParsedToken.ValidTo));
+            Assert.That(refreshedParsedToken.Id, Is.Not.EqualTo(initialParsedToken.Id));
             apiConnection.Received(1).SetAuthHeader(refreshedToken);
         }
 

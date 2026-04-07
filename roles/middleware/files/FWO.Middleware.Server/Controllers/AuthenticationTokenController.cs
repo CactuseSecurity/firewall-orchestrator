@@ -72,6 +72,9 @@ namespace FWO.Middleware.Server.Controllers
 
                 // Creates access and refresh token and stores the refresh token hash in DB
                 TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedUser);
+                WriteTokenPairAudit("IssueTokenPair", tokenPair, authenticatedUser, authenticatedUser == null
+                    ? "Issued anonymous bootstrap token pair."
+                    : "Issued token pair after successful authentication.");
 
                 return Ok(tokenPair);
             }
@@ -116,6 +119,8 @@ namespace FWO.Middleware.Server.Controllers
 
                 TimeSpan delegatedLifetime = tokenLifetimeProvider.CapDelegatedUserTokenLifetime(parameters.Lifetime);
                 TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedTargetUser, delegatedLifetime);
+                WriteTokenPairAudit("IssueDelegatedTokenPair", tokenPair, authenticatedAdminUser,
+                    $"Issued delegated token pair for target user \"{authenticatedTargetUser.Name}\".");
 
                 return Ok(tokenPair);
             }
@@ -153,8 +158,14 @@ namespace FWO.Middleware.Server.Controllers
 
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
-                // Authenticate user
-                string jwt = await authManager.AuthorizeUserAsync(user, validatePassword: true);
+                UiUser? authenticatedUser = await authManager.AuthenticateAndBuildUserAsync(user, validatePassword: true);
+                TimeSpan accessLifetime = authenticatedUser == null
+                    ? tokenLifetimeProvider.GetAnonymousTokenLifetime()
+                    : await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
+                string jwt = jwtWriter.CreateJWT(authenticatedUser, accessLifetime);
+                WriteJwtAudit("IssueAccessToken", jwt, authenticatedUser, authenticatedUser == null
+                    ? "Issued anonymous bootstrap access token."
+                    : "Issued access token after successful authentication.");
 
                 return Ok(jwt);
             }
@@ -191,11 +202,13 @@ namespace FWO.Middleware.Server.Controllers
                 // Check if admin valids are valid
                 try
                 {
-                    await authManager.AuthorizeUserAsync(adminUser, validatePassword: true);
-                    if (!adminUser.Roles.Contains(Roles.Admin))
+                    UiUser authenticatedAdminUser = await authManager.AuthenticateAndBuildUserAsync(adminUser, validatePassword: true)
+                        ?? throw new AuthenticationException("Provided admin credentials are invalid.");
+                    if (!authenticatedAdminUser.Roles.Contains(Roles.Admin))
                     {
                         throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
                     }
+                    adminUser = authenticatedAdminUser;
                 }
                 catch (Exception e)
                 {
@@ -205,8 +218,12 @@ namespace FWO.Middleware.Server.Controllers
                 try
                 {
                     UiUser targetUser = new() { Name = targetUserName, Dn = targetUserDn };
+                    UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
+                        ?? throw new AuthenticationException("Provided target user credentials are invalid.");
                     TimeSpan delegatedLifetime = tokenLifetimeProvider.CapDelegatedUserTokenLifetime(lifetime);
-                    string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false, delegatedLifetime);
+                    string jwt = jwtWriter.CreateJWT(authenticatedTargetUser, delegatedLifetime);
+                    WriteJwtAudit("IssueDelegatedAccessToken", jwt, adminUser,
+                        $"Issued delegated access token for target user \"{authenticatedTargetUser.Name}\".");
                     return Ok(jwt);
                 }
                 catch (Exception e)
@@ -273,6 +290,7 @@ namespace FWO.Middleware.Server.Controllers
                 TokenPair newTokens = await authManager.CreateTokenPair(user);
 
                 Log.WriteInfo("Token Refresh", $"Successfully refreshed tokens for user {user.Name}");
+                WriteTokenPairAudit("RefreshTokenPair", newTokens, user, "Refreshed token pair after refresh-token rotation.");
                 return Ok(newTokens);
             }
             catch (Exception ex)
@@ -309,6 +327,10 @@ namespace FWO.Middleware.Server.Controllers
                     return Unauthorized("Invalid or expired refresh token");
                 }
 
+                UiUser? auditUser = null;
+                UiUser[] revokeUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = tokenInfo.UserId });
+                auditUser = revokeUsers.FirstOrDefault();
+
                 int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
 
                 if (revokedTokens != 1)
@@ -317,6 +339,9 @@ namespace FWO.Middleware.Server.Controllers
                 }
 
                 Log.WriteInfo("Token Refresh", $"Successfully revoked refresh token");
+                WriteAudit("RevokeRefreshToken",
+                    $"Revoked refresh token for user_id={tokenInfo.UserId}.",
+                    auditUser);
 
                 return Ok();
             }
@@ -339,6 +364,86 @@ namespace FWO.Middleware.Server.Controllers
             return Ok();
         }
 #endif
+        /// <summary>
+        /// Reads a JWT without validating it so audit logging can extract metadata such as jti and expiry.
+        /// </summary>
+        /// <param name="jwt">JWT to inspect.</param>
+        /// <returns>Parsed JWT.</returns>
+        private static JwtSecurityToken ReadJwt(string jwt)
+        {
+            return new JwtSecurityTokenHandler().ReadJwtToken(jwt);
+        }
+
+        /// <summary>
+        /// Builds the audit text for an issued access and optional refresh token pair.
+        /// </summary>
+        /// <param name="tokenPair">Issued token pair.</param>
+        /// <param name="actionText">Human-readable action prefix.</param>
+        /// <returns>Audit message text containing jti and expiry information.</returns>
+        private static string BuildTokenPairAuditText(TokenPair tokenPair, string actionText)
+        {
+            JwtSecurityToken accessToken = ReadJwt(tokenPair.AccessToken);
+            string auditText = $"{actionText} access_jti={accessToken.Id}, access_expires={accessToken.ValidTo:O}";
+            if (tokenPair.RefreshTokenExpires != DateTime.MinValue)
+            {
+                auditText += $", refresh_expires={tokenPair.RefreshTokenExpires:O}";
+            }
+
+            return auditText;
+        }
+
+        /// <summary>
+        /// Writes an audit entry for an issued access and optional refresh token pair.
+        /// </summary>
+        /// <param name="title">Audit title.</param>
+        /// <param name="tokenPair">Issued token pair.</param>
+        /// <param name="actingUser">User that triggered the issuance, if available.</param>
+        /// <param name="actionText">Human-readable action prefix.</param>
+        private static void WriteTokenPairAudit(string title, TokenPair tokenPair, UiUser? actingUser, string actionText)
+        {
+            WriteAudit(title, BuildTokenPairAuditText(tokenPair, actionText), actingUser);
+        }
+
+        /// <summary>
+        /// Builds the audit text for an issued access token.
+        /// </summary>
+        /// <param name="jwt">Issued JWT.</param>
+        /// <param name="actionText">Human-readable action prefix.</param>
+        /// <returns>Audit message text containing jti and expiry information.</returns>
+        private static string BuildJwtAuditText(string jwt, string actionText)
+        {
+            JwtSecurityToken accessToken = ReadJwt(jwt);
+            return $"{actionText} access_jti={accessToken.Id}, access_expires={accessToken.ValidTo:O}";
+        }
+
+        /// <summary>
+        /// Writes an audit entry for an issued access token.
+        /// </summary>
+        /// <param name="title">Audit title.</param>
+        /// <param name="jwt">Issued JWT.</param>
+        /// <param name="actingUser">User that triggered the issuance, if available.</param>
+        /// <param name="actionText">Human-readable action prefix.</param>
+        private static void WriteJwtAudit(string title, string jwt, UiUser? actingUser, string actionText)
+        {
+            WriteAudit(title, BuildJwtAuditText(jwt, actionText), actingUser);
+        }
+
+        /// <summary>
+        /// Writes an audit entry either with actor identity data or anonymously when no actor is available.
+        /// </summary>
+        /// <param name="title">Audit title.</param>
+        /// <param name="text">Audit text.</param>
+        /// <param name="actingUser">User that triggered the action, if available.</param>
+        private static void WriteAudit(string title, string text, UiUser? actingUser)
+        {
+            if (actingUser != null)
+            {
+                Log.WriteAudit(title, text, actingUser.Name, actingUser.Dn);
+                return;
+            }
+
+            Log.WriteAudit(title, text);
+        }
     }
 
     class AuthManager

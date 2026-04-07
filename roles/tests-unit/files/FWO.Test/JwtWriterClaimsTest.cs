@@ -46,6 +46,22 @@ namespace FWO.Test
             Assert.That(claimsIdentity.FindFirst("x-hasura-visible-devices")?.Value, Is.EqualTo("{5}"));
         }
 
+        [Test]
+        public void SetClaimsAddsJwtIdClaim()
+        {
+            UiUser user = new()
+            {
+                Name = "test-user",
+                Roles = ["reporter"]
+            };
+
+            ClaimsIdentity claimsIdentity = InvokeSetClaims(user);
+            Claim? jtiClaim = claimsIdentity.FindFirst("jti");
+
+            Assert.That(jtiClaim, Is.Not.Null);
+            Assert.That(Guid.TryParse(jtiClaim!.Value, out _), Is.True);
+        }
+
         private static ClaimsIdentity InvokeSetClaims(UiUser user)
         {
             MethodInfo? method = typeof(JwtWriter).GetMethod("SetClaims", BindingFlags.NonPublic | BindingFlags.Static);

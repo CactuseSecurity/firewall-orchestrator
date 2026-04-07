@@ -67,7 +67,7 @@ namespace FWO.Api.Client.Queries
                       ) {
                       insert_compliance_condition(objects: $conditions) {
                         returning {
-                          id
+                          insertedId: id
                         }
                       }
                     }");

@@ -143,6 +143,7 @@ namespace FWO.Test
 
             Assert.That(conditions.GetArrayLength(), Is.EqualTo(1));
             Assert.That(root.GetProperty("content").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(root.TryGetProperty("conditions", out _), Is.False);
 
             JsonElement portCondition = conditions[0];
             Assert.That(portCondition.GetProperty("criterion_id").GetInt32(), Is.EqualTo(101));
@@ -282,7 +283,7 @@ namespace FWO.Test
                 int conditionCount = root.GetProperty("conditions").GetArrayLength();
                 return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                 {
-                    ReturnIds = Enumerable.Range(1, conditionCount).Select(id => new ReturnId { Id = id }).ToArray()
+                    ReturnIds = Enumerable.Range(1, conditionCount).Select(id => new ReturnId { InsertedId = id }).ToArray()
                 });
             }
 

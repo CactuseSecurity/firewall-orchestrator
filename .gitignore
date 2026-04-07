@@ -70,3 +70,6 @@ cov.xml
 .DS_Store
 .dotnet
 **/.codex/
+
+.agents
+*.csproj.lscache

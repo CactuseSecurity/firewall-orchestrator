@@ -40,6 +40,7 @@ class FwConfigBuilder:
 
     def build_config(
         self,
+        uid2id_mapper: Uid2IdMapper,
         rulebase_count: int = 1,
         rules_per_rulebase_count: int = 1,
         network_object_count: int = 3,
@@ -79,8 +80,9 @@ class FwConfigBuilder:
 
         return config, mgm_uid
 
-    def build_empty_config(self) -> FwConfigNormalized:
+    def build_empty_config(self, uid2id_mapper: Uid2IdMapper) -> FwConfigNormalized:
         config, _ = self.build_config(
+            uid2id_mapper=uid2id_mapper,
             rulebase_count=0,
             rules_per_rulebase_count=0,
             network_object_count=0,

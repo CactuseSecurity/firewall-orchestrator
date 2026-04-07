@@ -2,9 +2,10 @@ import fwo_globals
 import pytest
 from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoApiLoginFailedError
-from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
 from pytest_mock.plugin import MockerFixture
+from states.global_state import GlobalState
+from states.import_state import ImportState
 from test.data.mock_objects import MockObjectsFactory
 from test.utils.test_utils import mock_get_graphql_code, mock_login
 
@@ -132,17 +133,13 @@ class TestImportSingleManagement:
     def test_import_single_management_calls_wait_with_shutdown_check(
         self,
         mocker: MockerFixture,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         api_call: FwoApiCall,
+        global_state: GlobalState,
     ):
         # Arrange
         mock_wait = mocker.patch("importer.import_main_loop.wait_with_shutdown_check")
-        mock_initialize_import = mocker.patch.object(
-            ImportStateController,
-            "initialize_import",
-            return_value=import_state_controller,
-        )
-        mock_register_global_state = mocker.patch("importer.import_main_loop.register_global_state")
+
         mock_get_graphql_code(mocker, return_value={"data": {"jwt": "mocked_jwt"}})
         mock_get_mgm_details = mocker.patch.object(
             ManagementController,
@@ -153,26 +150,11 @@ class TestImportSingleManagement:
         # Act
         import_single_management(
             mgm_id=1,
-            fwo_api_call=api_call,
-            verify_certificates=True,
-            api_fetch_limit=100,
-            clear=False,
-            suppress_certificate_warnings=False,
-            force=False,
-            fwo_major_version=9,
-            sleep_timer=0,
+            import_state=import_state,
+            global_state=global_state,
         )
 
         # Assert
         mock_wait.assert_called_with(0)
         mock_get_mgm_details.assert_called_once()
-        mock_initialize_import.assert_called_once_with(
-            mgm_id=1,
-            api_call=api_call,
-            suppress_cert_warnings=False,
-            ssl_verification=True,
-            force=False,
-            version=9,
-            is_clearing_import=False,
-        )
-        mock_register_global_state.assert_called_once_with(import_state_controller)
+

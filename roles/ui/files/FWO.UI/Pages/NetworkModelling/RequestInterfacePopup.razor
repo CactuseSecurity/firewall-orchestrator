@@ -1,5 +1,7 @@
 ﻿@using FWO.Middleware.Client
 
+@using FWO.Compliance
+
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
@@ -96,7 +98,7 @@
         {
             if(CheckInput())
             {
-                TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
+                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
                 long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, InterfaceName, Reason);
 
                 if(ticketId > 0)

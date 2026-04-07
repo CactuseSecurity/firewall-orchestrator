@@ -163,6 +163,11 @@ namespace FWO.Middleware.Server
             if (returnIds != null && returnIds.Length > 0)
             {
                 MatrixId = returnIds[0].InsertedId;
+                await ChangeLogHelper.LogMatrixChange(
+                    action: "middleware_matrix_import_create",
+                    matrixId: MatrixId,
+                    matrixName: MatrixName,
+                    origin: GlobalConst.kImportZoneMatrixData);
             }
             else
             {
@@ -291,3 +296,5 @@ namespace FWO.Middleware.Server
         }
     }
 }
+
+

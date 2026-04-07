@@ -1,4 +1,5 @@
-﻿@using System.Text.Json;
+@using System.Text.Json;
+@using FWO.Services
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -124,7 +125,7 @@
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                     <Authorized Context="ctx">
-                        <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => {await AcknowledgeAlert(actAlertId); await Close();}">@(userConfig.GetText("acknowledge"))</button>
+                        <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => {await AcknowledgeCurrentPrompt(); await Close();}">@(userConfig.GetText("acknowledge"))</button>
                     </Authorized>
                     <NotAuthorized Context="ctx">
                         <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
@@ -153,6 +154,12 @@
 
 @code
 {
+    private enum AutodiscoveryAcknowledgeReason
+    {
+        Dismissed,
+        Executed
+    }
+
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
@@ -539,6 +546,12 @@
                 if (returnIds != null)
                 {
                     discMgmt.Id = returnIds[0].NewId;
+                    await ChangeLogHelper.LogManagerChange(
+                        action: "prompted_management_create",
+                        managementId: discMgmt.Id,
+                        managementName: discMgmt.Name,
+                        userId: userConfig.User.DbId,
+                        origin: "ui_autodiscovery");
                     // As we now know the ManagementId we can activate the following device inserts
                     devCounter = activateDeviceChanges(discMgmt);
                     existingManagements.Add(discMgmt);
@@ -553,7 +566,7 @@
                     somethingToDo = false;
                 }
             }
-            await AcknowledgeAction(discMgmt.ActionId);
+            await AcknowledgeAction(discMgmt.ActionId, AutodiscoveryAcknowledgeReason.Executed);
         }
         catch (Exception exception)
         {
@@ -635,6 +648,13 @@
                 else
                 {
                     discoveredDevice.Id = returnIds[0].NewId;
+                    await ChangeLogHelper.LogGatewayChange(
+                        action: "prompted_gateway_create",
+                        deviceId: discoveredDevice.Id,
+                        deviceName: discoveredDevice.Name,
+                        managementId: discoveredDevice.Management.Id,
+                        userId: userConfig.User.DbId,
+                        origin: "ui_autodiscovery");
                     existingDevices.Add(discoveredDevice);
                     await addDeviceToTenant0(discoveredDevice.Id);
                 }
@@ -654,7 +674,7 @@
                     somethingToDo = false;
                 }
             }
-            await AcknowledgeAction(discoveredDevice.ActionId);
+            await AcknowledgeAction(discoveredDevice.ActionId, AutodiscoveryAcknowledgeReason.Executed);
         }
         catch (Exception exception)
         {
@@ -690,13 +710,19 @@
                 int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
                 if (delId == actManagement.Id)
                 {
+                    await ChangeLogHelper.LogManagerChange(
+                        action: "prompted_management_delete",
+                        managementId: actManagement.Id,
+                        managementName: actManagement.Name,
+                        userId: userConfig.User.DbId,
+                        origin: "ui_autodiscovery");
                     existingManagements.Remove(actManagement);
                     managementsToDisplay.Remove(actManagement);
                     if(managementsToDisplay.Count == 0)
                     {
                         somethingToDo = false;
                     }
-                    await AcknowledgeAction(actManagement.ActionId);
+                    await AcknowledgeAction(actManagement.ActionId, AutodiscoveryAcknowledgeReason.Executed);
                     DeleteManagementMode = false;
                 }
             }
@@ -716,6 +742,12 @@
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.changeManagementState, Variables)).UpdatedId;
             if (udId == management.Id)
             {
+                await ChangeLogHelper.LogManagerChange(
+                    action: disable ? "prompted_management_disable" : "prompted_management_reactivate",
+                    managementId: management.Id,
+                    managementName: management.Name,
+                    userId: userConfig.User.DbId,
+                    origin: "ui_autodiscovery");
                 if(disable)
                 {
                     managementsToDisplay.Remove(management);
@@ -724,7 +756,7 @@
                         somethingToDo = false;
                     }
                 }
-                await AcknowledgeAction(management.ActionId);
+                await AcknowledgeAction(management.ActionId, AutodiscoveryAcknowledgeReason.Executed);
             }
         }
         catch (Exception exception)
@@ -741,10 +773,17 @@
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteDevice, Variables)).DeletedId;
             if (delId == actDevice.Id)
             {
+                await ChangeLogHelper.LogGatewayChange(
+                    action: "prompted_gateway_delete",
+                    deviceId: actDevice.Id,
+                    deviceName: actDevice.Name,
+                    managementId: actDevice.Management.Id,
+                    userId: userConfig.User.DbId,
+                    origin: "ui_autodiscovery");
                 // remove device from existing management
                 removeDevFromExMgmt(actDevice, false);
                 existingDevices.Remove(actDevice);
-                await AcknowledgeAction(actDevice.ActionId);
+                await AcknowledgeAction(actDevice.ActionId, AutodiscoveryAcknowledgeReason.Executed);
                 DeleteDeviceMode = false;
             }
         }
@@ -763,6 +802,13 @@
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.changeDeviceState, Variables)).UpdatedId;
             if (udId == device.Id)
             {
+                await ChangeLogHelper.LogGatewayChange(
+                    action: disable ? "prompted_gateway_disable" : "prompted_gateway_reactivate",
+                    deviceId: device.Id,
+                    deviceName: device.Name,
+                    managementId: device.Management.Id,
+                    userId: userConfig.User.DbId,
+                    origin: "ui_autodiscovery");
                 if(disable)
                 {
                     removeDevFromExMgmt(device, true);
@@ -772,7 +818,7 @@
                         dev.ImportDisabled = true;
                     }
                 }
-                await AcknowledgeAction(device.ActionId);
+                await AcknowledgeAction(device.ActionId, AutodiscoveryAcknowledgeReason.Executed);
             }
         }
         catch (Exception exception)
@@ -831,13 +877,36 @@
         management.Devices = exDevs.ToArray();
     }
 
-    public async Task AcknowledgeAction(long actionId)
+    private async Task AcknowledgeCurrentPrompt()
+    {
+        if (Actions.Count == 1)
+        {
+            await AcknowledgeAction(Actions[0].Number);
+        }
+        else if (actAlertId != null)
+        {
+            // Invariant: actAlertId is only set for the single-action alert view.
+            // If this branch is hit, autodiscovery UI state handling was changed and
+            // the acknowledge logic must be reviewed as well.
+            string message = $"Unexpected autodiscovery acknowledge state: actAlertId={actAlertId}, Actions.Count={Actions.Count}.";
+            Log.WriteError("Autodiscovery Acknowledge", message);
+#if !RELEASE
+            throw new InvalidOperationException(message);
+#endif
+        }
+    }
+
+    private async Task AcknowledgeAction(long actionId, AutodiscoveryAcknowledgeReason reason = AutodiscoveryAcknowledgeReason.Dismissed)
     {
         try
         {
             ActionItem? actToDelete = Actions.FirstOrDefault(x => x.Number == actionId);
             if (actToDelete != null)
             {
+                if (reason == AutodiscoveryAcknowledgeReason.Dismissed)
+                {
+                    await LogDismissedPrompt(actToDelete);
+                }
                 actToDelete.Done = true;
                 if(actToDelete.AlertId != null)
                 {
@@ -848,6 +917,53 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("acknowledge_action"), "", true);
+        }
+    }
+
+    private async Task LogDismissedPrompt(ActionItem action)
+    {
+        switch (action.ActionType)
+        {
+            case nameof(ActionCode.AddManagement):
+                await ChangeLogHelper.LogManagerChange(
+                    action: "prompt_dismissed_management_create",
+                    managementId: action.ManagementId,
+                    origin: "ui_autodiscovery");
+                break;
+            case nameof(ActionCode.DeleteManagement):
+                await ChangeLogHelper.LogManagerChange(
+                    action: "prompt_dismissed_management_delete",
+                    managementId: action.ManagementId,
+                    origin: "ui_autodiscovery");
+                break;
+            case nameof(ActionCode.ReactivateManagement):
+                await ChangeLogHelper.LogManagerChange(
+                    action: "prompt_dismissed_management_reactivate",
+                    managementId: action.ManagementId,
+                    origin: "ui_autodiscovery");
+                break;
+            case nameof(ActionCode.AddGatewayToNewManagement):
+            case nameof(ActionCode.AddGatewayToExistingManagement):
+                await ChangeLogHelper.LogGatewayChange(
+                    action: "prompt_dismissed_gateway_create",
+                    deviceId: action.DeviceId,
+                    managementId: action.ManagementId,
+                    origin: "ui_autodiscovery");
+                break;
+            case nameof(ActionCode.DeleteGateway):
+                await ChangeLogHelper.LogGatewayChange(
+                    action: "prompt_dismissed_gateway_delete",
+                    deviceId: action.DeviceId,
+                    managementId: action.ManagementId,
+                    origin: "ui_autodiscovery");
+                break;
+            case nameof(ActionCode.ReactivateGateway):
+                await ChangeLogHelper.LogGatewayChange(
+                    action: "prompt_dismissed_gateway_reactivate",
+                    deviceId: action.DeviceId,
+                    managementId: action.ManagementId,
+                    origin: "ui_autodiscovery");
+                break;
         }
     }
 
@@ -926,3 +1042,4 @@
         }
     }
 }
+

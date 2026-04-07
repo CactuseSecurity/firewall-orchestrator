@@ -99,6 +99,49 @@ namespace FWO.Middleware.Server.Jobs
                     RefAlertId = action.RefAlertId,
                     CompareDesc = true
                 });
+            switch (action.ActionType)
+            {
+                case nameof(ActionCode.AddManagement):
+                    await ChangeLogHelper.LogManagerChange(
+                        action: "autodiscovery_prompt_management_create",
+                        managementId: action.ManagementId,
+                        origin: GlobalConst.kAutodiscovery);
+                    break;
+                case nameof(ActionCode.DeleteManagement):
+                    await ChangeLogHelper.LogManagerChange(
+                        action: "autodiscovery_prompt_management_delete",
+                        managementId: action.ManagementId,
+                        origin: GlobalConst.kAutodiscovery);
+                    break;
+                case nameof(ActionCode.ReactivateManagement):
+                    await ChangeLogHelper.LogManagerChange(
+                        action: "autodiscovery_prompt_management_reactivate",
+                        managementId: action.ManagementId,
+                        origin: GlobalConst.kAutodiscovery);
+                    break;
+                case nameof(ActionCode.DeleteGateway):
+                    await ChangeLogHelper.LogGatewayChange(
+                        action: "autodiscovery_prompt_gateway_delete",
+                        deviceId: action.DeviceId,
+                        managementId: action.ManagementId,
+                        origin: GlobalConst.kAutodiscovery);
+                    break;
+                case nameof(ActionCode.AddGatewayToNewManagement):
+                case nameof(ActionCode.AddGatewayToExistingManagement):
+                    await ChangeLogHelper.LogGatewayChange(
+                        action: "autodiscovery_prompt_gateway_create",
+                        deviceId: action.DeviceId,
+                        managementId: action.ManagementId,
+                        origin: GlobalConst.kAutodiscovery);
+                    break;
+                case nameof(ActionCode.ReactivateGateway):
+                    await ChangeLogHelper.LogGatewayChange(
+                        action: "autodiscovery_prompt_gateway_reactivate",
+                        deviceId: action.DeviceId,
+                        managementId: action.ManagementId,
+                        origin: GlobalConst.kAutodiscovery);
+                    break;
+            }
             return lastMgmtAlertId;
         }
     }

@@ -1,8 +1,9 @@
-﻿@using FWO.DeviceAutoDiscovery
+@using FWO.DeviceAutoDiscovery
 @using FWO.Middleware.Client
 @using System.Text.Json.Serialization
 @using Newtonsoft.Json
 @using System.Security.Authentication
+@using FWO.Services
 
 
 @page "/settings/managements"
@@ -380,6 +381,12 @@
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == actManagement.Id)
             {
+                await ChangeLogHelper.LogManagerChange(
+                    action: "manual_management_delete",
+                    managementId: actManagement.Id,
+                    managementName: actManagement.Name,
+                    userId: userConfig.User.DbId,
+                    origin: "ui_settings");
                 managements.Remove(actManagement);
             }
             workInProgress = false;
@@ -471,6 +478,12 @@
                     if (returnIds != null)
                     {
                         actManagement.Id = returnIds[0].NewId;
+                        await ChangeLogHelper.LogManagerChange(
+                            action: "manual_management_create",
+                            managementId: actManagement.Id,
+                            managementName: actManagement.Name,
+                            userId: userConfig.User.DbId,
+                            origin: "ui_settings");
                     }
                     managements.Add(actManagement);
                     AddMode = false;
@@ -503,6 +516,15 @@
                         isSuperManager = actManagement.DeviceType.CanBeSupermanager()
                     };
                     int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagement, Variables)).UpdatedId;
+                    if (udId == actManagement.Id)
+                    {
+                        await ChangeLogHelper.LogManagerChange(
+                            action: "manual_management_update",
+                            managementId: actManagement.Id,
+                            managementName: actManagement.Name,
+                            userId: userConfig.User.DbId,
+                            origin: "ui_settings");
+                    }
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 }
@@ -617,3 +639,4 @@
         }
     }
 }
+

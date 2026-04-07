@@ -1,4 +1,4 @@
-﻿@using FWO.Services
+@using FWO.Services
 
 @page "/compliance/matrix"
 
@@ -214,7 +214,7 @@
     {
         try
         {
-            return (await apiConnection.SendQueryAsync<List<LinkedPolicy>>(ComplianceQueries.getPolicyIdsForCrit, new{ critId = selectedMatrix.Id })).Count == 0;;
+            return (await apiConnection.SendQueryAsync<List<LinkedPolicy>>(ComplianceQueries.getPolicyIdsForCrit, new{ critId = selectedMatrix.Id })).Count == 0;
         }
         catch (Exception exception)
         {
@@ -231,6 +231,12 @@
             {
                 await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
                     new { id = selectedMatrix.Id, removed = DateTime.UtcNow });
+                await ChangeLogHelper.LogMatrixChange(
+                    action: "manual_matrix_soft_delete",
+                    matrixId: selectedMatrix.Id,
+                    matrixName: selectedMatrix.Name,
+                    userId: userConfig.User.DbId,
+                    origin: "ui");
                 matrices.Remove(selectedMatrix);
                 await InitMatrix();
                 deleteMatrixMode = false;
@@ -286,3 +292,6 @@
         }
     }
 }
+
+
+

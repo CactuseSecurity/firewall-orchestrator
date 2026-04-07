@@ -30939,6 +30939,7 @@
                   "role": "approver",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -30949,6 +30950,7 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -30959,6 +30961,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -30969,6 +30972,7 @@
                   "role": "implementer",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -30979,6 +30983,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -30990,6 +30995,7 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -31001,6 +31007,7 @@
                   "role": "planner",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -31011,6 +31018,7 @@
                   "role": "requester",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],
@@ -31021,6 +31029,7 @@
                   "role": "reviewer",
                   "permission": {
                     "columns": [
+                      "automatic_only",
                       "name",
                       "id"
                     ],

@@ -2,12 +2,13 @@ import unittest.mock
 
 import pytest
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
-from model_controllers.import_state_controller import ImportStateController
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
 from models.rulebase_link import RulebaseLink
-from services.global_state import GlobalState
+from states.global_state import GlobalState
+from states.import_state import ImportState
+from states.management_state import ManagementState
 
 
 @pytest.fixture
@@ -15,7 +16,7 @@ def rulebase_link_controller() -> RulebaseLinkController:
     rulebase_link_controller = RulebaseLinkController()
     rulebase_link_controller.rb_links = []
 
-    def get_rulebase_links():
+    def get_rulebase_links(_import_state: ImportState) -> None:
         rulebase_link_controller.rb_links = [
             RulebaseLink(
                 id=1,
@@ -38,38 +39,22 @@ def rulebase_link_controller() -> RulebaseLinkController:
     return rulebase_link_controller
 
 
-@pytest.fixture
-def fwconfig_import_gateway(
-    rulebase_link_controller: RulebaseLinkController,
-) -> FwConfigImportGateway:
-    import_gateway = FwConfigImportGateway()
-    import_gateway._rb_link_controller = unittest.mock.MagicMock()  # pyright: ignore[reportPrivateUsage]
-    import_gateway.get_rb_link_controller = unittest.mock.MagicMock(
-        return_value=rulebase_link_controller,  # pyright: ignore[reportPrivateUsage]
-    )
-
-    return import_gateway
-
 
 class TestFwconfigImportGatewayClear:
     def test_update_gateway_diffs_removes_links_on_clear(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         global_state: GlobalState,
-        rulebase_link_controller: RulebaseLinkController,
+        management_state: ManagementState,
     ):
-        import_state = import_state_controller
-        import_state.state.is_clearing_import = True
+        global_state.fwo_config_controller.fwo_config.clear = True
 
-        global_state.import_state = import_state
-        global_state.normalized_config = FwConfigNormalized(gateways=[])
-        global_state.previous_config = FwConfigNormalized(gateways=[Gateway(Uid="gw-1")])
-        insert_called = False
+        management_state.normalized_config = FwConfigNormalized(gateways=[])
+        management_state.previous_config = FwConfigNormalized(gateways=[Gateway(Uid="gw-1")])
 
         gateway_importer = FwConfigImportGateway()
-        gateway_importer._rb_link_controller = unittest.mock.MagicMock()  # pyright: ignore[reportPrivateUsage]
+        rulebase_link_controller = RulebaseLinkController()
 
-        gateway_importer.update_gateway_diffs()
+        gateway_importer.update_gateway_diffs(global_state, import_state, management_state, rulebase_link_controller)
 
         assert rulebase_link_controller.rb_links == []
-        assert insert_called is False

@@ -1,9 +1,9 @@
 import pytest
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from models.networkobject import NetworkObject
 from netaddr import IPNetwork
+from states.import_state import ImportState
 from test.data.mock_objects import MockObjectsFactory
 from test.utils.config_builder import FwConfigBuilder
 
@@ -11,7 +11,7 @@ from test.utils.config_builder import FwConfigBuilder
 class TestCheckConsistencyColors:
     def test_check_network_object_color_consistency_valid(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -31,7 +31,7 @@ class TestCheckConsistencyColors:
         )
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_color_consistency(config=config, fix=False)
@@ -40,7 +40,7 @@ class TestCheckConsistencyColors:
 
     def test_check__network_object_color_consistency_invalid_no_fix(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -54,7 +54,7 @@ class TestCheckConsistencyColors:
         nw_obj.obj_color = "nonexistent_color"
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_color_consistency(config=config, fix=False)
@@ -66,7 +66,7 @@ class TestCheckConsistencyColors:
 
     def test_check_network_object_color_consistency_invalid_with_fix(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -80,7 +80,7 @@ class TestCheckConsistencyColors:
         nw_obj.obj_color = "nonexistent_color"
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_color_consistency(config=config, fix=True)
@@ -91,7 +91,7 @@ class TestCheckConsistencyColors:
 
     def test_check_service_object_color_consistency_valid(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -105,7 +105,7 @@ class TestCheckConsistencyColors:
         nw_obj.obj_color = "red"
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_color_consistency(config=config, fix=False)
@@ -114,7 +114,7 @@ class TestCheckConsistencyColors:
 
     def test_check__service_object_color_consistency_invalid_no_fix(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -128,7 +128,7 @@ class TestCheckConsistencyColors:
         svc_obj.svc_color = "nonexistent_color"
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_color_consistency(config=config, fix=False)
@@ -140,7 +140,7 @@ class TestCheckConsistencyColors:
 
     def test_check_service_object_color_consistency_invalid_with_fix(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -154,7 +154,7 @@ class TestCheckConsistencyColors:
         svc_obj.svc_color = "nonexistent_color"
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_color_consistency(config=config, fix=True)
@@ -168,7 +168,7 @@ class TestCheckConsistencyNetworkObjects:
     def test_check_network_object_consistency_valid(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -178,7 +178,7 @@ class TestCheckConsistencyNetworkObjects:
         )
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_color_consistency(config=config, fix=False)
@@ -188,7 +188,7 @@ class TestCheckConsistencyNetworkObjects:
     def test_check_network_object_consistency_invalid(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -206,7 +206,7 @@ class TestCheckConsistencyNetworkObjects:
         manager_controller.add_manager(manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_network_object_consistency(
@@ -218,7 +218,7 @@ class TestCheckConsistencyNetworkObjects:
 
     def test_check_network_object_consistency_with_single_host_in_group(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -232,7 +232,7 @@ class TestCheckConsistencyNetworkObjects:
         MockObjectsFactory.add_standard_network_group_object(config, [nw_obj])
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_network_object_consistency(
@@ -243,7 +243,7 @@ class TestCheckConsistencyNetworkObjects:
 
     def test_check_network_object_consistency_with_multiple_hosts_in_group(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -257,7 +257,7 @@ class TestCheckConsistencyNetworkObjects:
         nw_obj2 = MockObjectsFactory.add_standard_network_host_object(config, index=2)
         MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[nw_obj1, nw_obj2])
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_network_object_consistency(
@@ -269,7 +269,7 @@ class TestCheckConsistencyNetworkObjects:
     @pytest.mark.skip(reason="Currently, circular references are not detected.")
     def test_check_network_object_consistency_with_group_referencing_itself(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -283,7 +283,7 @@ class TestCheckConsistencyNetworkObjects:
         nw_group_obj.obj_member_refs = nw_group_obj.obj_uid  # Circular reference
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_network_object_consistency(
@@ -295,7 +295,7 @@ class TestCheckConsistencyNetworkObjects:
 
     def test_check_network_object_consistency_with_empty_group(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -308,7 +308,7 @@ class TestCheckConsistencyNetworkObjects:
         MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[])
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_network_object_consistency(
@@ -319,7 +319,7 @@ class TestCheckConsistencyNetworkObjects:
 
     def test_check_network_object_consistency_with_group_referencing_nonexistent_object(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -336,7 +336,7 @@ class TestCheckConsistencyNetworkObjects:
         manager = MockObjectsFactory.get_standard_fwconfig_manager(config)
         manager_controller.add_manager(manager)
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_network_object_consistency(
@@ -347,7 +347,7 @@ class TestCheckConsistencyNetworkObjects:
 
     def test_check_network_object_consistency_with_mixed_valid_and_invalid_references(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -362,7 +362,7 @@ class TestCheckConsistencyNetworkObjects:
         group_obj.obj_member_refs += "|InvalidHost"  # pyright: ignore[reportOperatorIssue]
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
         consistency_checker.check_network_object_consistency(
             config=config, global_config=None, fix_unresolvable_refs=False
@@ -372,7 +372,7 @@ class TestCheckConsistencyNetworkObjects:
 
     def test_check_network_object_consistency_none_group_without_ip(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -387,7 +387,7 @@ class TestCheckConsistencyNetworkObjects:
         nw_obj.obj_ip_end = None
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
         consistency_checker.check_network_object_consistency(
             config=config, global_config=None, fix_unresolvable_refs=False
@@ -400,7 +400,7 @@ class TestCheckConsistencyServiceObjects:
     def test_check_service_object_consistency_valid(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -413,7 +413,7 @@ class TestCheckConsistencyServiceObjects:
         MockObjectsFactory.add_standard_service_group_object(config, [svc_obj])
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_service_object_consistency(
@@ -425,7 +425,7 @@ class TestCheckConsistencyServiceObjects:
     def test_check_service_object_consistency_unresolvable_object(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -438,7 +438,7 @@ class TestCheckConsistencyServiceObjects:
         svc_group_obj.svc_member_refs = "NonExistentService"
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_service_object_consistency(
@@ -450,7 +450,7 @@ class TestCheckConsistencyServiceObjects:
     def test_check_service_object_consistency_invalid_type(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -463,7 +463,7 @@ class TestCheckConsistencyServiceObjects:
         svc_obj.svc_typ = "DoesNotExist"
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_service_object_consistency(
@@ -474,7 +474,7 @@ class TestCheckConsistencyServiceObjects:
 
     def test_check_service_object_consistency_with_multiple_members_in_group(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -488,7 +488,7 @@ class TestCheckConsistencyServiceObjects:
         MockObjectsFactory.add_standard_service_object(config, index=2)
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_service_object_consistency(
@@ -499,7 +499,7 @@ class TestCheckConsistencyServiceObjects:
     @pytest.mark.skip(reason="Currently, circular references are not detected.")
     def test_check_service_object_consistency_with_group_referencing_itself(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -513,7 +513,7 @@ class TestCheckConsistencyServiceObjects:
         svc_group_obj.svc_member_refs = svc_group_obj.svc_uid  # Circular reference
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_service_object_consistency(
@@ -524,7 +524,7 @@ class TestCheckConsistencyServiceObjects:
 
     def test_check_service_object_consistency_with_empty_group(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -538,7 +538,7 @@ class TestCheckConsistencyServiceObjects:
         svc_group_obj.svc_member_refs = ""
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_service_object_consistency(
@@ -548,7 +548,7 @@ class TestCheckConsistencyServiceObjects:
 
     def test_check_service_object_consistency_with_mixed_valid_and_invalid_references(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -564,7 +564,7 @@ class TestCheckConsistencyServiceObjects:
         svc_group_obj.svc_member_refs = "ServiceObject1|InvalidService"
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_service_object_consistency(
@@ -578,7 +578,7 @@ class TestCheckUserObjectConsistency:
     def test_check_user_object_consistency_valid(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -591,7 +591,7 @@ class TestCheckUserObjectConsistency:
         )
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
         consistency_checker.check_service_object_consistency(
             config=config, global_config=None, fix_inconsistencies=False
@@ -602,7 +602,7 @@ class TestCheckUserObjectConsistency:
     def test_check_user_object_unresolvable_object(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -626,7 +626,7 @@ class TestCheckUserObjectConsistency:
         config.users["GroupWithInvalidMember"] = group
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_service_object_consistency(
@@ -640,7 +640,7 @@ class TestRulebaseConsistency:
     def test_check_rulebase_consistency_valid(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -650,7 +650,7 @@ class TestRulebaseConsistency:
         )
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_service_object_consistency(
@@ -661,11 +661,11 @@ class TestRulebaseConsistency:
     def test_check_rulebase_consistency_with_empty_config(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         empty_config = fwconfig_builder.build_empty_config()
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_rulebase_consistency(config=empty_config, fix_inconsistencies=False)
@@ -675,7 +675,7 @@ class TestRulebaseConsistency:
     def test_check_rulebase_consistency_with_unresolvable_tracks(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -688,7 +688,7 @@ class TestRulebaseConsistency:
         config.rulebases[0].rules[rule_uid].rule_track = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_rulebase_consistency(config=config, fix_inconsistencies=False)
@@ -699,7 +699,7 @@ class TestRulebaseConsistency:
     def test_check_rulebase_consistency_with_unresolvable_actions(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -712,7 +712,7 @@ class TestRulebaseConsistency:
         config.rulebases[0].rules[rule_uid].rule_action = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_rulebase_consistency(config=config, fix_inconsistencies=False)
@@ -725,7 +725,7 @@ class TestRulebaseLinkConsistency:
     def test_check_rulebase_link_consistency_valid(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -735,7 +735,7 @@ class TestRulebaseLinkConsistency:
         )
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_rulebase_link_consistency(
@@ -747,7 +747,7 @@ class TestRulebaseLinkConsistency:
     def test_check_rulebase_link_consistency_with_broken_links(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -760,7 +760,7 @@ class TestRulebaseLinkConsistency:
         config.gateways[0].RulebaseLinks[0].to_rulebase_uid = "NonExistentToRulebaseUID"
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_rulebase_link_consistency(
@@ -776,7 +776,7 @@ class TestZoneObjectConsistency:
     def test_check_zone_object_consistency_valid(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -786,7 +786,7 @@ class TestZoneObjectConsistency:
         )
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
         consistency_checker.check_zone_object_consistency(
             config=config, global_config=None, fix_unresolvable_refs=False
@@ -795,7 +795,7 @@ class TestZoneObjectConsistency:
 
     def test_check_zone_object_consistency_with_unresolvable_object_src(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -809,7 +809,7 @@ class TestZoneObjectConsistency:
         config.rulebases[0].rules[rule_uid].rule_src_zone = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
         consistency_checker.check_zone_object_consistency(
             config=config, global_config=None, fix_unresolvable_refs=False
@@ -820,7 +820,7 @@ class TestZoneObjectConsistency:
 
     def test_check_zone_object_consistency_with_unresolvable_object_dst(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
@@ -834,7 +834,7 @@ class TestZoneObjectConsistency:
         config.rulebases[0].rules[rule_uid].rule_dst_zone = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
         consistency_checker.check_zone_object_consistency(
             config=config, global_config=None, fix_unresolvable_refs=False
@@ -848,7 +848,7 @@ class TestFullConfigConsistencyCheck:
     def test_full_config_consistency_check(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         config, _ = fwconfig_builder.build_config(
             network_object_count=10,
@@ -861,7 +861,7 @@ class TestFullConfigConsistencyCheck:
         )
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            import_state=import_state,
         )
 
         consistency_checker.check_zone_object_consistency(

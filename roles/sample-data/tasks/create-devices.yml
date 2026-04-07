@@ -40,8 +40,8 @@
         query: >
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ sample_fortigate_name }}') THEN
-          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id,dev_uid)
-          VALUES ((select mgm_id from management where mgm_name='{{ sample_fortigate_name }}'),'{{ sample_fortigate_name }}','access_rules',25,'{{ sample_fortigate_dev_uid }}');
+          insert into device (mgm_id,dev_name,dev_typ_id,dev_uid)
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_fortigate_name }}'),'{{ sample_fortigate_name }}',25,'{{ sample_fortigate_dev_uid }}');
           END IF; END $do$
 
   become: true
@@ -60,14 +60,24 @@
             END IF;
           END $do$
 
-    - name: insert demo check point R8x gateway {{ sample_checkpoint_name }}
+    - name: insert demo check point R8x gateway1 {{ sample_checkpoint_name }}
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
-          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ demo_cpr8x_name }}') THEN
-          insert into device (mgm_id,dev_name,dev_uid,local_rulebase_name,dev_typ_id,package_name)
-          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ demo_cpr8x_name }}','{{ demo_cpr8x_dev_uid }}','AnonAAAB_Security_neu',9,'AnonAAAA_New'); 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ demo_cpr8x_name }}1') THEN
+          insert into device (mgm_id,dev_name,dev_uid,dev_typ_id)
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ demo_cpr8x_name }}1','{{ demo_cpr8x_dev1_uid }}',9); 
+          END IF; END $do$
+
+    - name: insert demo check point R8x gateway2 {{ sample_checkpoint_name }}
+      postgresql_query:
+        db: "{{ fworch_db_name }}"
+        query: >
+          DO $do$ BEGIN 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ demo_cpr8x_name }}2') THEN
+          insert into device (mgm_id,dev_name,dev_uid,dev_typ_id)
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ demo_cpr8x_name }}2','{{ demo_cpr8x_dev2_uid }}',9); 
           END IF; END $do$
 
   become: true
@@ -85,14 +95,24 @@
           VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ sample_checkpoint_uri }}',{{ do_not_import }},'dummy importer hostname','{{ demo_cpr8x_mgm_uid }}'); 
           END IF; END $do$
 
-    - name: insert test check point R8x gateway {{ sample_checkpoint_name }}
+    - name: insert test check point R8x gateway1 {{ sample_checkpoint_name }}
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
-          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ sample_checkpoint_name }}') THEN
-          insert into device (mgm_id,dev_name,dev_uid,local_rulebase_name,dev_typ_id,package_name)
-          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ sample_checkpoint_name }}','{{ demo_cpr8x_dev_uid }}','FirstLayer shared with inline layer',9,'TestPolicyWithLayers'); 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ sample_checkpoint_name }}1') THEN
+          insert into device (mgm_id,dev_name,dev_uid,dev_typ_id)
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ sample_checkpoint_name }}1','{{ demo_cpr8x_dev1_uid }}',9); 
+          END IF; END $do$
+
+    - name: insert test check point R8x gateway2 {{ sample_checkpoint_name }}
+      postgresql_query:
+        db: "{{ fworch_db_name }}"
+        query: >
+          DO $do$ BEGIN 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ sample_checkpoint_name }}2') THEN
+          insert into device (mgm_id,dev_name,dev_uid,dev_typ_id)
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ sample_checkpoint_name }}2','{{ demo_cpr8x_dev2_uid }}',9); 
           END IF; END $do$
 
   become: true

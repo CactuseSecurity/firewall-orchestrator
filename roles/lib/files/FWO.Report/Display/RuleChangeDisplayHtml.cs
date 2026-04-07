@@ -407,12 +407,10 @@ namespace FWO.Ui.Display
 
         public string DisplayServiceProtocol(ServiceChange serviceChange)
         {
-
             switch (serviceChange.ChangeAction)
             {
-
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Protocol!.Name);
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.Protocol!.Name);
+                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Protocol?.Name ?? "");
+                case 'I': return OutputHtmlAdded(serviceChange.NewService.Protocol?.Name ?? "");
                 case 'C': return DisplayDiff(serviceChange.OldService.Protocol?.Name ?? "", serviceChange.NewService.Protocol?.Name ?? "");
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }

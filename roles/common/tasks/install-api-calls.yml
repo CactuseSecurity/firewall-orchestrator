@@ -1,8 +1,19 @@
 
 # this coppies all graphql queries and mutations to the server
 # for use with UI, MW and importer
+- name: ensure the fwo api calls destination directory is owned by fworch
+  file:
+    path: "{{ fworch_home }}/fwo-api-calls"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+    mode: "0755"
+  become: true
+
 - name: install the fwo api calls
   synchronize:
     src: "fwo-api-calls"
     dest: "{{ fworch_home }}"
+    rsync_opts:
+      - "--chown={{ fworch_user }}:{{ fworch_group }}"
   become: true

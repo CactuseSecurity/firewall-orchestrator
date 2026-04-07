@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
@@ -145,6 +146,24 @@ namespace FWO.Test
             string extQueryVars = "{\"BundledTasks\":[1,2,3]}";
 
             ClassicAssert.AreEqual(3, ExternalRequestHandler.GetLastTaskNumber(extQueryVars, 0));
+        }
+
+        [Test]
+        public void DisposeDoesNotDisposeInjectedUserConfig()
+        {
+            SimulatedGlobalConfig localGlobalConfig = new()
+            {
+                DefaultLanguage = "English"
+            };
+            UserConfig localUserConfig = new(localGlobalConfig, registerOnChangeHandler: false);
+
+            using (ExternalRequestHandler externalRequestHandler = new(localUserConfig, apiConnection, null))
+            {
+            }
+
+            ClassicAssert.AreEqual("on", localUserConfig.GetText("on"));
+            localUserConfig.Dispose();
+            localGlobalConfig.Dispose();
         }
 
         [Test]

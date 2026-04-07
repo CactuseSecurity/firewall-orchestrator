@@ -7,6 +7,7 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Middleware.Server.Controllers;
+using FWO.Middleware.Server.Services;
 using FWO.Report;
 using FWO.Services;
 using Quartz;
@@ -28,6 +29,7 @@ namespace FWO.Middleware.Server.Jobs
 
         private readonly ApiConnection apiConnectionScheduler;
         private readonly JwtWriter jwtWriter;
+        private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private readonly string apiServerUri;
 
         /// <summary>
@@ -35,10 +37,12 @@ namespace FWO.Middleware.Server.Jobs
         /// </summary>
         /// <param name="apiConnectionScheduler">API connection used by the scheduler.</param>
         /// <param name="jwtWriter">JWT writer to authorize users.</param>
-        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter)
+        /// <param name="tokenLifetimeProvider">Provider for delegated token lifetime defaults.</param>
+        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter, TokenLifetimeProvider? tokenLifetimeProvider = null)
         {
             this.apiConnectionScheduler = apiConnectionScheduler;
             this.jwtWriter = jwtWriter;
+            this.tokenLifetimeProvider = tokenLifetimeProvider ?? new TokenLifetimeProvider();
             apiServerUri = ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup.");
         }
 
@@ -178,8 +182,8 @@ namespace FWO.Middleware.Server.Jobs
         private async Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
         {
             List<Ldap> connectedLdaps = await apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
-            AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler);
-            string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false, lifetime: TimeSpan.FromDays(365));
+            AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler, tokenLifetimeProvider);
+            string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false, tokenLifetimeProvider.GetDelegatedUserTokenLifetime());
             ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
             UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, reportSchedule.ScheduleOwningUser.DbId);

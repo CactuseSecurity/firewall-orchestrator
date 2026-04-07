@@ -19,10 +19,12 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
 
 // Create Token Generator
+TokenLifetimeProvider tokenLifetimeProvider = new();
 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
+InternalApiTokenService internalApiTokenService = new(jwtWriter, tokenLifetimeProvider);
 
 // Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
-ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
+ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), internalApiTokenService.CreateInitialMiddlewareToken());
 
 List<Ldap> connectedLdaps = [];
 int connectionAttemptsCount = 1;
@@ -59,6 +61,9 @@ builder.Services.AddQuartzHostedService(options =>
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
 builder.Services.AddSingleton<JobExecutionTracker>();
+builder.Services.AddSingleton(tokenLifetimeProvider);
+builder.Services.AddSingleton(internalApiTokenService);
+builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 
 // Register config listeners as singletons (activated at startup)
 builder.Services.AddSingleton<ExternalRequestSchedulerService>();

@@ -5,6 +5,7 @@ using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
@@ -26,15 +27,17 @@ namespace FWO.Middleware.Server.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
+        private readonly TokenLifetimeProvider tokenLifetimeProvider;
 
         /// <summary>
         /// Constructor needing jwt writer, ldap list and connection
         /// </summary>
-        public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection)
+        public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection, TokenLifetimeProvider tokenLifetimeProvider)
         {
             this.jwtWriter = jwtWriter;
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
+            this.tokenLifetimeProvider = tokenLifetimeProvider;
         }
 
         /// <summary>
@@ -63,7 +66,7 @@ namespace FWO.Middleware.Server.Controllers
                         user = new UiUser { Name = username, Password = password };
                 }
 
-                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
                 UiUser? authenticatedUser = await authManager.AuthenticateAndBuildUserAsync(user, validatePassword: true);
 
@@ -95,7 +98,7 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
-                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
                 UiUser adminUser = new() { Name = parameters.AdminUsername, Password = parameters.AdminPassword };
 
                 UiUser authenticatedAdminUser = await authManager.AuthenticateAndBuildUserAsync(adminUser, validatePassword: true)
@@ -111,7 +114,8 @@ namespace FWO.Middleware.Server.Controllers
                 UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
                     ?? throw new AuthenticationException("Provided target user credentials are invalid.");
 
-                TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedTargetUser, parameters.Lifetime);
+                TimeSpan delegatedLifetime = tokenLifetimeProvider.CapDelegatedUserTokenLifetime(parameters.Lifetime);
+                TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedTargetUser, delegatedLifetime);
 
                 return Ok(tokenPair);
             }
@@ -147,7 +151,7 @@ namespace FWO.Middleware.Server.Controllers
                         user = new UiUser { Name = username, Password = password };
                 }
 
-                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
                 // Authenticate user
                 string jwt = await authManager.AuthorizeUserAsync(user, validatePassword: true);
@@ -182,7 +186,7 @@ namespace FWO.Middleware.Server.Controllers
                 string targetUserName = parameters.TargetUserName;
                 string targetUserDn = parameters.TargetUserDn;
 
-                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
                 UiUser adminUser = new() { Name = adminUsername, Password = adminPassword };
                 // Check if admin valids are valid
                 try
@@ -201,7 +205,8 @@ namespace FWO.Middleware.Server.Controllers
                 try
                 {
                     UiUser targetUser = new() { Name = targetUserName, Dn = targetUserDn };
-                    string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false, lifetime);
+                    TimeSpan delegatedLifetime = tokenLifetimeProvider.CapDelegatedUserTokenLifetime(lifetime);
+                    string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false, delegatedLifetime);
                     return Ok(jwt);
                 }
                 catch (Exception e)
@@ -230,7 +235,7 @@ namespace FWO.Middleware.Server.Controllers
                     return BadRequest("Refresh token is required");
                 }
 
-                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
                 // Validate refresh token
                 RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(request.RefreshToken);
@@ -295,7 +300,7 @@ namespace FWO.Middleware.Server.Controllers
                     return BadRequest("Refresh token is required");
                 }
 
-                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
                 RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(request.RefreshToken);
 
@@ -341,13 +346,15 @@ namespace FWO.Middleware.Server.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
+        private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private readonly string UserAuthentication = "User Authentication";
 
-        public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection)
+        public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection, TokenLifetimeProvider? tokenLifetimeProvider = null)
         {
             this.jwtWriter = jwtWriter;
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
+            this.tokenLifetimeProvider = tokenLifetimeProvider ?? new TokenLifetimeProvider();
         }
 
         /// <summary>
@@ -404,7 +411,13 @@ namespace FWO.Middleware.Server.Controllers
         public async Task<string> AuthorizeUserAsync(UiUser? user, bool validatePassword, TimeSpan? lifetime = null)
         {
             UiUser? authenticatedUser = await AuthenticateAndBuildUserAsync(user, validatePassword);
-            return await jwtWriter.CreateJWT(authenticatedUser, lifetime);
+            if (authenticatedUser == null)
+            {
+                return jwtWriter.CreateJWT(null, tokenLifetimeProvider.GetAnonymousTokenLifetime());
+            }
+
+            TimeSpan accessLifetime = lifetime ?? await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
+            return jwtWriter.CreateJWT(authenticatedUser, accessLifetime);
         }
 
         public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
@@ -742,9 +755,11 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>A token pair containing the signed access token and, for authenticated users, a persisted refresh token with its expiration metadata.</returns>
         public async Task<TokenPair> CreateTokenPair(UiUser? user = null, TimeSpan? accessTokenLifetime = null)
         {
-            TimeSpan accessLifetime = accessTokenLifetime ?? TimeSpan.FromHours(await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours)));
+            TimeSpan accessLifetime = user == null
+                ? tokenLifetimeProvider.GetAnonymousTokenLifetime()
+                : accessTokenLifetime ?? await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
 
-            string accessToken = await jwtWriter.CreateJWT(user, accessLifetime);
+            string accessToken = jwtWriter.CreateJWT(user, accessLifetime);
 
             JwtSecurityToken jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
 
@@ -754,8 +769,8 @@ namespace FWO.Middleware.Server.Controllers
             if (user is not null)
             {
                 refreshToken = JwtWriter.GenerateRefreshToken();
-                int refreshTokenLifetimeDays = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetimeDays));
-                refreshExpiry = DateTime.UtcNow.AddDays(refreshTokenLifetimeDays);
+                TimeSpan refreshLifetime = await tokenLifetimeProvider.GetRefreshTokenLifetimeAsync(apiConnection);
+                refreshExpiry = DateTime.UtcNow.Add(refreshLifetime);
                 await StoreRefreshToken(user.DbId, refreshToken, refreshExpiry);
             }
 

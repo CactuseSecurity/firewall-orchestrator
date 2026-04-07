@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using FWO.Middleware.Server.Services;
 using FWO.Recert;
 using FWO.Services;
 using FWO.Services.Workflow;
@@ -22,16 +23,19 @@ namespace FWO.Middleware.Server.Jobs
         private const string LogMessageTitle = "Daily Check";
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
+        private readonly TokenLifetimeProvider tokenLifetimeProvider;
 
         /// <summary>
         /// Creates a new daily check job.
         /// </summary>
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>
-        public DailyCheckJob(ApiConnection apiConnection, GlobalConfig globalConfig)
+        /// <param name="tokenLifetimeProvider">Provider for internal token lifetime defaults.</param>
+        public DailyCheckJob(ApiConnection apiConnection, GlobalConfig globalConfig, TokenLifetimeProvider? tokenLifetimeProvider = null)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
+            this.tokenLifetimeProvider = tokenLifetimeProvider ?? new TokenLifetimeProvider();
         }
 
         /// <inheritdoc />
@@ -107,7 +111,7 @@ namespace FWO.Middleware.Server.Jobs
         {
             if (globalConfig.RecCheckActive)
             {
-                RecertCheck recertCheck = new(apiConnection, globalConfig);
+                RecertCheck recertCheck = new(apiConnection, globalConfig, tokenLifetimeProvider);
                 int emailsSent = await recertCheck.CheckRecertifications();
                 Log.WriteDebug(LogMessageTitle, $"Recert Check: Sent {emailsSent} emails.");
                 await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);

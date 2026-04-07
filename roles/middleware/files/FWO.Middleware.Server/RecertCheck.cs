@@ -10,6 +10,7 @@ using FWO.Data.Report;
 using FWO.Encryption;
 using FWO.Logging;
 using FWO.Mail;
+using FWO.Middleware.Server.Services;
 using FWO.Report;
 using FWO.Services;
 using System;
@@ -25,6 +26,7 @@ namespace FWO.Middleware.Server
     {
         private readonly ApiConnection apiConnectionMiddlewareServer;
         private readonly GlobalConfig globalConfig;
+        private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private List<Ldap> connectedLdaps = [];
         private List<UiUser> uiUsers = [];
         private RecertCheckParams? globCheckParams;
@@ -34,10 +36,11 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Constructor for Recertification check class
         /// </summary>
-        public RecertCheck(ApiConnection apiConnection, GlobalConfig globalConfig)
+        public RecertCheck(ApiConnection apiConnection, GlobalConfig globalConfig, TokenLifetimeProvider tokenLifetimeProvider)
         {
             this.apiConnectionMiddlewareServer = apiConnection;
             this.globalConfig = globalConfig;
+            this.tokenLifetimeProvider = tokenLifetimeProvider;
         }
 
         /// <summary>
@@ -55,7 +58,7 @@ namespace FWO.Middleware.Server
                     EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
                         globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
                     JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
-                    ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
+                    ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall(tokenLifetimeProvider.GetInternalServiceTokenLifetime()));
                     foreach (FwoOwner owner in owners)
                     {
                         emailsSent += await CheckRuleByRule(owner, apiConnectionReporter, emailConnection);

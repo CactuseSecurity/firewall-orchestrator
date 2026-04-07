@@ -1,7 +1,4 @@
-using FWO.Api.Client;
 using FWO.Basics;
-using FWO.Config.Api.Data;
-using FWO.Config.File;
 using FWO.Data;
 using FWO.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -33,7 +30,7 @@ namespace FWO.Middleware.Server
 		/// create jwt for the given user
 		/// </summary>
 		/// <returns>generated token</returns>
-		public async Task<string> CreateJWT(UiUser? user = null, TimeSpan? lifetime = null)
+        public string CreateJWT(UiUser? user, TimeSpan lifetime)
         {
             if (user != null)
                 Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
@@ -41,10 +38,6 @@ namespace FWO.Middleware.Server
                 Log.WriteDebug("Jwt generation", "Generating empty JWT (startup)");
 
             JwtSecurityTokenHandler tokenHandler = new();
-
-            GraphQlApiConnection apiConnection = new(ConfigFile.ApiServerUri, CreateJWTMiddlewareServer());
-            // if lifetime was speciefied use it, otherwise use standard lifetime
-            TimeSpan accessLifetime = lifetime ?? TimeSpan.FromHours(await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours)));
 
             ClaimsIdentity subject = user != null
                 ? SetClaims(user)
@@ -58,7 +51,7 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.Add(user != null ? accessLifetime : TimeSpan.FromDays(365 * 10)), // Anonymous jwt is valid for ten years (does not violate security)
+                expires: DateTime.UtcNow.Add(lifetime),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
 
@@ -75,9 +68,9 @@ namespace FWO.Middleware.Server
         /// necessary because this JWT needs to be used within getClaims
         /// </summary>
         /// <returns>JWT for middleware-server role.</returns>
-        public string CreateJWTMiddlewareServer()
+        public string CreateJWTMiddlewareServer(TimeSpan lifetime)
         {
-            return CreateJWTInternal(Roles.MiddlewareServer);
+            return CreateJWTInternal(Roles.MiddlewareServer, lifetime);
         }
 
         /// <summary>
@@ -85,12 +78,12 @@ namespace FWO.Middleware.Server
         /// necessary because this JWT needs to be used within getClaims
         /// </summary>
         /// <returns>JWT for reporter-viewall role.</returns>
-        public string CreateJWTReporterViewall()
+        public string CreateJWTReporterViewall(TimeSpan lifetime)
         {
-            return CreateJWTInternal(Roles.ReporterViewAll);
+            return CreateJWTInternal(Roles.ReporterViewAll, lifetime);
         }
 
-        private string CreateJWTInternal(string role)
+        private string CreateJWTInternal(string role, TimeSpan lifetime)
         {
             JwtSecurityTokenHandler tokenHandler = new();
             ClaimsIdentity subject = new();
@@ -105,7 +98,7 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddYears(200),
+                expires: DateTime.UtcNow.Add(lifetime),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);

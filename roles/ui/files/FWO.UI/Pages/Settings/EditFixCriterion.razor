@@ -282,8 +282,7 @@
                 criterionType = SelectedCriterion.CriterionType,
                 content = string.IsNullOrWhiteSpace(SelectedCriterion.Content) ? null : SelectedCriterion.Content,
                 comment = SelectedCriterion.Comment,
-                importSource = SelectedCriterion.ImportSource,
-                conditions = Array.Empty<CriterionConditionInsertInput>()
+                importSource = SelectedCriterion.ImportSource
             })).ReturnIds;
         if(returnIds == null || returnIds.Length == 0)
         {

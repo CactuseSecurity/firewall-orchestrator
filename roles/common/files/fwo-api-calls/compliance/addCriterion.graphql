@@ -4,7 +4,6 @@ mutation addCriterion(
   $content: String
   $comment: String
   $importSource: String
-  $conditions: [compliance_condition_insert_input!] = []
   ) {
   insert_compliance_criterion(objects: {
     name: $name
@@ -12,9 +11,6 @@ mutation addCriterion(
     content: $content
 	comment: $comment
 	import_source: $importSource
-    conditions: {
-      data: $conditions
-    }
   }) {
     returning {
       insertedId: id

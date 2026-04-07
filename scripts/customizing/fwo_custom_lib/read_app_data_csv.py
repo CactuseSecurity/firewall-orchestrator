@@ -216,6 +216,70 @@ def _get_additional_information(
     return additional_information
 
 
+def _resolve_responsibles(line: list[str], app_id: str, context: OwnerLineParserContext) -> dict[str, list[str]]:
+    responsibles: dict[str, list[str]] = {}
+    if context.responsibles_columns is not None:
+        resolved_responsibles: dict[str, list[str]] = _get_responsibles(line, context.responsibles_columns)
+        responsibles = _build_responsibles_dns(resolved_responsibles, context.ldap_path, context.logger)
+    if context.add_users_by_pattern is not None:
+        pattern_responsibles: dict[str, list[str]] = _build_pattern_responsibles(app_id, context.add_users_by_pattern)
+        responsibles = _merge_responsibles(responsibles, pattern_responsibles)
+    return responsibles
+
+
+def _resolve_recert_period_days(
+    line: list[str],
+    criticality: str,
+    context: OwnerLineParserContext,
+) -> int:
+    recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
+    mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
+        criticality, context.criticality_recert_period_mapping
+    )
+    return mapped_recert_period_days if mapped_recert_period_days is not None else recert_period_days
+
+
+def _log_missing_level_one_responsible(
+    responsibles: dict[str, list[str]],
+    app_id: str,
+    context: OwnerLineParserContext,
+) -> None:
+    level_one_responsibles: list[str] = responsibles.get("1", [])
+    if len(level_one_responsibles) == 0 and context.debug_level > 0:
+        context.logger.warning("adding app without level 1 responsible: %s", app_id)
+
+
+def _build_owner_from_line(
+    line: list[str],
+    app_id: str,
+    criticality: str,
+    context: OwnerLineParserContext,
+) -> Owner:
+    app_name: str = line[context.app_name_column]
+    owner_lifecycle_state: str = _get_owner_lifecycle_state(
+        line, context.owner_lifecycle_state_column, context.fallback_owner_lifecycle
+    )
+    responsibles: dict[str, list[str]] = _resolve_responsibles(line, app_id, context)
+    additional_information: dict[str, str] = _get_additional_information(line, context.additional_information_columns)
+    recert_period_days: int = _resolve_recert_period_days(line, criticality, context)
+    _log_missing_level_one_responsible(responsibles, app_id, context)
+    criticality_value: str | None = criticality if context.criticality_column >= 0 else None
+    responsibles_value: dict[str, list[str]] | None = responsibles or None
+    additional_information_value: dict[str, str] | None = additional_information or None
+    return context.owner_cls(
+        app_id_external=app_id,
+        name=app_name,
+        recert_period_days=recert_period_days,
+        days_until_first_recert=recert_period_days,
+        recert_active=False,
+        import_source=context.import_source_string,
+        owner_lifecycle_state=owner_lifecycle_state,
+        criticality=criticality_value,
+        responsibles=responsibles_value,
+        additional_information=additional_information_value,
+    )
+
+
 def _split_app_id_external(app_id_external: str) -> tuple[str, str]:
     if "-" in app_id_external:
         app_prefix, app_id = app_id_external.split("-", 1)
@@ -684,45 +748,8 @@ def parse_app_line(
             context.logger.info("ignoring line from csv file: %s - inconclusive appId", app_id)
         return count_skips + 1
 
-    app_name: str = line[context.app_name_column]
-    owner_lifecycle_state: str = _get_owner_lifecycle_state(
-        line, context.owner_lifecycle_state_column, context.fallback_owner_lifecycle
-    )
     criticality: str = _get_criticality(line, context.criticality_column)
-    responsibles: dict[str, list[str]]
-    if context.responsibles_columns is not None:
-        resolved_responsibles: dict[str, list[str]] = _get_responsibles(line, context.responsibles_columns)
-        responsibles = _build_responsibles_dns(resolved_responsibles, context.ldap_path, context.logger)
-    else:
-        responsibles = {}
-    additional_information: dict[str, str] = _get_additional_information(line, context.additional_information_columns)
-    if context.add_users_by_pattern is not None:
-        pattern_responsibles: dict[str, list[str]] = _build_pattern_responsibles(app_id, context.add_users_by_pattern)
-        responsibles = _merge_responsibles(responsibles, pattern_responsibles)
-    recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
-    mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
-        criticality, context.criticality_recert_period_mapping
-    )
-    if mapped_recert_period_days is not None:
-        recert_period_days = mapped_recert_period_days
-    level_one_responsibles: list[str] = responsibles.get("1", [])
-    if len(level_one_responsibles) == 0 and context.debug_level > 0:
-        context.logger.warning("adding app without level 1 responsible: %s", app_id)
-    criticality_value: str | None = criticality if context.criticality_column >= 0 else None
-    responsibles_value: dict[str, list[str]] | None = responsibles or None
-    additional_information_value: dict[str, str] | None = additional_information or None
-    owner: Owner = context.owner_cls(
-        app_id_external=app_id,
-        name=app_name,
-        recert_period_days=recert_period_days,
-        days_until_first_recert=recert_period_days,
-        recert_active=False,
-        import_source=context.import_source_string,
-        owner_lifecycle_state=owner_lifecycle_state,
-        criticality=criticality_value,
-        responsibles=responsibles_value,
-        additional_information=additional_information_value,
-    )
+    owner: Owner = _build_owner_from_line(line, app_id, criticality, context)
     app_list.append(owner)
     return count_skips
 

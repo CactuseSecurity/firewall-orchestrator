@@ -191,9 +191,7 @@ def parse_additional_information_columns(columns_entries: list[str]) -> dict[str
             )
         additional_information_columns[dump_key] = header_name
     if not additional_information_columns:
-        raise argparse.ArgumentTypeError(
-            "additionalInformationColumns must contain at least one KEY:HEADER mapping"
-        )
+        raise argparse.ArgumentTypeError("additionalInformationColumns must contain at least one KEY:HEADER mapping")
     return additional_information_columns
 
 
@@ -485,9 +483,7 @@ if __name__ == "__main__":
         logger.debug("resolved responsiblesColumns=%s", responsibles_columns_headers)
     additional_information_columns_headers: dict[str, str] | None = None
     if args.additionalInformationColumns:
-        additional_information_columns_headers = parse_additional_information_columns(
-            args.additionalInformationColumns
-        )
+        additional_information_columns_headers = parse_additional_information_columns(args.additionalInformationColumns)
     add_users_by_pattern: dict[str, str] | None = None
     if args.add_users_by_pattern:
         add_users_by_pattern = parse_add_users_by_pattern(args.add_users_by_pattern)

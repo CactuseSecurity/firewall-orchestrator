@@ -745,7 +745,38 @@ namespace FWO.Compliance
         /// <param name="detailsOverride">Optional string used if details need to be customized.</param>
         private void CreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult, string? detailsOverride = null)
         {
-            ComplianceViolation violation = new()
+            string? violationDetails = violationType switch
+            {
+                ComplianceViolationType.MatrixViolation => CreateMatrixViolationDetails(complianceCheckResult, detailsOverride),
+                ComplianceViolationType.ServiceViolation => CreateServiceViolationDetails(complianceCheckResult),
+                ComplianceViolationType.NotAssessable => CreateNotAssessableViolationDetails(complianceCheckResult),
+                _ => null
+            };
+
+            if (!IsSupportedViolationType(violationType))
+            {
+                return;
+            }
+
+            ComplianceViolation violation = CreateViolationBase(rule, complianceCheckResult);
+            if (violationDetails != null)
+            {
+                violation.Details = violationDetails;
+            }
+
+            _currentViolations.Add(violation);
+        }
+
+        private static bool IsSupportedViolationType(ComplianceViolationType violationType)
+        {
+            return violationType is ComplianceViolationType.MatrixViolation
+                or ComplianceViolationType.ServiceViolation
+                or ComplianceViolationType.NotAssessable;
+        }
+
+        private ComplianceViolation CreateViolationBase(Rule rule, ComplianceCheckResult complianceCheckResult)
+        {
+            return new ComplianceViolation
             {
                 RuleId = (int)rule.Id,
                 RuleUid = rule.Uid ?? "",
@@ -753,71 +784,63 @@ namespace FWO.Compliance
                 PolicyId = Policy?.Id ?? 0,
                 CriterionId = complianceCheckResult.Criterion!.Id
             };
+        }
 
-            switch (violationType)
+        private string? CreateMatrixViolationDetails(ComplianceCheckResult complianceCheckResult, string? detailsOverride)
+        {
+            if (!string.IsNullOrEmpty(detailsOverride))
             {
-                case ComplianceViolationType.MatrixViolation:
-
-                    if (!string.IsNullOrEmpty(detailsOverride))
-                    {
-                        violation.Details = detailsOverride;
-                    }
-                    else if (complianceCheckResult.Source is NetworkObject s && complianceCheckResult.Destination is NetworkObject d)
-                    {
-                        string sourceString = GetNwObjectString(s);
-                        string destinationString = GetNwObjectString(d);
-                        violation.Details = $"{_userConfig.GetText("H5839")}: {sourceString} (Zone: {complianceCheckResult.SourceZone?.Name ?? ""}) -> {destinationString} (Zone: {complianceCheckResult.DestinationZone?.Name ?? ""})";
-                    }
-
-                    break;
-
-                case ComplianceViolationType.ServiceViolation:
-
-                    if (complianceCheckResult.Service is NetworkService svc)
-                    {
-                        string displayService = DisplayBase.DisplayService(svc, false).ToString();
-                        if (string.IsNullOrWhiteSpace(displayService))
-                        {
-                            displayService = !string.IsNullOrWhiteSpace(svc.Name) ? svc.Name : svc.Uid;
-                        }
-
-                        violation.Details = $"{_userConfig.GetText("H5840")}: {displayService}";
-                    }
-                    else
-                    {
-                        throw new ArgumentNullException(paramName: "complianceCheckResult.Service", message: "The service argument must be non-null when creating a service violation.");
-                    }
-
-                    break;
-
-                case ComplianceViolationType.NotAssessable:
-
-                    if (complianceCheckResult.AssessabilityIssue != null)
-                    {
-                        string networkObject = "";
-
-                        if (complianceCheckResult.Source != null)
-                        {
-                            networkObject = GetNwObjectString(complianceCheckResult.Source);
-                        }
-                        else if (complianceCheckResult.Destination != null)
-                        {
-                            networkObject = GetNwObjectString(complianceCheckResult.Destination);
-                        }
-
-                        string assessabilityIssueType = complianceCheckResult.AssessabilityIssue.Value.ToAssessabilityIssueString();
-
-                        violation.Details = $"{_userConfig.GetText("H5841")}: {_userConfig.GetText(assessabilityIssueType)}({networkObject})";
-                    }
-
-                    break;
-
-                default:
-
-                    return;
+                return detailsOverride;
             }
 
-            _currentViolations.Add(violation);
+            if (complianceCheckResult.Source is not NetworkObject source || complianceCheckResult.Destination is not NetworkObject destination)
+            {
+                return null;
+            }
+
+            string sourceString = GetNwObjectString(source);
+            string destinationString = GetNwObjectString(destination);
+
+            return $"{_userConfig.GetText("H5839")}: {sourceString} (Zone: {complianceCheckResult.SourceZone?.Name ?? ""}) -> {destinationString} (Zone: {complianceCheckResult.DestinationZone?.Name ?? ""})";
+        }
+
+        private string CreateServiceViolationDetails(ComplianceCheckResult complianceCheckResult)
+        {
+            if (complianceCheckResult.Service is not NetworkService service)
+            {
+                throw new ArgumentNullException(paramName: "complianceCheckResult.Service", message: "The service argument must be non-null when creating a service violation.");
+            }
+
+            string displayService = DisplayBase.DisplayService(service, false).ToString();
+            if (string.IsNullOrWhiteSpace(displayService))
+            {
+                displayService = !string.IsNullOrWhiteSpace(service.Name) ? service.Name : service.Uid;
+            }
+
+            return $"{_userConfig.GetText("H5840")}: {displayService}";
+        }
+
+        private string? CreateNotAssessableViolationDetails(ComplianceCheckResult complianceCheckResult)
+        {
+            if (complianceCheckResult.AssessabilityIssue == null)
+            {
+                return null;
+            }
+
+            string networkObject = GetAssessabilityNetworkObjectString(complianceCheckResult);
+            string assessabilityIssueType = complianceCheckResult.AssessabilityIssue.Value.ToAssessabilityIssueString();
+
+            return $"{_userConfig.GetText("H5841")}: {_userConfig.GetText(assessabilityIssueType)}({networkObject})";
+        }
+
+        private string GetAssessabilityNetworkObjectString(ComplianceCheckResult complianceCheckResult)
+        {
+            if (complianceCheckResult.Source != null)
+            {
+                return GetNwObjectString(complianceCheckResult.Source);
+            }
+
+            return complianceCheckResult.Destination != null ? GetNwObjectString(complianceCheckResult.Destination) : "";
         }
 
         /// <summary>

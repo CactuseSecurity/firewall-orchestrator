@@ -628,6 +628,8 @@ namespace FWO.Compliance
                     return;
                 }
 
+                await LoadPolicyCriterionConditions();
+
                 Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
                 Managements = GetRelevantManagements(globalConfig, Managements);
 
@@ -1209,6 +1211,45 @@ namespace FWO.Compliance
                     NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
                     Logger.TryWriteInfo("Compliance Check", $"Loaded {NetworkZones.Count} network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Loads structured condition rows for all criteria of the active policy.
+        /// </summary>
+        private async Task LoadPolicyCriterionConditions()
+        {
+            if (Policy?.Criteria == null || Policy.Criteria.Count == 0)
+            {
+                return;
+            }
+
+            List<int> criterionIds =
+            [
+                .. Policy.Criteria
+                    .Select(criterionWrapper => criterionWrapper.Content.Id)
+                    .Where(id => id > 0)
+                    .Distinct()
+            ];
+
+            if (criterionIds.Count == 0)
+            {
+                return;
+            }
+
+            List<ComplianceCriterionCondition> conditions = await _apiConnection.SendQueryAsync<List<ComplianceCriterionCondition>>(
+                ComplianceQueries.getCriterionConditions,
+                new { criterionIds });
+
+            Dictionary<int, List<ComplianceCriterionCondition>> conditionsByCriterionId = conditions
+                .GroupBy(condition => condition.CriterionId)
+                .ToDictionary(group => group.Key, group => group.OrderBy(condition => condition.GroupOrder).ThenBy(condition => condition.Position).ToList());
+
+            foreach (ComplianceCriterionWrapper criterionWrapper in Policy.Criteria)
+            {
+                criterionWrapper.Content.Conditions = conditionsByCriterionId.TryGetValue(criterionWrapper.Content.Id, out List<ComplianceCriterionCondition>? criterionConditions)
+                    ? criterionConditions
+                    : [];
             }
         }
 

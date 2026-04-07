@@ -199,6 +199,96 @@ namespace FWO.Test
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(violation => violation.Details == ExpectedViolationDetailsAutoCalcFalse));
         }
 
+        [Test]
+        public async Task CheckAll_LoadsCriterionConditionsWhenPolicyQueryDoesNotExpandThem()
+        {
+            // Arrange
+
+            GlobalConfig.ComplianceCheckPolicyId = 1;
+            GlobalConfig.ComplianceCheckRelevantManagements = "1";
+            GlobalConfig.AutoCalculateInternetZone = false;
+            GlobalConfig.AutoCalculateUndefinedInternalZone = false;
+            GlobalConfig.TreatDynamicAndDomainObjectsAsInternet = false;
+
+            CompliancePolicy policy = new()
+            {
+                Id = 1,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 7,
+                            Name = "forbidden-https",
+                            CriterionType = nameof(CriterionType.ForbiddenService),
+                            Content = ""
+                        }
+                    }
+                ]
+            };
+
+            List<Rule> rules =
+            [
+                CreateRuleWithService("svc-https", "HTTPS", 6, "TCP", 443)
+            ];
+
+            AggregateCount count = new();
+            count.Aggregate.Count = rules.Count;
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<ComplianceCriterionCondition>>(ComplianceQueries.getCriterionConditions, Arg.Any<object>())
+                .Returns(
+                [
+                    new ComplianceCriterionCondition
+                    {
+                        CriterionId = 7,
+                        GroupOrder = 1,
+                        Position = 1,
+                        Field = ComplianceConditionFields.Protocol,
+                        Operator = ComplianceConditionOperators.Equal,
+                        ValueInt = 6
+                    },
+                    new ComplianceCriterionCondition
+                    {
+                        CriterionId = 7,
+                        GroupOrder = 1,
+                        Position = 2,
+                        Field = ComplianceConditionFields.Port,
+                        Operator = ComplianceConditionOperators.Overlaps,
+                        ValueInt = 443,
+                        ValueIntEnd = 443
+                    }
+                ]);
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                .Returns([new Management { Id = 1, Name = "Mgmt1" }]);
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules, Arg.Any<object>())
+                .Returns(count);
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, Arg.Any<object?>())
+                .Returns(rules);
+
+            SetUpViolationCount(1);
+
+            // Act
+
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
+
+            // Assert
+
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck.Count, Is.EqualTo(1));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck.Single().Details, Does.Contain("HTTPS"));
+        }
+
         #endregion
 
         #region Tests - PostProcessRulesAsync

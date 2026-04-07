@@ -66,7 +66,7 @@ create table compliance.criterion
 	import_source TEXT
 );
 
-create table compliance.criterion_condition
+create table compliance.condition
 (
     id BIGSERIAL PRIMARY KEY,
 	criterion_id INT NOT NULL,
@@ -80,15 +80,16 @@ create table compliance.criterion_condition
 	value_ref BIGINT,
 	removed timestamp with time zone,
 	created timestamp with time zone default now(),
-	CONSTRAINT compliance_criterion_condition_group_order_check CHECK (group_order >= 1),
-	CONSTRAINT compliance_criterion_condition_position_check CHECK (position >= 1),
-	CONSTRAINT compliance_criterion_condition_value_range_start_check CHECK (value_int_end IS NULL OR value_int IS NOT NULL),
-	CONSTRAINT compliance_criterion_condition_value_range_order_check CHECK (value_int IS NULL OR value_int_end IS NULL OR value_int <= value_int_end),
-	CONSTRAINT compliance_criterion_condition_value_presence_check CHECK (
+	CONSTRAINT compliance_condition_group_order_check CHECK (group_order >= 1),
+	CONSTRAINT compliance_condition_position_check CHECK (position >= 1),
+	CONSTRAINT compliance_condition_value_range_start_check CHECK (value_int_end IS NULL OR value_int IS NOT NULL),
+	CONSTRAINT compliance_condition_value_range_order_check CHECK (value_int IS NULL OR value_int_end IS NULL OR value_int <= value_int_end),
+	CONSTRAINT compliance_condition_value_presence_check CHECK (
 		value_string IS NOT NULL
 		OR value_int IS NOT NULL
 		OR value_ref IS NOT NULL
-	)
+	),
+	CONSTRAINT compliance_criterion_condition_foreign_key FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) ON UPDATE RESTRICT ON DELETE CASCADE
 );
 
 create table compliance.violation

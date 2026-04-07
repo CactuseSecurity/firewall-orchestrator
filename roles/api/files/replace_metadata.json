@@ -21,7 +21,7 @@
                     "foreign_key_constraint_on": {
                       "column": "criterion_id",
                       "table": {
-                        "name": "criterion_condition",
+                        "name": "condition",
                         "schema": "compliance"
                       }
                     }
@@ -246,7 +246,7 @@
             },
             {
               "table": {
-                "name": "criterion_condition",
+                "name": "condition",
                 "schema": "compliance"
               },
               "object_relationships": [

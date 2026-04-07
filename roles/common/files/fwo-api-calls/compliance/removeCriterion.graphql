@@ -2,7 +2,7 @@ mutation removeCriterion(
   $id: Int!
   $removed: timestamptz
 ) {
-  update_compliance_criterion_condition(
+  update_compliance_condition(
     where: {
       criterion_id: { _eq: $id }
       removed: { _is_null: true }

@@ -113,8 +113,8 @@ where is_default = true;
 
 -- compliance
 Create index IF NOT EXISTS idx_fkey_network_zone_id on compliance.ip_range USING HASH (network_zone_id);
-Create index IF NOT EXISTS idx_fkey_criterion_condition_criterion_id on compliance.criterion_condition USING HASH (criterion_id);
-Create index IF NOT EXISTS idx_criterion_condition_order on compliance.criterion_condition (criterion_id, group_order, position);
+Create index IF NOT EXISTS idx_fkey_condition_criterion_id on compliance.condition USING HASH (criterion_id);
+Create index IF NOT EXISTS idx_condition_order on compliance.condition (criterion_id, group_order, position);
 Create index IF NOT EXISTS idx_fkey_network_zone_from on compliance.network_zone_communication USING HASH (from_network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_communication USING HASH (to_network_zone_id);
 

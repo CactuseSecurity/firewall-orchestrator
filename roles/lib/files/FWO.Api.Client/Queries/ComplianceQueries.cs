@@ -63,9 +63,9 @@ namespace FWO.Api.Client.Queries
                 addCriterion = GetQueryText("compliance/addCriterion.graphql");
                 addCriterionConditions = Compact(@"
                     mutation addCriterionConditions(
-                      $conditions: [compliance_criterion_condition_insert_input!]!
+                      $conditions: [compliance_condition_insert_input!]!
                       ) {
-                      insert_compliance_criterion_condition(objects: $conditions) {
+                      insert_compliance_condition(objects: $conditions) {
                         returning {
                           id
                         }

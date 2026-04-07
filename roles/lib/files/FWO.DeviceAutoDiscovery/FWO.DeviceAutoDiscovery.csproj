@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.17.0" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Config.Api\FWO.Config.Api.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Logging\FWO.Logging.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Encryption\FWO.Encryption.csproj" />

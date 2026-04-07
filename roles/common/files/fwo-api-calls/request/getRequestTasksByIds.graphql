@@ -1,0 +1,5 @@
+query getRequestTasksByIds($task_ids: [bigint!]) {
+  request_tasks(where: { id: { _in: $task_ids } }, order_by: { id: asc }) {
+    ...reqTaskDetails
+  }
+}

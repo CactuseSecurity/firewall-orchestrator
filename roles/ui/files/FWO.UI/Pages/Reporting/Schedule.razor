@@ -128,7 +128,7 @@
                                    @onchange="@(_ => reportScheduleInEdit.OutputFormat.AddOrRemove(GlobalConst.kJson))">
                             <label class="form-check-label" for="outputFormatJson">JSON</label>
                         </div>
-                        @if (reportScheduleInEdit.Template.ReportParams != null && (GetReportType().IsResolvedReport() || GetReportType().IsComplianceReport()))
+                        @if (reportScheduleInEdit.Template.ReportParams != null && CsvAvailableForSchedule())
                         {
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
@@ -271,10 +271,12 @@
             reportSchedules = (await apiConnection.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules));
             reportSchedulesSubscription = apiConnection.GetSubscription<List<ReportSchedule>>(HandleSubscriptionError, OnReportScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
             reportTemplates = await apiConnection.SendQueryAsync<List<ReportTemplate>>(ReportQueries.getReportTemplates, new { userId = uiUserDbId });
-            reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
-                                                           showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport() &&
-                                                           modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null ||
-                                                           showComplianceReport && ((ReportType)rt.ReportParams.ReportType).IsComplianceReport())).ToList();
+            reportTemplates = reportTemplates.Where(rt =>
+            {
+                ReportType reportType = (ReportType)rt.ReportParams.ReportType;
+                bool modellingOwnerAllowed = modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null;
+                return reportType.IsVisibleTemplateType(showRuleRelatedReports, showModellingReports, showComplianceReport, modellingOwnerAllowed);
+            }).ToList();
             authenticationState = await authenticationStateTask!;
         }
         catch (Exception exception)
@@ -456,6 +458,12 @@
         }
 
         return ReportType.Undefined;
+    }
+
+    private bool CsvAvailableForSchedule()
+    {
+        ReportType reportType = GetReportType();
+        return reportType.SupportsCsvExport(reportScheduleInEdit.Template?.ReportParams?.WorkflowFilter.DetailedView == true);
     }
 
     private async Task UpdateSchedulerConfig()

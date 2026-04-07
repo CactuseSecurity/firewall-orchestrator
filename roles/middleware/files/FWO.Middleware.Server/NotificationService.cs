@@ -57,10 +57,10 @@ namespace FWO.Middleware.Server
         /// <param name="report">Optional report to be sent as attachment</param>
         /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotificationsIfDue(FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null, string timeIntervalText = "")
+        public async Task<int> SendNotificationsIfDue(FwoOwner? owner, DateTime? extDeadline, string? content, ReportBase? report = null, string timeIntervalText = "")
         {
             int emailsSent = 0;
-            foreach (var notification in Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
+            foreach (var notification in Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner?.Id))
             {
                 emailsSent += await SendNotificationIfDue(notification, owner, extDeadline, content, report, timeIntervalText);
             }
@@ -76,7 +76,7 @@ namespace FWO.Middleware.Server
         /// <param name="report">Optional report to be sent as attachment.</param>
         /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotification(FwoNotification notification, FwoOwner owner, string content, ReportBase? report = null, string timeIntervalText = "")
+        public async Task<int> SendNotification(FwoNotification notification, FwoOwner? owner, string? content = null, ReportBase? report = null, string timeIntervalText = "")
         {
             // Later: Handle other channels here when implemented
             await SendEmail(notification, content, owner, report, timeIntervalText);
@@ -85,6 +85,40 @@ namespace FWO.Middleware.Server
                 CheckedNotificationIds.Add(notification.Id);
             }
             return 1;
+        }
+
+        /// <summary>
+        /// Sends notifications grouped by bundle information. Notifications without bundle settings are sent individually.
+        /// </summary>
+        /// <param name="notifications">Notifications to send.</param>
+        /// <param name="owner">Owner for whom the notifications are sent.</param>
+        /// <param name="content">Text for notification (e.g. email body).</param>
+        /// <param name="report">Optional report to be sent as attachment.</param>
+        /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
+        /// <returns>number of emails sent</returns>
+        public async Task<int> SendBundledNotifications(List<FwoNotification> notifications, FwoOwner? owner, string? content = null, ReportBase? report = null, string timeIntervalText = "")
+        {
+            int emailsSent = 0;
+            foreach (IGrouping<string, FwoNotification> notificationGroup in notifications.GroupBy(GetBundleGroupKey))
+            {
+                List<FwoNotification> groupedNotifications = [.. notificationGroup];
+                if (groupedNotifications.Count == 1 || groupedNotifications[0].BundleType == null)
+                {
+                    emailsSent += await SendNotification(groupedNotifications[0], owner, content, report, timeIntervalText);
+                    continue;
+                }
+
+                await SendBundledEmail(groupedNotifications, content, owner, report, timeIntervalText);
+                foreach (FwoNotification notification in groupedNotifications)
+                {
+                    if (!CheckedNotificationIds.Contains(notification.Id))
+                    {
+                        CheckedNotificationIds.Add(notification.Id);
+                    }
+                }
+                emailsSent++;
+            }
+            return emailsSent;
         }
 
         /// <summary>
@@ -97,7 +131,7 @@ namespace FWO.Middleware.Server
         /// <param name="report">Optional report to be sent as attachment</param>
         /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotificationIfDue(FwoNotification notification, FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null, string timeIntervalText = "")
+        public async Task<int> SendNotificationIfDue(FwoNotification notification, FwoOwner? owner, DateTime? extDeadline, string? content = null, ReportBase? report = null, string timeIntervalText = "")
         {
             if (IsNotificationDue(owner, extDeadline, notification))
             {
@@ -124,7 +158,7 @@ namespace FWO.Middleware.Server
         /// <param name="extDeadline">External deadline (e.g. request date, rule expiry date).</param>
         /// <param name="notification">Notification configuration to evaluate.</param>
         /// <returns>True if the notification should be sent now; otherwise false.</returns>
-        public static bool IsNotificationDue(FwoOwner owner, DateTime? extDeadline, FwoNotification notification)
+        public static bool IsNotificationDue(FwoOwner? owner, DateTime? extDeadline, FwoNotification notification)
         {
             if (notification.Deadline == NotificationDeadline.None)
             {
@@ -173,9 +207,9 @@ namespace FWO.Middleware.Server
             return (lastSent == null || ((DateTime)lastSent).Date < notifDate.Date) && notifDate.Date <= DateTime.Now.Date;
         }
 
-        private static DateTime GetDeadlineDate(NotificationDeadline deadline, FwoOwner owner, DateTime? extDeadline)
+        private static DateTime GetDeadlineDate(NotificationDeadline deadline, FwoOwner? owner, DateTime? extDeadline)
         {
-            if (deadline == NotificationDeadline.RecertDate && owner.NextRecertDate != null)
+            if (deadline == NotificationDeadline.RecertDate && owner?.NextRecertDate != null)
             {
                 return (DateTime)owner.NextRecertDate;
             }
@@ -187,7 +221,7 @@ namespace FWO.Middleware.Server
             {
                 return (DateTime)extDeadline;
             }
-            else if (deadline == NotificationDeadline.DecommissionDate && owner.DecommDate != null)
+            else if (deadline == NotificationDeadline.DecommissionDate && owner?.DecommDate != null)
             {
                 return (DateTime)owner.DecommDate;
             }
@@ -199,7 +233,7 @@ namespace FWO.Middleware.Server
             return await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = notificationClient.ToString() });
         }
 
-        private async Task SendEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null, string timeIntervalText = "")
+        private async Task SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
             string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
             EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
@@ -210,42 +244,28 @@ namespace FWO.Middleware.Server
             await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
         }
 
-        private async Task<MailData> PrepareEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null, string timeIntervalText = "")
+        private async Task SendBundledEmail(List<FwoNotification> notifications, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
+        {
+            string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
+            EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
+                GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
+
+            MailData mail = await PrepareBundledEmail(notifications, content, owner, report, timeIntervalText);
+            await MailKitMailer.SendAsync(mail, emailConnection, false, new());
+        }
+
+        private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
             string subject = notification.EmailSubject
-                .Replace(Placeholder.APPNAME, owner.Name)
-                .Replace(Placeholder.APPID, owner.ExtAppId)
+                .Replace(Placeholder.APPNAME, owner?.Name ?? "")
+                .Replace(Placeholder.APPID, owner?.ExtAppId ?? "")
                 .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
-            string body = content.Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
-            FormFile? attachment = null;
-            if (report != null)
+            string body = string.IsNullOrEmpty(content) ? notification.EmailBody : content;
+            body = body.Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
+            FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
+            if (report != null && notification.Layout == NotificationLayout.HtmlInBody)
             {
-                switch (notification.Layout)
-                {
-                    case NotificationLayout.HtmlInBody:
-                        body += report.ExportToHtml();
-                        break;
-                    case NotificationLayout.PdfAsAttachment:
-                        string html = report.ExportToHtml();
-                        string? pdfData = await report.ToPdf(html);
-
-                        if (string.IsNullOrWhiteSpace(pdfData))
-                            throw new ProcessingFailedException("No Pdf generated.");
-
-                        attachment = EmailHelper.CreateAttachment(pdfData, GlobalConst.kPdf, subject);
-                        break;
-                    case NotificationLayout.HtmlAsAttachment:
-                        attachment = EmailHelper.CreateAttachment(report.ExportToHtml(), GlobalConst.kHtml, subject);
-                        break;
-                    case NotificationLayout.JsonAsAttachment:
-                        attachment = EmailHelper.CreateAttachment(report.ExportToJson(), GlobalConst.kJson, subject);
-                        break;
-                    case NotificationLayout.CsvAsAttachment:
-                        attachment = EmailHelper.CreateAttachment(report.ExportToCsv(), GlobalConst.kCsv, subject);
-                        break;
-                    default:
-                        break;
-                }
+                body += report.ExportToHtml();
             }
             MailData mailData = new(await CollectRecipients(notification, owner), subject) { Body = body, Cc = await CollectRecipients(notification, owner, true) };
             if (attachment != null)
@@ -255,7 +275,71 @@ namespace FWO.Middleware.Server
             return mailData;
         }
 
-        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner owner, bool cc = false)
+        private async Task<MailData> PrepareBundledEmail(List<FwoNotification> notifications, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
+        {
+            FwoNotification baseNotification = notifications.First();
+            MailData mailData = await PrepareEmail(baseNotification, content, owner, null, timeIntervalText);
+            if (report == null || baseNotification.BundleType == null)
+            {
+                return mailData;
+            }
+
+            switch (baseNotification.BundleType)
+            {
+                case BundleType.Attachments:
+                    FormFileCollection attachments = [];
+                    foreach (FwoNotification notification in notifications)
+                    {
+                        FormFile? attachment = await BuildAttachment(notification, report, mailData.Subject);
+                        if (attachment != null)
+                        {
+                            attachments.Add(attachment);
+                        }
+                    }
+
+                    if (attachments.Count > 0)
+                    {
+                        mailData.Attachments = attachments;
+                    }
+                    break;
+                default:
+                    throw new NotSupportedException($"Bundle type {baseNotification.BundleType} is not supported.");
+            }
+
+            return mailData;
+        }
+
+        private static string GetBundleGroupKey(FwoNotification notification)
+        {
+            return notification.BundleType == null || string.IsNullOrWhiteSpace(notification.BundleId)
+                ? $"single:{notification.Id}"
+                : $"{notification.BundleType}:{notification.BundleId}";
+        }
+
+        private static async Task<FormFile?> BuildAttachment(FwoNotification notification, ReportBase report, string subject)
+        {
+            switch (notification.Layout)
+            {
+                case NotificationLayout.PdfAsAttachment:
+                    string html = report.ExportToHtml();
+                    string? pdfData = await report.ToPdf(html);
+                    if (string.IsNullOrWhiteSpace(pdfData))
+                    {
+                        throw new ProcessingFailedException("No Pdf generated.");
+                    }
+                    return EmailHelper.CreateAttachment(pdfData, GlobalConst.kPdf, subject);
+                case NotificationLayout.HtmlAsAttachment:
+                    return EmailHelper.CreateAttachment(report.ExportToHtml(), GlobalConst.kHtml, subject);
+                case NotificationLayout.JsonAsAttachment:
+                    return EmailHelper.CreateAttachment(report.ExportToJson(), GlobalConst.kJson, subject);
+                case NotificationLayout.CsvAsAttachment:
+                    return EmailHelper.CreateAttachment(report.ExportToCsv(), GlobalConst.kCsv, subject);
+                default:
+                    return null;
+            }
+        }
+
+        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false)
         {
             if (GlobalConfig.UseDummyEmailAddress)
             {

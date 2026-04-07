@@ -10,10 +10,6 @@ using FWO.Middleware.Server.Controllers;
 using FWO.Report;
 using FWO.Services;
 using Quartz;
-using FWO.Report.Data;
-using FWO.Mail;
-using FWO.Encryption;
-using System.Text.Json;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -126,18 +122,15 @@ namespace FWO.Middleware.Server.Jobs
 
                     Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
 
-                    ReportSchedulerConfig reportSchedulerConfig = GetReportSchedulerConfig(reportSchedule.Id, userConfig);
-
-                    if (reportSchedulerConfig.ToArchive)
+                    if (reportSchedule.Archive)
                     {
                         await SaveReportToArchive(reportFile, report.SetDescription(), apiConnectionUserContext);
                     }
 
-                    if (reportSchedulerConfig.ToEmail)
+                    if (reportSchedule.Notifications.Any())
                     {
-                        await TrySendReportViaEmail(reportSchedule, reportFile, reportSchedulerConfig, userConfig);
+                        await TrySendReportViaEmail(reportSchedule, report, userConfig);
                     }
-
                 }
                 else
                 {
@@ -159,20 +152,6 @@ namespace FWO.Middleware.Server.Jobs
                 apiConnectionUserContext?.Dispose();
                 apiConnectionUserContext = null; // Clear reference to prevent memory leak through exception stack traces
             }
-        }
-
-        private ReportSchedulerConfig GetReportSchedulerConfig(int reportScheduleID, UserConfig? userConfig = null)
-        {
-            if (userConfig != null)
-            {
-                List<ReportSchedulerConfig> reportSchedulerConfig = JsonSerializer.Deserialize<List<ReportSchedulerConfig>>(userConfig.GlobalConfig!.ReportSchedulerConfig) ?? new();
-                return reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportScheduleID) ?? new();
-            }
-            else
-            {
-                return new();
-            }
-
         }
 
         private async Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
@@ -290,87 +269,20 @@ namespace FWO.Middleware.Server.Jobs
         }
 
         /// <summary>
-        /// Send Email with compliance report to all recipients defined in compliance settings
+        /// Sends report emails via the notification service for all persisted report notifications on the schedule.
         /// </summary>
-        /// <returns></returns>
-        public async Task TrySendReportViaEmail(ReportSchedule reportSchedule, ReportFile reportFile, ReportSchedulerConfig reportSchedulerConfig, UserConfig? userConfig = null)
+        public async Task TrySendReportViaEmail(ReportSchedule reportSchedule, ReportBase report, UserConfig? userConfig = null)
         {
-
-            if (reportSchedulerConfig.ToEmail && userConfig?.GlobalConfig is GlobalConfig globalConfig)
+            if (userConfig?.GlobalConfig is GlobalConfig globalConfig)
             {
-                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Report Scheduler", "Could not decrypt mailserver password.");
+                NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Report, globalConfig, apiConnectionScheduler, []);
+                await notificationService.SendBundledNotifications(reportSchedule.Notifications, null, null, report);
 
-                EmailConnection emailConnection = new(
-                    globalConfig.EmailServerAddress,
-                    globalConfig.EmailPort,
-                    globalConfig.EmailTls,
-                    globalConfig.EmailUser,
-                    decryptedSecret,
-                    globalConfig.EmailSenderAddress
-                );
-
-                MailData? mail = PrepareEmail(reportSchedule, reportFile, reportSchedulerConfig, userConfig);
-
-                if (mail != null)
+                int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
+                if (updatedNotifications > 0)
                 {
-                    bool emailSend = await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
-                    if (emailSend)
-                    {
-                        Log.WriteInfo(LogMessageTitle, "Report email sent successfully.");
-                    }
-                    else
-                    {
-                        Log.WriteError(LogMessageTitle, "Report email could not be sent.");
-                    }
+                    Log.WriteInfo(LogMessageTitle, "Report email notifications sent successfully.");
                 }
-            }
-        }
-
-        private MailData? PrepareEmail(ReportSchedule reportSchedule, ReportFile reportFile, ReportSchedulerConfig reportSchedulerConfig, UserConfig? userConfig = null)
-        {
-            if (userConfig != null)
-            {
-                string subject = reportSchedulerConfig.Subject;
-                string body = reportSchedulerConfig.Body;
-                MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(userConfig, reportSchedulerConfig.Recipients), subject) { Body = body };
-                FormFile? attachment;
-                mailData.Attachments = new FormFileCollection();
-
-                foreach (FileFormat format in reportSchedule.OutputFormat)
-                {
-                    switch (format.Name)
-                    {
-                        case GlobalConst.kCsv:
-                            attachment = EmailHelper.CreateAttachment(reportFile.Csv, GlobalConst.kCsv, subject);
-                            break;
-
-                        case GlobalConst.kHtml:
-                            attachment = EmailHelper.CreateAttachment(reportFile.Html, GlobalConst.kHtml, subject);
-                            break;
-
-                        case GlobalConst.kPdf:
-                            attachment = EmailHelper.CreateAttachment(reportFile.Pdf, GlobalConst.kPdf, subject);
-                            break;
-
-                        case GlobalConst.kJson:
-                            attachment = EmailHelper.CreateAttachment(reportFile.Json, GlobalConst.kJson, subject);
-                            break;
-
-                        default:
-                            throw new NotSupportedException("Output format is not supported.");
-                    }
-
-                    if (attachment != null)
-                    {
-                        ((FormFileCollection)mailData.Attachments).Add(attachment);
-                    }
-                }
-
-                return mailData;
-            }
-            else
-            {
-                return null;
             }
         }
 

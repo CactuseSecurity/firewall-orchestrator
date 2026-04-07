@@ -10057,6 +10057,12 @@
                   }
                 },
                 {
+                  "name": "report_schedule",
+                  "using": {
+                    "foreign_key_constraint_on": "schedule_id"
+                  }
+                },
+                {
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "user_id"
@@ -10068,10 +10074,13 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "bundle_id",
+                      "bundle_type",
                       "channel",
                       "deadline",
                       "email_address_cc",
                       "email_address_to",
+                      "email_body",
                       "email_subject",
                       "layout",
                       "name",
@@ -10086,6 +10095,7 @@
                       "repeat_interval_after_deadline",
                       "repeat_offset_after_deadline",
                       "repetitions_after_deadline",
+                      "schedule_id",
                       "user_id",
                       "last_sent"
                     ],
@@ -14004,6 +14014,18 @@
               ],
               "array_relationships": [
                 {
+                  "name": "notifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "schedule_id",
+                      "table": {
+                        "name": "notification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "report_schedule_formats",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -14022,12 +14044,14 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
                       "report_schedule_name",
                       "report_schedule_owner",
                       "report_schedule_repeat",
+                      "report_schedule_repetitions",
                       "report_schedule_start_time",
                       "report_schedule_counter",
                       "report_template_id"
@@ -14039,6 +14063,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14057,6 +14082,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_id",
                       "report_schedule_active",
                       "report_schedule_name",
@@ -14076,6 +14102,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14094,6 +14121,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14112,6 +14140,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14131,6 +14160,7 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_id",
                       "report_schedule_name",
                       "report_template_id",
@@ -14149,6 +14179,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14188,6 +14219,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_id",
                       "report_schedule_name",
                       "report_template_id",
@@ -14207,6 +14239,7 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14229,6 +14262,7 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14251,6 +14285,7 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14273,6 +14308,7 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14314,6 +14350,7 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14336,6 +14373,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14359,6 +14397,7 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14382,6 +14421,7 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14405,6 +14445,7 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14428,6 +14469,7 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",

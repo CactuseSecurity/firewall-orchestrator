@@ -2572,6 +2572,12 @@ INSERT INTO txt VALUES ('rollback_import',      'German', 	'Import zur&uuml;ckse
 INSERT INTO txt VALUES ('rollback_import',      'English', 	'Rollback Import');
 INSERT INTO txt VALUES ('report_settings',      'German', 	'Reporteinstellungen');
 INSERT INTO txt VALUES ('report_settings',      'English', 	'Report Settings');
+INSERT INTO txt VALUES ('migrate_scheduler_config', 'German', 'Scheduler-Konfiguration migrieren');
+INSERT INTO txt VALUES ('migrate_scheduler_config', 'English', 'Migrate scheduler config');
+INSERT INTO txt VALUES ('confirm_migrate_scheduler_config', 'German', 'Alte Scheduler-Konfiguration jetzt in Benachrichtigungen migrieren?');
+INSERT INTO txt VALUES ('confirm_migrate_scheduler_config', 'English', 'Migrate the legacy scheduler configuration to notifications now?');
+INSERT INTO txt VALUES ('scheduler_config_migrated', 'German', 'Scheduler-Konfiguration migriert.');
+INSERT INTO txt VALUES ('scheduler_config_migrated', 'English', 'Scheduler configuration migrated.');
 INSERT INTO txt VALUES ('change_language',      'German', 	'&Auml;ndern der Passworteinstellungen');
 INSERT INTO txt VALUES ('change_language',      'English', 	'Change Language');
 INSERT INTO txt VALUES ('recert_settings',      'German', 	'Rezertifizierungseinstellungen');

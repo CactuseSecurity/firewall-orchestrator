@@ -1,13 +1,10 @@
 ﻿@using FWO.Config.Api.Data
-@using FWO.Report.Data
 @using FWO.Report.Filter
-@using System.Text.Json;
 
 @implements IDisposable
 
 @inject ApiConnection apiConnection
 @inject UserConfig _userConfig
-@inject GlobalConfig _globalConfig
 
 @page "/report/schedule"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
@@ -152,11 +149,11 @@
                 <div class="col-sm-8">
                     <div class="d-flex flex-wrap gap-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="operationEmail" @bind="_reportSchedulerConfigInEdit.ToEmail">
+                            <input class="form-check-input" type="checkbox" id="operationEmail" @bind="scheduleToEmail">
                             <label class="form-check-label" for="operationEmail">Email</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="operationArchive" @bind="_reportSchedulerConfigInEdit.ToArchive">
+                            <input class="form-check-input" type="checkbox" id="operationArchive" @bind="reportScheduleInEdit.Archive">
                             <label class="form-check-label" for="operationArchive">Archive</label>
                         </div>
                     </div>
@@ -168,19 +165,19 @@
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(_userConfig.PureLine("H5804"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(_userConfig.GetText("complianceCheckMailRecipients")):</label>
                 <div class="col-sm-8" data-toggle="tooltip" title="@(_userConfig.GetText("U5320"))">
-                    <input type="text" @bind="_reportSchedulerConfigInEdit.Recipients" class="form-control form-control-sm"/>
+                    <input type="text" @bind="scheduleEmailRecipients" class="form-control form-control-sm"/>
                 </div>
             </div>
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(_userConfig.PureLine("H5805"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(_userConfig.GetText("complianceCheckMailSubject")):</label>
                 <div class="col-sm-8">
-                    <input type="text" @bind="_reportSchedulerConfigInEdit.Subject" class="form-control form-control-sm"/>
+                    <input type="text" @bind="scheduleEmailSubject" class="form-control form-control-sm"/>
                 </div>
             </div>
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(_userConfig.PureLine("H5806"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(_userConfig.GetText("complianceCheckMailBody")):</label>
                 <div class="col-sm-8">
-                    <textarea rows="6" cols="60" name="text" placeholder=@(_userConfig.GetText("complianceCheckMailBody")) @bind="_reportSchedulerConfigInEdit.Body" class="form-control form-control-sm"></textarea>
+                    <textarea rows="6" cols="60" name="text" placeholder=@(_userConfig.GetText("complianceCheckMailBody")) @bind="scheduleEmailBody" class="form-control form-control-sm"></textarea>
                 </div>
             </div>
 
@@ -202,19 +199,9 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="Report Schedule" Size=PopupSize.Small Show="@ShowDeleteReportScheduleDialog">
-    <Body>
-        <p>@(_userConfig.GetText("U2002")) "@reportScheduleInEdit.Name" ?</p>
-    </Body>
-    <Footer>
-        <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteReportSchedule">
-                @(DisplayService.DisplayButton(_userConfig, "delete", Icons.Delete))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportScheduleDialog = false">
-                @(DisplayService.DisplayButton(_userConfig, "cancel", Icons.Cancel))</button>
-        </div>
-    </Footer>
-</PopUp>
+<ConfirmDelete @bind-Display="ShowDeleteReportScheduleDialog" PerformAction="DeleteReportSchedule"
+    Title="@(_userConfig.GetText("report_schedule"))" DeleteMessage="@(_userConfig.GetText("U2002") + " \"" + reportScheduleInEdit.Name + "\" ?")"
+    AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")" />
 
 @code
 {
@@ -250,16 +237,15 @@
 
     private bool showComplianceReport => authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
 
-    private ConfigData? _configData;
-    private List<ReportSchedulerConfig> _reportSchedulerConfig = new();
-    private ReportSchedulerConfig _reportSchedulerConfigInEdit = new();
+    private bool scheduleToEmail;
+    private string scheduleEmailRecipients = "";
+    private string scheduleEmailSubject = "";
+    private string scheduleEmailBody = "";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _configData = await _globalConfig.GetEditableConfig();
-
             uiUserDbId = _userConfig.User.DbId;
 
             if(showModellingReports)
@@ -287,9 +273,8 @@
 
     private async Task OnAddReportScheduleButtonClick()
     {
-        reportScheduleInEdit = new ReportSchedule() { RepeatInterval = SchedulerInterval.Never };
-        _reportSchedulerConfigInEdit = new();
-        await LoadSchedulerConfig();
+        reportScheduleInEdit = new ReportSchedule() { RepeatInterval = SchedulerInterval.Never, Archive = false };
+        ResetScheduleNotificationSettings();
         ShowAddReportScheduleDialog = true;
     }
 
@@ -297,17 +282,7 @@
     {
         reportScheduleInEdit = context; 
         actDate = actTime = context.StartTime;
-        await LoadSchedulerConfig();
-
-        ReportSchedulerConfig? reportSchedulerConfigInEdit = _reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == context.Id);
-
-        if (reportSchedulerConfigInEdit == null)
-        {
-            reportSchedulerConfigInEdit = new(context.Id);
-            _reportSchedulerConfig.Add(reportSchedulerConfigInEdit);
-        }
-
-        _reportSchedulerConfigInEdit = reportSchedulerConfigInEdit;
+        LoadScheduleNotificationSettings(context);
 
         ShowEditReportScheduleDialog = true; 
     }
@@ -328,7 +303,6 @@
     {
         try
         {
-
             reportScheduleInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
             if (reportScheduleInEdit.Sanitize())
             {
@@ -346,18 +320,19 @@
                     report_schedule_repeat = reportScheduleInEdit.RepeatOffset,
                     report_schedule_every = (int)reportScheduleInEdit.RepeatInterval,
                     report_schedule_active = reportScheduleInEdit.Active,
+                    archive = reportScheduleInEdit.Archive,
                     report_schedule_formats = new { data = reportScheduleInEdit.OutputFormat }
                 };
 
                 ReturnIdWrapper response = await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportSchedule, queryVariablesReportSchedule);
                 reportScheduleInEdit.Id = response.ReturnIds![0].NewId;
-                
-                _reportSchedulerConfigInEdit.ReportScheduleID = reportScheduleInEdit.Id;
-                _reportSchedulerConfig.Add(_reportSchedulerConfigInEdit);
+                if (scheduleToEmail)
+                {
+                    reportScheduleInEdit.Notifications = await ReportScheduleNotificationHelper.CreateNotifications(apiConnection, reportScheduleInEdit,
+                        scheduleEmailRecipients, scheduleEmailSubject, scheduleEmailBody);
+                }
 
                 ShowAddReportScheduleDialog = false;
-
-                await UpdateSchedulerConfig();
             }
         }
         catch (Exception exception)
@@ -388,16 +363,16 @@
                     report_schedule_repeat = reportScheduleInEdit.RepeatOffset,
                     report_schedule_every = (int)reportScheduleInEdit.RepeatInterval,
                     report_schedule_active = reportScheduleInEdit.Active,
+                    archive = reportScheduleInEdit.Archive,
                     report_schedule_format_names = reportScheduleInEdit.OutputFormat.ConvertAll(format => format.Name),
                     report_schedule_format_rel = reportScheduleInEdit.OutputFormat.ConvertAll(format =>
                     new { report_schedule_format_name = format.Name, report_schedule_id = reportScheduleInEdit.Id })
                 };
 
                 await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, queryVariables);
+                await SyncScheduleNotifications();
 
                 ShowEditReportScheduleDialog = false;
-
-                await UpdateSchedulerConfig();
             }
         }
         catch (Exception exception)
@@ -411,25 +386,14 @@
     {
         try
         {
+            await ReportScheduleNotificationHelper.DeleteNotifications(apiConnection, reportScheduleInEdit.Notifications);
             var queryVariables = new
             {
                 report_schedule_id = reportScheduleInEdit.Id
             };
 
             await apiConnection.SendQueryAsync<object>(ReportQueries.deleteReportSchedule, queryVariables);
-
-            if (_reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportScheduleInEdit.Id) is ReportSchedulerConfig config)
-            {
-                _reportSchedulerConfig.Remove(config);
-            }
-
-            if (_reportSchedulerConfigInEdit.ReportScheduleID == reportScheduleInEdit.Id)
-            {
-                _reportSchedulerConfigInEdit = new();
-            }
-
-            await UpdateSchedulerConfig();
-                
+            ResetScheduleNotificationSettings();
 
             ShowDeleteReportScheduleDialog = false;
         }
@@ -466,23 +430,35 @@
         return reportType.SupportsCsvExport(reportScheduleInEdit.Template?.ReportParams?.WorkflowFilter.DetailedView == true);
     }
 
-    private async Task UpdateSchedulerConfig()
+    private void LoadScheduleNotificationSettings(ReportSchedule schedule)
     {
-        string json = JsonSerializer.Serialize(_reportSchedulerConfig);
-        _configData!.ReportSchedulerConfig = json;
-
-        await _globalConfig.WriteToDatabase(_configData, apiConnection); 
+        FwoNotification? notification = schedule.Notifications.FirstOrDefault();
+        scheduleToEmail = notification != null;
+        scheduleEmailRecipients = notification?.EmailAddressTo ?? "";
+        scheduleEmailSubject = notification?.EmailSubject ?? "";
+        scheduleEmailBody = notification?.EmailBody ?? "";
     }
 
-    private Task LoadSchedulerConfig()
+    private async Task SyncScheduleNotifications()
     {
-        if (!string.IsNullOrEmpty(_configData?.ReportSchedulerConfig))
+        if (!scheduleToEmail)
         {
-            _reportSchedulerConfig = JsonSerializer.Deserialize<List<ReportSchedulerConfig>>(_configData.ReportSchedulerConfig) ?? new();
+            await ReportScheduleNotificationHelper.DeleteNotifications(apiConnection, reportScheduleInEdit.Notifications);
+            reportScheduleInEdit.Notifications = [];
+            return;
         }
 
-        return Task.CompletedTask;
-    } 
+        reportScheduleInEdit.Notifications = await ReportScheduleNotificationHelper.SyncNotifications(apiConnection, reportScheduleInEdit,
+            scheduleToEmail, scheduleEmailRecipients, scheduleEmailSubject, scheduleEmailBody);
+    }
+
+    private void ResetScheduleNotificationSettings()
+    {
+        scheduleToEmail = false;
+        scheduleEmailRecipients = "";
+        scheduleEmailSubject = "";
+        scheduleEmailBody = "";
+    }
 
     public void Dispose()
     {

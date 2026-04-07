@@ -7,6 +7,10 @@ mutation updateNotification(
   $recipientCc: String
   $emailAddressCc: String
   $subject: String
+  $emailBody: String
+  $scheduleId: Int
+  $bundleType: String
+  $bundleId: String
   $layout: String!
   $deadline: String
   $intervalBeforeDeadline: Int
@@ -26,6 +30,10 @@ mutation updateNotification(
     recipient_cc: $recipientCc
     email_address_cc: $emailAddressCc
     email_subject: $subject
+    email_body: $emailBody
+    schedule_id: $scheduleId
+    bundle_type: $bundleType
+    bundle_id: $bundleId
     layout: $layout
     deadline: $deadline
     interval_before_deadline: $intervalBeforeDeadline

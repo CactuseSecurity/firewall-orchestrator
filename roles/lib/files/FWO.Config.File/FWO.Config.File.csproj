@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.17.0" />
     <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
   </ItemGroup>
 

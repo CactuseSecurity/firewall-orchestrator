@@ -7,13 +7,15 @@ from fwo_const import LIST_DELIMITER
 from fwo_exceptions import FwoDuplicateKeyViolationError, FwoImporterError
 from fwo_log import ChangeLogger, FWOLogger
 from model_controllers.fwconfig_import_object import FwConfigImportObject, Type
-from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
 from pytest_mock import MockerFixture
 from services.uid2id_mapper import Uid2IdMapper
+from states.global_state import GlobalState
+from states.import_state import ImportState
+from states.management_state import ManagementState
 from test.data.mock_objects import MockObjectsFactory
 from test.utils.config_builder import FwConfigBuilder
 from test.utils.test_utils import mock_get_graphql_code
@@ -21,7 +23,12 @@ from test.utils.test_utils import mock_get_graphql_code
 
 class TestFwConfigImportObjectAddChangelogObjs:
     def test_add_changelog_objects(
-        self, fwconfig_import_object: FwConfigImportObject, api_call: FwoApiCall, mocker: MockerFixture
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        api_call: FwoApiCall,
+        mocker: MockerFixture,
+        global_state: GlobalState,
+        import_state: ImportState,
     ):
         # Arrange
         api_call.call = mocker.Mock(
@@ -30,6 +37,8 @@ class TestFwConfigImportObjectAddChangelogObjs:
 
         # Act
         fwconfig_import_object.add_changelog_objs(
+            global_state=global_state,
+            import_state=import_state,
             nwobj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -47,7 +56,12 @@ class TestFwConfigImportObjectAddChangelogObjs:
         )
 
     def test_add_changelog_objects_with_errors(
-        self, fwconfig_import_object: FwConfigImportObject, api_call: FwoApiCall, mocker: MockerFixture
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        api_call: FwoApiCall,
+        mocker: MockerFixture,
+        global_state: GlobalState,
+        import_state: ImportState,
     ):
         # Arrange
         mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
@@ -55,6 +69,8 @@ class TestFwConfigImportObjectAddChangelogObjs:
 
         # Act
         fwconfig_import_object.add_changelog_objs(
+            global_state=global_state,
+            import_state=import_state,
             nwobj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -67,7 +83,12 @@ class TestFwConfigImportObjectAddChangelogObjs:
         )
 
     def test_add_changelog_objects_with_exception(
-        self, fwconfig_import_object: FwConfigImportObject, api_call: FwoApiCall, mocker: MockerFixture
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        api_call: FwoApiCall,
+        mocker: MockerFixture,
+        global_state: GlobalState,
+        import_state: ImportState,
     ):
         # Arrange
         mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
@@ -75,6 +96,8 @@ class TestFwConfigImportObjectAddChangelogObjs:
 
         # Act
         fwconfig_import_object.add_changelog_objs(
+            global_state=global_state,
+            import_state=import_state,
             nwobj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -92,9 +115,13 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
     def test_prepare_changelog_objects(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        global_state: GlobalState,
+        import_state: ImportState,
     ):
         # Act
         nwobjs_changed, svcobjs_changed = fwconfig_import_object.prepare_changelog_objects(
+            global_state=global_state,
+            import_state=import_state,
             nw_obj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -106,13 +133,15 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete()
 
     def test_prepare_changelog_objects_initial_import(
-        self, fwconfig_import_object: FwConfigImportObject, import_state_controller: ImportStateController
+        self, fwconfig_import_object: FwConfigImportObject, global_state: GlobalState, import_state: ImportState
     ):
         # Arrange
-        import_state_controller.state.is_initial_import = True
+        import_state.is_initial_import = True
 
         # Act
         nwobjs_changed, svcobjs_changed = fwconfig_import_object.prepare_changelog_objects(
+            global_state=global_state,
+            import_state=import_state,
             nw_obj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -125,13 +154,15 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         assert nwobjs_changed == MockObjectsFactory.get_changelog_object_insert_delete(2)
 
     def test_prepare_changelog_objects_clearing_import(
-        self, fwconfig_import_object: FwConfigImportObject, import_state_controller: ImportStateController
+        self, fwconfig_import_object: FwConfigImportObject, global_state: GlobalState, import_state: ImportState
     ):
         # Arrange
-        import_state_controller.state.is_clearing_import = True
+        global_state.fwo_config_controller.fwo_config.clear = True
 
         # Act
         nwobjs_changed, svcobjs_changed = fwconfig_import_object.prepare_changelog_objects(
+            global_state=global_state,
+            import_state=import_state,
             nw_obj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -143,8 +174,7 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete(2)
 
     def test_prepare_changelog_objects_with_logged_changes(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
+        self, fwconfig_import_object: FwConfigImportObject, global_state: GlobalState, import_state: ImportState
     ):
         # Arrange
         change_logger = ChangeLogger()
@@ -153,6 +183,8 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
 
         # Act
         nwobjs_changed, svcobjs_changed = fwconfig_import_object.prepare_changelog_objects(
+            global_state=global_state,
+            import_state=import_state,
             nw_obj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -167,30 +199,30 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
 class TestFwConfigImportObjectLookupProtoNameToId:
     def test_lookup_proto_name_to_id_unknown_name(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         # Arrange
         proto_name = "tcp"
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state_controller.state.lookup_protocol_id(proto_name)
+            import_state.lookup_protocol_id(proto_name)
 
     def test_lookup_proto_name_to_id_known_name(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         # Arrange
         proto_name = "icmp"
         expected_proto_id = 1
-        import_state_controller.state.protocol_map = {
+        import_state.protocol_map = {
             "icmp": 1,
             "tcp": 6,
             "udp": 17,
         }
 
         # Act
-        proto_id = import_state_controller.state.lookup_protocol_id(proto_name)
+        proto_id = import_state.lookup_protocol_id(proto_name)
         # Assert
         assert proto_id == expected_proto_id
 
@@ -198,30 +230,30 @@ class TestFwConfigImportObjectLookupProtoNameToId:
 class TestFwConfigImportObjectLookupUserType:
     def test_lookup_user_type_unknown(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         # Arrange
         user_type_str = "some-user-type"
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state_controller.state.lookup_user_obj_type_id(user_type_str)
+            import_state.lookup_user_obj_type_id(user_type_str)
 
     def test_lookup_user_type_known(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         # Arrange
         user_type_str = "imported"
         expected_user_type = 2
-        import_state_controller.state.user_obj_type_map = {
+        import_state.user_obj_type_map = {
             "admin": 1,
             "imported": 2,
             "readonly": 3,
         }
 
         # Act
-        user_type = import_state_controller.state.lookup_user_obj_type_id(user_type_str)
+        user_type = import_state.lookup_user_obj_type_id(user_type_str)
 
         # Assert
         assert user_type == expected_user_type
@@ -230,30 +262,30 @@ class TestFwConfigImportObjectLookupUserType:
 class TestFwConfigImportObjectLookupSvcType:
     def test_lookup_svc_type_unknown(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         # Arrange
         svc_type_str = "some-svc-type"
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state_controller.state.lookup_service_obj_type_id(svc_type_str)
+            import_state.lookup_service_obj_type_id(svc_type_str)
 
     def test_lookup_svc_type_known(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
         # Arrange
         svc_type_str = "imported"
         expected_svc_type = 2
-        import_state_controller.state.service_obj_type_map = {
+        import_state.service_obj_type_map = {
             "builtin": 1,
             "imported": 2,
             "custom": 3,
         }
 
         # Act
-        svc_type = import_state_controller.state.lookup_service_obj_type_id(svc_type_str)
+        svc_type = import_state.lookup_service_obj_type_id(svc_type_str)
 
         # Assert
         assert svc_type == expected_svc_type
@@ -265,6 +297,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         fwconfig_import_object: FwConfigImportObject,
         api_call: FwoApiCall,
         mocker: MockerFixture,
+        import_state: ImportState,
     ):
         # Arrange
         prefix = "nwobj"
@@ -283,6 +316,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
 
         # Act
         fwconfig_import_object.write_member_updates(
+            import_state=import_state,
             new_group_member_flats=[
                 {
                     "admin": 1,
@@ -319,6 +353,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         fwconfig_import_object: FwConfigImportObject,
         api_call: FwoApiCall,
         mocker: MockerFixture,
+        import_state: ImportState,
     ):
         # Arrange
         prefix = "nwobj"
@@ -337,6 +372,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
 
         # Act
         fwconfig_import_object.write_member_updates(
+            import_state=import_state,
             new_group_member_flats=[],
             new_group_members=[],
             prefix=prefix,
@@ -357,6 +393,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         fwconfig_import_object: FwConfigImportObject,
         api_call: FwoApiCall,
         mocker: MockerFixture,
+        import_state: ImportState,
     ):
         # Arrange
         prefix = "nwobj"
@@ -374,6 +411,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.write_member_updates(
+                import_state=import_state,
                 new_group_member_flats=[],
                 new_group_members=[],
                 prefix=prefix,
@@ -391,6 +429,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         fwconfig_import_object: FwConfigImportObject,
         api_call: FwoApiCall,
         mocker: MockerFixture,
+        import_state: ImportState,
     ):
         # Arrange
         prefix = "nwobj"
@@ -406,6 +445,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         # Act
         with pytest.raises(FwoDuplicateKeyViolationError):
             fwconfig_import_object.write_member_updates(
+                import_state=import_state,
                 new_group_member_flats=[],
                 new_group_members=[],
                 prefix=prefix,
@@ -422,6 +462,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         fwconfig_import_object: FwConfigImportObject,
         api_call: FwoApiCall,
         mocker: MockerFixture,
+        import_state: ImportState,
     ):
         # Arrange
         prefix = "nwobj"
@@ -431,6 +472,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         # Act
         with pytest.raises(TypeError):
             fwconfig_import_object.write_member_updates(
+                import_state=import_state,
                 new_group_member_flats=[],
                 new_group_members=[],
                 prefix=prefix,
@@ -446,12 +488,16 @@ class TestFwConfigImportObjectCollectGroupMembers:
     def test_collect_group_members_empty(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         new_group_members: list[dict[str, Any]] = []
 
         # Act
         fwconfig_import_object.collect_group_members(
+            import_state=import_state,
+            management_state=management_state,
             current_config_objects={},
             group_id=1,
             prefix="nwobj",
@@ -468,12 +514,16 @@ class TestFwConfigImportObjectCollectGroupMembers:
     def test_collect_group_members_no_changes(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         new_group_members: list[dict[str, Any]] = []
 
         # Act
         fwconfig_import_object.collect_group_members(
+            import_state=import_state,
+            management_state=management_state,
             current_config_objects={"1": {"id": 1, "uid": "1"}},
             group_id=1,
             prefix="nwobj",
@@ -491,15 +541,19 @@ class TestFwConfigImportObjectCollectGroupMembers:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         prefix = "nwobj"
         new_group_members: list[dict[str, Any]] = []
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=2)
-        fwconfig_import_object.import_state.state.import_id = 5
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=2)
+        import_state.import_id = 5
 
         # Act
         fwconfig_import_object.collect_group_members(
+            management_state=management_state,
+            import_state=import_state,
             current_config_objects={
                 "1": {"id": 1, "uid": "1"},
                 "2": {"id": 2, "uid": "2"},
@@ -526,12 +580,16 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
     def test_collect_flat_group_members_empty(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         new_group_member_flats: list[dict[str, Any]] = []
 
         # Act
         fwconfig_import_object.collect_flat_group_members(
+            management_state=management_state,
+            import_state=import_state,
             current_config_objects={},
             group_id=1,
             prefix="nwobj",
@@ -548,12 +606,16 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
     def test_collect_flat_group_members_no_changes(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         new_group_member_flats: list[dict[str, Any]] = []
 
         # Act
         fwconfig_import_object.collect_flat_group_members(
+            management_state=management_state,
+            import_state=import_state,
             current_config_objects={"1": {"id": 1, "uid": "1"}},
             group_id=1,
             prefix="nwobj",
@@ -571,15 +633,19 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         prefix = "nwobj"
         new_group_member_flats: list[dict[str, Any]] = []
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=2)
-        fwconfig_import_object.import_state.state.import_id = 5
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=2)
+        import_state.import_id = 5
 
         # Act
         fwconfig_import_object.collect_flat_group_members(
+            management_state=management_state,
+            import_state=import_state,
             current_config_objects={
                 "1": {"id": 1, "uid": "1"},
                 "2": {"id": 2, "uid": "2"},

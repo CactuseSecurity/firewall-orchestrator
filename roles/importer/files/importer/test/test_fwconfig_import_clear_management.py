@@ -1,18 +1,21 @@
-from fwo_base import init_service_provider
 from model_controllers.fwconfig_import import FwConfigImport
-from model_controllers.import_state_controller import ImportStateController
+from states.import_state import ImportState
 
 
 class TestFwconfigImportClearManagement:
     def test_clear_management_uses_management_uid(
         self,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
     ):
-        service_provider = init_service_provider()
-        import_state = import_state_controller
-        service_provider.get_global_state().import_state = import_state
+
+        import_state.mgm_details.uid = "mock-mgm-uid"
+        import_state.mgm_details.name = "Mock Manager"
+        import_state.mgm_details.is_super_manager = False
+        import_state.mgm_details.sub_manager_ids = []
+        import_state.mgm_details.domain_name = "Mock Domain"
+        import_state.mgm_details.domain_uid = "mock-domain-uid"
 
         importer = FwConfigImport()
-        config = importer.clear_management()
+        config = importer.clear_management(import_state)
 
-        assert config.ManagerSet[0].manager_uid == import_state.state.mgm_details.uid
+        assert config.ManagerSet[0].manager_uid == import_state.mgm_details.uid

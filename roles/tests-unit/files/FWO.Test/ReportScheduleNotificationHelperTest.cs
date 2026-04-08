@@ -33,6 +33,31 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateNotifications_SingleFormat_CreatesStandaloneEmailNotification()
+        {
+            RecordingNotificationApiConnection apiConnection = new();
+            ReportSchedule reportSchedule = NewReportSchedule(GlobalConst.kCsv);
+
+            List<FwoNotification> createdNotifications = await ReportScheduleNotificationHelper.CreateNotifications(apiConnection,
+                reportSchedule, "single@example.org", "Single Subject", "Single Body");
+
+            ClassicAssert.AreEqual(1, createdNotifications.Count);
+            ClassicAssert.AreEqual(1, apiConnection.AddCalls.Count);
+            ClassicAssert.IsNull(createdNotifications[0].BundleType);
+            ClassicAssert.IsNull(createdNotifications[0].BundleId);
+            ClassicAssert.AreEqual(NotificationClient.Report, createdNotifications[0].NotificationClient);
+            ClassicAssert.AreEqual(NotificationChannel.Email, createdNotifications[0].Channel);
+            ClassicAssert.AreEqual(EmailRecipientOption.OtherAddresses, createdNotifications[0].RecipientTo);
+            ClassicAssert.AreEqual("single@example.org", createdNotifications[0].EmailAddressTo);
+            ClassicAssert.AreEqual("Single Subject", createdNotifications[0].EmailSubject);
+            ClassicAssert.AreEqual("Single Body", createdNotifications[0].EmailBody);
+            ClassicAssert.AreEqual(NotificationLayout.CsvAsAttachment, createdNotifications[0].Layout);
+            ClassicAssert.AreEqual(NotificationDeadline.None, createdNotifications[0].Deadline);
+            ClassicAssert.IsNull(apiConnection.AddCalls[0].BundleType);
+            ClassicAssert.IsNull(apiConnection.AddCalls[0].BundleId);
+        }
+
+        [Test]
         public async Task SyncNotifications_ToEmailFalse_DeletesExistingNotifications()
         {
             RecordingNotificationApiConnection apiConnection = new();
@@ -76,6 +101,36 @@ namespace FWO.Test
             ClassicAssert.AreEqual(NotificationLayout.CsvAsAttachment, syncedNotifications.Single(notification => notification.Id != 21).Layout);
             ClassicAssert.IsTrue(syncedNotifications.All(notification => notification.BundleType == BundleType.Attachments));
             ClassicAssert.IsTrue(syncedNotifications.All(notification => notification.BundleId == "bundle-1"));
+        }
+
+        [Test]
+        public async Task SyncNotifications_UpdatesNotificationFieldsViaSharedPersistenceHelper()
+        {
+            RecordingNotificationApiConnection apiConnection = new();
+            ReportSchedule reportSchedule = NewReportSchedule(GlobalConst.kHtml);
+            reportSchedule.Notifications =
+            [
+                NewNotification(31, NotificationLayout.HtmlAsAttachment)
+            ];
+
+            List<FwoNotification> syncedNotifications = await ReportScheduleNotificationHelper.SyncNotifications(apiConnection,
+                reportSchedule, true, "updated@example.org", "New Subject", "New Body");
+
+            ClassicAssert.AreEqual(1, syncedNotifications.Count);
+            ClassicAssert.AreEqual(1, apiConnection.UpdateCalls.Count);
+            ClassicAssert.AreEqual(31, syncedNotifications[0].Id);
+            ClassicAssert.AreEqual(NotificationClient.Report, syncedNotifications[0].NotificationClient);
+            ClassicAssert.AreEqual("Weekly Report HTML", syncedNotifications[0].Name);
+            ClassicAssert.AreEqual("updated@example.org", syncedNotifications[0].EmailAddressTo);
+            ClassicAssert.AreEqual("New Subject", syncedNotifications[0].EmailSubject);
+            ClassicAssert.AreEqual("New Body", syncedNotifications[0].EmailBody);
+            ClassicAssert.AreEqual(NotificationDeadline.None, syncedNotifications[0].Deadline);
+            ClassicAssert.IsNull(syncedNotifications[0].IntervalBeforeDeadline);
+            ClassicAssert.IsNull(syncedNotifications[0].RepeatIntervalAfterDeadline);
+            ClassicAssert.AreEqual("Weekly Report HTML", apiConnection.UpdateCalls[0].Name);
+            ClassicAssert.AreEqual("updated@example.org", apiConnection.UpdateCalls[0].EmailAddressTo);
+            ClassicAssert.AreEqual("New Subject", apiConnection.UpdateCalls[0].Subject);
+            ClassicAssert.AreEqual("New Body", apiConnection.UpdateCalls[0].EmailBody);
         }
 
         private static ReportSchedule NewReportSchedule(params string[] formats)

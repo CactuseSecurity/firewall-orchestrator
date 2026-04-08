@@ -150,5 +150,26 @@ namespace FWO.Test
 
             Assert.That(isConsistent, Is.True);
         }
+
+        [Test]
+        public void EnsureNotificationIntervals_SetsDefaultIntervalValues_WhenOffsetsAreFilled()
+        {
+            EditNotifications component = new();
+            FwoNotification notification = new()
+            {
+                OffsetBeforeDeadline = 3,
+                RepeatOffsetAfterDeadline = 2
+            };
+
+            SetPrivateField(component, "actNotification", notification);
+
+            GetPrivateMethod("EnsureNotificationIntervals").Invoke(component, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(notification.IntervalBeforeDeadline, Is.EqualTo(SchedulerInterval.Weeks));
+                Assert.That(notification.RepeatIntervalAfterDeadline, Is.EqualTo(SchedulerInterval.Weeks));
+            });
+        }
     }
 }

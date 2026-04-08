@@ -167,7 +167,8 @@ namespace FWO.Middleware.Server
             DateTime deadline = GetDeadlineDate(notification.Deadline, owner, extDeadline);
             if (deadline >= DateTime.Now)
             {
-                var notifDate = notification.IntervalBeforeDeadline switch
+                SchedulerInterval intervalBeforeDeadline = GetRequiredInterval(notification.IntervalBeforeDeadline, nameof(notification.IntervalBeforeDeadline));
+                var notifDate = intervalBeforeDeadline switch
                 {
                     SchedulerInterval.Days => deadline.AddDays(-notification.OffsetBeforeDeadline ?? 0),
                     SchedulerInterval.Weeks => deadline.AddDays(-notification.OffsetBeforeDeadline * GlobalConst.kDaysPerWeek ?? 0),
@@ -178,7 +179,8 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                var nextNotifDate = notification.RepeatIntervalAfterDeadline switch
+                SchedulerInterval repeatIntervalAfterDeadline = GetRequiredInterval(notification.RepeatIntervalAfterDeadline, nameof(notification.RepeatIntervalAfterDeadline));
+                var nextNotifDate = repeatIntervalAfterDeadline switch
                 {
                     SchedulerInterval.Days => deadline.Date.AddDays(notification.InitialOffsetAfterDeadline ?? 0),
                     SchedulerInterval.Weeks => deadline.Date.AddDays(notification.InitialOffsetAfterDeadline * GlobalConst.kDaysPerWeek ?? 0),
@@ -190,7 +192,7 @@ namespace FWO.Middleware.Server
                 while (nextNotifDate <= DateTime.Now.Date && counter++ <= notification.RepetitionsAfterDeadline)
                 {
                     currentNotifDate = nextNotifDate;
-                    nextNotifDate = notification.RepeatIntervalAfterDeadline switch
+                    nextNotifDate = repeatIntervalAfterDeadline switch
                     {
                         SchedulerInterval.Days => nextNotifDate.AddDays(notification.RepeatOffsetAfterDeadline ?? 0),
                         SchedulerInterval.Weeks => nextNotifDate.AddDays(notification.RepeatOffsetAfterDeadline * GlobalConst.kDaysPerWeek ?? 0),
@@ -205,6 +207,11 @@ namespace FWO.Middleware.Server
         private static bool IsTimeToSend(DateTime? lastSent, DateTime notifDate)
         {
             return (lastSent == null || ((DateTime)lastSent).Date < notifDate.Date) && notifDate.Date <= DateTime.Now.Date;
+        }
+
+        private static SchedulerInterval GetRequiredInterval(SchedulerInterval? interval, string propertyName)
+        {
+            return interval ?? throw new InvalidOperationException($"Notification interval '{propertyName}' is not configured.");
         }
 
         private static DateTime GetDeadlineDate(NotificationDeadline deadline, FwoOwner? owner, DateTime? extDeadline)

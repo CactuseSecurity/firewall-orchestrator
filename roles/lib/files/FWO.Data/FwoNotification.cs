@@ -107,13 +107,13 @@ namespace FWO.Data
         public NotificationDeadline Deadline { get; set; } = NotificationDeadline.None;
 
         [JsonProperty("interval_before_deadline"), JsonPropertyName("interval_before_deadline")]
-        public SchedulerInterval IntervalBeforeDeadline { get; set; } = SchedulerInterval.Weeks;
+        public SchedulerInterval? IntervalBeforeDeadline { get; set; }
 
         [JsonProperty("offset_before_deadline"), JsonPropertyName("offset_before_deadline")]
         public int? OffsetBeforeDeadline { get; set; }
 
         [JsonProperty("repeat_interval_after_deadline"), JsonPropertyName("repeat_interval_after_deadline")]
-        public SchedulerInterval RepeatIntervalAfterDeadline { get; set; } = SchedulerInterval.Weeks;
+        public SchedulerInterval? RepeatIntervalAfterDeadline { get; set; }
 
         [JsonProperty("initial_offset_after_deadline"), JsonPropertyName("initial_offset_after_deadline")]
         public int? InitialOffsetAfterDeadline { get; set; }

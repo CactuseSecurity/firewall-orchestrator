@@ -1,5 +1,4 @@
 using FWO.Api.Client;
-using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
@@ -58,7 +57,7 @@ namespace FWO.Ui.Services
 
             foreach (FwoNotification notification in notifications.Where(notification => notification.Id > 0))
             {
-                await apiConnection.SendQueryAsync<object>(NotificationQueries.deleteNotification, new { id = notification.Id });
+                await NotificationMutationHelper.DeleteAsync(apiConnection, notification.Id);
             }
         }
 
@@ -92,39 +91,25 @@ namespace FWO.Ui.Services
         private static async Task<FwoNotification> AddNotification(ApiConnection apiConnection, ReportSchedule reportSchedule,
             NotificationSettings notificationSettings)
         {
-            string notificationName = $"{reportSchedule.Name} {notificationSettings.FormatName.ToUpperInvariant()}";
-            NotificationLayout layout = ToNotificationLayout(notificationSettings.FormatName);
-            var variables = new
-            {
-                client = NotificationClient.Report.ToString(),
-                channel = NotificationChannel.Email.ToString(),
-                name = notificationName,
-                recipientTo = EmailRecipientOption.OtherAddresses.ToString(),
-                emailAddressTo = notificationSettings.EmailRecipients,
-                recipientCc = EmailRecipientOption.None.ToString(),
-                emailAddressCc = "",
-                subject = notificationSettings.EmailSubject,
-                emailBody = notificationSettings.EmailBody,
-                scheduleId = reportSchedule.Id,
-                bundleType = notificationSettings.BundleType?.ToString(),
-                bundleId = notificationSettings.BundleId,
-                layout = layout.ToString(),
-                deadline = NotificationDeadline.None.ToString(),
-                intervalBeforeDeadline = (int?)null,
-                offsetBeforeDeadline = (int?)null,
-                intervalAfterDeadline = (int?)null,
-                initialOffsetAfterDeadline = (int?)null,
-                offsetAfterDeadline = (int?)null,
-                repetitionsAfterDeadline = (int?)null
-            };
+            FwoNotification notification = BuildNotification(reportSchedule, notificationSettings);
+            return await NotificationMutationHelper.AddAsync(apiConnection, NotificationClient.Report, notification);
+        }
 
-            ReturnIdWrapper response = await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.addNotification, variables);
+        private static async Task<FwoNotification> UpdateNotification(ApiConnection apiConnection, ReportSchedule reportSchedule,
+            FwoNotification notification, NotificationSettings notificationSettings)
+        {
+            FwoNotification updatedNotification = BuildNotification(reportSchedule, notificationSettings);
+            updatedNotification.Id = notification.Id;
+            return await NotificationMutationHelper.UpdateAsync(apiConnection, NotificationClient.Report, updatedNotification);
+        }
+
+        private static FwoNotification BuildNotification(ReportSchedule reportSchedule, NotificationSettings notificationSettings)
+        {
             return new FwoNotification
             {
-                Id = response.ReturnIds![0].NewId,
                 NotificationClient = NotificationClient.Report,
                 Channel = NotificationChannel.Email,
-                Name = notificationName,
+                Name = $"{reportSchedule.Name} {notificationSettings.FormatName.ToUpperInvariant()}",
                 RecipientTo = EmailRecipientOption.OtherAddresses,
                 EmailAddressTo = notificationSettings.EmailRecipients,
                 RecipientCc = EmailRecipientOption.None,
@@ -134,55 +119,9 @@ namespace FWO.Ui.Services
                 ScheduleId = reportSchedule.Id,
                 BundleType = notificationSettings.BundleType,
                 BundleId = notificationSettings.BundleId,
-                Layout = layout,
+                Layout = ToNotificationLayout(notificationSettings.FormatName),
                 Deadline = NotificationDeadline.None
             };
-        }
-
-        private static async Task<FwoNotification> UpdateNotification(ApiConnection apiConnection, ReportSchedule reportSchedule,
-            FwoNotification notification, NotificationSettings notificationSettings)
-        {
-            string notificationName = $"{reportSchedule.Name} {notificationSettings.FormatName.ToUpperInvariant()}";
-            NotificationLayout layout = ToNotificationLayout(notificationSettings.FormatName);
-            var variables = new
-            {
-                id = notification.Id,
-                channel = NotificationChannel.Email.ToString(),
-                name = notificationName,
-                recipientTo = EmailRecipientOption.OtherAddresses.ToString(),
-                emailAddressTo = notificationSettings.EmailRecipients,
-                recipientCc = EmailRecipientOption.None.ToString(),
-                emailAddressCc = "",
-                subject = notificationSettings.EmailSubject,
-                emailBody = notificationSettings.EmailBody,
-                scheduleId = reportSchedule.Id,
-                bundleType = notificationSettings.BundleType?.ToString(),
-                bundleId = notificationSettings.BundleId,
-                layout = layout.ToString(),
-                deadline = NotificationDeadline.None.ToString(),
-                intervalBeforeDeadline = (int?)null,
-                offsetBeforeDeadline = (int?)null,
-                intervalAfterDeadline = (int?)null,
-                initialOffsetAfterDeadline = (int?)null,
-                offsetAfterDeadline = (int?)null,
-                repetitionsAfterDeadline = (int?)null
-            };
-
-            await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.updateNotification, variables);
-            notification.Channel = NotificationChannel.Email;
-            notification.Name = notificationName;
-            notification.RecipientTo = EmailRecipientOption.OtherAddresses;
-            notification.EmailAddressTo = notificationSettings.EmailRecipients;
-            notification.RecipientCc = EmailRecipientOption.None;
-            notification.EmailAddressCc = "";
-            notification.EmailSubject = notificationSettings.EmailSubject;
-            notification.EmailBody = notificationSettings.EmailBody;
-            notification.ScheduleId = reportSchedule.Id;
-            notification.BundleType = notificationSettings.BundleType;
-            notification.BundleId = notificationSettings.BundleId;
-            notification.Layout = layout;
-            notification.Deadline = NotificationDeadline.None;
-            return notification;
         }
 
         private static NotificationSettings NewNotificationSettings(string formatName, string emailRecipients, string emailSubject,

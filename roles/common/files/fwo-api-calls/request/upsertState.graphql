@@ -1,12 +1,13 @@
-﻿mutation upsertState($id: Int!, $name: String!) {
+mutation upsertState($id: Int!, $name: String!, $automaticOnly: Boolean!) {
   insert_request_state(
     objects: {
       id: $id
       name: $name
+      automatic_only: $automaticOnly
     },
     on_conflict: {
       constraint: state_pkey ,
-      update_columns: [name]
+      update_columns: [name, automatic_only]
     }
   ) {
     returning {

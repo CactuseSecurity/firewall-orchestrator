@@ -385,3 +385,6 @@ A complete 80K lines rework of FWO, including
 - remove not needed stm_owner_mapping_source
 - add Full re-initialize of RuleOwner mapping for IP-based rules
 - add matched_objects field in rule_owner table for track matched objects - IpBased
+
+# 9.0.18 - 03.04.2026 DEVELOP
+- add new column automatic_only to workflow states

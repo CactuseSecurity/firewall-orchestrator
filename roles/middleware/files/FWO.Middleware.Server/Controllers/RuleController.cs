@@ -377,13 +377,6 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         public const string Destination = "destination";
         public const string Both = "both";
     }
-
-    private static class RuleActions
-    {
-        public const string Accept = "accept";
-        public const string Deny = "deny";
-        public const string Any = "any";
-    }
 }
 
 #pragma warning disable CS1591
@@ -404,19 +397,19 @@ public sealed class IpFilterHelper
             {
                 continue;
             }
-            
+
             int rangePrefix = CommonPrefixLength(start, end);
 
             if (rangePrefix < minPrefix)
             {
                 break;
             }
-            
+
             if (IsInRange(ipAddress, start, end))
             {
                 return true;
             }
-            
+
         }
 
         return false;

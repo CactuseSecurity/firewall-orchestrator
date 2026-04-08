@@ -1,5 +1,5 @@
 
-query getChangedRulesForRuleOwnerMapping($controlId: bigint!) {
+query getChangedRulesForRuleOwnerMappingCustomField($controlId: bigint!) {
   changelog_rule(where: { control_id: { _eq: $controlId } }) {
     import: import_control {
       control_id

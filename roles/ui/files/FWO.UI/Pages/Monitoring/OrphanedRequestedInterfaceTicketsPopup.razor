@@ -1,4 +1,5 @@
 @using FWO.Api.Client.Queries
+@using FWO.Compliance
 @using FWO.Config.Api
 @using FWO.Data.Modelling
 @using FWO.Data.Workflow
@@ -214,7 +215,7 @@
         try
         {
             WorkInProgress = true;
-            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask.Result.User, middlewareClient, WorkflowPhases.implementation);
+            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask.Result.User, middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
             int rejectedCount = 0;
             foreach (long ticketId in ticketIds.Distinct())
             {

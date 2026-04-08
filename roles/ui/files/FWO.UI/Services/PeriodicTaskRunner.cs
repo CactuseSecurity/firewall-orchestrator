@@ -65,6 +65,10 @@ namespace FWO.Ui.Services
             {
                 Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} stopped.");
             }
+            catch (OperationCanceledException)
+            {
+                Log.WriteDebug(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} stopped.");
+            }
             catch (Exception ex)
             {
                 Log.WriteError(nameof(PeriodicTaskRunner), $"{nameof(PeriodicTaskRunner)} ran into an exception: {ex}", ex);

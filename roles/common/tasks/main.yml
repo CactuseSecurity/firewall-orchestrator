@@ -369,6 +369,8 @@
         - customizing/app_data_import/get_owner_data3_from_normalized_csvs.py
         - customizing/area_ip_data_import/convertNwObjDataFromGit.py
         - customizing/iiq_request_missing_roles/iiq_request_missing_fwmgt_roles.py
+        - acquire_lock.py
+        - release_lock.py
       register: fworch_script_stats
 
     - name: set scripts to executable where needed

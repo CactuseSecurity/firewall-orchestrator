@@ -70,9 +70,9 @@ class FwConfigBuilder:
             self.add_user_group_object(config, member_count=user_group_object_member_count)
 
         for _ in range(rulebase_count):
-            rb = self.add_rulebase(config, mgm_uid)
+            rb = self.add_rulebase(config, mgm_uid, uid2id_mapper=uid2id_mapper)
             for _ in range(rules_per_rulebase_count):
-                rule = self.add_rule(config, rb.uid)
+                rule = self.add_rule(config, rb.uid, uid2id_mapper=uid2id_mapper)
                 self.add_references_to_rule(config, rule)
 
         if include_gateway:
@@ -91,7 +91,9 @@ class FwConfigBuilder:
         )
         return config
 
-    def add_network_object(self, config: FwConfigNormalized, *, name: str | None = None) -> NetworkObject:
+    def add_network_object(
+        self, config: FwConfigNormalized, *, name: str | None = None, uid2id_mapper: Uid2IdMapper | None = None
+    ) -> NetworkObject:
         uid = self.uid_manager.create_uid()
         obj = NetworkObject(
             obj_uid=uid,
@@ -104,9 +106,17 @@ class FwConfigBuilder:
             obj_member_refs="",
         )
         config.network_objects[uid] = obj
+
+        if uid2id_mapper is not None:
+            uid2id_mapper.add_network_object_mappings(
+                [{"uid": obj.obj_uid, "id": len(uid2id_mapper.nwobj_uid2id.local) + 1}]
+            )
+
         return obj
 
-    def add_service_object(self, config: FwConfigNormalized, *, name: str | None = None) -> ServiceObject:
+    def add_service_object(
+        self, config: FwConfigNormalized, *, name: str | None = None, uid2id_mapper: Uid2IdMapper | None = None
+    ) -> ServiceObject:
         uid = self.uid_manager.create_uid()
         svc = ServiceObject(
             svc_uid=uid,
@@ -120,6 +130,12 @@ class FwConfigBuilder:
             svc_member_refs="",
         )
         config.service_objects[uid] = svc
+
+        if uid2id_mapper is not None:
+            uid2id_mapper.add_service_object_mappings(
+                [{"uid": svc.svc_uid, "id": len(uid2id_mapper.svc_uid2id.local) + 1}]
+            )
+
         return svc
 
     def add_rulebase(
@@ -129,12 +145,17 @@ class FwConfigBuilder:
         rulebase: Rulebase | None = None,
         *,
         name: str | None = None,
+        uid2id_mapper: Uid2IdMapper | None = None,
     ) -> Rulebase:
         if rulebase is None:
             uid = self.uid_manager.create_uid()
             rb = Rulebase(uid=uid, name=name or f"rb-{uid}", mgm_uid=mgm_uid)
         else:
             rb = rulebase
+
+        if uid2id_mapper is not None:
+            rulebase_id = len(uid2id_mapper.rulebase_uid2id.local) + 1
+            uid2id_mapper.add_rulebase_mappings([{"uid": rb.uid, "id": rulebase_id}])
         config.rulebases.append(rb)
         return rb
 
@@ -153,6 +174,7 @@ class FwConfigBuilder:
         *,
         name: str | None = None,
         rule_type: RuleType = RuleType.SECTIONHEADER,
+        uid2id_mapper: Uid2IdMapper | None = None,
     ) -> RuleNormalized:
         if rule is None:
             uid = self.uid_manager.create_uid()
@@ -189,6 +211,10 @@ class FwConfigBuilder:
         else:
             uid = rule.rule_uid or self.uid_manager.create_uid()
             normalized_rule = rule
+
+        if uid2id_mapper is not None:
+            rule_id = len(uid2id_mapper.rule_uid2id.local) + 1
+            uid2id_mapper.add_rule_mappings([{"rule_uid": normalized_rule.rule_uid, "rule_id": rule_id}])
 
         rulebase = self._get_rulebase(config, rulebase_uid)
         rulebase.rules[uid] = normalized_rule

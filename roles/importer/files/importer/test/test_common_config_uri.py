@@ -9,12 +9,12 @@ from models.import_state import ImportState
 
 @pytest.fixture
 def import_state_controller(
-    management_controller: ManagementController,
+    management_state: ManagementController,
     api_call: FwoApiCall,
     api_connection: FwoApi,
 ) -> ImportStateController:
     import_state = ImportState()
-    import_state.mgm_details = management_controller
+    import_state.mgm_details = management_state
     controller = ImportStateController(state=import_state, api_call=api_call)
     controller.state = import_state
     controller.api_call = api_call

@@ -185,7 +185,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
     def test_update_rulebase_diffs_on_insert_delete_and_move(
         self,
         import_state: ImportState,
-        management_controller: ManagementState,
+        management_state: ManagementState,
         fwconfig_import_rule: FwConfigImportRule,
         fwconfig_builder: FwConfigBuilder,
         mock_graphql: None,  # noqa: ARG002
@@ -196,6 +196,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(
+            uid2id_mapper=management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -203,20 +204,20 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         )
 
         import_state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
-        management_controller.previous_config = config
-        management_controller.normalized_config = copy.deepcopy(config)
-        fwconfig_builder.initialize_rule_num_numerics(management_controller.previous_config)
+        management_state.previous_config = config
+        management_state.normalized_config = copy.deepcopy(config)
+        fwconfig_builder.initialize_rule_num_numerics(management_state.previous_config)
 
-        rulebase = management_controller.normalized_config.rulebases[0]
+        rulebase = management_state.normalized_config.rulebases[0]
         rule_uids = list(rulebase.rules.keys())
         rule_uid = rule_uids[0]
-        remove_rule_from_rulebase(management_controller.normalized_config, rulebase.uid, rule_uid, rule_uids)
-        insert_rule_in_config(management_controller.normalized_config, rulebase.uid, 0, rule_uids, fwconfig_builder)
-        move_rule_in_config(management_controller.normalized_config, rulebase.uid, 9, 0, rule_uids)
+        remove_rule_from_rulebase(management_state.normalized_config, rulebase.uid, rule_uid, rule_uids)
+        insert_rule_in_config(management_state.normalized_config, rulebase.uid, 0, rule_uids, fwconfig_builder)
+        move_rule_in_config(management_state.normalized_config, rulebase.uid, 9, 0, rule_uids)
 
         # Act
 
-        fwconfig_import_rule.update_rulebase_diffs(management_controller.previous_config)
+        fwconfig_import_rule.update_rulebase_diffs(management_state.previous_config)
 
         # The order of the entries in normalized_config
         assert rule_uids == list(rulebase.rules.keys())

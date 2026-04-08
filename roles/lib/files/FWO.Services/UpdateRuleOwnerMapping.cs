@@ -834,45 +834,41 @@ namespace FWO.Services
                     continue;
                 }
 
-                var matchingOwnerIds = ownerNetworksPrepared
-                .Where(owner => owner.Ranges.Any(r => r != null
-                                                      && r.IpVersion == ruleIpVersion
-                                                      && IpOperations.RangeOverlapExists(ruleRange, r.Range)))
-                .Select(owner => owner.OwnerId);
-
-                foreach (var ownerId in matchingOwnerIds)
+                foreach (var owner in ownerNetworksPrepared)
                 {
-                    if (!matchesByOwner.TryGetValue(ownerId, out var dictForOwner))
+                    var overlappingRanges = owner.Ranges
+                        .Where(r => r != null && r.IpVersion == ruleIpVersion)
+                        .Select(r => IpOperations.GetIntersection(ruleRange, r!.Range))
+                        .Where(intersection => intersection != null)
+                        .ToList();
+
+                    if (!overlappingRanges.Any())
+                    {
+                        continue;
+                    }
+
+                    if (!matchesByOwner.TryGetValue(owner.OwnerId, out var dictForOwner))
                     {
                         dictForOwner = new Dictionary<string, List<NetworkObject>>();
-                        matchesByOwner[ownerId] = dictForOwner;
+                        matchesByOwner[owner.OwnerId] = dictForOwner;
                     }
+
                     if (!dictForOwner.ContainsKey(direction))
                     {
                         dictForOwner[direction] = new List<NetworkObject>();
                     }
 
-                    var overlappingRanges = new List<IPAddressRange>();
-
-                    overlappingRanges.AddRange(
-                        ownerNetworksPrepared.First(o => o.OwnerId == ownerId)
-                            .Ranges
-                            .Where(r => r != null)
-                            .Select(r => IpOperations.GetIntersection(ruleRange, r!.Range))
-                            .Where(intersection => intersection != null)!
-                    );
-
-                    if (overlappingRanges.Any())
+                    dictForOwner[direction].Add(new NetworkObject
                     {
-                        dictForOwner[direction].Add(new NetworkObject
-                        {
-                            Id = obj.Id,
-                            Name = obj.Name,
-                            IP = obj.IP,
-                            IpEnd = obj.IpEnd,
-                            OverlappingRanges = overlappingRanges
-                        });
-                    }
+                        Id = obj.Id,
+                        Name = obj.Name,
+                        IP = obj.IP,
+                        IpEnd = obj.IpEnd,
+                        OverlappingRanges = overlappingRanges
+                            .Where(r => r != null)
+                            .Select(r => r!)
+                            .ToList()
+                    });
                 }
             }
             return matchesByOwner;

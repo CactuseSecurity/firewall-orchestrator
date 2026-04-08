@@ -394,6 +394,7 @@ namespace FWO.Report.Filter
                             name: dev_name
                             rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
                             {{
+                                rulebase {{
                                 {query.OpenRulesTable}
                                     {limitOffsetString}
                                     where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
@@ -404,6 +405,7 @@ namespace FWO.Report.Filter
                                 }} 
                             }}
                         }}
+                    }} 
                     }} 
                 }}";
         }

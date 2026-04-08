@@ -21,9 +21,10 @@ namespace FWO.Services.Workflow
         private int priority;
 
 
-        public TicketCreator(ApiConnection apiConnection, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, MiddlewareClient middlewareClient, WorkflowPhases phase = WorkflowPhases.request)
+        public TicketCreator(ApiConnection apiConnection, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, MiddlewareClient middlewareClient,
+            WorkflowPhases phase = WorkflowPhases.request, IRequestedRulePolicyChecker? requestedRulePolicyChecker = null)
         {
-            wfHandler = new(LogMessage, userConfig, authUser, apiConnection, middlewareClient, phase);
+            wfHandler = new(LogMessage, userConfig, authUser, apiConnection, middlewareClient, phase, requestedRulePolicyChecker);
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
         }

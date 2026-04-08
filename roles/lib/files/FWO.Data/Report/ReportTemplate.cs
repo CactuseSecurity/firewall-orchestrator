@@ -77,6 +77,9 @@ namespace FWO.Data.Report
         [JsonProperty("compliance_filter"), JsonPropertyName("compliance_filter")]
         public ComplianceFilter ComplianceFilter { get; set; } = new();
 
+        [JsonProperty("workflow_filter"), JsonPropertyName("workflow_filter")]
+        public WorkflowFilter WorkflowFilter { get; set; } = new();
+
         public ReportParams()
         { }
 

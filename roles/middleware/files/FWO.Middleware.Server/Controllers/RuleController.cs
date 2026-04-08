@@ -377,13 +377,6 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         public const string Destination = "destination";
         public const string Both = "both";
     }
-
-    private static class RuleActions
-    {
-        public const string Accept = "accept";
-        public const string Deny = "deny";
-        public const string Any = "any";
-    }
 }
 
 #pragma warning disable CS1591

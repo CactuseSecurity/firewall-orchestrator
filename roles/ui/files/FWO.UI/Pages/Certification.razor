@@ -1,6 +1,7 @@
 @page "/certification"
 
 @using FWO.Basics
+@using FWO.Compliance
 @using FWO.Data.Report
 @using FWO.Middleware.Client
 @using FWO.Recert
@@ -358,7 +359,7 @@
             // create delete tickets
             if (userConfig.RecAutoCreateDeleteTicket)
             {
-                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
+                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
                 foreach (var device in deleteList)
                 {
                     await ticketCreator.CreateDecertRuleDeleteTicket(device.Key, device.Value, actComment,

@@ -30,6 +30,8 @@ namespace FWO.Report.Filter.FilterTypes
 
         public ComplianceFilter ComplianceFilter { get; set; } = new();
 
+        public WorkflowFilter WorkflowFilter { get; set; } = new();
+
         public string DisplayedTimeSelection = "";
 
         private UserConfig? userConfig;
@@ -69,6 +71,7 @@ namespace FWO.Report.Filter.FilterTypes
             UnusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
             ModellingFilter = template.ReportParams.ModellingFilter;
             ComplianceFilter = new(template.ReportParams.ComplianceFilter);
+            WorkflowFilter = new(template.ReportParams.WorkflowFilter);
         }
 
         public ReportParams ToReportParams()
@@ -83,7 +86,8 @@ namespace FWO.Report.Filter.FilterTypes
                     CreationTolerance = userConfig?.CreationTolerance ?? 0
                 },
                 ModellingFilter = new ModellingFilter(ModellingFilter),
-                ComplianceFilter = new ComplianceFilter(ComplianceFilter)
+                ComplianceFilter = new ComplianceFilter(ComplianceFilter),
+                WorkflowFilter = new WorkflowFilter(WorkflowFilter)
             };
             if (ReportType != ReportType.Statistics)
             {
@@ -100,7 +104,7 @@ namespace FWO.Report.Filter.FilterTypes
 
         public bool SetDisplayedTimeSelection()
         {
-            if (ReportType.IsChangeReport())
+            if (ReportType.IsChangeReport() || ReportType == ReportType.TicketChangeReport)
             {
                 switch (TimeFilter.TimeRangeType)
                 {

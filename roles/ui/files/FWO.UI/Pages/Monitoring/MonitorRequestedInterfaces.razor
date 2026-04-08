@@ -3,6 +3,7 @@
 
 @using FWO.Data.Modelling
 @using FWO.Data.Workflow
+@using FWO.Compliance
 @using FWO.Middleware.Client
 @using FWO.Services.Modelling
 @using FWO.Services.Workflow
@@ -457,8 +458,8 @@ else
                 .GroupBy(row => row.TicketId!.Value)
                 .ToDictionary(group => group.Key, group => group.First());
 
-            TicketCreator ticketCreator = new( apiConnection, userConfig, authenticationStateTask!.Result.User,
-                middlewareClient, WorkflowPhases.implementation);
+            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User,
+                middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
             int rejectedCount = 0;
             foreach (long ticketId in OpenRemovedTicketIds)
             {
@@ -519,7 +520,7 @@ else
         WorkInProgress = true;
         await states.Init(apiConnection);
         wfHandler = new(DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User,
-            apiConnection, middlewareClient, WorkflowPhases.request) { };
+            apiConnection, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection)) { };
         wfHandler.ReadOnlyMode = true;
         await wfHandler.Init();
         WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);

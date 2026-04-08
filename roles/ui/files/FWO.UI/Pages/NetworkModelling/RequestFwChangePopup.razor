@@ -1,3 +1,4 @@
+@using FWO.Compliance
 @using FWO.Data.Middleware
 @using FWO.Data.Workflow
 @using FWO.Services.Workflow
@@ -350,7 +351,7 @@
                 await appZoneHandler.UpsertAppZone(PlannedAppZoneDbUpdate);
             }
 
-            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
+            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
             WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
                 "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler?.GetInternalStateId(ExtStates.ExtReqInitialized), "");
             if (intTicket.Id > 0)

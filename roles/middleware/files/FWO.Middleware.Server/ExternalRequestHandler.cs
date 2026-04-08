@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Compliance;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -41,7 +42,7 @@ namespace FWO.Middleware.Server
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
             Task.Run(GetInternalGroups).Wait();
-            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
+            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, ownerGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
         }
 
         /// <summary>
@@ -52,7 +53,7 @@ namespace FWO.Middleware.Server
             ApiConnection = apiConnection;
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
-            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, userGroups);
+            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, userGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
         }
 
         /// <summary>

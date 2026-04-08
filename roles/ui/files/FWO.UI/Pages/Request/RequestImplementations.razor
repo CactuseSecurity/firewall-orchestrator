@@ -1,4 +1,5 @@
 @using FWO.Ui.Services
+@using FWO.Compliance
 @using FWO.Middleware.Client
 
 @page "/request/implementations/{ticketId?}"
@@ -65,7 +66,7 @@ else
             {
                 Owners = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi);
             }
-            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.implementation){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection)){};
             await Reset();
             await HandleTicketId();
             await Select();

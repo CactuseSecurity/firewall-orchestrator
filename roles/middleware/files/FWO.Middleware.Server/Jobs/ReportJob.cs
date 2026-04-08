@@ -230,7 +230,14 @@ namespace FWO.Middleware.Server.Jobs
                 switch (format.Name)
                 {
                     case GlobalConst.kCsv:
-                        reportFile.Csv = report.ExportToCsv();
+                        if (report.ReportType.SupportsCsvExport(report.ReportData.WorkflowFilter.DetailedView))
+                        {
+                            reportFile.Csv = report.ExportToCsv();
+                        }
+                        else
+                        {
+                            Log.WriteInfo(LogMessageTitle, $"Skipping CSV export for report schedule output because report type {report.ReportType} does not support CSV in the current configuration.");
+                        }
                         break;
 
                     case GlobalConst.kHtml:

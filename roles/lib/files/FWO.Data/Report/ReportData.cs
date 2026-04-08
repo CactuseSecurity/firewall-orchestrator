@@ -1,4 +1,5 @@
 using FWO.Basics.Interfaces;
+using FWO.Data.Workflow;
 
 namespace FWO.Data.Report
 {
@@ -8,6 +9,12 @@ namespace FWO.Data.Report
         public List<OwnerConnectionReport> OwnerData { get; set; } = [];
         public List<GlobalCommonSvcReport> GlobalComSvc { get; set; } = [];
         public ManagementReport GlobalStats { get; set; } = new();
+        /// <summary>
+        /// Gets or sets the workflow tickets contained in a workflow report.
+        /// </summary>
+        public List<WfTicket> Tickets { get; set; } = [];
+        public Dictionary<int, string> WorkflowStateNames { get; set; } = [];
+        public WorkflowFilter WorkflowFilter { get; set; } = new();
         public List<Rule> RulesFlat = [];
         public IEnumerable<IRuleViewData> RuleViewData = [];
         public int ElementsCount { get; set; }
@@ -22,6 +29,9 @@ namespace FWO.Data.Report
             OwnerData = reportData.OwnerData;
             GlobalComSvc = reportData.GlobalComSvc;
             GlobalStats = reportData.GlobalStats;
+            Tickets = reportData.Tickets;
+            WorkflowStateNames = reportData.WorkflowStateNames;
+            WorkflowFilter = reportData.WorkflowFilter;
             RecertificationDisplayPeriod = reportData.RecertificationDisplayPeriod;
         }
     }

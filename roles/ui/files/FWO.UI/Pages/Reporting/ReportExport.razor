@@ -141,7 +141,8 @@
 
     private bool csvAvailable()
     {
-        if(ReportToExport is ReportBase report && (report.ReportType.IsResolvedReport() || report.ReportType.IsComplianceReport() ))
+        if (ReportToExport is ReportBase report
+            && report.ReportType.SupportsCsvExport(report.ReportData.WorkflowFilter.DetailedView))
         {
             return true;
         }

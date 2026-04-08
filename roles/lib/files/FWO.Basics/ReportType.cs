@@ -20,9 +20,12 @@ namespace FWO.Basics
         OwnerRecertification = 24,
         RecertificationEvent = 25,
         RecertEventReport = 26,
-        ComplianceReport = 31,
-        ComplianceDiffReport = 32
 
+        ComplianceReport = 31,
+        ComplianceDiffReport = 32,
+
+        TicketReport = 41,
+        TicketChangeReport = 42
     }
 
     public static class ReportTypeGroups
@@ -118,6 +121,11 @@ namespace FWO.Basics
             return reportType == ReportType.Recertification || reportType == ReportType.AppRules;
         }
 
+        public static bool IsWorkflowReport(this ReportType reportType)
+        {
+            return reportType == ReportType.TicketReport || reportType == ReportType.TicketChangeReport;
+        }
+
         public static bool HasTimeFilter(this ReportType reportType)
         {
             return reportType switch
@@ -129,9 +137,17 @@ namespace FWO.Basics
                 ReportType.Statistics or
                 ReportType.Changes or
                 ReportType.ResolvedChanges or
-                ReportType.ResolvedChangesTech => true,
+                ReportType.ResolvedChangesTech or
+                ReportType.TicketChangeReport => true,
                 _ => false
             };
+        }
+
+        public static bool SupportsCsvExport(this ReportType reportType, bool detailedView = false)
+        {
+            return reportType.IsResolvedReport()
+                || reportType.IsComplianceReport()
+                || reportType.IsWorkflowReport() && !detailedView;
         }
 
         public static List<ReportType> AllReportTypes()
@@ -142,6 +158,14 @@ namespace FWO.Basics
         public static List<ReportType> ReportTypeSelection(bool ruleRelated = true, bool modellingRelated = true)
         {
             return CustomSortReportType([.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>()], ruleRelated, modellingRelated);
+        }
+
+        public static bool IsVisibleTemplateType(this ReportType reportType, bool ruleRelated, bool modellingRelated, bool complianceRelated, bool modellingOwnerAllowed = true)
+        {
+            return ruleRelated && reportType.IsDeviceRelatedReport()
+                || modellingRelated && reportType.IsModellingReport() && modellingOwnerAllowed
+                || complianceRelated && reportType.IsComplianceReport()
+                || reportType.IsWorkflowReport();
         }
 
         public static List<ReportType> CustomSortReportType(List<ReportType> ListIn, bool ruleRelated, bool modellingRelated)
@@ -159,11 +183,13 @@ namespace FWO.Basics
                 ReportType.VarianceAnalysis,
                 ReportType.Recertification,
                 ReportType.OwnerRecertification,
-                ReportType.RecertEventReport
+                ReportType.RecertEventReport,
+                ReportType.TicketReport,
+                ReportType.TicketChangeReport
             ];
             foreach (var reportType in orderedReportTypeList.Where(r => ListIn.Contains(r)))
             {
-                if (reportType == ReportType.Undefined || ruleRelated && reportType.IsDeviceRelatedReport() || modellingRelated && reportType.IsModellingReport())
+                if (reportType == ReportType.Undefined || reportType.IsVisibleTemplateType(ruleRelated, modellingRelated, false))
                 {
                     ListOut.Add(reportType);
                 }

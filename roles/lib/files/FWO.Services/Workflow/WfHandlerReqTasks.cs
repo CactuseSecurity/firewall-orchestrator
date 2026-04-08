@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
 using System.Text.Json;
@@ -18,6 +19,25 @@ namespace FWO.Services.Workflow
         public bool DisplayPathAnalysisMode = false;
 
         // Request Tasks
+
+        public async Task<List<WfReqTask>> LoadRequestTasks(IEnumerable<long> reqTaskIds)
+        {
+            if (apiConnection == null)
+            {
+                return [];
+            }
+
+            List<long> taskIds = reqTaskIds.Where(id => id > 0).Distinct().ToList();
+
+            if (taskIds.Count == 0)
+            {
+                return [];
+            }
+
+            List<WfReqTask> requestTasks = await apiConnection.SendQueryAsync<List<WfReqTask>>(RequestQueries.getRequestTasksByIds, new { task_ids = taskIds });
+            new WfTicket() { Tasks = requestTasks }.UpdateCidrsInTaskElements();
+            return requestTasks;
+        }
 
         public void SelectReqTask(WfReqTask reqTask, ObjAction action)
         {

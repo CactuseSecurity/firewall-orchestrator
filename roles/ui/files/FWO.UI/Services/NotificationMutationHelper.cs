@@ -42,29 +42,7 @@ namespace FWO.Ui.Services
         /// </summary>
         private static object BuildAddVariables(NotificationClient client, FwoNotification notification)
         {
-            return new
-            {
-                client = client.ToString(),
-                channel = notification.Channel.ToString(),
-                name = notification.Name,
-                recipientTo = notification.RecipientTo.ToString(),
-                emailAddressTo = notification.EmailAddressTo,
-                recipientCc = notification.RecipientCc.ToString(),
-                emailAddressCc = notification.EmailAddressCc,
-                subject = notification.EmailSubject,
-                emailBody = notification.EmailBody,
-                scheduleId = notification.ScheduleId,
-                bundleType = notification.BundleType?.ToString(),
-                bundleId = notification.BundleId,
-                layout = notification.Layout.ToString(),
-                deadline = notification.Deadline.ToString(),
-                intervalBeforeDeadline = (int?)notification.IntervalBeforeDeadline,
-                offsetBeforeDeadline = notification.OffsetBeforeDeadline,
-                intervalAfterDeadline = (int?)notification.RepeatIntervalAfterDeadline,
-                initialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline,
-                offsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
-                repetitionsAfterDeadline = notification.RepetitionsAfterDeadline
-            };
+            return NotificationMutationVariables.ForAdd(client, notification);
         }
 
         /// <summary>
@@ -72,29 +50,7 @@ namespace FWO.Ui.Services
         /// </summary>
         private static object BuildUpdateVariables(FwoNotification notification)
         {
-            return new
-            {
-                id = notification.Id,
-                channel = notification.Channel.ToString(),
-                name = notification.Name,
-                recipientTo = notification.RecipientTo.ToString(),
-                emailAddressTo = notification.EmailAddressTo,
-                recipientCc = notification.RecipientCc.ToString(),
-                emailAddressCc = notification.EmailAddressCc,
-                subject = notification.EmailSubject,
-                emailBody = notification.EmailBody,
-                scheduleId = notification.ScheduleId,
-                bundleType = notification.BundleType?.ToString(),
-                bundleId = notification.BundleId,
-                layout = notification.Layout.ToString(),
-                deadline = notification.Deadline.ToString(),
-                intervalBeforeDeadline = (int?)notification.IntervalBeforeDeadline,
-                offsetBeforeDeadline = notification.OffsetBeforeDeadline,
-                intervalAfterDeadline = (int?)notification.RepeatIntervalAfterDeadline,
-                initialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline,
-                offsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
-                repetitionsAfterDeadline = notification.RepetitionsAfterDeadline
-            };
+            return NotificationMutationVariables.ForUpdate(notification);
         }
 
         /// <summary>
@@ -138,6 +94,90 @@ namespace FWO.Ui.Services
                 RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
                 LastSent = notification.LastSent
             };
+        }
+
+        /// <summary>
+        /// Captures the GraphQL mutation variables shared by add and update notification requests.
+        /// </summary>
+        private sealed record NotificationMutationVariables
+        {
+            public int? id { get; init; }
+
+            public string? client { get; init; }
+
+            public string channel { get; init; } = "";
+
+            public string? name { get; init; }
+
+            public string? recipientTo { get; init; }
+
+            public string? emailAddressTo { get; init; }
+
+            public string? recipientCc { get; init; }
+
+            public string? emailAddressCc { get; init; }
+
+            public string? subject { get; init; }
+
+            public string? emailBody { get; init; }
+
+            public int? scheduleId { get; init; }
+
+            public string? bundleType { get; init; }
+
+            public string? bundleId { get; init; }
+
+            public string layout { get; init; } = "";
+
+            public string? deadline { get; init; }
+
+            public int? intervalBeforeDeadline { get; init; }
+
+            public int? offsetBeforeDeadline { get; init; }
+
+            public int? intervalAfterDeadline { get; init; }
+
+            public int? initialOffsetAfterDeadline { get; init; }
+
+            public int? offsetAfterDeadline { get; init; }
+
+            public int? repetitionsAfterDeadline { get; init; }
+
+            public static NotificationMutationVariables ForAdd(NotificationClient client, FwoNotification notification)
+            {
+                return Create(notification) with { client = client.ToString() };
+            }
+
+            public static NotificationMutationVariables ForUpdate(FwoNotification notification)
+            {
+                return Create(notification) with { id = notification.Id };
+            }
+
+            private static NotificationMutationVariables Create(FwoNotification notification)
+            {
+                return new NotificationMutationVariables
+                {
+                    channel = notification.Channel.ToString(),
+                    name = notification.Name,
+                    recipientTo = notification.RecipientTo.ToString(),
+                    emailAddressTo = notification.EmailAddressTo,
+                    recipientCc = notification.RecipientCc.ToString(),
+                    emailAddressCc = notification.EmailAddressCc,
+                    subject = notification.EmailSubject,
+                    emailBody = notification.EmailBody,
+                    scheduleId = notification.ScheduleId,
+                    bundleType = notification.BundleType?.ToString(),
+                    bundleId = notification.BundleId,
+                    layout = notification.Layout.ToString(),
+                    deadline = notification.Deadline.ToString(),
+                    intervalBeforeDeadline = (int?)notification.IntervalBeforeDeadline,
+                    offsetBeforeDeadline = notification.OffsetBeforeDeadline,
+                    intervalAfterDeadline = (int?)notification.RepeatIntervalAfterDeadline,
+                    initialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline,
+                    offsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
+                    repetitionsAfterDeadline = notification.RepetitionsAfterDeadline
+                };
+            }
         }
     }
 }

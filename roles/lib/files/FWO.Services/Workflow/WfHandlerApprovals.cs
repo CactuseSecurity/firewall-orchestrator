@@ -51,7 +51,7 @@ namespace FWO.Services.Workflow
             ApprovalParams approvalParams = new();
             if (extParams != "")
             {
-                approvalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new JsonException("Extparams could not be parsed.");
+                approvalParams = JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new JsonException("Extparams could not be parsed.");
             }
 
             DateTime? deadline = null;
@@ -68,7 +68,7 @@ namespace FWO.Services.Workflow
             WfApproval approval = new()
             {
                 TaskId = ActReqTask.Id,
-                StateId = extParams != "" ? approvalParams.StateId : ActStateMatrix.LowestEndState,
+                StateId = extParams != "" ? approvalParams.StateId : ActStateMatrix.LowestInputState,
                 ApproverGroup = extParams != "" ? approvalParams.ApproverGroup : "", // todo: get from owner ???,
                 TenantId = ActTicket.TenantId, // ??
                 Deadline = deadline,

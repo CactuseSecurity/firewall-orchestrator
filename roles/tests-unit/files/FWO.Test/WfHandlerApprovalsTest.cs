@@ -71,10 +71,10 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AddApproval_DefaultsToLowestEndState_AndMarksInitial()
+        public async Task AddApproval_DefaultsToLowestInputState_AndMarksInitial()
         {
             WfHandler handler = new();
-            handler.ActStateMatrix = new StateMatrix { LowestEndState = 7 };
+            handler.ActStateMatrix = new StateMatrix { LowestInputState = 0, LowestEndState = 7 };
             handler.ActReqTask = new WfReqTask { Id = 10 };
             handler.ActTicket = new WfTicket { Priority = 2 };
             handler.PrioList =
@@ -85,7 +85,7 @@ namespace FWO.Test
             await handler.AddApproval();
 
             WfApproval approval = handler.ActReqTask.Approvals[^1];
-            Assert.That(approval.StateId, Is.EqualTo(7));
+            Assert.That(approval.StateId, Is.EqualTo(0));
             Assert.That(approval.InitialApproval, Is.True);
             Assert.That(approval.Deadline?.Date, Is.EqualTo(DateTime.Now.AddDays(2).Date));
         }

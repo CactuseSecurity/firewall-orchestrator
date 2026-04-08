@@ -7,14 +7,6 @@ from fwo_const import FWO_CONFIG_FILENAME
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from model_controllers.management_controller import (
-    ConnectionInfo,
-    CredentialInfo,
-    DeviceInfo,
-    DomainInfo,
-    ManagementController,
-    ManagerInfo,
-)
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.fwconfigmanager import FwConfigManager
 from pytest_mock import MockerFixture
@@ -48,7 +40,7 @@ def import_state(
     mocker: MockerFixture,
 ) -> ImportState:
     super_management_id = 1
-    mock_mgm = mocker.Mock(mgm_id=super_management_id)
+    mock_mgm = mocker.Mock(mgm_id=super_management_id, current_mgm_id=super_management_id)
 
     mocker.patch("states.import_state.ManagementController.get_mgm_details", return_value={})
     mocker.patch("states.import_state.ManagementController.from_json", return_value=mock_mgm)
@@ -127,7 +119,7 @@ def fwconfig_import_gateway() -> FwConfigImportGateway:
 #         connection_info=ConnectionInfo(hostname="mock.example.com", port=443),
 #         importer_hostname="mock-importer",
 #         credential_info=CredentialInfo(
-#             secret="mock-secret",  # noqa: S106
+#             secret="mock-secret",
 #             import_user="mock-user",
 #             cloud_client_id="",
 #             cloud_client_secret="",

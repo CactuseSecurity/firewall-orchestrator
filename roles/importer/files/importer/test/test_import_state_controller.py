@@ -13,7 +13,7 @@ def import_state(
     mocker: MockerFixture,
 ) -> ImportState:
     mgm_id = 1
-    mock_mgm = mocker.Mock(mgm_id=mgm_id)
+    mock_mgm = mocker.Mock(mgm_id=mgm_id, current_mgm_id=mgm_id)
 
     mocker.patch("states.import_state.ManagementController.get_mgm_details", return_value={})
     mocker.patch("states.import_state.ManagementController.from_json", return_value=mock_mgm)

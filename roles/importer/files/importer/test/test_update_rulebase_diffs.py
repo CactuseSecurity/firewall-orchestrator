@@ -31,9 +31,110 @@ def mock_uid2id_mapper_response(uid2id_mapper: Uid2IdMapper, fwconfig_import_rul
 
 @pytest.fixture
 def mock_api_connection_response(api_connection: FwoApi):
-    api_connection.call = unittest.mock.Mock(
-        return_value={"data": {"insert_rulebase": {"affected_rows": 1}, "rule": []}}
-    )
+    def api_connection_side_effect(
+        query: str,  # noqa: ARG001
+        query_variables: dict[str, list[dict[str, Any]]],
+        analyze_payload: bool = False,  # noqa: ARG001
+    ) -> dict[str, Any]:
+        outcome: dict[str, Any] = {"data": {"rule": []}}
+
+        if "rulebases" in query_variables:
+            outcome["data"].update(
+                {
+                    "insert_rulebase": {
+                        "affected_rows": len(query_variables.get("rulebases", [])),
+                        "returning": [{"id": 999} for _ in range(len(query_variables.get("rulebases", [])))],
+                    }
+                }
+            )
+
+        if "ruleMetadata" in query_variables:
+            outcome["data"].update(
+                {
+                    "insert_rule_metadata": {
+                        "affected_rows": len(query_variables.get("ruleMetadata", [])),
+                        "returning": [
+                            {"rule_metadata_id": 123 + i} for i in range(len(query_variables.get("ruleMetadata", [])))
+                        ],
+                    }
+                }
+            )
+
+        if "ruleFroms" in query_variables:
+            outcome["data"].update(
+                {
+                    "insert_rule_from": {
+                        "affected_rows": len(query_variables.get("ruleFroms", [])),
+                    },
+                    "insert_rule_to": {
+                        "affected_rows": len(query_variables.get("ruleTos", [])),
+                    },
+                    "insert_rule_service": {
+                        "affected_rows": len(query_variables.get("ruleServices", [])),
+                    },
+                    "insert_rule_nwobj_resolved": {
+                        "affected_rows": len(query_variables.get("ruleNwObjResolveds", [])),
+                    },
+                    "insert_rule_svc_resolved": {
+                        "affected_rows": len(query_variables.get("ruleSvcResolveds", [])),
+                    },
+                    "insert_rule_user_resolved": {
+                        "affected_rows": len(query_variables.get("ruleUserResolveds", [])),
+                    },
+                    "insert_rule_from_zone": {
+                        "affected_rows": len(query_variables.get("ruleFromZones", [])),
+                    },
+                    "insert_rule_to_zone": {
+                        "affected_rows": len(query_variables.get("ruleToZones", [])),
+                    },
+                    "insert_rule_time": {
+                        "affected_rows": len(query_variables.get("ruleTimes", [])),
+                    },
+                    "update_rule_from": {
+                        "affected_rows": len(query_variables.get("ruleFroms", [])),
+                    },
+                    "update_rule_to": {
+                        "affected_rows": len(query_variables.get("ruleTos", [])),
+                    },
+                    "update_rule_service": {
+                        "affected_rows": len(query_variables.get("ruleServices", [])),
+                    },
+                    "update_rule_nwobj_resolved": {
+                        "affected_rows": len(query_variables.get("ruleNwObjResolveds", [])),
+                    },
+                    "update_rule_svc_resolved": {
+                        "affected_rows": len(query_variables.get("ruleSvcResolveds", [])),
+                    },
+                    "update_rule_user_resolved": {
+                        "affected_rows": len(query_variables.get("ruleUserResolveds", [])),
+                    },
+                    "update_rule_from_zone": {
+                        "affected_rows": len(query_variables.get("ruleFromZones", [])),
+                    },
+                    "update_rule_to_zone": {
+                        "affected_rows": len(query_variables.get("ruleToZones", [])),
+                    },
+                    "update_rule_time": {
+                        "affected_rows": len(query_variables.get("ruleTimes", [])),
+                    },
+                }
+            )
+
+        if "rulesEnforcedOnGateway" in query_variables:
+            outcome["data"].update(
+                {
+                    "update_rule_enforced_on_gateway": {
+                        "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
+                    },
+                    "insert_rule_enforced_on_gateway": {
+                        "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
+                    },
+                }
+            )
+
+        return outcome
+
+    api_connection.call = unittest.mock.Mock(side_effect=api_connection_side_effect)
 
 
 @pytest.fixture

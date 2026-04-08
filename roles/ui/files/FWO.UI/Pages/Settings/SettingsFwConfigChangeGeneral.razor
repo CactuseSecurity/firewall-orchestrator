@@ -1,0 +1,184 @@
+@using FWO.Data.Middleware
+@using FWO.Logging
+@using FWO.Middleware.Client
+@using FWO.Recert
+@using FWO.ExternalSystems.Tufin.SecureChange
+@using FWO.Ui.Pages.NetworkModelling
+@using RestSharp
+@using System.Net
+@using System.Text.Json
+
+@page "/settings/general"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("fwconfigchangegeneral"))</h3>
+    @*     <HelpLink Page="settings/extticketing" /> *@
+</div>
+@* @(userConfig.GetText("H5598")) *@
+<hr />
+
+@if (configData != null)
+{
+    <form onsubmit="return false">
+        @foreach (var management in managementStates)
+        {
+            <div class="border rounded p-3 mb-3">
+                <div class="d-flex align-items-center gap-5">
+                    <div class="col-2 border justify-content-start px-3 py-2 fw-bold">
+                        <div>@management.Name</div>
+                    </div>
+                    <button class="btn fw-bold @(management.Enabled ? "btn-success" : "btn-danger")"
+                            style="border-radius:15px;"
+                            @onclick="() => ToggleManagement(management)">
+                        @(management.Enabled ? "Enabled" : "Disabled")
+                    </button>
+                </div>
+
+                @if (management.Enabled)
+                {
+                    <div class="d-flex flex-column gap-2 mt-2">
+                        @foreach (var change in AvailableChanges)
+                        {
+                            <div class="row align-items-center mb-2">
+                                <div class="col-3 border rounded bg-light px-3 py-2 fw-semibold ms-5">
+                                    @change
+                                </div>
+                                <div class="col-2">
+                                    <Dropdown ElementType="string" Elements="DropdownValues" SelectedElement="@management.SelectedChanges[change]"
+                                              SelectedElementChanged="@(val => management.SelectedChanges[change] = val)" Id="@($"dropdown-{management.Id}-{change}")" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </form>
+    <hr />
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized>
+    </AuthorizeView>
+}
+else
+{
+    <Loading />
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+    private ConfigData? configData;
+
+    private List<ManagementFwConfigChangeState> managementStates = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            var managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+
+            LoadManagementStates(managements);
+
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private void LoadManagementStates(List<Management> allManagements)
+    {
+        // 1. Load drom JSON
+        if (!string.IsNullOrWhiteSpace(configData?.FwConfigChangeMgmSettings))
+        {
+            try
+            {
+                var deserialized = JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(configData.FwConfigChangeMgmSettings);
+                if (deserialized != null)
+                {
+                    managementStates = deserialized;
+                }
+            }
+            catch (JsonException)
+            {
+                // Falls der JSON-String ungültig ist, leere Liste verwenden
+                managementStates = new List<ManagementFwConfigChangeState>();
+            }
+        }
+
+        // 2. Merge if needed
+        foreach (var m in allManagements)
+        {
+            if (!managementStates.Any(s => s.Id == m.Id))
+            {
+                managementStates.Add(new ManagementFwConfigChangeState
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    Enabled = false,
+                    SelectedChanges = AvailableChanges.ToDictionary(c => c, c => "Disabled")
+                });
+            }
+        }
+    }
+
+    void ToggleManagement(ManagementFwConfigChangeState management)
+    {
+        management.Enabled = !management.Enabled;
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData != null)
+            {
+                configData.FwConfigChangeMgmSettings = JsonSerializer.Serialize(managementStates);
+
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi(null, userConfig.GetText("fwconfigchange"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_settings"), "", true);
+        }
+    }
+
+    private static List<string> AvailableChanges { get; } = new()
+    {
+        "Object Changes",
+        "Rule Changes"
+    };
+
+    private static List<string> DropdownValues { get; } = new()
+    {
+        "Direct",
+        "Ext Ticket System",
+        "Disabled"
+    };
+
+    private class ManagementFwConfigChangeState
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public bool Enabled { get; set; } = false;
+        public Dictionary<string, string> SelectedChanges { get; set; } = new();
+    }
+}

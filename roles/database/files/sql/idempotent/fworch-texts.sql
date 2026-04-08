@@ -2316,6 +2316,12 @@ INSERT INTO txt VALUES ('externalRequestStartAt',  'German','Externer Auftrags-S
 INSERT INTO txt VALUES ('externalRequestStartAt',  'English','External Request start at');
 INSERT INTO txt VALUES ('externalRequestWaitCycles','German','Anzahl Wartezyklen');
 INSERT INTO txt VALUES ('externalRequestWaitCycles','English','Number wait cycles');
+INSERT INTO txt VALUES ('fwConfigChangeSleepTime','German','FW Konfigurations&auml;nderungs-Intervall (in Sekunden)');
+INSERT INTO txt VALUES ('fwConfigChangeSleepTime','English','FW Config Change sleep time (in seconds)');
+INSERT INTO txt VALUES ('fwConfigChangeStartAt',  'German','FW Konfigurations&auml;nderungs-Start');
+INSERT INTO txt VALUES ('fwConfigChangeStartAt',  'English','FW Config Change start at');
+INSERT INTO txt VALUES ('fwConfigChangeWaitCycles','German','Anzahl Wartezyklen');
+INSERT INTO txt VALUES ('fwConfigChangeWaitCycles','English','Number wait cycles');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','English', 	'Auto-discovery sleep time (in hours)');
 INSERT INTO txt VALUES ('autoDiscoverStartAt',  'German', 	'Autodiscover-Start');
@@ -2750,6 +2756,14 @@ INSERT INTO txt VALUES ('separate_analysis',    'German', 	'Gruppenanalyse trenn
 INSERT INTO txt VALUES ('separate_analysis',    'English', 	'Separate Group analysis');
 INSERT INTO txt VALUES ('split_port_ranges',    'German', 	'Portbereiche aufl&ouml;sen');
 INSERT INTO txt VALUES ('split_port_ranges',    'English', 	'Split Port Ranges');
+INSERT INTO txt VALUES ('fwconfigchange',       'German', 	'FW Konfigurations&auml;nderung');
+INSERT INTO txt VALUES ('fwconfigchange',       'English', 	'FW Config Change');
+INSERT INTO txt VALUES ('fwconfigchangegeneral','German', 	'Allgemein');
+INSERT INTO txt VALUES ('fwconfigchangegeneral','English', 	'General');
+INSERT INTO txt VALUES ('direct',               'German', 	'Direkt');
+INSERT INTO txt VALUES ('direct',               'English', 	'Direct');
+INSERT INTO txt VALUES ('fwconfigchangedirect', 'German', 	'Direkter FW Konfigurations&auml;nderung');
+INSERT INTO txt VALUES ('fwconfigchangedirect', 'English', 	'Direct FW Config Change');
 INSERT INTO txt VALUES ('ext_ticketing',        'German', 	'Externes Ticket-System');
 INSERT INTO txt VALUES ('ext_ticketing',        'English', 	'External ticket tool');
 INSERT INTO txt VALUES ('ext_ticket_settings',  'German', 	'Einstellungen externes Ticket-System');
@@ -5546,6 +5560,13 @@ INSERT INTO txt VALUES ('H5461', 'English', 'Every user can set his own preferre
     The default language at first login can be defined by the admin for all users in the <a href="/help/settings/defaults">Default Settings</a>.<br><br>
     Currently available:
 ');
+INSERT INTO txt VALUES ('H5462a', 'German',  'FW Konfigurations&auml;nderungs-Intervall (in Sekunden): legt das Intervall fest, in dem die FW Konfigurations&auml;nderung durchgef&uuml;hrt werden sollen.');
+INSERT INTO txt VALUES ('H5462a', 'English', 'FW Config Change sleep time (in seconds): defines the interval in which the FW Config Changes should be performed.');
+INSERT INTO txt VALUES ('H5462b', 'German',  'Anzahl Wartezyklen: legt fest, wie viele Zyklen des Konfigurations&auml;nderungs-Intervalls bei bestimmten &auml;nderungen gewartet werden soll (z.B. nach Neuanlegen von Netzwerkobjekten).');
+INSERT INTO txt VALUES ('H5462b', 'English', 'Number wait cycles: defines how many cycles of the FW Config Change interval are to be waited in case of some changes (e.g. after creation of new network objects).');
+INSERT INTO txt VALUES ('H5462c', 'German',  'FW Konfigurations&auml;nderungs-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r die FW Konfigurations&auml;nderung gerechnet werden.');
+INSERT INTO txt VALUES ('H5462c', 'English', 'FW Config Change start at: defines a referential time from which the FW Config Change intervals are calculated.');
+
 INSERT INTO txt VALUES ('H5466', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
 INSERT INTO txt VALUES ('H5466', 'English', 'Message that is displayed on Login Page.');
 INSERT INTO txt VALUES ('H5471', 'German',  'Jeder Nutzer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r die Reporteinstellungen &uuml;berschreiben.

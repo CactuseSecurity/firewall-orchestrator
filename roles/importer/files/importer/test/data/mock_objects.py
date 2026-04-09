@@ -47,6 +47,7 @@ class MockObjectsFactory:
                 ]
             },
             "deviceType": {"id": 12, "name": "Checkpoint MDS"},
+            "id": 12,
         }
 
     @staticmethod

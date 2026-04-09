@@ -259,7 +259,9 @@ class FwConfigBuilder:
         config.users[uid] = obj
 
         if uid2id_mapper is not None:
-            uid2id_mapper.add_user_mappings([{"uid": obj["user_uid"], "id": len(uid2id_mapper.user_uid2id.local) + 1}])
+            uid2id_mapper.add_user_mappings(
+                [{"user_uid": obj["user_uid"], "user_id": len(uid2id_mapper.user_uid2id.local) + 1}]
+            )
         return obj
 
     def add_user_group_object(

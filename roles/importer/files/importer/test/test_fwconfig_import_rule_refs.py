@@ -1,17 +1,12 @@
 import unittest.mock
 
-import pytest
-from fwo_api import FwoApi
-from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_rule import FwConfigImportRule, RefType
-from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_controller import ManagementController
-from models.import_state import ImportState
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 from services.uid2id_mapper import Uid2IdMapper
+from states.management_state import ManagementState
 
 
-def build_rule(rule_uid: str) -> RuleNormalized:
+def build_rule(rule_uid: str, uid2id_mapper: Uid2IdMapper) -> RuleNormalized:
     return RuleNormalized(
         rule_num=1,
         rule_num_numeric=1.0,
@@ -36,28 +31,13 @@ def build_rule(rule_uid: str) -> RuleNormalized:
     )
 
 
-@pytest.fixture
-def import_state_controller(
-    management_state: ManagementController,
-    api_call: FwoApiCall,
-    api_connection: FwoApi,
-) -> ImportStateController:
-    import_state = ImportState()
-    import_state.mgm_details = management_state
-    controller = ImportStateController(state=import_state, api_call=api_call)
-    controller.state = import_state
-    controller.api_call = api_call
-    controller.api_connection = api_connection
-    return controller
-
-
 class TestFwconfigImportRuleRefs:
     def test_get_outdated_refs_to_remove_removes_all_on_missing_rule(
         self,
-        uid2id_mapper: Uid2IdMapper,
         fwconfig_import_rule: FwConfigImportRule,
+        management_state: ManagementState,
     ):
-        prev_rule = build_rule("rule-1")
+        prev_rule = build_rule("rule-1", management_state.uid2id_mapper)
 
         fake_refs = {
             RefType.SRC: [("src", None)],
@@ -71,7 +51,7 @@ class TestFwconfigImportRuleRefs:
             RefType.TIME: ["time"],
         }
 
-        uid2id_mapper.get_rule_id = unittest.mock.MagicMock(return_value=100)
+        management_state.uid2id_mapper.get_rule_id = unittest.mock.MagicMock(return_value=100)
 
         def _get_network_object_id(uid: str, before_update: bool = True) -> int:  # noqa: ARG001
             return {"src": 10, "dst": 11}[uid]
@@ -79,11 +59,13 @@ class TestFwconfigImportRuleRefs:
         def _get_zone_object_id(uid: str, before_update: bool = True) -> int:  # noqa: ARG001
             return {"src_zone": 40, "dst_zone": 41}[uid]
 
-        uid2id_mapper.get_network_object_id = unittest.mock.MagicMock(side_effect=_get_network_object_id)
-        uid2id_mapper.get_user_id = unittest.mock.MagicMock(return_value=30)
-        uid2id_mapper.get_service_object_id = unittest.mock.MagicMock(return_value=20)
-        uid2id_mapper.get_zone_object_id = unittest.mock.MagicMock(side_effect=_get_zone_object_id)
-        uid2id_mapper.get_time_object_id = unittest.mock.MagicMock(return_value=50)
+        management_state.uid2id_mapper.get_network_object_id = unittest.mock.MagicMock(
+            side_effect=_get_network_object_id
+        )
+        management_state.uid2id_mapper.get_user_id = unittest.mock.MagicMock(return_value=30)
+        management_state.uid2id_mapper.get_service_object_id = unittest.mock.MagicMock(return_value=20)
+        management_state.uid2id_mapper.get_zone_object_id = unittest.mock.MagicMock(side_effect=_get_zone_object_id)
+        management_state.uid2id_mapper.get_time_object_id = unittest.mock.MagicMock(return_value=50)
 
         fwconfig_import_rule.get_rule_refs = unittest.mock.MagicMock(
             return_value=fake_refs,

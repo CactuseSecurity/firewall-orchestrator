@@ -4,6 +4,7 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 from models.networkobject import NetworkObject
 from netaddr import IPNetwork
 from states.import_state import ImportState
+from states.management_state import ManagementState
 from test.data.mock_objects import MockObjectsFactory
 from test.utils.config_builder import FwConfigBuilder
 
@@ -13,8 +14,10 @@ class TestCheckConsistencyColors:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -42,8 +45,10 @@ class TestCheckConsistencyColors:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -68,8 +73,10 @@ class TestCheckConsistencyColors:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -93,8 +100,10 @@ class TestCheckConsistencyColors:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -116,8 +125,10 @@ class TestCheckConsistencyColors:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -142,8 +153,10 @@ class TestCheckConsistencyColors:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -169,8 +182,10 @@ class TestCheckConsistencyNetworkObjects:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -189,8 +204,10 @@ class TestCheckConsistencyNetworkObjects:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -220,8 +237,10 @@ class TestCheckConsistencyNetworkObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -245,8 +264,10 @@ class TestCheckConsistencyNetworkObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -271,8 +292,10 @@ class TestCheckConsistencyNetworkObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -297,8 +320,10 @@ class TestCheckConsistencyNetworkObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -321,8 +346,10 @@ class TestCheckConsistencyNetworkObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -349,8 +376,10 @@ class TestCheckConsistencyNetworkObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -374,8 +403,10 @@ class TestCheckConsistencyNetworkObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -401,8 +432,10 @@ class TestCheckConsistencyServiceObjects:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -426,8 +459,10 @@ class TestCheckConsistencyServiceObjects:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -451,8 +486,10 @@ class TestCheckConsistencyServiceObjects:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -476,8 +513,10 @@ class TestCheckConsistencyServiceObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -501,8 +540,10 @@ class TestCheckConsistencyServiceObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -526,8 +567,10 @@ class TestCheckConsistencyServiceObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -550,8 +593,10 @@ class TestCheckConsistencyServiceObjects:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -579,8 +624,10 @@ class TestCheckUserObjectConsistency:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -603,8 +650,10 @@ class TestCheckUserObjectConsistency:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -641,8 +690,10 @@ class TestRulebaseConsistency:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -662,8 +713,9 @@ class TestRulebaseConsistency:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
-        empty_config = fwconfig_builder.build_empty_config()
+        empty_config = fwconfig_builder.build_empty_config(management_state.uid2id_mapper)
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state,
         )
@@ -676,8 +728,10 @@ class TestRulebaseConsistency:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -700,8 +754,10 @@ class TestRulebaseConsistency:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -726,8 +782,10 @@ class TestRulebaseLinkConsistency:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -748,8 +806,10 @@ class TestRulebaseLinkConsistency:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -777,8 +837,10 @@ class TestZoneObjectConsistency:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -797,8 +859,10 @@ class TestZoneObjectConsistency:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -822,8 +886,10 @@ class TestZoneObjectConsistency:
         self,
         import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -849,8 +915,10 @@ class TestFullConfigConsistencyCheck:
         self,
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,

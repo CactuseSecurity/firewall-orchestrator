@@ -1,0 +1,19 @@
+query getRulesForRuleOwnerByOwnerToUpdateCustomField($ownerIds: [Int!]!) {
+  rule(
+    where: {
+      rule_owners: {
+        owner_id: { _in: $ownerIds }
+        removed: { _is_null: false }
+      }
+    }
+  ) {
+    rule_id
+    rule_name
+    removed
+    rule_uid
+    rule_metadatum {
+      rule_metadata_id
+    }
+    rule_custom_fields
+  }
+}

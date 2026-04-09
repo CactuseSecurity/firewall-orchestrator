@@ -5,6 +5,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Services;
+using FWO.Services.Logging;
 using System.Text.Json;
 using FWO.Basics.Exceptions;
 using NetTools;

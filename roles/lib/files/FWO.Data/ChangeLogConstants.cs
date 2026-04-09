@@ -10,8 +10,7 @@ namespace FWO.Data
     {
         Matrix,
         Management,
-        Gateway,
-        Error
+        Gateway
     }
 
     public enum ChangeLogOperation
@@ -21,8 +20,7 @@ namespace FWO.Data
         Delete,
         SetRemoved,
         Disable,
-        Activate,
-        Error
+        Activate
     }
 
     public enum PromptLogEvent

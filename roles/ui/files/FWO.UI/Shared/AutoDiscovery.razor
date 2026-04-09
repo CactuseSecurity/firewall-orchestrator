@@ -1,3 +1,4 @@
+@using FWO.Services.Logging
 @using System.Text.Json;
 
 @inject ApiConnection apiConnection
@@ -549,6 +550,8 @@
                         promptEvent: PromptLogEvent.Completed,
                         operation: ChangeLogOperation.Create,
                         userId: userConfig.User.DbId.ToString(),
+                        managementId: discMgmt.Id,
+                        managementName: discMgmt.Name,
                         origin: ChangeLogOrigin.Autodiscovery);
                     await ChangeLogHelper.LogManagerChange(
                         family: ChangeLogFamily.Manual,
@@ -654,6 +657,9 @@
                     await PromptLogHelper.LogGatewayPrompt(
                         promptEvent: PromptLogEvent.Completed,
                         operation: ChangeLogOperation.Create,
+                        deviceId: discoveredDevice.Id,
+                        deviceName: discoveredDevice.Name,
+                        managementId: discoveredDevice.Management.Id,
                         userId: userConfig.User.DbId.ToString(),
                         origin: ChangeLogOrigin.Autodiscovery);
                     await ChangeLogHelper.LogGatewayChange(
@@ -723,6 +729,8 @@
                         promptEvent: PromptLogEvent.Completed,
                         operation: ChangeLogOperation.Delete,
                         userId: userConfig.User.DbId.ToString(),
+                        managementId: actManagement.Id,
+                        managementName: actManagement.Name,
                         origin: ChangeLogOrigin.Autodiscovery);
                     await ChangeLogHelper.LogManagerChange(
                         family: ChangeLogFamily.Manual,
@@ -761,6 +769,8 @@
                     promptEvent: PromptLogEvent.Completed,
                     operation: disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
                     userId: userConfig.User.DbId.ToString(),
+                    managementId: management.Id,
+                    managementName: management.Name,
                     origin: ChangeLogOrigin.Autodiscovery);
                 await ChangeLogHelper.LogManagerChange(
                     family: ChangeLogFamily.Manual,
@@ -798,6 +808,8 @@
                     promptEvent: PromptLogEvent.Completed,
                     operation: ChangeLogOperation.Delete,
                     userId: userConfig.User.DbId.ToString(),
+                    deviceId: actDevice.Id,
+                    deviceName: actDevice.Name,
                     origin: ChangeLogOrigin.Autodiscovery);
                 await ChangeLogHelper.LogGatewayChange(
                     family: ChangeLogFamily.Manual,
@@ -833,6 +845,9 @@
                     promptEvent: PromptLogEvent.Completed,
                     operation: disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
                     userId: userConfig.User.DbId.ToString(),
+                    deviceId: device.Id,
+                    deviceName: device.Name,
+                    managementId: device.Management.Id,
                     origin: ChangeLogOrigin.Autodiscovery);
                 await ChangeLogHelper.LogGatewayChange(
                     family: ChangeLogFamily.Manual,
@@ -955,44 +970,23 @@
 
     private async Task LogDismissedPrompt(ActionItem action)
     {
-        ChangeLogObject changeLogObject = ChangeLogObject.Error;
-        ChangeLogOperation operation = ChangeLogOperation.Error;
-        switch (action.ActionType)
+        if (!AutodiscoveryLogMapper.TryMapPromptAction(action, out AutodiscoveryLogMapper.PromptLogData? logData))
         {
-            case nameof(ActionCode.AddManagement):
-                changeLogObject = ChangeLogObject.Management;
-                operation = ChangeLogOperation.Create;
-                break;
-            case nameof(ActionCode.DeleteManagement):
-                changeLogObject = ChangeLogObject.Management;
-                operation = ChangeLogOperation.Delete;
-                break;
-            case nameof(ActionCode.ReactivateManagement):
-                changeLogObject = ChangeLogObject.Management;
-                operation = ChangeLogOperation.Activate;
-                break;
-            case nameof(ActionCode.DeleteGateway):
-                changeLogObject = ChangeLogObject.Gateway;
-                operation = ChangeLogOperation.Delete;
-                break;
-            case nameof(ActionCode.AddGatewayToNewManagement):
-            case nameof(ActionCode.AddGatewayToExistingManagement):
-                changeLogObject = ChangeLogObject.Gateway;
-                operation = ChangeLogOperation.Create;
-                break;
-            case nameof(ActionCode.ReactivateGateway):
-                changeLogObject = ChangeLogObject.Gateway;
-                operation = ChangeLogOperation.Activate;
-                break;
+            Log.WriteWarning("Logging", $"Unmapped autodiscovery action type: {action.ActionType}");
+            return;
         }
-
-        await PromptLogHelper.LogPrompt(
-            promptEvent: PromptLogEvent.Dismissed,
-            obj: changeLogObject,
-            operation: operation,
-            userId: userConfig.User.DbId.ToString(),
-            dateTime: DateTime.Now,
-            origin: ChangeLogOrigin.Autodiscovery);
+        if(logData != null)
+        {
+            await PromptLogHelper.LogPrompt(
+                promptEvent: PromptLogEvent.Dismissed,
+                obj: logData.Object,
+                operation: logData.Operation,
+                userId: userConfig.User.DbId.ToString(),
+                dateTime: DateTime.Now,
+                origin: ChangeLogOrigin.Autodiscovery,
+                logData.Fields);
+            
+        }
     }
 
 

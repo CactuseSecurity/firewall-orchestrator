@@ -8,6 +8,7 @@ using FWO.Logging;
 using FWO.Services;
 using Quartz;
 using System.Linq;
+using FWO.Services.Logging;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -99,46 +100,23 @@ namespace FWO.Middleware.Server.Jobs
                     RefAlertId = action.RefAlertId,
                     CompareDesc = true
                 });
-            ChangeLogObject changeLogObject = ChangeLogObject.Error;
-            ChangeLogOperation operation = ChangeLogOperation.Error;
-            switch (action.ActionType)
+            if (!AutodiscoveryLogMapper.TryMapPromptAction(action, out AutodiscoveryLogMapper.PromptLogData? logData))
             {
-                case nameof(ActionCode.AddManagement):
-                    changeLogObject = ChangeLogObject.Management;
-                    operation = ChangeLogOperation.Create;
-                    break;
-                case nameof(ActionCode.DeleteManagement):
-                    changeLogObject = ChangeLogObject.Management;
-                    operation = ChangeLogOperation.Delete;
-                    break;
-                case nameof(ActionCode.ReactivateManagement):
-                    changeLogObject = ChangeLogObject.Management;
-                    operation = ChangeLogOperation.Activate;
-                    break;
-                case nameof(ActionCode.DeleteGateway):
-                    changeLogObject = ChangeLogObject.Gateway;
-                    operation = ChangeLogOperation.Delete;
-                    break;
-                case nameof(ActionCode.AddGatewayToNewManagement):
-                case nameof(ActionCode.AddGatewayToExistingManagement):
-                    changeLogObject = ChangeLogObject.Gateway;
-                    operation = ChangeLogOperation.Create;
-                    break;
-                case nameof(ActionCode.ReactivateGateway):
-                    changeLogObject = ChangeLogObject.Gateway;
-                    operation = ChangeLogOperation.Activate;
-                    break;
+                Log.WriteWarning("Logging", $"Unmapped autodiscovery action type: {action.ActionType}");
+                return lastMgmtAlertId;
             }
-            await PromptLogHelper.LogPrompt(
-                promptEvent: PromptLogEvent.Created,
-                obj: changeLogObject,
-                operation: operation,
-                userId: "AutodiscoveryJob",
-                dateTime: DateTime.Now,
-                origin: ChangeLogOrigin.Autodiscovery);
+            if (logData != null)
+            {
+                await PromptLogHelper.LogPrompt(
+                    promptEvent: PromptLogEvent.Created,
+                    obj: logData.Object,
+                    operation: logData.Operation,
+                    userId: "AutodiscoveryJob",
+                    dateTime: DateTime.Now,
+                    origin: ChangeLogOrigin.Autodiscovery,
+                    logData.Fields);
+            }
             return lastMgmtAlertId;
         }
     }
 }
-
-

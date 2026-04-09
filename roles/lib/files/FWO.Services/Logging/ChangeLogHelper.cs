@@ -3,7 +3,7 @@ using System.Text;
 using FWO.Data;
 using FWO.Logging;
 
-namespace FWO.Services
+namespace FWO.Services.Logging
 {
     public static class ChangeLogHelper
     {
@@ -127,7 +127,7 @@ namespace FWO.Services
             };
         }
 
-        private static string FormatFields(params (string Key, object? Value)[] fields)
+        public static string FormatFields(params (string Key, object? Value)[] fields)
         {
             StringBuilder sb = new();
 

@@ -1,4 +1,4 @@
-@using System.Text.Json
+﻿@using System.Text.Json
 @using FWO.Services
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
@@ -68,7 +68,7 @@
                 if(returnIds != null && returnIds.Length > 0)
                 {
                     await ChangeLogHelper.LogMatrixChange(
-                        action: "manual_matrix_create",
+                        action: ChangeLogActions.ManualMatrixCreate,
                         matrixId: returnIds[0].InsertedId,
                         matrixName: MatrixName,
                         userId: userConfig.User.DbId,
@@ -91,5 +91,3 @@
         DisplayChanged.InvokeAsync(Display);
     }
 }
-
-

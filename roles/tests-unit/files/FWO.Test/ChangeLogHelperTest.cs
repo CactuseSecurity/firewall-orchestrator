@@ -1,5 +1,6 @@
 using System.IO;
 using System.Threading.Tasks;
+using FWO.Data;
 using FWO.Services;
 using NUnit.Framework;
 
@@ -15,11 +16,11 @@ namespace FWO.Test
             string output = await CaptureConsoleAsync(async () =>
             {
                 await ChangeLogHelper.LogManagerChange(
-                    action: "manual_management_update",
+                    action: ChangeLogActions.ManualManagementUpdate,
                     managementId: 42,
                     managementName: "Mgmt-A",
                     userId: 7,
-                    origin: "ui_settings");
+                    origin: ChangeLogOrigins.UiSettings);
             });
 
             Assert.That(output, Does.Contain("Audit - Management Updated Manually"));
@@ -35,10 +36,10 @@ namespace FWO.Test
             string output = await CaptureConsoleAsync(async () =>
             {
                 await ChangeLogHelper.LogGatewayChange(
-                    action: "autodiscovery_prompt_gateway_delete",
+                    action: ChangeLogActions.AutodiscoveryPromptGatewayDelete,
                     deviceId: 123,
                     managementId: 9,
-                    origin: "autodiscovery");
+                    origin: ChangeLogOrigins.Autodiscovery);
             });
 
             Assert.That(output, Does.Contain("Info - Autodiscovery Prompt Created For Gateway Deletion"));
@@ -53,11 +54,11 @@ namespace FWO.Test
             string output = await CaptureConsoleAsync(async () =>
             {
                 await ChangeLogHelper.LogGatewayChange(
-                    action: "prompt_dismissed_gateway_create",
+                    action: ChangeLogActions.PromptDismissedGatewayCreate,
                     deviceId: 8,
                     deviceName: "gw-01",
                     managementId: 3,
-                    origin: "ui_autodiscovery");
+                    origin: ChangeLogOrigins.UiAutodiscovery);
             });
 
             Assert.That(output, Does.Contain("Audit - Gateway Creation Prompt Dismissed"));
@@ -72,10 +73,10 @@ namespace FWO.Test
             string output = await CaptureConsoleAsync(async () =>
             {
                 await ChangeLogHelper.LogMatrixChange(
-                    action: "middleware_matrix_import_create",
+                    action: ChangeLogActions.MiddlewareMatrixImportCreate,
                     matrixId: 5,
                     matrixName: "Payments",
-                    origin: "import_zone_matrix_data");
+                    origin: ChangeLogOrigins.ImportZoneMatrixData);
             });
 
             Assert.That(output, Does.Contain("Info - Matrix Created During Middleware Import"));
@@ -117,3 +118,4 @@ namespace FWO.Test
         }
     }
 }
+

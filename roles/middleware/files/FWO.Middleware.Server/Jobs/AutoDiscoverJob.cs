@@ -103,25 +103,25 @@ namespace FWO.Middleware.Server.Jobs
             {
                 case nameof(ActionCode.AddManagement):
                     await ChangeLogHelper.LogManagerChange(
-                        action: "autodiscovery_prompt_management_create",
+                        action: ChangeLogActions.AutodiscoveryPromptManagementCreate,
                         managementId: action.ManagementId,
                         origin: GlobalConst.kAutodiscovery);
                     break;
                 case nameof(ActionCode.DeleteManagement):
                     await ChangeLogHelper.LogManagerChange(
-                        action: "autodiscovery_prompt_management_delete",
+                        action: ChangeLogActions.AutodiscoveryPromptManagementDelete,
                         managementId: action.ManagementId,
                         origin: GlobalConst.kAutodiscovery);
                     break;
                 case nameof(ActionCode.ReactivateManagement):
                     await ChangeLogHelper.LogManagerChange(
-                        action: "autodiscovery_prompt_management_reactivate",
+                        action: ChangeLogActions.AutodiscoveryPromptManagementReactivate,
                         managementId: action.ManagementId,
                         origin: GlobalConst.kAutodiscovery);
                     break;
                 case nameof(ActionCode.DeleteGateway):
                     await ChangeLogHelper.LogGatewayChange(
-                        action: "autodiscovery_prompt_gateway_delete",
+                        action: ChangeLogActions.AutodiscoveryPromptGatewayDelete,
                         deviceId: action.DeviceId,
                         managementId: action.ManagementId,
                         origin: GlobalConst.kAutodiscovery);
@@ -129,14 +129,14 @@ namespace FWO.Middleware.Server.Jobs
                 case nameof(ActionCode.AddGatewayToNewManagement):
                 case nameof(ActionCode.AddGatewayToExistingManagement):
                     await ChangeLogHelper.LogGatewayChange(
-                        action: "autodiscovery_prompt_gateway_create",
+                        action: ChangeLogActions.AutodiscoveryPromptGatewayCreate,
                         deviceId: action.DeviceId,
                         managementId: action.ManagementId,
                         origin: GlobalConst.kAutodiscovery);
                     break;
                 case nameof(ActionCode.ReactivateGateway):
                     await ChangeLogHelper.LogGatewayChange(
-                        action: "autodiscovery_prompt_gateway_reactivate",
+                        action: ChangeLogActions.AutodiscoveryPromptGatewayReactivate,
                         deviceId: action.DeviceId,
                         managementId: action.ManagementId,
                         origin: GlobalConst.kAutodiscovery);

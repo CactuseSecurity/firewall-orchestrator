@@ -1,4 +1,4 @@
-@using FWO.Services
+﻿@using FWO.Services
 
 @page "/compliance/matrix"
 
@@ -232,7 +232,7 @@
                 await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
                     new { id = selectedMatrix.Id, removed = DateTime.UtcNow });
                 await ChangeLogHelper.LogMatrixChange(
-                    action: "manual_matrix_soft_delete",
+                    action: ChangeLogActions.ManualMatrixSoftDelete,
                     matrixId: selectedMatrix.Id,
                     matrixName: selectedMatrix.Name,
                     userId: userConfig.User.DbId,
@@ -292,6 +292,3 @@
         }
     }
 }
-
-
-

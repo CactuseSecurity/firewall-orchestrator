@@ -1,4 +1,5 @@
 using System.Text;
+using FWO.Data;
 using FWO.Logging;
 
 namespace FWO.Services
@@ -55,16 +56,16 @@ namespace FWO.Services
         private static void WriteLog(string action, string text)
         {
             string title = DescribeAction(action);
-            if (action.StartsWith("manual_")
-                || action.StartsWith("prompted_")
-                || action.StartsWith("prompt_dismissed_"))
+            if (action.StartsWith(ChangeLogActions.ManualFamily)
+                || action.StartsWith(ChangeLogActions.PromptedFamily)
+                || action.StartsWith(ChangeLogActions.PromptDismissedFamily))
             {
                 Log.WriteAudit(title, text);
                 return;
             }
 
-            if (action.StartsWith("autodiscovery_prompt_")
-                || action.StartsWith("middleware_matrix_import_"))
+            if (action.StartsWith(ChangeLogActions.AutodiscoveryPromptFamily)
+                || action.StartsWith(ChangeLogActions.MiddlewareMatrixImportFamily))
             {
                 Log.WriteInfo(title, text);
                 return;
@@ -77,32 +78,32 @@ namespace FWO.Services
         {
             return action switch
             {
-                "manual_matrix_create" => "Matrix Created Manually",
-                "manual_matrix_soft_delete" => "Matrix Soft Deleted Manually",
-                "manual_management_create" => "Management Created Manually",
-                "manual_management_update" => "Management Updated Manually",
-                "manual_management_delete" => "Management Deleted Manually",
-                "autodiscovery_prompt_management_create" => "Autodiscovery Prompt Created For Management Creation",
-                "autodiscovery_prompt_management_delete" => "Autodiscovery Prompt Created For Management Deletion",
-                "autodiscovery_prompt_management_reactivate" => "Autodiscovery Prompt Created For Management Reactivation",
-                "autodiscovery_prompt_gateway_create" => "Autodiscovery Prompt Created For Gateway Creation",
-                "autodiscovery_prompt_gateway_delete" => "Autodiscovery Prompt Created For Gateway Deletion",
-                "autodiscovery_prompt_gateway_reactivate" => "Autodiscovery Prompt Created For Gateway Reactivation",
-                "prompted_management_create" => "Management Created After Autodiscovery Prompt",
-                "prompted_management_delete" => "Management Deleted After Autodiscovery Prompt",
-                "prompted_management_disable" => "Management Disabled After Autodiscovery Prompt",
-                "prompted_management_reactivate" => "Management Reactivated After Autodiscovery Prompt",
-                "prompted_gateway_create" => "Gateway Created After Autodiscovery Prompt",
-                "prompted_gateway_delete" => "Gateway Deleted After Autodiscovery Prompt",
-                "prompted_gateway_disable" => "Gateway Disabled After Autodiscovery Prompt",
-                "prompted_gateway_reactivate" => "Gateway Reactivated After Autodiscovery Prompt",
-                "prompt_dismissed_management_create" => "Management Creation Prompt Dismissed",
-                "prompt_dismissed_management_delete" => "Management Deletion Prompt Dismissed",
-                "prompt_dismissed_management_reactivate" => "Management Reactivation Prompt Dismissed",
-                "prompt_dismissed_gateway_create" => "Gateway Creation Prompt Dismissed",
-                "prompt_dismissed_gateway_delete" => "Gateway Deletion Prompt Dismissed",
-                "prompt_dismissed_gateway_reactivate" => "Gateway Reactivation Prompt Dismissed",
-                "middleware_matrix_import_create" => "Matrix Created During Middleware Import",
+                ChangeLogActions.ManualMatrixCreate => "Matrix Created Manually",
+                ChangeLogActions.ManualMatrixSoftDelete => "Matrix Soft Deleted Manually",
+                ChangeLogActions.ManualManagementCreate => "Management Created Manually",
+                ChangeLogActions.ManualManagementUpdate => "Management Updated Manually",
+                ChangeLogActions.ManualManagementDelete => "Management Deleted Manually",
+                ChangeLogActions.AutodiscoveryPromptManagementCreate => "Autodiscovery Prompt Created For Management Creation",
+                ChangeLogActions.AutodiscoveryPromptManagementDelete => "Autodiscovery Prompt Created For Management Deletion",
+                ChangeLogActions.AutodiscoveryPromptManagementReactivate => "Autodiscovery Prompt Created For Management Reactivation",
+                ChangeLogActions.AutodiscoveryPromptGatewayCreate => "Autodiscovery Prompt Created For Gateway Creation",
+                ChangeLogActions.AutodiscoveryPromptGatewayDelete => "Autodiscovery Prompt Created For Gateway Deletion",
+                ChangeLogActions.AutodiscoveryPromptGatewayReactivate => "Autodiscovery Prompt Created For Gateway Reactivation",
+                ChangeLogActions.PromptedManagementCreate => "Management Created After Autodiscovery Prompt",
+                ChangeLogActions.PromptedManagementDelete => "Management Deleted After Autodiscovery Prompt",
+                ChangeLogActions.PromptedManagementDisable => "Management Disabled After Autodiscovery Prompt",
+                ChangeLogActions.PromptedManagementReactivate => "Management Reactivated After Autodiscovery Prompt",
+                ChangeLogActions.PromptedGatewayCreate => "Gateway Created After Autodiscovery Prompt",
+                ChangeLogActions.PromptedGatewayDelete => "Gateway Deleted After Autodiscovery Prompt",
+                ChangeLogActions.PromptedGatewayDisable => "Gateway Disabled After Autodiscovery Prompt",
+                ChangeLogActions.PromptedGatewayReactivate => "Gateway Reactivated After Autodiscovery Prompt",
+                ChangeLogActions.PromptDismissedManagementCreate => "Management Creation Prompt Dismissed",
+                ChangeLogActions.PromptDismissedManagementDelete => "Management Deletion Prompt Dismissed",
+                ChangeLogActions.PromptDismissedManagementReactivate => "Management Reactivation Prompt Dismissed",
+                ChangeLogActions.PromptDismissedGatewayCreate => "Gateway Creation Prompt Dismissed",
+                ChangeLogActions.PromptDismissedGatewayDelete => "Gateway Deletion Prompt Dismissed",
+                ChangeLogActions.PromptDismissedGatewayReactivate => "Gateway Reactivation Prompt Dismissed",
+                ChangeLogActions.MiddlewareMatrixImportCreate => "Matrix Created During Middleware Import",
                 _ => action.Replace('_', ' ')
             };
         }

@@ -382,11 +382,11 @@
             if (delId == actManagement.Id)
             {
                 await ChangeLogHelper.LogManagerChange(
-                    action: "manual_management_delete",
+                    action: ChangeLogActions.ManualManagementDelete,
                     managementId: actManagement.Id,
                     managementName: actManagement.Name,
                     userId: userConfig.User.DbId,
-                    origin: "ui_settings");
+                    origin: ChangeLogOrigins.UiSettings);
                 managements.Remove(actManagement);
             }
             workInProgress = false;
@@ -479,11 +479,11 @@
                     {
                         actManagement.Id = returnIds[0].NewId;
                         await ChangeLogHelper.LogManagerChange(
-                            action: "manual_management_create",
+                            action: ChangeLogActions.ManualManagementCreate,
                             managementId: actManagement.Id,
                             managementName: actManagement.Name,
                             userId: userConfig.User.DbId,
-                            origin: "ui_settings");
+                            origin: ChangeLogOrigins.UiSettings);
                     }
                     managements.Add(actManagement);
                     AddMode = false;
@@ -519,11 +519,11 @@
                     if (udId == actManagement.Id)
                     {
                         await ChangeLogHelper.LogManagerChange(
-                            action: "manual_management_update",
+                            action: ChangeLogActions.ManualManagementUpdate,
                             managementId: actManagement.Id,
                             managementName: actManagement.Name,
                             userId: userConfig.User.DbId,
-                            origin: "ui_settings");
+                            origin: ChangeLogOrigins.UiSettings);
                     }
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
@@ -609,7 +609,7 @@
             }
             else
             {
-                DisplayMessageInUi(exception, userConfig.GetText("autodiscovery"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(ChangeLogOrigins.Autodiscovery), "", true);
             }
             await AddAutoDiscoverLogEntry(1, userConfig.GetText("manual_autodiscovery"), userConfig.GetText("ran_into_exception") + exception.Message, superManagement.Id);
         }
@@ -639,4 +639,5 @@
         }
     }
 }
+
 

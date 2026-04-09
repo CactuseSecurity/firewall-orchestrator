@@ -4,7 +4,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" Size=PopupSize.XLarge  OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText(ChangeLogOrigins.Autodiscovery) + headerText)" Show="@Display" Size=PopupSize.XLarge  OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -198,7 +198,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("autodiscovery"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText(ChangeLogOrigins.Autodiscovery), "", true);
         }
     }
 
@@ -547,11 +547,11 @@
                 {
                     discMgmt.Id = returnIds[0].NewId;
                     await ChangeLogHelper.LogManagerChange(
-                        action: "prompted_management_create",
+                        action: ChangeLogActions.PromptedManagementCreate,
                         managementId: discMgmt.Id,
                         managementName: discMgmt.Name,
                         userId: userConfig.User.DbId,
-                        origin: "ui_autodiscovery");
+                        origin: ChangeLogOrigins.UiAutodiscovery);
                     // As we now know the ManagementId we can activate the following device inserts
                     devCounter = activateDeviceChanges(discMgmt);
                     existingManagements.Add(discMgmt);
@@ -649,12 +649,12 @@
                 {
                     discoveredDevice.Id = returnIds[0].NewId;
                     await ChangeLogHelper.LogGatewayChange(
-                        action: "prompted_gateway_create",
+                        action: ChangeLogActions.PromptedGatewayCreate,
                         deviceId: discoveredDevice.Id,
                         deviceName: discoveredDevice.Name,
                         managementId: discoveredDevice.Management.Id,
                         userId: userConfig.User.DbId,
-                        origin: "ui_autodiscovery");
+                        origin: ChangeLogOrigins.UiAutodiscovery);
                     existingDevices.Add(discoveredDevice);
                     await addDeviceToTenant0(discoveredDevice.Id);
                 }
@@ -711,11 +711,11 @@
                 if (delId == actManagement.Id)
                 {
                     await ChangeLogHelper.LogManagerChange(
-                        action: "prompted_management_delete",
+                        action: ChangeLogActions.PromptedManagementDelete,
                         managementId: actManagement.Id,
                         managementName: actManagement.Name,
                         userId: userConfig.User.DbId,
-                        origin: "ui_autodiscovery");
+                        origin: ChangeLogOrigins.UiAutodiscovery);
                     existingManagements.Remove(actManagement);
                     managementsToDisplay.Remove(actManagement);
                     if(managementsToDisplay.Count == 0)
@@ -743,11 +743,11 @@
             if (udId == management.Id)
             {
                 await ChangeLogHelper.LogManagerChange(
-                    action: disable ? "prompted_management_disable" : "prompted_management_reactivate",
+                    action: disable ? ChangeLogActions.PromptedManagementDisable : ChangeLogActions.PromptedManagementReactivate,
                     managementId: management.Id,
                     managementName: management.Name,
                     userId: userConfig.User.DbId,
-                    origin: "ui_autodiscovery");
+                    origin: ChangeLogOrigins.UiAutodiscovery);
                 if(disable)
                 {
                     managementsToDisplay.Remove(management);
@@ -774,12 +774,12 @@
             if (delId == actDevice.Id)
             {
                 await ChangeLogHelper.LogGatewayChange(
-                    action: "prompted_gateway_delete",
+                    action: ChangeLogActions.PromptedGatewayDelete,
                     deviceId: actDevice.Id,
                     deviceName: actDevice.Name,
                     managementId: actDevice.Management.Id,
                     userId: userConfig.User.DbId,
-                    origin: "ui_autodiscovery");
+                    origin: ChangeLogOrigins.UiAutodiscovery);
                 // remove device from existing management
                 removeDevFromExMgmt(actDevice, false);
                 existingDevices.Remove(actDevice);
@@ -803,12 +803,12 @@
             if (udId == device.Id)
             {
                 await ChangeLogHelper.LogGatewayChange(
-                    action: disable ? "prompted_gateway_disable" : "prompted_gateway_reactivate",
+                    action: disable ? ChangeLogActions.PromptedGatewayDisable : ChangeLogActions.PromptedGatewayReactivate,
                     deviceId: device.Id,
                     deviceName: device.Name,
                     managementId: device.Management.Id,
                     userId: userConfig.User.DbId,
-                    origin: "ui_autodiscovery");
+                    origin: ChangeLogOrigins.UiAutodiscovery);
                 if(disable)
                 {
                     removeDevFromExMgmt(device, true);
@@ -926,43 +926,43 @@
         {
             case nameof(ActionCode.AddManagement):
                 await ChangeLogHelper.LogManagerChange(
-                    action: "prompt_dismissed_management_create",
+                    action: ChangeLogActions.PromptDismissedManagementCreate,
                     managementId: action.ManagementId,
-                    origin: "ui_autodiscovery");
+                    origin: ChangeLogOrigins.UiAutodiscovery);
                 break;
             case nameof(ActionCode.DeleteManagement):
                 await ChangeLogHelper.LogManagerChange(
-                    action: "prompt_dismissed_management_delete",
+                    action: ChangeLogActions.PromptDismissedManagementDelete,
                     managementId: action.ManagementId,
-                    origin: "ui_autodiscovery");
+                    origin: ChangeLogOrigins.UiAutodiscovery);
                 break;
             case nameof(ActionCode.ReactivateManagement):
                 await ChangeLogHelper.LogManagerChange(
-                    action: "prompt_dismissed_management_reactivate",
+                    action: ChangeLogActions.PromptDismissedManagementReactivate,
                     managementId: action.ManagementId,
-                    origin: "ui_autodiscovery");
+                    origin: ChangeLogOrigins.UiAutodiscovery);
                 break;
             case nameof(ActionCode.AddGatewayToNewManagement):
             case nameof(ActionCode.AddGatewayToExistingManagement):
                 await ChangeLogHelper.LogGatewayChange(
-                    action: "prompt_dismissed_gateway_create",
+                    action: ChangeLogActions.PromptDismissedGatewayCreate,
                     deviceId: action.DeviceId,
                     managementId: action.ManagementId,
-                    origin: "ui_autodiscovery");
+                    origin: ChangeLogOrigins.UiAutodiscovery);
                 break;
             case nameof(ActionCode.DeleteGateway):
                 await ChangeLogHelper.LogGatewayChange(
-                    action: "prompt_dismissed_gateway_delete",
+                    action: ChangeLogActions.PromptDismissedGatewayDelete,
                     deviceId: action.DeviceId,
                     managementId: action.ManagementId,
-                    origin: "ui_autodiscovery");
+                    origin: ChangeLogOrigins.UiAutodiscovery);
                 break;
             case nameof(ActionCode.ReactivateGateway):
                 await ChangeLogHelper.LogGatewayChange(
-                    action: "prompt_dismissed_gateway_reactivate",
+                    action: ChangeLogActions.PromptDismissedGatewayReactivate,
                     deviceId: action.DeviceId,
                     managementId: action.ManagementId,
-                    origin: "ui_autodiscovery");
+                    origin: ChangeLogOrigins.UiAutodiscovery);
                 break;
         }
     }
@@ -1042,4 +1042,3 @@
         }
     }
 }
-

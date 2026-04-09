@@ -16,6 +16,21 @@ fragment reqTaskOverview on request_reqtask {
     id: mgm_id
     name: mgm_name
   }
+  implementation_tasks: impltasks {
+    id
+    title
+    task_number
+    state_id
+    start
+    stop
+  }
+  request_approvals: approvals {
+    id
+    task_id
+    state_id
+    date_opened
+    approval_date
+  }
   comments: reqtask_comments {
     comment: comment {
       comment_text

@@ -810,6 +810,7 @@
                     userId: userConfig.User.DbId.ToString(),
                     deviceId: actDevice.Id,
                     deviceName: actDevice.Name,
+                    managementId: actDevice.Management.Id,
                     origin: ChangeLogOrigin.Autodiscovery);
                 await ChangeLogHelper.LogGatewayChange(
                     family: ChangeLogFamily.Manual,

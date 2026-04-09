@@ -20,7 +20,7 @@ namespace FWO.Services.Logging
         public static Task LogManagementPrompt(PromptLogEvent promptEvent, ChangeLogOperation operation,
             ChangeLogOrigin origin, string userId, int? managementId = null, string? managementName = null)
         {
-            return LogPrompt(promptEvent, ChangeLogObject.Management, operation, userId, DateTime.Now, origin,
+            return LogPrompt(promptEvent, ChangeLogObject.Management, operation, userId, DateTime.UtcNow, origin,
                 ("Management ID", managementId),
                 ("Management Name", managementName));
         }
@@ -29,7 +29,7 @@ namespace FWO.Services.Logging
             ChangeLogOrigin origin, string userId, int? deviceId = null, string? deviceName = null,
             int? managementId = null, string? managementName = null)
         {
-            return LogPrompt(promptEvent, ChangeLogObject.Gateway, operation, userId, DateTime.Now, origin,
+            return LogPrompt(promptEvent, ChangeLogObject.Gateway, operation, userId, DateTime.UtcNow, origin,
                 ("Device ID", deviceId),
                 ("Device Name", deviceName),
                 ("Management ID", managementId),

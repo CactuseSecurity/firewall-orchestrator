@@ -40,7 +40,7 @@ namespace FWO.Services.Logging
                 ChangeLogObject.Matrix,
                 operation,
                 userId,
-                DateTime.Now,
+                DateTime.UtcNow,
                 origin,
                 ("Matrix ID", matrixId),
                 ("Matrix Name", matrixName));
@@ -54,7 +54,7 @@ namespace FWO.Services.Logging
                 ChangeLogObject.Management,
                 operation,
                 userId,
-                DateTime.Now,
+                DateTime.UtcNow,
                 origin,
                 ("Management ID", managementId),
                 ("Management Name", managementName));
@@ -69,7 +69,7 @@ namespace FWO.Services.Logging
                 ChangeLogObject.Gateway,
                 operation,
                 userId,
-                DateTime.Now,
+                DateTime.UtcNow,
                 origin,
                 ("Device ID", deviceId),
                 ("Device Name", deviceName),

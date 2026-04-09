@@ -78,7 +78,7 @@ namespace FWO.Services
 
         private static string ComposeChangeLogTitle(ChangeLogFamily family, ChangeLogObject obj, ChangeLogOperation operation)
         {
-            return GetFamilyName(family) + GetObjectName(obj) +  GetOperationName(operation);
+            return $"{GetFamilyName(family)} {GetObjectName(obj)} {GetOperationName(operation)}";
         }
 
         public static string GetOriginName(ChangeLogOrigin origin)

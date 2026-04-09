@@ -42,7 +42,7 @@ namespace FWO.Services
         private static string ComposePromptLogTitle(PromptLogEvent promptEvent, ChangeLogObject obj,
             ChangeLogOperation operation)
         {
-            return ChangeLogHelper.GetObjectName(obj) + ChangeLogHelper.GetOperationName(operation) + "Prompt" + GetPromptEventName(promptEvent);
+            return $"{ChangeLogHelper.GetObjectName(obj)} {ChangeLogHelper.GetOperationName(operation)} Prompt {GetPromptEventName(promptEvent)}";
         }
     }
 }

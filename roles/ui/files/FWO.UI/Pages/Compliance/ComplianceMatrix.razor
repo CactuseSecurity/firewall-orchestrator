@@ -1,3 +1,4 @@
+@using FWO.Data.Logging
 @using FWO.Services.Logging
 
 @page "/compliance/matrix"
@@ -231,13 +232,15 @@
             {
                 await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
                     new { id = selectedMatrix.Id, removed = DateTime.UtcNow });
-                await ChangeLogHelper.LogMatrixChange(
-                    family: ChangeLogFamily.Manual,
-                    operation: ChangeLogOperation.SetRemoved,
-                    matrixId: selectedMatrix.Id,
-                    matrixName: selectedMatrix.Name,
-                    userId: userConfig.User.DbId.ToString(),
-                    origin: ChangeLogOrigin.UiSettings);
+                await ChangeLogHelper.LogMatrixChange(new MatrixChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Manual,
+                    Operation = ChangeLogOperation.SetRemoved,
+                    MatrixId = selectedMatrix.Id,
+                    MatrixName = selectedMatrix.Name,
+                    UserId = userConfig.User.DbId.ToString(),
+                    Origin = ChangeLogOrigin.UiSettings
+                });
                 matrices.Remove(selectedMatrix);
                 await InitMatrix();
                 deleteMatrixMode = false;
@@ -293,5 +296,3 @@
         }
     }
 }
-
-

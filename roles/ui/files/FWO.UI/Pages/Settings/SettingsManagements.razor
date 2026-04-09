@@ -1,4 +1,5 @@
 @using FWO.DeviceAutoDiscovery
+@using FWO.Data.Logging
 @using FWO.Middleware.Client
 @using System.Text.Json.Serialization
 @using Newtonsoft.Json
@@ -381,13 +382,15 @@
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == actManagement.Id)
             {
-                await ChangeLogHelper.LogManagerChange(
-                    family: ChangeLogFamily.Manual,
-                    operation: ChangeLogOperation.Delete,
-                    managementId: actManagement.Id,
-                    managementName: actManagement.Name,
-                    userId: userConfig.User.DbId.ToString(),
-                    origin: ChangeLogOrigin.UiSettings);
+                await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Manual,
+                    Operation = ChangeLogOperation.Delete,
+                    ManagementId = actManagement.Id,
+                    ManagementName = actManagement.Name,
+                    UserId = userConfig.User.DbId.ToString(),
+                    Origin = ChangeLogOrigin.UiSettings
+                });
                 managements.Remove(actManagement);
             }
             workInProgress = false;
@@ -479,13 +482,15 @@
                     if (returnIds != null)
                     {
                         actManagement.Id = returnIds[0].NewId;
-                        await ChangeLogHelper.LogManagerChange(
-                            family: ChangeLogFamily.Manual,
-                            operation: ChangeLogOperation.Create,
-                            managementId: actManagement.Id,
-                            managementName: actManagement.Name,
-                            userId: userConfig.User.DbId.ToString(),
-                            origin: ChangeLogOrigin.UiSettings);
+                        await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                        {
+                            Family = ChangeLogFamily.Manual,
+                            Operation = ChangeLogOperation.Create,
+                            ManagementId = actManagement.Id,
+                            ManagementName = actManagement.Name,
+                            UserId = userConfig.User.DbId.ToString(),
+                            Origin = ChangeLogOrigin.UiSettings
+                        });
                     }
                     managements.Add(actManagement);
                     AddMode = false;
@@ -520,13 +525,15 @@
                     int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagement, Variables)).UpdatedId;
                     if (udId == actManagement.Id)
                     {
-                        await ChangeLogHelper.LogManagerChange(
-                            family: ChangeLogFamily.Manual,
-                            operation: ChangeLogOperation.Update,
-                            managementId: actManagement.Id,
-                            managementName: actManagement.Name,
-                            userId: userConfig.User.DbId.ToString(),
-                            origin: ChangeLogOrigin.UiSettings);
+                        await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                        {
+                            Family = ChangeLogFamily.Manual,
+                            Operation = ChangeLogOperation.Update,
+                            ManagementId = actManagement.Id,
+                            ManagementName = actManagement.Name,
+                            UserId = userConfig.User.DbId.ToString(),
+                            Origin = ChangeLogOrigin.UiSettings
+                        });
                     }
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
@@ -642,7 +649,5 @@
         }
     }
 }
-
-
 
 

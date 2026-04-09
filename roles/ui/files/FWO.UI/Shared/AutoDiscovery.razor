@@ -1,3 +1,4 @@
+@using FWO.Data.Logging
 @using FWO.Services.Logging
 @using System.Text.Json;
 
@@ -546,20 +547,24 @@
                 if (returnIds != null)
                 {
                     discMgmt.Id = returnIds[0].NewId;
-                    await PromptLogHelper.LogManagementPrompt(
-                        promptEvent: PromptLogEvent.Completed,
-                        operation: ChangeLogOperation.Create,
-                        userId: userConfig.User.DbId.ToString(),
-                        managementId: discMgmt.Id,
-                        managementName: discMgmt.Name,
-                        origin: ChangeLogOrigin.Autodiscovery);
-                    await ChangeLogHelper.LogManagerChange(
-                        family: ChangeLogFamily.Manual,
-                        operation: ChangeLogOperation.Create,
-                        managementId: discMgmt.Id,
-                        managementName: discMgmt.Name,
-                        userId: userConfig.User.DbId.ToString(),
-                        origin: ChangeLogOrigin.Autodiscovery);
+                    await PromptLogHelper.LogManagementPrompt(new ManagementPromptLogRequest
+                    {
+                        PromptEvent = PromptLogEvent.Completed,
+                        Operation = ChangeLogOperation.Create,
+                        UserId = userConfig.User.DbId.ToString(),
+                        ManagementId = discMgmt.Id,
+                        ManagementName = discMgmt.Name,
+                        Origin = ChangeLogOrigin.Autodiscovery
+                    });
+                    await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                    {
+                        Family = ChangeLogFamily.Manual,
+                        Operation = ChangeLogOperation.Create,
+                        ManagementId = discMgmt.Id,
+                        ManagementName = discMgmt.Name,
+                        UserId = userConfig.User.DbId.ToString(),
+                        Origin = ChangeLogOrigin.Autodiscovery
+                    });
                     // As we now know the ManagementId we can activate the following device inserts
                     devCounter = activateDeviceChanges(discMgmt);
                     existingManagements.Add(discMgmt);
@@ -654,22 +659,26 @@
                 else
                 {
                     discoveredDevice.Id = returnIds[0].NewId;
-                    await PromptLogHelper.LogGatewayPrompt(
-                        promptEvent: PromptLogEvent.Completed,
-                        operation: ChangeLogOperation.Create,
-                        deviceId: discoveredDevice.Id,
-                        deviceName: discoveredDevice.Name,
-                        managementId: discoveredDevice.Management.Id,
-                        userId: userConfig.User.DbId.ToString(),
-                        origin: ChangeLogOrigin.Autodiscovery);
-                    await ChangeLogHelper.LogGatewayChange(
-                        family: ChangeLogFamily.Manual,
-                        operation: ChangeLogOperation.Create,
-                        deviceId: discoveredDevice.Id,
-                        deviceName: discoveredDevice.Name,
-                        managementId: discoveredDevice.Management.Id,
-                        userId: userConfig.User.DbId.ToString(),
-                        origin: ChangeLogOrigin.Autodiscovery);
+                    await PromptLogHelper.LogGatewayPrompt(new GatewayPromptLogRequest
+                    {
+                        PromptEvent = PromptLogEvent.Completed,
+                        Operation = ChangeLogOperation.Create,
+                        DeviceId = discoveredDevice.Id,
+                        DeviceName = discoveredDevice.Name,
+                        ManagementId = discoveredDevice.Management.Id,
+                        UserId = userConfig.User.DbId.ToString(),
+                        Origin = ChangeLogOrigin.Autodiscovery
+                    });
+                    await ChangeLogHelper.LogGatewayChange(new GatewayChangeLogRequest
+                    {
+                        Family = ChangeLogFamily.Manual,
+                        Operation = ChangeLogOperation.Create,
+                        DeviceId = discoveredDevice.Id,
+                        DeviceName = discoveredDevice.Name,
+                        ManagementId = discoveredDevice.Management.Id,
+                        UserId = userConfig.User.DbId.ToString(),
+                        Origin = ChangeLogOrigin.Autodiscovery
+                    });
                     existingDevices.Add(discoveredDevice);
                     await addDeviceToTenant0(discoveredDevice.Id);
                 }
@@ -725,20 +734,24 @@
                 int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
                 if (delId == actManagement.Id)
                 {
-                    await PromptLogHelper.LogManagementPrompt(
-                        promptEvent: PromptLogEvent.Completed,
-                        operation: ChangeLogOperation.Delete,
-                        userId: userConfig.User.DbId.ToString(),
-                        managementId: actManagement.Id,
-                        managementName: actManagement.Name,
-                        origin: ChangeLogOrigin.Autodiscovery);
-                    await ChangeLogHelper.LogManagerChange(
-                        family: ChangeLogFamily.Manual,
-                        operation: ChangeLogOperation.Delete,
-                        managementId: actManagement.Id,
-                        managementName: actManagement.Name,
-                        userId: userConfig.User.DbId.ToString(),
-                        origin: ChangeLogOrigin.Autodiscovery);
+                    await PromptLogHelper.LogManagementPrompt(new ManagementPromptLogRequest
+                    {
+                        PromptEvent = PromptLogEvent.Completed,
+                        Operation = ChangeLogOperation.Delete,
+                        UserId = userConfig.User.DbId.ToString(),
+                        ManagementId = actManagement.Id,
+                        ManagementName = actManagement.Name,
+                        Origin = ChangeLogOrigin.Autodiscovery
+                    });
+                    await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                    {
+                        Family = ChangeLogFamily.Manual,
+                        Operation = ChangeLogOperation.Delete,
+                        ManagementId = actManagement.Id,
+                        ManagementName = actManagement.Name,
+                        UserId = userConfig.User.DbId.ToString(),
+                        Origin = ChangeLogOrigin.Autodiscovery
+                    });
                     existingManagements.Remove(actManagement);
                     managementsToDisplay.Remove(actManagement);
                     if(managementsToDisplay.Count == 0)
@@ -765,20 +778,24 @@
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.changeManagementState, Variables)).UpdatedId;
             if (udId == management.Id)
             {
-                await PromptLogHelper.LogManagementPrompt(
-                    promptEvent: PromptLogEvent.Completed,
-                    operation: disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
-                    userId: userConfig.User.DbId.ToString(),
-                    managementId: management.Id,
-                    managementName: management.Name,
-                    origin: ChangeLogOrigin.Autodiscovery);
-                await ChangeLogHelper.LogManagerChange(
-                    family: ChangeLogFamily.Manual,
-                    operation: disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
-                    managementId: management.Id,
-                    managementName: management.Name,
-                    userId: userConfig.User.DbId.ToString(),
-                    origin: ChangeLogOrigin.Autodiscovery);
+                await PromptLogHelper.LogManagementPrompt(new ManagementPromptLogRequest
+                {
+                    PromptEvent = PromptLogEvent.Completed,
+                    Operation = disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
+                    UserId = userConfig.User.DbId.ToString(),
+                    ManagementId = management.Id,
+                    ManagementName = management.Name,
+                    Origin = ChangeLogOrigin.Autodiscovery
+                });
+                await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Manual,
+                    Operation = disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
+                    ManagementId = management.Id,
+                    ManagementName = management.Name,
+                    UserId = userConfig.User.DbId.ToString(),
+                    Origin = ChangeLogOrigin.Autodiscovery
+                });
                 if(disable)
                 {
                     managementsToDisplay.Remove(management);
@@ -804,22 +821,26 @@
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteDevice, Variables)).DeletedId;
             if (delId == actDevice.Id)
             {
-                await PromptLogHelper.LogGatewayPrompt(
-                    promptEvent: PromptLogEvent.Completed,
-                    operation: ChangeLogOperation.Delete,
-                    userId: userConfig.User.DbId.ToString(),
-                    deviceId: actDevice.Id,
-                    deviceName: actDevice.Name,
-                    managementId: actDevice.Management.Id,
-                    origin: ChangeLogOrigin.Autodiscovery);
-                await ChangeLogHelper.LogGatewayChange(
-                    family: ChangeLogFamily.Manual,
-                    operation: ChangeLogOperation.Delete,
-                    deviceId: actDevice.Id,
-                    deviceName: actDevice.Name,
-                    managementId: actDevice.Management.Id,
-                    userId: userConfig.User.DbId.ToString(),
-                    origin: ChangeLogOrigin.Autodiscovery);
+                await PromptLogHelper.LogGatewayPrompt(new GatewayPromptLogRequest
+                {
+                    PromptEvent = PromptLogEvent.Completed,
+                    Operation = ChangeLogOperation.Delete,
+                    UserId = userConfig.User.DbId.ToString(),
+                    DeviceId = actDevice.Id,
+                    DeviceName = actDevice.Name,
+                    ManagementId = actDevice.Management.Id,
+                    Origin = ChangeLogOrigin.Autodiscovery
+                });
+                await ChangeLogHelper.LogGatewayChange(new GatewayChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Manual,
+                    Operation = ChangeLogOperation.Delete,
+                    DeviceId = actDevice.Id,
+                    DeviceName = actDevice.Name,
+                    ManagementId = actDevice.Management.Id,
+                    UserId = userConfig.User.DbId.ToString(),
+                    Origin = ChangeLogOrigin.Autodiscovery
+                });
                 // remove device from existing management
                 removeDevFromExMgmt(actDevice, false);
                 existingDevices.Remove(actDevice);
@@ -842,22 +863,26 @@
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.changeDeviceState, Variables)).UpdatedId;
             if (udId == device.Id)
             {
-                await PromptLogHelper.LogGatewayPrompt(
-                    promptEvent: PromptLogEvent.Completed,
-                    operation: disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
-                    userId: userConfig.User.DbId.ToString(),
-                    deviceId: device.Id,
-                    deviceName: device.Name,
-                    managementId: device.Management.Id,
-                    origin: ChangeLogOrigin.Autodiscovery);
-                await ChangeLogHelper.LogGatewayChange(
-                    family: ChangeLogFamily.Manual,
-                    operation: disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
-                    deviceId: device.Id,
-                    deviceName: device.Name,
-                    managementId: device.Management.Id,
-                    userId: userConfig.User.DbId.ToString(),
-                    origin: ChangeLogOrigin.Autodiscovery);
+                await PromptLogHelper.LogGatewayPrompt(new GatewayPromptLogRequest
+                {
+                    PromptEvent = PromptLogEvent.Completed,
+                    Operation = disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
+                    UserId = userConfig.User.DbId.ToString(),
+                    DeviceId = device.Id,
+                    DeviceName = device.Name,
+                    ManagementId = device.Management.Id,
+                    Origin = ChangeLogOrigin.Autodiscovery
+                });
+                await ChangeLogHelper.LogGatewayChange(new GatewayChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Manual,
+                    Operation = disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
+                    DeviceId = device.Id,
+                    DeviceName = device.Name,
+                    ManagementId = device.Management.Id,
+                    UserId = userConfig.User.DbId.ToString(),
+                    Origin = ChangeLogOrigin.Autodiscovery
+                });
                 if(disable)
                 {
                     removeDevFromExMgmt(device, true);
@@ -978,14 +1003,16 @@
         }
         if(logData != null)
         {
-            await PromptLogHelper.LogPrompt(
-                promptEvent: PromptLogEvent.Dismissed,
-                obj: logData.Object,
-                operation: logData.Operation,
-                userId: userConfig.User.DbId.ToString(),
-                dateTime: DateTime.Now,
-                origin: ChangeLogOrigin.Autodiscovery,
-                logData.Fields);
+            await PromptLogHelper.LogPrompt(new PromptLogRequest
+            {
+                PromptEvent = PromptLogEvent.Dismissed,
+                Object = logData.Object,
+                Operation = logData.Operation,
+                UserId = userConfig.User.DbId.ToString(),
+                Timestamp = DateTime.UtcNow,
+                Origin = ChangeLogOrigin.Autodiscovery,
+                Fields = logData.Fields
+            });
             
         }
     }

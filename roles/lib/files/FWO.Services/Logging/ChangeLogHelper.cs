@@ -1,21 +1,21 @@
 using System.Globalization;
 using System.Text;
 using FWO.Data;
+using FWO.Data.Logging;
 using FWO.Logging;
 
 namespace FWO.Services.Logging
 {
     public static class ChangeLogHelper
     {
-        public static Task LogChange(ChangeLogFamily family, ChangeLogObject obj, ChangeLogOperation operation,
-            string userId, DateTime dateTime, ChangeLogOrigin origin, params (string Key, object? Value)[] fields)
+        public static Task LogChange(ChangeLogRequest request)
         {
-            string title = ComposeChangeLogTitle(family, obj, operation);
+            string title = ComposeChangeLogTitle(request.Family, request.Object, request.Operation);
             string text =
-                $"User ID: {userId}; Date/Time: {dateTime.ToString(CultureInfo.InvariantCulture)}; Origin: {GetOriginName(origin)}; " +
-                FormatFields(fields);
+                $"User ID: {request.UserId}; Date/Time: {request.Timestamp.ToString(CultureInfo.InvariantCulture)}; Origin: {GetOriginName(request.Origin)}; " +
+                FormatFields(request.Fields);
 
-            switch (family)
+            switch (request.Family)
             {
                 case ChangeLogFamily.Manual:
                     Log.WriteAudit(title, text);
@@ -31,49 +31,19 @@ namespace FWO.Services.Logging
             return Task.CompletedTask;
         }
 
-        public static Task LogMatrixChange(ChangeLogFamily family, ChangeLogOperation operation, ChangeLogOrigin origin,
-            string userId, int? matrixId = null, string? matrixName = null
-        )
+        public static Task LogMatrixChange(MatrixChangeLogRequest request)
         {
-            return LogChange(
-                family,
-                ChangeLogObject.Matrix,
-                operation,
-                userId,
-                DateTime.UtcNow,
-                origin,
-                ("Matrix ID", matrixId),
-                ("Matrix Name", matrixName));
+            return LogChange(request.ToChangeLogRequest());
         }
 
-        public static Task LogManagerChange(ChangeLogFamily family, ChangeLogOperation operation,
-            ChangeLogOrigin origin, string userId, int? managementId = null, string? managementName = null)
+        public static Task LogManagerChange(ManagementChangeLogRequest request)
         {
-            return LogChange(
-                family,
-                ChangeLogObject.Management,
-                operation,
-                userId,
-                DateTime.UtcNow,
-                origin,
-                ("Management ID", managementId),
-                ("Management Name", managementName));
+            return LogChange(request.ToChangeLogRequest());
         }
 
-        public static Task LogGatewayChange(ChangeLogFamily family, ChangeLogOperation operation,
-            ChangeLogOrigin origin, string userId, int? deviceId = null, string? deviceName = null,
-            int? managementId = null)
+        public static Task LogGatewayChange(GatewayChangeLogRequest request)
         {
-            return LogChange(
-                family,
-                ChangeLogObject.Gateway,
-                operation,
-                userId,
-                DateTime.UtcNow,
-                origin,
-                ("Device ID", deviceId),
-                ("Device Name", deviceName),
-                ("Management ID", managementId));
+            return LogChange(request.ToChangeLogRequest());
         }
 
         private static string ComposeChangeLogTitle(ChangeLogFamily family, ChangeLogObject obj, ChangeLogOperation operation)

@@ -4,6 +4,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Logging;
 using FWO.Services;
 using FWO.Services.Logging;
 using System.Text.Json;
@@ -164,13 +165,15 @@ namespace FWO.Middleware.Server
             if (returnIds != null && returnIds.Length > 0)
             {
                 MatrixId = returnIds[0].InsertedId;
-                await ChangeLogHelper.LogMatrixChange(
-                    family: ChangeLogFamily.Import,
-                    operation: ChangeLogOperation.Create,
-                    userId: "Importer",
-                    matrixId: MatrixId,
-                    matrixName: MatrixName,
-                    origin: ChangeLogOrigin.Import);
+                await ChangeLogHelper.LogMatrixChange(new MatrixChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Import,
+                    Operation = ChangeLogOperation.Create,
+                    UserId = "Importer",
+                    MatrixId = MatrixId,
+                    MatrixName = MatrixName,
+                    Origin = ChangeLogOrigin.Import
+                });
             }
             else
             {
@@ -299,5 +302,3 @@ namespace FWO.Middleware.Server
         }
     }
 }
-
-

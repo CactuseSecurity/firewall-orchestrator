@@ -1,39 +1,30 @@
 using System.Globalization;
 using FWO.Data;
+using FWO.Data.Logging;
 using FWO.Logging;
 
 namespace FWO.Services.Logging
 {
     public static class PromptLogHelper
     {
-        public static Task LogPrompt(PromptLogEvent promptEvent, ChangeLogObject obj, ChangeLogOperation operation,
-            string userId, DateTime dateTime, ChangeLogOrigin origin, params (string Key, object? Value)[] fields)
+        public static Task LogPrompt(PromptLogRequest request)
         {
-            string title = ComposePromptLogTitle(promptEvent, obj, operation);
+            string title = ComposePromptLogTitle(request.PromptEvent, request.Object, request.Operation);
             string text =
-                $"User ID: {userId}; Date/Time: {dateTime.ToString(CultureInfo.InvariantCulture)}; Origin: {ChangeLogHelper.GetOriginName(origin)}; " +
-                ChangeLogHelper.FormatFields(fields);
+                $"User ID: {request.UserId}; Date/Time: {request.Timestamp.ToString(CultureInfo.InvariantCulture)}; Origin: {ChangeLogHelper.GetOriginName(request.Origin)}; " +
+                ChangeLogHelper.FormatFields(request.Fields);
             Log.WriteInfo(title, text);
             return Task.CompletedTask;
         }
 
-        public static Task LogManagementPrompt(PromptLogEvent promptEvent, ChangeLogOperation operation,
-            ChangeLogOrigin origin, string userId, int? managementId = null, string? managementName = null)
+        public static Task LogManagementPrompt(ManagementPromptLogRequest request)
         {
-            return LogPrompt(promptEvent, ChangeLogObject.Management, operation, userId, DateTime.UtcNow, origin,
-                ("Management ID", managementId),
-                ("Management Name", managementName));
+            return LogPrompt(request.ToPromptLogRequest());
         }
 
-        public static Task LogGatewayPrompt(PromptLogEvent promptEvent, ChangeLogOperation operation,
-            ChangeLogOrigin origin, string userId, int? deviceId = null, string? deviceName = null,
-            int? managementId = null, string? managementName = null)
+        public static Task LogGatewayPrompt(GatewayPromptLogRequest request)
         {
-            return LogPrompt(promptEvent, ChangeLogObject.Gateway, operation, userId, DateTime.UtcNow, origin,
-                ("Device ID", deviceId),
-                ("Device Name", deviceName),
-                ("Management ID", managementId),
-                ("Management Name", managementName));
+            return LogPrompt(request.ToPromptLogRequest());
         }
 
         private static string GetPromptEventName(PromptLogEvent logEvent)

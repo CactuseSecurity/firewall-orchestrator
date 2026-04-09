@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Logging;
 using FWO.DeviceAutoDiscovery;
 using FWO.Logging;
 using FWO.Services;
@@ -107,14 +108,16 @@ namespace FWO.Middleware.Server.Jobs
             }
             if (logData != null)
             {
-                await PromptLogHelper.LogPrompt(
-                    promptEvent: PromptLogEvent.Created,
-                    obj: logData.Object,
-                    operation: logData.Operation,
-                    userId: "AutodiscoveryJob",
-                    dateTime: DateTime.Now,
-                    origin: ChangeLogOrigin.Autodiscovery,
-                    logData.Fields);
+                await PromptLogHelper.LogPrompt(new PromptLogRequest
+                {
+                    PromptEvent = PromptLogEvent.Created,
+                    Object = logData.Object,
+                    Operation = logData.Operation,
+                    UserId = "AutodiscoveryJob",
+                    Timestamp = DateTime.UtcNow,
+                    Origin = ChangeLogOrigin.Autodiscovery,
+                    Fields = logData.Fields
+                });
             }
             return lastMgmtAlertId;
         }

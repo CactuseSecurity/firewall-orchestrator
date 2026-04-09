@@ -55,10 +55,10 @@ class FwConfigBuilder:
         mgm_uid = self.uid_manager.create_uid()
 
         for _ in range(network_object_count):
-            self.add_network_object(config)
+            self.add_network_object(config, uid2id_mapper=uid2id_mapper)
 
         for _ in range(service_object_count):
-            self.add_service_object(config)
+            self.add_service_object(config, uid2id_mapper=uid2id_mapper)
 
         for _ in range(user_object_count):
             self.add_user_object(config)
@@ -67,7 +67,7 @@ class FwConfigBuilder:
             self.add_zone_object(config)
 
         for _ in range(user_group_object_count):
-            self.add_user_group_object(config, member_count=user_group_object_member_count)
+            self.add_user_group_object(config, uid2id_mapper=uid2id_mapper, member_count=user_group_object_member_count)
 
         for _ in range(rulebase_count):
             rb = self.add_rulebase(config, mgm_uid, uid2id_mapper=uid2id_mapper)
@@ -109,7 +109,7 @@ class FwConfigBuilder:
 
         if uid2id_mapper is not None:
             uid2id_mapper.add_network_object_mappings(
-                [{"uid": obj.obj_uid, "id": len(uid2id_mapper.nwobj_uid2id.local) + 1}]
+                [{"obj_uid": obj.obj_uid, "obj_id": len(uid2id_mapper.nwobj_uid2id.local) + 1}]
             )
 
         return obj
@@ -133,7 +133,7 @@ class FwConfigBuilder:
 
         if uid2id_mapper is not None:
             uid2id_mapper.add_service_object_mappings(
-                [{"uid": svc.svc_uid, "id": len(uid2id_mapper.svc_uid2id.local) + 1}]
+                [{"svc_uid": svc.svc_uid, "svc_id": len(uid2id_mapper.svc_uid2id.local) + 1}]
             )
 
         return svc
@@ -246,7 +246,9 @@ class FwConfigBuilder:
         config.gateways.append(gw)
         return gw
 
-    def add_user_object(self, config: FwConfigNormalized, *, name: str | None = None) -> dict[str, Any]:
+    def add_user_object(
+        self, config: FwConfigNormalized, *, name: str | None = None, uid2id_mapper: Uid2IdMapper | None = None
+    ) -> dict[str, Any]:
         uid = self.uid_manager.create_uid()
         obj = {
             "user_typ": "simple",
@@ -255,10 +257,18 @@ class FwConfigBuilder:
             "user_color": "black",
         }
         config.users[uid] = obj
+
+        if uid2id_mapper is not None:
+            uid2id_mapper.add_user_mappings([{"uid": obj["user_uid"], "id": len(uid2id_mapper.user_uid2id.local) + 1}])
         return obj
 
     def add_user_group_object(
-        self, config: FwConfigNormalized, member_count: int, *, name: str | None = None
+        self,
+        config: FwConfigNormalized,
+        uid2id_mapper: Uid2IdMapper | None,
+        member_count: int,
+        *,
+        name: str | None = None,
     ) -> dict[str, Any]:
         uid = self.uid_manager.create_uid()
         obj = {
@@ -270,7 +280,7 @@ class FwConfigBuilder:
         config.users[uid] = obj
 
         for _ in range(member_count):
-            member_obj = self.add_user_object(config)
+            member_obj = self.add_user_object(config, uid2id_mapper=uid2id_mapper)
             if obj.get("user_member_names"):
                 obj["user_member_names"] += LIST_DELIMITER
                 obj["user_member_refs"] += LIST_DELIMITER

@@ -30,4 +30,4 @@ class TestCommonConfigUri:
 
         set_filename(import_state)
 
-        assert import_statep.import_file_name == "https://example.com/config.json"
+        assert import_state.import_file_name == "https://example.com/config.json"

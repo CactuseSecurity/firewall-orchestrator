@@ -598,7 +598,9 @@ class FwConfigImportObject:
             "removedFlats": removed_flats,
         }
         try:
-            import_result = import_state.fwo_api_call.call(import_mutation, query_variables, analyze_payload=True)
+            import_result = import_state.fwo_api_call.call(
+                import_mutation, query_variables=query_variables, analyze_payload=True
+            )
             if "errors" in import_result:
                 FWOLogger.exception(
                     f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {import_result['errors']!s}"

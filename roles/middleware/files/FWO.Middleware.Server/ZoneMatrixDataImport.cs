@@ -164,10 +164,12 @@ namespace FWO.Middleware.Server
             {
                 MatrixId = returnIds[0].InsertedId;
                 await ChangeLogHelper.LogMatrixChange(
-                    action: ChangeLogActions.MiddlewareMatrixImportCreate,
+                    family: ChangeLogFamily.Import,
+                    operation: ChangeLogOperation.Create,
+                    userId: "Importer",
                     matrixId: MatrixId,
                     matrixName: MatrixName,
-                    origin: GlobalConst.kImportZoneMatrixData);
+                    origin: ChangeLogOrigin.Import);
             }
             else
             {
@@ -296,3 +298,5 @@ namespace FWO.Middleware.Server
         }
     }
 }
+
+

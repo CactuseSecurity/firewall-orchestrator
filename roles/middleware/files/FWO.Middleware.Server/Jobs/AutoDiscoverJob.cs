@@ -99,50 +99,46 @@ namespace FWO.Middleware.Server.Jobs
                     RefAlertId = action.RefAlertId,
                     CompareDesc = true
                 });
+            ChangeLogObject changeLogObject = ChangeLogObject.Error;
+            ChangeLogOperation operation = ChangeLogOperation.Error;
             switch (action.ActionType)
             {
                 case nameof(ActionCode.AddManagement):
-                    await ChangeLogHelper.LogManagerChange(
-                        action: ChangeLogActions.AutodiscoveryPromptManagementCreate,
-                        managementId: action.ManagementId,
-                        origin: GlobalConst.kAutodiscovery);
+                    changeLogObject = ChangeLogObject.Management;
+                    operation = ChangeLogOperation.Create;
                     break;
                 case nameof(ActionCode.DeleteManagement):
-                    await ChangeLogHelper.LogManagerChange(
-                        action: ChangeLogActions.AutodiscoveryPromptManagementDelete,
-                        managementId: action.ManagementId,
-                        origin: GlobalConst.kAutodiscovery);
+                    changeLogObject = ChangeLogObject.Management;
+                    operation = ChangeLogOperation.Delete;
                     break;
                 case nameof(ActionCode.ReactivateManagement):
-                    await ChangeLogHelper.LogManagerChange(
-                        action: ChangeLogActions.AutodiscoveryPromptManagementReactivate,
-                        managementId: action.ManagementId,
-                        origin: GlobalConst.kAutodiscovery);
+                    changeLogObject = ChangeLogObject.Management;
+                    operation = ChangeLogOperation.Activate;
                     break;
                 case nameof(ActionCode.DeleteGateway):
-                    await ChangeLogHelper.LogGatewayChange(
-                        action: ChangeLogActions.AutodiscoveryPromptGatewayDelete,
-                        deviceId: action.DeviceId,
-                        managementId: action.ManagementId,
-                        origin: GlobalConst.kAutodiscovery);
+                    changeLogObject = ChangeLogObject.Gateway;
+                    operation = ChangeLogOperation.Delete;
                     break;
                 case nameof(ActionCode.AddGatewayToNewManagement):
                 case nameof(ActionCode.AddGatewayToExistingManagement):
-                    await ChangeLogHelper.LogGatewayChange(
-                        action: ChangeLogActions.AutodiscoveryPromptGatewayCreate,
-                        deviceId: action.DeviceId,
-                        managementId: action.ManagementId,
-                        origin: GlobalConst.kAutodiscovery);
+                    changeLogObject = ChangeLogObject.Gateway;
+                    operation = ChangeLogOperation.Create;
                     break;
                 case nameof(ActionCode.ReactivateGateway):
-                    await ChangeLogHelper.LogGatewayChange(
-                        action: ChangeLogActions.AutodiscoveryPromptGatewayReactivate,
-                        deviceId: action.DeviceId,
-                        managementId: action.ManagementId,
-                        origin: GlobalConst.kAutodiscovery);
+                    changeLogObject = ChangeLogObject.Gateway;
+                    operation = ChangeLogOperation.Activate;
                     break;
             }
+            await PromptLogHelper.LogPrompt(
+                promptEvent: PromptLogEvent.Created,
+                obj: changeLogObject,
+                operation: operation,
+                userId: "AutodiscoveryJob",
+                dateTime: DateTime.Now,
+                origin: ChangeLogOrigin.Autodiscovery);
             return lastMgmtAlertId;
         }
     }
 }
+
+

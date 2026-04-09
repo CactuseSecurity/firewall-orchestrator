@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 @using FWO.Services
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
@@ -68,11 +68,12 @@
                 if(returnIds != null && returnIds.Length > 0)
                 {
                     await ChangeLogHelper.LogMatrixChange(
-                        action: ChangeLogActions.ManualMatrixCreate,
+                        family: ChangeLogFamily.Manual,
+                        operation: ChangeLogOperation.Create,
                         matrixId: returnIds[0].InsertedId,
                         matrixName: MatrixName,
-                        userId: userConfig.User.DbId,
-                        origin: "ui");
+                        userId: userConfig.User.DbId.ToString(),
+                        origin: ChangeLogOrigin.UiSettings);
                     _ = RefreshParent(new(){ Id = returnIds[0].InsertedId, Name = MatrixName, CriterionType = CriterionType.Matrix.ToString() });
                 }
                 Close();
@@ -91,3 +92,5 @@
         DisplayChanged.InvokeAsync(Display);
     }
 }
+
+

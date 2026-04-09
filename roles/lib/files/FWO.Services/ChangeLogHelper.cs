@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using FWO.Data;
 using FWO.Logging;
@@ -6,109 +7,127 @@ namespace FWO.Services
 {
     public static class ChangeLogHelper
     {
-        public static Task LogMatrixChange(
-            string action,
-            int? matrixId = null,
-            string? matrixName = null,
-            int? userId = null,
-            string? origin = null)
+        public static Task LogChange(ChangeLogFamily family, ChangeLogObject obj, ChangeLogOperation operation,
+            string userId, DateTime dateTime, ChangeLogOrigin origin, params (string Key, object? Value)[] fields)
         {
-            WriteLog(action, BuildText(
-                ("matrix_id", matrixId),
-                ("matrix_name", matrixName),
-                ("user_id", userId),
-                ("origin", origin)));
-            return Task.CompletedTask;
-        }
+            string title = ComposeChangeLogTitle(family, obj, operation);
+            string text =
+                $"User ID: {userId}; Date/Time: {dateTime.ToString(CultureInfo.InvariantCulture)}; Origin: {GetOriginName(origin)}; " +
+                FormatFields(fields);
 
-        public static Task LogManagerChange(
-            string action,
-            int? managementId = null,
-            string? managementName = null,
-            int? userId = null,
-            string? origin = null)
-        {
-            WriteLog(action, BuildText(
-                ("management_id", managementId),
-                ("management_name", managementName),
-                ("user_id", userId),
-                ("origin", origin)));
-            return Task.CompletedTask;
-        }
-
-        public static Task LogGatewayChange(
-            string action,
-            int? deviceId = null,
-            string? deviceName = null,
-            int? managementId = null,
-            int? userId = null,
-            string? origin = null)
-        {
-            WriteLog(action, BuildText(
-                ("device_id", deviceId),
-                ("device_name", deviceName),
-                ("management_id", managementId),
-                ("user_id", userId),
-                ("origin", origin)));
-            return Task.CompletedTask;
-        }
-
-        private static void WriteLog(string action, string text)
-        {
-            string title = DescribeAction(action);
-            if (action.StartsWith(ChangeLogActions.ManualFamily)
-                || action.StartsWith(ChangeLogActions.PromptedFamily)
-                || action.StartsWith(ChangeLogActions.PromptDismissedFamily))
+            switch (family)
             {
-                Log.WriteAudit(title, text);
-                return;
+                case ChangeLogFamily.Manual:
+                    Log.WriteAudit(title, text);
+                    break;
+                case ChangeLogFamily.Import:
+                    Log.WriteInfo(title, text);
+                    break;
+                default:
+                    Log.WriteWarning(title, $"Unmapped change-log family. {text}");
+                    break;
             }
 
-            if (action.StartsWith(ChangeLogActions.AutodiscoveryPromptFamily)
-                || action.StartsWith(ChangeLogActions.MiddlewareMatrixImportFamily))
-            {
-                Log.WriteInfo(title, text);
-                return;
-            }
-
-            Log.WriteWarning(title, $"Unmapped change-log action family. {text}");
+            return Task.CompletedTask;
         }
 
-        private static string DescribeAction(string action)
+        public static Task LogMatrixChange(ChangeLogFamily family, ChangeLogOperation operation, ChangeLogOrigin origin,
+            string userId, int? matrixId = null, string? matrixName = null
+        )
         {
-            return action switch
+            return LogChange(
+                family,
+                ChangeLogObject.Matrix,
+                operation,
+                userId,
+                DateTime.Now,
+                origin,
+                ("Matrix ID", matrixId),
+                ("Matrix Name", matrixName));
+        }
+
+        public static Task LogManagerChange(ChangeLogFamily family, ChangeLogOperation operation,
+            ChangeLogOrigin origin, string userId, int? managementId = null, string? managementName = null)
+        {
+            return LogChange(
+                family,
+                ChangeLogObject.Management,
+                operation,
+                userId,
+                DateTime.Now,
+                origin,
+                ("Management ID", managementId),
+                ("Management Name", managementName));
+        }
+
+        public static Task LogGatewayChange(ChangeLogFamily family, ChangeLogOperation operation,
+            ChangeLogOrigin origin, string userId, int? deviceId = null, string? deviceName = null,
+            int? managementId = null)
+        {
+            return LogChange(
+                family,
+                ChangeLogObject.Gateway,
+                operation,
+                userId,
+                DateTime.Now,
+                origin,
+                ("Device ID", deviceId),
+                ("Device Name", deviceName),
+                ("Management ID", managementId));
+        }
+
+        private static string ComposeChangeLogTitle(ChangeLogFamily family, ChangeLogObject obj, ChangeLogOperation operation)
+        {
+            return GetFamilyName(family) + GetObjectName(obj) +  GetOperationName(operation);
+        }
+
+        public static string GetOriginName(ChangeLogOrigin origin)
+        {
+            return origin switch
             {
-                ChangeLogActions.ManualMatrixCreate => "Matrix Created Manually",
-                ChangeLogActions.ManualMatrixSoftDelete => "Matrix Soft Deleted Manually",
-                ChangeLogActions.ManualManagementCreate => "Management Created Manually",
-                ChangeLogActions.ManualManagementUpdate => "Management Updated Manually",
-                ChangeLogActions.ManualManagementDelete => "Management Deleted Manually",
-                ChangeLogActions.AutodiscoveryPromptManagementCreate => "Autodiscovery Prompt Created For Management Creation",
-                ChangeLogActions.AutodiscoveryPromptManagementDelete => "Autodiscovery Prompt Created For Management Deletion",
-                ChangeLogActions.AutodiscoveryPromptManagementReactivate => "Autodiscovery Prompt Created For Management Reactivation",
-                ChangeLogActions.AutodiscoveryPromptGatewayCreate => "Autodiscovery Prompt Created For Gateway Creation",
-                ChangeLogActions.AutodiscoveryPromptGatewayDelete => "Autodiscovery Prompt Created For Gateway Deletion",
-                ChangeLogActions.AutodiscoveryPromptGatewayReactivate => "Autodiscovery Prompt Created For Gateway Reactivation",
-                ChangeLogActions.PromptedManagementCreate => "Management Created After Autodiscovery Prompt",
-                ChangeLogActions.PromptedManagementDelete => "Management Deleted After Autodiscovery Prompt",
-                ChangeLogActions.PromptedManagementDisable => "Management Disabled After Autodiscovery Prompt",
-                ChangeLogActions.PromptedManagementReactivate => "Management Reactivated After Autodiscovery Prompt",
-                ChangeLogActions.PromptedGatewayCreate => "Gateway Created After Autodiscovery Prompt",
-                ChangeLogActions.PromptedGatewayDelete => "Gateway Deleted After Autodiscovery Prompt",
-                ChangeLogActions.PromptedGatewayDisable => "Gateway Disabled After Autodiscovery Prompt",
-                ChangeLogActions.PromptedGatewayReactivate => "Gateway Reactivated After Autodiscovery Prompt",
-                ChangeLogActions.PromptDismissedManagementCreate => "Management Creation Prompt Dismissed",
-                ChangeLogActions.PromptDismissedManagementDelete => "Management Deletion Prompt Dismissed",
-                ChangeLogActions.PromptDismissedManagementReactivate => "Management Reactivation Prompt Dismissed",
-                ChangeLogActions.PromptDismissedGatewayCreate => "Gateway Creation Prompt Dismissed",
-                ChangeLogActions.PromptDismissedGatewayDelete => "Gateway Deletion Prompt Dismissed",
-                ChangeLogActions.PromptDismissedGatewayReactivate => "Gateway Reactivation Prompt Dismissed",
-                ChangeLogActions.MiddlewareMatrixImportCreate => "Matrix Created During Middleware Import",
-                _ => action.Replace('_', ' ')
+                ChangeLogOrigin.UiSettings => "UI",
+                ChangeLogOrigin.Autodiscovery => "Autodiscovery",
+                ChangeLogOrigin.Import => "Import",
+                _ => origin.ToString()
             };
         }
 
-        private static string BuildText(params (string Key, object? Value)[] fields)
+        private static string GetFamilyName(ChangeLogFamily family)
+        {
+            return family switch
+            {
+                ChangeLogFamily.Manual => "Manual",
+                ChangeLogFamily.Import => "Import",
+                _ => family.ToString()
+            };
+        }
+        
+        public static string GetObjectName(ChangeLogObject obj)
+        {
+            return obj switch
+            {
+                ChangeLogObject.Matrix => "Matrix",
+                ChangeLogObject.Management => "Management",
+                ChangeLogObject.Gateway => "Gateway",
+                _ => obj.ToString()
+            };
+        }
+
+        public static string GetOperationName(ChangeLogOperation operation)
+        {
+            return operation switch
+            {
+                ChangeLogOperation.Create => "Create",
+                ChangeLogOperation.Update => "Update",
+                ChangeLogOperation.Delete => "Delete",
+                ChangeLogOperation.SetRemoved => "Set to removed",
+                ChangeLogOperation.Disable => "Disable",
+                ChangeLogOperation.Activate => "Activate",
+                _ => operation.ToString()
+            };
+        }
+
+        private static string FormatFields(params (string Key, object? Value)[] fields)
         {
             StringBuilder sb = new();
 
@@ -124,26 +143,10 @@ namespace FWO.Services
                     sb.Append("; ");
                 }
 
-                sb.Append(GetLabel(key)).Append(": ").Append(value);
+                sb.Append(key).Append(": ").Append(value);
             }
 
-            return sb.Length > 0 ? sb.ToString() : "No additional data.";
-        }
-
-        private static string GetLabel(string key)
-        {
-            return key switch
-            {
-                "matrix_id" => "Matrix ID",
-                "matrix_name" => "Matrix Name",
-                "management_id" => "Management ID",
-                "management_name" => "Management Name",
-                "device_id" => "Gateway ID",
-                "device_name" => "Gateway Name",
-                "user_id" => "User ID",
-                "origin" => "Origin",
-                _ => key.Replace('_', ' ')
-            };
+            return sb.Length > 0 ? sb.ToString() : string.Empty;
         }
     }
 }

@@ -1,10 +1,9 @@
 @using System.Text.Json;
-@using FWO.Services
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText(ChangeLogOrigins.Autodiscovery) + headerText)" Show="@Display" Size=PopupSize.XLarge  OnClose="async () => await Close()">
+<PopUp Title="@(userConfig.GetText("autodiscovery") + headerText)" Show="@Display" Size=PopupSize.XLarge  OnClose="async () => await Close()">
     <Body>
         @if (Display)
         {
@@ -198,7 +197,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText(ChangeLogOrigins.Autodiscovery), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("autodiscovery"), "", true);
         }
     }
 
@@ -214,8 +213,8 @@
 
     private async Task Close()
     {
-        Display = false; 
-        firstCall = true; 
+        Display = false;
+        firstCall = true;
         await Closing.InvokeAsync(Display);
         await InvokeAsync(StateHasChanged);
     }
@@ -250,10 +249,10 @@
                 switch(code)
                 {
                     case ActionCode.AddManagement:
-                        Management newMgmt = JsonSerializer.Deserialize<Management>((action.JsonData 
-							?? throw new ArgumentNullException($"Missing Management Data!")).ToString() 
-							?? throw new ArgumentException($"Could not convert Management Data to string!")) 
-							?? throw new JsonException($"Management Data not converted!");
+                        Management newMgmt = JsonSerializer.Deserialize<Management>((action.JsonData
+                                                                                     ?? throw new ArgumentNullException($"Missing Management Data!")).ToString()
+                                                                                    ?? throw new ArgumentException($"Could not convert Management Data to string!"))
+                                             ?? throw new JsonException($"Management Data not converted!");
                         if(checkManagementCreateToBeDone(newMgmt))
                         {
                             newMgmt.ActionId = action.Number;
@@ -305,10 +304,10 @@
                         }
                         break;
                     case ActionCode.AddGatewayToNewManagement:
-                        Device newGateway = JsonSerializer.Deserialize<Device>((action.JsonData 
-							?? throw new ArgumentNullException($"Missing Gateway Data!")).ToString() 
-							?? throw new ArgumentException($"Could not convert Gateway Data to string!")) 
-							?? throw new JsonException($"Gateway Data not converted!");
+                        Device newGateway = JsonSerializer.Deserialize<Device>((action.JsonData
+                                                                                ?? throw new ArgumentNullException($"Missing Gateway Data!")).ToString()
+                                                                               ?? throw new ArgumentException($"Could not convert Gateway Data to string!"))
+                                            ?? throw new JsonException($"Gateway Data not converted!");
                         newGateway.Delete = false;
                         newGateway.Relevant = true;
                         newGateway.ActionId = action.Number;
@@ -339,10 +338,10 @@
                         }
                         break;
                     case ActionCode.AddGatewayToExistingManagement:
-                        Device newGatewayToEx = JsonSerializer.Deserialize<Device>((action.JsonData 
-							?? throw new ArgumentNullException($"Missing Gateway Data!")).ToString()
-							?? throw new ArgumentException($"Could not convert Gateway Data to string!"))
-							?? throw new JsonException($"Gateway Data not converted!");
+                        Device newGatewayToEx = JsonSerializer.Deserialize<Device>((action.JsonData
+                                                                                    ?? throw new ArgumentNullException($"Missing Gateway Data!")).ToString()
+                                                                                   ?? throw new ArgumentException($"Could not convert Gateway Data to string!"))
+                                                ?? throw new JsonException($"Gateway Data not converted!");
                         if (checkGatewayCreateToBeDone(newGatewayToEx))
                         {
                             appendToRightManagement(newGatewayToEx, action);
@@ -379,6 +378,7 @@
                                 managementsToDisplay.Add(mgmtToCut);
                             }
                         }
+
                         break;
                     case ActionCode.WaitForTempLoginFailureToPass:
 
@@ -452,8 +452,8 @@
 
     private bool checkManagementCreateToBeDone(Management management)
     {
-        if (existingManagements.FirstOrDefault(exMgmt => exMgmt.Name == management.Name && exMgmt.ConfigPath == management.ConfigPath 
-            && exMgmt.SuperManagerId == management.SuperManagerId) != null)
+        if (existingManagements.FirstOrDefault(exMgmt => exMgmt.Name == management.Name && exMgmt.ConfigPath == management.ConfigPath
+                                                                                        && exMgmt.SuperManagerId == management.SuperManagerId) != null)
         {
             // already created
             if (showAlreadyDoneMessages)
@@ -467,9 +467,9 @@
 
     private bool checkGatewayCreateToBeDone(Device device)
     {
-        if (existingDevices.FirstOrDefault(existingDevice => existingDevice.Name == device.Name 
-            && existingDevice.Management.Id == device.Management.Id 
-            && existingDevice.LocalRulebase == device.LocalRulebase) != null)
+        if (existingDevices.FirstOrDefault(existingDevice => existingDevice.Name == device.Name
+                                                             && existingDevice.Management.Id == device.Management.Id
+                                                             && existingDevice.LocalRulebase == device.LocalRulebase) != null)
         {
             // already created
             if (showAlreadyDoneMessages)
@@ -508,8 +508,7 @@
         try
         {
             int devCounter = 0;
-            Management? exMgmt = existingManagements.FirstOrDefault(exMgmt => exMgmt.Name == discMgmt.Name && exMgmt.ConfigPath == discMgmt.ConfigPath 
-                && exMgmt.SuperManagerId == discMgmt.SuperManagerId);
+            Management? exMgmt = existingManagements.FirstOrDefault(exMgmt => exMgmt.Name == discMgmt.Name && exMgmt.ConfigPath == discMgmt.ConfigPath && exMgmt.SuperManagerId == discMgmt.SuperManagerId);
             if (exMgmt != null)
             {
                 if (!exMgmt.ImportDisabled)
@@ -546,12 +545,18 @@
                 if (returnIds != null)
                 {
                     discMgmt.Id = returnIds[0].NewId;
+                    await PromptLogHelper.LogManagementPrompt(
+                        promptEvent: PromptLogEvent.Completed,
+                        operation: ChangeLogOperation.Create,
+                        userId: userConfig.User.DbId.ToString(),
+                        origin: ChangeLogOrigin.Autodiscovery);
                     await ChangeLogHelper.LogManagerChange(
-                        action: ChangeLogActions.PromptedManagementCreate,
+                        family: ChangeLogFamily.Manual,
+                        operation: ChangeLogOperation.Create,
                         managementId: discMgmt.Id,
                         managementName: discMgmt.Name,
-                        userId: userConfig.User.DbId,
-                        origin: ChangeLogOrigins.UiAutodiscovery);
+                        userId: userConfig.User.DbId.ToString(),
+                        origin: ChangeLogOrigin.Autodiscovery);
                     // As we now know the ManagementId we can activate the following device inserts
                     devCounter = activateDeviceChanges(discMgmt);
                     existingManagements.Add(discMgmt);
@@ -603,9 +608,7 @@
     {
         try
         {
-            Device? exDev = existingDevices.FirstOrDefault(existingDevice => existingDevice.Name == discoveredDevice.Name 
-                && existingDevice.Management.Id == discoveredDevice.Management.Id 
-                && existingDevice.LocalRulebase == discoveredDevice.LocalRulebase);
+            Device? exDev = existingDevices.FirstOrDefault(existingDevice => existingDevice.Name == discoveredDevice.Name && existingDevice.Management.Id == discoveredDevice.Management.Id && existingDevice.LocalRulebase == discoveredDevice.LocalRulebase);
             if(exDev != null)
             {
                 if(!exDev.ImportDisabled)
@@ -648,25 +651,31 @@
                 else
                 {
                     discoveredDevice.Id = returnIds[0].NewId;
+                    await PromptLogHelper.LogGatewayPrompt(
+                        promptEvent: PromptLogEvent.Completed,
+                        operation: ChangeLogOperation.Create,
+                        userId: userConfig.User.DbId.ToString(),
+                        origin: ChangeLogOrigin.Autodiscovery);
                     await ChangeLogHelper.LogGatewayChange(
-                        action: ChangeLogActions.PromptedGatewayCreate,
+                        family: ChangeLogFamily.Manual,
+                        operation: ChangeLogOperation.Create,
                         deviceId: discoveredDevice.Id,
                         deviceName: discoveredDevice.Name,
                         managementId: discoveredDevice.Management.Id,
-                        userId: userConfig.User.DbId,
-                        origin: ChangeLogOrigins.UiAutodiscovery);
+                        userId: userConfig.User.DbId.ToString(),
+                        origin: ChangeLogOrigin.Autodiscovery);
                     existingDevices.Add(discoveredDevice);
                     await addDeviceToTenant0(discoveredDevice.Id);
                 }
             }
             discoveredDevice.Relevant = false;
-            if (managementsToDisplay.Count()==0)
+            if (managementsToDisplay.Count() == 0)
             {
                 return;
             }
             int index = managementsToDisplay.FindIndex(x => x.Id == discoveredDevice.Management.Id);
             Management? mgmtToIgnore = index >= 0 ? managementsToDisplay[index] : null;
-            if (mgmtToIgnore != null &&  mgmtToIgnore.Devices.FirstOrDefault(y => y.Relevant == true) == null)
+            if (mgmtToIgnore != null && mgmtToIgnore.Devices.FirstOrDefault(y => y.Relevant == true) == null)
             {
                 managementsToDisplay.Remove(mgmtToIgnore);
                 if(managementsToDisplay.Count == 0)
@@ -710,12 +719,18 @@
                 int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
                 if (delId == actManagement.Id)
                 {
+                    await PromptLogHelper.LogManagementPrompt(
+                        promptEvent: PromptLogEvent.Completed,
+                        operation: ChangeLogOperation.Delete,
+                        userId: userConfig.User.DbId.ToString(),
+                        origin: ChangeLogOrigin.Autodiscovery);
                     await ChangeLogHelper.LogManagerChange(
-                        action: ChangeLogActions.PromptedManagementDelete,
+                        family: ChangeLogFamily.Manual,
+                        operation: ChangeLogOperation.Delete,
                         managementId: actManagement.Id,
                         managementName: actManagement.Name,
-                        userId: userConfig.User.DbId,
-                        origin: ChangeLogOrigins.UiAutodiscovery);
+                        userId: userConfig.User.DbId.ToString(),
+                        origin: ChangeLogOrigin.Autodiscovery);
                     existingManagements.Remove(actManagement);
                     managementsToDisplay.Remove(actManagement);
                     if(managementsToDisplay.Count == 0)
@@ -742,12 +757,18 @@
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.changeManagementState, Variables)).UpdatedId;
             if (udId == management.Id)
             {
+                await PromptLogHelper.LogManagementPrompt(
+                    promptEvent: PromptLogEvent.Completed,
+                    operation: disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
+                    userId: userConfig.User.DbId.ToString(),
+                    origin: ChangeLogOrigin.Autodiscovery);
                 await ChangeLogHelper.LogManagerChange(
-                    action: disable ? ChangeLogActions.PromptedManagementDisable : ChangeLogActions.PromptedManagementReactivate,
+                    family: ChangeLogFamily.Manual,
+                    operation: disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
                     managementId: management.Id,
                     managementName: management.Name,
-                    userId: userConfig.User.DbId,
-                    origin: ChangeLogOrigins.UiAutodiscovery);
+                    userId: userConfig.User.DbId.ToString(),
+                    origin: ChangeLogOrigin.Autodiscovery);
                 if(disable)
                 {
                     managementsToDisplay.Remove(management);
@@ -773,13 +794,19 @@
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteDevice, Variables)).DeletedId;
             if (delId == actDevice.Id)
             {
+                await PromptLogHelper.LogGatewayPrompt(
+                    promptEvent: PromptLogEvent.Completed,
+                    operation: ChangeLogOperation.Delete,
+                    userId: userConfig.User.DbId.ToString(),
+                    origin: ChangeLogOrigin.Autodiscovery);
                 await ChangeLogHelper.LogGatewayChange(
-                    action: ChangeLogActions.PromptedGatewayDelete,
+                    family: ChangeLogFamily.Manual,
+                    operation: ChangeLogOperation.Delete,
                     deviceId: actDevice.Id,
                     deviceName: actDevice.Name,
                     managementId: actDevice.Management.Id,
-                    userId: userConfig.User.DbId,
-                    origin: ChangeLogOrigins.UiAutodiscovery);
+                    userId: userConfig.User.DbId.ToString(),
+                    origin: ChangeLogOrigin.Autodiscovery);
                 // remove device from existing management
                 removeDevFromExMgmt(actDevice, false);
                 existingDevices.Remove(actDevice);
@@ -802,13 +829,19 @@
             int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.changeDeviceState, Variables)).UpdatedId;
             if (udId == device.Id)
             {
+                await PromptLogHelper.LogGatewayPrompt(
+                    promptEvent: PromptLogEvent.Completed,
+                    operation: disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
+                    userId: userConfig.User.DbId.ToString(),
+                    origin: ChangeLogOrigin.Autodiscovery);
                 await ChangeLogHelper.LogGatewayChange(
-                    action: disable ? ChangeLogActions.PromptedGatewayDisable : ChangeLogActions.PromptedGatewayReactivate,
+                    family: ChangeLogFamily.Manual,
+                    operation: disable ? ChangeLogOperation.Disable : ChangeLogOperation.Activate,
                     deviceId: device.Id,
                     deviceName: device.Name,
                     managementId: device.Management.Id,
-                    userId: userConfig.User.DbId,
-                    origin: ChangeLogOrigins.UiAutodiscovery);
+                    userId: userConfig.User.DbId.ToString(),
+                    origin: ChangeLogOrigin.Autodiscovery);
                 if(disable)
                 {
                     removeDevFromExMgmt(device, true);
@@ -922,50 +955,46 @@
 
     private async Task LogDismissedPrompt(ActionItem action)
     {
+        ChangeLogObject changeLogObject = ChangeLogObject.Error;
+        ChangeLogOperation operation = ChangeLogOperation.Error;
         switch (action.ActionType)
         {
             case nameof(ActionCode.AddManagement):
-                await ChangeLogHelper.LogManagerChange(
-                    action: ChangeLogActions.PromptDismissedManagementCreate,
-                    managementId: action.ManagementId,
-                    origin: ChangeLogOrigins.UiAutodiscovery);
+                changeLogObject = ChangeLogObject.Management;
+                operation = ChangeLogOperation.Create;
                 break;
             case nameof(ActionCode.DeleteManagement):
-                await ChangeLogHelper.LogManagerChange(
-                    action: ChangeLogActions.PromptDismissedManagementDelete,
-                    managementId: action.ManagementId,
-                    origin: ChangeLogOrigins.UiAutodiscovery);
+                changeLogObject = ChangeLogObject.Management;
+                operation = ChangeLogOperation.Delete;
                 break;
             case nameof(ActionCode.ReactivateManagement):
-                await ChangeLogHelper.LogManagerChange(
-                    action: ChangeLogActions.PromptDismissedManagementReactivate,
-                    managementId: action.ManagementId,
-                    origin: ChangeLogOrigins.UiAutodiscovery);
+                changeLogObject = ChangeLogObject.Management;
+                operation = ChangeLogOperation.Activate;
+                break;
+            case nameof(ActionCode.DeleteGateway):
+                changeLogObject = ChangeLogObject.Gateway;
+                operation = ChangeLogOperation.Delete;
                 break;
             case nameof(ActionCode.AddGatewayToNewManagement):
             case nameof(ActionCode.AddGatewayToExistingManagement):
-                await ChangeLogHelper.LogGatewayChange(
-                    action: ChangeLogActions.PromptDismissedGatewayCreate,
-                    deviceId: action.DeviceId,
-                    managementId: action.ManagementId,
-                    origin: ChangeLogOrigins.UiAutodiscovery);
-                break;
-            case nameof(ActionCode.DeleteGateway):
-                await ChangeLogHelper.LogGatewayChange(
-                    action: ChangeLogActions.PromptDismissedGatewayDelete,
-                    deviceId: action.DeviceId,
-                    managementId: action.ManagementId,
-                    origin: ChangeLogOrigins.UiAutodiscovery);
+                changeLogObject = ChangeLogObject.Gateway;
+                operation = ChangeLogOperation.Create;
                 break;
             case nameof(ActionCode.ReactivateGateway):
-                await ChangeLogHelper.LogGatewayChange(
-                    action: ChangeLogActions.PromptDismissedGatewayReactivate,
-                    deviceId: action.DeviceId,
-                    managementId: action.ManagementId,
-                    origin: ChangeLogOrigins.UiAutodiscovery);
+                changeLogObject = ChangeLogObject.Gateway;
+                operation = ChangeLogOperation.Activate;
                 break;
         }
+
+        await PromptLogHelper.LogPrompt(
+            promptEvent: PromptLogEvent.Dismissed,
+            obj: changeLogObject,
+            operation: operation,
+            userId: userConfig.User.DbId.ToString(),
+            dateTime: DateTime.Now,
+            origin: ChangeLogOrigin.Autodiscovery);
     }
+
 
     public async Task AcknowledgeAlert(long? alertId)
     {
@@ -973,8 +1002,8 @@
         {
             if(alertId != null)
             {
-                var Variables = new 
-                { 
+                var Variables = new
+                {
                     id = alertId,
                     ackUser = userConfig.User.DbId,
                     ackTime = DateTime.Now

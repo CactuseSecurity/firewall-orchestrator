@@ -212,6 +212,41 @@ namespace FWO.Basics
         }
 
         /// <summary>
+        /// Calculates the intersection of two IP address ranges.
+        /// </summary>
+        /// <param name="a">The first IP address range.</param>
+        /// <param name="b">The second IP address range.</param>
+        /// <returns>
+        /// A new <see cref="IPAddressRange"/> representing the overlapping range,
+        /// or <c>null</c> if the ranges do not overlap.
+        /// </returns>
+        public static IPAddressRange? GetIntersection(IPAddressRange a, IPAddressRange b)
+        {
+            if (a.Begin.AddressFamily != b.Begin.AddressFamily)
+            {
+                return null;
+            }
+
+            BigInteger startA = ToBigInteger(a.Begin);
+            BigInteger endA = ToBigInteger(a.End);
+            BigInteger startB = ToBigInteger(b.Begin);
+            BigInteger endB = ToBigInteger(b.End);
+
+            BigInteger startOverlap = BigInteger.Max(startA, startB);
+            BigInteger endOverlap = BigInteger.Min(endA, endB);
+
+            if (startOverlap <= endOverlap)
+            {
+                return new IPAddressRange(
+                    FromBigInteger(startOverlap, a.Begin.AddressFamily),
+                    FromBigInteger(endOverlap, a.Begin.AddressFamily)
+                );
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Converts an IPv4 address to an unsigned integer.
         /// </summary>
         public static uint IpToUint(IPAddress ipAddress)
@@ -452,7 +487,7 @@ namespace FWO.Basics
             return FromBigInteger(value, family);
         }
 
-        private static BigInteger ToBigInteger(IPAddress ip)
+        public static BigInteger ToBigInteger(IPAddress ip)
         {
             byte[] bytes = ip.GetAddressBytes(); // Big-endian.
             byte[] littleEndian = [.. bytes.Reverse(), 0]; // Little-endian plus unsigned padding.

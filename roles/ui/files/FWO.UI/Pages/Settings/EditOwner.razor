@@ -74,6 +74,19 @@
                         }
                     </div>
                 </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5672"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("additional_info")):</label>
+                    <div class="col-sm-9">
+                        @if (Readonly)
+                        {
+                            <pre class="form-control-plaintext small mb-0">@AdditionalInfoJson</pre>
+                        }
+                        else
+                        {
+                            <textarea class="form-control form-control-sm font-monospace" rows="8" @bind="AdditionalInfoJson"></textarea>
+                        }
+                    </div>
+                </div>
                 @foreach (OwnerResponsibleType type in OwnerResponsibleTypes)
                 {
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(GetResponsibleTypeTooltip(type))">
@@ -294,6 +307,7 @@
     private HashSet<string> OriginalOwnedIpKeys = new(StringComparer.OrdinalIgnoreCase);
 
     private Dictionary<int, string> NewOwnerResponsibleDnByType = [];
+    private string AdditionalInfoJson = "";
     private Tenant? SelectedTenant;
     private OwnerLifeCycleState? SelectedOwnerLifeCycleState;
     private DayOfWeek? SelectedDayOfWeek;
@@ -340,6 +354,7 @@
         OriginalOwnerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId;
 
         NewOwnerResponsibleDnByType = OwnerResponsibleTypes.ToDictionary(type => type.Id, _ => "");
+        AdditionalInfoJson = OwnerAdditionalInfoJson.Serialize(ActOwner.AdditionalInfo);
         SelectedTenant = Tenants.FirstOrDefault(x => x.Id == ActOwner.TenantId);
         SelectedOwnerLifeCycleState = OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ActOwner.OwnerLifeCycleStateId);
         ActRecCheckParams = (ActOwner.RecertCheckParamString != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(ActOwner.RecertCheckParamString) ?? new RecertCheckParams() : new RecertCheckParams());
@@ -374,6 +389,10 @@
         try
         {
             PrepareOwnerForSave();
+            if (!TryParseAdditionalInfo())
+            {
+                return;
+            }
             if (ActOwner.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("U0001"), true);
@@ -426,6 +445,19 @@
         }
         ActRecCheckParams.RecertCheckWeekday = (int?)SelectedDayOfWeek;
         ActOwner.RecertCheckParamString = System.Text.Json.JsonSerializer.Serialize(ActRecCheckParams);
+    }
+
+    private bool TryParseAdditionalInfo()
+    {
+        if (OwnerAdditionalInfoJson.TryDeserialize(AdditionalInfoJson, out Dictionary<string, string>? additionalInfo))
+        {
+            ActOwner.AdditionalInfo = additionalInfo;
+            AdditionalInfoJson = OwnerAdditionalInfoJson.Serialize(additionalInfo);
+            return true;
+        }
+
+        DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5296"), true);
+        return false;
     }
 
     private void SearchUser(int responsibleTypeId)
@@ -544,6 +576,7 @@
             recertInterval = ActOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(ActOwner.ExtAppId) ? null : ActOwner.ExtAppId,
             recertCheckParams = ActOwner.RecertCheckParamString,
+            additionalInfo = ActOwner.AdditionalInfo,
             criticality = string.IsNullOrWhiteSpace(ActOwner.Criticality) ? null : ActOwner.Criticality,
             commSvcPossible = ActOwner.CommSvcPossible,
             recertActive = ActOwner.RecertActive,
@@ -582,6 +615,7 @@
             recertInterval = ActOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(ActOwner.ExtAppId) ? null : ActOwner.ExtAppId,
             recertCheckParams = ActOwner.RecertCheckParamString,
+            additionalInfo = ActOwner.AdditionalInfo,
             criticality = string.IsNullOrWhiteSpace(ActOwner.Criticality) ? null : ActOwner.Criticality,
             ownerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId,
             commSvcPossible = ActOwner.CommSvcPossible,

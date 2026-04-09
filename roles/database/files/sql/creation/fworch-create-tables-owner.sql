@@ -22,7 +22,8 @@ create table owner
 	last_recertifier_dn Varchar,
 	next_recert_date Timestamp,
     recert_active boolean default false,
-    decomm_date Timestamp
+    decomm_date Timestamp,
+    additional_info jsonb
 );
 
 create table owner_responsible

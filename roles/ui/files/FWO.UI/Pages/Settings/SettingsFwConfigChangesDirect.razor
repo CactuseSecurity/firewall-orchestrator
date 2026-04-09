@@ -49,8 +49,10 @@
             </div>
         </div>
         <hr />
-
-
+        <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddButton">
+            <i class="bi bi-plus"></i>
+        </button>
+        <hr />
         @if (actExtTicketSystemType == ExternalTicketSystemType.TufinSecureChange)
         {
             <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
@@ -82,21 +84,21 @@
 
 
 
-    </form>
-    <hr />
-    <AuthorizeView Roles="@Roles.Admin">
-        <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
-        </Authorized>
-        <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-        </NotAuthorized>
-    </AuthorizeView>
-}
+        </form>
+        <hr />
+        <AuthorizeView Roles="@Roles.Admin">
+            <Authorized>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            </Authorized>
+            <NotAuthorized>
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            </NotAuthorized>
+        </AuthorizeView>
+    }
 else
-{
-    <Loading />
-}
+    {
+        <Loading />
+    }
 
 @code
 {
@@ -256,5 +258,10 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_settings"), "", true);
         }
+    }
+
+    private void AddButton()
+    {
+        
     }
 }

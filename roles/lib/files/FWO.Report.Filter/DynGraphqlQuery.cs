@@ -392,21 +392,38 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
-                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
+                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement}, stm_link_type: {{id: {{_eq: 6}} }} }})
                             {{
-                                rulebase {{
-                                {query.OpenRulesTable}
-                                    {limitOffsetString}
-                                    where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
-                                    order_by: {{ rule_num_numeric: asc }} )
-                                {{
-                                    mgm_id: mgm_id
-                                    ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
-                                }} 
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
                             }}
                         }}
-                    }} 
-                    }} 
+                        rulebases {{
+                            name
+                            uid
+                            id
+                            {query.OpenRulesTable}
+                                {limitOffsetString}
+                                where: {{ {query.RuleWhereStatement} }} 
+                                order_by: {{ rule_num_numeric: asc }} )
+                            {{
+                                mgm_id: mgm_id
+                                ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
+                            }} 
+                        }}
+                    }}
                 }}";
         }
 

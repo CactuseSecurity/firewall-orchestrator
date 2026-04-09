@@ -162,7 +162,7 @@ namespace FWO.Report
                 ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
                 ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
                 ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
-                ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
+                ReportType.NatRules => new ReportNatRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.Recertification => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),

@@ -2,6 +2,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Report.Filter;
+using FWO.Services.RuleTreeBuilder;
 using FWO.Ui.Display;
 using System.Text;
 
@@ -9,7 +10,7 @@ namespace FWO.Report
 {
     public class ReportNatRules : ReportRules
     {
-        public ReportNatRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
+        public ReportNatRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : base(query, userConfig, reportType, ruleTreeBuilder) { }
 
         private const int ColumnCount = 12;
 

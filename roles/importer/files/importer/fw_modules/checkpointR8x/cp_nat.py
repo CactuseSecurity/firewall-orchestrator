@@ -35,6 +35,18 @@ def normalize_nat_rules(
                 )
                 continue
 
+            if len(normalized_gateway["RulebaseLinks"]) == 0:
+                normalized_gateway["RulebaseLinks"].append(
+                    {
+                        "from_rulebase_uid": normalized_gateway["Uid"],
+                        "to_rulebase_uid": normalized_nat_rulebase.uid,
+                        "link_type": "nat",
+                        "is_initial": True,
+                        "is_global": False,
+                        "is_section": False,
+                    }
+                )
+
             if not any(
                 link
                 for link in normalized_gateway["RulebaseLinks"]
@@ -46,7 +58,7 @@ def normalize_nat_rules(
                     {
                         "from_rulebase_uid": normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"],
                         "to_rulebase_uid": normalized_nat_rulebase.uid,
-                        "link_type": "ordered",
+                        "link_type": "nat",
                         "is_initial": False,
                         "is_global": False,
                         "is_section": False,
@@ -79,7 +91,7 @@ def normalize_nat_rules(
                                 {
                                     "from_rulebase_uid": normalized_nat_rulebase.uid,
                                     "to_rulebase_uid": section_rulebase.uid,
-                                    "link_type": "concatenated",
+                                    "link_type": "nat",
                                     "is_initial": False,
                                     "is_global": False,
                                     "is_section": False,

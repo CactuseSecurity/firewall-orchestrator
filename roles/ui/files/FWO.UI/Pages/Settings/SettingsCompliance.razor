@@ -20,13 +20,6 @@
 </div>
 @(userConfig.GetText("U5324"))
 <hr />
-<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5813"))">
-    <label class="col-form-label col-sm-4">@userConfig.GetText("fix_criteria"):</label>
-	<div class="col-sm-2">
-		<button type="button" class="btn btn-sm btn-primary" @onclick="OpenCriteria">@(userConfig.GetText("edit_fix_crit"))</button>
-	</div>
-</div>
-<hr />
 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5812"))">
     <label class="col-form-label col-sm-4">@userConfig.GetText("import_matrix"):</label>
     <div class="row col-sm-6">

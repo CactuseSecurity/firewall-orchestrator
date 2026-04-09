@@ -71,3 +71,6 @@ CHECK (
     OR mgm_id IS NOT NULL
 );
 
+-- rule_owner
+ALTER TABLE rule_owner ADD CONSTRAINT rule_owner_matched_objects_for_ip_based
+CHECK ( owner_mapping_source_id  != 1 OR matched_objects IS NOT NULL );

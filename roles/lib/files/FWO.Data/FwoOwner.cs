@@ -27,6 +27,9 @@ namespace FWO.Data
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string? ImportSource { get; set; }
 
+        [JsonProperty("owner_networks"), JsonPropertyName("owner_networks")]
+        public OwnerNetwork[] OwnerNetworks { get; set; } = [];
+
         [JsonProperty("common_service_possible"), JsonPropertyName("common_service_possible")]
         public bool CommSvcPossible { get; set; } = false;
 

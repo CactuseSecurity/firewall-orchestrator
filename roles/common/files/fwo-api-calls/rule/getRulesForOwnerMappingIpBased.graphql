@@ -1,0 +1,28 @@
+query getRulesForOwnerMappingIpBased {
+  rule(where: { removed: { _is_null: true } }) {
+    rule_name
+    rule_id
+    rule_uid
+    rule_metadatum {
+      rule_metadata_id
+    }
+    rule_tos(where: { removed: { _is_null: true } }) {
+      object {
+        obj_id
+        obj_ip
+        obj_ip_end
+        obj_name
+        removed
+      }
+    }
+    rule_froms(where: { removed: { _is_null: true } }) {
+      object {
+        obj_id
+        obj_ip
+        obj_ip_end
+        obj_name
+        removed
+      }
+    }
+  }
+}

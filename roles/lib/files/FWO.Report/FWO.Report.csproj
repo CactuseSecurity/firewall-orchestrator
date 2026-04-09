@@ -8,7 +8,7 @@
 
   <ItemGroup>
 	  <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
-	  <PackageReference Include="PuppeteerSharp" Version="21.1.1" />
+	  <PackageReference Include="PuppeteerSharp" Version="24.40.0" />
   </ItemGroup>
 
   <ItemGroup>

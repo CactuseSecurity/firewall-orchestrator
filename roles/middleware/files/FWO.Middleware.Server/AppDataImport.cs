@@ -140,7 +140,7 @@ namespace FWO.Middleware.Server
             int deleteCounter = 0;
             int deleteFailCounter = 0;
 
-            ExistingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            ExistingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithNetworks);
             foreach (var incomingApp in ImportedApps)
             {
                 if (await SaveApp(incomingApp, ownerChangeTracker))
@@ -1286,6 +1286,6 @@ namespace FWO.Middleware.Server
         private async Task AddLogEntry(int severity, string level, string description)
         {
             await AddLogEntry(GlobalConst.kImportAppData, severity, level, description);
-        }
+        }        
     }
 }

@@ -18265,12 +18265,6 @@
                   "using": {
                     "foreign_key_constraint_on": "rule_metadata_id"
                   }
-                },
-                {
-                  "name": "stm_owner_mapping_source",
-                  "using": {
-                    "foreign_key_constraint_on": "owner_mapping_source_id"
-                  }
                 }
               ],
               "insert_permissions": [
@@ -18280,11 +18274,12 @@
                     "check": {},
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ]
                   },
                   "comment": ""
@@ -18295,11 +18290,12 @@
                     "check": {},
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ]
                   },
                   "comment": ""
@@ -18311,11 +18307,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {}
                   },
@@ -18326,11 +18323,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -18341,11 +18339,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -18357,11 +18356,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {}
                   },
@@ -18372,11 +18372,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {}
                   },
@@ -18387,11 +18388,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -18403,11 +18405,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -18419,11 +18422,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {}
                   },
@@ -18434,11 +18438,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -18450,11 +18455,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -18466,11 +18472,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -18482,11 +18489,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {}
                   },
@@ -18497,11 +18505,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {}
                   },
@@ -18514,11 +18523,12 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "matched_objects",
+                      "owner_id",
                       "owner_mapping_source_id",
                       "removed",
                       "rule_id",
-                      "rule_metadata_id",
-                      "owner_id"
+                      "rule_metadata_id"
                     ],
                     "filter": {},
                     "check": {}
@@ -22181,123 +22191,6 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "stm_owner_mapping_source",
-                "schema": "public"
-              },
-              "array_relationships": [
-                {
-                  "name": "rule_owners",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "owner_mapping_source_id",
-                      "table": {
-                        "name": "rule_owner",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                }
-              ],
-              "select_permissions": [
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "owner_mapping_source_type_id",
-                      "owner_mapping_source_type_name"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "fw-admin",
-                  "permission": {
-                    "columns": [
-                      "owner_mapping_source_type_id",
-                      "owner_mapping_source_type_name"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "importer",
-                  "permission": {
-                    "columns": [
-                      "owner_mapping_source_type_id",
-                      "owner_mapping_source_type_name"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "owner_mapping_source_type_id",
-                      "owner_mapping_source_type_name"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "owner_mapping_source_type_id",
-                      "owner_mapping_source_type_name"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "owner_mapping_source_type_id",
-                      "owner_mapping_source_type_name"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "owner_mapping_source_type_id",
-                      "owner_mapping_source_type_name"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter-viewall",
-                  "permission": {
-                    "columns": [
-                      "owner_mapping_source_type_id",
-                      "owner_mapping_source_type_name"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
                 }
               ]
             },

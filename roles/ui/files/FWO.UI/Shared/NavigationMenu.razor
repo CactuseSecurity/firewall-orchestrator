@@ -152,33 +152,36 @@
         userConfig.OnChange += OnChange;
         try
         {
-            await stateMatrix.Init(WorkflowPhases.request, apiConnection);
+            if (RequiresWorkflowStateInitialization())
+            {
+                await stateMatrix.Init(WorkflowPhases.request, apiConnection);
 
-            if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) ||
-                authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) ||
-                authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
-            {
-                firstWorkflowPage = "/request/ticketsoverview";
-            }
-            else if (stateMatrix.PhaseActive[WorkflowPhases.request] && authenticationStateTask!.Result.User.IsInRole(Roles.Requester))
-            {
-                firstWorkflowPage = "/request/tickets";
-            }
-            else if (stateMatrix.PhaseActive[WorkflowPhases.approval] && authenticationStateTask!.Result.User.IsInRole(Roles.Approver))
-            {
-                firstWorkflowPage = "/request/approvals";
-            }
-            else if (stateMatrix.PhaseActive[WorkflowPhases.planning] && authenticationStateTask!.Result.User.IsInRole(Roles.Planner))
-            {
-                firstWorkflowPage = "/request/plannings";
-            }
-            else if (stateMatrix.PhaseActive[WorkflowPhases.implementation] && authenticationStateTask!.Result.User.IsInRole(Roles.Implementer))
-            {
-                firstWorkflowPage = "/request/implementations";
-            }
-            else if (stateMatrix.PhaseActive[WorkflowPhases.review] && authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer))
-            {
-                firstWorkflowPage = "/request/reviews";
+                if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) ||
+                    authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) ||
+                    authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+                {
+                    firstWorkflowPage = "/request/ticketsoverview";
+                }
+                else if (stateMatrix.PhaseActive[WorkflowPhases.request] && authenticationStateTask!.Result.User.IsInRole(Roles.Requester))
+                {
+                    firstWorkflowPage = "/request/tickets";
+                }
+                else if (stateMatrix.PhaseActive[WorkflowPhases.approval] && authenticationStateTask!.Result.User.IsInRole(Roles.Approver))
+                {
+                    firstWorkflowPage = "/request/approvals";
+                }
+                else if (stateMatrix.PhaseActive[WorkflowPhases.planning] && authenticationStateTask!.Result.User.IsInRole(Roles.Planner))
+                {
+                    firstWorkflowPage = "/request/plannings";
+                }
+                else if (stateMatrix.PhaseActive[WorkflowPhases.implementation] && authenticationStateTask!.Result.User.IsInRole(Roles.Implementer))
+                {
+                    firstWorkflowPage = "/request/implementations";
+                }
+                else if (stateMatrix.PhaseActive[WorkflowPhases.review] && authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer))
+                {
+                    firstWorkflowPage = "/request/reviews";
+                }
             }
 
             availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
@@ -206,6 +209,18 @@
     private string WorkflowRoles()
     {
         return $"{Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}";
+    }
+
+    private bool RequiresWorkflowStateInitialization()
+    {
+        return authenticationStateTask!.Result.User.IsInRole(Roles.Admin) ||
+            authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) ||
+            authenticationStateTask!.Result.User.IsInRole(Roles.Auditor) ||
+            authenticationStateTask!.Result.User.IsInRole(Roles.Requester) ||
+            authenticationStateTask!.Result.User.IsInRole(Roles.Approver) ||
+            authenticationStateTask!.Result.User.IsInRole(Roles.Planner) ||
+            authenticationStateTask!.Result.User.IsInRole(Roles.Implementer) ||
+            authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer);
     }
 
     private string ComplianceRoles()

@@ -1,5 +1,6 @@
 mutation addNotification(
   $client: String!
+  $userId: Int
   $channel: String!
   $name: String
   $recipientTo: String
@@ -22,6 +23,7 @@ mutation addNotification(
   ) {
   insert_notification(objects: {
     notification_client: $client
+    user_id: $userId
     channel: $channel
     name: $name
     recipient_to: $recipientTo

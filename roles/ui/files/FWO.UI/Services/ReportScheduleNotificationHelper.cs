@@ -116,6 +116,7 @@ namespace FWO.Ui.Services
                 EmailAddressCc = "",
                 EmailSubject = notificationSettings.EmailSubject,
                 EmailBody = notificationSettings.EmailBody,
+                UserId = reportSchedule.ScheduleOwningUser.DbId,
                 ScheduleId = reportSchedule.Id,
                 BundleType = notificationSettings.BundleType,
                 BundleId = notificationSettings.BundleId,

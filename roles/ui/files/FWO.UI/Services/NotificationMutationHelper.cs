@@ -42,7 +42,31 @@ namespace FWO.Ui.Services
         /// </summary>
         private static object BuildAddVariables(NotificationClient client, FwoNotification notification)
         {
-            return NotificationMutationVariables.ForAdd(client, notification);
+            NotificationMutationVariables variables = NotificationMutationVariables.Create(notification);
+            return new
+            {
+                client = client.ToString(),
+                userId = variables.userId,
+                channel = variables.channel,
+                name = variables.name,
+                recipientTo = variables.recipientTo,
+                emailAddressTo = variables.emailAddressTo,
+                recipientCc = variables.recipientCc,
+                emailAddressCc = variables.emailAddressCc,
+                subject = variables.subject,
+                emailBody = variables.emailBody,
+                scheduleId = variables.scheduleId,
+                bundleType = variables.bundleType,
+                bundleId = variables.bundleId,
+                layout = variables.layout,
+                deadline = variables.deadline,
+                intervalBeforeDeadline = variables.intervalBeforeDeadline,
+                offsetBeforeDeadline = variables.offsetBeforeDeadline,
+                intervalAfterDeadline = variables.intervalAfterDeadline,
+                initialOffsetAfterDeadline = variables.initialOffsetAfterDeadline,
+                offsetAfterDeadline = variables.offsetAfterDeadline,
+                repetitionsAfterDeadline = variables.repetitionsAfterDeadline
+            };
         }
 
         /// <summary>
@@ -50,7 +74,31 @@ namespace FWO.Ui.Services
         /// </summary>
         private static object BuildUpdateVariables(FwoNotification notification)
         {
-            return NotificationMutationVariables.ForUpdate(notification);
+            NotificationMutationVariables variables = NotificationMutationVariables.Create(notification);
+            return new
+            {
+                id = notification.Id,
+                userId = variables.userId,
+                channel = variables.channel,
+                name = variables.name,
+                recipientTo = variables.recipientTo,
+                emailAddressTo = variables.emailAddressTo,
+                recipientCc = variables.recipientCc,
+                emailAddressCc = variables.emailAddressCc,
+                subject = variables.subject,
+                emailBody = variables.emailBody,
+                scheduleId = variables.scheduleId,
+                bundleType = variables.bundleType,
+                bundleId = variables.bundleId,
+                layout = variables.layout,
+                deadline = variables.deadline,
+                intervalBeforeDeadline = variables.intervalBeforeDeadline,
+                offsetBeforeDeadline = variables.offsetBeforeDeadline,
+                intervalAfterDeadline = variables.intervalAfterDeadline,
+                initialOffsetAfterDeadline = variables.initialOffsetAfterDeadline,
+                offsetAfterDeadline = variables.offsetAfterDeadline,
+                repetitionsAfterDeadline = variables.repetitionsAfterDeadline
+            };
         }
 
         /// <summary>
@@ -73,6 +121,8 @@ namespace FWO.Ui.Services
             {
                 Id = notification.Id,
                 NotificationClient = notification.NotificationClient,
+                UserId = notification.UserId,
+                OwnerId = notification.OwnerId,
                 Channel = notification.Channel,
                 Name = notification.Name,
                 RecipientTo = notification.RecipientTo,
@@ -101,9 +151,7 @@ namespace FWO.Ui.Services
         /// </summary>
         private sealed record NotificationMutationVariables
         {
-            public int? id { get; init; }
-
-            public string? client { get; init; }
+            public int? userId { get; init; }
 
             public string channel { get; init; } = "";
 
@@ -143,20 +191,11 @@ namespace FWO.Ui.Services
 
             public int? repetitionsAfterDeadline { get; init; }
 
-            public static NotificationMutationVariables ForAdd(NotificationClient client, FwoNotification notification)
-            {
-                return Create(notification) with { client = client.ToString() };
-            }
-
-            public static NotificationMutationVariables ForUpdate(FwoNotification notification)
-            {
-                return Create(notification) with { id = notification.Id };
-            }
-
-            private static NotificationMutationVariables Create(FwoNotification notification)
+            public static NotificationMutationVariables Create(FwoNotification notification)
             {
                 return new NotificationMutationVariables
                 {
+                    userId = notification.UserId,
                     channel = notification.Channel.ToString(),
                     name = notification.Name,
                     recipientTo = notification.RecipientTo.ToString(),

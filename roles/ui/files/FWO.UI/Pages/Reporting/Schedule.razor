@@ -273,7 +273,16 @@
 
     private async Task OnAddReportScheduleButtonClick()
     {
-        reportScheduleInEdit = new ReportSchedule() { RepeatInterval = SchedulerInterval.Never, Archive = false };
+        reportScheduleInEdit = new ReportSchedule()
+        {
+            RepeatInterval = SchedulerInterval.Never,
+            Archive = false,
+            ScheduleOwningUser = new UiUser
+            {
+                DbId = userConfig.User.DbId,
+                Name = userConfig.User.Name
+            }
+        };
         ResetScheduleNotificationSettings();
         ShowAddReportScheduleDialog = true;
     }
@@ -326,6 +335,8 @@
 
                 ReturnIdWrapper response = await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportSchedule, queryVariablesReportSchedule);
                 reportScheduleInEdit.Id = response.ReturnIds![0].NewId;
+                reportScheduleInEdit.ScheduleOwningUser.DbId = uiUserDbId;
+                reportScheduleInEdit.ScheduleOwningUser.Name = userConfig.User.Name;
                 if (scheduleToEmail)
                 {
                     reportScheduleInEdit.Notifications = await ReportScheduleNotificationHelper.CreateNotifications(apiConnection, reportScheduleInEdit,

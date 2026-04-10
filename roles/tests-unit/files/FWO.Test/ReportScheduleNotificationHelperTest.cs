@@ -51,8 +51,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual("single@example.org", createdNotifications[0].EmailAddressTo);
             ClassicAssert.AreEqual("Single Subject", createdNotifications[0].EmailSubject);
             ClassicAssert.AreEqual("Single Body", createdNotifications[0].EmailBody);
+            ClassicAssert.AreEqual(42, createdNotifications[0].UserId);
             ClassicAssert.AreEqual(NotificationLayout.CsvAsAttachment, createdNotifications[0].Layout);
             ClassicAssert.AreEqual(NotificationDeadline.None, createdNotifications[0].Deadline);
+            ClassicAssert.AreEqual(42, apiConnection.AddCalls[0].UserId);
             ClassicAssert.IsNull(apiConnection.AddCalls[0].BundleType);
             ClassicAssert.IsNull(apiConnection.AddCalls[0].BundleId);
         }
@@ -124,6 +126,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("updated@example.org", syncedNotifications[0].EmailAddressTo);
             ClassicAssert.AreEqual("New Subject", syncedNotifications[0].EmailSubject);
             ClassicAssert.AreEqual("New Body", syncedNotifications[0].EmailBody);
+            ClassicAssert.AreEqual(42, syncedNotifications[0].UserId);
             ClassicAssert.AreEqual(NotificationDeadline.None, syncedNotifications[0].Deadline);
             ClassicAssert.IsNull(syncedNotifications[0].IntervalBeforeDeadline);
             ClassicAssert.IsNull(syncedNotifications[0].RepeatIntervalAfterDeadline);
@@ -131,6 +134,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("updated@example.org", apiConnection.UpdateCalls[0].EmailAddressTo);
             ClassicAssert.AreEqual("New Subject", apiConnection.UpdateCalls[0].Subject);
             ClassicAssert.AreEqual("New Body", apiConnection.UpdateCalls[0].EmailBody);
+            ClassicAssert.AreEqual(42, apiConnection.UpdateCalls[0].UserId);
         }
 
         private static ReportSchedule NewReportSchedule(params string[] formats)
@@ -139,6 +143,7 @@ namespace FWO.Test
             {
                 Id = 7,
                 Name = "Weekly Report",
+                ScheduleOwningUser = new() { DbId = 42, Name = "report.owner" },
                 OutputFormat = formats.Select(format => new FileFormat { Name = format }).ToList()
             };
         }
@@ -215,6 +220,7 @@ namespace FWO.Test
         private sealed class NotificationMutationCall
         {
             internal int Id { get; init; }
+            internal int UserId { get; init; }
             internal string Name { get; init; } = "";
             internal string EmailAddressTo { get; init; } = "";
             internal string Subject { get; init; } = "";
@@ -228,6 +234,7 @@ namespace FWO.Test
                 return new NotificationMutationCall
                 {
                     Id = ReadInt(variables, "id"),
+                    UserId = ReadInt(variables, "userId"),
                     Name = ReadString(variables, "name"),
                     EmailAddressTo = ReadString(variables, "emailAddressTo"),
                     Subject = ReadString(variables, "subject"),

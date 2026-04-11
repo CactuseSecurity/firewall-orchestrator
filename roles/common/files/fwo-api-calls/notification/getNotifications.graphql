@@ -3,6 +3,7 @@ query getNotifications ($client: String! ){
   notification (where: { notification_client: {_eq: $client} } order_by: { id: asc }){
     id
     notification_client
+    user_id
     name
     owner_id 
     channel

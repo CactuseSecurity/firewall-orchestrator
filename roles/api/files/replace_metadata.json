@@ -10597,7 +10597,20 @@
                       "user_id",
                       "last_sent"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
                     "check": {
                       "_or": [
                         {
@@ -10644,7 +10657,20 @@
                       "user_id",
                       "last_sent"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
                     "check": {
                       "_or": [
                         {
@@ -10702,7 +10728,20 @@
                       "user_id",
                       "last_sent"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
                     "check": {
                       "_or": [
                         {
@@ -10749,7 +10788,20 @@
                       "user_id",
                       "last_sent"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
                     "check": {
                       "_or": [
                         {
@@ -10796,7 +10848,20 @@
                       "user_id",
                       "last_sent"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
                     "check": {
                       "_or": [
                         {

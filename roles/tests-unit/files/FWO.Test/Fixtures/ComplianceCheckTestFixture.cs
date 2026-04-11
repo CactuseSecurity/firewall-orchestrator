@@ -184,14 +184,64 @@ namespace FWO.Test.Fixtures
             NetworkUser user = new();
             NetworkObject source = CreateNetworkObject(ruleID, "source", ObjectType.IPRange, sourceHigh);
             NetworkObject destination = CreateNetworkObject(ruleID, "destination", ObjectType.IPRange, destinationHigh);
-            ServiceWrapper service = new();
-            service.Content.Uid = $"service-uid-{ruleID}";
+            ServiceWrapper service = new()
+            {
+                Content = CreateNetworkService(
+                    $"service-uid-{ruleID}",
+                    $"service-{ruleID}",
+                    6,
+                    "TCP",
+                    80,
+                    80)
+            };
 
             rule.Froms = [new(user, source)];
             rule.Tos = [new(user, destination)];
             rule.Services = [service];
 
             return rule;
+        }
+
+        protected virtual Rule CreateRuleWithService(string serviceUid, string serviceName, int protoId, string protocolName, int? port = null, int? portEnd = null)
+        {
+            Rule rule = CreateSimpleRule(1);
+            rule.Services =
+            [
+                new ServiceWrapper
+                {
+                    Content = CreateNetworkService(serviceUid, serviceName, protoId, protocolName, port, portEnd)
+                }
+            ];
+
+            return rule;
+        }
+
+        protected virtual Rule CreateRuleWithServiceGroup(NetworkService groupService)
+        {
+            Rule rule = CreateSimpleRule(1);
+            rule.Services =
+            [
+                new ServiceWrapper
+                {
+                    Content = groupService
+                }
+            ];
+
+            return rule;
+        }
+
+        protected virtual NetworkService CreateNetworkService(string serviceUid, string serviceName, int protoId, string protocolName, int? port = null, int? portEnd = null)
+        {
+            return new NetworkService
+            {
+                Uid = serviceUid,
+                Name = serviceName,
+                ProtoId = protoId,
+                Protocol = new NetworkProtocol { Id = protoId, Name = protocolName },
+                DestinationPort = port,
+                DestinationPortEnd = portEnd ?? port,
+                Type = new NetworkServiceType { Name = ServiceType.SimpleService }
+            };
         }
 
         protected virtual NetworkObject CreateNetworkObject(int ruleId, string uidPrefix, string objectTypeName, bool? highIpRange = null)

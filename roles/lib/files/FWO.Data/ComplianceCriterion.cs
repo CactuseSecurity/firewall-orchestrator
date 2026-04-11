@@ -34,6 +34,9 @@ namespace FWO.Data
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
+        [JsonProperty("conditions"), JsonPropertyName("conditions")]
+        public List<ComplianceCriterionCondition> Conditions { get; set; } = [];
+
         [JsonProperty("created"), JsonPropertyName("created")]
         public DateTime Created { get; set; } = DateTime.UtcNow;
 

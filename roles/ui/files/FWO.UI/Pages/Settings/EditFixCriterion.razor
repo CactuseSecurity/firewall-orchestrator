@@ -55,9 +55,31 @@
                                 </div>
                             </Display>
                         </EditList>
-                        <div class="row col-sm-12 mt-1">
-                            <input type="text" class="col-sm-10" @bind="ActForbiddenElement" />
-                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddForbiddenElement"
+                        <div class="row col-sm-12 mt-2">
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                            <input type="text" class="col-sm-8" @bind="ActForbiddenElement" @bind:event="oninput" />
+                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddForbiddenUid"
+                                @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                        </div>
+                        <div class="row col-sm-12 mt-2">
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("protocol")):</label>
+                            <div class="col-sm-4">
+                                <Dropdown ElementType="IpProtocol" @bind-SelectedElement="SelectedProtocol"
+                                          ElementToString="@(p => p?.Name ?? "-")" Elements="IpProtocols"
+                                          Nullable="true" NoneSelectedText="-">
+                                    <ElementTemplate Context="protocol">
+                                        @(protocol?.Name ?? "-")
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
+                            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("port")):</label>
+                            <input type="number" min="1" max="GlobalConst.kMaxPortNumber" class="col-sm-2" @bind="ActForbiddenPortStart" @bind:event="oninput" />
+                            <label class="col-sm-1 col-form-label col-form-label-sm text-center">-</label>
+                            <input type="number" min="1" max="GlobalConst.kMaxPortNumber" class="col-sm-2" @bind="ActForbiddenPortEnd" @bind:event="oninput" />
+                        </div>
+                        <div class="row col-sm-12 mt-2">
+                            <div class="col-sm-10"></div>
+                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddForbiddenCondition"
                                 @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                         </div>
                     </div>
@@ -111,23 +133,88 @@
     private List<string> ForbiddenElementsToDelete = [];
     private string ActForbiddenElement = "";
     private List<string> ActElements = [];
+    private List<IpProtocol> IpProtocols = [];
+    private IpProtocol? SelectedProtocol = null;
+    private int? ActForbiddenPortStart = null;
+    private int? ActForbiddenPortEnd = null;
+    private bool PopupInitialized = false;
 
+    private sealed class CriterionConditionInsertInput
+    {
+        [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
+        public int? CriterionId { get; set; }
+
+        [JsonProperty("group_order"), JsonPropertyName("group_order")]
+        public int GroupOrder { get; set; }
+
+        [JsonProperty("position"), JsonPropertyName("position")]
+        public int Position { get; set; }
+
+        [JsonProperty("field"), JsonPropertyName("field")]
+        public string Field { get; set; } = "";
+
+        [JsonProperty("operator"), JsonPropertyName("operator")]
+        public string Operator { get; set; } = "";
+
+        [JsonProperty("value_string"), JsonPropertyName("value_string")]
+        public string? ValueString { get; set; }
+
+        [JsonProperty("value_int"), JsonPropertyName("value_int")]
+        public int? ValueInt { get; set; }
+
+        [JsonProperty("value_int_end"), JsonPropertyName("value_int_end")]
+        public int? ValueIntEnd { get; set; }
+
+        [JsonProperty("value_ref"), JsonPropertyName("value_ref")]
+        public long? ValueRef { get; set; }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        IpProtocols = DisplayBase.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols));
+    }
 
     protected override void OnParametersSet()
     {
-        if(Display)
+        NormalizeSelectedCriterion();
+
+        if(Display && !PopupInitialized)
         {
-            ActElements = [.. SelectedCriterion.Content.Split(',').Select(s => s.Trim())
-                    .Where(s => !string.IsNullOrEmpty(s))];
+            LoadForbiddenElements();
+            SelectedProtocol = null;
+            ActForbiddenElement = "";
+            ActForbiddenPortStart = null;
+            ActForbiddenPortEnd = null;
+            PopupInitialized = true;
         }
     }
 
-    private void AddForbiddenElement()
+    private void NormalizeSelectedCriterion()
     {
-        if (ActForbiddenElement != "")
+        SelectedCriterion ??= new();
+        SelectedCriterion.Content ??= "";
+        SelectedCriterion.Conditions ??= [];
+    }
+
+    private void AddForbiddenUid()
+    {
+        string forbiddenUid = ActForbiddenElement.Trim();
+        if (forbiddenUid != "")
         {
-            ForbiddenElementsToAdd.Add(ActForbiddenElement);
+            AddForbiddenElement(forbiddenUid);
             ActForbiddenElement = "";
+        }
+    }
+
+    private void AddForbiddenCondition()
+    {
+        if (TryBuildStructuredForbiddenElement(out string? forbiddenElement) && forbiddenElement != null)
+        {
+            AddForbiddenElement(forbiddenElement);
+            SelectedProtocol = null;
+            ActForbiddenPortStart = null;
+            ActForbiddenPortEnd = null;
         }
     }
 
@@ -141,20 +228,9 @@
         try
         {
             int oldCritId = SelectedCriterion.Id;
-            if(ForbiddenElementsToAdd.Count > 0 || ForbiddenElementsToDelete.Count > 0)
-            {
-                foreach(var elem in ForbiddenElementsToDelete)
-                {
-                    ActElements.Remove(elem);
-                }
-                ActElements.AddRange(ForbiddenElementsToAdd);
-                SelectedCriterion.Content = string.Join(",", ActElements);
-            }
+            CapturePendingForbiddenElementInputs();
+            ApplyForbiddenElementChanges();
 
-            if(!AddMode)
-            {
-                await RemoveCriterion(SelectedCriterion);
-            }
             await AddCriterion();
             if(AddMode)
             {
@@ -163,6 +239,7 @@
             else
             {
                 await UpdateUsingPolicies(oldCritId);
+                await RemoveCriterion(oldCritId);
             }
             Close();
         }
@@ -172,13 +249,80 @@
         }
     }
 
+    private void CapturePendingForbiddenElementInputs()
+    {
+        if (SelectedCriterion.CriterionType != CriterionType.ForbiddenService.ToString())
+        {
+            return;
+        }
+
+        string forbiddenUid = ActForbiddenElement.Trim();
+        if (forbiddenUid != "")
+        {
+            AddForbiddenElement(forbiddenUid);
+            ActForbiddenElement = "";
+        }
+
+        if (TryBuildStructuredForbiddenElement(out string? forbiddenElement) && forbiddenElement != null)
+        {
+            AddForbiddenElement(forbiddenElement);
+            SelectedProtocol = null;
+            ActForbiddenPortStart = null;
+            ActForbiddenPortEnd = null;
+        }
+    }
+
     private async Task AddCriterion()
     {
+        List<CriterionConditionInsertInput> conditionInsertObjects = GetConditionInsertObjects();
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion,
-            new { name = SelectedCriterion.Name, CriterionType = SelectedCriterion.CriterionType, content = SelectedCriterion.Content })).ReturnIds;
-        if(returnIds != null && returnIds.Length > 0)
+            new
+            {
+                name = SelectedCriterion.Name,
+                criterionType = SelectedCriterion.CriterionType,
+                content = string.IsNullOrWhiteSpace(SelectedCriterion.Content) ? null : SelectedCriterion.Content,
+                comment = SelectedCriterion.Comment,
+                importSource = SelectedCriterion.ImportSource
+            })).ReturnIds;
+        if(returnIds == null || returnIds.Length == 0)
         {
-            SelectedCriterion.Id = returnIds[0].InsertedId;
+            throw new InvalidOperationException("Failed to create compliance criterion.");
+        }
+        if(returnIds[0].InsertedId <= 0)
+        {
+            throw new InvalidOperationException("Created compliance criterion did not return a valid ID.");
+        }
+
+        SelectedCriterion.Id = returnIds[0].InsertedId;
+
+        if (conditionInsertObjects.Count > 0)
+        {
+            await AddCriterionConditions(SelectedCriterion.Id, conditionInsertObjects);
+        }
+    }
+
+    private async Task AddCriterionConditions(int criterionId, List<CriterionConditionInsertInput> conditionInsertObjects)
+    {
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterionConditions,
+            new
+            {
+                conditions = conditionInsertObjects.Select(condition => new CriterionConditionInsertInput
+                {
+                    CriterionId = criterionId,
+                    GroupOrder = condition.GroupOrder,
+                    Position = condition.Position,
+                    Field = condition.Field,
+                    Operator = condition.Operator,
+                    ValueString = condition.ValueString,
+                    ValueInt = condition.ValueInt,
+                    ValueIntEnd = condition.ValueIntEnd,
+                    ValueRef = condition.ValueRef
+                }).ToList()
+            })).ReturnIds;
+
+        if (returnIds == null || returnIds.Length != conditionInsertObjects.Count)
+        {
+            throw new InvalidOperationException("Failed to create compliance criterion conditions.");
         }
     }
 
@@ -199,12 +343,12 @@
         }
     }
 
-    private async Task RemoveCriterion(ComplianceCriterion criterion)
+    private async Task RemoveCriterion(int criterionId)
     {
-        if(criterion.Removed == null)
+        if(criterionId > 0)
         {
             await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
-                new { id = criterion.Id, removed = DateTime.UtcNow });
+                new { id = criterionId, removed = DateTime.UtcNow });
         }
     }
 
@@ -212,7 +356,252 @@
     {
         ForbiddenElementsToAdd = [];
         ForbiddenElementsToDelete = [];
+        PopupInitialized = false;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
+    }
+
+    private void AddForbiddenElement(string forbiddenElement)
+    {
+        if (!ActElements.Contains(forbiddenElement) && !ForbiddenElementsToAdd.Contains(forbiddenElement))
+        {
+            ForbiddenElementsToAdd.Add(forbiddenElement);
+        }
+    }
+
+    private void ApplyForbiddenElementChanges()
+    {
+        if (ForbiddenElementsToAdd.Count > 0 || ForbiddenElementsToDelete.Count > 0)
+        {
+            foreach (string element in ForbiddenElementsToDelete)
+            {
+                ActElements.Remove(element);
+            }
+
+            ActElements.AddRange(ForbiddenElementsToAdd.Where(element => !ActElements.Contains(element)));
+        }
+
+        if (SelectedCriterion.CriterionType == CriterionType.ForbiddenService.ToString())
+        {
+            SelectedCriterion.Conditions = BuildForbiddenConditions(ActElements);
+            SelectedCriterion.Content = "";
+        }
+        else
+        {
+            SelectedCriterion.Content = string.Join(",", ActElements);
+        }
+    }
+
+    private void LoadForbiddenElements()
+    {
+        ForbiddenElementsToAdd = [];
+        ForbiddenElementsToDelete = [];
+
+        List<ComplianceCriterionCondition> activeConditions = [.. (SelectedCriterion.Conditions ?? [])
+            .Where(condition => condition.Removed == null)];
+
+        if (SelectedCriterion.CriterionType == CriterionType.ForbiddenService.ToString() && activeConditions.Count > 0)
+        {
+            ActElements = [.. activeConditions
+                .GroupBy(condition => condition.GroupOrder)
+                .OrderBy(group => group.Key)
+                .Select(FormatForbiddenConditionGroup)
+                .Where(conditionGroup => conditionGroup != "")];
+            return;
+        }
+
+        ActElements = [.. (SelectedCriterion.Content ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(element => element.Trim())
+            .Where(element => element != "")];
+    }
+
+    private string FormatForbiddenConditionGroup(IGrouping<int, ComplianceCriterionCondition> conditionGroup)
+    {
+        ComplianceCriterionCondition? serviceUidCondition = conditionGroup.FirstOrDefault(condition => condition.Field == ComplianceConditionFields.ServiceUid);
+        if (serviceUidCondition != null)
+        {
+            return serviceUidCondition.ValueRef?.ToString() ?? serviceUidCondition.ValueString ?? "";
+        }
+
+        ComplianceCriterionCondition? portCondition = conditionGroup.FirstOrDefault(condition => condition.Field == ComplianceConditionFields.Port);
+        ComplianceCriterionCondition? protocolCondition = conditionGroup.FirstOrDefault(condition => condition.Field == ComplianceConditionFields.Protocol);
+
+        string portToken = portCondition == null ?
+            "*" :
+            portCondition.ValueIntEnd == null || portCondition.ValueInt == portCondition.ValueIntEnd ?
+                $"{portCondition.ValueInt}" :
+                $"{portCondition.ValueInt}-{portCondition.ValueIntEnd}";
+
+        string protocolToken = protocolCondition == null ?
+            "*" :
+            protocolCondition.ValueInt == null ?
+                protocolCondition.ValueString ?? protocolCondition.ValueRef?.ToString() ?? "*" :
+                IpProtocols.FirstOrDefault(protocol => protocol.Id == protocolCondition.ValueInt)?.Name ?? protocolCondition.ValueInt?.ToString() ?? "*";
+
+        return $"{portToken}/{protocolToken}";
+    }
+
+    private bool TryBuildStructuredForbiddenElement(out string? forbiddenElement)
+    {
+        forbiddenElement = null;
+
+        if (SelectedProtocol == null && ActForbiddenPortStart == null && ActForbiddenPortEnd == null)
+        {
+            return false;
+        }
+
+        int? portStart = ActForbiddenPortStart;
+        int? portEnd = ActForbiddenPortEnd;
+
+        if (portStart == null && portEnd != null)
+        {
+            portStart = portEnd;
+        }
+
+        if (portEnd == null && portStart != null)
+        {
+            portEnd = portStart;
+        }
+
+        if ((portStart != null || portEnd != null)
+            && (portStart == null || portEnd == null
+                || portStart < 1 || portStart > GlobalConst.kMaxPortNumber
+                || portEnd < 1 || portEnd > GlobalConst.kMaxPortNumber
+                || portStart > portEnd))
+        {
+            return false;
+        }
+
+        string portToken = portStart == null ? "*" : portStart == portEnd ? $"{portStart}" : $"{portStart}-{portEnd}";
+        string protocolToken = SelectedProtocol?.Name ?? "*";
+        forbiddenElement = $"{portToken}/{protocolToken}";
+
+        return true;
+    }
+
+    private List<ComplianceCriterionCondition> BuildForbiddenConditions(IEnumerable<string> forbiddenElements)
+    {
+        List<ComplianceCriterionCondition> conditions = [];
+        int groupOrder = 1;
+
+        foreach (string forbiddenElement in forbiddenElements)
+        {
+            conditions.AddRange(ParseForbiddenConditionGroup(forbiddenElement, groupOrder));
+            groupOrder++;
+        }
+
+        return conditions;
+    }
+
+    private List<ComplianceCriterionCondition> ParseForbiddenConditionGroup(string forbiddenElement, int groupOrder)
+    {
+        string trimmedElement = forbiddenElement.Trim();
+        int separatorIndex = trimmedElement.IndexOf('/');
+
+        if (separatorIndex <= 0 || separatorIndex == trimmedElement.Length - 1)
+        {
+            return
+            [
+                new ComplianceCriterionCondition
+                {
+                    GroupOrder = groupOrder,
+                    Position = 1,
+                    Field = ComplianceConditionFields.ServiceUid,
+                    Operator = ComplianceConditionOperators.Equal,
+                    ValueString = trimmedElement
+                }
+            ];
+        }
+
+        string portToken = trimmedElement[..separatorIndex].Trim();
+        string protocolToken = trimmedElement[(separatorIndex + 1)..].Trim();
+        (int? portStart, int? portEnd) = ParsePortToken(portToken);
+        List<ComplianceCriterionCondition> conditions = [];
+        int position = 1;
+
+        if (protocolToken != "*" && protocolToken != "")
+        {
+            int? protocolId = ResolveProtocolId(protocolToken);
+            conditions.Add(new ComplianceCriterionCondition
+            {
+                GroupOrder = groupOrder,
+                Position = position++,
+                Field = ComplianceConditionFields.Protocol,
+                Operator = ComplianceConditionOperators.Equal,
+                ValueInt = protocolId,
+                ValueString = protocolId == null ? protocolToken : null
+            });
+        }
+
+        if (portStart != null)
+        {
+            conditions.Add(new ComplianceCriterionCondition
+            {
+                GroupOrder = groupOrder,
+                Position = position,
+                Field = ComplianceConditionFields.Port,
+                Operator = ComplianceConditionOperators.Overlaps,
+                ValueInt = portStart,
+                ValueIntEnd = portEnd ?? portStart
+            });
+        }
+
+        return conditions;
+    }
+
+    private static (int? PortStart, int? PortEnd) ParsePortToken(string portToken)
+    {
+        if (portToken == "*" || portToken == "")
+        {
+            return (null, null);
+        }
+
+        string[] rangeTokens = portToken.Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (rangeTokens.Length == 1 && int.TryParse(rangeTokens[0], out int singlePort))
+        {
+            return (singlePort, singlePort);
+        }
+
+        if (rangeTokens.Length == 2
+            && int.TryParse(rangeTokens[0], out int rangeStart)
+            && int.TryParse(rangeTokens[1], out int rangeEnd))
+        {
+            return (rangeStart, rangeEnd);
+        }
+
+        return (null, null);
+    }
+
+    private int? ResolveProtocolId(string protocolToken)
+    {
+        if (int.TryParse(protocolToken, out int protocolId))
+        {
+            return protocolId;
+        }
+
+        return IpProtocols.FirstOrDefault(protocol => protocol.Name.Equals(protocolToken, StringComparison.OrdinalIgnoreCase))?.Id;
+    }
+
+    private List<CriterionConditionInsertInput> GetConditionInsertObjects()
+    {
+        if (SelectedCriterion.CriterionType != CriterionType.ForbiddenService.ToString())
+        {
+            return [];
+        }
+
+        return [.. (SelectedCriterion.Conditions ?? [])
+            .Where(condition => condition.Removed == null)
+            .Select(condition => new CriterionConditionInsertInput
+            {
+                GroupOrder = condition.GroupOrder,
+                Position = condition.Position,
+                Field = condition.Field,
+                Operator = condition.Operator,
+                ValueString = condition.ValueString,
+                ValueInt = condition.ValueInt,
+                ValueIntEnd = condition.ValueIntEnd,
+                ValueRef = condition.ValueRef
+            })];
     }
 }

@@ -16,6 +16,18 @@
               },
               "array_relationships": [
                 {
+                  "name": "conditions",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "criterion_id",
+                      "table": {
+                        "name": "condition",
+                        "schema": "compliance"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "ip_ranges",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -227,6 +239,222 @@
                     ],
                     "filter": {},
                     "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "condition",
+                "schema": "compliance"
+              },
+              "object_relationships": [
+                {
+                  "name": "criterion",
+                  "using": {
+                    "foreign_key_constraint_on": "criterion_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "criterion_id",
+                      "group_order",
+                      "position",
+                      "field",
+                      "operator",
+                      "value_string",
+                      "value_int",
+                      "value_int_end",
+                      "value_ref",
+                      "created",
+                      "removed"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "criterion_id",
+                      "group_order",
+                      "position",
+                      "field",
+                      "operator",
+                      "value_string",
+                      "value_int",
+                      "value_int_end",
+                      "value_ref",
+                      "created",
+                      "removed"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "criterion_id",
+                      "group_order",
+                      "position",
+                      "field",
+                      "operator",
+                      "value_string",
+                      "value_int",
+                      "value_int_end",
+                      "value_ref",
+                      "created",
+                      "removed"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "criterion_id",
+                      "group_order",
+                      "position",
+                      "field",
+                      "operator",
+                      "value_string",
+                      "value_int",
+                      "value_int_end",
+                      "value_ref",
+                      "created",
+                      "removed"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "criterion_id",
+                      "group_order",
+                      "position",
+                      "field",
+                      "operator",
+                      "value_string",
+                      "value_int",
+                      "value_int_end",
+                      "value_ref",
+                      "created",
+                      "removed"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "criterion_id",
+                      "group_order",
+                      "position",
+                      "field",
+                      "operator",
+                      "value_string",
+                      "value_int",
+                      "value_int_end",
+                      "value_ref",
+                      "created",
+                      "removed"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "criterion_id",
+                      "group_order",
+                      "position",
+                      "field",
+                      "operator",
+                      "value_string",
+                      "value_int",
+                      "value_int_end",
+                      "value_ref",
+                      "created",
+                      "removed"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "criterion_id",
+                      "group_order",
+                      "position",
+                      "field",
+                      "operator",
+                      "value_string",
+                      "value_int",
+                      "value_int_end",
+                      "value_ref",
+                      "created",
+                      "removed"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "criterion_id",
+                      "group_order",
+                      "position",
+                      "field",
+                      "operator",
+                      "value_string",
+                      "value_int",
+                      "value_int_end",
+                      "value_ref",
+                      "created",
+                      "removed"
+                    ],
+                    "filter": {},
+                    "check": {}
                   },
                   "comment": ""
                 }

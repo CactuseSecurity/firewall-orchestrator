@@ -25,9 +25,11 @@ namespace FWO.Api.Client.Queries
         public static readonly string getPolicyById;
 
         public static readonly string addCriterion;
+        public static readonly string addCriterionConditions;
         public static readonly string removeCriterion;
         public static readonly string updateCriterionMetadata;
         public static readonly string getCriteria;
+        public static readonly string getCriterionConditions;
         public static readonly string getMatrices;
         public static readonly string getMatrixByName;
 
@@ -60,9 +62,43 @@ namespace FWO.Api.Client.Queries
                 getPolicyById = GetQueryText("compliance/getPolicyById.graphql");
 
                 addCriterion = GetQueryText("compliance/addCriterion.graphql");
+                addCriterionConditions = Compact(@"
+                    mutation addCriterionConditions(
+                      $conditions: [compliance_condition_insert_input!]!
+                      ) {
+                      insert_compliance_condition(objects: $conditions) {
+                        returning {
+                          insertedId: id
+                        }
+                      }
+                    }");
                 removeCriterion = GetQueryText("compliance/removeCriterion.graphql");
                 updateCriterionMetadata = GetQueryText("compliance/updateCriterionMetadata.graphql");
                 getCriteria = GetQueryText("compliance/getCriteria.graphql");
+                getCriterionConditions = Compact(@"
+                    query getCriterionConditions(
+                      $criterionIds: [Int!]
+                      ) {
+                      compliance_condition(
+                        where: {
+                          removed: { _is_null: true }
+                          criterion_id: { _in: $criterionIds }
+                        }
+                      ) {
+                        id
+                        criterion_id
+                        group_order
+                        position
+                        field
+                        operator
+                        value_string
+                        value_int
+                        value_int_end
+                        value_ref
+                        created
+                        removed
+                      }
+                    }");
                 getMatrices = GetQueryText("compliance/getMatrices.graphql");
                 getMatrixByName = GetQueryText("compliance/getMatrixByName.graphql");
 

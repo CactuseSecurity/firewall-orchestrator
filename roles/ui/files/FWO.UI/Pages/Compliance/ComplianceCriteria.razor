@@ -1,0 +1,403 @@
+@page "/compliance/criteria"
+
+@using FWO.Ui.Pages.Settings
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+
+@layout ComplianceLayout
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("criteria"))</h3>
+</div>
+<hr />
+
+<div class="mb-3">
+    <button type="button" class="btn btn-sm btn-success" @onclick="AddCriterion">
+        @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+    </button>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <strong>@(userConfig.GetText("criteria"))</strong>
+            </div>
+            <div class="card-body">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+                       TableItem="ComplianceCriterion"
+                       Items="Criteria"
+                       PageSize="0"
+                       ColumnReorder="true">
+                    <Column TableItem="ComplianceCriterion" Title="@(userConfig.GetText("actions"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                        <Template>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => SelectCriterion(context)">
+                                    @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))
+                                </button>
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditCriterion(context)">
+                                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteCriterion(context)">
+                                    @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                                </button>
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="ComplianceCriterion" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ComplianceCriterion" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                    <Column TableItem="ComplianceCriterion" Title="@(userConfig.GetText("type"))" Field="@(x => x.CriterionType)" Sortable="true" Filterable="true" />
+                </Table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <strong>Criterion Details</strong>
+            </div>
+            <div class="card-body">
+                @if (SelectedCriterion.Id <= 0)
+                {
+                    <div class="alert alert-info mb-0">
+                        Select a criterion to view its conditions.
+                    </div>
+                }
+                else
+                {
+                    <dl class="row">
+                        <dt class="col-sm-4">@userConfig.GetText("id")</dt>
+                        <dd class="col-sm-8">@SelectedCriterion.Id</dd>
+
+                        <dt class="col-sm-4">@userConfig.GetText("name")</dt>
+                        <dd class="col-sm-8">@SelectedCriterion.Name</dd>
+
+                        <dt class="col-sm-4">@userConfig.GetText("type")</dt>
+                        <dd class="col-sm-8">@SelectedCriterion.CriterionType</dd>
+
+                        <dt class="col-sm-4">Policies</dt>
+                        <dd class="col-sm-8">@ListLinkedPolicies(SelectedCriterion)</dd>
+
+                        @if (!string.IsNullOrWhiteSpace(SelectedCriterion.Comment))
+                        {
+                            <dt class="col-sm-4">@userConfig.GetText("comment")</dt>
+                            <dd class="col-sm-8">@SelectedCriterion.Comment</dd>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(SelectedCriterion.ImportSource))
+                        {
+                            <dt class="col-sm-4">@userConfig.GetText("import_source")</dt>
+                            <dd class="col-sm-8">@SelectedCriterion.ImportSource</dd>
+                        }
+                    </dl>
+
+                    <h5 class="mt-4">Conditions</h5>
+
+                    @if (GetActiveConditions(SelectedCriterion).Count > 0)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th>Group</th>
+                                        <th>Pos</th>
+                                        <th>Field</th>
+                                        <th>Operator</th>
+                                        <th>Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (ComplianceCriterionCondition condition in GetActiveConditions(SelectedCriterion))
+                                    {
+                                        <tr>
+                                            <td>@condition.GroupOrder</td>
+                                            <td>@condition.Position</td>
+                                            <td>@condition.Field</td>
+                                            <td>@condition.Operator</td>
+                                            <td>@FormatConditionValue(condition)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(SelectedCriterion.Content))
+                    {
+                        <div class="alert alert-warning mb-0">
+                            <strong>Legacy content:</strong> @SelectedCriterion.Content
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-secondary mb-0">
+                            No conditions defined.
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<EditFixCriterion Display="EditMode"
+                  DisplayChanged="OnEditModeChanged"
+                  SelectedCriterion="EditableCriterion"
+                  AddMode="AddMode"
+                  CriteriaList="Criteria" />
+
+<ConfirmDelete @bind-Display="DeleteMode"
+               PerformAction="DeleteCriterion"
+               Title="@userConfig.GetText("delete")"
+               DeleteMessage="@(DeleteMessage)" />
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<ComplianceCriterion> Criteria = [];
+    private List<CompliancePolicy> Policies = [];
+    private List<IpProtocol> IpProtocols = [];
+    private ComplianceCriterion SelectedCriterion = new();
+    private ComplianceCriterion EditableCriterion = new();
+    private bool AddMode = false;
+    private bool EditMode = false;
+    private bool DeleteMode = false;
+    private string DeleteMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadData();
+    }
+
+    private async Task ReloadData(int? preferredCriterionId = null)
+    {
+        try
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+
+            Task<List<ComplianceCriterion>> criteriaTask = apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getCriteria);
+            Task<List<CompliancePolicy>> policiesTask = apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
+            Task<List<IpProtocol>> protocolsTask = apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+
+            await Task.WhenAll(criteriaTask, policiesTask, protocolsTask);
+
+            Criteria =
+            [
+                .. criteriaTask.Result
+                    .Where(criterion => criterion.CriterionType != CriterionType.Matrix.ToString() && criterion.Removed == null)
+                    .OrderBy(criterion => criterion.Name)
+            ];
+
+            Policies = policiesTask.Result;
+            IpProtocols = DisplayBase.CustomSortProtocols(protocolsTask.Result);
+            await LoadCriterionConditions();
+
+            SetSelectedCriterion(preferredCriterionId);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private async Task LoadCriterionConditions()
+    {
+        if (Criteria.Count == 0)
+        {
+            return;
+        }
+
+        List<int> criterionIds = [.. Criteria.Select(criterion => criterion.Id)];
+        List<ComplianceCriterionCondition> conditions = await apiConnection.SendQueryAsync<List<ComplianceCriterionCondition>>(
+            ComplianceQueries.getCriterionConditions,
+            new { criterionIds });
+
+        Dictionary<int, List<ComplianceCriterionCondition>> conditionsByCriterionId = conditions
+            .GroupBy(condition => condition.CriterionId)
+            .ToDictionary(group => group.Key, group => group.OrderBy(condition => condition.GroupOrder).ThenBy(condition => condition.Position).ToList());
+
+        foreach (ComplianceCriterion criterion in Criteria)
+        {
+            criterion.Conditions = conditionsByCriterionId.TryGetValue(criterion.Id, out List<ComplianceCriterionCondition>? criterionConditions)
+                ? criterionConditions
+                : [];
+        }
+    }
+
+    private void SetSelectedCriterion(int? preferredCriterionId = null)
+    {
+        ComplianceCriterion? criterionToSelect = null;
+
+        if (preferredCriterionId != null && preferredCriterionId > 0)
+        {
+            criterionToSelect = Criteria.FirstOrDefault(criterion => criterion.Id == preferredCriterionId);
+        }
+
+        if (criterionToSelect == null && SelectedCriterion.Id > 0)
+        {
+            criterionToSelect = Criteria.FirstOrDefault(criterion => criterion.Id == SelectedCriterion.Id);
+        }
+
+        SelectedCriterion = criterionToSelect ?? Criteria.FirstOrDefault() ?? new ComplianceCriterion();
+    }
+
+    private void SelectCriterion(ComplianceCriterion criterion)
+    {
+        SelectedCriterion = criterion;
+    }
+
+    private void AddCriterion()
+    {
+        AddMode = true;
+        EditableCriterion = new ComplianceCriterion();
+        EditMode = true;
+    }
+
+    private void EditCriterion(ComplianceCriterion criterion)
+    {
+        AddMode = false;
+        SelectedCriterion = criterion;
+        EditableCriterion = CloneCriterion(criterion);
+        EditMode = true;
+    }
+
+    private void RequestDeleteCriterion(ComplianceCriterion criterion)
+    {
+        SelectedCriterion = criterion;
+        DeleteMessage = $"{userConfig.GetText("U4502")}: {criterion.Name}?";
+        DeleteMode = true;
+    }
+
+    private async Task DeleteCriterion()
+    {
+        try
+        {
+            if (SelectedCriterion.Id > 0)
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
+                    new { id = SelectedCriterion.Id, removed = DateTime.UtcNow });
+
+                DeleteMode = false;
+                await ReloadData();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_fix_crit"), "", true);
+        }
+    }
+
+    private async Task OnEditModeChanged(bool display)
+    {
+        EditMode = display;
+
+        if (!display)
+        {
+            int preferredCriterionId = EditableCriterion.Id > 0 ? EditableCriterion.Id : SelectedCriterion.Id;
+            await ReloadData(preferredCriterionId);
+        }
+    }
+
+    private List<ComplianceCriterionCondition> GetActiveConditions(ComplianceCriterion criterion)
+    {
+        return
+        [
+            .. criterion.Conditions
+                .Where(condition => condition.Removed == null)
+                .OrderBy(condition => condition.GroupOrder)
+                .ThenBy(condition => condition.Position)
+        ];
+    }
+
+    private string FormatConditionValue(ComplianceCriterionCondition condition)
+    {
+        return condition.Field switch
+        {
+            var field when field == ComplianceConditionFields.Port => FormatPortValue(condition),
+            var field when field == ComplianceConditionFields.Protocol => FormatProtocolValue(condition),
+            var field when field == ComplianceConditionFields.ServiceUid => condition.ValueString ?? condition.ValueRef?.ToString() ?? "",
+            _ => condition.ValueString ?? condition.ValueInt?.ToString() ?? condition.ValueRef?.ToString() ?? ""
+        };
+    }
+
+    private static string FormatPortValue(ComplianceCriterionCondition condition)
+    {
+        if (condition.ValueInt == null)
+        {
+            return "";
+        }
+
+        if (condition.ValueIntEnd == null || condition.ValueIntEnd == condition.ValueInt)
+        {
+            return condition.ValueInt.Value.ToString();
+        }
+
+        return $"{condition.ValueInt}-{condition.ValueIntEnd}";
+    }
+
+    private string FormatProtocolValue(ComplianceCriterionCondition condition)
+    {
+        if (condition.ValueInt != null)
+        {
+            IpProtocol? protocol = IpProtocols.FirstOrDefault(currentProtocol => currentProtocol.Id == condition.ValueInt);
+            return protocol?.Name ?? condition.ValueInt.Value.ToString();
+        }
+
+        return condition.ValueString ?? condition.ValueRef?.ToString() ?? "";
+    }
+
+    private string ListLinkedPolicies(ComplianceCriterion criterion)
+    {
+        List<string> linkedPolicies =
+        [
+            .. Policies
+                .Where(policy => policy.Criteria.Any(policyCriterion => policyCriterion.Content.Id == criterion.Id))
+                .Select(policy => policy.Name)
+                .Distinct()
+                .OrderBy(policyName => policyName)
+        ];
+
+        return linkedPolicies.Count > 0 ? string.Join(", ", linkedPolicies) : "-";
+    }
+
+    private static ComplianceCriterion CloneCriterion(ComplianceCriterion criterion)
+    {
+        return new ComplianceCriterion
+        {
+            Id = criterion.Id,
+            Name = criterion.Name,
+            ImportSource = criterion.ImportSource,
+            CriterionType = criterion.CriterionType,
+            Content = criterion.Content,
+            Comment = criterion.Comment,
+            Created = criterion.Created,
+            Removed = criterion.Removed,
+            Conditions =
+            [
+                .. criterion.Conditions.Select(condition => new ComplianceCriterionCondition
+                {
+                    Id = condition.Id,
+                    CriterionId = condition.CriterionId,
+                    GroupOrder = condition.GroupOrder,
+                    Position = condition.Position,
+                    Field = condition.Field,
+                    Operator = condition.Operator,
+                    ValueString = condition.ValueString,
+                    ValueInt = condition.ValueInt,
+                    ValueIntEnd = condition.ValueIntEnd,
+                    ValueRef = condition.ValueRef,
+                    Created = condition.Created,
+                    Removed = condition.Removed
+                })
+            ]
+        };
+    }
+}

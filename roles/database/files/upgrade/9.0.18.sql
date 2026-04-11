@@ -1,2 +1,3 @@
 ALTER TABLE IF EXISTS request.state
     ADD COLUMN IF NOT EXISTS automatic_only BOOLEAN NOT NULL DEFAULT FALSE;
+    

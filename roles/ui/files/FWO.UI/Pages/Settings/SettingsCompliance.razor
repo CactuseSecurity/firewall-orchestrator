@@ -12,19 +12,13 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject IEventMediator EventMediator
+@inject NavigationManager NavigationManager
 
 <div class="input-group">
     <h3>@(userConfig.GetText("compliance"))</h3>
     <HelpLink Page="settings/compliance" />
 </div>
 @(userConfig.GetText("U5324"))
-<hr />
-<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5813"))">
-    <label class="col-form-label col-sm-4">@userConfig.GetText("fix_criteria"):</label>
-	<div class="col-sm-2">
-		<button type="button" class="btn btn-sm btn-primary" @onclick="EditFixCrit">@(userConfig.GetText("edit_fix_crit"))</button>
-	</div>
-</div>
 <hr />
 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5812"))">
     <label class="col-form-label col-sm-4">@userConfig.GetText("import_matrix"):</label>
@@ -296,8 +290,6 @@ else
 {
     <Loading/>
 }
-<ComplianceFixCriteria @bind-Display="EditFixCritMode" />
-
 <PopUp Title="@(userConfig.GetText("import_matrix"))" Show="@ShowImportPopUp" Size=PopupSize.Small OnClose="() => ShowImportPopUp = false">
     <Body>
         @if(ImportSuccess)
@@ -328,7 +320,6 @@ else
     private ConfigData? configData;
     private DateTime complianceCheckStartDate = DateTime.Today;
     private DateTime complianceCheckStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
-    private bool EditFixCritMode = false;
     private List<CompliancePolicy> policies = [];
     private CompliancePolicy? actPolicy;
     private bool ShowImportPopUp { get; set; }
@@ -384,9 +375,9 @@ else
         StateHasChanged();
     }
 
-    private void EditFixCrit()
+    private void OpenCriteria()
     {
-        EditFixCritMode = true;
+        NavigationManager.NavigateTo("/compliance/criteria");
     }
 
     private async Task Save()

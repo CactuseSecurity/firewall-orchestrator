@@ -109,10 +109,12 @@ namespace FWO.Config.Api
                         try
                         {
                             remainingConfigItemNames.Remove(configItem.Key);
-                            TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
-                            property.SetValue(this, converter.ConvertFromString(configItem.Value
-                                ?? throw new ArgumentNullException($"Config value (with key: {configItem.Key}) is null."))
-                                ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.PropertyType}."));
+                            property.SetValue(this, ConvertConfigValue(property, configItem));
+                        }
+                        catch (ArgumentException exception) when (property.PropertyType.IsEnum)
+                        {
+                            Log.WriteWarning("Load Config Items", $"Config item with key \"{key}\" contains unsupported value \"{configItem.Value}\". Using default value.");
+                            Log.WriteDebug("Load Config Items", $"Unsupported enum value ignored for key \"{key}\": {exception.Message}");
                         }
                         catch (Exception exception)
                         {
@@ -125,6 +127,25 @@ namespace FWO.Config.Api
             {
                 Log.WriteDebug($"Load {(UserId == 0 ? "Global " : "")}Config Items", $"Config item with key \"{name}\" could not be found. {(UserId == 0 ? "" : "User might not have customized the setting. ")}Using default value.");
             }
+        }
+
+        private static object ConvertConfigValue(PropertyInfo property, ConfigItem configItem)
+        {
+            string rawValue = configItem.Value ?? throw new ArgumentNullException($"Config value (with key: {configItem.Key}) is null.");
+
+            if (property.PropertyType.IsEnum)
+            {
+                object parsedEnum = Enum.Parse(property.PropertyType, rawValue, ignoreCase: true);
+                if (!Enum.IsDefined(property.PropertyType, parsedEnum))
+                {
+                    throw new InvalidEnumArgumentException(property.Name, Convert.ToInt32(parsedEnum), property.PropertyType);
+                }
+                return parsedEnum;
+            }
+
+            TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
+            return converter.ConvertFromString(rawValue)
+                ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.PropertyType}.");
         }
 
         public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)

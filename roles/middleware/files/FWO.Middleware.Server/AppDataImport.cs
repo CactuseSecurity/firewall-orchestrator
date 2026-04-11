@@ -217,6 +217,7 @@ namespace FWO.Middleware.Server
                 ExtAppId = incomingApp.ExtAppId,
                 MainUser = await NormalizeImportedUserReference(incomingApp, incomingApp.MainUser, "main_user"),
                 Criticality = incomingApp.Criticality,
+                AdditionalInformation = incomingApp.AdditionalInformation,
                 OwnerLifecycleState = incomingApp.OwnerLifecycleState,
                 ImportSource = incomingApp.ImportSource,
                 RecertInterval = incomingApp.RecertInterval,
@@ -468,6 +469,7 @@ namespace FWO.Middleware.Server
                 name = incomingApp.Name,
                 appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
+                additionalInfo = incomingApp.AdditionalInformation,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
                 ownerLifeCycleStateId,
                 importSource = incomingApp.ImportSource,
@@ -497,6 +499,7 @@ namespace FWO.Middleware.Server
                 name = incomingApp.Name,
                 appIdExternal = string.IsNullOrEmpty(incomingApp.ExtAppId) ? null : incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
+                additionalInfo = incomingApp.AdditionalInformation,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
                 ownerLifeCycleStateId,
                 decommDate = GetDecommDateAfterLifecycleChange(existingApp, ownerLifeCycleStateId),
@@ -1283,6 +1286,6 @@ namespace FWO.Middleware.Server
         private async Task AddLogEntry(int severity, string level, string description)
         {
             await AddLogEntry(GlobalConst.kImportAppData, severity, level, description);
-        }        
+        }
     }
 }

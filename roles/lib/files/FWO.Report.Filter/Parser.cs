@@ -150,6 +150,9 @@ namespace FWO.Report.Filter
                 TokenKind.ReportType
                 => new AstNodeFilterReportType() { Name = Name, Operator = Operator, Value = Value },
 
+                TokenKind.TaskType or TokenKind.Phase or TokenKind.States or TokenKind.ReferenceDate
+                => new AstNodeFilterWorkflow() { Name = Name, Operator = Operator, Value = Value },
+
                 TokenKind.DestinationPort or TokenKind.RecertDisplay or TokenKind.Unused
                 => new AstNodeFilterInt() { Name = Name, Operator = Operator, Value = Value },
 
@@ -170,7 +173,8 @@ namespace FWO.Report.Filter
             return CheckToken(
                 TokenKind.LastHit, TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
                 TokenKind.DestinationPort, TokenKind.Action, TokenKind.FullText, TokenKind.Gateway,
-                TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay, TokenKind.Disabled, TokenKind.Unused);
+                TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay, TokenKind.Disabled, TokenKind.Unused,
+                TokenKind.ReportType, TokenKind.TaskType, TokenKind.Phase, TokenKind.States, TokenKind.ReferenceDate);
         }
 
         private Token CheckToken(params TokenKind[] expectedTokenKinds)

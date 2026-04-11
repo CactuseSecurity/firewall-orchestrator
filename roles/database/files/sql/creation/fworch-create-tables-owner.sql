@@ -77,6 +77,7 @@ create table rule_owner
     rule_id bigint NOT NULL,
     created bigint NOT NULL,
     removed bigint,
+    matched_objects jsonb,
     owner_mapping_source_id smallint NOT NULL,
     primary key (rule_id, owner_id, created)
 );

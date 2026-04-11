@@ -100,8 +100,9 @@ namespace FWO.Config.Api
             {
                 if (TryGetConfigKey(property, out string? key))
                 {
-                    ConfigItem? configItem = configItems.FirstOrDefault(item => item.Key == key);
-                    ApplyConfigValue(property, key, configItem, remainingConfigItemNames);
+                    string resolvedKey = key!;
+                    ConfigItem? configItem = configItems.FirstOrDefault(item => item.Key == resolvedKey);
+                    ApplyConfigValue(property, resolvedKey, configItem, remainingConfigItemNames);
                 }
             }
             foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately

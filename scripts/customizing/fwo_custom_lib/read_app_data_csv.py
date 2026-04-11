@@ -34,6 +34,7 @@ class OwnerLineParserContext:
     criticality_column: int
     criticality_recert_period_mapping: dict[str, int] | None
     responsibles_columns: dict[str, tuple[int, ...]] | None
+    additional_information_columns: dict[str, int] | None
     add_users_by_pattern: dict[str, str] | None
     included_owners_filters: tuple[tuple[int, tuple[str, ...]], ...] | None
     ldap_path: str
@@ -62,6 +63,7 @@ class ExtractAppDataCsvOptions:
     criticality_column_header: str | None = None
     criticality_recert_period_mapping: dict[str, int] | None = None
     responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None
+    additional_information_columns_headers: dict[str, str] | None = None
     add_users_by_pattern: dict[str, str] | None = None
 
 
@@ -196,6 +198,86 @@ def _get_responsibles(line: list[str], responsibles_columns: dict[str, tuple[int
             line[column_index].strip() if len(line) > column_index else "" for column_index in column_indexes
         ]
     return responsibles
+
+
+def _get_additional_information(
+    line: list[str],
+    additional_information_columns: dict[str, int] | None,
+) -> dict[str, str]:
+    if not additional_information_columns:
+        return {}
+    additional_information: dict[str, str] = {}
+    dump_key: str
+    column_index: int
+    for dump_key, column_index in additional_information_columns.items():
+        value: str = line[column_index].strip() if len(line) > column_index else ""
+        if value != "":
+            additional_information[dump_key] = value
+    return additional_information
+
+
+def _resolve_responsibles(line: list[str], app_id: str, context: OwnerLineParserContext) -> dict[str, list[str]]:
+    responsibles: dict[str, list[str]] = {}
+    if context.responsibles_columns is not None:
+        resolved_responsibles: dict[str, list[str]] = _get_responsibles(line, context.responsibles_columns)
+        responsibles = _build_responsibles_dns(resolved_responsibles, context.ldap_path, context.logger)
+    if context.add_users_by_pattern is not None:
+        pattern_responsibles: dict[str, list[str]] = _build_pattern_responsibles(app_id, context.add_users_by_pattern)
+        responsibles = _merge_responsibles(responsibles, pattern_responsibles)
+    return responsibles
+
+
+def _resolve_recert_period_days(
+    line: list[str],
+    criticality: str,
+    context: OwnerLineParserContext,
+) -> int:
+    recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
+    mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
+        criticality, context.criticality_recert_period_mapping
+    )
+    return mapped_recert_period_days if mapped_recert_period_days is not None else recert_period_days
+
+
+def _log_missing_level_one_responsible(
+    responsibles: dict[str, list[str]],
+    app_id: str,
+    context: OwnerLineParserContext,
+) -> None:
+    level_one_responsibles: list[str] = responsibles.get("1", [])
+    if len(level_one_responsibles) == 0 and context.debug_level > 0:
+        context.logger.warning("adding app without level 1 responsible: %s", app_id)
+
+
+def _build_owner_from_line(
+    line: list[str],
+    app_id: str,
+    criticality: str,
+    context: OwnerLineParserContext,
+) -> Owner:
+    app_name: str = line[context.app_name_column]
+    owner_lifecycle_state: str = _get_owner_lifecycle_state(
+        line, context.owner_lifecycle_state_column, context.fallback_owner_lifecycle
+    )
+    responsibles: dict[str, list[str]] = _resolve_responsibles(line, app_id, context)
+    additional_information: dict[str, str] = _get_additional_information(line, context.additional_information_columns)
+    recert_period_days: int = _resolve_recert_period_days(line, criticality, context)
+    _log_missing_level_one_responsible(responsibles, app_id, context)
+    criticality_value: str | None = criticality if context.criticality_column >= 0 else None
+    responsibles_value: dict[str, list[str]] | None = responsibles or None
+    additional_information_value: dict[str, str] | None = additional_information or None
+    return context.owner_cls(
+        app_id_external=app_id,
+        name=app_name,
+        recert_period_days=recert_period_days,
+        days_until_first_recert=recert_period_days,
+        recert_active=False,
+        import_source=context.import_source_string,
+        owner_lifecycle_state=owner_lifecycle_state,
+        criticality=criticality_value,
+        responsibles=responsibles_value,
+        additional_information=additional_information_value,
+    )
 
 
 def _split_app_id_external(app_id_external: str) -> tuple[str, str]:
@@ -519,6 +601,23 @@ def _find_responsibles_columns(
     return responsibles_columns
 
 
+def _find_additional_information_columns(
+    headers: list[str],
+    additional_information_columns_headers: dict[str, str] | None,
+    csv_file_name: str,
+    logger: logging.Logger,
+) -> dict[str, int] | None:
+    if not additional_information_columns_headers:
+        return None
+    additional_information_columns: dict[str, int] = {}
+    dump_key: str
+    header_name: str
+    for dump_key, header_name in additional_information_columns_headers.items():
+        resolved_index: int = _find_required_header_index_by_name(headers, header_name, csv_file_name, logger)
+        additional_information_columns[dump_key] = resolved_index
+    return additional_information_columns
+
+
 def read_app_data_from_csv(
     csv_file_name: str,
     logger: logging.Logger,
@@ -528,6 +627,7 @@ def read_app_data_from_csv(
     composite_id_fields: tuple[str, ...] | None = None,
     criticality_column_header: str | None = None,
     responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None,
+    additional_information_columns_headers: dict[str, str] | None = None,
 ) -> (
     tuple[
         list[list[str]],
@@ -538,6 +638,7 @@ def read_app_data_from_csv(
         int,
         int,
         dict[str, tuple[int, ...]] | None,
+        dict[str, int] | None,
         tuple[tuple[int, tuple[str, ...]], ...] | None,
     ]
     | None
@@ -582,6 +683,9 @@ def read_app_data_from_csv(
         responsibles_columns: dict[str, tuple[int, ...]] | None = _find_responsibles_columns(
             headers, responsibles_columns_headers, csv_file_name, logger
         )
+        additional_information_columns: dict[str, int] | None = _find_additional_information_columns(
+            headers, additional_information_columns_headers, csv_file_name, logger
+        )
         resolved_included_owners_filters: list[tuple[int, tuple[str, ...]]] = []
         if included_owners_filters:
             filter_column_name: str
@@ -620,6 +724,7 @@ def read_app_data_from_csv(
         owner_lifecycle_state_column,
         criticality_column,
         responsibles_columns,
+        additional_information_columns,
         tuple(resolved_included_owners_filters) if included_owners_filters else None,
     )
 
@@ -643,42 +748,8 @@ def parse_app_line(
             context.logger.info("ignoring line from csv file: %s - inconclusive appId", app_id)
         return count_skips + 1
 
-    app_name: str = line[context.app_name_column]
-    owner_lifecycle_state: str = _get_owner_lifecycle_state(
-        line, context.owner_lifecycle_state_column, context.fallback_owner_lifecycle
-    )
     criticality: str = _get_criticality(line, context.criticality_column)
-    responsibles: dict[str, list[str]]
-    if context.responsibles_columns is not None:
-        resolved_responsibles: dict[str, list[str]] = _get_responsibles(line, context.responsibles_columns)
-        responsibles = _build_responsibles_dns(resolved_responsibles, context.ldap_path, context.logger)
-    else:
-        responsibles = {}
-    if context.add_users_by_pattern is not None:
-        pattern_responsibles: dict[str, list[str]] = _build_pattern_responsibles(app_id, context.add_users_by_pattern)
-        responsibles = _merge_responsibles(responsibles, pattern_responsibles)
-    recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
-    mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
-        criticality, context.criticality_recert_period_mapping
-    )
-    if mapped_recert_period_days is not None:
-        recert_period_days = mapped_recert_period_days
-    level_one_responsibles: list[str] = responsibles.get("1", [])
-    if len(level_one_responsibles) == 0 and context.debug_level > 0:
-        context.logger.warning("adding app without level 1 responsible: %s", app_id)
-    criticality_value: str | None = criticality if context.criticality_column >= 0 else None
-    responsibles_value: dict[str, list[str]] | None = responsibles or None
-    owner: Owner = context.owner_cls(
-        app_id_external=app_id,
-        name=app_name,
-        recert_period_days=recert_period_days,
-        days_until_first_recert=recert_period_days,
-        recert_active=False,
-        import_source=context.import_source_string,
-        owner_lifecycle_state=owner_lifecycle_state,
-        criticality=criticality_value,
-        responsibles=responsibles_value,
-    )
+    owner: Owner = _build_owner_from_line(line, app_id, criticality, context)
     app_list.append(owner)
     return count_skips
 
@@ -723,6 +794,7 @@ def extract_app_data_from_csv(
             int,
             int,
             dict[str, tuple[int, ...]] | None,
+            dict[str, int] | None,
             tuple[tuple[int, tuple[str, ...]], ...] | None,
         ]
         | None
@@ -735,6 +807,7 @@ def extract_app_data_from_csv(
         resolved_options.composite_id_fields,
         resolved_options.criticality_column_header,
         resolved_options.responsibles_columns_headers,
+        resolved_options.additional_information_columns_headers,
     )
     if csv_data is None:
         return
@@ -748,6 +821,7 @@ def extract_app_data_from_csv(
         owner_lifecycle_state_column,
         criticality_column,
         responsibles_columns,
+        additional_information_columns,
         included_owners_filters,
     ) = csv_data
     parser_context: OwnerLineParserContext = OwnerLineParserContext(
@@ -762,6 +836,7 @@ def extract_app_data_from_csv(
         criticality_column=criticality_column,
         criticality_recert_period_mapping=resolved_options.criticality_recert_period_mapping,
         responsibles_columns=responsibles_columns,
+        additional_information_columns=additional_information_columns,
         add_users_by_pattern=resolved_options.add_users_by_pattern,
         included_owners_filters=included_owners_filters,
         ldap_path=ldap_path,

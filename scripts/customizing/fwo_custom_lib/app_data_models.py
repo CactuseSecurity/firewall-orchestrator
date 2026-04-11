@@ -19,6 +19,7 @@ class Owner:
         owner_lifecycle_state: str = "unknown",
         criticality: str | None = None,
         responsibles: dict[str, list[str]] | None = None,
+        additional_information: dict[str, str] | None = None,
     ) -> None:
         self.name: str = name
         self.app_id_external: str = app_id_external
@@ -31,6 +32,7 @@ class Owner:
         self.owner_lifecycle_state: str = owner_lifecycle_state
         self.criticality: str | None = criticality
         self.responsibles: dict[str, list[str]] | None = responsibles
+        self.additional_information: dict[str, str] | None = additional_information
 
     def to_json(self) -> dict[str, Any]:
         owner_json: dict[str, Any] = {
@@ -47,6 +49,8 @@ class Owner:
             owner_json["criticality"] = self.criticality
         if self.responsibles is not None:
             owner_json["responsibles"] = self.responsibles
+        if self.additional_information is not None:
+            owner_json["additional_information"] = self.additional_information
         return owner_json
 
 

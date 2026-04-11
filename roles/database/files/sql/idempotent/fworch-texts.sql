@@ -2652,6 +2652,8 @@ INSERT INTO txt VALUES ('criticality',          'German',   'Kritikalit&auml;t')
 INSERT INTO txt VALUES ('criticality',          'English',  'Criticality');
 INSERT INTO txt VALUES ('comm_svc_possible',    'German',   'Common Service zugelassen');
 INSERT INTO txt VALUES ('comm_svc_possible',    'English',  'Common Service Possible');
+INSERT INTO txt VALUES ('additional_info',      'German',   'Zus&auml;tzliche Informationen');
+INSERT INTO txt VALUES ('additional_info',      'English',  'Additional Information');
 INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger Name');
 INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
 INSERT INTO txt VALUES ('main_responsible',     'German',   'Hauptverantwortlicher (DN)');
@@ -3786,6 +3788,8 @@ INSERT INTO txt VALUES ('E5294', 'German',  'Fehler beim Einloggen in');
 INSERT INTO txt VALUES ('E5294', 'English', 'error while logging in to');
 INSERT INTO txt VALUES ('E5295', 'German',  'Authentifizierungsfehler');
 INSERT INTO txt VALUES ('E5295', 'English', 'Authentication Error');
+INSERT INTO txt VALUES ('E5296', 'German',  'Zus&auml;tzliche Informationen m&uuml;ssen ein g&uuml;ltiges JSON Objekt sein');
+INSERT INTO txt VALUES ('E5296', 'English', 'Additional information must be a valid JSON object');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen oder verarbeitet werden.');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');
@@ -6296,6 +6300,8 @@ INSERT INTO txt VALUES ('H5670', 'German',  'Diese Seite konfiguriert die Import
 INSERT INTO txt VALUES ('H5670', 'English', 'This page configures the owner/app data import and subnet import schedules, source paths, and LDAP group handling.');
 INSERT INTO txt VALUES ('H5671', 'German',  'Konfigurieren Sie Importpfade, Startzeiten und Warteintervalle f&uuml;r App-Daten und Subnetzdaten.');
 INSERT INTO txt VALUES ('H5671', 'English', 'Configure import paths, start times and sleep intervals for app data and subnet data.');
+INSERT INTO txt VALUES ('H5672', 'German',  'Zus&auml;tzliche Informationen: Bearbeitbares JSON Objekt f&uuml;r zus&auml;tzliche Eigent&uuml;mer-Metadaten, z. B. aus dem App-Daten-Import.');
+INSERT INTO txt VALUES ('H5672', 'English', 'Additional Information: Editable JSON object for extra owner metadata, for example from app data import.');
 INSERT INTO txt VALUES ('H5673', 'German',  'Legen Sie Rollen pro Verantwortlichkeitsstufe fest, um zu steuern, welche Rollen beim Import gesetzt werden.');
 INSERT INTO txt VALUES ('H5673', 'English', 'Use role assignment per responsible type to control which roles are set during import.');
 INSERT INTO txt VALUES ('H5674', 'German',  'Verantwortlichkeitsstufen ohne die erforderliche Berechtigungs-Flagge k&ouml;nnen die zugeh&ouml;rigen Rollen nicht zuweisen.');

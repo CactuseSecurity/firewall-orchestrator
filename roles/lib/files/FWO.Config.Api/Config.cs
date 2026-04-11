@@ -98,34 +98,50 @@ namespace FWO.Config.Api
             List<string> remainingConfigItemNames = Array.ConvertAll(configItems, c => c.Key).ToList();
             foreach (PropertyInfo property in GetType().GetProperties())
             {
-                // Is the property storing a config value (marked by JsonPropertyName Attribute)?
-                if (property.GetCustomAttribute<JsonPropertyNameAttribute>() != null)
+                if (TryGetConfigKey(property, out string? key))
                 {
-                    string key = property.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name;
-                    ConfigItem? configItem = configItems.FirstOrDefault(configItem => configItem.Key == key);
-
-                    if (configItem != null)
-                    {
-                        try
-                        {
-                            remainingConfigItemNames.Remove(configItem.Key);
-                            property.SetValue(this, ConvertConfigValue(property, configItem));
-                        }
-                        catch (ArgumentException exception) when (property.PropertyType.IsEnum)
-                        {
-                            Log.WriteWarning("Load Config Items", $"Config item with key \"{key}\" contains unsupported value \"{configItem.Value}\". Using default value.");
-                            Log.WriteDebug("Load Config Items", $"Unsupported enum value ignored for key \"{key}\": {exception.Message}");
-                        }
-                        catch (Exception exception)
-                        {
-                            Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be loaded. Using default value.", exception);
-                        }
-                    }
+                    ConfigItem? configItem = configItems.FirstOrDefault(item => item.Key == key);
+                    ApplyConfigValue(property, key, configItem, remainingConfigItemNames);
                 }
             }
             foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately
             {
                 Log.WriteDebug($"Load {(UserId == 0 ? "Global " : "")}Config Items", $"Config item with key \"{name}\" could not be found. {(UserId == 0 ? "" : "User might not have customized the setting. ")}Using default value.");
+            }
+        }
+
+        /// <summary>
+        /// Tries to resolve the config key from a property marked with <see cref="JsonPropertyNameAttribute"/>.
+        /// </summary>
+        private static bool TryGetConfigKey(PropertyInfo property, out string? key)
+        {
+            key = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name;
+            return key != null;
+        }
+
+        /// <summary>
+        /// Applies a config item value to the matching property and logs conversion issues.
+        /// </summary>
+        private void ApplyConfigValue(PropertyInfo property, string key, ConfigItem? configItem, List<string> remainingConfigItemNames)
+        {
+            if (configItem == null)
+            {
+                return;
+            }
+
+            try
+            {
+                remainingConfigItemNames.Remove(configItem.Key);
+                property.SetValue(this, ConvertConfigValue(property, configItem));
+            }
+            catch (ArgumentException exception) when (property.PropertyType.IsEnum)
+            {
+                Log.WriteWarning("Load Config Items", $"Config item with key \"{key}\" contains unsupported value \"{configItem.Value}\". Using default value.");
+                Log.WriteDebug("Load Config Items", $"Unsupported enum value ignored for key \"{key}\": {exception.Message}");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be loaded. Using default value.", exception);
             }
         }
 

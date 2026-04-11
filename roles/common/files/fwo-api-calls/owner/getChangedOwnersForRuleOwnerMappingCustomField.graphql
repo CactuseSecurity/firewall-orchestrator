@@ -1,5 +1,5 @@
 
-query getChangedOwnersForRuleOwnerMapping($controlId: bigint!) {
+query getChangedOwnersForRuleOwnerMappingCustomField($controlId: bigint!) {
   changelog_owner(where: { control_id: { _eq: $controlId } }) {
     import: import_control {
       control_id

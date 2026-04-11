@@ -378,11 +378,19 @@ A complete 80K lines rework of FWO, including
 # 9.0.14 - 17.03.2026 DEVELOP
 - prepare owner decommission notification
 
-# 9.0.15 - 12.03.2026 DEVELOP
+# 9.0.15 - 19.03.2026 DEVELOP
 - rename OwnerSourceCustomFieldKey to CustomFieldOwnerKey in config
+
+# 9.0.16 - 31.03.2026 DEVELOP
+- remove not needed stm_owner_mapping_source
+- add Full re-initialize of RuleOwner mapping for IP-based rules
+- add matched_objects field in rule_owner table for track matched objects - IpBased
 
 # 9.0.18 - 03.04.2026 DEVELOP
 - add new column automatic_only to workflow states
 
-# 9.0.19 - 07.04.2026 DEVELOP
+# 9.0.19 - 09.04.2026 DEVELOP
+- add owner additional_info jsonb field including owner edit UI support
+
+# 9.0.20 - 11.04.2026 DEVELOP
 - extend notification handling

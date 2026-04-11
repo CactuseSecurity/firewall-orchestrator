@@ -1286,6 +1286,6 @@ namespace FWO.Middleware.Server
         private async Task AddLogEntry(int severity, string level, string description)
         {
             await AddLogEntry(GlobalConst.kImportAppData, severity, level, description);
-        }        
+        }
     }
 }

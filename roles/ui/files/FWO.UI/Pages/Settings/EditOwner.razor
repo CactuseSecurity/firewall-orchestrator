@@ -15,6 +15,7 @@
 @using Newtonsoft.Json
 @using RestSharp
 @using System.Net
+@using System.Text.RegularExpressions
 @using System.Text.Json.Serialization
 
 @inject UserConfig userConfig
@@ -508,6 +509,16 @@
         return string.Join(", ", formatted);
     }
 
+    private static string NormalizeDnForRoleComparison(string? dn)
+    {
+        if (string.IsNullOrWhiteSpace(dn))
+        {
+            return "";
+        }
+
+        return Regex.Replace(dn.Trim(), @"\\2c", "\\,", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    }
+
     private string GetResponsibleTypeDisplayName(OwnerResponsibleType type)
     {
         string label = type.Name;
@@ -675,7 +686,7 @@
             .ToDictionary(r => r.Name, r => r.Dn, StringComparer.OrdinalIgnoreCase);
         RoleUsersByName = roles.ToDictionary(
             r => r.Name,
-            r => new HashSet<string>(r.Users.Select(u => u.Dn), StringComparer.OrdinalIgnoreCase),
+            r => new HashSet<string>(r.Users.Select(u => NormalizeDnForRoleComparison(u.Dn)), StringComparer.OrdinalIgnoreCase),
             StringComparer.OrdinalIgnoreCase);
     }
 
@@ -707,7 +718,8 @@
                 {
                     continue;
                 }
-                if (RoleUsersByName.TryGetValue(roleName, out HashSet<string>? users) && users.Contains(responsible.Dn))
+                string normalizedDn = NormalizeDnForRoleComparison(responsible.Dn);
+                if (RoleUsersByName.TryGetValue(roleName, out HashSet<string>? users) && users.Contains(normalizedDn))
                 {
                     continue;
                 }
@@ -730,7 +742,7 @@
             users = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             RoleUsersByName[roleName] = users;
         }
-        users.Add(dn);
+        users.Add(NormalizeDnForRoleComparison(dn));
     }
 
     private static Dictionary<int, List<string>> ParseRolesWithImport(string rolesJson)

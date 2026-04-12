@@ -3603,6 +3603,8 @@ INSERT INTO txt VALUES ('E1011', 'English', 'End time is before start time');
 
 INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen');
 INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
+INSERT INTO txt VALUES ('E2002', 'German',  'Reporttermin gespeichert, aber die Benachrichtigungs-Einstellungen konnten nicht aktualisiert werden.');
+INSERT INTO txt VALUES ('E2002', 'English', 'Report schedule saved, but notification settings could not be updated.');
 
 INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');

@@ -326,6 +326,7 @@
 
     private async Task AddReportSchedule()
     {
+        bool scheduleSaved = false;
         try
         {
             reportScheduleInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
@@ -351,6 +352,7 @@
 
                 ReturnIdWrapper response = await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addReportSchedule, queryVariablesReportSchedule);
                 reportScheduleInEdit.Id = response.ReturnIds![0].NewId;
+                scheduleSaved = true;
                 reportScheduleInEdit.ScheduleOwningUser.DbId = uiUserDbId;
                 reportScheduleInEdit.ScheduleOwningUser.Name = userConfig.User.Name;
                 if (scheduleToEmail)
@@ -364,6 +366,10 @@
         }
         catch (Exception exception)
         {
+            if (scheduleSaved)
+            {
+                await TryDeleteScheduleAfterFailedAdd();
+            }
             Log.WriteError("Save scheduled report", "Unclassified error.", exception);
             DisplayMessageInUi(exception, userConfig.GetText("save_scheduled_report"), "", false);
         }
@@ -397,7 +403,16 @@
                 };
 
                 await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, queryVariables);
-                await SyncScheduleNotifications();
+                try
+                {
+                    await SyncScheduleNotifications();
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError("Edit scheduled report", "Report schedule updated, but notifications could not be synchronized.", exception);
+                    DisplayMessageInUi(exception, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2002"), false);
+                    return;
+                }
 
                 ShowEditReportScheduleDialog = false;
             }
@@ -428,6 +443,25 @@
         {
             Log.WriteError("Delete scheduled report", "Unclassified error.", exception);
             DisplayMessageInUi(exception, userConfig.GetText("delete_scheduled_report"), "", false);
+        }
+    }
+
+    /// <summary>
+    /// Removes a newly created schedule again if notification creation failed afterwards.
+    /// </summary>
+    private async Task TryDeleteScheduleAfterFailedAdd()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<object>(ReportQueries.deleteReportSchedule, new
+            {
+                report_schedule_id = reportScheduleInEdit.Id
+            });
+            reportScheduleInEdit.Id = 0;
+        }
+        catch (Exception rollbackException)
+        {
+            Log.WriteError("Save scheduled report", "Rollback of newly created schedule failed after notification error.", rollbackException);
         }
     }
 

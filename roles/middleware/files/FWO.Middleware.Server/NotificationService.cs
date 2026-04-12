@@ -226,7 +226,7 @@ namespace FWO.Middleware.Server
                 switch (notification.Layout)
                 {
                     case NotificationLayout.HtmlInBody:
-                        body += htmlBody ?? report?.ExportToHtml() ?? "";
+                        body += htmlBody ?? report.ExportToHtml() ?? "";
                         break;
                     case NotificationLayout.PdfAsAttachment:
                         string html = report.ExportToHtml();

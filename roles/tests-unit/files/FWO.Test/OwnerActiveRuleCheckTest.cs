@@ -2,6 +2,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Server;
+using FWO.Report;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -108,6 +109,26 @@ namespace FWO.Test
             string changeId = InvokeExtractChangeId("{'field-2':");
 
             Assert.That(changeId, Is.Empty);
+        }
+
+        [Test]
+        public void CreateNotificationReport_WrapsBodyInHtmlFrame()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            OwnerActiveRuleCheck service = new(new OwnerActiveRuleCheckApiConn(), globalConfig);
+            FwoOwner owner = new() { Id = 7, Name = "Owner A", ExtAppId = "APP-7" };
+
+            MethodInfo createNotificationReport = typeof(OwnerActiveRuleCheck).GetMethod("CreateNotificationReport", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CreateNotificationReport method not found.");
+
+            ReportBase report = (ReportBase)(createNotificationReport.Invoke(service, [owner, "<table><tr><td>rule</td></tr></table>"])
+                ?? throw new InvalidOperationException("CreateNotificationReport returned null."));
+
+            string html = report.ExportToHtml();
+
+            Assert.That(html, Does.Contain("<html>"));
+            Assert.That(html, Does.Contain("Owner A"));
+            Assert.That(html, Does.Contain("<table><tr><td>rule</td></tr></table>"));
         }
 
         private static string InvokeExtractChangeId(string customFields)

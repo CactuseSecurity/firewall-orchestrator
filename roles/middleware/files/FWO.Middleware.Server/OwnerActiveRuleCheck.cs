@@ -2,6 +2,8 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Report;
+using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -65,13 +67,67 @@ namespace FWO.Middleware.Server
             int emailsSent = 0;
             foreach (FwoNotification notification in notificationService.Notifications.Where(n => (n.OwnerId == null || n.OwnerId == owner.Id) && n.Deadline == deadline))
             {
+                ReportBase? report = notification.Layout == NotificationLayout.HtmlInBody
+                    ? CreateNotificationReport(owner, body)
+                    : null;
+                string notificationContent = notification.Layout == NotificationLayout.HtmlInBody
+                    ? ""
+                    : body;
                 emailsSent += deadline == NotificationDeadline.None
-                    ? await notificationService.SendNotification(notification, owner, body)
-                    : await notificationService.SendNotificationIfDue(notification, owner, null, body);
+                    ? await notificationService.SendNotification(notification, owner, notificationContent, report)
+                    : await notificationService.SendNotificationIfDue(notification, owner, null, notificationContent, report);
             }
 
             await notificationService.UpdateNotificationsLastSent();
             return emailsSent;
+        }
+
+        /// <summary>
+        /// Creates an HTML report wrapper for active-rule notifications so HtmlInBody layouts render a full report body.
+        /// </summary>
+        /// <param name="owner">Owner receiving the notification.</param>
+        /// <param name="body">Pre-rendered notification HTML body.</param>
+        /// <returns>HTML report for notification delivery.</returns>
+        private ReportBase CreateNotificationReport(FwoOwner owner, string body)
+        {
+            return new OwnerActiveRuleNotificationReport(new UserConfig(GlobalConfig), owner, body);
+        }
+
+        /// <summary>
+        /// Minimal report wrapper for owner active-rule notifications.
+        /// </summary>
+        private sealed class OwnerActiveRuleNotificationReport(UserConfig userConfig, FwoOwner owner, string body)
+            : ReportBase(new(""), userConfig, FWO.Basics.ReportType.Rules)
+        {
+            /// <inheritdoc />
+            public override Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<FWO.Data.Report.ReportData, Task> callback, CancellationToken ct)
+            {
+                return Task.CompletedTask;
+            }
+
+            /// <inheritdoc />
+            public override string ExportToCsv()
+            {
+                return "";
+            }
+
+            /// <inheritdoc />
+            public override string ExportToJson()
+            {
+                return "";
+            }
+
+            /// <inheritdoc />
+            public override string ExportToHtml()
+            {
+                return GenerateHtmlFrameBase(userConfig.GetText("OwnerActiveRules"), "", DateTime.Now, new StringBuilder(body), ownerFilter: owner.Name);
+            }
+
+            /// <inheritdoc />
+            public override string SetDescription()
+            {
+                return "";
+            }
         }
     }
 }

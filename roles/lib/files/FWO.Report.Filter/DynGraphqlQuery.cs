@@ -387,11 +387,13 @@ namespace FWO.Report.Filter
                     management({mgmtWhereString}) 
                     {{
                         id: mgm_id
+                        uid: mgm_uid
                         name: mgm_name
                         devices ({devWhereStringDefault}) 
                         {{
                             id: dev_id
                             name: dev_name
+                            uid: dev_uid
                             rulebase_links(where: {{ {query.RulebaseLinkWhereStatement}, stm_link_type: {{id: {{_eq: 6}} }} }})
                             {{
                                 linkType: stm_link_type  {{

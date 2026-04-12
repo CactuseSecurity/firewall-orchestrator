@@ -134,6 +134,8 @@ def normalize_nat_rules(
                             normalized_nat_rulebase.uid,
                             gateway,
                             native_config["policies"],
+                            xlate_rule_id=rule_xlate["uid"], # TODO: needs numeric id after inserting into DB, update later
+                            nat_rule=True,
                         )
                         parse_single_rule(  # do not increase rule_num here (xlate rules do not count)
                             rule_xlate,
@@ -142,6 +144,7 @@ def normalize_nat_rules(
                             normalized_nat_rulebase.uid,
                             gateway,
                             native_config["policies"],
+                            nat_rule=True,
                         )
 
             if not any(rb for rb in normalized_config["policies"] if rb.uid == normalized_nat_rulebase.uid):

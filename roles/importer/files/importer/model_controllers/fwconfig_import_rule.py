@@ -119,6 +119,9 @@ class FwConfigImportRule:
             }
         )
 
+        # TODO: NAT rules: The rules need to be inserted into the database first to get the rule_id's for the NAT rules.
+        # then, we have to update the xlate_rule field because we need the database (numeric) id's there.
+
         self.uid2id_mapper.add_rule_mappings(inserted_rule_ids)
         refs_added = self.add_new_refs(prev_config)
 
@@ -1134,7 +1137,7 @@ class FwConfigImportRule:
             rule_from_zone=None,  # TODO: to be removed or changed to string of joined zone names
             rule_to_zone=None,  # TODO: to be removed or changed to string of joined zone names
             access_rule=True,
-            nat_rule=False,
+            nat_rule=rule.nat_rule,
             is_global=False,
             rulebase_id=rulebase_id,
             rule_create=self.import_details.state.import_id,

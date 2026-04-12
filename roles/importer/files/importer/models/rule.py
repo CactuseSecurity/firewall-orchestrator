@@ -64,6 +64,9 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
     rule_src_zone: str | None = None
     rule_dst_zone: str | None = None
     rule_head_text: str | None = None
+    xlate_rule: int | None = None
+    nat_rule: bool = False
+    nat_rule: bool = False
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RuleNormalized):

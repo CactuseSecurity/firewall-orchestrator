@@ -106,6 +106,18 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Wraps a pre-rendered notification HTML body in the standard report frame.
+        /// </summary>
+        /// <param name="title">Localized notification title.</param>
+        /// <param name="body">Notification body HTML.</param>
+        /// <param name="ownerFilter">Optional owner text displayed in the frame header.</param>
+        /// <returns>Full HTML mail body including the shared notification frame.</returns>
+        protected string CreateNotificationBodyHtml(string title, string body, string? ownerFilter = null)
+        {
+            return BuildHtmlFrame(title, body, ownerFilter);
+        }
+
+        /// <summary>
         /// Extracts a change identifier from rule custom fields.
         /// </summary>
         /// <param name="customFieldsString">Serialized rule custom fields.</param>
@@ -188,6 +200,75 @@ namespace FWO.Middleware.Server
         {
             UserConfig displayUserConfig = new(GlobalConfig, false);
             return new RuleDisplayHtml(displayUserConfig);
+        }
+
+        /// <summary>
+        /// Builds the standard HTML frame used for full HTML notification bodies.
+        /// </summary>
+        /// <param name="title">Localized title shown in the HTML frame.</param>
+        /// <param name="body">Pre-rendered notification body HTML.</param>
+        /// <param name="ownerFilter">Optional owner text shown in the header.</param>
+        /// <returns>Framed HTML document.</returns>
+        private string BuildHtmlFrame(string title, string body, string? ownerFilter)
+        {
+            UserConfig userConfig = new(GlobalConfig);
+            StringBuilder html = new();
+            html.AppendLine("<!DOCTYPE html>")
+                .AppendLine("<html>")
+                .AppendLine("<head>")
+                .AppendLine("    <meta charset=\"utf-8\"/>")
+                .Append("    <title>")
+                .Append(WebUtility.HtmlEncode(title))
+                .AppendLine("</title>")
+                .AppendLine("    <style>")
+                .AppendLine("        table {")
+                .AppendLine("            font-family: arial, sans-serif;")
+                .AppendLine("            font-size: 10px;")
+                .AppendLine("            border-collapse: collapse;")
+                .AppendLine("            width: 100%;")
+                .AppendLine("        }")
+                .AppendLine()
+                .AppendLine("        td {")
+                .AppendLine("            border: 1px solid #000000;")
+                .AppendLine("            text-align: left;")
+                .AppendLine("            padding: 3px;")
+                .AppendLine("        }")
+                .AppendLine()
+                .AppendLine("        th {")
+                .AppendLine("            border: 1px solid #000000;")
+                .AppendLine("            text-align: left;")
+                .AppendLine("            padding: 3px;")
+                .AppendLine("            background-color: #dddddd;")
+                .AppendLine("        }")
+                .AppendLine("    </style>")
+                .AppendLine("</head>")
+                .AppendLine("<body>");
+
+            html.Append("<h2>")
+                .Append(WebUtility.HtmlEncode(title))
+                .AppendLine("</h2>")
+                .Append("<p>")
+                .Append(WebUtility.HtmlEncode(userConfig.GetText("generated_on")))
+                .Append(": ")
+                .Append(DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssK"))
+                .AppendLine(" (UTC)</p>");
+
+            if (!string.IsNullOrWhiteSpace(ownerFilter))
+            {
+                html.Append("<p>")
+                    .Append(WebUtility.HtmlEncode(userConfig.GetText("owners")))
+                    .Append(": ")
+                    .Append(WebUtility.HtmlEncode(ownerFilter))
+                    .AppendLine("</p>");
+            }
+
+            html.AppendLine("<hr>")
+                .Append(body)
+                .AppendLine()
+                .AppendLine("</body>")
+                .Append("</html>");
+
+            return html.ToString();
         }
     }
 }

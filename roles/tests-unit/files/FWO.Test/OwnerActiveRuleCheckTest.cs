@@ -2,7 +2,6 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Server;
-using FWO.Report;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -112,19 +111,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CreateNotificationReport_WrapsBodyInHtmlFrame()
+        public void CreateNotificationBodyHtml_WrapsBodyInHtmlFrame()
         {
             SimulatedGlobalConfig globalConfig = new();
-            OwnerActiveRuleCheck service = new(new OwnerActiveRuleCheckApiConn(), globalConfig);
-            FwoOwner owner = new() { Id = 7, Name = "Owner A", ExtAppId = "APP-7" };
-
-            MethodInfo createNotificationReport = typeof(OwnerActiveRuleCheck).GetMethod("CreateNotificationReport", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("CreateNotificationReport method not found.");
-
-            ReportBase report = (ReportBase)(createNotificationReport.Invoke(service, [owner, "<table><tr><td>rule</td></tr></table>"])
-                ?? throw new InvalidOperationException("CreateNotificationReport returned null."));
-
-            string html = report.ExportToHtml();
+            RuleNotificationBodyTestHelper service = new(globalConfig);
+            string html = service.CreateNotificationBodyHtmlForTest("Owner Active Rules", "<table><tr><td>rule</td></tr></table>", "Owner A");
 
             Assert.That(html, Does.Contain("<html>"));
             Assert.That(html, Does.Contain("Owner A"));
@@ -179,6 +170,14 @@ namespace FWO.Test
                 var property = variables.GetType().GetProperty("ownerId");
                 object? value = property?.GetValue(variables);
                 return value is int ownerId ? ownerId : 0;
+            }
+        }
+
+        private sealed class RuleNotificationBodyTestHelper(GlobalConfig globalConfig) : RuleNotificationBodyBase(globalConfig)
+        {
+            public string CreateNotificationBodyHtmlForTest(string title, string body, string ownerFilter)
+            {
+                return CreateNotificationBodyHtml(title, body, ownerFilter);
             }
         }
     }

@@ -56,13 +56,14 @@ namespace FWO.Middleware.Server
         /// <param name="content">Text for notification (e.g. email body)</param>
         /// <param name="report">Optional report to be sent as attachment</param>
         /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
+        /// <param name="htmlBody">Optional fully rendered HTML body for HtmlInBody notifications.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotificationsIfDue(FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null, string timeIntervalText = "")
+        public async Task<int> SendNotificationsIfDue(FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null, string timeIntervalText = "", string? htmlBody = null)
         {
             int emailsSent = 0;
             foreach (var notification in Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
             {
-                emailsSent += await SendNotificationIfDue(notification, owner, extDeadline, content, report, timeIntervalText);
+                emailsSent += await SendNotificationIfDue(notification, owner, extDeadline, content, report, timeIntervalText, htmlBody);
             }
             return emailsSent;
         }
@@ -75,11 +76,12 @@ namespace FWO.Middleware.Server
         /// <param name="content">Text for notification (e.g. email body).</param>
         /// <param name="report">Optional report to be sent as attachment.</param>
         /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
+        /// <param name="htmlBody">Optional fully rendered HTML body for HtmlInBody notifications.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotification(FwoNotification notification, FwoOwner owner, string content, ReportBase? report = null, string timeIntervalText = "")
+        public async Task<int> SendNotification(FwoNotification notification, FwoOwner owner, string content, ReportBase? report = null, string timeIntervalText = "", string? htmlBody = null)
         {
             // Later: Handle other channels here when implemented
-            await SendEmail(notification, content, owner, report, timeIntervalText);
+            await SendEmail(notification, content, owner, report, timeIntervalText, htmlBody);
             if (!CheckedNotificationIds.Contains(notification.Id))
             {
                 CheckedNotificationIds.Add(notification.Id);
@@ -96,12 +98,13 @@ namespace FWO.Middleware.Server
         /// <param name="content">Text for notification (e.g. email body)</param>
         /// <param name="report">Optional report to be sent as attachment</param>
         /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
+        /// <param name="htmlBody">Optional fully rendered HTML body for HtmlInBody notifications.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotificationIfDue(FwoNotification notification, FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null, string timeIntervalText = "")
+        public async Task<int> SendNotificationIfDue(FwoNotification notification, FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null, string timeIntervalText = "", string? htmlBody = null)
         {
             if (IsNotificationDue(owner, extDeadline, notification))
             {
-                return await SendNotification(notification, owner, content, report, timeIntervalText);
+                return await SendNotification(notification, owner, content, report, timeIntervalText, htmlBody);
             }
             return 0;
         }
@@ -199,18 +202,18 @@ namespace FWO.Middleware.Server
             return await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = notificationClient.ToString() });
         }
 
-        private async Task SendEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null, string timeIntervalText = "")
+        private async Task SendEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null, string timeIntervalText = "", string? htmlBody = null)
         {
             string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
             EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
                 GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
 
-            MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText);
+            MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText, htmlBody);
 
             await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
         }
 
-        private async Task<MailData> PrepareEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null, string timeIntervalText = "")
+        private async Task<MailData> PrepareEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null, string timeIntervalText = "", string? htmlBody = null)
         {
             string subject = notification.EmailSubject
                 .Replace(Placeholder.APPNAME, owner.Name)
@@ -223,7 +226,7 @@ namespace FWO.Middleware.Server
                 switch (notification.Layout)
                 {
                     case NotificationLayout.HtmlInBody:
-                        body += report.ExportToHtml();
+                        body += htmlBody ?? report?.ExportToHtml() ?? "";
                         break;
                     case NotificationLayout.PdfAsAttachment:
                         string html = report.ExportToHtml();

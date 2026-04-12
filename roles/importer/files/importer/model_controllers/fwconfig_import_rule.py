@@ -1131,8 +1131,8 @@ class FwConfigImportRule:
             rule_custom_fields=rule.rule_custom_fields,
             rule_implied=rule.rule_implied,
             rule_comment=rule.rule_comment,
-            rule_from_zone=None,  # TODO: to be removed or changed to string of joined zone names
-            rule_to_zone=None,  # TODO: to be removed or changed to string of joined zone names
+            rule_src_zone=rule.rule_src_zone,
+            rule_dst_zone=rule.rule_dst_zone,
             access_rule=True,
             nat_rule=False,
             is_global=False,

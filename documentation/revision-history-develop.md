@@ -391,3 +391,4 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.19 - 09.04.2026 DEVELOP
 - add owner additional_info jsonb field including owner edit UI support
+- backfill rule source and destination zone text fields from rule zone links

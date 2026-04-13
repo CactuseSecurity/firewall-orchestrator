@@ -24,6 +24,8 @@ Create table "rule"
 	"rule_src_refs" Text,
 	"rule_dst_refs" Text,
 	"rule_svc_refs" Text,
+	"rule_from_zone" Integer,
+	"rule_to_zone" Integer,
 	"rule_src_zone" Text,
 	"rule_dst_zone" Text,
 	"rule_action" Text NOT NULL,

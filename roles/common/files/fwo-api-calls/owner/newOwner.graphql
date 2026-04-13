@@ -4,6 +4,7 @@ mutation newOwner(
   $recertInterval: Int
   $appIdExternal: String
   $recertCheckParams: String
+  $additionalInfo: jsonb
   $ownerLifeCycleStateId: Int
   $criticality: String
   $importSource: String
@@ -17,6 +18,7 @@ mutation newOwner(
     recert_interval: $recertInterval
     app_id_external: $appIdExternal
     recert_check_params: $recertCheckParams
+    additional_info: $additionalInfo
     owner_lifecycle_state_id: $ownerLifeCycleStateId
     criticality: $criticality
     import_source: $importSource

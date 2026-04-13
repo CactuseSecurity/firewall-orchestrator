@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2026-03-20-01"
+__version__ = "2026-04-07-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -21,6 +21,8 @@ __version__ = "2026-03-20-01"
 #   - allowing csv delimiter override via cli argument
 # 2026-03-20-01:
 #   - generalizing fallback responsible pattern to grouped add_users_by_pattern entries
+# 2026-04-07-01:
+#   - adding optional additional_information import from configured owner CSV columns
 
 # reads the main app data from multiple csv files contained in a git repo
 # users will reside in external ldap groups with standardized names
@@ -170,6 +172,27 @@ def parse_add_users_by_pattern(entries: list[str]) -> dict[str, str]:
 
 def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[str, ...]]:
     return parse_responsibles_columns_from_lib(columns_entries)
+
+
+def parse_additional_information_columns(columns_entries: list[str]) -> dict[str, str]:
+    additional_information_columns: dict[str, str] = {}
+    expanded_entries: list[str] = _expand_responsibles_entries(columns_entries)
+    entry: str
+    for entry in expanded_entries:
+        key_mapping: tuple[str, str] | None = _parse_level_mapping(entry)
+        if key_mapping is None:
+            raise argparse.ArgumentTypeError(
+                f"invalid additionalInformationColumns entry '{entry}', expected KEY:HEADER"
+            )
+        dump_key, header_name = key_mapping
+        if dump_key == "" or header_name == "":
+            raise argparse.ArgumentTypeError(
+                f"invalid additionalInformationColumns entry '{entry}', expected KEY:HEADER"
+            )
+        additional_information_columns[dump_key] = header_name
+    if not additional_information_columns:
+        raise argparse.ArgumentTypeError("additionalInformationColumns must contain at least one KEY:HEADER mapping")
+    return additional_information_columns
 
 
 def resolve_responsibles_columns_headers(
@@ -374,6 +397,12 @@ if __name__ == "__main__":
         help='grouped mapping LEVEL:HEADER [HEADER ...]; each HEADER may be an exact column name or a regex matching zero or one CSV column, e.g. 1:"^UserID$" "^UserID Vertreter$" 2:"^UserIDs Mitwirkende$"; ambiguous matches are rejected',
     )
     parser.add_argument(
+        "--additionalInformationColumns",
+        nargs="+",
+        default=None,
+        help='grouped mapping KEY:HEADER used to import extra owner metadata from owner CSV files, e.g. cost_center:"Cost Center" owner_type:"Owner Type"',
+    )
+    parser.add_argument(
         "--add_users_by_pattern",
         nargs="+",
         default=None,
@@ -452,6 +481,9 @@ if __name__ == "__main__":
     )
     if responsibles_columns_headers is not None:
         logger.debug("resolved responsiblesColumns=%s", responsibles_columns_headers)
+    additional_information_columns_headers: dict[str, str] | None = None
+    if args.additionalInformationColumns:
+        additional_information_columns_headers = parse_additional_information_columns(args.additionalInformationColumns)
     add_users_by_pattern: dict[str, str] | None = None
     if args.add_users_by_pattern:
         add_users_by_pattern = parse_add_users_by_pattern(args.add_users_by_pattern)
@@ -549,6 +581,7 @@ if __name__ == "__main__":
                     criticality_column_header=criticality_column_header,
                     criticality_recert_period_mapping=criticality_recert_period_mapping,
                     responsibles_columns_headers=responsibles_columns_headers,
+                    additional_information_columns_headers=additional_information_columns_headers,
                     add_users_by_pattern=add_users_by_pattern,
                 )
 

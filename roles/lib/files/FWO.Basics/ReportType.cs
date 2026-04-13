@@ -150,6 +150,22 @@ namespace FWO.Basics
                 || reportType.IsWorkflowReport() && !detailedView;
         }
 
+        /// <summary>
+        /// Determines whether a report type supports HTML export.
+        /// </summary>
+        public static bool SupportsHtmlExport(this ReportType reportType)
+        {
+            return !reportType.IsComplianceReport();
+        }
+
+        /// <summary>
+        /// Determines whether a report type supports PDF export.
+        /// </summary>
+        public static bool SupportsPdfExport(this ReportType reportType)
+        {
+            return reportType.SupportsHtmlExport();
+        }
+
         public static List<ReportType> AllReportTypes()
         {
             return [.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>().Where(r => r != ReportType.Undefined)];

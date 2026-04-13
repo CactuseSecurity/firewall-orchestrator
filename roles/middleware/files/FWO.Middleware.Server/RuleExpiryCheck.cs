@@ -117,12 +117,12 @@ namespace FWO.Middleware.Server
             if ((notification.InitialOffsetAfterDeadline ?? 0) > 0)
             {
                 intervalValue = notification.InitialOffsetAfterDeadline ?? 0;
-                intervalUnit = notification.RepeatIntervalAfterDeadline;
+                intervalUnit = notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days;
             }
             else
             {
                 intervalValue = notification.OffsetBeforeDeadline ?? 0;
-                intervalUnit = notification.IntervalBeforeDeadline;
+                intervalUnit = notification.IntervalBeforeDeadline ?? SchedulerInterval.Days;
             }
 
             if (intervalValue <= 0)

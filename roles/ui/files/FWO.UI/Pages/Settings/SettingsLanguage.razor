@@ -1,5 +1,5 @@
 ﻿@page "/settings/language"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")]
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig

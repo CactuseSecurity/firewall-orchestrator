@@ -5,6 +5,7 @@
     report_schedule_every
     report_schedule_repeat
     report_schedule_start_time
+    archive
     report_schedule_owner_user: uiuser {
       uiuser_id
       uiuser_username
@@ -21,6 +22,23 @@
     }
     report_schedule_formats {
       report_schedule_format_name
+    }
+    notifications(where: {notification_client: {_eq: "Report"}}) {
+      id
+      notification_client
+      channel
+      recipient_to
+      email_address_to
+      recipient_cc
+      email_address_cc
+      email_subject
+      email_body
+      layout
+      deadline
+      schedule_id
+      bundle_type
+      bundle_id
+      last_sent
     }
     report_schedule_counter
   }

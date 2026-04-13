@@ -17,7 +17,6 @@
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
 @inject CircuitHandler circuitHandler
-@inject TokenService tokenService
 
 @if (showLoginForm)
 {
@@ -149,26 +148,22 @@
     {
         if (firstRender)
         {
-            string? jwt = null;
-
             try
             {
-                jwt = await tokenService.GetAccessToken();
+                bool restored = await ((AuthStateProvider)AuthService).RestoreAuthenticationState(
+                    ApiConnection,
+                    middlewareClient,
+                    userConfig,
+                    ((CircuitHandlerService)circuitHandler));
+
+                if (restored)
+                {
+                    return;
+                }
             }
             catch (Exception ex)
             {
                 Log.WriteWarning("Login", $"Failed to restore session token: {ex.Message}");
-            }
-
-            if (!string.IsNullOrWhiteSpace(jwt))
-            {
-                try
-                {
-                    await ((AuthStateProvider)AuthService).Authenticate(jwt, ApiConnection, middlewareClient, userConfig, ((CircuitHandlerService)circuitHandler));
-
-                    return;
-                }
-                catch (Exception) { }
             }
 
             if (!string.IsNullOrWhiteSpace(globalConfig.WelcomeMessage))

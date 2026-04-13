@@ -56,6 +56,53 @@ namespace FWO.Ui.Auth
             return apiAuthResponse;
         }
 
+        /// <summary>
+        /// Restores the UI authentication state from the persisted token pair.
+        /// </summary>
+        /// <param name="apiConnection">API connection that should receive the restored JWT.</param>
+        /// <param name="middlewareClient">Middleware client that should receive the restored JWT.</param>
+        /// <param name="userConfig">Current user configuration to rebuild from the restored JWT.</param>
+        /// <param name="circuitHandler">Circuit-scoped user context that should be updated after restore.</param>
+        /// <returns>True if a valid stored or refreshed JWT could be applied; otherwise false.</returns>
+        public async Task<bool> RestoreAuthenticationState(ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
+        {
+            TokenPair? storedTokenPair = await tokenService.GetTokenPair();
+
+            if (storedTokenPair == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(storedTokenPair.AccessToken)
+                    && await TryApplyJwt(storedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler))
+                {
+                    return true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(storedTokenPair.RefreshToken))
+                {
+                    TokenPair? refreshedTokenPair = await tokenService.RefreshTokenPair(force: true);
+
+                    if (refreshedTokenPair != null
+                        && !string.IsNullOrWhiteSpace(refreshedTokenPair.AccessToken)
+                        && await TryApplyJwt(refreshedTokenPair.AccessToken, apiConnection, middlewareClient, userConfig, circuitHandler))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (AuthenticationException)
+            {
+                await Deauthenticate();
+                throw;
+            }
+
+            await Deauthenticate();
+            return false;
+        }
+
         public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig, CircuitHandlerService circuitHandler)
         {
             if (!await TryApplyJwt(jwtString, apiConnection, middlewareClient, userConfig, circuitHandler))

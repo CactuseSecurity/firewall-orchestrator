@@ -713,7 +713,8 @@ namespace FWO.Middleware.Server
                     {
                         Log.WriteDebug("Modify Entry", $"User {userDn} not member of {entry}");
                     }
-                    return false;
+                    // Treat no-op membership changes as success so callers can use add/remove idempotently.
+                    return true;
                 }
 
                 LdapAttribute attribute = new(UniqueMemberLowerCase, userDn);

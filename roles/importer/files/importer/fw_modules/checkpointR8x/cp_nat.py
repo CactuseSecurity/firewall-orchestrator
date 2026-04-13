@@ -134,8 +134,6 @@ def normalize_nat_rules(
                             normalized_nat_rulebase.uid,
                             gateway,
                             native_config["policies"],
-                            xlate_rule_id=rule_xlate["uid"], # TODO: needs numeric id after inserting into DB, update later
-                            nat_rule=True,
                         )
                         parse_single_rule(  # do not increase rule_num here (xlate rules do not count)
                             rule_xlate,
@@ -144,7 +142,6 @@ def normalize_nat_rules(
                             normalized_nat_rulebase.uid,
                             gateway,
                             native_config["policies"],
-                            nat_rule=True,
                         )
 
             if not any(rb for rb in normalized_config["policies"] if rb.uid == normalized_nat_rulebase.uid):
@@ -169,6 +166,8 @@ def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], 
         "enabled": nat_rule["enabled"],
         "comments": nat_rule["comments"],
         "rule_type": "access",
+        "nat_rule": True,
+        "xlate_rule_uid": nat_rule["uid"] + "_translated",
     }
     nat_out_rule = {
         "uid": nat_rule["uid"] + "_translated",
@@ -186,5 +185,7 @@ def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], 
         "install-on": nat_rule["install-on"],
         "time": "",
         "rule_type": "nat",
+        "nat_rule": True,
+        "xlate_rule_uid": nat_rule["uid"] + "_translated",
     }
     return (nat_in_rule, nat_out_rule)

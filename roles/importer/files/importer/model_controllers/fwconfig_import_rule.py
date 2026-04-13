@@ -115,14 +115,22 @@ class FwConfigImportRule:
         num_inserted_rules, inserted_rule_ids = self.add_new_rules(
             {
                 rule_uid: (curr_rules[rule_uid], curr_rule_to_rulebase[rule_uid])
-                for rule_uid in (added_rule_uids | changed_rule_uids)
+                for rule_uid in (added_rule_uids | changed_rule_uids) if curr_rules[rule_uid].xlate_rule_uid is None
             }
         )
-
-        # TODO: NAT rules: The rules need to be inserted into the database first to get the rule_id's for the NAT rules.
-        # then, we have to update the xlate_rule field because we need the database (numeric) id's there.
-
         self.uid2id_mapper.add_rule_mappings(inserted_rule_ids)
+
+        # add new NAT rules separately after all non-NAT rules have been added, to ensure that all xlate rules are already in the database
+        # and can be referenced by their new numeric id in the xlate_rule field of the NAT rules
+        num_inserted_nat_rules, inserted_nat_rule_ids = self.add_new_rules(
+            {
+                rule_uid: (curr_rules[rule_uid], curr_rule_to_rulebase[rule_uid])
+                for rule_uid in (added_rule_uids | changed_rule_uids) if curr_rules[rule_uid].xlate_rule_uid is not None
+            }
+        )
+        num_inserted_rules += num_inserted_nat_rules
+        self.uid2id_mapper.add_rule_mappings(inserted_nat_rule_ids)
+
         refs_added = self.add_new_refs(prev_config)
 
         num_set_removed_rules, _removed_rule_ids = self.mark_rules_removed(list(removed_rule_uids | changed_rule_uids))
@@ -1113,6 +1121,7 @@ class FwConfigImportRule:
 
     def prepare_rule_for_import(self, rule: RuleNormalized, rulebase_uid: str) -> Rule:
         rulebase_id = self.uid2id_mapper.get_rulebase_id(rulebase_uid)
+        xlate_rule_id = self.uid2id_mapper.get_rule_id(rule.xlate_rule_uid) if rule.xlate_rule_uid else None
         return Rule(
             mgm_id=self.import_details.state.mgm_details.current_mgm_id,
             rule_num=rule.rule_num,
@@ -1148,6 +1157,7 @@ class FwConfigImportRule:
             rule_head_text=rule.rule_head_text,
             rule_installon=rule.rule_installon,
             last_change_admin=None,  # TODO: get id from rule.last_change_admin
+            xlate_rule=xlate_rule_id,
         )
 
     def write_changelog_rules(

@@ -306,8 +306,6 @@ def parse_single_rule(
     parent_uid: str | None,
     gateway: dict[str, Any],
     policy_structure: list[dict[str, Any]],
-    xlate_rule_id: int | None = None,
-    nat_rule: bool = False,
 ):
     # reference to domain rule layer, filling up basic fields
     if not (
@@ -387,12 +385,12 @@ def parse_single_rule(
         "last_change_admin": sanitize(last_change_admin),
         "parent_rule_uid": sanitize(parent_rule_uid),
         "last_hit": sanitize(last_hit),
-        "nat_rule": nat_rule,
+        "nat_rule": bool(native_rule.get("nat_rule", False)),
     }
     if comments is not None:
         rule["rule_comment"] = sanitize(comments)
-    if xlate_rule_id is not None:
-        rule["xlate_rule"] = xlate_rule_id
+    if native_rule.get("xlate_rule_uid") is not None:
+        rule["xlate_rule_uid"] = sanitize(native_rule["xlate_rule_uid"])
     rulebase.rules.update({rule["rule_uid"]: RuleNormalized(**rule)})
 
 

@@ -2370,12 +2370,6 @@ INSERT INTO txt VALUES ('externalRequestStartAt',  'German','Externer Auftrags-S
 INSERT INTO txt VALUES ('externalRequestStartAt',  'English','External Request start at');
 INSERT INTO txt VALUES ('externalRequestWaitCycles','German','Anzahl Wartezyklen');
 INSERT INTO txt VALUES ('externalRequestWaitCycles','English','Number wait cycles');
-INSERT INTO txt VALUES ('fwConfigChangeSleepTime','German','FW Konfigurations&auml;nderungs-Intervall (in Sekunden)');
-INSERT INTO txt VALUES ('fwConfigChangeSleepTime','English','FW Config Change sleep time (in seconds)');
-INSERT INTO txt VALUES ('fwConfigChangeStartAt',  'German','FW Konfigurations&auml;nderungs-Start');
-INSERT INTO txt VALUES ('fwConfigChangeStartAt',  'English','FW Config Change start at');
-INSERT INTO txt VALUES ('fwConfigChangeWaitCycles','German','Anzahl Wartezyklen');
-INSERT INTO txt VALUES ('fwConfigChangeWaitCycles','English','Number wait cycles');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','English', 	'Auto-discovery sleep time (in hours)');
 INSERT INTO txt VALUES ('autoDiscoverStartAt',  'German', 	'Autodiscover-Start');
@@ -2814,10 +2808,6 @@ INSERT INTO txt VALUES ('fwconfigchange',       'German', 	'FW Konfigurations&au
 INSERT INTO txt VALUES ('fwconfigchange',       'English', 	'FW Config Change');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','German', 	'Allgemein');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','English', 	'General');
-INSERT INTO txt VALUES ('direct',               'German', 	'Direkt');
-INSERT INTO txt VALUES ('direct',               'English', 	'Direct');
-INSERT INTO txt VALUES ('fwconfigchangedirect', 'German', 	'Direkter FW Konfigurations&auml;nderung');
-INSERT INTO txt VALUES ('fwconfigchangedirect', 'English', 	'Direct FW Config Change');
 INSERT INTO txt VALUES ('ext_ticketing',        'German', 	'Externes Ticket-System');
 INSERT INTO txt VALUES ('ext_ticketing',        'English', 	'External ticket tool');
 INSERT INTO txt VALUES ('ext_ticket_settings',  'German', 	'Einstellungen externes Ticket-System');

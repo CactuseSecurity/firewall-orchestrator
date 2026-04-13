@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Logging
 @using FWO.Middleware.Client
 @using FWO.Recert
@@ -9,15 +9,17 @@
 @using System.Text.Json
 
 @page "/settings/extticketing"
+@page "/settings/extticketing/{Id:int?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject NavigationManager Navigation
 
 <div class="input-group">
     <h3>@(userConfig.GetText("ext_ticket_settings"))</h3>
-    <HelpLink Page="settings/extticketing"/>
+    <HelpLink Page="settings/extticketing" />
 </div>
 @(userConfig.GetText("H5598"))
 <hr />
@@ -56,12 +58,12 @@
                     <input type="text" class="col-sm-8" @bind="extTicketingSystemName" />
                 </div>
             </div>
-             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5597"))">
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5597"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_type")):</label>
                 <div class="col-sm-4">
                     <Dropdown ElementType="ExternalTicketSystemType" SelectedElement="actExtTicketSystemType"
-                        SelectedElementChanged="InitTaskTypeList"
-                        Elements="Enum.GetValues(typeof(ExternalTicketSystemType)).Cast<ExternalTicketSystemType>()" />
+                              SelectedElementChanged="InitTaskTypeList"
+                              Elements="Enum.GetValues(typeof(ExternalTicketSystemType)).Cast<ExternalTicketSystemType>()" />
                 </div>
             </div>
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
@@ -70,7 +72,7 @@
                     <input type="text" class="col-sm-8" @bind="extTicketingSystemUrl" />
                 </div>
             </div>
-             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5594"))">
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5594"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_auth")):</label>
                 <div class="col-sm-8">
                     <input type="text" class="col-sm-8" @bind="extTicketingSystemAuth" />
@@ -90,51 +92,59 @@
                     <input type="number" class="col-sm-6" @bind="extTicketingSystemCyclesBetweenAttempts" />
                 </div>
             </div>
-            @if(actExtTicketSystemType == ExternalTicketSystemType.TufinSecureChange)
+            @if (actExtTicketSystemType == ExternalTicketSystemType.TufinSecureChange)
             {
                 <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
                 <div class="col-sm-2">
                     <input id="cbx_ext_ticket_lookup_id" type="checkbox" class="w-100" @bind="extTicketingSystemLookup">
-                </div>
-            }
-            <br>
-            <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
-                @{int pos = 0;}
-                @foreach(var template in extTicketingSystemTemplates)
-                {
-                    <Tab Title="@(template.TaskType)" Position=pos++>
-                        <ExtTicketTemplates Template="template" />
-                    </Tab>
-                }
-                <Tab Title="  +  " Position=pos>
-                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
-                        <div class="col-sm-4">
-                            <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="actTaskTypes" />
-                        </div>
                     </div>
-                    <ExtTicketTemplates Template="newTemplate" />
-                </Tab>
-            </TabSet>
+                }
+                <br>
+                <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
+                    @{
+                        int pos = 0;
+                    }
+                    @foreach (var template in extTicketingSystemTemplates)
+                    {
+                        <Tab Title="@(template.TaskType)" Position=pos++>
+                            <ExtTicketTemplates Template="template" />
+                        </Tab>
+                    }
+                    <Tab Title="  +  " Position=pos>
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                            <div class="col-sm-4">
+                                <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="actTaskTypes" />
+                            </div>
+                        </div>
+                        <ExtTicketTemplates Template="newTemplate" />
+                    </Tab>
+                </TabSet>
+            </div>
+        </form>
+        <hr />
+        <div class="btn-group">
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized>
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
-    </form>
-    <hr />
-    <AuthorizeView Roles="@Roles.Admin">
-        <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
-        </Authorized>
-        <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-        </NotAuthorized> 
-    </AuthorizeView>
-}
+    }
 else
-{
-    <Loading/>
-}
+    {
+        <Loading />
+    }
 
 @code
 {
+    [Parameter]
+    public int? Id { get; set; }
+
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
@@ -160,34 +170,38 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             extReqStartDate = extReqStartTime = configData.ExternalRequestStartAt;
-            extTicketSystems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems) ?? new();
-            if (extTicketSystems.Count() > 0)
+            extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems) ? new List<ExternalTicketSystem>()
+                                                        : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
+                                                        ?? new List<ExternalTicketSystem>();
+
+            ExternalTicketSystem? systemToEdit = null;
+
+            if (Id.HasValue)
             {
-                // todo: loop over several systems
-                extTicketingSystemName = extTicketSystems.First().Name;
-                actExtTicketSystemType = extTicketSystems.First().Type;
+                systemToEdit = extTicketSystems.FirstOrDefault(s => s.Id == Id.Value);
+            }
+
+            if (systemToEdit != null)
+            {
+                // Edit-Mode
+                extTicketingSystemName = systemToEdit.Name;
+                actExtTicketSystemType = systemToEdit.Type;
                 InitTaskTypeList(actExtTicketSystemType);
-                extTicketingSystemUrl = extTicketSystems.First().Url;
-                extTicketingSystemTimeout = extTicketSystems.First().ResponseTimeout;
-                extTicketingSystemMaxAttempts = extTicketSystems.First().MaxAttempts;
-                extTicketingSystemCyclesBetweenAttempts = extTicketSystems.First().CyclesBetweenAttempts;
-                extTicketingSystemAuth = extTicketSystems.First().Authorization;
-                extTicketingSystemLookup = extTicketSystems.First().LookupRequesterId;
-                if(extTicketSystems.First().Templates.Count == 0 && 
-                    (extTicketSystems.First().TicketTemplate != "" || extTicketSystems.First().TasksTemplate != ""))
-                {
-                    // backwards compatibility
-                    extTicketingSystemTemplates.Add(new()
-                    {
-                        TaskType = SCTaskType.AccessRequest.ToString(),
-                        TicketTemplate = extTicketSystems.First().TicketTemplate,
-                        TasksTemplate = extTicketSystems.First().TasksTemplate
-                    });
-                }
-                else
-                {
-                    extTicketingSystemTemplates = extTicketSystems.First().Templates;
-                }
+                extTicketingSystemUrl = systemToEdit.Url;
+                extTicketingSystemTimeout = systemToEdit.ResponseTimeout;
+                extTicketingSystemMaxAttempts = systemToEdit.MaxAttempts;
+                extTicketingSystemCyclesBetweenAttempts = systemToEdit.CyclesBetweenAttempts;
+                extTicketingSystemAuth = systemToEdit.Authorization;
+                extTicketingSystemLookup = systemToEdit.LookupRequesterId;
+                extTicketingSystemTemplates = systemToEdit.Templates;
+            }
+            else
+            {
+                // Create-Mode
+                extTicketingSystemName = "";
+                actExtTicketSystemType = ExternalTicketSystemType.Generic;
+                InitTaskTypeList(actExtTicketSystemType);
+                extTicketingSystemTemplates = new();
             }
         }
         catch (Exception exception)
@@ -199,7 +213,7 @@ else
     private void InitTaskTypeList(ExternalTicketSystemType extTicketSystemType)
     {
         actExtTicketSystemType = extTicketSystemType;
-        switch(extTicketSystemType)
+        switch (extTicketSystemType)
         {
             case ExternalTicketSystemType.Generic:
                 actTaskTypes = [];
@@ -221,23 +235,46 @@ else
     {
         try
         {
-            if (configData != null)
+            if (configData == null)
             {
-                configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
-                List<ExternalTicketSystem> currentSystems = [];
-                // todo: loop over several systems
-                if(newTemplate.TicketTemplate != "" || newTemplate.TasksTemplate != "")
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+            configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
+            List<ExternalTicketSystem> currentSystems = extTicketSystems;
+
+            // todo: loop over several systems
+            if (newTemplate.TicketTemplate != "" || newTemplate.TasksTemplate != "")
+            {
+                extTicketingSystemTemplates.Add(new()
                 {
-                    extTicketingSystemTemplates.Add(new()
-                    {
-                        TaskType = newTemplate.TaskType.ToString(),
-                        TicketTemplate = newTemplate.TicketTemplate,
-                        TasksTemplate = newTemplate.TasksTemplate
-                    });
-                }
-                extTicketingSystemTemplates = extTicketingSystemTemplates.Where(t => t.TicketTemplate != "" || t.TasksTemplate != "").ToList();
-                ExternalTicketSystem newSystem = new()
+                    TaskType = newTemplate.TaskType.ToString(),
+                    TicketTemplate = newTemplate.TicketTemplate,
+                    TasksTemplate = newTemplate.TasksTemplate
+                });
+            }
+
+            ExternalTicketSystem system;
+
+            if (Id.HasValue)
+            {
+                system = extTicketSystems.First(s => s.Id == Id.Value);
+                system.Name = extTicketingSystemName;
+                system.Type = actExtTicketSystemType;
+                system.Url = extTicketingSystemUrl;
+                system.ResponseTimeout = extTicketingSystemTimeout;
+                system.MaxAttempts = extTicketingSystemMaxAttempts;
+                system.CyclesBetweenAttempts = extTicketingSystemCyclesBetweenAttempts;
+                system.Authorization = extTicketingSystemAuth;
+                system.LookupRequesterId = extTicketingSystemLookup;
+                system.Templates = extTicketingSystemTemplates;
+                system.Sanitize();
+            }
+            else
+            {
+                int nextId = extTicketSystems.Any() ? extTicketSystems.Max(x => x.Id) + 1 : 1;
+                system = new ExternalTicketSystem
                 {
+                    Id = nextId,
                     Name = extTicketingSystemName,
                     Type = actExtTicketSystemType,
                     Url = extTicketingSystemUrl,
@@ -248,20 +285,43 @@ else
                     LookupRequesterId = extTicketingSystemLookup,
                     Templates = extTicketingSystemTemplates
                 };
-                newSystem.Sanitize();
-                currentSystems.Add(newSystem);
-                configData.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(currentSystems);
-                await globalConfig.WriteToDatabase(configData, apiConnection);
-                DisplayMessageInUi(null, userConfig.GetText("ext_ticket_settings"), userConfig.GetText("U5301"), false);
+                system.Sanitize();
+                extTicketSystems.Add(system);
             }
-            else
-            {
-                throw new ArgumentException("Data saved before loaded. This should be impossible.");
-            }
+
+
+            // int nextId = extTicketSystems.Any() ? extTicketSystems.Max(x => x.Id) + 1 : 1;
+            // extTicketingSystemTemplates = extTicketingSystemTemplates.Where(t => t.TicketTemplate != "" || t.TasksTemplate != "").ToList();
+            // ExternalTicketSystem newSystem = new()
+            // {
+            //     Id = nextId,
+            //     Name = extTicketingSystemName,
+            //     Type = actExtTicketSystemType,
+            //     Url = extTicketingSystemUrl,
+            //     ResponseTimeout = extTicketingSystemTimeout,
+            //     MaxAttempts = extTicketingSystemMaxAttempts,
+            //     CyclesBetweenAttempts = extTicketingSystemCyclesBetweenAttempts,
+            //     Authorization = extTicketingSystemAuth,
+            //     LookupRequesterId = extTicketingSystemLookup,
+            //     Templates = extTicketingSystemTemplates
+            // };
+            // newSystem.Sanitize();
+            // currentSystems.Add(newSystem);
+            configData.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(currentSystems);
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("ext_ticket_settings"), userConfig.GetText("U5301"), false);
+
+            Navigation.NavigateTo("/settings/direct");
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_settings"), "", true);
         }
     }
+    private void CancelEdit()
+    {
+        Navigation.NavigateTo("/settings/direct");
+    }
 }
+
+

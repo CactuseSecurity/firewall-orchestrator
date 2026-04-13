@@ -1,0 +1,442 @@
+@using FWO.Data.Middleware
+@using FWO.Logging
+@using FWO.Middleware.Client
+@using FWO.Recert
+@using FWO.ExternalSystems.Tufin.SecureChange
+@using FWO.Ui.Pages.NetworkModelling
+@using RestSharp
+@using System.Net
+@using System.Text.Json
+
+@page "/settings/direct"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+@if (InitComplete && configData != null)
+{
+    <div class="input-group">
+        <h3></h3>
+        @*     <HelpLink Page="settings/extticketing" /> *@
+    </div>
+    @* @(userConfig.GetText("H5598")) *@
+    <hr />
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="form-group row">
+                <div class="form-group row col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5426a"))">
+                    <label class="col-form-label col-sm-6">@(userConfig.GetText("externalRequestSleepTime")):</label>
+                    <div class="col-sm-4">
+                        <input type="number" min="0" @bind="configData!.ExternalRequestSleepTime" />
+                    </div>
+                </div>
+                <div class="form-group row col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5426b"))">
+                    <label class="col-form-label col-sm-6">@(userConfig.GetText("externalRequestWaitCycles")):</label>
+                    <div class="col-sm-4">
+                        <input type="number" min="0" @bind="configData!.ExternalRequestWaitCycles" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5427a"))">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("externalRequestStartAt")):</label>
+                <div class="col-sm-4">
+                    <div class="row">
+                        <input type="time" step="60" class="ml-13 col-sm-5" @bind="extReqStartTime" />
+                        <input type="date" class="col-sm-5" @bind="extReqStartDate" />
+                    </div>
+                </div>
+            </div>
+            <hr />
+            <div class="row mb-2">
+                <div class="col-sm-12">
+                    @if (userConfig.AllowManualOwnerAdmin)
+                    {
+                        <button type="button" class="btn btn-sm btn-success" @onclick="AddExternalTicketSystem">@(DisplayService.DisplayButton(userConfig, "add_owner_lc_state", Icons.Add))</button>@* Todo change Text *@
+                    }
+                </div>
+            </div>
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" @ref="tableExternalTicketSystems" TableItem="ExternalTicketSystem" Items="extTicketSystems" PageSize="0" ColumnReorder="true">
+                <Column TableItem="ExternalTicketSystem" Title="ExternalTicketSystems" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                    <Template Context="item">
+                        <div class="btn-group">
+                            @if (userConfig.AllowManualOwnerAdmin)
+                            {
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                <AuthorizeView Roles="@Roles.Admin" Context="ctx">
+                                    <Authorized>
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    </NotAuthorized>
+                                </AuthorizeView>
+                            }
+                        </div>
+                    </Template>
+                </Column>
+                <Column TableItem="ExternalTicketSystem" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                <Column TableItem="ExternalTicketSystem" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            </Table>
+        </div>
+    </div>
+    <PopUp Title="@(curExternalTicketSystem == null ? "Create External Ticket System" : "Edit External Ticket System")" Show="@editMode" Size="PopupSize.Auto" OnClose="() => editMode = false">
+        <Body>
+            @if (editMode && configData != null)
+            {
+                <form onsubmit="return false">
+                    <div class="form-group row mt-2">
+                        <div class="form-group row mt-2">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="col-sm-8" @bind="editModel.Name" />
+                            </div>
+                        </div>
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5597"))">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_type")):</label>
+                            <div class="col-sm-4">
+                                <Dropdown ElementType="ExternalTicketSystemType" SelectedElement="editModel.Type"
+                                          SelectedElementChanged="t => editModel.Type = t"
+                                          Elements="Enum.GetValues(typeof(ExternalTicketSystemType)).Cast<ExternalTicketSystemType>()" />
+                            </div>
+                        </div>
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_url")):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="col-sm-8" @bind="editModel.Url" />
+                            </div>
+                        </div>
+                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5594"))">
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_auth")):</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="col-sm-8" @bind="editModel.Authorization" />
+                            </div>
+                        </div>
+                        <div class="form-group row mt-2">
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("response_timeout")):</label>
+                            <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593a"))">
+                                <input type="number" class="col-sm-6" @bind="editModel.ResponseTimeout" />
+                            </div>
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("max_attempts")):</label>
+                            <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593b"))">
+                                <input type="number" class="col-sm-6" @bind="editModel.MaxAttempts" />
+                            </div>
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("cycles_between")):</label>
+                            <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593c"))">
+                                <input type="number" class="col-sm-6" @bind="editModel.CyclesBetweenAttempts" />
+                            </div>
+                        </div>
+                        @if (editModel.Type == ExternalTicketSystemType.TufinSecureChange)
+                        {
+                            <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
+                            <div class="col-sm-2">
+                                <input id="cbx_ext_ticket_lookup_id" type="checkbox" class="w-100" @bind="editModel.LookupRequesterId">
+                                </div>
+                            }
+                            <br>
+                            <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
+                                @{
+                                    int pos = 0;
+                                }
+                                @foreach (var template in editModel.Templates)
+                                {
+                                    <Tab Title="@(template.TaskType)" Position=pos++>
+                                        <ExtTicketTemplates @key="template" Template="template" />
+                                    </Tab>
+                                }
+                                <Tab Title="  +  " Position=pos>
+                                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
+                                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                                        <div class="col-sm-4">
+                                            <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="actTaskTypes" />
+                                        </div>
+                                    </div>
+                                    <ExtTicketTemplates Template="newTemplate" />
+                                </Tab>
+                            </TabSet>
+                        </div>
+                    </form>
+                    <hr />
+                }
+
+            </Body>
+            <Footer>
+                <div class="btn-group">
+                    <AuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+                </div>
+            </Footer>
+
+        </PopUp>
+
+        <ConfirmDelete @bind-Display="DeleteExternalTicketSystemMode" PerformAction="DeleteExternalTicketSystem" Title="@userConfig.GetText("delete_owner_lc_state")" DeleteMessage="@(userConfig.GetText("U5219") + externalTicketSystemToDelete.Name + "?")" />@* Todo change Text *@
+
+    }
+    else
+    {
+        <Loading />
+    }
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+    private ConfigData? configData;
+    private bool InitComplete = false;
+    private Table<ExternalTicketSystem>? tableExternalTicketSystems;
+
+    private ExternalTicketSystem? curExternalTicketSystem = null;
+    private ExternalTicketSystem editModel = new();
+    private bool editMode = false;
+    private bool DeleteExternalTicketSystemMode = false;
+    private ExternalTicketSystem externalTicketSystemToDelete = new();
+
+    private List<ExternalTicketSystem> extTicketSystems = [];
+    private DateTime extReqStartDate = DateTime.Today;
+    private DateTime extReqStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private ExternalTicketTemplate newTemplate = new();
+    private List<string> actTaskTypes = [];
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems) ? new List<ExternalTicketSystem>()
+                                                        : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
+                                                        ?? new List<ExternalTicketSystem>();
+
+            InitComplete = true;
+        }
+        catch (Exception exception)
+        {
+            extTicketSystems = [];
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+            configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
+
+            if (!string.IsNullOrWhiteSpace(newTemplate.TicketTemplate) || !string.IsNullOrWhiteSpace(newTemplate.TasksTemplate))
+            {
+                editModel.Templates.Add(new ExternalTicketTemplate
+                {
+                    TaskType = newTemplate.TaskType,
+                    TicketTemplate = newTemplate.TicketTemplate,
+                    TasksTemplate = newTemplate.TasksTemplate
+                });
+            }
+
+            newTemplate = new ExternalTicketTemplate();
+
+            if (curExternalTicketSystem != null)
+            {
+                var system = extTicketSystems.First(x => x.Id == curExternalTicketSystem.Id);
+
+                system.Name = editModel.Name;
+                system.Type = editModel.Type;
+                system.Url = editModel.Url;
+                system.ResponseTimeout = editModel.ResponseTimeout;
+                system.MaxAttempts = editModel.MaxAttempts;
+                system.CyclesBetweenAttempts = editModel.CyclesBetweenAttempts;
+                system.Authorization = editModel.Authorization;
+                system.LookupRequesterId = editModel.LookupRequesterId;
+                system.Templates = editModel.Templates
+                    .Select(t => new ExternalTicketTemplate
+                    {
+                        TaskType = t.TaskType,
+                        TicketTemplate = t.TicketTemplate,
+                        TasksTemplate = t.TasksTemplate,
+                        ObjectTemplate = t.ObjectTemplate,
+                        ObjectTemplateShort = t.ObjectTemplateShort,
+                        IpTemplate = t.IpTemplate,
+                        NwObjGroupTemplate = t.NwObjGroupTemplate,
+                        ServiceTemplate = t.ServiceTemplate,
+                        IcmpTemplate = t.IcmpTemplate,
+                        IpProtocolTemplate = t.IpProtocolTemplate
+                    })
+                    .ToList();
+
+                system.Sanitize();
+            }
+            else
+            {
+                editModel.Id = extTicketSystems.Any()
+                    ? extTicketSystems.Max(x => x.Id) + 1
+                    : 1;
+
+                editModel.Sanitize();
+                extTicketSystems.Add(editModel);
+            }
+
+
+            configData.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(extTicketSystems);
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+
+
+
+            editMode = false;
+            await ReloadData();
+
+            editModel = new ExternalTicketSystem();
+            curExternalTicketSystem = null;
+
+            if (tableExternalTicketSystems is not null)
+            {
+                await tableExternalTicketSystems.UpdateAsync();
+            }
+
+            DisplayMessageInUi(null, userConfig.GetText("ext_ticket_settings"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_settings"), "", true);
+        }
+    }
+
+    private void InitTaskTypeList(ExternalTicketSystemType extTicketSystemType)
+    {
+        switch (extTicketSystemType)
+        {
+            case ExternalTicketSystemType.Generic:
+                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
+                break;
+            case ExternalTicketSystemType.TufinSecureChange:
+                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
+                break;
+            case ExternalTicketSystemType.AlgoSec:
+                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
+                break;
+            case ExternalTicketSystemType.ServiceNow:
+                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
+                break;
+        }
+        newTemplate.TaskType = actTaskTypes.Count > 0 ? actTaskTypes.First() : "";
+    }
+
+    private void AddExternalTicketSystem()
+    {
+        curExternalTicketSystem = null;
+        editModel = new ExternalTicketSystem
+        {
+            Type = ExternalTicketSystemType.Generic,
+            Templates = new()
+        };
+
+        newTemplate = new ExternalTicketTemplate();
+
+        InitTaskTypeList(editModel.Type);
+        editMode = true;
+    }
+
+    private void EditExternalTicketSystem(ExternalTicketSystem externalTicketSystem)
+    {
+        curExternalTicketSystem = externalTicketSystem;
+        editModel = Clone(externalTicketSystem);
+        newTemplate = new ExternalTicketTemplate();
+        editMode = true;
+    }
+
+    private void RequestDeleteExternalTicketSystem(ExternalTicketSystem externalTicketSystem)
+    {
+        externalTicketSystemToDelete = externalTicketSystem;
+        DeleteExternalTicketSystemMode = true;
+    }
+
+    private async Task DeleteExternalTicketSystem()
+    {
+
+        if (configData != null)
+        {                
+            try
+            {    
+                Log.WriteAudit(
+                    Title: $"External Ticket System Settings",
+                    Text: $"Deleted External Ticket System: {externalTicketSystemToDelete.Name}");
+                
+                extTicketSystems.Remove(externalTicketSystemToDelete);
+
+                configData.ExtTicketSystems = JsonSerializer.Serialize(extTicketSystems);
+
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+
+                await ReloadData();
+
+                DeleteExternalTicketSystemMode = false;
+                externalTicketSystemToDelete = new();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("delete_owner_lc_state"), "", true); // TODO Text
+            }
+        }        
+    }
+
+    private void CancelEdit()
+    {
+        curExternalTicketSystem = null;
+        editMode = false;
+        DeleteExternalTicketSystemMode = false;
+        newTemplate = new ExternalTicketTemplate();
+    }
+
+    private async Task ReloadData()
+    {
+        configData = await globalConfig.GetEditableConfig();
+
+        extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems)
+            ? new List<ExternalTicketSystem>()
+            : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
+              ?? new List<ExternalTicketSystem>();
+
+        StateHasChanged();
+    }
+
+    private ExternalTicketSystem Clone(ExternalTicketSystem s)
+    {
+        return new ExternalTicketSystem
+        {
+            Id = s.Id,
+            Name = s.Name,
+            Type = s.Type,
+            Url = s.Url,
+            ResponseTimeout = s.ResponseTimeout,
+            MaxAttempts = s.MaxAttempts,
+            CyclesBetweenAttempts = s.CyclesBetweenAttempts,
+            Authorization = s.Authorization,
+            LookupRequesterId = s.LookupRequesterId,
+            Templates = s.Templates
+                    .Select(t => new ExternalTicketTemplate
+                    {
+                        TaskType = t.TaskType,
+                        TicketTemplate = t.TicketTemplate,
+                        TasksTemplate = t.TasksTemplate,
+                        ObjectTemplate = t.ObjectTemplate,
+                        ObjectTemplateShort = t.ObjectTemplateShort,
+                        IpTemplate = t.IpTemplate,
+                        NwObjGroupTemplate = t.NwObjGroupTemplate,
+                        ServiceTemplate = t.ServiceTemplate,
+                        IcmpTemplate = t.IcmpTemplate,
+                        IpProtocolTemplate = t.IpProtocolTemplate
+                    })
+                    .ToList(),
+        };
+    }
+}

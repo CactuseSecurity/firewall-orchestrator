@@ -34,18 +34,6 @@ def normalize_nat_rules(
                 )
                 continue
 
-            if len(normalized_gateway["RulebaseLinks"]) == 0:
-                normalized_gateway["RulebaseLinks"].append(
-                    {
-                        "from_rulebase_uid": normalized_gateway["Uid"],
-                        "to_rulebase_uid": normalized_nat_rulebase.uid,
-                        "link_type": "nat",
-                        "is_initial": True,
-                        "is_global": False,
-                        "is_section": False,
-                    }
-                )
-
             if not any(
                 link
                 for link in normalized_gateway["RulebaseLinks"]
@@ -57,7 +45,7 @@ def normalize_nat_rules(
                     {
                         "from_rulebase_uid": normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"],
                         "to_rulebase_uid": normalized_nat_rulebase.uid,
-                        "link_type": "nat",
+                        "link_type": "ordered",
                         "is_initial": False,
                         "is_global": False,
                         "is_section": False,
@@ -90,7 +78,7 @@ def normalize_nat_rules(
                                 {
                                     "from_rulebase_uid": normalized_nat_rulebase.uid,
                                     "to_rulebase_uid": section_rulebase.uid,
-                                    "link_type": "nat",
+                                    "link_type": "concatenated",
                                     "is_initial": False,
                                     "is_global": False,
                                     "is_section": False,
@@ -141,12 +129,12 @@ def normalize_nat_rules(
 
 def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     nat_in_rule = {
-        "uid": nat_rule["uid"] + "_original",
+        "uid": nat_rule["uid"],
         "source": [nat_rule["original-source"]],
         "destination": [nat_rule["original-destination"]],
         "service": [nat_rule["original-service"]],
         "action": [{"name": "accept", "type": "nat-action", "uid": nat_rule["uid"] + "_original-action"}],
-        "track": [{"type": "nat", "name": "None", "uid": nat_rule["uid"] + "_original"}],
+        "track": [{"type": "nat", "name": "None", "uid": nat_rule["uid"]}],
         "type": "nat",
         "rule-number": 0,
         "source-negate": False,

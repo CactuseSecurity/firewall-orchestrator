@@ -1,7 +1,7 @@
 # GraphQL mutation to revoke a refresh token by setting its revoked_at timestamp
 
 mutation revokeRefreshToken($tokenHash: String!, $revokedAt: timestamptz!) {
-    update_refresh_tokens(
+    update_refresh_token(
         where: {token_hash: {_eq: $tokenHash}, revoked_at: {_is_null: true}},
         _set: {revoked_at: $revokedAt}
     ) {

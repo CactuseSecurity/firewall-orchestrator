@@ -1,4 +1,4 @@
-CREATE TABLE refresh_tokens (
+CREATE TABLE refresh_token (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES uiuser(uiuser_id) ON DELETE CASCADE,
     token_hash VARCHAR(88) UNIQUE NOT NULL,

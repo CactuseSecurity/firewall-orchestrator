@@ -1,5 +1,5 @@
 query getRefreshToken($tokenHash: String!, $currentTime: timestamptz!) {
-  refresh_tokens(where: {token_hash: {_eq: $tokenHash}, expires_at: {_gt: $currentTime}, revoked_at: {_is_null: true}}) {
+  refresh_token(where: {token_hash: {_eq: $tokenHash}, expires_at: {_gt: $currentTime}, revoked_at: {_is_null: true}}) {
     user_id
     expires_at
     created_at

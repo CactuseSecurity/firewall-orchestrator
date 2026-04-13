@@ -428,7 +428,6 @@
     {
         try
         {
-            await ReportScheduleNotificationHelper.DeleteNotifications(apiConnection, reportScheduleInEdit.Notifications);
             var queryVariables = new
             {
                 report_schedule_id = reportScheduleInEdit.Id

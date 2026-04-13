@@ -473,8 +473,7 @@ namespace FWO.Report.Filter
                 case ReportType.ComplianceReport:
                 case ReportType.ComplianceDiffReport:
                 case ReportType.RecertEventReport:
-                    string rq = ConstructRulesQuery(query, paramString, filter);
-                    query.FullQuery = Queries.Compact(rq);
+                    query.FullQuery = Queries.Compact(ConstructRulesQuery(query, paramString, filter));
                     break;
 
                 case ReportType.Recertification:
@@ -495,8 +494,7 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.NatRules:
-                    string nrq = ConstructNatRulesQuery(query, paramString, filter);
-                    query.FullQuery = Queries.Compact(nrq);
+                    query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
                     break;
 
                 case ReportType.Connections:

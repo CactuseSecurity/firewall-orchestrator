@@ -1,4 +1,4 @@
-﻿@page "/help/API/reporting"
+@page "/help/API/reporting"
 @model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
@@ -26,15 +26,16 @@ curl --request POST \
     --header 'content-type: application/json' \
     --data '{"Username": "reportingscheduler", "Password": "xxx"}'
         </code></pre>
-
-        <small class="small-helptext">@userConfig.GetText("response")</small>
+        <small class="small-helptext">
+            @userConfig.GetText("response") (200 OK):
+        </small>
         <pre class="code-block" data-lang="json"><code>
-            {
-            "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-            "refreshToken": "a7f3c8b9e2d1...",
-            "accessTokenExpires": "2025-12-11T14:30:00Z",
-            "refreshTokenExpires": "2026-01-10T12:00:00Z"
-            }
+{
+    "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "a7f3c8b9e2d1...",
+    "accessTokenExpires": "2025-12-11T14:30:00Z",
+    "refreshTokenExpires": "2026-01-10T12:00:00Z"
+}
         </code></pre>
 
         <li>@userConfig.GetText("H6905")</li>
@@ -49,7 +50,9 @@ curl --request POST \
     "variables": { "userName": "repsched" },
     "query": "query getIDs($userName:String!) { report_template { report_template_id report_template_name } uiuser(where:{uiuser_username:{_eq: $userName}}){ uiuser_id uiuser_username } }"}'
         </code></pre>
-
+        <small class="small-helptext">
+            @userConfig.GetText("response") (200 OK):
+        </small>
         <pre class="code-block" data-lang="json"><code>
 {
     "data": {
@@ -111,7 +114,9 @@ curl --request POST \
     "query": "mutation addReportSchedule($report_schedule_name: String!, $report_schedule_owner_id: Int!, $report_schedule_template_id: Int!, $report_schedule_start_time: timestamp!, $report_schedule_repeat: Int!, $report_schedule_every: Int!, $report_schedule_active: Boolean!, $report_schedule_formats: report_schedule_format_arr_rel_insert_input!) { insert_report_schedule(objects: {report_schedule_name: $report_schedule_name, report_schedule_owner: $report_schedule_owner_id, report_schedule_start_time: $report_schedule_start_time, report_schedule_repeat: $report_schedule_repeat, report_schedule_every: $report_schedule_every, report_template_id: $report_schedule_template_id, report_schedule_active: $report_schedule_active, report_schedule_formats: $report_schedule_formats}) { returning { report_schedule_id } } } "}'
 
         </code></pre>
-
+        <small class="small-helptext">
+            @userConfig.GetText("response") (200 OK):
+        </small>
         <pre class="code-block" data-lang="json"><code>
 {
     "data": {
@@ -138,7 +143,9 @@ curl --request POST \
       "variables": { "reportScheduleId": 5 },
       "query": "query reportsBySchedule($reportScheduleId: bigint!) { report_schedule(where: {report_schedule_id: {_eq: $reportScheduleId}}) { report_schedule_id report_schedule_name report_template { latest_report: reports(order_by: {report_id: desc}, limit: 1) { report_id report_name report_start_time report_json }}}}"}'
         </code></pre>
-
+        <small class="small-helptext">
+            @userConfig.GetText("response") (200 OK):
+        </small>
         <pre class="code-block" data-lang="json"><code>
 {
   "data": {

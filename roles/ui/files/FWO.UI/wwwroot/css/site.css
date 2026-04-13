@@ -549,6 +549,13 @@ div.modal-body > * > div.table-responsive > table.sticky-header thead {
     font-weight: bold;
     font-size: medium;
     padding-left: 12px;
-    border-radius: 999px;
+    letter-spacing: 0.2px;
+}
+
+.small-subheader-warn {
+    color: hsl(19, 91%, 45%);
+    font-weight: normal;
+    font-size: 12pt;
+    padding-left: 8px;
     letter-spacing: 0.2px;
 }

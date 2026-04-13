@@ -8646,29 +8646,7 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "check": {
-                      "_and": [
-                        {
-                          "notification_client": {
-                            "_eq": "report"
-                          }
-                        },
-                        {
-                          "_or": [
-                            {
-                              "user_id": {
-                                "_eq": "X-Hasura-User-Id"
-                              }
-                            },
-                            {
-                              "user_id": {
-                                "_is_null": true
-                              }
-                            }
-                          ]
-                        }
-                      ]
-                    },
+                    "check": {},
                     "columns": [
                       "data_issue_id",
                       "import_id",

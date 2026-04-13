@@ -3243,6 +3243,8 @@ INSERT INTO txt VALUES ('invalid_refresh_token','German',   'Ung&uuml;ltiger ode
 INSERT INTO txt VALUES ('invalid_refresh_token','English',  'Invalid or Expired Refresh Token');
 INSERT INTO txt VALUES ('token_revoke_success', 'German',   'Token erfolgreich zur&uuml;ckgezogen');
 INSERT INTO txt VALUES ('token_revoke_success', 'English',  'Successful Token Revocation');
+INSERT INTO txt VALUES ('empty_response',       'German', 	'Leere Antwort');
+INSERT INTO txt VALUES ('empty_response',       'English',  'Empty Response');
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');

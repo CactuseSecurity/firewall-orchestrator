@@ -394,7 +394,7 @@ namespace FWO.Report.Filter
                             id: dev_id
                             name: dev_name
                             uid: dev_uid
-                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement}, stm_link_type: {{id: {{_eq: 6}} }} }})
+                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
                             {{
                                 linkType: stm_link_type  {{
                                     name

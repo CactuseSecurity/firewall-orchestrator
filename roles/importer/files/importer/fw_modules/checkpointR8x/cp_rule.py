@@ -386,6 +386,7 @@ def parse_single_rule(
         "parent_rule_uid": sanitize(parent_rule_uid),
         "last_hit": sanitize(last_hit),
         "nat_rule": bool(native_rule.get("nat_rule", False)),
+        "access_rule": bool(native_rule.get("access_rule", True)),
     }
     if comments is not None:
         rule["rule_comment"] = sanitize(comments)

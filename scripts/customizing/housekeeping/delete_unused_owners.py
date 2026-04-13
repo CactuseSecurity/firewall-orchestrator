@@ -18,6 +18,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import FWOLogger, get_logg
 DEFAULT_FWORCH_CONFIG: str = "/etc/fworch/fworch.json"
 DEFAULT_REQUEST_TIMEOUT_ROLE: str = "admin"
 EXIT_CODE_REFERENCES_FOUND: int = 2
+OPTIONAL_REFERENCE_RELATIONS: tuple[str, ...] = ("owner_networks",)
 
 
 @dataclass(frozen=True)
@@ -67,9 +68,7 @@ OWNER_REFERENCE_RELATIONS: tuple[str, ...] = (
     "ext_requests",
     "notifications",
     "nwgroups",
-    "owner_networks",
     "owner_recertifications",
-    "owner_responsibles",
     "owner_tickets",
     "permitted_owners",
     "recertifications",
@@ -93,7 +92,6 @@ RELATION_LABELS: dict[str, str] = {
     "nwgroups": "network groups",
     "owner_networks": "owner networks",
     "owner_recertifications": "owner recertifications",
-    "owner_responsibles": "owner responsibles",
     "owner_tickets": "owner tickets",
     "permitted_owners": "permitted owner mappings",
     "recertifications": "rule recertifications",
@@ -105,6 +103,13 @@ RELATION_LABELS: dict[str, str] = {
     "service_groups": "service groups",
     "services": "services",
 }
+
+
+def get_owner_reference_relations(include_owner_network_references: bool) -> tuple[str, ...]:
+    """Return the owner relations that should block deletion."""
+    if include_owner_network_references:
+        return OWNER_REFERENCE_RELATIONS + OPTIONAL_REFERENCE_RELATIONS
+    return OWNER_REFERENCE_RELATIONS
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -135,6 +140,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Exit with status code 2 if any inactive owner still has references.",
     )
     parser.add_argument(
+        "--include-owner-network-references",
+        action="store_true",
+        help="Treat owner_network references as blocking references instead of ignoring them.",
+    )
+    parser.add_argument(
         "--output-json",
         action="store_true",
         help="Print the evaluation result as JSON instead of log lines.",
@@ -162,12 +172,13 @@ def resolve_credentials(args: argparse.Namespace) -> tuple[str, str]:
     return username, password
 
 
-def build_inactive_owners_query(filter_by_owner_ids: bool) -> str:
+def build_inactive_owners_query(filter_by_owner_ids: bool, include_owner_network_references: bool) -> str:
     """Build a GraphQL query for inactive owners and their aggregate references."""
     owner_ids_declaration: str = "($ownerIds: [Int!])" if filter_by_owner_ids else ""
     owner_ids_condition: str = ", id: { _in: $ownerIds }" if filter_by_owner_ids else ""
     aggregate_fields: str = "\n".join(
-        f"    {relation}_aggregate {{ aggregate {{ count }} }}" for relation in OWNER_REFERENCE_RELATIONS
+        f"    {relation}_aggregate {{ aggregate {{ count }} }}"
+        for relation in get_owner_reference_relations(include_owner_network_references)
     )
 
     return f"""
@@ -198,7 +209,10 @@ def extract_aggregate_count(owner_node: dict[str, Any], relation_name: str) -> i
     return count_value if isinstance(count_value, int) else 0
 
 
-def parse_owner_candidate(owner_node: dict[str, Any]) -> InactiveOwnerCandidate:
+def parse_owner_candidate(
+    owner_node: dict[str, Any],
+    include_owner_network_references: bool = False,
+) -> InactiveOwnerCandidate:
     """Convert GraphQL owner payload into an inactive owner candidate."""
     owner_id: int = int(owner_node["id"])
     owner_name: str = str(owner_node["name"])
@@ -221,7 +235,8 @@ def parse_owner_candidate(owner_node: dict[str, Any]) -> InactiveOwnerCandidate:
             lifecycle_state_active = lifecycle_state_active_raw
 
     relation_counts: dict[str, int] = {
-        relation_name: extract_aggregate_count(owner_node, relation_name) for relation_name in OWNER_REFERENCE_RELATIONS
+        relation_name: extract_aggregate_count(owner_node, relation_name)
+        for relation_name in get_owner_reference_relations(include_owner_network_references)
     }
 
     return InactiveOwnerCandidate(
@@ -238,10 +253,14 @@ def fetch_inactive_owner_candidates(
     graphql_url: str,
     jwt: str,
     owner_ids: list[int] | None,
+    include_owner_network_references: bool = False,
 ) -> list[InactiveOwnerCandidate]:
     """Fetch inactive owners and all tracked references."""
     variables: dict[str, Any] = {"ownerIds": owner_ids} if owner_ids else {}
-    query: str = build_inactive_owners_query(filter_by_owner_ids=owner_ids is not None)
+    query: str = build_inactive_owners_query(
+        filter_by_owner_ids=owner_ids is not None,
+        include_owner_network_references=include_owner_network_references,
+    )
     response: dict[str, Any] | None = call(
         graphql_url,
         jwt,
@@ -252,7 +271,13 @@ def fetch_inactive_owner_candidates(
     if response is None:
         return []
     owner_rows: list[dict[str, Any]] = response.get("data", {}).get("owner", [])
-    return [parse_owner_candidate(owner_row) for owner_row in owner_rows]
+    return [
+        parse_owner_candidate(
+            owner_row,
+            include_owner_network_references=include_owner_network_references,
+        )
+        for owner_row in owner_rows
+    ]
 
 
 def build_delete_owner_mutation() -> str:
@@ -347,7 +372,12 @@ def run_cleanup(args: argparse.Namespace, logger: FWOLogger) -> int:
     username, password = resolve_credentials(args)
 
     jwt: str = login(username, password, middleware_url, method="api/AuthenticationToken/Get")
-    candidates: list[InactiveOwnerCandidate] = fetch_inactive_owner_candidates(graphql_url, jwt, args.owner_ids)
+    candidates: list[InactiveOwnerCandidate] = fetch_inactive_owner_candidates(
+        graphql_url,
+        jwt,
+        args.owner_ids,
+        include_owner_network_references=args.include_owner_network_references,
+    )
 
     if args.output_json:
         sys.stdout.write(f"{json.dumps(build_report_payload(candidates), indent=2, sort_keys=True)}\n")

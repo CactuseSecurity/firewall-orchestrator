@@ -65,8 +65,8 @@ namespace FWO.Report.Data.ViewData
             InstallOn = SafeCall(rule, "InstallOn", () => ResolveInstallOn(rule, devices ?? []));
             Compliance = SafeCall(rule, "Compliance", () => ResolveCompliance(rule, complianceViolationType));
             ViolationDetails = SafeCall(rule, "ViolationDetails", () => rule.ViolationDetails);
-            ChangeID = SafeCall(rule, "ChangeID", () => GetFromCustomField(rule, ["field-2", "Datum-Regelpruefung"]));
-            AdoITID = SafeCall(rule, "AdoITID", () => GetFromCustomField(rule, ["field-3", "AdoIT"]));
+            ChangeID = SafeCall(rule, "ChangeID", () => CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]") ?? "");
+            AdoITID = SafeCall(rule, "AdoITID", () => CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-3\",\"AdoIT\"]") ?? "");
             Comment = SafeCall(rule, "Comment", () => rule.Comment ?? "");
             LastModified = SafeCall(rule, "LastModified", () => RuleDisplayBase.DisplayLastModified(rule));
             RuleTime = SafeCall(rule, "RuleTime", () => natRuleDisplayHtml.DisplayRuleTime(rule));
@@ -83,35 +83,6 @@ namespace FWO.Report.Data.ViewData
                 ComplianceViolationType.None => "TRUE",
                 _ => "FALSE"
             };
-        }
-
-        public string GetFromCustomField(Rule rule, string[] field)
-        {
-            try
-            {
-                string displayString = "";
-                string customFieldsString = rule.CustomFields.Replace("'", "\"");
-                Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
-
-                if (customFields != null && field.Length > 0)
-                {
-                    foreach (string f in field)
-                    {
-                        if (customFields.TryGetValue(f, out string? value) && !string.IsNullOrWhiteSpace(value))
-                        {
-                            displayString = value;
-                            break;
-                        }
-                    }
-                }
-
-                return displayString;
-            }
-            catch (JsonException e)
-            {
-                Logger.TryWriteError("RuleViewData", $"Error while resolving rule '{rule.Uid}': {e.Message}", true);
-                return $"Error while resolving custom fields. Raw Data: {rule.CustomFields}";
-            }
         }
 
         private string ResolveInstallOn(Rule rule, List<Device> devices)

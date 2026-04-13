@@ -24,7 +24,7 @@ namespace FWO.Test
                 CustomFields = "{'field-2':'Change123','field-3':'Ado456'}"
             };
 
-            string result = rvd.GetFromCustomField(rule, ["field-2", "Datum-Regelpruefung"]);
+            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]") ?? "";
 
             Assert.That("Change123".Equals(result));
         }
@@ -38,7 +38,7 @@ namespace FWO.Test
                 CustomFields = "{'Datum-Regelpruefung':'Change123','AdoIT':'Ado456'}"
             };
 
-            string result = rvd.GetFromCustomField(rule, ["field-2", "Datum-Regelpruefung"]);
+            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]") ?? "";
 
             Assert.That("Change123".Equals(result));
         }
@@ -52,8 +52,8 @@ namespace FWO.Test
                 CustomFields = "{'AdoIT': \"Infr-AdoIT:X\", 'Datum-Regelpruefung': 'dd.mm.yyyy'}"
             };
 
-            string resultDatumRegelpruefung = rvd.GetFromCustomField(rule, ["field-2", "Datum-Regelpruefung"]);
-            string resultAdoItId = rvd.GetFromCustomField(rule, ["field-3", "AdoIT"]);
+            string resultDatumRegelpruefung = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]") ?? "";
+            string resultAdoItId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-3\",\"AdoIT\"]") ?? "";
 
             Assert.That("dd.mm.yyyy".Equals(resultDatumRegelpruefung));
             Assert.That("Infr-AdoIT:X".Equals(resultAdoItId));

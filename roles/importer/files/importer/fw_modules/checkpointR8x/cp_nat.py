@@ -186,6 +186,5 @@ def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], 
         "time": "",
         "rule_type": "nat",
         "nat_rule": True,
-        "xlate_rule_uid": nat_rule["uid"] + "_translated",
     }
     return (nat_in_rule, nat_out_rule)

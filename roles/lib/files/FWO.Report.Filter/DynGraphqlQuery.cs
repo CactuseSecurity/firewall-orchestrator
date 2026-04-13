@@ -418,7 +418,7 @@ namespace FWO.Report.Filter
                             id
                             {query.OpenRulesTable}
                                 {limitOffsetString}
-                                where: {{ {query.RuleWhereStatement} }} 
+                                where: {{ nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
                                 order_by: {{ rule_num_numeric: asc }} )
                             {{
                                 mgm_id: mgm_id
@@ -473,7 +473,8 @@ namespace FWO.Report.Filter
                 case ReportType.ComplianceReport:
                 case ReportType.ComplianceDiffReport:
                 case ReportType.RecertEventReport:
-                    query.FullQuery = Queries.Compact(ConstructRulesQuery(query, paramString, filter));
+                    string rq = ConstructRulesQuery(query, paramString, filter);
+                    query.FullQuery = Queries.Compact(rq);
                     break;
 
                 case ReportType.Recertification:
@@ -494,7 +495,8 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.NatRules:
-                    query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
+                    string nrq = ConstructNatRulesQuery(query, paramString, filter);
+                    query.FullQuery = Queries.Compact(nrq);
                     break;
 
                 case ReportType.Connections:

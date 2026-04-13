@@ -8646,7 +8646,29 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "_and": [
+                        {
+                          "notification_client": {
+                            "_eq": "report"
+                          }
+                        },
+                        {
+                          "_or": [
+                            {
+                              "user_id": {
+                                "_eq": "X-Hasura-User-Id"
+                              }
+                            },
+                            {
+                              "user_id": {
+                                "_is_null": true
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
                     "columns": [
                       "data_issue_id",
                       "import_id",
@@ -10073,7 +10095,29 @@
                 {
                   "role": "auditor",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "_and": [
+                        {
+                          "notification_client": {
+                            "_eq": "report"
+                          }
+                        },
+                        {
+                          "_or": [
+                            {
+                              "user_id": {
+                                "_eq": "X-Hasura-User-Id"
+                              }
+                            },
+                            {
+                              "user_id": {
+                                "_is_null": true
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
                     "columns": [
                       "bundle_id",
                       "bundle_type",
@@ -10598,30 +10642,48 @@
                       "last_sent"
                     ],
                     "filter": {
-                      "_or": [
+                      "_and": [
                         {
-                          "user_id": {
-                            "_eq": "X-Hasura-User-Id"
+                          "notification_client": {
+                            "_eq": "report"
                           }
                         },
                         {
-                          "user_id": {
-                            "_is_null": true
-                          }
+                          "_or": [
+                            {
+                              "user_id": {
+                                "_eq": "X-Hasura-User-Id"
+                              }
+                            },
+                            {
+                              "user_id": {
+                                "_is_null": true
+                              }
+                            }
+                          ]
                         }
                       ]
                     },
                     "check": {
-                      "_or": [
+                      "_and": [
                         {
-                          "user_id": {
-                            "_eq": "X-Hasura-User-Id"
+                          "notification_client": {
+                            "_eq": "report"
                           }
                         },
                         {
-                          "user_id": {
-                            "_is_null": true
-                          }
+                          "_or": [
+                            {
+                              "user_id": {
+                                "_eq": "X-Hasura-User-Id"
+                              }
+                            },
+                            {
+                              "user_id": {
+                                "_is_null": true
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
@@ -10908,7 +10970,20 @@
                       "user_id",
                       "last_sent"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
                     "check": {
                       "_or": [
                         {
@@ -10932,16 +11007,25 @@
                   "role": "auditor",
                   "permission": {
                     "filter": {
-                      "_or": [
+                      "_and": [
                         {
-                          "user_id": {
-                            "_eq": "X-Hasura-User-Id"
+                          "notification_client": {
+                            "_eq": "report"
                           }
                         },
                         {
-                          "user_id": {
-                            "_is_null": true
-                          }
+                          "_or": [
+                            {
+                              "user_id": {
+                                "_eq": "X-Hasura-User-Id"
+                              }
+                            },
+                            {
+                              "user_id": {
+                                "_is_null": true
+                              }
+                            }
+                          ]
                         }
                       ]
                     }

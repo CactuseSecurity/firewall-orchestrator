@@ -167,7 +167,10 @@ namespace FWO.Middleware.Server.Jobs
             {
                 userConfig.User.Groups = reportSchedule.ScheduleOwningUser.Groups;
                 await UiUserHandler.GetOwnershipsFromOwnerLdap(apiConnectionScheduler, userConfig.User);
-                if (!userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id)
+                bool canAccessAllOwners = reportSchedule.ScheduleOwningUser.Roles.Contains(Roles.Admin)
+                    || reportSchedule.ScheduleOwningUser.Roles.Contains(Roles.Auditor);
+                if (!canAccessAllOwners
+                    && !userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id)
                     && !userConfig.User.Ownerships.Contains(0))
                 {
                     Log.WriteInfo(LogMessageTitle, "Report not generated as owner is not valid anymore.");

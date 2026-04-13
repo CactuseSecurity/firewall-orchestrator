@@ -11,7 +11,8 @@ namespace FWO.Data
         Compliance = 3,
         InterfaceRequest = 4,
         RuleTimer = 5,
-        AppDecomm = 6
+        AppDecomm = 6,
+        Report = 7
     }
 
     public enum NotificationChannel
@@ -26,6 +27,11 @@ namespace FWO.Data
         RequestDate = 2,
         RuleExpiry = 3,
         DecommissionDate = 4
+    }
+
+    public enum BundleType
+    {
+        Attachments = 1
     }
 
     public static class NotificationDeadlineGroups
@@ -82,6 +88,18 @@ namespace FWO.Data
         [JsonProperty("email_subject"), JsonPropertyName("email_subject")]
         public string EmailSubject { get; set; } = "";
 
+        [JsonProperty("email_body"), JsonPropertyName("email_body")]
+        public string EmailBody { get; set; } = "";
+
+        [JsonProperty("schedule_id"), JsonPropertyName("schedule_id")]
+        public int? ScheduleId { get; set; }
+
+        [JsonProperty("bundle_type"), JsonPropertyName("bundle_type")]
+        public BundleType? BundleType { get; set; }
+
+        [JsonProperty("bundle_id"), JsonPropertyName("bundle_id")]
+        public string? BundleId { get; set; }
+
         [JsonProperty("layout"), JsonPropertyName("layout")]
         public NotificationLayout Layout { get; set; } = NotificationLayout.SimpleText;
 
@@ -89,13 +107,13 @@ namespace FWO.Data
         public NotificationDeadline Deadline { get; set; } = NotificationDeadline.None;
 
         [JsonProperty("interval_before_deadline"), JsonPropertyName("interval_before_deadline")]
-        public SchedulerInterval IntervalBeforeDeadline { get; set; } = SchedulerInterval.Weeks;
+        public SchedulerInterval? IntervalBeforeDeadline { get; set; }
 
         [JsonProperty("offset_before_deadline"), JsonPropertyName("offset_before_deadline")]
         public int? OffsetBeforeDeadline { get; set; }
 
         [JsonProperty("repeat_interval_after_deadline"), JsonPropertyName("repeat_interval_after_deadline")]
-        public SchedulerInterval RepeatIntervalAfterDeadline { get; set; } = SchedulerInterval.Weeks;
+        public SchedulerInterval? RepeatIntervalAfterDeadline { get; set; }
 
         [JsonProperty("initial_offset_after_deadline"), JsonPropertyName("initial_offset_after_deadline")]
         public int? InitialOffsetAfterDeadline { get; set; }

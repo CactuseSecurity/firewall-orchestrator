@@ -10077,7 +10077,7 @@
                       "_and": [
                         {
                           "notification_client": {
-                            "_eq": "report"
+                            "_eq": "Report"
                           }
                         },
                         {
@@ -10623,7 +10623,7 @@
                       "_and": [
                         {
                           "notification_client": {
-                            "_eq": "report"
+                            "_eq": "Report"
                           }
                         },
                         {
@@ -10646,7 +10646,7 @@
                       "_and": [
                         {
                           "notification_client": {
-                            "_eq": "report"
+                            "_eq": "Report"
                           }
                         },
                         {
@@ -10988,7 +10988,7 @@
                       "_and": [
                         {
                           "notification_client": {
-                            "_eq": "report"
+                            "_eq": "Report"
                           }
                         },
                         {

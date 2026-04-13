@@ -126,14 +126,9 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         {
             CreateAndReadConfigFile(2, missingValueConfigFile);
             ClassicAssert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
-
-            Assert.That(ConfigFile.MiddlewareServerUri, Is.Null);
-            Assert.That(ConfigFile.ApiServerUri, Is.Null);
-
-            Assert.DoesNotThrow(() => { var _ = ConfigFile.MiddlewareServerUri; });
-            Assert.DoesNotThrow(() => { var _ = ConfigFile.ApiServerUri; });
-
             ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.MiddlewareServerUri; });
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.ApiServerUri; });
         }
 
         [Test]
@@ -154,18 +149,14 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         public void IncorrectPublicKey()
         {
             CreateAndReadConfigFile(5, correctConfigFile, "", incorrectPublicKey);
-
-            Assert.That(ConfigFile.JwtPublicKey, Is.Null);
-            Assert.DoesNotThrow(() => { var _ = ConfigFile.JwtPublicKey; });
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.JwtPublicKey; });
         }
 
         [Test]
         public void IncorrectPrivateKey()
         {
             CreateAndReadConfigFile(6, correctConfigFile, incorrectPrivateKey, "");
-
-            Assert.That(ConfigFile.JwtPrivateKey, Is.Null);
-            Assert.DoesNotThrow(() => { var _ = ConfigFile.JwtPrivateKey; });
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.JwtPrivateKey; });
         }
 
         [OneTimeTearDown]

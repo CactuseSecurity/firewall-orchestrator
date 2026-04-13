@@ -7,6 +7,10 @@ namespace FWO.Config.File
 {
     public class ConfigFile
     {
+        private const string configPathEnvVar = "FWO_CONFIG_FILE_PATH";
+        private const string jwtPublicKeyPathEnvVar = "FWO_JWT_PUBLIC_KEY_PATH";
+        private const string jwtPrivateKeyPathEnvVar = "FWO_JWT_PRIVATE_KEY_PATH";
+
         /// <summary>
         /// Path to config file
         /// </summary>
@@ -115,7 +119,10 @@ namespace FWO.Config.File
 
         static ConfigFile()
         {
-            Read(configPath, jwtPrivateKeyPath, jwtPublicKeyPath);
+            Read(
+                ResolvePath(configPathEnvVar, configPath),
+                ResolvePath(jwtPrivateKeyPathEnvVar, jwtPrivateKeyPath),
+                ResolvePath(jwtPublicKeyPathEnvVar, jwtPublicKeyPath));
         }
 
         private static void Read(string configFilePath, string privateKeyFilePath, string publicKeyFilePath)
@@ -157,35 +164,22 @@ namespace FWO.Config.File
             {
                 Log.WriteError("Config value read", $"A necessary config value could not be found.", LogStackTrace: true);
 
-                if (!IsTestEnvironment())
-                {
-                    Environment.Exit(1); // Only exit in production
-                    return default!;
-                }
-                else
-                {
-                    return default!;
-                }
+                throw new InvalidOperationException("A necessary config value could not be found.");
             }
 
             return configValue;
         }
 
-        private static bool IsTestEnvironment()
+        private static string ResolvePath(string environmentVariableName, string fallbackPath)
         {
-            // Check process name
-            string processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
-            if (processName.Contains("testhost", StringComparison.OrdinalIgnoreCase) ||
-                processName.Contains("vstest", StringComparison.OrdinalIgnoreCase))
+            string? configuredPath = Environment.GetEnvironmentVariable(environmentVariableName);
+
+            if (!string.IsNullOrWhiteSpace(configuredPath))
             {
-                return true;
+                return configuredPath;
             }
 
-            // Check for test framework assemblies
-            return AppDomain.CurrentDomain.GetAssemblies()
-                .Any(a => a.FullName?.StartsWith("nunit.framework") == true
-                       || a.FullName?.StartsWith("xunit") == true
-                       || a.FullName?.StartsWith("Microsoft.VisualStudio.TestPlatform") == true);
+            return fallbackPath;
         }
 
         private static void IgnoreExceptions(Action method)

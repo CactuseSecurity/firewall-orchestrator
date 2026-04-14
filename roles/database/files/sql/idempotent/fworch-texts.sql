@@ -904,8 +904,10 @@ INSERT INTO txt VALUES ('missing_objects',		'German', 	'Fehlende Objekte auf Dev
 INSERT INTO txt VALUES ('missing_objects',		'English', 	'Missing Objects on Device');
 INSERT INTO txt VALUES ('fully_modelled',		'German', 	'Vollst&auml;ndig Modelliert');
 INSERT INTO txt VALUES ('fully_modelled',		'English', 	'Fully Modelled');
-INSERT INTO txt VALUES ('show_all_owners',		'German', 	'Alle Eigent&uuml;mer zeigen');
-INSERT INTO txt VALUES ('show_all_owners',		'English', 	'Show all owners');
+INSERT INTO txt VALUES ('show_all_owners',		'German', 	'Alle Eigent&uuml;mer mit aktiver Rezertifizierung');
+INSERT INTO txt VALUES ('show_all_owners',		'English', 	'All owners with active recertification');
+INSERT INTO txt VALUES ('show_inactive_recert_owners', 'German', 'Eigent&uuml;mer ohne aktive Rezertifizierung');
+INSERT INTO txt VALUES ('show_inactive_recert_owners', 'English', 'Owners with inactive recertification');
 INSERT INTO txt VALUES ('recert_activated',		'German', 	'Rezertifizierung aktiviert');
 INSERT INTO txt VALUES ('recert_activated',		'English', 	'Recertification activated');
 INSERT INTO txt VALUES ('no_recerts',			'German', 	'keine Rezertifizierung vorhanden');
@@ -2572,6 +2574,12 @@ INSERT INTO txt VALUES ('rollback_import',      'German', 	'Import zur&uuml;ckse
 INSERT INTO txt VALUES ('rollback_import',      'English', 	'Rollback Import');
 INSERT INTO txt VALUES ('report_settings',      'German', 	'Reporteinstellungen');
 INSERT INTO txt VALUES ('report_settings',      'English', 	'Report Settings');
+INSERT INTO txt VALUES ('migrate_scheduler_config', 'German', 'Scheduler-Konfiguration migrieren');
+INSERT INTO txt VALUES ('migrate_scheduler_config', 'English', 'Migrate scheduler config');
+INSERT INTO txt VALUES ('confirm_migrate_scheduler_config', 'German', 'Alte Scheduler-Konfiguration jetzt in Benachrichtigungen migrieren?');
+INSERT INTO txt VALUES ('confirm_migrate_scheduler_config', 'English', 'Migrate the legacy scheduler configuration to notifications now?');
+INSERT INTO txt VALUES ('scheduler_config_migrated', 'German', 'Scheduler-Konfiguration migriert.');
+INSERT INTO txt VALUES ('scheduler_config_migrated', 'English', 'Scheduler configuration migrated.');
 INSERT INTO txt VALUES ('change_language',      'German', 	'&Auml;ndern der Passworteinstellungen');
 INSERT INTO txt VALUES ('change_language',      'English', 	'Change Language');
 INSERT INTO txt VALUES ('recert_settings',      'German', 	'Rezertifizierungseinstellungen');
@@ -3296,6 +3304,8 @@ INSERT INTO txt VALUES ('U4007', 'German',  'Weitere rezertifizierte Apps');
 INSERT INTO txt VALUES ('U4007', 'English', 'Further recertified apps');
 INSERT INTO txt VALUES ('U4008', 'German',  'Weitere Apps');
 INSERT INTO txt VALUES ('U4008', 'English', 'Further apps');
+INSERT INTO txt VALUES ('U4009', 'German',  'Apps ohne aktive Rezertifizierung');
+INSERT INTO txt VALUES ('U4009', 'English', 'Apps without active recertification');
 INSERT INTO txt VALUES ('U4501', 'German',  'Sind sie sicher, dass sie folgende Policy l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U4501', 'English', 'Are you sure you want to delete policy: ');
 INSERT INTO txt VALUES ('U4502', 'German',  'Sind sie sicher, dass sie folgendes Fixes Kriterium l&ouml;schen wollen: ');
@@ -3617,6 +3627,8 @@ INSERT INTO txt VALUES ('E1011', 'English', 'End time is before start time');
 
 INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen');
 INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
+INSERT INTO txt VALUES ('E2002', 'German',  'Reporttermin gespeichert, aber die Benachrichtigungs-Einstellungen konnten nicht aktualisiert werden.');
+INSERT INTO txt VALUES ('E2002', 'English', 'Report schedule saved, but notification settings could not be updated.');
 
 INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
@@ -4029,10 +4041,12 @@ INSERT INTO txt VALUES ('T0109', 'German',  'Ver&auml;nderungen der Compliance-V
 INSERT INTO txt VALUES ('T0109', 'English', 'Changes in compliance violations in period x');
 
 -- Contextual Info (Tooltips)
-INSERT INTO txt VALUES ('C1000', 'German',  'Zeige alle Eigent&uuml;er inklusive der rezertifizierten.');
-INSERT INTO txt VALUES ('C1000', 'English', 'Show all owners including recertified.');
+INSERT INTO txt VALUES ('C1000', 'German',  'Zeige alle Eigent&uuml;mer mit aktiver Rezertifizierung, unabh&auml;ngig vom n&auml;chsten Rezertifizierungsdatum.');
+INSERT INTO txt VALUES ('C1000', 'English', 'Show all owners with active recertification, regardless of the next recertification date.');
 INSERT INTO txt VALUES ('C1001', 'German',  'Zeige alle Eigent&uuml;er, f&uuml; welche die Rezertifizierung aktiviert ist.');
 INSERT INTO txt VALUES ('C1001', 'English', 'Show all owners with recertification activated.');
+INSERT INTO txt VALUES ('C1002', 'German',  'Zeige Eigent&uuml;mer, f&uuml;r die keine aktive Rezertifizierung konfiguriert ist, in einem separaten Kapitel.');
+INSERT INTO txt VALUES ('C1002', 'English', 'Show owners without active recertification in a separate chapter.');
 INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');
 INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
 INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');
@@ -4164,51 +4178,10 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
         There is currently no option to only search at the rule top-level.</li>
     <li> Also connections can be filtered with the respective keywords for source, service and destination.</li>
 ');
-INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Auswahl:
-<ul>
-    <li>Regeln: Standard - Anzeige von Zugriffsregeln; Default-Report-Zeitpunkt: jetzt</li>
-    <li>Regeln: Aufgel&ouml;st - Anzeige von Zugriffsregeln, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden.
-        Dies erm&ouml;glicht einen Export in einer einzigen Tabelle ohne Hilfstabellen, in denen die Objekt-Definitionen stehen. Default-Report-Zeitpunkt: jetzt</li>
-    <li>Regeln: Technisch - wie der aufgel&ouml;ste Regel-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitpunkt: jetzt</li>
-    <li>Regeln: Unbenutzt - Anzeige aller Regeln die das letztemal vor einem vorgegebenen Zeitpunkt benutzt wurden. Ger&auml;te, die keine Nutzungsinformation liefern, werden ignoriert.
-        Falls der Reporter auch die Rolle "requester" hat, wird bei Selektion ausgegebener Regeln eine Schaltfl&auml;che zur Erzeugung eines L&ouml;schantrags angeboten.</li>
-    <li>Regeln: NAT - Anzeige der NAT-Regeln und nicht der Zugriffsregeln. Default-Report-Zeitpunkt: jetzt</li>
-    <li>Changes: Standard - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum. Default-Report-Zeitraum: dieses Jahr</li>
-    <li>Changes: Aufgel&ouml;st - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden. Default-Report-Zeitraum: dieses Jahr</li>
-    <li>Changes: Technisch - wie der aufgel&ouml;ste Changes-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitraum: dieses Jahr</li>
-    <li>Statistik - Anzeige von Statistikdaten &uuml;ber Anzahl von Objekten und Regeln. Default-Report-Zeitpunkt: jetzt</li>
-    <li>Modell: Verbindungen - Anzeige aller in einer Applikation modellierten Verbindungen, Schnittstellen und eigener Common Services mit zus&auml;tzlicher Auflistung aller hierin verwendeter Netzwerk- und Serviceobjekte.
-        Hinzu kommt eine Liste aller globalen Common Services.</li>
-    <li>Modell: App-Regeln - Darstellung aller Regeln, in welchen Objekte eines vorgegebenen Eigent&uuml;mers verwendet werden (diese werden farblich hervorgehoben). Es kann weiter spezifiziert werden, ob nur Quelle, Ziel oder beides, sowie ob "Any"-Objekte ber&uuml;cksichtigt werden sollen.</li>
-    <li>Modell: Soll-Ist - Darstellung aller Abweichungen zwischen den modellierten Verbindungen und den auf den Firewalls gefundenen Objekten und Regeln. Optional k&ouml;nnen zus&auml;tzlich die noch nicht modellierten Regeln (in Form des App-Regel-Reports) aufgelistet werden.</li>
-    <li>Zert: Regel-&Uuml;bersicht - Anzeige aller Regeln mit anstehenden Rezertifizierungen. Der Default-Report-Zeitraum kann in den Einstellungen gesetzt werden</li>
-    <li>Zert: Eigent&uuml;mer-&Uuml;bersicht - Darstellung aller Eigent&uuml;mer nach ihrem Rezertifizierungsstatus.</li>
-    <li>Zert: Zert-Regel-Details - Darstellung einer Eigent&uuml;mer-Rezertifizierung mitsamt der mitrezertifizierten Regeln</li>
-    <li>Workflow: Ticket-&Auml;nderungen - Darstellung von Workflow-Tickets innerhalb eines gew&auml;hlten Zeitraums bezogen auf ein ausw&auml;hlbares Referenzdatum. Zus&auml;tzlich kann nach Tasktypen und Ticket-Status gefiltert sowie die Detailtiefe der Ausgabe gesteuert werden.</li>
-</ul>
-');
-INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report types:
-<ul>
-    <li>Rules: Standard - display access rules; default report time: now</li>
-    <li>Rules: Resolved - display access rules but not showing any group structure but only resolved group content. Default report time: now</li>
-    <li>Rules: Technical - display access rules, resolving groups and not showing object names. Default report time: now<</li>
-    <li>Rules: Unused - display all rules where the rule last hit lies before a given time. Devices delivering no usage information are disregarded.
-        If the reporter has also a requester role, a button to create a delete rule request is offered after selecting reported rules.</li>
-    <li>Rules: NAT - display NAT rules instead of access rules. Default report time: now</li>
-    <li>Changes: Standard - display all changes in a defined time interval. Default report interval: this year</li>
-    <li>Changes: Resolved - display all changes in a defined time interval but not showing any group structure but only resolved group content. Default report interval: this year</li>
-    <li>Changes: Technical - display all changes in a defined time interval resolving groups and not showing object names. Default report interval: this year</li>
-    <li>Statistics - display statistical data on the number of objects and rules. Default report time: now</li>
-    <li>Model: Connections - display of all connections, interfaces and Common Services modelled in an application with additional lists of all network and service objects used here.
-        Additionally a list of all global Common Services is given.</li>
-    <li>Model: App Rules - display of all rules, where objects of the given owner are used (and which are highlighted). It can be further specified, if only source, destination or both are to be considered as well as "any" objects.</li>
-    <li>Model: Variances - display all differences between the modelled connections and the objects and rules found on the Firewalls. Optionally the rules not modelled can be listed additionally (as App Rules Report).</li>
-    <li>Cert: Rule Overview - display all rules where recertifications are upcoming. Default report interval can be defined in settings</li>
-    <li>Cert: Owner Overview - display all owners regarding their recertification status.</li>
-    <li>Cert: Cert Rule Details - display an owner recertification together with the related rule recertifications.</li>
-    <li>Workflow: Ticket Changes - display workflow tickets in a selected time range based on a selectable reference date. Further filters are available for task types, ticket states and the amount of detail shown in the output.</li>
-</ul>
-');
+INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Auswahl:');
+INSERT INTO txt VALUES ('H1102', 'English', 'Choose from the following report types:');
+INSERT INTO txt VALUES ('H1112', 'German',  'Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Der Wert 0 bedeutet, dass nur bereits f&auml;llige Eintr&auml;ge ber&uuml;cksichtigt werden; im Eigent&uuml;mer-Report wird dann kein Abschnitt f&uuml;r bald f&auml;llige Eintr&auml;ge angezeigt.');
+INSERT INTO txt VALUES ('H1112', 'English', 'Defines the lookahead period (in days) for the next recertification. A value of 0 means that only already due entries are considered; in the owner report no upcoming section is shown in that case.');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices
     kann hier noch die Auswahl weiter nach Namen eingeschr&auml;nkt werden. </li>
     <li>management (mgmt, manager, mgm, mgr)</li>
@@ -4220,7 +4193,7 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, devi
     <li>destinationport (port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port)</li>
     <li>action (act, enforce)</li>
     <li>remove: M&ouml;gliche Werte: true/false. Wenn "true", werden nur dezertifizierte Regeln gesucht</li>
-    <li>recertdisplay (recertdisp): Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Nur Regeln in diesem Zeitfenster werden gesucht.</li>
+    <li>recertdisplay (recertdisp): Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Der Wert 0 bedeutet, dass nur bereits f&auml;llige Eintr&auml;ge ber&uuml;cksichtigt werden; im Eigent&uuml;mer-Report wird dann kein Abschnitt f&uuml;r bald f&auml;llige Eintr&auml;ge angezeigt.</li>
     <li>lasthit (last-hit, last-used, last-usage, last-use): Filtern nach Regel-Nutzung - aktuell unterst&uuml;tzt f&uuml;r FortiManager und Check Point >=R80.</li>
     <li>not-used-for-days (unused, unused-days, not-used): nicht genutzt seit der vorgegebenen Anzahl von Tagen oder gar nicht</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
@@ -4240,7 +4213,7 @@ INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, devi
     <li>destinationport (port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port)</li>
     <li>action (act, enforce)</li>
     <li>remove: Possible Values: true/false. If "true", only decertified rules are searched</li>
-    <li>recertdisplay (recertdisp): Defines the lookahead period (in days) for next recertification. Only rules in this time range are searched.</li>
+    <li>recertdisplay (recertdisp): Defines the lookahead period (in days) for the next recertification. A value of 0 means that only already due entries are considered; in the owner report no upcoming section is shown in that case.</li>
     <li>lasthit (last-hit, last-used, last-usage, last-use): filter by rule usage - supported for FortiManager and Check Point >=R80 only.</li>
     <li>not-used-for-days (unused, unused-days, not-used): not used for the given number of days or never</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
@@ -4279,8 +4252,76 @@ INSERT INTO txt VALUES ('H1145', 'English', '<li> filter for last hit of rules</
     <li>lasthit<2023-01-01 - only shows rules with hits before the year 2023 including those rules which have no hits at all</li>
     <li>lasthit>2022-12-31 - only shows rules which have hits in 2023 (or later). Rules without any hits are not shown.</li></ul>
 ');
-INSERT INTO txt VALUES ('H1146', 'German',  '<li> Workflow-Ticket-Reports unterst&uuml;tzen in der Filterleiste tasktype, state/states und phase, z.B. tasktype=access,new_interface and state=49 and phase=implementation. F&uuml;r state/states werden in der Filterleiste numerische Status-IDs erwartet.</li><li> Workflow-Ticket&auml;nderungen unterst&uuml;tzen zus&auml;tzlich reference_date, z.B. reference_date=ImplementationStart.</li>');
-INSERT INTO txt VALUES ('H1146', 'English', '<li> Workflow ticket reports support tasktype, state/states and phase in the filter line, for example tasktype=access,new_interface and state=49 and phase=implementation. The filter-line variants state/states expect numeric state ids.</li><li> Workflow ticket change reports additionally support reference_date, for example reference_date=ImplementationStart.</li>');
+INSERT INTO txt VALUES ('H1146', 'German',  '<li> Workflow-Ticket-Reports unterst&uuml;tzen in der Filterleiste tasktype, state/states und phase, z.B. tasktype=access,new_interface and state=49 and phase=implementation.
+    F&uuml;r state/states werden in der Filterleiste numerische Status-IDs erwartet.</li><li> Workflow-Ticket&auml;nderungen unterst&uuml;tzen zus&auml;tzlich reference_date, z.B. reference_date=ImplementationStart.</li>
+');
+INSERT INTO txt VALUES ('H1146', 'English', '<li> Workflow ticket reports support tasktype, state/states and phase in the filter line, for example tasktype=access,new_interface and state=49 and phase=implementation.
+    The filter-line variants state/states expect numeric state ids.</li><li> Workflow ticket change reports additionally support reference_date, for example reference_date=ImplementationStart.</li>
+');
+INSERT INTO txt VALUES ('H1151', 'German',  'Regeln: Standard - Anzeige von Zugriffsregeln; Default-Report-Zeitpunkt: jetzt');
+INSERT INTO txt VALUES ('H1151', 'English', 'Rules: Standard - display access rules; default report time: now');
+INSERT INTO txt VALUES ('H1152', 'German',  'Regeln: Aufgel&ouml;st - Anzeige von Zugriffsregeln, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden.
+    Dies erm&ouml;glicht einen Export in einer einzigen Tabelle ohne Hilfstabellen, in denen die Objekt-Definitionen stehen. Default-Report-Zeitpunkt: jetzt
+');
+INSERT INTO txt VALUES ('H1152', 'English', 'Rules: Resolved - display access rules but not showing any group structure, only resolved group content.
+    This allows export in a single table without helper tables for object definitions. Default report time: now
+');
+INSERT INTO txt VALUES ('H1153', 'German',  'Regeln: Technisch - wie der aufgel&ouml;ste Regel-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitpunkt: jetzt');
+INSERT INTO txt VALUES ('H1153', 'English', 'Rules: Technical - like the resolved rule report, but object names are not shown. Default report time: now');
+INSERT INTO txt VALUES ('H1154', 'German',  'Regeln: Unbenutzt - Anzeige aller Regeln, die das letzte Mal vor einem vorgegebenen Zeitpunkt benutzt wurden.
+    Ger&auml;te, die keine Nutzungsinformation liefern, werden ignoriert. Falls der Reporter auch die Rolle "requester" hat, wird bei Selektion ausgegebener Regeln eine Schaltfl&auml;che zur Erzeugung eines L&ouml;schantrags angeboten.
+');
+INSERT INTO txt VALUES ('H1154', 'English', 'Rules: Unused - display all rules where the last hit lies before a given time.
+    Devices delivering no usage information are disregarded. If the reporter also has the requester role, a button to create a delete rule request is offered after selecting reported rules.
+');
+INSERT INTO txt VALUES ('H1155', 'German',  'Regeln: NAT - Anzeige der NAT-Regeln und nicht der Zugriffsregeln. Default-Report-Zeitpunkt: jetzt');
+INSERT INTO txt VALUES ('H1155', 'English', 'Rules: NAT - display NAT rules instead of access rules. Default report time: now');
+INSERT INTO txt VALUES ('H1156', 'German',  'Changes: Standard - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum. Default-Report-Zeitraum: dieses Jahr');
+INSERT INTO txt VALUES ('H1156', 'English', 'Changes: Standard - display all changes in a defined time interval. Default report interval: this year');
+INSERT INTO txt VALUES ('H1157', 'German',  'Changes: Aufgel&ouml;st - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden. Default-Report-Zeitraum: dieses Jahr');
+INSERT INTO txt VALUES ('H1157', 'English', 'Changes: Resolved - display all changes in a defined time interval with groups in source, destination and service resolved. Default report interval: this year');
+INSERT INTO txt VALUES ('H1158', 'German',  'Changes: Technisch - wie der aufgel&ouml;ste Changes-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitraum: dieses Jahr');
+INSERT INTO txt VALUES ('H1158', 'English', 'Changes: Technical - like the resolved changes report, but object names are not shown. Default report interval: this year');
+INSERT INTO txt VALUES ('H1159', 'German',  'Statistik - Anzeige von Statistikdaten &uuml;ber Anzahl von Objekten und Regeln. Default-Report-Zeitpunkt: jetzt');
+INSERT INTO txt VALUES ('H1159', 'English', 'Statistics - display statistical data about the number of objects and rules. Default report time: now');
+INSERT INTO txt VALUES ('H1160', 'German',  'Compliance - Anzeige von Compliance-bezogenen Regeln. Die Tabelle enth&auml;lt zus&auml;tzlich eine Spalte "ExpirationTime", die die erste verf&uuml;gbare Rule-Time-Ablaufzeit anzeigt.');
+INSERT INTO txt VALUES ('H1160', 'English', 'Compliance - display compliance-related rules. The table additionally contains an "ExpirationTime" column that shows the first available rule-time expiration.');
+INSERT INTO txt VALUES ('H1161', 'German',  'Modell: Verbindungen - Anzeige aller in einer Applikation modellierten Verbindungen, Schnittstellen und eigener Common Services
+    mit zus&auml;tzlicher Auflistung aller hierin verwendeten Netzwerk- und Serviceobjekte. Hinzu kommt eine Liste aller globalen Common Services.
+');
+INSERT INTO txt VALUES ('H1161', 'English', 'Model: Connections - display all connections, interfaces and own Common Services modelled in an application, plus lists of all network and service objects used there.
+    Additionally a list of all global Common Services is shown.
+');
+INSERT INTO txt VALUES ('H1162', 'German',  'Modell: App-Regeln - Darstellung aller Regeln, in welchen Objekte eines vorgegebenen Eigent&uuml;mers verwendet werden. Diese werden farblich hervorgehoben.
+    Es kann weiter spezifiziert werden, ob nur Quelle, Ziel oder beides sowie ob "Any"-Objekte ber&uuml;cksichtigt werden sollen.
+');
+INSERT INTO txt VALUES ('H1162', 'English', 'Model: App Rules - display all rules where objects of the selected owner are used.
+    These objects are highlighted. It can be specified whether source, destination or both, and whether "any" objects, should be considered.
+');
+INSERT INTO txt VALUES ('H1163', 'German',  'Modell: Soll-Ist - Darstellung aller Abweichungen zwischen den modellierten Verbindungen und den auf den Firewalls gefundenen Objekten und Regeln.
+    Optional k&ouml;nnen zus&auml;tzlich die noch nicht modellierten Regeln in Form des App-Regel-Reports aufgelistet werden.
+');
+INSERT INTO txt VALUES ('H1163', 'English', 'Model: Variances - display all differences between modelled connections and the objects and rules found on the firewalls.
+    Optionally, not yet modelled rules can also be listed in the form of the App Rules report.
+');
+INSERT INTO txt VALUES ('H1164', 'German',  'Zert: Regel-&Uuml;bersicht - Anzeige aller Regeln mit anstehenden Rezertifizierungen. Der Default-Report-Zeitraum kann in den Einstellungen gesetzt werden.');
+INSERT INTO txt VALUES ('H1164', 'English', 'Cert: Rule Overview - display all rules with upcoming recertifications. The default report interval can be configured in settings.');
+INSERT INTO txt VALUES ('H1165', 'German',  'Zert: Eigent&uuml;mer-&Uuml;bersicht - Darstellung aller Eigent&uuml;mer nach ihrem Rezertifizierungsstatus. In den regul&auml;ren Kapiteln werden nur Eigent&uuml;mer mit aktiver Rezertifizierung dargestellt.
+    "Alle Eigent&uuml;mer zeigen" erweitert diese Sicht auf alle aktiven Eigent&uuml;mer, unabh&auml;ngig vom n&auml;chsten Rezertifizierungsdatum.
+    Mit der zus&auml;tzlichen Option f&uuml;r inaktive Rezertifizierung werden Eigent&uuml;mer ohne aktive Rezertifizierung in einem separaten Kapitel dargestellt.
+');
+INSERT INTO txt VALUES ('H1165', 'English', 'Cert: Owner Overview - display all owners by their recertification status. The regular chapters only show owners with active recertification.
+    "Show all owners" expands this to all active owners, regardless of the next recertification date. 
+    With the additional option for inactive recertification, owners without active recertification are shown in a separate chapter.
+');
+INSERT INTO txt VALUES ('H1166', 'German',  'Zert: Zert-Regel-Details - Darstellung einer Eigent&uuml;mer-Rezertifizierung mitsamt der mitrezertifizierten Regeln.');
+INSERT INTO txt VALUES ('H1166', 'English', 'Cert: Cert Rule Details - display an owner recertification together with the related rule recertifications.');
+INSERT INTO txt VALUES ('H1167', 'German',  'Workflow: Ticket-&Auml;nderungen - Darstellung von Workflow-Tickets innerhalb eines gew&auml;hlten Zeitraums bezogen auf ein ausw&auml;hlbares Referenzdatum.
+    Zus&auml;tzlich kann nach Tasktypen und Ticket-Status gefiltert sowie die Detailtiefe der Ausgabe gesteuert werden.
+');
+INSERT INTO txt VALUES ('H1167', 'English', 'Workflow: Ticket Changes - display workflow tickets in a selected time range based on a selectable reference date.
+    Additional filters are available for task types, ticket states and the amount of detail shown in the output.
+');
 INSERT INTO txt VALUES ('H1201', 'German',  'Vorlagen k&ouml;nnen genutzt werden, um wiederkehrende Reports zu definieren. Diese werden f&uuml;r das Scheduling ben&ouml;tigt.
     Jeder Nutzer kann seine eigenen Vorlagen definieren und sie mit anderen teilen.<br>
     Beim Anlegen einer neuen Vorlage &uuml;ber die Schaltfl&auml;che "Als Vorlage speichern" wird ein Pop-Up-Fenster ge&ouml;ffnet, in dem Name und ein Kommentar vergeben werden k&ouml;nnen.
@@ -4520,6 +4561,12 @@ INSERT INTO txt VALUES ('H2017', 'German',  'Eigent&uuml;mer: Ersteller dieses T
 INSERT INTO txt VALUES ('H2017', 'English', 'Owner: Creator of this schedule.');
 INSERT INTO txt VALUES ('H2018', 'German',  'Z&auml;hler: Z&auml;hlt, wie viele Reports mit diesem Terminauftrag bereits erstellt wurden.');
 INSERT INTO txt VALUES ('H2018', 'English', 'Count: Counts how many reports have already been created with this schedule.');
+INSERT INTO txt VALUES ('H2019', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r Benachrichtigungen: Komma-separierte Liste von Email-Adressen, an die die durch diesen Termin erzeugten Reports versendet werden. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H2019', 'English', 'Recipient email addresses for notification emails: A comma-separated list of email addresses to which the reports generated by this schedule will be sent. Default value = "empty".');
+INSERT INTO txt VALUES ('H2020', 'German',  'Titel der Benachrichtigung: Betreffzeile der Benachrichtigungs-Email f&uuml;r die durch diesen Termin erzeugten Reports. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H2020', 'English', 'Subject of notification emails: Subject line of the notification email for the reports generated by this schedule. Default value = "empty".');
+INSERT INTO txt VALUES ('H2021', 'German',  'Text der Benachrichtigung: Email-Text f&uuml;r die Benachrichtigung. Der Email werden die durch diesen Termin erzeugten Reports angeh&auml;ngt. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H2021', 'English', 'Body of notification emails: Email text for the notification. The reports generated by this schedule will be attached to the email. Default value = "empty".');
 
 INSERT INTO txt VALUES ('H3001', 'German',  'Hier sind die archivierten Reports mit Name sowie Informationen zu Erzeugungsdatum, Typ, Vorlage (nur bei termingesteuerten Reports),
     Eigent&uuml;mer sowie eine kurze Beschreibung des Inhalts zu finden.
@@ -6364,12 +6411,6 @@ INSERT INTO txt VALUES ('H5802', 'German',  'Compliance-Check-Start: legt eine B
 INSERT INTO txt VALUES ('H5802', 'English', 'Compliance Check start at: defines a referential time from which the Compliance Check intervals are calculated.');
 INSERT INTO txt VALUES ('H5803', 'German',  'Hier werden alle Einstellungen rund um den Compliance-Check verwaltet.');
 INSERT INTO txt VALUES ('H5803', 'English', 'Here all settings around the Compliance Check are administrated.');
-INSERT INTO txt VALUES ('H5804', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r Benachrichtigungen: Komma-separierte Liste von Email-Adressen, die bei Compliance-Verst&ouml;ssen benachrichtigt werden. Default-Wert = "leer".');
-INSERT INTO txt VALUES ('H5804', 'English', 'Recipient email addresses for change notifications: A comma-separated list of email addresses, which will be informed in the case of compliance issues. Default value = "empty".');
-INSERT INTO txt VALUES ('H5805', 'German',  'Titel der Benachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".');
-INSERT INTO txt VALUES ('H5805', 'English', 'Subject of notification emails: Subject line for notification emails. Default value = "empty".');
-INSERT INTO txt VALUES ('H5806', 'German',  'Text der Benachrichtigung: Email-Text f&uuml;r die Benachrichtigung. Der Email wird ein Compliance-Report angeh&auml;ngt. Default-Wert = "leer".');
-INSERT INTO txt VALUES ('H5806', 'English', 'Body of notification emails: Email text for the notification. A Compliance report will be attached to the email. Default value = "empty".');
 INSERT INTO txt VALUES ('H5807', 'German',  'Wenn aktiviert, werden die durch die Compliance-Pr&uuml;fung erzeugten Daten in der Datenbank gespeichert.');
 INSERT INTO txt VALUES ('H5807', 'English', 'If checked, the data that is generated by the compliance check will be persisted in the database.');
 INSERT INTO txt VALUES ('H5808', 'German',  'Hier werden die Dienste definiert, die bei der Compliance-Pr&uuml;fung ber&uuml;cksichtigt werden sollen. Wenn dieses Feld leer ist, werden keine Dienste eingeschr&auml;nkt.');

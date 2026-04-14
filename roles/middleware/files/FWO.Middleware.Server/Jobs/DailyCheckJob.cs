@@ -244,7 +244,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
                     (notification.RepeatOffsetAfterDeadline ?? 0) + (notification.InitialOffsetAfterDeadline ?? 0),
-                    notification.RepeatIntervalAfterDeadline);
+                    notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days);
                 foreach (var ticket in unansweredTickets)
                 {
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;

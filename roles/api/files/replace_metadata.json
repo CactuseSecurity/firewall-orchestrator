@@ -10057,21 +10057,53 @@
                   }
                 },
                 {
+                  "name": "report_schedule",
+                  "using": {
+                    "foreign_key_constraint_on": "schedule_id"
+                  }
+                },
+                {
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "user_id"
                   }
                 }
               ],
-              "select_permissions": [
+              "insert_permissions": [
                 {
-                  "role": "middleware-server",
+                  "role": "auditor",
                   "permission": {
+                    "check": {
+                      "_and": [
+                        {
+                          "notification_client": {
+                            "_eq": "Report"
+                          }
+                        },
+                        {
+                          "_or": [
+                            {
+                              "user_id": {
+                                "_eq": "X-Hasura-User-Id"
+                              }
+                            },
+                            {
+                              "user_id": {
+                                "_is_null": true
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
                     "columns": [
+                      "bundle_id",
+                      "bundle_type",
                       "channel",
                       "deadline",
                       "email_address_cc",
                       "email_address_to",
+                      "email_body",
                       "email_subject",
                       "layout",
                       "name",
@@ -10086,15 +10118,616 @@
                       "repeat_interval_after_deadline",
                       "repeat_offset_after_deadline",
                       "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
                       "user_id",
                       "last_sent"
                     ],
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "notification_client": {
+                            "_eq": "Report"
+                          }
+                        },
+                        {
+                          "_or": [
+                            {
+                              "user_id": {
+                                "_eq": "X-Hasura-User-Id"
+                              }
+                            },
+                            {
+                              "user_id": {
+                                "_is_null": true
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "check": {
+                      "_and": [
+                        {
+                          "notification_client": {
+                            "_eq": "Report"
+                          }
+                        },
+                        {
+                          "_or": [
+                            {
+                              "user_id": {
+                                "_eq": "X-Hasura-User-Id"
+                              }
+                            },
+                            {
+                              "user_id": {
+                                "_is_null": true
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "check": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "middleware-server",
                   "permission": {
@@ -10103,6 +10736,377 @@
                     ],
                     "filter": {},
                     "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "check": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "check": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "check": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "check": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "filter": {
+                      "_and": [
+                        {
+                          "notification_client": {
+                            "_eq": "Report"
+                          }
+                        },
+                        {
+                          "_or": [
+                            {
+                              "user_id": {
+                                "_eq": "X-Hasura-User-Id"
+                              }
+                            },
+                            {
+                              "user_id": {
+                                "_is_null": true
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "filter": {
+                      "_or": [
+                        {
+                          "user_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "user_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 }
@@ -14070,6 +15074,18 @@
               ],
               "array_relationships": [
                 {
+                  "name": "notifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "schedule_id",
+                      "table": {
+                        "name": "notification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "report_schedule_formats",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -14088,12 +15104,14 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
                       "report_schedule_name",
                       "report_schedule_owner",
                       "report_schedule_repeat",
+                      "report_schedule_repetitions",
                       "report_schedule_start_time",
                       "report_schedule_counter",
                       "report_template_id"
@@ -14105,6 +15123,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14123,6 +15142,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_id",
                       "report_schedule_active",
                       "report_schedule_name",
@@ -14142,6 +15162,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14160,6 +15181,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14178,6 +15200,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14197,6 +15220,7 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_id",
                       "report_schedule_name",
                       "report_template_id",
@@ -14215,6 +15239,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14254,6 +15279,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_id",
                       "report_schedule_name",
                       "report_template_id",
@@ -14273,6 +15299,7 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14295,6 +15322,7 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14317,6 +15345,7 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14339,6 +15368,7 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14380,6 +15410,7 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14402,6 +15433,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14425,6 +15457,7 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14448,6 +15481,7 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14471,6 +15505,7 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -14494,6 +15529,7 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "archive",
                       "report_schedule_active",
                       "report_schedule_every",
                       "report_schedule_id",
@@ -27156,6 +28192,42 @@
                   }
                 },
                 {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "action_type",
+                      "button_text",
+                      "event",
+                      "external_parameters",
+                      "name",
+                      "phase",
+                      "scope",
+                      "task_type",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "action_type",
+                      "button_text",
+                      "event",
+                      "external_parameters",
+                      "name",
+                      "phase",
+                      "scope",
+                      "task_type",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [
@@ -27501,6 +28573,50 @@
                   }
                 },
                 {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [
@@ -27742,6 +28858,28 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",
@@ -28062,6 +29200,36 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ref_id",
+                      "comment_text",
+                      "scope",
+                      "creator_id",
+                      "creation_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",
@@ -28580,6 +29748,56 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "implementation_task_id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",
@@ -29163,6 +30381,66 @@
                   }
                 },
                 {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "reqtask_id",
+                      "assigned_group",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "device_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "implementation_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [
@@ -29544,6 +30822,28 @@
                   }
                 },
                 {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [
@@ -29858,6 +31158,58 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "device_id",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "device_id",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",
@@ -30386,6 +31738,74 @@
                   }
                 },
                 {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "additional_info",
+                      "assigned_group",
+                      "devices",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "mgm_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "ticket_id",
+                      "additional_info",
+                      "assigned_group",
+                      "devices",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "mgm_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [
@@ -30793,6 +32213,28 @@
                   }
                 },
                 {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "task_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [
@@ -30974,6 +32416,30 @@
                   }
                 },
                 {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "automatic_only",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "automatic_only",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [
@@ -31088,6 +32554,28 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "action_id",
+                      "state_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",
@@ -31428,6 +32916,58 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",
@@ -31784,6 +33324,28 @@
                     ],
                     "filter": {}
                   }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",

@@ -110,27 +110,6 @@ def fwconfig_import_gateway() -> FwConfigImportGateway:
     return FwConfigImportGateway()
 
 
-# @pytest.fixture
-# def management_state() -> ManagementController:
-#     return ManagementController(
-#         mgm_id=3,
-#         uid="mock-uid",
-#         devices=[],
-#         device_info=DeviceInfo(name="Mock Management", type_name="MockDevice", type_version="1.0"),
-#         connection_info=ConnectionInfo(hostname="mock.example.com", port=443),
-#         importer_hostname="mock-importer",
-#         credential_info=CredentialInfo(
-#             secret="mock-secret",
-#             import_user="mock-user",
-#             cloud_client_id="",
-#             cloud_client_secret="",
-#         ),
-#         manager_info=ManagerInfo(is_super_manager=False, sub_manager_ids=[], sub_managers=[]),
-#         domain_info=DomainInfo(domain_name="mock-domain", domain_uid="mock-domain-uid"),
-#         import_disabled=False,
-#     )
-
-
 @pytest.fixture
 def fwconfig_builder() -> FwConfigBuilder:
     return FwConfigBuilder()

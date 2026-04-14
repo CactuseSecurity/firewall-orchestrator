@@ -257,6 +257,45 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void OwnerRecertificationFilterIncludesInactiveOwnersSeparately()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.OwnerRecertification;
+            t.ReportParams.ModellingFilter.SelectedOwners = [new() { Id = 1 }];
+            t.ReportParams.ModellingFilter.ShowAllOwners = false;
+            t.ReportParams.ModellingFilter.ShowInactiveRecertOwners = true;
+            t.ReportParams.RecertFilter.RecertificationDisplayPeriod = 30;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("recert_active: { _eq: true }", query.OwnerWhereStatement);
+            StringAssert.Contains("next_recert_date: { _lte: $refDate }", query.OwnerWhereStatement);
+            StringAssert.Contains("recert_active: { _eq: false }", query.OwnerWhereStatement);
+            StringAssert.Contains("_or:", query.OwnerWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnerRecertificationFilterWithZeroDisplayPeriodKeepsOnlyDueActiveOwners()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.OwnerRecertification;
+            t.ReportParams.ModellingFilter.SelectedOwners = [new() { Id = 1 }];
+            t.ReportParams.ModellingFilter.ShowAllOwners = false;
+            t.ReportParams.ModellingFilter.ShowInactiveRecertOwners = false;
+            t.ReportParams.RecertFilter.RecertificationDisplayPeriod = 0;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("recert_active: { _eq: true }", query.OwnerWhereStatement);
+            StringAssert.Contains("next_recert_date: { _lte: $refDate }", query.OwnerWhereStatement);
+            StringAssert.DoesNotContain("recert_active: { _eq: false }", query.OwnerWhereStatement);
+            ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("refDate"));
+            Assert.That((DateTime)query.QueryVariables["refDate"], Is.EqualTo(DateTime.Now).Within(TimeSpan.FromSeconds(5)));
+        }
+
+        [Test]
+        [Parallelizable]
         public void ConnIpFilter()
         {
             ReportTemplate t = new()

@@ -147,6 +147,7 @@ namespace FWO.Basics
         {
             return reportType.IsResolvedReport()
                 || reportType.IsComplianceReport()
+                || reportType == ReportType.OwnerRecertification
                 || reportType.IsWorkflowReport() && !detailedView;
         }
 

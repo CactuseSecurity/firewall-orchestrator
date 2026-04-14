@@ -26,6 +26,9 @@ def normalize_nat_rules(
                 rules={},
             )
 
+            if not any(rb for rb in normalized_config["policies"] if rb.uid == normalized_nat_rulebase.uid):
+                normalized_config["policies"].append(normalized_nat_rulebase)
+
             normalized_gateway = next((gw for gw in normalized_config["gateways"] if gw["Uid"] == gateway["uid"]), None)
 
             if normalized_gateway is None:
@@ -122,9 +125,6 @@ def normalize_nat_rules(
                             gateway,
                             native_config["policies"],
                         )
-
-            if not any(rb for rb in normalized_config["policies"] if rb.uid == normalized_nat_rulebase.uid):
-                normalized_config["policies"].append(normalized_nat_rulebase)
 
 
 def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:

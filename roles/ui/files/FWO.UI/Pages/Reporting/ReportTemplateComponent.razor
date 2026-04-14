@@ -222,7 +222,7 @@
     || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
     || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
 
-    private bool _showComplianceReport => authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+    private bool showComplianceReport => authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
 
     protected override async Task OnInitializedAsync()
     {
@@ -331,7 +331,7 @@
     {
         ReportType reportType = (ReportType)reportTemplate.ReportParams.ReportType;
         bool modellingOwnerAllowed = modOwnerList.FirstOrDefault(o => o.Id == reportTemplate.ReportParams.ModellingFilter.SelectedOwner.Id) != null;
-        return reportType.IsVisibleTemplateType(showRuleRelatedReports, showModellingReports, _showComplianceReport, modellingOwnerAllowed);
+        return reportType.IsVisibleTemplateType(showRuleRelatedReports, showModellingReports, showComplianceReport, modellingOwnerAllowed);
     }
 
     public void NewTemplate(ReportTemplate reportTemplate)
@@ -454,6 +454,8 @@
                 {
                     reportTemplates.Remove(templateToRemove);
                 }
+                ShowAddTemplateDialog = false;
+                ShowUpdateTemplateDialog = false;
                 ShowDeleteTemplateDialog = false;
                 StateHasChanged();
             }

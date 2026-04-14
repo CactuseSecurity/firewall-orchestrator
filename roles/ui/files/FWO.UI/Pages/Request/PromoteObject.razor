@@ -1,4 +1,4 @@
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject UserConfig userConfig
 
@@ -30,7 +30,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Perform">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>

@@ -200,9 +200,8 @@
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
-            areas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
-            apiConnection.SwitchBack();
+            areas = await apiConnection.RunWithProperRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor],
+                () => apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getAreas));
             // todo: select relevant areas for owner?
         }
         catch(Exception exception)

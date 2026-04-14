@@ -39,7 +39,6 @@ def rulebase_link_controller() -> RulebaseLinkController:
     return rulebase_link_controller
 
 
-
 class TestFwconfigImportGatewayClear:
     def test_update_gateway_diffs_removes_links_on_clear(
         self,

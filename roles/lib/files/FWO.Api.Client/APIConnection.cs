@@ -27,6 +27,58 @@ namespace FWO.Api.Client
 
         public abstract void SwitchBack();
 
+        public async Task RunWithRole(string role, Func<Task> action)
+        {
+            SetRole(role);
+            try
+            {
+                await action();
+            }
+            finally
+            {
+                SwitchBack();
+            }
+        }
+
+        public async Task<TResult> RunWithRole<TResult>(string role, Func<Task<TResult>> action)
+        {
+            SetRole(role);
+            try
+            {
+                return await action();
+            }
+            finally
+            {
+                SwitchBack();
+            }
+        }
+
+        public async Task RunWithProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList, Func<Task> action)
+        {
+            SetProperRole(user, targetRoleList);
+            try
+            {
+                await action();
+            }
+            finally
+            {
+                SwitchBack();
+            }
+        }
+
+        public async Task<TResult> RunWithProperRole<TResult>(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList, Func<Task<TResult>> action)
+        {
+            SetProperRole(user, targetRoleList);
+            try
+            {
+                return await action();
+            }
+            finally
+            {
+                SwitchBack();
+            }
+        }
+
         /// <summary>
         /// Sends an API call and returns the deserialized result or throws on errors.
         /// </summary>

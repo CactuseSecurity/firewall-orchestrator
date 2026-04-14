@@ -3,6 +3,7 @@ query getNotifications ($client: String! ){
   notification (where: { notification_client: {_eq: $client} } order_by: { id: asc }){
     id
     notification_client
+    user_id
     name
     owner_id 
     channel
@@ -11,6 +12,10 @@ query getNotifications ($client: String! ){
     recipient_cc
     email_address_cc
     email_subject
+    email_body
+    schedule_id
+    bundle_type
+    bundle_id
     layout
     deadline
     interval_before_deadline

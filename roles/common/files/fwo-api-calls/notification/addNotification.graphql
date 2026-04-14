@@ -1,5 +1,6 @@
 mutation addNotification(
   $client: String!
+  $userId: Int
   $channel: String!
   $name: String
   $recipientTo: String
@@ -7,6 +8,10 @@ mutation addNotification(
   $recipientCc: String
   $emailAddressCc: String
   $subject: String
+  $emailBody: String
+  $scheduleId: Int
+  $bundleType: String
+  $bundleId: String
   $layout: String!
   $deadline: String
   $intervalBeforeDeadline: Int
@@ -18,6 +23,7 @@ mutation addNotification(
   ) {
   insert_notification(objects: {
     notification_client: $client
+    user_id: $userId
     channel: $channel
     name: $name
     recipient_to: $recipientTo
@@ -25,6 +31,10 @@ mutation addNotification(
     recipient_cc: $recipientCc
     email_address_cc: $emailAddressCc
     email_subject: $subject
+    email_body: $emailBody
+    schedule_id: $scheduleId
+    bundle_type: $bundleType
+    bundle_id: $bundleId
     layout: $layout
     deadline: $deadline
     interval_before_deadline: $intervalBeforeDeadline

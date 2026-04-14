@@ -60,7 +60,7 @@ def ensure_manager_set(config_in: FwConfigManagerListController, import_state: I
 
 def ensure_device_name(import_state: ImportState) -> None:
     mgm_details = import_state.mgm_details
-    gw_map = import_state.gateway_map.get(mgm_details.current_mgm_id, {})
+    gw_map = import_state.gateway_map.get(mgm_details.mgm_id, {})  # Watch out changed from current_mgm_id to mgm_id
     gateway_uid = next(iter(gw_map.keys()), None)
 
     if (

@@ -98,8 +98,8 @@ class FwConfigImportRule:
         self.update_rule_metadata_last_hit(new_hit_information)
 
         # fetch initial rule and rulebase ids
-        self.uid2id_mapper.update_rule_mapping()
-        self.uid2id_mapper.update_rulebase_mapping()
+        self.uid2id_mapper.update_rule_mapping(mgm_id=self.management_state.mgm_id)
+        self.uid2id_mapper.update_rulebase_mapping(mgm_id=self.management_state.mgm_id)
 
         # add new rulebases
         new_rulebases = [
@@ -221,7 +221,7 @@ class FwConfigImportRule:
                 {
                     "where": {
                         "rule_uid": {"_eq": rule.rule_uid},
-                        "mgm_id": {"_eq": self.import_state.mgm_details.current_mgm_id},
+                        "mgm_id": {"_eq": self.management_state.mgm_id},
                     },
                     "_set": {"rule_last_hit": rule.last_hit},
                 }
@@ -569,7 +569,7 @@ class FwConfigImportRule:
             )  # should not happen
 
         import_id = self.import_state.import_id
-        mgm_id = self.import_state.mgm_details.current_mgm_id
+        mgm_id = self.management_state.mgm_id
 
         if ref_type == RefType.SRC:
             nwobj_uid, user_uid = ref_uid
@@ -834,9 +834,7 @@ class FwConfigImportRule:
         """
 
         new_rulebases_for_import = [
-            RulebaseForImport.from_rulebase(
-                rb, self.import_state.mgm_details.current_mgm_id, self.import_state.import_id
-            )
+            RulebaseForImport.from_rulebase(rb, self.management_state.mgm_id, self.import_state.import_id)
             for rb in new_rulebases
         ]
         query_variables = {"rulebases": [rb.model_dump(by_alias=True) for rb in new_rulebases_for_import]}
@@ -867,7 +865,7 @@ class FwConfigImportRule:
                 raise FwoImporterError(f"rule UID is None: {rule} in rulebase during prepare_new_rule_metadata")
             rm4import = RuleMetadatum(
                 rule_uid=rule.rule_uid,
-                mgm_id=self.import_state.mgm_details.current_mgm_id,
+                mgm_id=self.management_state.mgm_id,
                 rule_created=self.import_state.import_id,
                 rule_last_hit=rule.last_hit,
             )
@@ -1044,9 +1042,7 @@ class FwConfigImportRule:
                             {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
                             {
                                 "dev_id": {
-                                    "_eq": self.import_state.lookup_gateway_id(
-                                        gw_uid, self.import_state.mgm_details.current_mgm_id
-                                    )
+                                    "_eq": self.import_state.lookup_gateway_id(gw_uid, self.management_state.mgm_id)
                                 }
                             },
                         ]
@@ -1076,9 +1072,7 @@ class FwConfigImportRule:
                 "rulesEnforcedOnGateway": [
                     {
                         "rule_id": self.uid2id_mapper.get_rule_id(rule_uid),
-                        "dev_id": self.import_state.lookup_gateway_id(
-                            gw_uid, self.import_state.mgm_details.current_mgm_id
-                        ),
+                        "dev_id": self.import_state.lookup_gateway_id(gw_uid, self.management_state.mgm_id),
                         "created": self.import_state.import_id,
                     }
                     for rule_uid, gw_uid in refs_to_add
@@ -1103,7 +1097,7 @@ class FwConfigImportRule:
     def prepare_rule_for_import(self, rule: RuleNormalized, rulebase_uid: str) -> Rule:
         rulebase_id = self.uid2id_mapper.get_rulebase_id(rulebase_uid)
         return Rule(
-            mgm_id=self.import_state.mgm_details.current_mgm_id,
+            mgm_id=self.management_state.mgm_id,
             rule_num=rule.rule_num,
             rule_disabled=rule.rule_disabled,
             rule_src_neg=rule.rule_src_neg,

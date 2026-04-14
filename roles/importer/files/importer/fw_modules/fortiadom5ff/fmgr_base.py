@@ -1,21 +1,23 @@
 from typing import Any
 
 from fwo_log import FWOLogger
-from services.service_provider import ServiceProvider
+from states.import_state import ImportState
 
 
 # TODO: unused functions - remove?
 def set_alerts_for_missing_objects(
-    objects_not_found: list[str], import_id: int, rule_uid: str | None, object_type: str | None, mgm_id: int
+    import_state: ImportState,
+    objects_not_found: list[str],
+    import_id: int,
+    rule_uid: str | None,
+    object_type: str | None,
+    mgm_id: int,
 ):
     for obj in objects_not_found:
         if obj in {"all", "Original"}:
             continue
 
-        service_provider = ServiceProvider()
-        global_state = service_provider.get_global_state()
-
-        api_call = global_state.import_state.api_call
+        api_call = import_state.fwo_api_call
 
         api_call.create_data_issue(obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type)
 

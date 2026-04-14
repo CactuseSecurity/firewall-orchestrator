@@ -99,10 +99,18 @@ class FwConfigImportObject:
         # initial mapping of object uids to ids. needs to be updated, if more objects are created in the db after this point
         # TODO: only fetch objects needed later. Esp for !isFullImport. but: newNwObjIds not enough!
         # -> newObjs + extract all objects from new/changed rules and groups, flatten them. Complete?
-        management_state.uid2id_mapper.update_network_object_mapping(is_global=single_manager.is_super_manager)
-        management_state.uid2id_mapper.update_service_object_mapping(is_global=single_manager.is_super_manager)
-        management_state.uid2id_mapper.update_user_mapping(is_global=single_manager.is_super_manager)
-        management_state.uid2id_mapper.update_zone_mapping(is_global=single_manager.is_super_manager)
+        management_state.uid2id_mapper.update_network_object_mapping(
+            mgm_id=management_state.mgm_id, is_global=single_manager.is_super_manager
+        )
+        management_state.uid2id_mapper.update_service_object_mapping(
+            mgm_id=management_state.mgm_id, is_global=single_manager.is_super_manager
+        )
+        management_state.uid2id_mapper.update_user_mapping(
+            mgm_id=management_state.mgm_id, is_global=single_manager.is_super_manager
+        )
+        management_state.uid2id_mapper.update_zone_mapping(
+            mgm_id=management_state.mgm_id, is_global=single_manager.is_super_manager
+        )
 
         management_state.group_flats_mapper.init_config(management_state.normalized_config, import_state.super_config)
         management_state.prev_group_flats_mapper.init_config(prev_config, prev_global_config)
@@ -353,7 +361,7 @@ class FwConfigImportObject:
         Insert new time objects and update removed time objects via FWO API.
         Also updates uid2id mapping for time objects and import statistics.
         """
-        management_state.uid2id_mapper.update_time_object_mapping(is_global=is_global)
+        management_state.uid2id_mapper.update_time_object_mapping(management_state.mgm_id, is_global=is_global)
         import_mutation = FwoApi.get_graphql_code(
             file_list=[fwo_const.GRAPHQL_QUERY_PATH + "time/upsertTimeObjects.graphql"]
         )
@@ -366,12 +374,12 @@ class FwConfigImportObject:
             if current_time_objs[uid] != previous_time_objs[uid]
         ]
         query_variables: dict[str, Any] = {
-            "mgmId": import_state.mgm_details.current_mgm_id,
+            "mgmId": management_state.mgm_id,
             "importId": import_state.import_id,
             "newTimeObjects": [
                 TimeObjectForImport.from_normalized(
                     current_time_objs[uid],
-                    import_state.mgm_details.current_mgm_id,
+                    management_state.mgm_id,
                     import_state.import_id,
                 ).model_dump()
                 for uid in new_uids + changed_uids

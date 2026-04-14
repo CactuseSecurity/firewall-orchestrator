@@ -47,7 +47,7 @@ class FwConfigImport:
         management_state: ManagementState,
         single_manager: FwConfigManager,
     ):
-        previous_config = self.get_latest_config_from_db(import_state=import_state)
+        previous_config = self.get_latest_config_from_db(import_state=import_state, management_state=management_state)
         management_state.previous_config = previous_config
         if single_manager.is_super_manager:
             import_state.previous_super_config = previous_config
@@ -83,8 +83,7 @@ class FwConfigImport:
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {manager.manager_uid}")
 
-        management_state = ManagementState(import_state, mgm_id)
-        management_state.normalized_config = config
+        management_state = ManagementState(import_state, mgm_id, config, manager.is_super_manager)
 
         if manager.is_super_manager:
             # store global config as it is needed when importing sub managers which might reference it
@@ -93,9 +92,6 @@ class FwConfigImport:
 
         self._fw_config_import_rule = FwConfigImportRule(global_state, import_state, management_state)
 
-        # TODO: clean separation between values relevant for all managers and those only relevant for specific managers - see #3646
-        import_state.mgm_details.current_mgm_id = mgm_id
-        import_state.mgm_details.current_mgm_is_super_manager = manager.is_super_manager
         self.import_single_config(global_state, import_state, management_state, manager)
         self.consistency_check_config_against_db(import_state=import_state, management_state=management_state)
         self.write_latest_config(
@@ -289,13 +285,13 @@ class FwConfigImport:
                 raise FwoImporterError("cannot write latest config: NormalizedConfig is None")
             # convert FwConfigImport to FwConfigNormalized
 
-            self.delete_latest_config_of_management(import_state)
+            self.delete_latest_config_of_management(import_state, management_state)
             insert_mutation = FwoApi.get_graphql_code(
                 [fwo_const.GRAPHQL_QUERY_PATH + "import/storeLatestConfig.graphql"]
             )
             try:
                 query_variables: dict[str, Any] = {
-                    "mgmId": import_state.mgm_details.current_mgm_id,
+                    "mgmId": management_state.mgm_id,
                     "importId": import_state.import_id,
                     "config": management_state.normalized_config.model_dump_json(),
                 }
@@ -303,32 +299,32 @@ class FwConfigImport:
                 if "errors" in import_result:
                     FWOLogger.exception(
                         "fwo_api:storeLatestConfig - error while writing importable config for mgm id "
-                        + str(import_state.mgm_details.current_mgm_id)
+                        + str(management_state.mgm_id)
                         + ": "
                         + str(import_result["errors"])
                     )
                     FWOLogger.warning(
-                        f"error while writing latest config for import_id {import_state.import_id}, mgm_id: {import_state.mgm_details.mgm_id}, mgm_uid: {import_state.mgm_details.uid}"
+                        f"error while writing latest config for import_id {import_state.import_id}, mgm_id: {management_state.mgm_id}, mgm_uid: {import_state.mgm_details.uid}"
                     )
                 else:
                     _ = import_result["data"]["insert_latest_config"]["affected_rows"]
             except Exception:
                 FWOLogger.exception(
-                    f"failed to write latest normalized config for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                    f"failed to write latest normalized config for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
                 )
                 raise
 
-    def delete_latest_config_of_management(self, import_state: ImportState) -> None:
+    def delete_latest_config_of_management(self, import_state: ImportState, management_state: ManagementState) -> None:
         delete_mutation = FwoApi.get_graphql_code(
             [fwo_const.GRAPHQL_QUERY_PATH + "import/deleteLatestConfigOfManagement.graphql"]
         )
         try:
-            query_variables = {"mgmId": import_state.mgm_details.current_mgm_id}
+            query_variables = {"mgmId": management_state.mgm_id}
             import_result = import_state.fwo_api.call(delete_mutation, query_variables=query_variables)
             if "errors" in import_result:
                 FWOLogger.exception(
                     "fwo_api:import_latest_config - error while deleting last config for mgm id "
-                    + str(import_state.mgm_details.current_mgm_id)
+                    + str(management_state.mgm_id)
                     + ": "
                     + str(import_result["errors"])
                 )
@@ -336,7 +332,7 @@ class FwConfigImport:
                 _ = import_result["data"]["delete_latest_config"]["affected_rows"]
         except Exception:
             FWOLogger.exception(
-                f"failed to delete latest normalized config for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to delete latest normalized config for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
             )
 
     def get_latest_import_id(self, import_state: ImportState) -> int | None:
@@ -358,17 +354,18 @@ class FwConfigImport:
             raise FwoImporterError("error while trying to get the latest import id")
 
     # return previous config or empty config if there is none; only returns the config of a single management
-    def get_latest_config(self, import_state: ImportState) -> FwConfigNormalized:
-        mgm_id = import_state.mgm_details.current_mgm_id
+    def get_latest_config(self, import_state: ImportState, management_state: ManagementState) -> FwConfigNormalized:
         prev_config = FwConfigNormalized()
 
         latest_import_id = self.get_latest_import_id(import_state)
         if latest_import_id is None:
-            FWOLogger.info(f"first import - no existing import was found for mgm id {mgm_id}")  # TODO: change msg
+            FWOLogger.info(
+                f"first import - no existing import was found for mgm id {management_state.mgm_id}"
+            )  # TODO: change msg
             return prev_config
 
         query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/getLatestConfig.graphql"])
-        query_variables = {"mgmId": mgm_id}
+        query_variables = {"mgmId": management_state.mgm_id}
         try:
             query_result = import_state.fwo_api.call(query, query_variables=query_variables)
             if "errors" in query_result:
@@ -379,24 +376,26 @@ class FwConfigImport:
                 if query_result["data"]["latest_config"][0]["import_id"] == latest_import_id:
                     return FwConfigNormalized.model_validate_json(query_result["data"]["latest_config"][0]["config"])
                 FWOLogger.warning(
-                    f"fwo_api:import_latest_config - latest config for mgm id {mgm_id} did not match last import id {latest_import_id}"
+                    f"fwo_api:import_latest_config - latest config for mgm id {management_state.mgm_id} did not match last import id {latest_import_id}"
                 )
             FWOLogger.info("fetching latest config from DB as fallback")
-            return self.get_latest_config_from_db(import_state)
+            return self.get_latest_config_from_db(import_state, management_state)
         except Exception:
             FWOLogger.exception(
-                f"failed to get latest normalized config for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to get latest normalized config for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to get the previous config")
 
-    def get_latest_config_from_db(self, import_state: ImportState) -> FwConfigNormalized:
-        params = {"mgm-ids": [import_state.mgm_details.current_mgm_id]}
+    def get_latest_config_from_db(
+        self, import_state: ImportState, management_state: ManagementState
+    ) -> FwConfigNormalized:
+        params = {"mgm-ids": [management_state.mgm_id]}
         result = import_state.fwo_api.call_endpoint("POST", "api/NormalizedConfig/Get", params=params)
         try:
             return FwConfigNormalized.model_validate(result)
         except Exception:
             FWOLogger.exception(
-                f"failed to get latest normalized config from db for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to get latest normalized config from db for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to get the latest config")
 
@@ -420,7 +419,7 @@ class FwConfigImport:
         normalized_config = management_state.normalized_config
         if normalized_config is None:
             raise FwoImporterError("cannot perform consistency check: NormalizedConfig is None")
-        normalized_config_from_db = self.get_latest_config_from_db(import_state)
+        normalized_config_from_db = self.get_latest_config_from_db(import_state, management_state)
         self._sort_lists(normalized_config)
         self._sort_lists(normalized_config_from_db)
         # filter gateways from DB which are not part of the current import (e.g. in case of import_disabled)
@@ -432,7 +431,7 @@ class FwConfigImport:
         all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump(), strict=True)
         if len(all_diffs) > 0:
             FWOLogger.warning(
-                f"normalized config for mgm id {import_state.mgm_details.current_mgm_id} is inconsistent to database state: {all_diffs[0]}"
+                f"normalized config for mgm id {management_state.mgm_id} is inconsistent to database state: {all_diffs[0]}"
             )
             FWOLogger.debug(f"all {len(all_diffs)} differences:\n\t" + "\n\t".join(all_diffs))
             # TODO: long-term this should raise an error:
@@ -452,21 +451,25 @@ class FwConfigImport:
         )
         self.fix_objects_in_db(
             import_state,
+            management_state,
             consistency_checker.network_objects_to_remove,
             consistency_checker.service_objects_to_remove,
             consistency_checker.user_objects_to_remove,
         )
-        self.fix_rules_in_db(import_state, consistency_checker.rules_to_remove)
+        self.fix_rules_in_db(import_state, management_state, consistency_checker.rules_to_remove)
         if consistency_checker.invalid_rulebase_links_exist:
-            self.fix_rulebase_links_in_db(import_state)
-        self.fix_rule_to_gw_refs_in_db(
-            management_state.previous_config, import_state.previous_super_config, import_state
-        )
-        self.fix_ref_tables_in_db(import_state)
-        self.fix_changelog_rule(import_state)
+            self.fix_rulebase_links_in_db(import_state, management_state)
+        self.fix_rule_to_gw_refs_in_db(import_state, management_state)
+        self.fix_ref_tables_in_db(import_state, management_state)
+        self.fix_changelog_rule(import_state, management_state)
 
     def fix_objects_in_db(
-        self, import_state: ImportState, nwobj_uids: list[str], svcobj_uids: list[str], user_uids: list[str]
+        self,
+        import_state: ImportState,
+        management_state: ManagementState,
+        nwobj_uids: list[str],
+        svcobj_uids: list[str],
+        user_uids: list[str],
     ):
         """
         Sets removed flag on network objects, service objects and user objects with the given UIDs in the database
@@ -480,7 +483,7 @@ class FwConfigImport:
         )
 
         query_variables: dict[str, Any] = {
-            "mgmId": import_state.mgm_details.current_mgm_id,
+            "mgmId": management_state.mgm_id,
             "importId": import_state.import_id,
             "newNwObjects": [],
             "newSvcObjects": [],
@@ -506,11 +509,11 @@ class FwConfigImport:
             import_state.statistics_controller.statistics.inconsistent_userobj_delete_count += len(removed_user_ids)
         except Exception:
             FWOLogger.exception(
-                f"failed to fix object consistency issues for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to fix object consistency issues for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to fix object consistency issues") from None
 
-    def fix_rules_in_db(self, import_state: ImportState, rule_uids: list[str]):
+    def fix_rules_in_db(self, import_state: ImportState, management_state: ManagementState, rule_uids: list[str]):
         """
         Sets removed flag on rules with the given UIDs in the database to fix consistency issues.
         """
@@ -526,7 +529,7 @@ class FwConfigImport:
             }
         """
         query_variables: dict[str, Any] = {
-            "mgmId": import_state.mgm_details.current_mgm_id,
+            "mgmId": management_state.mgm_id,
             "importId": import_state.import_id,
             "uids": rule_uids,
         }
@@ -538,11 +541,11 @@ class FwConfigImport:
             import_state.statistics_controller.statistics.inconsistent_rule_delete_count += len(removed_rule_ids)
         except Exception:
             FWOLogger.exception(
-                f"failed to fix rule consistency issues for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to fix rule consistency issues for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to fix rule consistency issues") from None
 
-    def fix_rulebase_links_in_db(self, import_state: ImportState):
+    def fix_rulebase_links_in_db(self, import_state: ImportState, management_state: ManagementState):
         """
         Removes inconsistent rulebase links from the database to fix consistency issues.
         """
@@ -550,7 +553,7 @@ class FwConfigImport:
             file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/removeInconsistentRulebaseLinks.graphql"]
         )
         query_variables: dict[str, Any] = {
-            "mgmId": import_state.mgm_details.current_mgm_id,
+            "mgmId": management_state.mgm_id,
             "importId": import_state.import_id,
         }
         try:
@@ -561,15 +564,17 @@ class FwConfigImport:
             import_state.statistics_controller.statistics.inconsistent_rulebase_link_delete_count += removed_links
         except Exception:
             FWOLogger.exception(
-                f"failed to remove inconsistent rulebase links for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to remove inconsistent rulebase links for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to remove inconsistent rulebase links") from None
 
-    def _insert_missing_rule_to_gw_refs_in_db(self, refs_to_add: set[tuple[str, str]], import_state: ImportState):
+    def _insert_missing_rule_to_gw_refs_in_db(
+        self, refs_to_add: set[tuple[str, str]], import_state: ImportState, management_state: ManagementState
+    ):
         """Inserts missing rule enforced on gateway references to the database to fix consistency issues."""
         if not refs_to_add:
             return  # nothing to do
-        mgm_id = import_state.mgm_details.current_mgm_id
+        mgm_id = management_state.mgm_id
         fetch_rule_ids_query = FwoApi.get_graphql_code(
             file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulesByUidsWithCreate.graphql"]
         )
@@ -616,22 +621,21 @@ class FwConfigImport:
             )
         except Exception:
             FWOLogger.exception(
-                f"failed to add missing rule enforced on gateway references for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to add missing rule enforced on gateway references for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to add missing rule enforced on gateway references") from None
 
     def fix_rule_to_gw_refs_in_db(
         self,
-        previous_config: FwConfigNormalized | None,
-        previous_global_config: FwConfigNormalized | None,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         """
         Set inconsistent rule_enforced_on_gateway entries removed and insert missing ones.
         """
-        if previous_config is None:
+        if management_state.previous_config is None:
             return  # nothing to compare against, so nothing to fix
-        mgm_id = import_state.mgm_details.current_mgm_id
+        mgm_id = management_state.mgm_id
         if mgm_id not in import_state.gateway_map:
             # no gateways assigned to management (e.g. super-mgr)
             return
@@ -646,21 +650,21 @@ class FwConfigImport:
             result = import_state.fwo_api_call.call(query, query_variables=query_variables)
             if "errors" in result:
                 raise FwoImporterError(
-                    f"failed to get rules enforced on gateways for mgm id {import_state.mgm_details.current_mgm_id!s}: {result['errors']!s}"
+                    f"failed to get rules enforced on gateways for mgm id {management_state.mgm_id!s}: {result['errors']!s}"
                 )
             rules_enforced_on_gw = result["data"]["rule_enforced_on_gateway"]
         except Exception:
             FWOLogger.exception(
-                f"failed to get rules enforced on gateways for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to get rules enforced on gateways for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to get rules enforced on gateways") from None
         # need to set removed flag on active refs referencing removed rule
         ref_with_removed_rule_exists = any(ref for ref in rules_enforced_on_gw if ref["rule"]["removed"] is not None)
         # comparing expected refs from config with existing refs to *active* rules to determine missing refs to add
         expected_refs = FwConfigImportRule.get_rule_to_gw_refs(
-            previous_config.rulebases,
-            previous_global_config.rulebases if previous_global_config else None,
-            previous_config.gateways,
+            management_state.previous_config.rulebases,
+            import_state.previous_super_config.rulebases if import_state.previous_super_config else None,
+            management_state.previous_config.gateways,
         )
         refs_in_db_active_rule = {
             (ref["rule"]["rule_uid"], ref["device"]["dev_uid"])
@@ -691,7 +695,7 @@ class FwConfigImport:
                 result = import_state.fwo_api_call.call(mutation, query_variables=query_variables)
                 if "errors" in result:
                     raise FwoImporterError(
-                        f"failed to remove inconsistent rule enforced on gateway references for mgm id {import_state.mgm_details.current_mgm_id!s}: {result['errors']!s}"
+                        f"failed to remove inconsistent rule enforced on gateway references for mgm id {management_state.mgm_id!s}: {result['errors']!s}"
                     )
                 removed_refs = result["data"]["update_rule_enforced_on_gateway"]["affected_rows"]
                 FWOLogger.info(
@@ -700,23 +704,23 @@ class FwConfigImport:
                 import_state.statistics_controller.statistics.inconsistent_ref_delete_count += removed_refs
             except Exception:
                 FWOLogger.exception(
-                    f"failed to remove inconsistent rule enforced on gateway references for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                    f"failed to remove inconsistent rule enforced on gateway references for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
                 )
                 raise FwoImporterError(
                     "error while trying to remove inconsistent rule enforced on gateway references"
                 ) from None
 
         if refs_to_add:
-            self._insert_missing_rule_to_gw_refs_in_db(refs_to_add, import_state)
+            self._insert_missing_rule_to_gw_refs_in_db(refs_to_add, import_state, management_state)
 
-    def fix_ref_tables_in_db(self, import_state: ImportState):
+    def fix_ref_tables_in_db(self, import_state: ImportState, management_state: ManagementState):
         """
         Check ref tables for active references to objects/rules which were marked as removed and remove these
         references to fix consistency issues.
         """
         mutation = FwoApi.get_graphql_code(file_list=[fwo_const.GRAPHQL_QUERY_PATH + "allObjects/fixRefTables.graphql"])
         query_variables: dict[str, Any] = {
-            "mgmId": import_state.mgm_details.current_mgm_id,
+            "mgmId": management_state.mgm_id,
             "importId": import_state.import_id,
         }
         try:
@@ -730,13 +734,13 @@ class FwConfigImport:
             import_state.statistics_controller.statistics.inconsistent_ref_delete_count += sum(affected_rows.values())
         except Exception:
             FWOLogger.exception(
-                f"failed to fix references to removed objects/rules in ref tables for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to fix references to removed objects/rules in ref tables for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError(
                 "error while trying to fix references to removed objects/rules in ref tables"
             ) from None
 
-    def fix_changelog_rule(self, import_state: ImportState):
+    def fix_changelog_rule(self, import_state: ImportState, management_state: ManagementState):
         """
         Fix changelog entries with old_rule_id == new_rule_id (both containing new_rule_id due to a bug in the past)
         """
@@ -744,13 +748,13 @@ class FwConfigImport:
             file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getChangelogRulesCForMgm.graphql"]
         )
         query_variables: dict[str, Any] = {
-            "mgmId": import_state.mgm_details.current_mgm_id,
+            "mgmId": management_state.mgm_id,
         }
         try:
             result = import_state.fwo_api_call.call(get_changelog_entries_query, query_variables=query_variables)
             if "errors" in result:
                 raise FwoImporterError(
-                    f"failed to get changelog entries for mgm id {import_state.mgm_details.current_mgm_id!s}: {result['errors']!s}"
+                    f"failed to get changelog entries for mgm id {management_state.mgm_id!s}: {result['errors']!s}"
                 )
             changelog_entries = result["data"]["changelog_rule"]
             entries_to_fix = [
@@ -763,14 +767,14 @@ class FwConfigImport:
             if not entries_to_fix:
                 return  # nothing to fix
             FWOLogger.info(
-                f"found {len(entries_to_fix)!s} changelog entries with identical new and old rule id for mgm id {import_state.mgm_details.current_mgm_id!s}, fixing these entries now"
+                f"found {len(entries_to_fix)!s} changelog entries with identical new and old rule id for mgm id {management_state.mgm_id!s}, fixing these entries now"
             )
             # get correct old rule ids
             get_rule_ids_mutation = FwoApi.get_graphql_code(
                 file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulesByUidsForMgm.graphql"]
             )
             get_rule_ids_variables: dict[str, Any] = {
-                "mgmId": import_state.mgm_details.current_mgm_id,
+                "mgmId": management_state.mgm_id,
                 "ruleUids": list({entry["rule"]["rule_uid"] for entry in entries_to_fix}),
             }
             get_rule_ids_result = import_state.fwo_api_call.call(
@@ -778,7 +782,7 @@ class FwConfigImport:
             )
             if "errors" in get_rule_ids_result:
                 raise FwoImporterError(
-                    f"failed to get rule ids for UIDs of changelog entries to fix for mgm id {import_state.mgm_details.current_mgm_id!s}: {get_rule_ids_result['errors']!s}"
+                    f"failed to get rule ids for UIDs of changelog entries to fix for mgm id {management_state.mgm_id!s}: {get_rule_ids_result['errors']!s}"
                 )
             correct_old_rule_ids: dict[int, int] = {}
             for entry in entries_to_fix:
@@ -804,17 +808,17 @@ class FwConfigImport:
             )
             if "errors" in update_result:
                 raise FwoImporterError(
-                    f"failed to update changelog entries with correct old rule ids for mgm id {import_state.mgm_details.current_mgm_id!s}: {update_result['errors']!s}"
+                    f"failed to update changelog entries with correct old rule ids for mgm id {management_state.mgm_id!s}: {update_result['errors']!s}"
                 )
             updated_entries = sum(
                 update["affected_rows"] for update in update_result["data"]["update_changelog_rule_many"]
             )
             FWOLogger.info(
-                f"updated {updated_entries!s} changelog entries with correct old rule ids for mgm id {import_state.mgm_details.current_mgm_id!s}"
+                f"updated {updated_entries!s} changelog entries with correct old rule ids for mgm id {management_state.mgm_id!s}"
             )
         except Exception:
             FWOLogger.exception(
-                f"failed to fix changelog entries with identical new and old rule id for mgm id {import_state.mgm_details.current_mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to fix changelog entries with identical new and old rule id for mgm id {management_state.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError(
                 "error while trying to fix changelog entries with identical new and old rule id"

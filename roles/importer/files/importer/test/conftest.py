@@ -8,6 +8,7 @@ from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.rulebase_link_controller import RulebaseLinkController
+from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from pytest_mock import MockerFixture
 from services.group_flats_mapper import GroupFlatsMapper
@@ -101,7 +102,7 @@ def global_state() -> GlobalState:
 def management_state(
     import_state: ImportState,
 ) -> ManagementState:
-    return ManagementState(import_state, 1)
+    return ManagementState(import_state, 1, FwConfigNormalized(), is_super_manager=True)
 
 
 @pytest.fixture

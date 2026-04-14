@@ -1,6 +1,7 @@
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from pytest_mock import MockerFixture
 from states.import_state import ImportState
+from states.management_state import ManagementState
 from test.utils.test_utils import mock_get_graphql_code
 
 
@@ -50,12 +51,13 @@ class TestFwConfigImportRule:
         fwconfig_import_rule: FwConfigImportRule,
         mocker: MockerFixture,
         import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         mock_get_graphql_code(mocker, "mutation { dummy }")
 
         import_state.mgm_details.mgm_id = 3
-        import_state.mgm_details.current_mgm_id = 7
+        management_state.mgm_id = 7
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
         import_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
 
@@ -75,5 +77,5 @@ class TestFwConfigImportRule:
 
         assert len(rule_changes) == 1
         assert rule_changes[0]["change_action"] == "I"
-        assert rule_changes[0]["mgm_id"] == import_state.mgm_details.current_mgm_id
-        assert rule_changes[0]["mgm_id"] != import_state.mgm_details.mgm_id
+        assert rule_changes[0]["mgm_id"] != management_state.mgm_id
+        assert rule_changes[0]["mgm_id"] == import_state.mgm_details.mgm_id

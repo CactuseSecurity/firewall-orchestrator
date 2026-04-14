@@ -311,11 +311,14 @@ class Uid2IdMapper:
 
         FWOLogger.debug(f"Added {len(mappings)} rulebase mappings.")
 
-    def update_network_object_mapping(self, uids: list[str] | None = None, is_global: bool = False) -> None:
+    def update_network_object_mapping(
+        self, mgm_id: int, uids: list[str] | None = None, is_global: bool = False
+    ) -> None:
         """
         Update the mapping for network objects based on the provided UIDs.
 
         Args:
+            mgm_id (int): The ID of the management.
             uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
 
         """
@@ -328,7 +331,7 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
+            variables = {"mgmId": mgm_id}
         try:
             response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
@@ -341,11 +344,14 @@ class Uid2IdMapper:
         except Exception as e:
             raise FwoImporterError(f"Error updating network object mapping: {e}")
 
-    def update_service_object_mapping(self, uids: list[str] | None = None, is_global: bool = False) -> None:
+    def update_service_object_mapping(
+        self, mgm_id: int, uids: list[str] | None = None, is_global: bool = False
+    ) -> None:
         """
         Update the mapping for service objects based on the provided UIDs.
 
         Args:
+            mgm_id (int): The ID of the management.
             uids (list[str] | None): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
 
         """
@@ -357,7 +363,7 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
+            variables = {"mgmId": mgm_id}
         try:
             response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
@@ -370,11 +376,12 @@ class Uid2IdMapper:
         except Exception as e:
             raise FwoImporterError(f"Error updating service object mapping: {e}")
 
-    def update_user_mapping(self, uids: list[str] | None = None, is_global: bool = False) -> None:
+    def update_user_mapping(self, mgm_id: int, uids: list[str] | None = None, is_global: bool = False) -> None:
         """
         Update the mapping for users based on the provided UIDs.
 
         Args:
+            mgm_id (int): The ID of the management.
             uids (list[str] | None): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
 
         """
@@ -386,7 +393,7 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
+            variables = {"mgmId": mgm_id}
         try:
             response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
@@ -399,11 +406,12 @@ class Uid2IdMapper:
         except Exception as e:
             raise FwoImporterError(f"Error updating user mapping: {e}")
 
-    def update_zone_mapping(self, names: list[str] | None = None, is_global: bool = False) -> None:
+    def update_zone_mapping(self, mgm_id: int, names: list[str] | None = None, is_global: bool = False) -> None:
         """
         Update the mapping for zones based on the provided names.
 
         Args:
+            mgm_id (int): The ID of the management.
             names (list[str] | None): A list of zone names to update the mapping for. If None, all zones for the Management will be fetched.
 
         """
@@ -415,7 +423,7 @@ class Uid2IdMapper:
             variables = {"names": names}
         else:
             # If no names are provided, fetch all zones for the Management
-            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
+            variables = {"mgmId": mgm_id}
         try:
             response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
@@ -428,11 +436,12 @@ class Uid2IdMapper:
         except Exception as e:
             raise FwoImporterError(f"Error updating zone mapping: {e}")
 
-    def update_time_object_mapping(self, uids: list[str] | None = None, is_global: bool = False) -> None:
+    def update_time_object_mapping(self, mgm_id: int, uids: list[str] | None = None, is_global: bool = False) -> None:
         """
         Update the mapping for time objects based on the provided UIDs.
 
         Args:
+            mgm_id (int): The ID of the management.
             uids (list[str] | None): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
 
         """
@@ -444,7 +453,7 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
+            variables = {"mgmId": mgm_id}
         try:
             response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
@@ -457,11 +466,12 @@ class Uid2IdMapper:
         except Exception as e:
             raise FwoImporterError(f"Error updating time object mapping: {e}")
 
-    def update_rule_mapping(self, uids: list[str] | None = None) -> None:
+    def update_rule_mapping(self, mgm_id: int, uids: list[str] | None = None) -> None:
         """
         Update the mapping for rules based on the provided UIDs.
 
         Args:
+            mgm_id (int): The ID of the management.
             uids (list[str] | None): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
 
         """
@@ -473,7 +483,7 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
+            variables = {"mgmId": mgm_id}
         try:
             response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:
@@ -483,11 +493,12 @@ class Uid2IdMapper:
         except Exception as e:
             raise FwoImporterError(f"Error updating rule mapping: {e}")
 
-    def update_rulebase_mapping(self, uids: list[str] | None = None) -> None:
+    def update_rulebase_mapping(self, mgm_id: int, uids: list[str] | None = None) -> None:
         """
         Update the mapping for rulebases based on the provided UIDs.
 
         Args:
+            mgm_id (int): The ID of the management.
             uids (list[str] | None): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
 
         """
@@ -499,7 +510,7 @@ class Uid2IdMapper:
             variables = {"uids": uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {"mgmId": self.import_state.mgm_details.current_mgm_id}
+            variables = {"mgmId": mgm_id}
         try:
             response = self.import_state.fwo_api.call(query, variables)
             if "errors" in response:

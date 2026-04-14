@@ -10,6 +10,7 @@ from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
+from models.fwo_config_controller import FwoConfigController
 from pytest_mock import MockerFixture
 from services.group_flats_mapper import GroupFlatsMapper
 from services.uid2id_mapper import Uid2IdMapper
@@ -95,7 +96,20 @@ def group_flats_mapper() -> GroupFlatsMapper:
 
 @pytest.fixture
 def global_state() -> GlobalState:
-    return GlobalState(FWO_CONFIG_FILENAME, force=True, clear=False, debug_level=0)
+    with unittest.mock.patch.object(
+        FwoConfigController,
+        "read_config",
+        return_value=(
+            "http://middleware.local",
+            "http://api.local",
+            "importer",
+            "test-importer-pwd",
+            0,
+            150,
+            90,
+        ),
+    ):
+        return GlobalState(FWO_CONFIG_FILENAME, force=True, clear=False, debug_level=0)
 
 
 @pytest.fixture

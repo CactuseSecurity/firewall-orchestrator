@@ -361,7 +361,6 @@ def process_devices(
         if not device_config:
             continue
         found_gateway = next((gw for gw in gateways_and_servers if gw["uid"] == device["uid"]), None)
-        #found_gateway = next((gw for gw in gateways_and_servers if gw["name"] == "CP_SMS_Phys_GWSingle_Test4FWO"), None)
         if found_gateway is None:
             FWOLogger.warning("Could not find gateway for device, skipping: " + str(device["uid"]))
             native_config_domain["gateways"].append(device_config)

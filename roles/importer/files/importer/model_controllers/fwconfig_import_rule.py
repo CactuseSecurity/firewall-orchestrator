@@ -115,7 +115,8 @@ class FwConfigImportRule:
         num_inserted_rules, inserted_rule_ids = self.add_new_rules(
             {
                 rule_uid: (curr_rules[rule_uid], curr_rule_to_rulebase[rule_uid])
-                for rule_uid in (added_rule_uids | changed_rule_uids) if curr_rules[rule_uid].xlate_rule_uid is None
+                for rule_uid in (added_rule_uids | changed_rule_uids)
+                if curr_rules[rule_uid].xlate_rule_uid is None
             }
         )
         self.uid2id_mapper.add_rule_mappings(inserted_rule_ids)
@@ -125,7 +126,8 @@ class FwConfigImportRule:
         num_inserted_nat_rules, inserted_nat_rule_ids = self.add_new_rules(
             {
                 rule_uid: (curr_rules[rule_uid], curr_rule_to_rulebase[rule_uid])
-                for rule_uid in (added_rule_uids | changed_rule_uids) if curr_rules[rule_uid].xlate_rule_uid is not None
+                for rule_uid in (added_rule_uids | changed_rule_uids)
+                if curr_rules[rule_uid].xlate_rule_uid is not None
             }
         )
         num_inserted_rules += num_inserted_nat_rules

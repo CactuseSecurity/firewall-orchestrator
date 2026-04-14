@@ -6,6 +6,7 @@ using FWO.Logging;
 using Novell.Directory.Ldap;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -674,6 +675,74 @@ namespace FWO.Middleware.Server
             };
         }
 
+        /// <summary>
+        /// Normalizes a distinguished name for safe membership comparisons across equivalent escaped forms.
+        /// </summary>
+        public static string NormalizeDnForComparison(string? dn)
+        {
+            if (string.IsNullOrWhiteSpace(dn))
+            {
+                return "";
+            }
+
+            StringBuilder normalizedDn = new();
+            int index = 0;
+
+            while (index < dn.Length)
+            {
+                if (TryReadHexEscapedSequence(dn, index, out string decodedValue, out int nextIndex))
+                {
+                    normalizedDn.Append(decodedValue);
+                    index = nextIndex;
+                    continue;
+                }
+
+                if (dn[index] == '\\' && index + 1 < dn.Length)
+                {
+                    normalizedDn.Append(dn[index + 1]);
+                    index += 2;
+                    continue;
+                }
+
+                normalizedDn.Append(dn[index]);
+                index++;
+            }
+
+            return normalizedDn.ToString().ToLowerInvariant();
+        }
+
+        private static bool TryReadHexEscapedSequence(string dn, int currentIndex, out string decodedValue, out int nextIndex)
+        {
+            decodedValue = "";
+            nextIndex = currentIndex;
+
+            if (currentIndex + 2 >= dn.Length || dn[currentIndex] != '\\' || !IsHexPair(dn, currentIndex + 1))
+            {
+                return false;
+            }
+
+            List<byte> escapedBytes = [];
+            int scanIndex = currentIndex;
+
+            do
+            {
+                escapedBytes.Add(Convert.ToByte(dn.Substring(scanIndex + 1, 2), 16));
+                scanIndex += 3;
+            }
+            while (scanIndex + 2 < dn.Length && dn[scanIndex] == '\\' && IsHexPair(dn, scanIndex + 1));
+
+            decodedValue = Encoding.UTF8.GetString([.. escapedBytes]);
+            nextIndex = scanIndex;
+            return true;
+        }
+
+        private static bool IsHexPair(string value, int startIndex)
+        {
+            return startIndex + 1 < value.Length
+                && Uri.IsHexDigit(value[startIndex])
+                && Uri.IsHexDigit(value[startIndex + 1]);
+        }
+
         private async Task<bool> ModifyUserInEntry(string userDn, string entry, int ldapModification)
         {
             bool userModified = false;
@@ -699,10 +768,14 @@ namespace FWO.Middleware.Server
                     return false;
                 }
 
-                bool memberExists = entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
-                    && entryData.Get(UniqueMemberLowerCase)
-                             .StringValueArray
-                             .Any(m => m.Equals(userDn, StringComparison.OrdinalIgnoreCase));
+                string[] existingMembers = entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
+                    ? entryData.Get(UniqueMemberLowerCase).StringValueArray
+                    : [];
+                string normalizedRequestedDn = NormalizeDnForComparison(userDn);
+                string? matchingStoredMemberDn = existingMembers.FirstOrDefault(memberDn =>
+                    NormalizeDnForComparison(memberDn).Equals(normalizedRequestedDn, StringComparison.Ordinal));
+                bool memberExists = !string.IsNullOrWhiteSpace(matchingStoredMemberDn);
+
                 if (!ShouldModifyMembership(memberExists, ldapModification))
                 {
                     if (ldapModification == LdapModification.Add)
@@ -717,13 +790,16 @@ namespace FWO.Middleware.Server
                     return true;
                 }
 
-                LdapAttribute attribute = new(UniqueMemberLowerCase, userDn);
+                string memberDnForModification = ldapModification == LdapModification.Delete
+                    ? matchingStoredMemberDn ?? userDn
+                    : userDn;
+                LdapAttribute attribute = new(UniqueMemberLowerCase, memberDnForModification);
                 LdapModification[] mods = [new(ldapModification, attribute)];
 
                 await connection.ModifyAsync(entry, mods);
                 userModified = true;
 
-                Log.WriteDebug("Modify Entry", $"User {userDn} modified in {entry}");
+                Log.WriteDebug("Modify Entry", $"User {memberDnForModification} modified in {entry}");
             }
             catch (Exception ex)
             {

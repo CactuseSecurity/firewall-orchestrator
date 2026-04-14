@@ -107,7 +107,7 @@ namespace FWO.Test
             MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(prepareEmail);
 
-            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, ""]) 
+            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, ""])
                 ?? throw new InvalidOperationException("PrepareEmail returned null task."));
             FWO.Mail.MailData mailData = await task;
 

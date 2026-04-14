@@ -18,8 +18,10 @@ namespace FWO.Data
         /// The deserialized custom field value when a matching key is found and can be converted to <typeparamref name="T"/>;
         /// otherwise, <see langword="default"/>.
         /// </returns>
-        public static T? ExtractCustomFieldValue<T>(Rule? rule, string keysJson)
+        public static T? ExtractCustomFieldValue<T>(Rule? rule, string keysJson, out string? errorMessage)
         {
+            errorMessage = null;
+
             if (rule == null || string.IsNullOrWhiteSpace(rule.CustomFields) || string.IsNullOrWhiteSpace(keysJson))
             {
                 return default;
@@ -35,6 +37,7 @@ namespace FWO.Data
             }
             catch (JsonException e)
             {
+                errorMessage = $"Error while resolving custom fields. Raw Data: {rule.CustomFields}";
                 new Logger().TryWriteError("CustomFieldResolver", $"Error while resolving rule '{rule.Uid}': {e.Message}", true);
                 return default;
             }
@@ -58,10 +61,12 @@ namespace FWO.Data
 
                 try
                 {
+                    errorMessage = null;
                     return value.Deserialize<T>();
                 }
                 catch (Exception e)
                 {
+                    errorMessage = $"Error while resolving custom fields. Invalid value for key '{key}'. Raw Data: {rule?.CustomFields}";
                     new Logger().TryWriteWarning("CustomFieldResolver", $"Failed to deserialize key '{key}' for rule '{rule?.Uid}' to type {typeof(T).Name}: {e.Message}", true);
                     continue;
                 }

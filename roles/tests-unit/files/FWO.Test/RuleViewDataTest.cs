@@ -16,6 +16,34 @@ namespace FWO.Test
     internal class RuleViewDataTest
     {
         [Test]
+        public void ExtractCustomFieldValue_NoMatchingKey_ReturnsDefault()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-1':'abc'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"field-3\"]", out var errorMessage);
+
+            Assert.That(result, Is.Null);
+            Assert.That(errorMessage, Is.Null);
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_EmptyCustomFields_ReturnsDefault()
+        {
+            var rule = new Rule
+            {
+                CustomFields = ""
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\"]", out var errorMessage);
+
+            Assert.That(result, Is.Null);
+            Assert.That(errorMessage, Is.Null);
+        }
+
+        [Test]
         public void GetFromCustomField_KeyOne_ReturnsCorrectValue()
         {
             RuleViewData rvd = new RuleViewData();
@@ -24,7 +52,7 @@ namespace FWO.Test
                 CustomFields = "{'field-2':'Change123','field-3':'Ado456'}"
             };
 
-            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]") ?? "";
+            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out _) ?? "";
 
             Assert.That("Change123".Equals(result));
         }
@@ -38,7 +66,7 @@ namespace FWO.Test
                 CustomFields = "{'Datum-Regelpruefung':'Change123','AdoIT':'Ado456'}"
             };
 
-            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]") ?? "";
+            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out _) ?? "";
 
             Assert.That("Change123".Equals(result));
         }
@@ -52,11 +80,80 @@ namespace FWO.Test
                 CustomFields = "{'AdoIT': \"Infr-AdoIT:X\", 'Datum-Regelpruefung': 'dd.mm.yyyy'}"
             };
 
-            string resultDatumRegelpruefung = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]") ?? "";
-            string resultAdoItId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-3\",\"AdoIT\"]") ?? "";
+            string resultDatumRegelpruefung = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out _) ?? "";
+            string resultAdoItId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-3\",\"AdoIT\"]", out _) ?? "";
 
             Assert.That("dd.mm.yyyy".Equals(resultDatumRegelpruefung));
             Assert.That("Infr-AdoIT:X".Equals(resultAdoItId));
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_InvalidJson_ReturnsDefaultAndErrorMessage()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{ invalid json }"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\"]", out string? errorMessage);
+
+            Assert.That(result, Is.Null);
+            Assert.That(errorMessage, Is.Not.Null);
+            Assert.That(errorMessage, Does.Contain("Error"));
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_InvalidKeysJson_ReturnsDefaultAndError()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':'abc'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "invalid json", out var errorMessage);
+
+            Assert.That(result, Is.Null);
+            Assert.That(errorMessage, Is.Not.Null);
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_InvalidValueType_SkipsKeyAndReturnsFallback()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':'not-a-json-object'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<int>(rule, "[\"field-2\"]", out string? errorMessage);
+
+            Assert.That(result, Is.EqualTo(0));
+            Assert.That(errorMessage, Is.Not.Null);
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_InvalidPrimary_UsesFallback()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':'invalid', 'Datum-Regelpruefung':'Change123'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out var errorMessage);
+
+            Assert.That(errorMessage, Is.Null);
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_EmptyPrimaryUsesFallback()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':'', 'Datum-Regelpruefung':'Change123'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out _);
+
+            Assert.That(result, Is.EqualTo("Change123"));
         }
 
         [Test]

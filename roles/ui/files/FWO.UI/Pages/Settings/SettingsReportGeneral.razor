@@ -1,5 +1,10 @@
 ﻿@using System.Text.Json
 
+@using System.Text.Json.Serialization
+@using FWO.Api.Client.Queries
+@using FWO.Data.Report
+@using FWO.Ui.Services
+
 @page "/settings/reportgeneral"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
@@ -16,6 +21,18 @@
 
 @if (configData != null)
 {
+    @if (!string.IsNullOrWhiteSpace(configData.ReportSchedulerConfig))
+    {
+        <div class="mt-2">
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => ShowMigrateSchedulerConfigDialog = true">
+                        @(DisplayService.DisplayButton(userConfig, "migrate_scheduler_config", Icons.Migrate))
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    }
     <form onsubmit="return false">
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
@@ -98,6 +115,9 @@ else
     <Loading/>
 }
 
+<Confirm @bind-Display="ShowMigrateSchedulerConfigDialog" PerformAction="MigrateSchedulerConfig"
+         Title="@userConfig.GetText("migrate_scheduler_config")" Message="@GetMigrateSchedulerConfigMessage()" AllowedRoles="@Roles.Admin" />
+
 
 
 @code
@@ -108,6 +128,8 @@ else
     private ConfigData? configData;
     private List<ReportType> availableReportTypes { get; set; } = [];
     private Dictionary<ReportType, bool> reportTypesActiveDict = [];
+    private List<LegacyReportSchedulerConfig> legacyReportSchedulerConfigs = [];
+    private bool ShowMigrateSchedulerConfigDialog;
 
     protected override async Task OnInitializedAsync()
     {
@@ -115,6 +137,9 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             availableReportTypes = JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(configData.AvailableReportTypes) ? "[]" : configData.AvailableReportTypes) ?? throw new JsonException("Config data could not be parsed.");
+            legacyReportSchedulerConfigs = string.IsNullOrWhiteSpace(configData.ReportSchedulerConfig)
+                ? []
+                : JsonSerializer.Deserialize<List<LegacyReportSchedulerConfig>>(configData.ReportSchedulerConfig) ?? [];
             reportTypesActiveDict = [];
             foreach(ReportType type in ReportTypeGroups.AllReportTypes())
             {
@@ -155,5 +180,93 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    private async Task MigrateSchedulerConfig()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Data migrated before loaded. This should be impossible.");
+            }
+
+            int migratedConfigCount = legacyReportSchedulerConfigs.Count;
+            List<ReportSchedule> reportSchedules = await apiConnection.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
+
+            foreach (LegacyReportSchedulerConfig legacyConfig in legacyReportSchedulerConfigs)
+            {
+                ReportSchedule? reportSchedule = reportSchedules.FirstOrDefault(schedule => schedule.Id == legacyConfig.ReportScheduleId);
+                if (reportSchedule == null)
+                {
+                    continue;
+                }
+
+                reportSchedule.Archive = legacyConfig.ToArchive;
+                await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, new
+                {
+                    report_schedule_id = reportSchedule.Id,
+                    report_schedule_name = reportSchedule.Name,
+                    report_schedule_owner_id = reportSchedule.ScheduleOwningUser.DbId,
+                    report_schedule_template_id = reportSchedule.Template.Id,
+                    report_schedule_start_time = reportSchedule.StartTime,
+                    report_schedule_repeat = reportSchedule.RepeatOffset,
+                    report_schedule_every = (int)reportSchedule.RepeatInterval,
+                    report_schedule_active = reportSchedule.Active,
+                    archive = reportSchedule.Archive,
+                    report_schedule_format_names = reportSchedule.OutputFormat.ConvertAll(format => format.Name),
+                    report_schedule_format_rel = reportSchedule.OutputFormat.ConvertAll(format =>
+                        new { report_schedule_format_name = format.Name, report_schedule_id = reportSchedule.Id })
+                });
+
+                if (reportSchedule.Notifications.Count == 0)
+                {
+                    reportSchedule.Notifications = await ReportScheduleNotificationHelper.SyncNotifications(apiConnection, reportSchedule,
+                        legacyConfig.ToEmail, legacyConfig.Recipients, legacyConfig.Subject, legacyConfig.Body);
+                }
+            }
+
+            configData.ReportSchedulerConfig = "";
+            legacyReportSchedulerConfigs = [];
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+            ShowMigrateSchedulerConfigDialog = false;
+            DisplayMessageInUi(null, userConfig.GetText("migrate_scheduler_config"),
+                $"{migratedConfigCount} {userConfig.GetText("scheduler_config_migrated")}", false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("migrate_scheduler_config"), "", true);
+        }
+    }
+
+    private string GetMigrateSchedulerConfigMessage()
+    {
+        if (configData == null || string.IsNullOrWhiteSpace(configData.ReportSchedulerConfig))
+        {
+            return userConfig.GetText("confirm_migrate_scheduler_config");
+        }
+
+        return $"{legacyReportSchedulerConfigs.Count} {userConfig.GetText("confirm_migrate_scheduler_config")}";
+    }
+
+    private class LegacyReportSchedulerConfig
+    {
+        [JsonPropertyName("report_schedule_id")]
+        public int ReportScheduleId { get; set; }
+
+        [JsonPropertyName("to_email")]
+        public bool ToEmail { get; set; }
+
+        [JsonPropertyName("to_archive")]
+        public bool ToArchive { get; set; }
+
+        [JsonPropertyName("recipients")]
+        public string Recipients { get; set; } = "";
+
+        [JsonPropertyName("subject")]
+        public string Subject { get; set; } = "";
+
+        [JsonPropertyName("body")]
+        public string Body { get; set; } = "";
     }
 }

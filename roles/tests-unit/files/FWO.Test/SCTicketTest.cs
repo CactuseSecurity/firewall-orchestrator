@@ -213,6 +213,39 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestSCAccessTicketSortsSourceObjectsAlphabetically()
+        {
+            List<WfReqTask> unsortedAccessReqTask =
+            [
+                ConstructAccTask(1, "new Connection", 1, WfTaskType.access.ToString(), RequestAction.create.ToString())
+            ];
+            unsortedAccessReqTask[0].Elements.Insert(0, new()
+            {
+                Id = 5,
+                TaskId = 1,
+                RequestAction = RequestAction.create.ToString(),
+                GroupName = "ARxx12345-200",
+                Field = ElemFieldType.source.ToString()
+            });
+            unsortedAccessReqTask[0].Elements.Insert(0, new()
+            {
+                Id = 6,
+                TaskId = 1,
+                RequestAction = RequestAction.create.ToString(),
+                GroupName = "ARxx12345-050",
+                Field = ElemFieldType.source.ToString()
+            });
+
+            SCTicket ticket = new(ticketSystem);
+            await ticket.CreateRequestString(unsortedAccessReqTask, ipProtos, NamingConvention);
+
+            ClassicAssert.IsTrue(ticket.TicketText.Contains(
+                "\"sources\":{\"source\":[{\"@type\": \"Object\", \"object_name\": \"ARxx12345-050\", \"management_name\": \"CheckpointExt\"}," +
+                "{\"@type\": \"Object\", \"object_name\": \"ARxx12345-100\", \"management_name\": \"CheckpointExt\"}," +
+                "{\"@type\": \"Object\", \"object_name\": \"ARxx12345-200\", \"management_name\": \"CheckpointExt\"}]}"));
+        }
+
+        [Test]
         public async Task TestSCRemoveTicket()
         {
             SCTicket ticket = new(ticketSystem);

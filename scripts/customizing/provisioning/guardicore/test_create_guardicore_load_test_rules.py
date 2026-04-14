@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
+from scripts.customizing.provisioning.guardicore.test_create_guardicore_rules import SessionStub
+
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from types import TracebackType
-    from typing import Self
 
     from _pytest.monkeypatch import MonkeyPatch
 
@@ -27,39 +27,6 @@ class StaticJsonResponse:
 
     def json(self) -> dict[str, Any]:
         return self.payload
-
-
-class SessionStub:
-    def __init__(
-        self,
-        get_handler: Callable[..., StaticJsonResponse] | None = None,
-        post_handler: Callable[..., StaticJsonResponse] | None = None,
-    ) -> None:
-        self.headers: dict[str, Any] = {}
-        self.verify = True
-        self._get_handler = get_handler
-        self._post_handler = post_handler
-
-    def __enter__(self) -> Self:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None:
-        return None
-
-    def get(self, _endpoint: str, **kwargs: Any) -> StaticJsonResponse:
-        if self._get_handler is None:
-            return StaticJsonResponse()
-        return self._get_handler(kwargs)
-
-    def post(self, endpoint: str, json: Any, timeout: int) -> StaticJsonResponse:
-        if self._post_handler is None:
-            return StaticJsonResponse()
-        return self._post_handler(endpoint, json, timeout)
 
 
 def load_module() -> Any:
@@ -80,7 +47,7 @@ def install_session_stub(
     get_handler: Callable[..., StaticJsonResponse] | None = None,
     post_handler: Callable[..., StaticJsonResponse] | None = None,
 ) -> SessionStub:
-    session = SessionStub(get_handler=get_handler, post_handler=post_handler)
+    session = SessionStub(get_handler=get_handler, post_handler=post_handler)  # pyright: ignore[reportArgumentType]
     monkeypatch.setattr(module.requests, "Session", lambda: session)
     return session
 

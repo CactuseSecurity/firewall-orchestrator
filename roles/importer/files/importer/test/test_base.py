@@ -20,7 +20,6 @@ def test_fwconfig_import_gateway_init(
     management_state: ManagementState,
     fwconfig_import_gateway: FwConfigImportGateway,
     api_call: FwoApiCall,
-    mocker: MockerFixture,
     rb_link_controller: RulebaseLinkController,
     fwconfig_builder: FwConfigBuilder,
 ):

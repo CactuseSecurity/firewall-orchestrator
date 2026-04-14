@@ -1,6 +1,5 @@
 import fwo_globals
 import pytest
-from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoApiLoginFailedError
 from model_controllers.management_controller import ManagementController
 from pytest_mock.plugin import MockerFixture
@@ -134,7 +133,6 @@ class TestImportSingleManagement:
         self,
         mocker: MockerFixture,
         import_state: ImportState,
-        api_call: FwoApiCall,
         global_state: GlobalState,
     ):
         # Arrange
@@ -157,4 +155,3 @@ class TestImportSingleManagement:
         # Assert
         mock_wait.assert_called_with(0)
         mock_get_mgm_details.assert_called_once()
-

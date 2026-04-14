@@ -2,11 +2,10 @@ import unittest.mock
 
 from model_controllers.fwconfig_import_rule import FwConfigImportRule, RefType
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
-from services.uid2id_mapper import Uid2IdMapper
 from states.management_state import ManagementState
 
 
-def build_rule(rule_uid: str, uid2id_mapper: Uid2IdMapper) -> RuleNormalized:
+def build_rule(rule_uid: str) -> RuleNormalized:
     return RuleNormalized(
         rule_num=1,
         rule_num_numeric=1.0,
@@ -37,7 +36,7 @@ class TestFwconfigImportRuleRefs:
         fwconfig_import_rule: FwConfigImportRule,
         management_state: ManagementState,
     ):
-        prev_rule = build_rule("rule-1", management_state.uid2id_mapper)
+        prev_rule = build_rule("rule-1")
 
         fake_refs = {
             RefType.SRC: [("src", None)],

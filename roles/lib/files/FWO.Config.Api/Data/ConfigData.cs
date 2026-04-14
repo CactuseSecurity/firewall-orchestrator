@@ -270,6 +270,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqShowCompliance"), JsonPropertyName("reqShowCompliance")]
         public bool ReqShowCompliance { get; set; } = false;
 
+        [JsonProperty("reqAllowedChangesByApprover"), JsonPropertyName("reqAllowedChangesByApprover")]
+        public string ReqAllowedChangesByApprover { get; set; } = System.Text.Json.JsonSerializer.Serialize(new ApproverAllowedChangesConfig());
+
         [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
         public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
 

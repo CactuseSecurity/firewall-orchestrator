@@ -1,6 +1,7 @@
 @using FWO.Ui.Services
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
+@using FWO.Data.Workflow
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
@@ -23,7 +24,7 @@
                     </div>
                     <label for="ticketTitle" class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
                     <div class="col-sm-9">
-                        <input id="ticketTitle" type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditTicketMode)" @bind="WfHandler.ActTicket.Title" />
+                        <input id="ticketTitle" type="text" class="form-control form-control-sm" readonly="@(!CanEditTicketField(WorkflowEditableFieldKeys.Title))" @bind="WfHandler.ActTicket.Title" />
                     </div>
                 </div>
                 <div class="form-group row mt-2">
@@ -47,7 +48,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("priority")):</label>
                             <div class="col-sm-8">
-                                @if (WfHandler.EditTicketMode)
+                                @if (CanEditTicketField(WorkflowEditableFieldKeys.Priority))
                                 {
                                     <Dropdown ElementType="WfPriority" ElementToString="@(p => p.Name)" @bind-SelectedElement="selectedPriority" Elements="WfHandler.PrioList" Nullable="true">
                                         <ElementTemplate Context="prio">
@@ -66,7 +67,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
                             <div class="col-sm-8">
-                                @if (WfHandler.EditTicketMode)
+                                @if (CanEditTicketField(WorkflowEditableFieldKeys.Deadline))
                                 {
                                     <input type="date" class="col-sm-12 form-control form-control-sm" @bind="WfHandler.ActTicket.Deadline" />
                                 }
@@ -81,7 +82,7 @@
                 <div class="form-group row mt-2">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <div class="col-sm-11">
-                        <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditTicketMode)" @bind="WfHandler.ActTicket.Reason"/>   
+                        <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!CanEditTicketField(WorkflowEditableFieldKeys.Reason))" @bind="WfHandler.ActTicket.Reason"/>   
                     </div>
                 </div>
                 <div class="col-sm-12 mt-2">
@@ -127,6 +128,17 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
+            else if (CanSaveTicketChanges())
+            {
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
+                    </NotAuthorized>
+                </AuthorizeView>
+            }
             else if (CheckPromoteTicket())
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
@@ -138,7 +150,7 @@
                     </NotAuthorized> 
                 </AuthorizeView>
             }
-            @if(WfHandler.EditTicketMode || CheckPromoteTicket())
+            @if(WfHandler.EditTicketMode || CanSaveTicketChanges() || CheckPromoteTicket())
             {
                 <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             }
@@ -198,7 +210,6 @@
     private bool ConfirmCancelMode = false;
     private WfPriority? selectedPriority;
     private bool firstParamSet = true;
-    
 
     protected override async Task OnParametersSetAsync()
     {
@@ -327,5 +338,22 @@
             return false;
         }
         return true;
+    }
+
+    private bool CanEditTicketField(string fieldKey)
+    {
+        return ApproverAllowedChangesAccess.CanEditTicketField(GetApproverAllowedChanges(), Phase == WorkflowPhases.approval,
+            WfHandler.EditTicketMode, WfHandler.ReadOnlyMode, fieldKey);
+    }
+
+    private bool CanSaveTicketChanges()
+    {
+        return ApproverAllowedChangesAccess.CanSaveTicketChanges(GetApproverAllowedChanges(), Phase == WorkflowPhases.approval,
+            WfHandler.EditTicketMode, WfHandler.ReadOnlyMode);
+    }
+
+    private ApproverAllowedChangesConfig GetApproverAllowedChanges()
+    {
+        return ApproverAllowedChangesConfig.Parse(userConfig.ReqAllowedChangesByApprover);
     }
 }

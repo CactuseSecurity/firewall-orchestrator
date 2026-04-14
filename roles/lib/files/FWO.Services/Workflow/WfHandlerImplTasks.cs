@@ -295,9 +295,25 @@ namespace FWO.Services.Workflow
                         }
                         break;
                     case AutoCreateImplTaskOptions.enterInReqTask:
-                        foreach (var deviceId in reqTask.GetDeviceList())
+                        foreach (var deviceId in reqTask.GetResolvedDeviceList(Devices))
                         {
                             await CreateAccessImplTask(reqTask, deviceId);
+                        }
+                        break;
+                    case AutoCreateImplTaskOptions.oneTaskForAllDevices:
+                        if (reqTask.GetDeviceList().Count > 0)
+                        {
+                            if (reqTask.HasAllDevicesSelected())
+                            {
+                                await CreateAccessImplTask(reqTask, null, false);
+                            }
+                            else
+                            {
+                                foreach (var deviceId in reqTask.GetDeviceList())
+                                {
+                                    await CreateAccessImplTask(reqTask, deviceId);
+                                }
+                            }
                         }
                         break;
                     case AutoCreateImplTaskOptions.afterPathAnalysis:
@@ -318,14 +334,21 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private async Task CreateAccessImplTask(WfReqTask reqTask, int deviceId, bool adaptTitle = true)
+        private async Task CreateAccessImplTask(WfReqTask reqTask, int? deviceId, bool adaptTitle = true)
         {
             WfImplTask newImplTask;
             newImplTask = new WfImplTask(reqTask)
             { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = deviceId, StateId = reqTask.StateId };
             if (adaptTitle)
             {
-                newImplTask.Title += ": " + Devices[Devices.FindIndex(x => x.Id == deviceId)].Name;
+                if (deviceId != null)
+                {
+                    Device? device = Devices.FirstOrDefault(x => x.Id == deviceId);
+                    if (device != null)
+                    {
+                        newImplTask.Title += ": " + device.Name;
+                    }
+                }
             }
             if (dbAcc != null)
             {

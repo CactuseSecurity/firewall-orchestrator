@@ -99,8 +99,8 @@ namespace FWO.Services.Workflow
             }
             else
             {
-                List<int> possibleStates = ActStateMatrix.getAllowedTransitions(statefulObject.StateId);
-                if (possibleStates.Count == 1)
+                List<int> possibleStates = ActStateMatrix.getAllowedTransitions(statefulObject.StateId, true);
+                if (possibleStates.Count >= 1)
                 {
                     statefulObject.StateId = possibleStates[0];
                     promotePossible = true;
@@ -186,7 +186,7 @@ namespace FWO.Services.Workflow
 
         private async Task UpdateActTicketStateFromImplTasks()
         {
-            List<WfReqTask> tasks = new(ActTicket.Tasks);
+            List<WfReqTask> tasks = [.. ActTicket.Tasks];
             foreach (WfReqTask reqTask in tasks)
             {
                 await UpdateReqTaskStateFromImplTasks(reqTask);
@@ -205,21 +205,39 @@ namespace FWO.Services.Workflow
 
         private async Task UpdateRequestTasksFromTicket(bool createImplTasks = true)
         {
+            List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
+            foreach (WfReqTask reqtask in requestTasks)
+            {
+                if (reqtask.StateId <= ActTicket.StateId)
+                {
+                    await UpdateReqTaskAndApprovalStatesFromTicket(reqtask);
+                }
+                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
+                    && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
+                {
+                    await AutoCreateImplTasks(reqtask);
+                }
+            }
+        }
+
+        private async Task UpdateReqTaskAndApprovalStatesFromTicket(WfReqTask reqTask)
+        {
+            List<int> ticketStateList = [ActTicket.StateId];
+            StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[reqTask.TaskType];
+            reqTask.StateId = reqTaskMatrix.getDerivedStateFromSubStates(ticketStateList);
+            List<WfApproval> approvalsToUpdate = reqTask.Approvals
+                .Where(x => x.StateId < reqTaskMatrix.ApprovalLowestEndState && x.StateId <= reqTask.StateId).ToList();
+            foreach (WfApproval approval in approvalsToUpdate)
+            {
+                approval.StateId = reqTask.StateId;
+            }
+
             if (dbAcc != null)
             {
-                foreach (WfReqTask reqtask in ActTicket.Tasks)
+                await dbAcc.UpdateReqTaskStateInDb(reqTask);
+                foreach (WfApproval approval in approvalsToUpdate)
                 {
-                    if (reqtask.StateId <= ActTicket.StateId)
-                    {
-                        List<int> ticketStateList = [ActTicket.StateId];
-                        reqtask.StateId = stateMatrixDict.Matrices[reqtask.TaskType].getDerivedStateFromSubStates(ticketStateList);
-                        await dbAcc.UpdateReqTaskStateInDb(reqtask);
-                    }
-                    if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
-                        && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
-                    {
-                        await AutoCreateImplTasks(reqtask);
-                    }
+                    await dbAcc.UpdateApprovalInDb(approval);
                 }
             }
         }

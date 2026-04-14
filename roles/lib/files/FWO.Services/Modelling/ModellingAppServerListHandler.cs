@@ -79,28 +79,23 @@ namespace FWO.Services.Modelling
         {
             try
             {
-                if (IsOwner)
+                await apiConnection.RunWithRole(Roles.Admin, async () =>
                 {
-                    apiConnection.SetRole(Roles.Admin);  // usual modeller has no write permission on App Servers
-                }
-                if (await CheckAppServerInUse(actAppServer))
-                {
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = true });
-                    await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
-                        $"Mark App Server as deleted: {actAppServer.Display()}", Application.Id);
-                }
-                else if ((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteAppServer, new { id = actAppServer.Id })).AffectedRows > 0)
-                {
-                    await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
-                        $"Deleted App Server: {actAppServer.Display()}", Application.Id);
-                }
-                await AppServerHelper.ReactivateOtherSource(apiConnection, userConfig, actAppServer);
-                await Init(Application);
-                if (IsOwner)
-                {
-                    apiConnection.SwitchBack();
-                }
-                DeleteAppServerMode = false;
+                    if (await CheckAppServerInUse(actAppServer))
+                    {
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = true });
+                        await LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
+                            $"Mark App Server as deleted: {actAppServer.Display()}", Application.Id);
+                    }
+                    else if ((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteAppServer, new { id = actAppServer.Id })).AffectedRows > 0)
+                    {
+                        await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
+                            $"Deleted App Server: {actAppServer.Display()}", Application.Id);
+                    }
+                    await AppServerHelper.ReactivateOtherSource(apiConnection, userConfig, actAppServer);
+                    await Init(Application);
+                    DeleteAppServerMode = false;
+                });
             }
             catch (Exception exception)
             {
@@ -119,23 +114,18 @@ namespace FWO.Services.Modelling
         {
             try
             {
-                if (actAppServer.IsDeleted)
+                await apiConnection.RunWithRole(Roles.Admin, async () =>
                 {
-                    if (IsOwner)
+                    if (actAppServer.IsDeleted)
                     {
-                        apiConnection.SetRole(Roles.Admin);  // usual modeller has no write permission on App Servers
+                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = false });
+                        await LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
+                            $"Reactivate App Server: {actAppServer.Display()}", Application.Id);
+                        await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, actAppServer);
+                        await Init(Application);
                     }
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerDeletedState, new { id = actAppServer.Id, deleted = false });
-                    await LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, actAppServer.Id,
-                        $"Reactivate App Server: {actAppServer.Display()}", Application.Id);
-                    await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, actAppServer);
-                    if (IsOwner)
-                    {
-                        apiConnection.SwitchBack();
-                    }
-                    await Init(Application);
-                }
-                ReactivateAppServerMode = false;
+                    ReactivateAppServerMode = false;
+                });
             }
             catch (Exception exception)
             {

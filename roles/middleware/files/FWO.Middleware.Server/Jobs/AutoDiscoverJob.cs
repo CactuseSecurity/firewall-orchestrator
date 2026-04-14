@@ -3,11 +3,13 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Logging;
 using FWO.DeviceAutoDiscovery;
 using FWO.Logging;
 using FWO.Services;
 using Quartz;
 using System.Linq;
+using FWO.Services.Logging;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -99,6 +101,24 @@ namespace FWO.Middleware.Server.Jobs
                     RefAlertId = action.RefAlertId,
                     CompareDesc = true
                 });
+            if (!AutodiscoveryLogMapper.TryMapPromptAction(action, out AutodiscoveryLogMapper.PromptLogData? logData))
+            {
+                Log.WriteWarning("Logging", $"Unmapped autodiscovery action type: {action.ActionType}");
+                return lastMgmtAlertId;
+            }
+            if (logData != null)
+            {
+                await PromptLogHelper.LogPrompt(new PromptLogRequest
+                {
+                    PromptEvent = PromptLogEvent.Created,
+                    Object = logData.Object,
+                    Operation = logData.Operation,
+                    UserId = "AutodiscoveryJob",
+                    Timestamp = DateTime.UtcNow,
+                    Origin = ChangeLogOrigin.Autodiscovery,
+                    Fields = logData.Fields
+                });
+            }
             return lastMgmtAlertId;
         }
     }

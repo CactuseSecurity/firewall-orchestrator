@@ -2,6 +2,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Report;
+using FWO.Report.Filter;
 using FWO.Services.RuleTreeBuilder;
 using FWO.Test.Mocks;
 using NUnit.Framework;
@@ -362,6 +363,69 @@ namespace FWO.Test
             );
 
             ClassicAssert.AreEqual(6, count);
+        }
+
+        [Test]
+        public void Test_TryBuildRuleTree_AccumulatesOnlyRealRulesAcrossDevices()
+        {
+            MockReportRules.RulebaseId = 0;
+            MockReportRules.RuleId = 0;
+
+            RulebaseReport rulebase1 = MockReportRules.CreateRulebaseReport("RB1", 2);
+            RulebaseReport rulebase2 = MockReportRules.CreateRulebaseReport("RB2", 3);
+            RulebaseReport rulebase3 = MockReportRules.CreateRulebaseReport("RB3", 1);
+
+            DeviceReport firstDevice = MockReportRules.CreateDeviceReport(1, "Device1",
+            [
+                new RulebaseLink
+                {
+                    GatewayId = 1,
+                    IsInitial = true,
+                    ToRulebase = new Rulebase { Id = (long)rulebase2.Id, Name = rulebase2.Name!, Rules = rulebase2.Rules },
+                    FromRulebaseId = 0,
+                    NextRulebaseId = rulebase2.Id,
+                    LinkType = 2
+                },
+                new RulebaseLink
+                {
+                    GatewayId = 1,
+                    IsInitial = false,
+                    ToRulebase = new Rulebase { Id = (long)rulebase1.Id, Name = rulebase1.Name!, Rules = rulebase1.Rules },
+                    FromRulebaseId = rulebase2.Id,
+                    NextRulebaseId = rulebase1.Id,
+                    FromRuleId = (int)rulebase2.Rules.Last().Id,
+                    IsSection = true,
+                    LinkType = 4
+                }
+            ]);
+
+            DeviceReport secondDevice = MockReportRules.CreateDeviceReport(2, "Device2",
+            [
+                new RulebaseLink
+                {
+                    GatewayId = 2,
+                    IsInitial = true,
+                    ToRulebase = new Rulebase { Id = (long)rulebase3.Id, Name = rulebase3.Name!, Rules = rulebase3.Rules },
+                    FromRulebaseId = 0,
+                    NextRulebaseId = rulebase3.Id,
+                    LinkType = 2
+                }
+            ]);
+
+            MockReportRules reportRules = new MockReportRules(new DynGraphqlQuery(""), new SimulatedUserConfig(), ReportType.ResolvedRules, () =>
+            [
+                new ManagementReport
+                {
+                    Id = 1,
+                    Name = "Management1",
+                    Devices = [firstDevice, secondDevice],
+                    Rulebases = [rulebase1, rulebase2, rulebase3]
+                }
+            ]);
+
+            reportRules.TryBuildMockRuleTree();
+
+            Assert.That(reportRules.ReportData.ElementsCount, Is.EqualTo(6));
         }
     }
 }

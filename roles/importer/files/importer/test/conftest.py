@@ -100,8 +100,8 @@ def global_state() -> GlobalState:
         FwoConfigController,
         "read_config",
         return_value=(
-            "http://middleware.local",
-            "http://api.local",
+            "https://middleware.local",
+            "https://api.local",
             "importer",
             "test-importer-pwd",
             0,

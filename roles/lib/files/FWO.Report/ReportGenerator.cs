@@ -80,6 +80,10 @@ namespace FWO.Report
             report.ReportData.RecertificationDisplayPeriod = reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod;
             foreach (var owner in report.ReportData.OwnerData.Select(o => o.Owner))
             {
+                if (!owner.RecertActive)
+                {
+                    continue;
+                }
                 if (owner.NextRecertDate < DateTime.Now)
                 {
                     owner.RecertOverdue = true;

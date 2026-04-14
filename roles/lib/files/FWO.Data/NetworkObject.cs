@@ -1,5 +1,6 @@
-using System.Text.Json.Serialization;
+using NetTools;
 using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace FWO.Data
 {
@@ -59,6 +60,16 @@ namespace FWO.Data
         public long Number;
         public bool Highlighted = false;
         public bool IsSurplus = false;
+
+        /// <summary>
+        /// List of IP ranges that overlap with matched owner ranges.
+        /// Used for IP-based owner mapping.
+        /// </summary>
+        [JsonProperty("overlapping_ranges", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("overlapping_ranges")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public List<IPAddressRange>? OverlappingRanges { get; set; }
+
 
         public override bool Equals(object? obj)
         {

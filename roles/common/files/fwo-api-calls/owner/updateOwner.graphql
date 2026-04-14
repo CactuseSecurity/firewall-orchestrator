@@ -5,10 +5,12 @@ mutation updateOwner(
   $recertInterval: Int
   $appIdExternal: String
   $recertCheckParams: String
+  $additionalInfo: jsonb
   $ownerLifeCycleStateId: Int
   $criticality: String
   $commSvcPossible: Boolean
   $recertActive: Boolean
+  $decommDate: timestamp
   ) {
   update_owner_by_pk(
     pk_columns: { id: $id }
@@ -18,11 +20,13 @@ mutation updateOwner(
       recert_interval: $recertInterval
       app_id_external: $appIdExternal
       recert_check_params: $recertCheckParams
+      additional_info: $additionalInfo
       owner_lifecycle_state_id: $ownerLifeCycleStateId
       criticality: $criticality
       common_service_possible: $commSvcPossible
       active: true
       recert_active: $recertActive
+      decomm_date: $decommDate
   }) {
     updatedId: id
   }

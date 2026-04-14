@@ -3,6 +3,7 @@ query getStates {
   state_list: request_state (order_by: { id: asc }){
     id
     name
+    automatic_only
     actions: state_actions {
       action: action {
         id

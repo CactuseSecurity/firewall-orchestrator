@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Globalization;
+using System.Text;
 using FWO.Basics;
 using FWO.Basics.Interfaces;
 
@@ -218,9 +220,50 @@ namespace FWO.Logging
                 Console.ForegroundColor = (ConsoleColor)ForegroundColor;
             if (BackgroundColor != null)
                 Console.BackgroundColor = (ConsoleColor)BackgroundColor;
-            Console.Out.WriteLine(Text.SanitizeMand()); // TODO: async method ?
+            Console.Out.WriteLine(SanitizeForLogOutput(Text)); // TODO: async method ?
             Console.ResetColor();
             semaphore.Release();
+        }
+
+        /// <summary>
+        /// Preserves meaningful punctuation in log messages while removing invisible control
+        /// and format characters that can break parsing or obfuscate terminal output.
+        /// </summary>
+        private static string SanitizeForLogOutput(string text)
+        {
+            StringBuilder sanitizedText = new(text.Length);
+            bool previousCharacterWasSpace = false;
+
+            foreach (char currentCharacter in text)
+            {
+                if (char.IsWhiteSpace(currentCharacter) && currentCharacter != ' ')
+                {
+                    if (!previousCharacterWasSpace)
+                    {
+                        sanitizedText.Append(' ');
+                        previousCharacterWasSpace = true;
+                    }
+                }
+                else if (IsVisibleLogCharacter(currentCharacter))
+                {
+                    sanitizedText.Append(currentCharacter);
+                    previousCharacterWasSpace = currentCharacter == ' ';
+                }
+            }
+
+            return sanitizedText.ToString().Trim();
+        }
+
+        private static bool IsVisibleLogCharacter(char currentCharacter)
+        {
+            UnicodeCategory characterCategory = char.GetUnicodeCategory(currentCharacter);
+            return characterCategory != UnicodeCategory.Control
+                && characterCategory != UnicodeCategory.Format
+                && characterCategory != UnicodeCategory.LineSeparator
+                && characterCategory != UnicodeCategory.ParagraphSeparator
+                && characterCategory != UnicodeCategory.Surrogate
+                && characterCategory != UnicodeCategory.PrivateUse
+                && characterCategory != UnicodeCategory.OtherNotAssigned;
         }
 
         public static void TryWriteLog(LogType logType, string title, string text, bool condition)

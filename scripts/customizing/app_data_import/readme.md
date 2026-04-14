@@ -28,23 +28,30 @@ Adjust `/etc/fworch/secrets/customizingConfig.json` as follows:
 - `gitRepo`, `gitUser`, `gitPassword`: Git repository URL (without protocol), user, and password that host the CSV exports.
 - `csvOwnerFilePattern`: regex for owner/app metadata files (e.g., `NeMo_..._meta.csv`).
 - `csvAppServerFilePattern`: regex for server/IP files (e.g., `NeMo_..._IP.*?.csv`).
-- `csvOwnerColumnPatterns` (optional): JSON object with regexes for the owner CSV headers (`name`, `app_id`, `owner_tiso`, `owner_kwita`, `owner_lifecycle_state`); defaults match `col: Name`, `col: Alfabet-ID`, `TISO`, `kwITA`, and `Lifecycle State`.
+- `csvOwnerColumnPatterns` (optional): JSON object with regexes for the owner CSV headers (`name`, `app_id`, `owner_kwita`, `owner_lifecycle_state`); defaults match `col: Name`, `col: Alfabet-ID`, `kwITA`, and `Lifecycle State`.
 - `csvIpColumnPatterns` (optional): JSON object with regexes for the IP CSV headers (`app_id`, `ip`); defaults match `col: Alfabet-ID` and `col: IP`.
-- `ldapPath`: DN template containing `{USERID}` to expand main users.
+- `ldapPath`: DN template containing `{USERID}` to expand responsibles into DNs. If responsibles level `1` is present, its first DN is also written to `main_user`.
+- `localRepoBaseDir` (optional): base directory used for local git checkouts when `--local_repo_base_dir` is not provided.
 
 You can bypass Git and read from a local folder by providing `--import_from_folder` when running the script.
 
 Owner row import can be filtered via CLI parameters:
-- `--filterColumn` (default: `Aktive Firewallregel`): owner CSV header used for active-rule filtering.
-- `--includeValues` (default: `Ja`): one or more values in that column to include; rows with other values are skipped.
+- `--local_repo_base_dir` (optional): base directory for local git checkouts. If omitted, the script uses `localRepoBaseDir` from `customizingConfig.json`, falling back to `/usr/local/fworch/etc/`.
+- `--csvSeparator` (optional): csv delimiter used for owner and ip csv files. Allowed values are `,` and `;`. If omitted, the value from `customizingConfig.json` is used, falling back to `;`.
+- `--filterColumn` (default: `Aktive Firewallregel`): owner CSV header used for filtering. Repeat the option to require matches in multiple columns.
+- `--includeValues` (default: `Ja`): one or more values to include for the preceding `--filterColumn`. Repeat per filter column. If only one `--includeValues` group is provided for multiple filter columns, that same value set is reused for all of them.
 - `--lifecycleState` (default: `Lifecycle State`): owner CSV header used to import `owner_lifecycle_state`.
 - `--criticalityColumnHeader` (optional): owner CSV header used to import `criticality`; if omitted, `criticality` is not included in JSON output.
 - `--criticalityRecertPeriodMapping` (optional): list of mappings `PREFIX:DAYS` (for example `1:360 2:360 3:180 4:180 5:180`). If `criticality` starts with `PREFIX`, `recert_period_days` is set to `DAYS`; otherwise default logic applies.
-- `--responsiblesColumns` (optional): grouped mapping `LEVEL:HEADER [HEADER ...]`, for example `1:"UserId" "UserID Vertreter" 2:"UserIDs Mitwirkende" 3:"UserID Leiter OE"`. Imports `responsibles` into owner JSON using the configured levels and column order.
+- `--responsiblesColumns` (optional): grouped mapping `LEVEL:HEADER [HEADER ...]`, where each `HEADER` may be either an exact column name or a regex that may match zero or one CSV column. Example: `1:"^UserID$" "^UserID Vertreter$" 2:"^UserIDs Mitwirkende$" 3:"^UserID Leiter OE$"`. Imports `responsibles` into owner JSON using the configured levels and column order. Missing matches are ignored; ambiguous regexes are rejected.
+- `--add_users_by_pattern` (optional): grouped mapping `LEVEL:PATTERN [LEVEL:PATTERN ...]` used to append generated users to `responsibles` without overwriting existing entries. Example: `1:"ROLE_@@AppId@@" 2:"A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"`.
 - `--compositeIdFields` (optional): list of owner CSV headers used to build `app_id_external` as a composite key.
 - `--compositeIdFieldsDelimiterStr` (default: empty): delimiter string used between composite id field values.
 - `--compositeIdFieldsMaxLength` (optional): list of max lengths per composite field; values are truncated before joining. Length must match `--compositeIdFields`.
-- Set `--filterColumn ""` to disable this filter.
+- Set `--filterColumn ""` to disable filtering completely.
+
+Example:
+`--filterColumn "Aktive Firewallregel" --includeValues "Ja" "Ausnahme" --filterColumn "Importieren" --includeValues "Ja"`
 
 #### Settings via UI
 

@@ -48,6 +48,16 @@ namespace FWO.Test
             field.SetValue(component, value);
         }
 
+        private static void SetPrivateProperty<T>(EditOwner component, string propertyName, T value)
+        {
+            PropertyInfo? property = typeof(EditOwner).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(EditOwner).FullName, propertyName);
+            }
+            property.SetValue(component, value);
+        }
+
         private static IRenderedComponent<EditOwner> RenderEditOwner(
             Bunit.TestContext context,
             FwoOwner owner,
@@ -277,6 +287,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditOwner_GetDecommDateAfterLifecycleChange_SetsDateForDeactivateAndClearsForReactivate()
+        {
+            await using Bunit.TestContext context = new();
+            FwoOwner owner = new() { Id = 7, Name = "Owner C", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, ownerLifeCycleStates:
+            [
+                new() { Id = 1, Name = "active", ActiveState = true },
+                new() { Id = 2, Name = "inactive", ActiveState = false }
+            ]);
+
+            owner.OwnerLifeCycleStateId = 2;
+            DateTime? decommDate = (DateTime?)GetPrivateMethod("GetDecommDateAfterLifecycleChange").Invoke(editOwner.Instance, null);
+            Assert.That(decommDate, Is.Not.Null);
+
+            SetPrivateProperty(editOwner.Instance, "OriginalOwnerLifeCycleStateId", 2);
+            owner.DecommDate = DateTime.UtcNow.AddDays(-1);
+            owner.OwnerLifeCycleStateId = 1;
+            DateTime? reactivatedDate = (DateTime?)GetPrivateMethod("GetDecommDateAfterLifecycleChange").Invoke(editOwner.Instance, null);
+            Assert.That(reactivatedDate, Is.Null);
+        }
+
+        [Test]
         public void EditOwner_FormatOwnerResponsibles_UsesUserOrGroupNameAndJoins()
         {
             string dnUser = "CN=Max Mustermann,OU=Users,DC=example,DC=com";
@@ -297,6 +329,36 @@ namespace FWO.Test
             string formatted = (string)GetPrivateStaticMethod("FormatOwnerResponsibles").Invoke(null, [new List<string> { "", "   " }])!;
 
             Assert.That(formatted, Is.EqualTo(""));
+        }
+
+        [Test]
+        public void EditOwner_FormatOwnerResponsibles_ShowsFullNameWhenCnContainsEscapedComma()
+        {
+            string dnUser = @"CN=Mustermann\, Max,OU=Users,DC=example,DC=com";
+
+            string formatted = (string)GetPrivateStaticMethod("FormatOwnerResponsibles").Invoke(null, [new List<string> { dnUser }])!;
+
+            Assert.That(formatted, Is.EqualTo("Mustermann, Max"));
+        }
+
+        [Test]
+        public void EditOwner_NormalizeDnForRoleComparison_NormalizesHexEscapedComma()
+        {
+            string dnUser = @"CN=Mustermann\2C\20Max,OU=Users,DC=example,DC=com";
+
+            string normalized = (string)GetPrivateStaticMethod("NormalizeDnForRoleComparison").Invoke(null, [dnUser])!;
+
+            Assert.That(normalized, Is.EqualTo(@"CN=Mustermann\,\20Max,OU=Users,DC=example,DC=com"));
+        }
+
+        [Test]
+        public void EditOwner_NormalizeDnForRoleComparison_LeavesBackslashEscapedCommaUntouched()
+        {
+            string dnUser = @"CN=Mustermann\, Max,OU=Users,DC=example,DC=com";
+
+            string normalized = (string)GetPrivateStaticMethod("NormalizeDnForRoleComparison").Invoke(null, [dnUser])!;
+
+            Assert.That(normalized, Is.EqualTo(dnUser));
         }
 
         [Test]

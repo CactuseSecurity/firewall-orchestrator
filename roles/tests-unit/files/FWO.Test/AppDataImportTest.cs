@@ -965,10 +965,257 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AddOwnerLifeCycleStateActiveChangeIfNeeded_LogsDeactivate_WhenLifecycleStateChangesToInactive()
+        public async Task SaveApp_SetsDecommDate_WhenLifecycleStateChangesToInactive()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetHasImmediateAppDecommNotificationForImport(import, true);
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Inactive"] = 11
+            });
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [11] = false
+            });
+            SetExistingApps(import,
+            [
+                new() { Id = 30, Name = "App-30", ExtAppId = "APP-30", OwnerLifeCycleStateId = 10 }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-30",
+                ExtAppId = "APP-30",
+                ImportSource = "SRC-30",
+                OwnerLifecycleState = "Inactive"
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastUpdateOwnerDecommDate, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task SaveApp_DoesNotCheckActiveRules_WhenImmediateAppDecommNotificationIsMissing()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetHasImmediateAppDecommNotificationForImport(import, false);
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Inactive"] = 11
+            });
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [11] = false
+            });
+            SetExistingApps(import,
+            [
+                new() { Id = 35, Name = "App-35", ExtAppId = "APP-35", OwnerLifeCycleStateId = 10 }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-35",
+                ExtAppId = "APP-35",
+                ImportSource = "SRC-35",
+                OwnerLifecycleState = "Inactive"
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(import.CheckedOwners, Is.Empty);
+        }
+
+        [Test]
+        public async Task SaveApp_ChecksActiveRules_WhenImmediateAppDecommNotificationExists()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetHasImmediateAppDecommNotificationForImport(import, true);
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Inactive"] = 11
+            });
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [11] = false
+            });
+            SetExistingApps(import,
+            [
+                new() { Id = 36, Name = "App-36", ExtAppId = "APP-36", OwnerLifeCycleStateId = 10 }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-36",
+                ExtAppId = "APP-36",
+                ImportSource = "SRC-36",
+                OwnerLifecycleState = "Inactive"
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(import.CheckedOwners.Select(owner => owner.Id), Is.EqualTo(new[] { 36 }));
+        }
+
+        [Test]
+        public async Task SaveApp_SetsDecommDate_WhenNewOwnerStartsInactive()
         {
             AppDataImportSaveAppApiConn apiConn = new();
             AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Inactive"] = 11
+            });
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [11] = false
+            });
+            SetExistingApps(import, []);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-32",
+                ExtAppId = "APP-32",
+                ImportSource = "SRC-32",
+                OwnerLifecycleState = "Inactive"
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewOwnerDecommDate, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task SaveApp_ForwardsAdditionalInformationToOwnerMutations()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetExistingApps(import, []);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-Info",
+                ExtAppId = "APP-INFO",
+                ImportSource = "SRC-INFO",
+                AdditionalInformation = new Dictionary<string, string>
+                {
+                    ["cost_center"] = "4711",
+                    ["owner_type"] = "shared"
+                }
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewOwnerAdditionalInfo, Is.Not.Null);
+            Assert.That(apiConn.LastNewOwnerAdditionalInfo, Is.EqualTo(incomingApp.AdditionalInformation));
+        }
+
+        [Test]
+        public async Task SaveApp_ClearsDecommDate_WhenLifecycleStateChangesToActive()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Active"] = 10
+            });
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [11] = false
+            });
+            SetExistingApps(import,
+            [
+                new() { Id = 31, Name = "App-31", ExtAppId = "APP-31", OwnerLifeCycleStateId = 11, DecommDate = DateTime.UtcNow.AddDays(-1) }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-31",
+                ExtAppId = "APP-31",
+                ImportSource = "SRC-31",
+                OwnerLifecycleState = "Active"
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastUpdateOwnerDecommDate, Is.Null);
+        }
+
+        [Test]
+        public async Task SaveApp_SetsDecommDate_WhenOwnerStaysInactiveButDateWasMissing()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Inactive"] = 11
+            });
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [11] = false
+            });
+            SetExistingApps(import,
+            [
+                new() { Id = 33, Name = "App-33", ExtAppId = "APP-33", OwnerLifeCycleStateId = 11, DecommDate = null }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-33",
+                ExtAppId = "APP-33",
+                ImportSource = "SRC-33",
+                OwnerLifecycleState = "Inactive"
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastUpdateOwnerDecommDate, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task SaveApp_SetsDecommDate_WhenPreviousLifecycleStateWasMissingAndNewStateIsInactive()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerLifeCycleMap(import, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Inactive"] = 11
+            });
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [11] = false
+            });
+            SetExistingApps(import,
+            [
+                new() { Id = 34, Name = "App-34", ExtAppId = "APP-34", OwnerLifeCycleStateId = null, DecommDate = null }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-34",
+                ExtAppId = "APP-34",
+                ImportSource = "SRC-34",
+                OwnerLifecycleState = "Inactive"
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastUpdateOwnerDecommDate, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task AddOwnerLifeCycleStateActiveChangeIfNeeded_LogsDeactivate_WhenLifecycleStateChangesToInactive()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetHasImmediateAppDecommNotificationForImport(import, true);
             SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
             {
                 [10] = true,
@@ -981,6 +1228,8 @@ namespace FWO.Test
 
             Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(1));
             Assert.That(apiConn.ChangelogActions, Is.EqualTo(new[] { ChangelogActionType.DEACTIVATE }));
+            Assert.That(import.CheckedOwners, Has.Count.EqualTo(1));
+            Assert.That(import.CheckedOwners[0].Id, Is.EqualTo(8));
         }
 
         [Test]
@@ -999,6 +1248,24 @@ namespace FWO.Test
             await InvokeAddOwnerLifeCycleStateActiveChangeIfNeeded(import, existingApp, 12, "SRC-9", tracker);
 
             Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task AddOwnerLifeCycleStateActiveChangeIfNeeded_DoesNotCheckActiveRules_WhenLifecycleStateChangesToActive()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            TestAppDataImport import = new(apiConn, new GlobalConfig());
+            SetOwnerLifeCycleActiveMap(import, new Dictionary<int, bool>
+            {
+                [10] = true,
+                [11] = false
+            });
+            FwoOwner existingApp = new() { Id = 10, OwnerLifeCycleStateId = 11 };
+            OwnerChangeImportTracker tracker = new(apiConn);
+
+            await InvokeAddOwnerLifeCycleStateActiveChangeIfNeeded(import, existingApp, 10, "SRC-10", tracker);
+
+            Assert.That(import.CheckedOwners, Is.Empty);
         }
 
         [Test]
@@ -1277,6 +1544,13 @@ namespace FWO.Test
             FieldInfo field = typeof(AppDataImport).GetField("connectedLdaps", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("connectedLdaps field not found.");
             field.SetValue(import, ldaps);
+        }
+
+        private static void SetHasImmediateAppDecommNotificationForImport(AppDataImport import, bool value)
+        {
+            FieldInfo field = typeof(AppDataImport).GetField("hasImmediateAppDecommNotificationForImport", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("hasImmediateAppDecommNotificationForImport field not found.");
+            field.SetValue(import, value);
         }
 
         private static List<OwnerResponsible> InvokeBuildOwnerResponsibles(AppDataImport import, ModellingImportAppData incomingApp, string userGroupDn, IEnumerable<string> extraDns)
@@ -1649,12 +1923,18 @@ namespace FWO.Test
             public int UpdateChangelogOwnerCalls { get; private set; }
             public List<char> ChangelogActions { get; } = [];
             public Dictionary<(int ownerId, string importSource), List<ModellingAppServer>> AppServersByOwner { get; } = [];
+            public DateTime? LastNewOwnerDecommDate { get; private set; }
+            public DateTime? LastUpdateOwnerDecommDate { get; private set; }
+            public Dictionary<string, string>? LastNewOwnerAdditionalInfo { get; private set; }
+            public Dictionary<string, string>? LastUpdateOwnerAdditionalInfo { get; private set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
             {
                 if (query == OwnerQueries.newOwner)
                 {
                     ++NewOwnerCalls;
+                    LastNewOwnerDecommDate = GetAnonymousDateTime(variables, "decommDate");
+                    LastNewOwnerAdditionalInfo = GetAnonymousStringDictionary(variables, "additionalInfo");
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { NewId = 1 }]
@@ -1664,6 +1944,8 @@ namespace FWO.Test
                 if (query == OwnerQueries.updateOwner)
                 {
                     ++UpdateOwnerCalls;
+                    LastUpdateOwnerDecommDate = GetAnonymousDateTime(variables, "decommDate");
+                    LastUpdateOwnerAdditionalInfo = GetAnonymousStringDictionary(variables, "additionalInfo");
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { NewId = 1 }]
@@ -1743,6 +2025,21 @@ namespace FWO.Test
                 return value is int intValue ? intValue : 0;
             }
 
+            private static DateTime? GetAnonymousDateTime(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return null;
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null)
+                {
+                    return null;
+                }
+                object? value = property.GetValue(variables);
+                return value as DateTime? ?? (value is DateTime dateTime ? dateTime : null);
+            }
+
             private static string GetAnonymousString(object? variables, string propertyName)
             {
                 if (variables == null)
@@ -1756,6 +2053,32 @@ namespace FWO.Test
                 }
                 object? value = property.GetValue(variables);
                 return value as string ?? "";
+            }
+
+            private static Dictionary<string, string>? GetAnonymousStringDictionary(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return null;
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null)
+                {
+                    return null;
+                }
+                object? value = property.GetValue(variables);
+                return value as Dictionary<string, string>;
+            }
+        }
+
+        private sealed class TestAppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : AppDataImport(apiConnection, globalConfig)
+        {
+            public List<FwoOwner> CheckedOwners { get; } = [];
+
+            protected override Task CheckActiveRulesSync(FwoOwner owner)
+            {
+                CheckedOwners.Add(new FwoOwner(owner) { OwnerLifeCycleStateId = owner.OwnerLifeCycleStateId });
+                return Task.CompletedTask;
             }
         }
 

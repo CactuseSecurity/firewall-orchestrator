@@ -37,9 +37,11 @@ insert into config (config_key, config_value, config_user) VALUES ('recCheckPara
 insert into config (config_key, config_value, config_user) VALUES ('recRefreshStartup', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recRefreshDaily', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleExpiryEmailBody', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('ownerActiveRuleEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleExpiryInitiatorKeys', '{}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('messageViewTime', '7', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dailyCheckStartAt', '00:00:00', 0);
+insert into config (config_key, config_value, config_user) VALUES ('dailyCheckModules', '[1,2,3,4,5,6,7]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoDiscoverSleepTime', '24', 0);
 insert into config (config_key, config_value, config_user) VALUES ('minCollapseAllDevices', '15', 0);
@@ -567,8 +569,3 @@ insert into stm_link_type (id, name) VALUES (5, 'domain');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (1, 'rule');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (2, 'owner');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (3, 'admin via reinitialize button');
-
-INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name) VALUES (1, 'ip_based');
-INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name) VALUES (2, 'custom_field');
-INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name) VALUES (3, 'name_field');
-INSERT INTO stm_owner_mapping_source (owner_mapping_source_type_id, owner_mapping_source_type_name) VALUES (4, 'manual');

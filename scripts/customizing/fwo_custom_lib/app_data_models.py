@@ -12,7 +12,6 @@ class Owner:
         self,
         name: str,
         app_id_external: str,
-        main_user: str,
         recert_period_days: int,
         days_until_first_recert: int,
         recert_active: bool = False,
@@ -20,10 +19,10 @@ class Owner:
         owner_lifecycle_state: str = "unknown",
         criticality: str | None = None,
         responsibles: dict[str, list[str]] | None = None,
+        additional_information: dict[str, str] | None = None,
     ) -> None:
         self.name: str = name
         self.app_id_external: str = app_id_external
-        self.main_user: str = main_user
         self.modellers: list[str] = []
         self.import_source: str = import_source
         self.app_servers: list[Appip] = []
@@ -33,12 +32,12 @@ class Owner:
         self.owner_lifecycle_state: str = owner_lifecycle_state
         self.criticality: str | None = criticality
         self.responsibles: dict[str, list[str]] | None = responsibles
+        self.additional_information: dict[str, str] | None = additional_information
 
     def to_json(self) -> dict[str, Any]:
         owner_json: dict[str, Any] = {
             "name": self.name,
             "app_id_external": self.app_id_external,
-            "main_user": self.main_user,
             "import_source": self.import_source,
             "app_servers": [ip.to_json() for ip in self.app_servers],
             "recert_active": self.recert_active,
@@ -50,6 +49,8 @@ class Owner:
             owner_json["criticality"] = self.criticality
         if self.responsibles is not None:
             owner_json["responsibles"] = self.responsibles
+        if self.additional_information is not None:
+            owner_json["additional_information"] = self.additional_information
         return owner_json
 
 

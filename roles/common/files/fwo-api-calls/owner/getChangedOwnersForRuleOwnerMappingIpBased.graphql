@@ -1,0 +1,34 @@
+query getChangedOwnersForRuleOwnerMappingIpBased($controlId: bigint!) {
+  changelog_owner(where: { control_id: { _eq: $controlId } }) {
+    import: import_control {
+      control_id
+    }
+    change_action
+    old: ownerByOldOwnerId {
+      id
+      name
+      app_id_external
+      active
+      import_source
+      owner_networks(where: { is_deleted: { _eq: false } }) {
+        id
+        ip
+        ip_end
+        name
+      }
+    }
+    new: owner {
+      id
+      name
+      app_id_external
+      active
+      import_source
+      owner_networks(where: { is_deleted: { _eq: false } }) {
+        id
+        ip
+        ip_end
+        name
+      }
+    }
+  }
+}

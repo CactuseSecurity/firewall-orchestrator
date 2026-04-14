@@ -31,6 +31,11 @@ namespace FWO.Report.Data.ViewData
         public string RulebaseName { get; set; } = "";
         public string Enabled { get; set; } = "";
         public string RuleTime { get; set; } = "";
+        public string ExpirationTime
+        {
+            get => RuleTime;
+            set => RuleTime = value;
+        }
 
         public Rule? DataObject { get; set; }
         public bool Show { get; set; } = true;
@@ -85,7 +90,7 @@ namespace FWO.Report.Data.ViewData
             try
             {
                 string displayString = "";
-                string customFieldsString = rule.CustomFields.Replace("'", "\"");
+                string customFieldsString = (rule.CustomFields ?? string.Empty).Replace("'", "\"");
                 Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
 
                 if (customFields != null && field.Length > 0)

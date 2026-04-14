@@ -1,8 +1,9 @@
 # FWO core dependencies
 ansible>2.13
+cryptography>=46.0.7
 
 # Linting
-ruff==0.14.8
+ruff==0.15.0
 pre-commit>=3.0
 pyright>=1.1.407
 

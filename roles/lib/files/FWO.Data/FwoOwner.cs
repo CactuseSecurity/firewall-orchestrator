@@ -15,6 +15,9 @@ namespace FWO.Data
         [JsonProperty("recert_check_params"), JsonPropertyName("recert_check_params")]
         public string? RecertCheckParamString { get; set; }
 
+        [JsonProperty("additional_info"), JsonPropertyName("additional_info")]
+        public Dictionary<string, string>? AdditionalInfo { get; set; }
+
         [JsonProperty("criticality"), JsonPropertyName("criticality")]
         public string? Criticality { get; set; }
 
@@ -26,6 +29,9 @@ namespace FWO.Data
 
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string? ImportSource { get; set; }
+
+        [JsonProperty("owner_networks"), JsonPropertyName("owner_networks")]
+        public OwnerNetwork[] OwnerNetworks { get; set; } = [];
 
         [JsonProperty("common_service_possible"), JsonPropertyName("common_service_possible")]
         public bool CommSvcPossible { get; set; } = false;
@@ -45,6 +51,9 @@ namespace FWO.Data
         [JsonProperty("next_recert_date"), JsonPropertyName("next_recert_date")]
         public DateTime? NextRecertDate { get; set; }
 
+        [JsonProperty("decomm_date"), JsonPropertyName("decomm_date")]
+        public DateTime? DecommDate { get; set; }
+
         [JsonProperty("recert_active"), JsonPropertyName("recert_active")]
         public bool RecertActive { get; set; } = false;
 
@@ -60,6 +69,7 @@ namespace FWO.Data
             Id = owner.Id;
             LastRecertCheck = owner.LastRecertCheck;
             RecertCheckParamString = owner.RecertCheckParamString;
+            AdditionalInfo = owner.AdditionalInfo == null ? null : new Dictionary<string, string>(owner.AdditionalInfo);
             Criticality = owner.Criticality;
             Active = owner.Active;
             ImportSource = owner.ImportSource;
@@ -69,6 +79,7 @@ namespace FWO.Data
             LastRecertifierId = owner.LastRecertifierId;
             LastRecertifierDn = owner.LastRecertifierDn;
             NextRecertDate = owner.NextRecertDate;
+            DecommDate = owner.DecommDate;
             RecertOverdue = owner.RecertOverdue;
             RecertUpcoming = owner.RecertUpcoming;
             LastRecertId = owner.LastRecertId;

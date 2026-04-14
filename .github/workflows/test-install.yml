@@ -28,10 +28,10 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Run Ansible test install
+      - name: Run Ansible test install without integration cleanup
         run: |
           cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
-          ansible-playbook -e force_install=true site.yml -K
+          ansible-playbook -e force_install=true site.yml -K --skip-tags integrationtests
 
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
         if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
@@ -44,8 +44,18 @@ jobs:
       - name: Run JWT refresh integration tests
         if: ${{ env.FWO_RUN_INTEGRATION_TESTS == 'true' }}
         run: |
+          sudo -u fworch env \
+            RUNNING_ON_GITHUB_ACTIONS=true \
+            FWO_RUN_INTEGRATION_TESTS=true \
+            FWO_TEST_USERNAME=integration_user_jwt_refresh_test \
+            FWO_TEST_PASSWORD=testpassword \
+            dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
+
+      - name: Run Ansible integration tests with cleanup
+        if: ${{ always() }}
+        run: |
           cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
-          dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
+          ansible-playbook -e force_install=true site.yml -K --tags integrationtests
 
 
   python-code-check:

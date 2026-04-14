@@ -60,7 +60,9 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 
         private string ConvertNetworkElems(ExternalTicketTemplate template, ElemFieldType fieldType, string? mgtName)
         {
-            List<NwObjectElement> nwObjects = ReqTask.GetNwObjectElements(fieldType);
+            List<NwObjectElement> nwObjects = ReqTask.GetNwObjectElements(fieldType)
+                .OrderBy(nwObj => ResolveSortName(nwObj), StringComparer.OrdinalIgnoreCase)
+                .ToList();
             List<string> convertedObjects = [];
             foreach (var nwObj in nwObjects)
             {
@@ -77,6 +79,21 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
                 }
             }
             return "[" + string.Join(",", convertedObjects) + "]";
+        }
+
+        private static string ResolveSortName(NwObjectElement nwObj)
+        {
+            if (!string.IsNullOrWhiteSpace(nwObj.GroupName))
+            {
+                return nwObj.GroupName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(nwObj.Name))
+            {
+                return nwObj.Name;
+            }
+
+            return nwObj.IpString;
         }
 
         private string ConvertServiceElems(ExternalTicketTemplate template)

@@ -243,6 +243,5 @@ namespace FWO.Test
 
             Assert.That(viewData.RuleTime, Is.EqualTo("2026-12-24 11:22:33"));
         }
-
     }
 }

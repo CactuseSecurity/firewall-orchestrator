@@ -359,6 +359,7 @@
                 {
                     RequestInProcess = true;
                     TaskList = intTicket.Tasks;
+                    await MarkConnectionsAsRequested(Connections);
                     await SaveTicketId(intTicket.Id);
                     await ModellingHandlerBase.LogChange(new LogChangeRequest
                     {
@@ -374,7 +375,6 @@
                     });
                     SubscribeTaskChanges();
                     await CreateExtRequests(intTicket);
-                    await MarkConnectionsAsRequested(Connections);
                     await RefreshParent(intTicket);
                     DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
                 }

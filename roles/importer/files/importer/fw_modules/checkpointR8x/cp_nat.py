@@ -14,117 +14,171 @@ def normalize_nat_rules(
     native_nat_rulebases = native_config.get("nat_rulebases", [])
     if not native_nat_rulebases:
         return
-    for gateway in native_config["gateways"]:
-        for nat_rulebase in native_nat_rulebases:
-            if "nat_rule_chunks" not in nat_rulebase:
-                continue
 
-            normalized_nat_rulebase = Rulebase(
-                uid="nat-rulebase-" + gateway["uid"],
-                mgm_uid=import_state.mgm_details.uid,
-                name="NAT",
-                rules={},
+    for gateway in native_config["gateways"]:
+        parse_native_nat_rulebases(gateway, native_nat_rulebases, import_state, normalized_config, native_config)
+
+
+def parse_native_nat_rulebases(
+    gateway: dict[str, Any],
+    native_nat_rulebases: list[dict[str, Any]],
+    import_state: ImportState,
+    normalized_config: dict[str, Any],
+    native_config: dict[str, Any],
+):
+    for nat_rulebase in native_nat_rulebases:
+        if "nat_rule_chunks" not in nat_rulebase:
+            continue
+
+        normalized_nat_rulebase = insert_parent_nat_rulebase(gateway, import_state, normalized_config)
+        normalized_gateway = next((gw for gw in normalized_config["gateways"] if gw["Uid"] == gateway["uid"]), None)
+
+        if normalized_gateway is None:
+            FWOLogger.warning("Could not find normalized gateway for NAT rulebase, skipping: " + str(gateway["uid"]))
+            continue
+
+        insert_rulebase_link(
+            from_rulebase_uid=normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"],
+            to_rulebase_uid=normalized_nat_rulebase.uid,
+            link_type="ordered",
+            normalized_gateway=normalized_gateway,
+        )
+
+        for chunk in nat_rulebase["nat_rule_chunks"]:
+            parse_nat_rule_chunk(
+                chunk,
+                normalized_nat_rulebase,
+                gateway,
+                native_config,
+                import_state,
+                normalized_config,
+                normalized_gateway,
             )
 
-            if not any(rb for rb in normalized_config["policies"] if rb.uid == normalized_nat_rulebase.uid):
-                normalized_config["policies"].append(normalized_nat_rulebase)
 
-            normalized_gateway = next((gw for gw in normalized_config["gateways"] if gw["Uid"] == gateway["uid"]), None)
+def insert_parent_nat_rulebase(
+    gateway: dict[str, Any],
+    import_state: ImportState,
+    normalized_config: dict[str, Any],
+) -> Rulebase:
+    normalized_nat_rulebase = Rulebase(
+        uid="nat-rulebase-" + gateway["uid"],
+        mgm_uid=import_state.mgm_details.uid,
+        name="NAT",
+        rules={},
+    )
 
-            if normalized_gateway is None:
-                FWOLogger.warning(
-                    "Could not find normalized gateway for NAT rulebase, skipping: " + str(gateway["uid"])
-                )
-                continue
+    if not any(rb for rb in normalized_config["policies"] if rb.uid == normalized_nat_rulebase.uid):
+        normalized_config["policies"].append(normalized_nat_rulebase)
 
-            if not any(
-                link
-                for link in normalized_gateway["RulebaseLinks"]
-                if link["to_rulebase_uid"] == normalized_nat_rulebase.uid
-                and link["link_type"] == "nat"
-                and link["from_rulebase_uid"] == normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"]
-            ):
-                normalized_gateway["RulebaseLinks"].append(
-                    {
-                        "from_rulebase_uid": normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"],
-                        "to_rulebase_uid": normalized_nat_rulebase.uid,
-                        "link_type": "ordered",
-                        "is_initial": False,
-                        "is_global": False,
-                        "is_section": False,
-                    }
-                )
+    return normalized_nat_rulebase
 
-            for chunk in nat_rulebase["nat_rule_chunks"]:
-                if "rulebase" not in chunk:
-                    continue
-                for src_rulebase in chunk["rulebase"]:
-                    if "rulebase" in src_rulebase:
-                        section_rulebase = Rulebase(
-                            uid=src_rulebase["uid"],
-                            mgm_uid=import_state.mgm_details.uid,
-                            name=src_rulebase["name"],
-                            rules={},
-                        )
 
-                        if not any(rb for rb in normalized_config["policies"] if rb.uid == section_rulebase.uid):
-                            normalized_config["policies"].append(section_rulebase)
+def insert_rulebase_link(
+    from_rulebase_uid: str,
+    to_rulebase_uid: str,
+    link_type: str,
+    normalized_gateway: dict[str, Any],
+) -> None:
+    if not any(
+        link
+        for link in normalized_gateway["RulebaseLinks"]
+        if link["to_rulebase_uid"] == to_rulebase_uid
+        and link["link_type"] == link_type
+        and link["from_rulebase_uid"] == from_rulebase_uid
+    ):
+        normalized_gateway["RulebaseLinks"].append(
+            {
+                "from_rulebase_uid": from_rulebase_uid,
+                "to_rulebase_uid": to_rulebase_uid,
+                "link_type": link_type,
+                "is_initial": False,
+                "is_global": False,
+                "is_section": False,
+            }
+        )
 
-                        if not any(
-                            link
-                            for link in normalized_gateway["RulebaseLinks"]
-                            if link["to_rulebase_uid"] == section_rulebase.uid
-                            and link["link_type"] == "nat"
-                            and link["from_rulebase_uid"] == normalized_nat_rulebase.uid
-                        ):
-                            normalized_gateway["RulebaseLinks"].append(
-                                {
-                                    "from_rulebase_uid": normalized_nat_rulebase.uid,
-                                    "to_rulebase_uid": section_rulebase.uid,
-                                    "link_type": "concatenated",
-                                    "is_initial": False,
-                                    "is_global": False,
-                                    "is_section": False,
-                                }
-                            )
 
-                        for rule in src_rulebase["rulebase"]:
-                            (rule_match, rule_xlate) = parse_nat_rule_transform(rule)
-                            parse_single_rule(
-                                rule_match,
-                                section_rulebase,
-                                section_rulebase.name,
-                                section_rulebase.uid,
-                                gateway,
-                                native_config["policies"],
-                            )
-                            parse_single_rule(  # do not increase rule_num here
-                                rule_xlate,
-                                section_rulebase,
-                                section_rulebase.name,
-                                section_rulebase.uid,
-                                gateway,
-                                native_config["policies"],
-                            )
+def parse_nat_rulebase(
+    src_rulebase: dict[str, Any],
+    normalized_nat_rulebase: Rulebase,
+    gateway: dict[str, Any],
+    native_config: dict[str, Any],
+    import_state: ImportState,
+    normalized_config: dict[str, Any],
+    normalized_gateway: dict[str, Any],
+):
+    section_rulebase = Rulebase(
+        uid=src_rulebase["uid"],
+        mgm_uid=import_state.mgm_details.uid,
+        name=src_rulebase["name"],
+        rules={},
+    )
 
-                    if "rule-number" in src_rulebase:  # rulebase is just a single rule (xlate rules do not count)
-                        (rule_match, rule_xlate) = parse_nat_rule_transform(src_rulebase)
-                        parse_single_rule(
-                            rule_match,
-                            normalized_nat_rulebase,
-                            normalized_nat_rulebase.name,
-                            normalized_nat_rulebase.uid,
-                            gateway,
-                            native_config["policies"],
-                        )
-                        parse_single_rule(  # do not increase rule_num here (xlate rules do not count)
-                            rule_xlate,
-                            normalized_nat_rulebase,
-                            normalized_nat_rulebase.name,
-                            normalized_nat_rulebase.uid,
-                            gateway,
-                            native_config["policies"],
-                        )
+    if not any(rb for rb in normalized_config["policies"] if rb.uid == section_rulebase.uid):
+        normalized_config["policies"].append(section_rulebase)
+
+    insert_rulebase_link(
+        from_rulebase_uid=normalized_nat_rulebase.uid,
+        to_rulebase_uid=section_rulebase.uid,
+        link_type="concatenated",
+        normalized_gateway=normalized_gateway,
+    )
+
+    for rule in src_rulebase["rulebase"]:
+        parse_nat_rule(rule, section_rulebase, gateway, native_config)
+
+
+def parse_nat_rule(
+    src_rulebase: dict[str, Any],
+    rulebase: Rulebase,
+    gateway: dict[str, Any],
+    native_config: dict[str, Any],
+):
+    (rule_match, rule_xlate) = parse_nat_rule_transform(src_rulebase)
+    parse_single_rule(
+        rule_match,
+        rulebase,
+        rulebase.name,
+        rulebase.uid,
+        gateway,
+        native_config["policies"],
+    )
+    parse_single_rule(  # do not increase rule_num here (xlate rules do not count)
+        rule_xlate,
+        rulebase,
+        rulebase.name,
+        rulebase.uid,
+        gateway,
+        native_config["policies"],
+    )
+
+
+def parse_nat_rule_chunk(
+    chunk: dict[str, Any],
+    normalized_nat_rulebase: Rulebase,
+    gateway: dict[str, Any],
+    native_config: dict[str, Any],
+    import_state: ImportState,
+    normalized_config: dict[str, Any],
+    normalized_gateway: dict[str, Any],
+):
+    if "rulebase" not in chunk:
+        return
+
+    for src_rulebase in chunk["rulebase"]:
+        if "rulebase" in src_rulebase:
+            parse_nat_rulebase(
+                src_rulebase,
+                normalized_nat_rulebase,
+                gateway,
+                native_config,
+                import_state,
+                normalized_config,
+                normalized_gateway,
+            )
+        if "rule-number" in src_rulebase:  # rulebase is just a single rule (xlate rules do not count)
+            parse_nat_rule(src_rulebase, normalized_nat_rulebase, gateway, native_config)
 
 
 def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:

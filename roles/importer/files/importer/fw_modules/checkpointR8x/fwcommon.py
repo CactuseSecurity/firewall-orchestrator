@@ -340,6 +340,35 @@ def handle_super_manager(
     return global_assignments, global_policy_structure, global_domain, global_sid
 
 
+def get_policy_for_device(
+    device: dict[str, Any],
+    gateways_and_servers: list[dict[str, Any]],
+    policy_structure: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    found_gateway = next((gw for gw in gateways_and_servers if gw["uid"] == device["uid"]), None)
+    if found_gateway is None:
+        FWOLogger.warning("Could not find gateway for device, skipping: " + str(device["uid"]))
+        return None
+
+    if "policy" not in found_gateway:
+        FWOLogger.warning("Could not find policy in gateway, skipping: " + str(device["uid"]))
+        return None
+
+    gateway_policy = found_gateway["policy"]
+    if "access-policy-name" not in gateway_policy:
+        FWOLogger.warning("Could not find access policy for gateway, skipping: " + str(device["uid"]))
+        return None
+
+    policy = next(
+        (policy for policy in policy_structure if policy["name"] == gateway_policy["access-policy-name"]), None
+    )
+
+    if not policy:
+        return None
+
+    return policy
+
+
 def process_devices(
     manager_details: ManagementController,
     policy_structure: list[dict[str, Any]],
@@ -357,35 +386,14 @@ def process_devices(
     for device in manager_details.devices:
         if device["importDisabled"] and not import_state.force_import:
             continue
+
         device_config: dict[str, Any] = initialize_device_config(device)
         if not device_config:
             continue
-        found_gateway = next((gw for gw in gateways_and_servers if gw["uid"] == device["uid"]), None)
-        if found_gateway is None:
-            FWOLogger.warning("Could not find gateway for device, skipping: " + str(device["uid"]))
-            native_config_domain["gateways"].append(device_config)
-            continue
 
-        if "policy" not in found_gateway:
-            FWOLogger.warning("Could not find policy for gateway, skipping: " + str(device["uid"]))
-            native_config_domain["gateways"].append(device_config)
-            continue
-
-        gateway_policy = found_gateway["policy"]
-        if "access-policy-name" not in gateway_policy:
-            FWOLogger.warning("Could not find access policy for gateway, skipping: " + str(device["uid"]))
-            native_config_domain["gateways"].append(device_config)
-            continue
-
-        policy = next(
-            (policy for policy in policy_structure if policy["name"] == gateway_policy["access-policy-name"]), None
-        )
-
+        policy = get_policy_for_device(device, gateways_and_servers, policy_structure)
         if not policy:
-            FWOLogger.warning(
-                "Could not find policy structure for gateway policy, skipping: "
-                + str(gateway_policy["access-policy-name"])
-            )
+            FWOLogger.warning("Could not find policy structure for device, skipping: " + str(device["uid"]))
             native_config_domain["gateways"].append(device_config)
             continue
 

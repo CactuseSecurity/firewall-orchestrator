@@ -2475,6 +2475,55 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
                 single_manager=fw_config_manager,
             )
 
+    def test_update_object_diffs_uses_previous_config_as_global_fallback(
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        mocker: MockerFixture,
+        fw_config_manager: FwConfigManager,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
+    ):
+        # Arrange
+        management_state.previous_config = FwConfigNormalized()
+        management_state.normalized_config = FwConfigNormalized()
+        import_state.previous_super_config = None
+        import_state.super_config = FwConfigNormalized()
+
+        management_state.uid2id_mapper.update_network_object_mapping = mocker.Mock()
+        management_state.uid2id_mapper.update_service_object_mapping = mocker.Mock()
+        management_state.uid2id_mapper.update_user_mapping = mocker.Mock()
+        management_state.uid2id_mapper.update_zone_mapping = mocker.Mock()
+        management_state.uid2id_mapper.add_network_object_mappings = mocker.Mock()
+        management_state.uid2id_mapper.add_service_object_mappings = mocker.Mock()
+        management_state.uid2id_mapper.add_user_mappings = mocker.Mock()
+        management_state.uid2id_mapper.add_zone_mappings = mocker.Mock()
+
+        management_state.group_flats_mapper.init_config = mocker.Mock()
+        management_state.prev_group_flats_mapper.init_config = mocker.Mock()
+
+        fwconfig_import_object.remove_outdated_memberships = mocker.Mock()
+        fwconfig_import_object.add_group_memberships = mocker.Mock()
+        fwconfig_import_object.add_changelog_objs = mocker.Mock()
+        fwconfig_import_object.update_time_objs_via_api = mocker.Mock()
+        fwconfig_import_object.update_objects_via_api = mocker.Mock(
+            return_value=([], [], [], [], [], [], [], [])
+        )
+
+        # Act
+        fwconfig_import_object.update_object_diffs(
+            global_state=global_state,
+            import_state=import_state,
+            management_state=management_state,
+            single_manager=fw_config_manager,
+        )
+
+        # Assert
+        management_state.prev_group_flats_mapper.init_config.assert_called_once_with(
+            management_state.previous_config,
+            management_state.previous_config,
+        )
+
     def test_update_object_diffs_changes_and_filters(
         self,
         fwconfig_import_object: FwConfigImportObject,

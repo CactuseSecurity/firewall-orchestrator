@@ -37,10 +37,13 @@ class FwConfigImportObject:
         prev_global_config = import_state.previous_super_config
         if management_state.normalized_config is None:
             raise FwoImporterError("no normalized config available in FwConfigImportObject.update_object_diffs")
-        if prev_config is None or prev_global_config is None:
+        if prev_config is None:
             raise FwoImporterError(
                 "previous configs needed for diff calculation in FwConfigImportObject.update_object_diffs"
             )
+        # For single-management imports there is no dedicated global config.
+        if prev_global_config is None:
+            prev_global_config = prev_config
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
         deleted_nw_obj_uids: list[str] = list(

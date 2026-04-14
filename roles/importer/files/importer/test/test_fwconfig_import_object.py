@@ -2506,9 +2506,7 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
         fwconfig_import_object.add_group_memberships = mocker.Mock()
         fwconfig_import_object.add_changelog_objs = mocker.Mock()
         fwconfig_import_object.update_time_objs_via_api = mocker.Mock()
-        fwconfig_import_object.update_objects_via_api = mocker.Mock(
-            return_value=([], [], [], [], [], [], [], [])
-        )
+        fwconfig_import_object.update_objects_via_api = mocker.Mock(return_value=([], [], [], [], [], [], [], []))
 
         # Act
         fwconfig_import_object.update_object_diffs(

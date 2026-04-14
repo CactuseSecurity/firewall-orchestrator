@@ -48,6 +48,14 @@
                     </div>
                 </div>
             </div>
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="SaveServiceData">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized>
+            </AuthorizeView>
             <hr />
             <div class="row mb-2">
                 <div class="col-sm-12">
@@ -85,78 +93,83 @@
         <Body>
             @if (editMode && configData != null)
             {
-                <form onsubmit="return false">
+                <div class="form-group row mt-2">
                     <div class="form-group row mt-2">
-                        <div class="form-group row mt-2">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
-                            <div class="col-sm-8">
-                                <input type="text" class="col-sm-8" @bind="editModel.Name" />
-                            </div>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="col-sm-8" @bind="editModel.Name" />
                         </div>
-                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5597"))">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_type")):</label>
-                            <div class="col-sm-4">
-                                <Dropdown ElementType="ExternalTicketSystemType" SelectedElement="editModel.Type"
-                                          SelectedElementChanged="t => editModel.Type = t"
-                                          Elements="Enum.GetValues(typeof(ExternalTicketSystemType)).Cast<ExternalTicketSystemType>()" />
-                            </div>
+                    </div>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5597"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_type")):</label>
+                        <div class="col-sm-4">
+                            <Dropdown ElementType="ExternalTicketSystemType" SelectedElement="editModel.Type" SelectedElementChanged="OnTypeChanged"
+                                      Elements="Enum.GetValues(typeof(ExternalTicketSystemType)).Cast<ExternalTicketSystemType>()" />
                         </div>
-                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_url")):</label>
-                            <div class="col-sm-8">
-                                <input type="text" class="col-sm-8" @bind="editModel.Url" />
-                            </div>
+                    </div>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_url")):</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="col-sm-8" @bind="editModel.Url" />
                         </div>
-                        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5594"))">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_auth")):</label>
-                            <div class="col-sm-8">
-                                <input type="text" class="col-sm-8" @bind="editModel.Authorization" />
-                            </div>
+                    </div>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5594"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_auth")):</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="col-sm-8" @bind="editModel.Authorization" />
                         </div>
-                        <div class="form-group row mt-2">
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("response_timeout")):</label>
-                            <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593a"))">
-                                <input type="number" class="col-sm-6" @bind="editModel.ResponseTimeout" />
-                            </div>
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("max_attempts")):</label>
-                            <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593b"))">
-                                <input type="number" class="col-sm-6" @bind="editModel.MaxAttempts" />
-                            </div>
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("cycles_between")):</label>
-                            <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593c"))">
-                                <input type="number" class="col-sm-6" @bind="editModel.CyclesBetweenAttempts" />
-                            </div>
+                    </div>
+                    <div class="form-group row mt-2">
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("response_timeout")):</label>
+                        <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593a"))">
+                            <input type="number" class="col-sm-6" @bind="editModel.ResponseTimeout" />
                         </div>
-                        @if (editModel.Type == ExternalTicketSystemType.TufinSecureChange)
-                        {
-                            <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
-                            <div class="col-sm-2">
-                                <input id="cbx_ext_ticket_lookup_id" type="checkbox" class="w-100" @bind="editModel.LookupRequesterId">
-                                </div>
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("max_attempts")):</label>
+                        <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593b"))">
+                            <input type="number" class="col-sm-6" @bind="editModel.MaxAttempts" />
+                        </div>
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("cycles_between")):</label>
+                        <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593c"))">
+                            <input type="number" class="col-sm-6" @bind="editModel.CyclesBetweenAttempts" />
+                        </div>
+                    </div>
+                    @if (editModel.Type == ExternalTicketSystemType.TufinSecureChange)
+                    {
+                        <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
+                        <div class="col-sm-2">
+                            <input id="cbx_ext_ticket_lookup_id" type="checkbox" class="w-100" @bind="editModel.LookupRequesterId">
+                            </div>
+                        }
+                        <br>
+                        <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
+                            @{
+                                int pos = 0;
                             }
-                            <br>
-                            <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
-                                @{
-                                    int pos = 0;
-                                }
-                                @foreach (var template in editModel.Templates)
-                                {
-                                    <Tab Title="@(template.TaskType)" Position=pos++>
-                                        <ExtTicketTemplates @key="template" Template="template" />
-                                    </Tab>
-                                }
-                                <Tab Title="  +  " Position=pos>
-                                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
-                                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
-                                        <div class="col-sm-4">
-                                            <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="actTaskTypes" />
-                                        </div>
-                                    </div>
-                                    <ExtTicketTemplates Template="newTemplate" />
+                            @foreach (var template in editModel.Templates)
+                            {
+                                <Tab Title="@(template.TaskType)" Position=pos++>
+                                    <ExtTicketTemplates Template="template" />
                                 </Tab>
-                            </TabSet>
-                        </div>
-                    </form>
+                            }
+                            <Tab Title="  +  " Position=pos>
+                                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
+                                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                                    <div class="col-sm-4">
+                                        <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="actTaskTypes" />
+                                    </div>
+                                </div>
+                                <ExtTicketTemplates Template="newTemplate" />
+                            </Tab>
+                        </TabSet>
+                    </div>
+                    <AuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveExternalTicketSystem">@(userConfig.GetText("save"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        </NotAuthorized>
+                    </AuthorizeView>
                     <hr />
                 }
 
@@ -165,7 +178,7 @@
                 <div class="btn-group">
                     <AuthorizeView Roles="@Roles.Admin">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
@@ -232,7 +245,7 @@
             {
                 throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
-            configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
+
 
             if (!string.IsNullOrWhiteSpace(newTemplate.TicketTemplate) || !string.IsNullOrWhiteSpace(newTemplate.TasksTemplate))
             {
@@ -275,6 +288,11 @@
                     .ToList();
 
                 system.Sanitize();
+                int index = extTicketSystems.FindIndex(x => x.Id == curExternalTicketSystem.Id);
+                if (index >= 0)
+                {
+                    extTicketSystems[index] = curExternalTicketSystem;
+                }
             }
             else
             {
@@ -284,24 +302,21 @@
 
                 editModel.Sanitize();
                 extTicketSystems.Add(editModel);
+                curExternalTicketSystem = editModel;
             }
-
 
             configData.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(extTicketSystems);
             await globalConfig.WriteToDatabase(configData, apiConnection);
 
+            // editMode = false;
+            extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems)
+                ? new List<ExternalTicketSystem>()
+                : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
+                ?? new List<ExternalTicketSystem>();
 
 
-            editMode = false;
-            await ReloadData();
+            StateHasChanged();
 
-            editModel = new ExternalTicketSystem();
-            curExternalTicketSystem = null;
-
-            if (tableExternalTicketSystems is not null)
-            {
-                await tableExternalTicketSystems.UpdateAsync();
-            }
 
             DisplayMessageInUi(null, userConfig.GetText("ext_ticket_settings"), userConfig.GetText("U5301"), false);
         }
@@ -309,6 +324,20 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_settings"), "", true);
         }
+    }
+
+    private async Task SaveServiceData()
+    {
+        if (configData != null)
+        {
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);     //TODO TEXT
+        }
+    }
+
+    private async Task SaveExternalTicketSystem()
+    {
+
     }
 
     private void InitTaskTypeList(ExternalTicketSystemType extTicketSystemType)
@@ -341,7 +370,6 @@
         };
 
         newTemplate = new ExternalTicketTemplate();
-
         InitTaskTypeList(editModel.Type);
         editMode = true;
     }
@@ -364,9 +392,9 @@
     {
 
         if (configData != null)
-        {                
+        {
             try
-            {    
+            {
                 Log.WriteAudit(
                     Title: $"External Ticket System Settings",
                     Text: $"Deleted External Ticket System: {externalTicketSystemToDelete.Name}");
@@ -376,17 +404,20 @@
                 configData.ExtTicketSystems = JsonSerializer.Serialize(extTicketSystems);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
-
-                await ReloadData();
+                extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems)
+                       ? new List<ExternalTicketSystem>()
+                       : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
+                       ?? new List<ExternalTicketSystem>();
 
                 DeleteExternalTicketSystemMode = false;
                 externalTicketSystemToDelete = new();
+                StateHasChanged();
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("delete_owner_lc_state"), "", true); // TODO Text
             }
-        }        
+        }
     }
 
     private void CancelEdit()
@@ -395,18 +426,9 @@
         editMode = false;
         DeleteExternalTicketSystemMode = false;
         newTemplate = new ExternalTicketTemplate();
-    }
 
-    private async Task ReloadData()
-    {
-        configData = await globalConfig.GetEditableConfig();
-
-        extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems)
-            ? new List<ExternalTicketSystem>()
-            : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
-              ?? new List<ExternalTicketSystem>();
-
-        StateHasChanged();
+        editModel = new ExternalTicketSystem();
+        curExternalTicketSystem = null;
     }
 
     private ExternalTicketSystem Clone(ExternalTicketSystem s)
@@ -438,5 +460,11 @@
                     })
                     .ToList(),
         };
+    }
+
+    private void OnTypeChanged(ExternalTicketSystemType t)
+    {
+        editModel.Type = t;
+        InitTaskTypeList(t);
     }
 }

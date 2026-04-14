@@ -100,7 +100,7 @@ else
 
     private void LoadManagementStates(List<Management> allManagements)
     {
-        // 1. Load drom JSON
+        // 1. Load from JSON
         if (!string.IsNullOrWhiteSpace(configData?.FwConfigChangeMgmSettings))
         {
             try
@@ -113,7 +113,6 @@ else
             }
             catch (JsonException)
             {
-                // Falls der JSON-String ungültig ist, leere Liste verwenden
                 managementStates = new List<ManagementFwConfigChangeState>();
             }
         }

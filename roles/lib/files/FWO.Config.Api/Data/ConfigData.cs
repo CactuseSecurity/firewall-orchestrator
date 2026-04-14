@@ -582,15 +582,6 @@ namespace FWO.Config.Api.Data
         [JsonProperty("fwConfigChangeMgmSettings"), JsonPropertyName("fwConfigChangeMgmSettings")]
         public string FwConfigChangeMgmSettings { get; set; } = "{}";
 
-        [JsonProperty("fwConfigChangeWaitCycles"), JsonPropertyName("externalRequestWaitCycles")]
-        public int FwConfigChangeWaitCycles { get; set; } = 0;
-
-        [JsonProperty("fwConfigChangeSleepTime"), JsonPropertyName("externalRequestSleepTime")]
-        public int FwConfigChangeSleepTime { get; set; } = 60;
-
-        [JsonProperty("fwConfigChangeStartAt"), JsonPropertyName("externalRequestStartAt")]
-        public DateTime FwConfigChangeStartAt { get; set; } = DateTime.Now;
-
 
 
         public ConfigData(bool editable = false)

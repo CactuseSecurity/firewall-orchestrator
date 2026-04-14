@@ -33,21 +33,13 @@ namespace FWO.Data
                 customFields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(rule.CustomFields.Replace("'", "\"")) ?? new Dictionary<string, JsonElement>();
                 keysList = JsonSerializer.Deserialize<List<string>>(keysJson) ?? new List<string>();
             }
-            catch
+            catch (JsonException e)
             {
+                new Logger().TryWriteError("CustomFieldResolver", $"Error while resolving rule '{rule.Uid}': {e.Message}", true);
                 return default;
             }
 
             if (customFields.Count == 0 || keysList.Count == 0)
-            {
-                return default;
-            }
-
-            if (customFields.Values.All(v =>
-                    v.ValueKind == JsonValueKind.Null ||
-                    v.ValueKind == JsonValueKind.Undefined ||
-                    (v.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(v.GetString()))
-                ))
             {
                 return default;
             }
@@ -58,13 +50,20 @@ namespace FWO.Data
                 {
                     continue;
                 }
+
+                if (value.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(value.GetString()))
+                {
+                    continue;
+                }
+
                 try
                 {
                     return value.Deserialize<T>();
                 }
-                catch
+                catch (Exception e)
                 {
-                    return default;
+                    new Logger().TryWriteWarning("CustomFieldResolver", $"Failed to deserialize key '{key}' for rule '{rule?.Uid}' to type {typeof(T).Name}: {e.Message}", true);
+                    continue;
                 }
             }
             return default;

@@ -41,11 +41,11 @@ jobs:
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
 
-      # - name: Run JWT refresh integration tests
-      #   if: ${{ env.FWO_RUN_INTEGRATION_TESTS == 'true' }}
-      #   run: |
-      #     cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
-      #     dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
+      - name: Run JWT refresh integration tests
+        if: ${{ env.FWO_RUN_INTEGRATION_TESTS == 'true' }}
+        run: |
+          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
+          dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
 
 
   python-code-check:

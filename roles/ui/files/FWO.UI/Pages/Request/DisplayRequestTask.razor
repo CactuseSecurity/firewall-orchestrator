@@ -39,7 +39,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@States.Name[WfHandler.ActReqTask.StateId]</label>
+                                <label class="col-sm-12 h-100 border bg-secondary">@States.GetName(WfHandler.ActReqTask.StateId)</label>
                             </div>
                         </div>
                     </div>
@@ -65,7 +65,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
                             <div class="col-sm-8">
-                                @if (WfHandler.EditReqTaskMode)
+                                @if (WfHandler.AddReqTaskMode)
                                 {
                                     <Dropdown ElementType="WfTaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes.Where(x => x != WfTaskType.master)" >
                                         <ElementTemplate Context="type">
@@ -704,7 +704,8 @@
 
     private bool NeedsManualDeviceSelection()
     {
-        return !WfHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning]
+        bool planningPhaseActive = WfHandler.ActStateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool isActive) && isActive;
+        return !planningPhaseActive
             && (userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask
                 || userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.oneTaskForAllDevices);
     }

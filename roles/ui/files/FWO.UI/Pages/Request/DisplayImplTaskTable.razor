@@ -125,7 +125,7 @@
                 }
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                     <Template>
-                        @(States.Name[implTask.StateId])
+                        @(States.GetName(implTask.StateId))
                     </Template>
                 </Column>
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler)" Sortable="true" Filterable="true" >

@@ -36,7 +36,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@States.Name[WfHandler.ActImplTask.StateId]</label>
+                                <label class="col-sm-12 h-100 border bg-secondary">@States.GetName(WfHandler.ActImplTask.StateId)</label>
                             </div>
                         </div>
                     </div>

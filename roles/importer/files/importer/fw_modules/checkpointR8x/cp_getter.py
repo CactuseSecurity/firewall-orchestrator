@@ -981,7 +981,7 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str
 def get_gateways_and_servers(sid: str = "", apiurl: str = "") -> list[dict[str, Any]]:
     """Fetch gateways and servers from the API."""
     current = 0
-    total = current + 1
+    total = 1
 
     gateways_and_servers: list[dict[str, Any]] = []
 

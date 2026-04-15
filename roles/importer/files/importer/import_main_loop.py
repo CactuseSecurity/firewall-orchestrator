@@ -67,6 +67,12 @@ def import_single_management(
     if mgm_details["deviceType"]["id"] not in (9, 12, 17, 22, 23, 24, 28, 29):
         return
 
+    if "id" not in mgm_details:
+        FWOLogger.error(
+            f"import_main_loop - mgm_id={mgm_id} has no id in details, skipping import: {traceback.format_exc()!s}"
+        )
+        return
+
     FWOLogger.debug(f"import_main_loop: starting import of mgm_id={mgm_details['id']}")
 
     try:

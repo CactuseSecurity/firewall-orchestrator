@@ -54,7 +54,9 @@ namespace FWO.Data
                     continue;
                 }
 
-                if (value.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(value.GetString()))
+                if (value.ValueKind == JsonValueKind.Null ||
+                    value.ValueKind == JsonValueKind.Undefined ||
+                    (value.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(value.GetString())))
                 {
                     continue;
                 }

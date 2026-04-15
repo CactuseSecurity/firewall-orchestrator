@@ -157,6 +157,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ExtractCustomFieldValue_NullPrimaryUsesFallback()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':null, 'Datum-Regelpruefung':'Change123'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out var errorMessage);
+            Assert.That(result, Is.EqualTo("Change123"));
+            Assert.That(errorMessage, Is.Null);
+        }
+
+
+        [Test]
         public void RuleViewData_LastModified_UsesImportStartTime()
         {
             Rule rule = new Rule

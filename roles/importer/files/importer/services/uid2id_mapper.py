@@ -46,6 +46,19 @@ class Uid2IdMap:
                 outdated_map[uid] = target_map[uid]
             target_map[uid] = db_id
 
+    def copy_from(self, source_map: "Uid2IdMap") -> None:
+        """
+        Copy all mappings from another Uid2IdMap instance.
+
+        Args:
+            source_map (Uid2IdMap): The source map to copy from.
+
+        """
+        self.local.update(source_map.local)
+        self.outdated_local.update(source_map.outdated_local)
+        self.global_map.update(source_map.global_map)
+        self.outdated_global.update(source_map.outdated_global)
+
 
 class Uid2IdMapper:
     """
@@ -519,3 +532,25 @@ class Uid2IdMapper:
             FWOLogger.debug(f"Rulebase mapping updated for {len(response['data']['rulebase'])} objects")
         except Exception as e:
             raise FwoImporterError(f"Error updating rulebase mapping: {e}")
+
+    def copy_maps_from(self, source_mapper: "Uid2IdMapper") -> None:
+        """
+        Copy all mapping dictionaries from another Uid2IdMapper.
+
+        This creates shallow copies of the mapping dictionaries from the source mapper
+        into this mapper, allowing for efficient data sharing without deepcopying the
+        entire object graph (which includes import_state and API clients).
+
+        Args:
+            source_mapper (Uid2IdMapper): The source mapper to copy mappings from.
+
+        """
+        self.nwobj_uid2id.copy_from(source_mapper.nwobj_uid2id)
+        self.svc_uid2id.copy_from(source_mapper.svc_uid2id)
+        self.user_uid2id.copy_from(source_mapper.user_uid2id)
+        self.zone_name2id.copy_from(source_mapper.zone_name2id)
+        self.timeobj_uid2id.copy_from(source_mapper.timeobj_uid2id)
+        self.rule_uid2id.copy_from(source_mapper.rule_uid2id)
+        self.rulebase_uid2id.copy_from(source_mapper.rulebase_uid2id)
+
+        FWOLogger.debug("Copied all mapping dictionaries from source mapper.")

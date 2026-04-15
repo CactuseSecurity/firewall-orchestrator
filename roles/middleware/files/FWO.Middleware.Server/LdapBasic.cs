@@ -64,31 +64,21 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Builds a connection for LDAP searches using the configured search user.
+        /// Builds a connection and attempts an LDAP bind with the provided user.
         /// </summary>
+        /// <param name="user">LDAP user name to bind with.</param>
+        /// <param name="password">LDAP password to bind with.</param>
         /// <param name="followReferrals">Whether LDAP referrals should be followed.</param>
-        /// <returns>Connected LDAP connection that has attempted the search-user bind.</returns>
-        private async Task<LdapConnection> GetSearchUserConnection(bool followReferrals = false)
+        /// <returns>Connected LDAP connection that has attempted the bind.</returns>
+        private async Task<LdapConnection> GetBoundConnection(string? user, string? password, bool followReferrals = false)
         {
             LdapConnection connection = await Connect();
-            await TryBind(connection, SearchUser, SearchUserPwd);
+            await TryBind(connection, user, password);
 
             if (followReferrals)
             {
                 EnableReferralFollowing(connection);
             }
-
-            return connection;
-        }
-
-        /// <summary>
-        /// Builds a connection for LDAP write operations using the configured write user.
-        /// </summary>
-        /// <returns>Connected LDAP connection that has attempted the write-user bind.</returns>
-        private async Task<LdapConnection> GetWriteUserConnection()
-        {
-            LdapConnection connection = await Connect();
-            await TryBind(connection, WriteUser, WriteUserPwd);
 
             return connection;
         }
@@ -192,7 +182,7 @@ namespace FWO.Middleware.Server
             Log.WriteDebug("User Validation", $"Validating User: \"{user.Name}\" ...");
             try
             {
-                using LdapConnection connection = await GetSearchUserConnection(followReferrals: true);
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
                 List<LdapEntry> possibleUserEntries = [];
 
@@ -273,7 +263,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await GetSearchUserConnection(followReferrals: true);
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
                 // Try to read user entry directly
                 return await connection.ReadAsync(distinguishedName);
@@ -468,7 +458,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await GetWriteUserConnection();
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
                 if (connection.Bound)
                 {
                     // authentication was successful: set new password
@@ -501,7 +491,7 @@ namespace FWO.Middleware.Server
 
             try
             {
-                using LdapConnection connection = await GetSearchUserConnection(followReferrals: true);
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
                 // Search for Ldap users in given directory          
                 int searchScope = LdapConnection.ScopeSub;
@@ -536,7 +526,7 @@ namespace FWO.Middleware.Server
             bool userAdded = false;
             try
             {
-                using LdapConnection connection = await GetWriteUserConnection();
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 string userName = new DistName(userDn).UserName;
                 LdapAttributeSet attributeSet = new()
@@ -580,7 +570,7 @@ namespace FWO.Middleware.Server
             bool userUpdated = false;
             try
             {
-                using LdapConnection connection = await GetWriteUserConnection();
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
                 LdapAttribute attribute = new("mail", email);
                 LdapModification[] mods = [new(LdapModification.Replace, attribute)];
 
@@ -613,7 +603,7 @@ namespace FWO.Middleware.Server
             bool userDeleted = false;
             try
             {
-                using LdapConnection connection = await GetWriteUserConnection();
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 try
                 {
@@ -767,7 +757,7 @@ namespace FWO.Middleware.Server
             bool userModified = false;
             try
             {
-                using LdapConnection connection = await GetWriteUserConnection();
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 LdapEntry? entryData;
                 try

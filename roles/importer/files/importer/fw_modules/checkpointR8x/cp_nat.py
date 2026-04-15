@@ -19,6 +19,29 @@ def normalize_nat_rules(
         parse_native_nat_rulebases(gateway, native_nat_rulebases, import_state, normalized_config, native_config)
 
 
+def get_initial_nat_rulebase_link(gateway: dict[str, Any], normalized_config: dict[str, Any]) -> dict[str, Any] | None:
+    normalized_gateway = next((gw for gw in normalized_config["gateways"] if gw["Uid"] == gateway["uid"]), None)
+
+    if normalized_gateway is None:
+        FWOLogger.warning("Could not find normalized gateway for initial NAT rulebase link: " + str(gateway["uid"]))
+        return None
+
+    initial_gateway_link = next(
+        (
+            link
+            for link in normalized_gateway["RulebaseLinks"]
+            if link.get("is_initial") and link.get("link_type") == "ordered"
+        ),
+        None,
+    )
+
+    if initial_gateway_link is None:
+        FWOLogger.warning("Could not find initial gateway rulebase link for NAT rulebase: " + str(gateway["uid"]))
+        return None
+
+    return initial_gateway_link
+
+
 def parse_native_nat_rulebases(
     gateway: dict[str, Any],
     native_nat_rulebases: list[dict[str, Any]],
@@ -37,8 +60,21 @@ def parse_native_nat_rulebases(
             FWOLogger.warning("Could not find normalized gateway for NAT rulebase, skipping: " + str(gateway["uid"]))
             continue
 
+        initial_gateway_link = get_initial_nat_rulebase_link(gateway, normalized_config)
+
+        if initial_gateway_link is None:
+            continue
+
+        initial_to_rulebase_uid = initial_gateway_link.get("to_rulebase_uid")
+        if not initial_to_rulebase_uid:
+            FWOLogger.warning(
+                "Initial gateway rulebase link is missing to_rulebase_uid for NAT rulebase, skipping: "
+                + str(gateway["uid"])
+            )
+            continue
+
         insert_rulebase_link(
-            from_rulebase_uid=normalized_gateway["RulebaseLinks"][0]["to_rulebase_uid"],
+            from_rulebase_uid=initial_to_rulebase_uid,
             to_rulebase_uid=normalized_nat_rulebase.uid,
             link_type="ordered",
             normalized_gateway=normalized_gateway,

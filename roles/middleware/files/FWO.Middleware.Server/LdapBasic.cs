@@ -82,6 +82,18 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Builds a connection for LDAP write operations using the configured write user.
+        /// </summary>
+        /// <returns>Connected LDAP connection that has attempted the write-user bind.</returns>
+        private async Task<LdapConnection> GetWriteUserConnection()
+        {
+            LdapConnection connection = await Connect();
+            await TryBind(connection, WriteUser, WriteUserPwd);
+
+            return connection;
+        }
+
+        /// <summary>
         /// Enables LDAP referral following for the given connection.
         /// </summary>
         /// <param name="connection">LDAP connection to configure.</param>
@@ -456,8 +468,8 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await Connect();
-                if (await TryBind(connection, WriteUser, WriteUserPwd))
+                using LdapConnection connection = await GetWriteUserConnection();
+                if (connection.Bound)
                 {
                     // authentication was successful: set new password
                     LdapAttribute attribute = new("userPassword", newPassword);
@@ -524,9 +536,7 @@ namespace FWO.Middleware.Server
             bool userAdded = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetWriteUserConnection();
 
                 string userName = new DistName(userDn).UserName;
                 LdapAttributeSet attributeSet = new()
@@ -570,9 +580,7 @@ namespace FWO.Middleware.Server
             bool userUpdated = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetWriteUserConnection();
                 LdapAttribute attribute = new("mail", email);
                 LdapModification[] mods = [new(LdapModification.Replace, attribute)];
 
@@ -605,9 +613,7 @@ namespace FWO.Middleware.Server
             bool userDeleted = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetWriteUserConnection();
 
                 try
                 {
@@ -761,9 +767,7 @@ namespace FWO.Middleware.Server
             bool userModified = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetWriteUserConnection();
 
                 LdapEntry? entryData;
                 try

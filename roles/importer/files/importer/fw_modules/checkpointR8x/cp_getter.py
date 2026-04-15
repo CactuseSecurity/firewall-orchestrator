@@ -987,7 +987,7 @@ def get_gateways_and_servers(sid: str = "", apiurl: str = "") -> list[dict[str, 
 
     while current < total:
         try:
-            result = cp_api_call(apiurl, "show-gateways-and-servers", {"details-level": "full"}, sid)
+            result = cp_api_call(apiurl, "show-gateways-and-servers", {"details-level": "full", "offset": current}, sid)
         except Exception as e:
             raise FwoImporterError(f"error while trying to get gateways and servers: {e}")
 

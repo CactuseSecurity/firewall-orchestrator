@@ -28,7 +28,7 @@ class ImportState:
 
     statistics_controller: ImportStatisticsController
 
-    mgm_map: dict[int, dict[str, int]]
+    management_map: dict[str, int]
     gateway_map: dict[int, dict[str, int]]
     rulebase_map: dict[str, int]
 

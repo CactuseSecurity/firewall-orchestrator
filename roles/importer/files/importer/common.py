@@ -140,7 +140,7 @@ def _import_management(
     else:
         # get config
         config_changed_since_last_import, config_normalized = get_config_top_level(
-            global_state, import_state, import_state.input_file, gateways
+            global_state, import_state, import_state.input_file, gateways, force_import=fwo_config.force
         )
 
         # write normalized config to file
@@ -203,6 +203,7 @@ def get_config_top_level(
     import_state: ImportState,
     in_file: str | None = None,
     gateways: list[Gateway] | None = None,
+    force_import: bool = False,
 ) -> tuple[bool, FwConfigManagerListController]:
     config_from_file = FwConfigManagerListController.generate_empty_config()
     if gateways is None:
@@ -217,7 +218,7 @@ def get_config_top_level(
             return config_has_changes, config_from_file
         # else we feed the native config back into the importer process for normalization
     ### getting config from firewall manager API ######
-    return get_config_from_api(global_state, import_state, config_from_file)
+    return get_config_from_api(global_state, import_state, config_from_file, force_import)
 
 
 def import_from_file(import_state: ImportState, file_name: str = "") -> tuple[bool, FwConfigManagerListController]:

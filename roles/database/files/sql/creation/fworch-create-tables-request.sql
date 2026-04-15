@@ -133,7 +133,8 @@ create table request.impltask_comment
 create table request.state
 (
     id Integer NOT NULL UNIQUE PRIMARY KEY,
-    name Varchar NOT NULL
+    name Varchar NOT NULL,
+    automatic_only boolean NOT NULL DEFAULT FALSE
 );
 
 create table request.ext_state
@@ -206,4 +207,3 @@ create table request.impltask
 	target_begin_date Timestamp,
 	target_end_date Timestamp
 );
-

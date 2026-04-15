@@ -152,6 +152,7 @@ namespace FWO.Report
         {
             DynGraphqlQuery query = Compiler.Compile(reportFilter);
             ReportType repType = (ReportType)reportFilter.ReportParams.ReportType;
+            WorkflowFilter workflowFilter = BuildEffectiveWorkflowFilter(query, reportFilter.ReportParams.WorkflowFilter);
             return repType switch
             {
                 ReportType.Statistics => new ReportStatistics(query, userConfig, repType),
@@ -172,8 +173,37 @@ namespace FWO.Report
                 ReportType.OwnerRecertification => new ReportOwnerRecerts(query, userConfig, repType),
                 ReportType.RecertificationEvent => new RecertificateOwner(query, userConfig, repType),
                 ReportType.RecertEventReport => new ReportRecertEvent(query, userConfig, repType, ruleTreeBuilder),
+                ReportType.TicketReport => new ReportTickets(query, userConfig, repType, workflowFilter),
+                ReportType.TicketChangeReport => new ReportTicketChanges(query, userConfig, repType, workflowFilter),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
+        }
+
+        private static WorkflowFilter BuildEffectiveWorkflowFilter(DynGraphqlQuery query, WorkflowFilter workflowFilter)
+        {
+            WorkflowFilter effectiveWorkflowFilter = new(workflowFilter);
+
+            if (query.WorkflowTaskTypes.Count > 0)
+            {
+                effectiveWorkflowFilter.TaskTypes = [.. query.WorkflowTaskTypes];
+            }
+
+            if (query.WorkflowStateIds.Count > 0)
+            {
+                effectiveWorkflowFilter.StateIds = [.. query.WorkflowStateIds];
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.WorkflowPhase))
+            {
+                effectiveWorkflowFilter.Phase = query.WorkflowPhase;
+            }
+
+            if (query.WorkflowReferenceDateFilter.HasValue)
+            {
+                effectiveWorkflowFilter.ReferenceDate = query.WorkflowReferenceDateFilter.Value;
+            }
+
+            return effectiveWorkflowFilter;
         }
 
         public static string GetLinkAddress(OutputLocation location, string reportId, string type, int chapterNumber, long id, ReportType reportType)
@@ -196,7 +226,12 @@ namespace FWO.Report
             return $"<span class=\"{symbol}\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"{linkAddress}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
-        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? deviceFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
+        protected static string OutputCsv(string? input)
+        {
+            return $"\"{input?.Replace("\"", "\"\"") ?? ""}\",";
+        }
+
+        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? otherFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
@@ -206,7 +241,7 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 ReplaceDateOfConfig(timeFilter);
                 ReplaceOwnerFilter(ownerFilter);
-                ReplaceOtherFilter(deviceFilter);
+                ReplaceOtherFilter(otherFilter);
 
                 string htmlToC = BuildHTMLToC(htmlReport.ToString());
 
@@ -231,9 +266,11 @@ namespace FWO.Report
 
         private void ReplaceDateOfConfig(TimeFilter? timeFilter)
         {
-            if (ReportType.IsChangeReport())
+            if (ReportType.IsChangeReport() || ReportType == ReportType.TicketChangeReport)
             {
-                (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter ?? new());
+                (string startTime, string stopTime) = ReportType == ReportType.TicketChangeReport && timeFilter == null
+                    ? ((string)Query.QueryVariables["ticket_time_start"], (string)Query.QueryVariables["ticket_time_end"])
+                    : DynGraphqlQuery.ResolveTimeRange(timeFilter ?? new());
                 string timeRange = $"{userConfig.GetText("change_time")}: " +
                     $"{userConfig.GetText("from")}: {ToUtcString(startTime)}, " +
                     $"{userConfig.GetText("until")}: {ToUtcString(stopTime)}";
@@ -262,17 +299,21 @@ namespace FWO.Report
             }
         }
 
-        private void ReplaceOtherFilter(string? deviceFilter)
+        private void ReplaceOtherFilter(string? otherFilter)
         {
-            if (deviceFilter != null && ReportType != ReportType.RecertEventReport)
+            if (otherFilter != null && ReportType != ReportType.RecertEventReport)
             {
-                if (ReportType.IsRulebaseReport())
+                if (ReportType.IsWorkflowReport())
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("managements") + ": " + deviceFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("workflow_filters") + ": " + otherFilter);
+                }
+                else if (ReportType.IsRulebaseReport())
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("managements") + ": " + otherFilter);
                 }
                 else
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + otherFilter);
                 }
             }
             else
@@ -281,7 +322,7 @@ namespace FWO.Report
             }
         }
 
-        private static string ToUtcString(string? timestring)
+        protected static string ToUtcString(string? timestring)
         {
             try
             {

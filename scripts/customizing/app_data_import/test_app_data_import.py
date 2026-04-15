@@ -13,6 +13,7 @@ from scripts.customizing.app_data_import.get_owner_data3_from_normalized_csvs im
     build_git_repo_url,
     normalize_option_value_args,
     parse_add_users_by_pattern,
+    parse_additional_information_columns,
     parse_criticality_recert_period_mapping,
     parse_included_owners_filters,
     parse_responsibles_columns,
@@ -884,6 +885,38 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(len(app_list), 1)
             self.assertEqual(app_list[0].to_json().get("criticality"), "High")
 
+    def test_extract_app_data_from_csv_imports_additional_information_when_headers_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
+            with open(owner_csv_path, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA,Cost Center,Owner Type,Comment\n"
+                    "App Additional,APP-014,user14,false,CC-100,Business,\n"
+                )
+
+            app_list: list[Owner] = []
+            extract_app_data_from_csv(
+                "owners.csv",
+                app_list,
+                self.ldap_path,
+                self.import_source,
+                Owner,
+                self.logger,
+                self.debug_level,
+                base_dir=tmpdir,
+                additional_information_columns_headers={
+                    "cost_center": "Cost Center",
+                    "owner_type": "Owner Type",
+                    "comment": "Comment",
+                },
+            )
+
+            self.assertEqual(len(app_list), 1)
+            self.assertEqual(
+                app_list[0].to_json().get("additional_information"),
+                {"cost_center": "CC-100", "owner_type": "Business"},
+            )
+
     def test_extract_app_data_from_csv_applies_criticality_recert_period_mapping(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             owner_csv_path: Path = Path(tmpdir) / "owners.csv"
@@ -940,6 +973,19 @@ class AppDataImportTests(unittest.TestCase):
     def test_parse_criticality_recert_period_mapping_parses_entries(self) -> None:
         mapping: dict[str, int] = parse_criticality_recert_period_mapping(["1:360", "2:360", "3:180"])
         self.assertEqual(mapping, {"1": 360, "2": 360, "3": 180})
+
+    def test_parse_additional_information_columns_parses_entries(self) -> None:
+        mapping: dict[str, str] = parse_additional_information_columns(
+            ['cost_center:"Cost Center"', 'owner_type:"Owner Type"']
+        )
+        self.assertEqual(mapping, {"cost_center": "Cost Center", "owner_type": "Owner Type"})
+
+    def test_parse_additional_information_columns_rejects_invalid_entries(self) -> None:
+        with pytest.raises(
+            argparse.ArgumentTypeError,
+            match="invalid additionalInformationColumns entry 'invalid-entry', expected KEY:HEADER",
+        ):
+            parse_additional_information_columns(["invalid-entry"])
 
     def test_build_git_repo_url_includes_credentials_when_configured(self) -> None:
         repo_url: str | None = build_git_repo_url(

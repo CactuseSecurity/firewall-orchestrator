@@ -90,7 +90,7 @@ namespace FWO.Report.Data.ViewData
             try
             {
                 string displayString = "";
-                string customFieldsString = rule.CustomFields.Replace("'", "\"");
+                string customFieldsString = (rule.CustomFields ?? string.Empty).Replace("'", "\"");
                 Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
 
                 if (customFields != null && field.Length > 0)

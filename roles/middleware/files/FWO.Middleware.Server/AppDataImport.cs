@@ -140,7 +140,7 @@ namespace FWO.Middleware.Server
             int deleteCounter = 0;
             int deleteFailCounter = 0;
 
-            ExistingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            ExistingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithNetworks);
             foreach (var incomingApp in ImportedApps)
             {
                 if (await SaveApp(incomingApp, ownerChangeTracker))
@@ -217,6 +217,7 @@ namespace FWO.Middleware.Server
                 ExtAppId = incomingApp.ExtAppId,
                 MainUser = await NormalizeImportedUserReference(incomingApp, incomingApp.MainUser, "main_user"),
                 Criticality = incomingApp.Criticality,
+                AdditionalInformation = incomingApp.AdditionalInformation,
                 OwnerLifecycleState = incomingApp.OwnerLifecycleState,
                 ImportSource = incomingApp.ImportSource,
                 RecertInterval = incomingApp.RecertInterval,
@@ -468,6 +469,7 @@ namespace FWO.Middleware.Server
                 name = incomingApp.Name,
                 appIdExternal = incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
+                additionalInfo = incomingApp.AdditionalInformation,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
                 ownerLifeCycleStateId,
                 importSource = incomingApp.ImportSource,
@@ -497,6 +499,7 @@ namespace FWO.Middleware.Server
                 name = incomingApp.Name,
                 appIdExternal = string.IsNullOrEmpty(incomingApp.ExtAppId) ? null : incomingApp.ExtAppId,
                 criticality = incomingApp.Criticality,
+                additionalInfo = incomingApp.AdditionalInformation,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
                 ownerLifeCycleStateId,
                 decommDate = GetDecommDateAfterLifecycleChange(existingApp, ownerLifeCycleStateId),

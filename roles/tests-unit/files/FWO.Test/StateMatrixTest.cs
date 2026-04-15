@@ -57,6 +57,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetAllowedTransitions_FiltersAutomaticOnlyStates_ByDefault()
+        {
+            StateMatrix matrix = new()
+            {
+                AutomaticOnlyStates = [3]
+            };
+            matrix.Matrix[1] = [2, 3];
+
+            Assert.That(matrix.getAllowedTransitions(1), Is.EqualTo(new List<int> { 2 }));
+        }
+
+        [Test]
+        public void GetAllowedTransitions_CanIncludeAutomaticOnlyStates()
+        {
+            StateMatrix matrix = new()
+            {
+                AutomaticOnlyStates = [3]
+            };
+            matrix.Matrix[1] = [2, 3];
+
+            Assert.That(matrix.getAllowedTransitions(1, allowAutomaticOnlyStates: true), Is.EqualTo(new List<int> { 2, 3 }));
+        }
+
+        [Test]
         public void GetDerivedStateFromSubStates_ReturnsZeroWhenEmpty()
         {
             StateMatrix matrix = new();

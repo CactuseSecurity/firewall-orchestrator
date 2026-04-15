@@ -60,6 +60,7 @@ namespace FWO.Services.Workflow
         public System.Security.Claims.ClaimsPrincipal? AuthUser;
         private readonly ApiConnection? apiConnection;
         public readonly MiddlewareClient? MiddlewareClient;
+        public readonly IRequestedRulePolicyChecker? RequestedRulePolicyChecker;
         private readonly StateMatrixDict stateMatrixDict = new();
         private WfDbAccess? dbAcc;
 
@@ -79,26 +80,30 @@ namespace FWO.Services.Workflow
         /// constructor for use in UI
         /// </summary>
         public WfHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig,
-            System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient, WorkflowPhases phase)
+            System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient, WorkflowPhases phase,
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null)
         {
             DisplayMessageInUi = displayMessageInUi;
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
             Phase = phase;
             MiddlewareClient = middlewareClient;
+            RequestedRulePolicyChecker = requestedRulePolicyChecker;
             AuthUser = authUser;
         }
 
         /// <summary>
         /// constructor for use in middleware server
         /// </summary>
-        public WfHandler(UserConfig userConfig, ApiConnection apiConnection, WorkflowPhases phase, List<UserGroup>? userGroups)
+        public WfHandler(UserConfig userConfig, ApiConnection apiConnection, WorkflowPhases phase, List<UserGroup>? userGroups,
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null)
         {
             DisplayMessageInUi = LogMessage;
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
             Phase = phase;
             UserGroups = userGroups;
+            RequestedRulePolicyChecker = requestedRulePolicyChecker;
             usedInMwServer = true;
         }
 
@@ -122,7 +127,7 @@ namespace FWO.Services.Workflow
                     {
                         throw new AuthenticationException("No AuthUser set");
                     }
-                    ActionHandler = new(apiConnection, this, UserGroups, usedInMwServer);
+                    ActionHandler = new(apiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker);
                     await ActionHandler.Init();
                     dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, AuthUser == null || AuthUser.IsInRole(Roles.Admin) || AuthUser.IsInRole(Roles.Auditor)) { };
                     Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);

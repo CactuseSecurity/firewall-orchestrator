@@ -64,6 +64,35 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Builds a connection for LDAP searches using the configured search user.
+        /// </summary>
+        /// <param name="followReferrals">Whether LDAP referrals should be followed.</param>
+        /// <returns>Connected LDAP connection that has attempted the search-user bind.</returns>
+        private async Task<LdapConnection> GetSearchUserConnection(bool followReferrals = false)
+        {
+            LdapConnection connection = await Connect();
+            await TryBind(connection, SearchUser, SearchUserPwd);
+
+            if (followReferrals)
+            {
+                EnableReferralFollowing(connection);
+            }
+
+            return connection;
+        }
+
+        /// <summary>
+        /// Enables LDAP referral following for the given connection.
+        /// </summary>
+        /// <param name="connection">LDAP connection to configure.</param>
+        private static void EnableReferralFollowing(LdapConnection connection)
+        {
+            LdapSearchConstraints constraints = connection.SearchConstraints;
+            constraints.ReferralFollowing = true;
+            connection.Constraints = constraints;
+        }
+
+        /// <summary>
         /// try an ldap bind, decrypting pwd before bind; using pwd as is if it cannot be decrypted
         /// false if bind fails
         /// </summary>
@@ -151,12 +180,7 @@ namespace FWO.Middleware.Server
             Log.WriteDebug("User Validation", $"Validating User: \"{user.Name}\" ...");
             try
             {
-                using LdapConnection connection = await Connect();
-                await TryBind(connection, SearchUser, SearchUserPwd);
-
-                LdapSearchConstraints cons = connection.SearchConstraints;
-                cons.ReferralFollowing = true;
-                connection.Constraints = cons;
+                using LdapConnection connection = await GetSearchUserConnection(followReferrals: true);
 
                 List<LdapEntry> possibleUserEntries = [];
 
@@ -237,12 +261,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await Connect();
-                await TryBind(connection, SearchUser, SearchUserPwd);
-
-                LdapSearchConstraints cons = connection.SearchConstraints;
-                cons.ReferralFollowing = true;
-                connection.Constraints = cons;
+                using LdapConnection connection = await GetSearchUserConnection(followReferrals: true);
 
                 // Try to read user entry directly
                 return await connection.ReadAsync(distinguishedName);
@@ -470,16 +489,10 @@ namespace FWO.Middleware.Server
 
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as search user
-                await TryBind(connection, SearchUser, SearchUserPwd);
+                using LdapConnection connection = await GetSearchUserConnection(followReferrals: true);
 
                 // Search for Ldap users in given directory          
                 int searchScope = LdapConnection.ScopeSub;
-
-                LdapSearchConstraints cons = connection.SearchConstraints;
-                cons.ReferralFollowing = true;
-                connection.Constraints = cons;
 
                 ILdapSearchResults? searchResults = await connection.SearchAsync(UserSearchPath, searchScope, GetUserSearchFilter(searchPattern), null, false);
 

@@ -1,6 +1,7 @@
 using FWO.Middleware.Server;
 using Novell.Directory.Ldap;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -27,6 +28,19 @@ namespace FWO.Test
             string normalizedRight = Ldap.NormalizeDnForComparison(rightDn);
 
             Assert.That(normalizedLeft, Is.EqualTo(normalizedRight));
+        }
+
+        [Test]
+        public void EnableReferralFollowing_SetsConnectionConstraint()
+        {
+            LdapConnection connection = new();
+            MethodInfo? method = typeof(Ldap).GetMethod("EnableReferralFollowing", BindingFlags.NonPublic | BindingFlags.Static);
+
+            Assert.That(method, Is.Not.Null);
+
+            method!.Invoke(null, [connection]);
+
+            Assert.That(connection.Constraints.ReferralFollowing, Is.True);
         }
     }
 }

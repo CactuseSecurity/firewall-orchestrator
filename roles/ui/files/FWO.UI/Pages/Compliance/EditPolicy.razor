@@ -33,7 +33,7 @@
                     <div class="col-sm-12 mt-1">
                         <div class="form-group row me-auto">
                             <div class="col-sm-10">
-                                <Dropdown ElementType="ComplianceCriterion" ElementToString="@(r => r.Name)" @bind-SelectedElement="ActCrit" Elements="AllCriteria">
+                                <Dropdown ElementType="ComplianceCriterion" ElementToString="@(r => r.Name)" @bind-SelectedElement="SelectedCrit" Elements="SelectableCriteria()">
                                     <ElementTemplate Context="crit">
                                         @(crit.Name)
                                     </ElementTemplate>
@@ -91,7 +91,7 @@
     private List<ComplianceCriterion> AllCriteria = [];
     private List<ComplianceCriterion> CriteriaToAdd = [];
     private List<ComplianceCriterion> CriteriaToDelete = [];
-    ComplianceCriterion ActCrit = new();
+    ComplianceCriterion SelectedCrit = new();
 
 
     protected async override Task OnInitializedAsync()
@@ -110,14 +110,24 @@
     {
         if(Display && AllCriteria.Count > 0)
         {
+            SelectedCrit = new();
             CriteriaToAdd = [];
             CriteriaToDelete = [];
         }
     }
 
+    private List<ComplianceCriterion> SelectableCriteria()
+    {
+        return [.. AllCriteria.Where(c => !CriteriaToAdd.Contains(c) && !Policy.Criteria.Select(c => c.Content).Contains(c))];
+    }
+
     private void AddCrit()
     {
-        CriteriaToAdd.Add(ActCrit);
+        if(SelectedCrit.Id > 0)
+        {
+            CriteriaToAdd.Add(SelectedCrit);
+            SelectedCrit = new();
+        }
     }
 
     private void Cancel()
@@ -131,6 +141,11 @@
         {
             if(AddMode)
             {
+                if(string.IsNullOrEmpty(Policy.Name))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_policy"), userConfig.GetText("E5234"), true);
+                    return;
+                }
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addPolicy, new{ name = Policy.Name })).ReturnIds;
                 if (returnIds != null)
                 {

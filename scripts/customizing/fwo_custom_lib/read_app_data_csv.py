@@ -1,7 +1,9 @@
+import argparse
 import csv
 import logging
 import re
-import sys
+from dataclasses import dataclass
+from typing import Any
 
 from netaddr import IPAddress, IPNetwork
 
@@ -11,10 +13,363 @@ DEFAULT_VALID_APP_ID_PREFIXES: list[str] = []
 DEFAULT_OWNER_HEADER_PATTERNS: dict[str, str] = {
     "name": r".*?:\s*Name",
     "app_id": r".*?:\s*Alfabet-ID$",
-    "owner_tiso": r".*?:\s*TISO",
     "owner_kwita": r".*?:\s*kwITA",
+    "owner_lifecycle_state": r"^\s*Lifecycle State\s*$",
 }
 DEFAULT_IP_HEADER_PATTERNS: dict[str, str] = {"app_id": r".*?:\s*Alfabet-ID$", "ip": r".*?:\s*IP"}
+CSV_FALLBACK_ENCODINGS: tuple[str, ...] = ("utf-8", "cp1252", "latin-1")
+ALLOWED_CSV_SEPARATORS: tuple[str, ...] = (",", ";")
+
+
+@dataclass(frozen=True)
+class OwnerLineParserContext:
+    app_name_column: int
+    app_id_column: int
+    composite_id_columns: tuple[int, ...] | None
+    composite_id_delimiter: str
+    composite_id_max_lengths: tuple[int, ...] | None
+    app_owner_kwita_column: int
+    owner_lifecycle_state_column: int
+    fallback_owner_lifecycle: str
+    criticality_column: int
+    criticality_recert_period_mapping: dict[str, int] | None
+    responsibles_columns: dict[str, tuple[int, ...]] | None
+    additional_information_columns: dict[str, int] | None
+    add_users_by_pattern: dict[str, str] | None
+    included_owners_filters: tuple[tuple[int, tuple[str, ...]], ...] | None
+    ldap_path: str
+    import_source_string: str
+    owner_cls: type[Owner]
+    valid_app_id_prefixes: list[str]
+    logger: logging.Logger
+    debug_level: int
+
+
+@dataclass(frozen=True)
+class ExtractAppDataCsvOptions:
+    base_dir: str = "."
+    recert_active_app_list: list[str] | None = None
+    default_recert_active_state: bool = False
+    column_patterns: dict[str, str] | None = None
+    valid_app_id_prefixes: list[str] | None = None
+    included_owners_column: str | None = None
+    include_values: list[str] | None = None
+    included_owners_filters: dict[str, tuple[str, ...]] | None = None
+    csv_separator: str = ","
+    composite_id_fields: tuple[str, ...] | None = None
+    composite_id_fields_delimiter_str: str = ""
+    composite_id_fields_max_length: list[int] | None = None
+    fallback_owner_lifecycle: str = "unknown"
+    criticality_column_header: str | None = None
+    criticality_recert_period_mapping: dict[str, int] | None = None
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None
+    additional_information_columns_headers: dict[str, str] | None = None
+    add_users_by_pattern: dict[str, str] | None = None
+
+
+def parse_csv_separator_arg(value: str) -> str:
+    normalized_value: str = value.strip()
+    if normalized_value not in ALLOWED_CSV_SEPARATORS:
+        allowed_values: str = ", ".join(repr(separator) for separator in ALLOWED_CSV_SEPARATORS)
+        raise argparse.ArgumentTypeError(f"invalid csv separator {value!r}, expected one of: {allowed_values}")
+    return normalized_value
+
+
+def _resolve_extract_options(
+    options: ExtractAppDataCsvOptions | None,
+    legacy_kwargs: dict[str, Any],
+) -> ExtractAppDataCsvOptions:
+    if options is None and not legacy_kwargs:
+        return ExtractAppDataCsvOptions()
+
+    valid_keys: set[str] = set(ExtractAppDataCsvOptions.__annotations__.keys())
+    invalid_keys: set[str] = set(legacy_kwargs) - valid_keys
+    if invalid_keys:
+        invalid_keys_list: str = ", ".join(sorted(invalid_keys))
+        raise TypeError(f"unknown extract_app_data_from_csv options: {invalid_keys_list}")
+
+    if options is None:
+        return ExtractAppDataCsvOptions(**legacy_kwargs)
+
+    merged_kwargs: dict[str, Any] = {field_name: getattr(options, field_name) for field_name in valid_keys}
+    merged_kwargs.update(legacy_kwargs)
+    return ExtractAppDataCsvOptions(**merged_kwargs)
+
+
+def _get_composite_id_max_lengths(
+    options: ExtractAppDataCsvOptions,
+    csv_file: str,
+    logger: logging.Logger,
+) -> tuple[int, ...] | None:
+    if options.composite_id_fields_max_length is None:
+        return None
+    if options.composite_id_fields is None:
+        logger.warning(
+            "ignoring compositeIdFieldsMaxLength because compositeIdFields is not configured for %s",
+            csv_file,
+        )
+        return None
+    if len(options.composite_id_fields_max_length) != len(options.composite_id_fields):
+        logger.warning(
+            "skipping csv file %s because compositeIdFields and compositeIdFieldsMaxLength count differ",
+            csv_file,
+        )
+        return None
+    if any(value < 0 for value in options.composite_id_fields_max_length):
+        logger.warning(
+            "skipping csv file %s because compositeIdFieldsMaxLength contains negative values",
+            csv_file,
+        )
+        return None
+    return tuple(options.composite_id_fields_max_length)
+
+
+def _is_included_owners_match(line: list[str], context: OwnerLineParserContext) -> bool:
+    if not context.included_owners_filters:
+        return True
+    column_no: int
+    allowed_values: tuple[str, ...]
+    for column_no, allowed_values in context.included_owners_filters:
+        row_value: str = line[column_no].strip() if len(line) > column_no else ""
+        normalized_allowed_values: set[str] = {value.strip().casefold() for value in allowed_values if value.strip()}
+        if row_value.casefold() in normalized_allowed_values:
+            continue
+        if context.debug_level > 1:
+            context.logger.debug(
+                "ignoring line from csv file as included owners value does not match: found '%s', expected one of %s'",
+                row_value,
+                sorted(normalized_allowed_values),
+            )
+        return False
+    return True
+
+
+def _has_valid_app_id_prefix(app_id: str, context: OwnerLineParserContext) -> bool:
+    if len(context.valid_app_id_prefixes) == 0:
+        return True
+    normalized_prefixes: tuple[str, ...] = tuple(prefix.strip().casefold() for prefix in context.valid_app_id_prefixes)
+    return app_id.strip().casefold().startswith(normalized_prefixes)
+
+
+def _build_app_id(line: list[str], context: OwnerLineParserContext) -> str:
+    if context.composite_id_columns:
+        composite_values: list[str] = []
+        for index, column in enumerate(context.composite_id_columns):
+            value: str = line[column].strip() if len(line) > column else ""
+            if context.composite_id_max_lengths is not None:
+                value = value[: context.composite_id_max_lengths[index]]
+            composite_values.append(value)
+        return context.composite_id_delimiter.join(composite_values)
+    if context.app_id_column < 0 or len(line) <= context.app_id_column:
+        return ""
+    return line[context.app_id_column].strip()
+
+
+def _get_recert_period_days(line: list[str], kwita_column: int) -> int:
+    kwita: str = line[kwita_column] if kwita_column >= 0 else ""
+    return 365 if kwita == "" or kwita.lower() == "false" else 182
+
+
+def _get_owner_lifecycle_state(
+    line: list[str], owner_lifecycle_state_column: int, fallback_owner_lifecycle: str
+) -> str:
+    if owner_lifecycle_state_column < 0:
+        return fallback_owner_lifecycle
+    owner_lifecycle_state: str = (
+        line[owner_lifecycle_state_column].strip() if len(line) > owner_lifecycle_state_column else ""
+    )
+    return owner_lifecycle_state or fallback_owner_lifecycle
+
+
+def _get_criticality(line: list[str], criticality_column: int) -> str:
+    if criticality_column < 0:
+        return ""
+    return line[criticality_column].strip() if len(line) > criticality_column else ""
+
+
+def _get_responsibles(line: list[str], responsibles_columns: dict[str, tuple[int, ...]] | None) -> dict[str, list[str]]:
+    if not responsibles_columns:
+        return {}
+    responsibles: dict[str, list[str]] = {}
+    responsible_level: str
+    column_indexes: tuple[int, ...]
+    for responsible_level, column_indexes in responsibles_columns.items():
+        responsibles[responsible_level] = [
+            line[column_index].strip() if len(line) > column_index else "" for column_index in column_indexes
+        ]
+    return responsibles
+
+
+def _get_additional_information(
+    line: list[str],
+    additional_information_columns: dict[str, int] | None,
+) -> dict[str, str]:
+    if not additional_information_columns:
+        return {}
+    additional_information: dict[str, str] = {}
+    dump_key: str
+    column_index: int
+    for dump_key, column_index in additional_information_columns.items():
+        value: str = line[column_index].strip() if len(line) > column_index else ""
+        if value != "":
+            additional_information[dump_key] = value
+    return additional_information
+
+
+def _resolve_responsibles(line: list[str], app_id: str, context: OwnerLineParserContext) -> dict[str, list[str]]:
+    responsibles: dict[str, list[str]] = {}
+    if context.responsibles_columns is not None:
+        resolved_responsibles: dict[str, list[str]] = _get_responsibles(line, context.responsibles_columns)
+        responsibles = _build_responsibles_dns(resolved_responsibles, context.ldap_path, context.logger)
+    if context.add_users_by_pattern is not None:
+        pattern_responsibles: dict[str, list[str]] = _build_pattern_responsibles(app_id, context.add_users_by_pattern)
+        responsibles = _merge_responsibles(responsibles, pattern_responsibles)
+    return responsibles
+
+
+def _resolve_recert_period_days(
+    line: list[str],
+    criticality: str,
+    context: OwnerLineParserContext,
+) -> int:
+    recert_period_days: int = _get_recert_period_days(line, context.app_owner_kwita_column)
+    mapped_recert_period_days: int | None = _get_recert_period_days_for_criticality(
+        criticality, context.criticality_recert_period_mapping
+    )
+    return mapped_recert_period_days if mapped_recert_period_days is not None else recert_period_days
+
+
+def _log_missing_level_one_responsible(
+    responsibles: dict[str, list[str]],
+    app_id: str,
+    context: OwnerLineParserContext,
+) -> None:
+    level_one_responsibles: list[str] = responsibles.get("1", [])
+    if len(level_one_responsibles) == 0 and context.debug_level > 0:
+        context.logger.warning("adding app without level 1 responsible: %s", app_id)
+
+
+def _build_owner_from_line(
+    line: list[str],
+    app_id: str,
+    criticality: str,
+    context: OwnerLineParserContext,
+) -> Owner:
+    app_name: str = line[context.app_name_column]
+    owner_lifecycle_state: str = _get_owner_lifecycle_state(
+        line, context.owner_lifecycle_state_column, context.fallback_owner_lifecycle
+    )
+    responsibles: dict[str, list[str]] = _resolve_responsibles(line, app_id, context)
+    additional_information: dict[str, str] = _get_additional_information(line, context.additional_information_columns)
+    recert_period_days: int = _resolve_recert_period_days(line, criticality, context)
+    _log_missing_level_one_responsible(responsibles, app_id, context)
+    criticality_value: str | None = criticality if context.criticality_column >= 0 else None
+    responsibles_value: dict[str, list[str]] | None = responsibles or None
+    additional_information_value: dict[str, str] | None = additional_information or None
+    return context.owner_cls(
+        app_id_external=app_id,
+        name=app_name,
+        recert_period_days=recert_period_days,
+        days_until_first_recert=recert_period_days,
+        recert_active=False,
+        import_source=context.import_source_string,
+        owner_lifecycle_state=owner_lifecycle_state,
+        criticality=criticality_value,
+        responsibles=responsibles_value,
+        additional_information=additional_information_value,
+    )
+
+
+def _split_app_id_external(app_id_external: str) -> tuple[str, str]:
+    if "-" in app_id_external:
+        app_prefix, app_id = app_id_external.split("-", 1)
+        return app_prefix, app_id
+    if "_" in app_id_external:
+        app_prefix, app_id = app_id_external.split("_", 1)
+        return app_prefix, app_id
+    prefix_end: int = 0
+    while prefix_end < len(app_id_external) and app_id_external[prefix_end].isalpha():
+        prefix_end += 1
+    if 0 < prefix_end < len(app_id_external):
+        app_prefix = app_id_external[:prefix_end]
+        app_id = app_id_external[prefix_end:].lstrip("-_")
+        if app_id != "":
+            return app_prefix, app_id
+    return app_id_external, app_id_external
+
+
+def _build_user_from_pattern(app_id_external: str, user_pattern: str) -> str:
+    app_prefix, app_id = _split_app_id_external(app_id_external)
+    pattern_with_prefix: str = user_pattern.replace("@@AppPrefix@@", app_prefix)
+    return pattern_with_prefix.replace("@@AppId@@", app_id)
+
+
+def _build_pattern_responsibles(
+    app_id_external: str,
+    add_users_by_pattern: dict[str, str],
+) -> dict[str, list[str]]:
+    return {
+        level: [_build_user_from_pattern(app_id_external, user_pattern)]
+        for level, user_pattern in add_users_by_pattern.items()
+    }
+
+
+def _merge_responsibles(
+    existing_responsibles: dict[str, list[str]],
+    additional_responsibles: dict[str, list[str]],
+) -> dict[str, list[str]]:
+    merged_responsibles: dict[str, list[str]] = {
+        level: list(values) for level, values in existing_responsibles.items() if values
+    }
+    level: str
+    values: list[str]
+    for level, values in additional_responsibles.items():
+        if not values:
+            continue
+        merged_values: list[str] = merged_responsibles.setdefault(level, [])
+        value: str
+        for value in values:
+            if value not in merged_values:
+                merged_values.append(value)
+    return merged_responsibles
+
+
+def _build_responsibles_dns(
+    responsibles: dict[str, list[str]],
+    ldap_path: str,
+    logger: logging.Logger,
+) -> dict[str, list[str]]:
+    responsibles_dns: dict[str, list[str]] = {}
+    responsible_level: str
+    user_ids: list[str]
+    for responsible_level, user_ids in responsibles.items():
+        dns: list[str] = []
+        raw_user_value: str
+        for raw_user_value in user_ids:
+            split_user_ids: list[str] = [
+                user_id.strip() for user_id in re.split(r"[,\n;]+", raw_user_value) if user_id.strip()
+            ]
+            if len(split_user_ids) == 0 and raw_user_value.strip():
+                split_user_ids = [raw_user_value.strip()]
+            user_id: str
+            for user_id in split_user_ids:
+                dn: str = build_dn(user_id, ldap_path, logger)
+                if dn:
+                    dns.append(dn)
+        responsibles_dns[responsible_level] = dns
+    return responsibles_dns
+
+
+def _get_recert_period_days_for_criticality(
+    criticality: str,
+    criticality_recert_period_mapping: dict[str, int] | None,
+) -> int | None:
+    if not criticality_recert_period_mapping:
+        return None
+    for criticality_prefix, period_days in criticality_recert_period_mapping.items():
+        if criticality.startswith(criticality_prefix):
+            return period_days
+    return None
 
 
 def build_dn(user_id: str, ldap_path: str, logger: logging.Logger) -> str:
@@ -29,7 +384,80 @@ def build_dn(user_id: str, ldap_path: str, logger: logging.Logger) -> str:
 
 def _normalize_headers(headers: list[str]) -> list[str]:
     # Strip whitespace and BOM to make header matching resilient.
-    return [h.strip().lstrip("\ufeff") for h in headers]
+    normalized_headers: list[str] = [h.strip().lstrip("\ufeff") for h in headers]
+    return normalized_headers
+
+
+def _get_alternate_csv_separator(configured_separator: str) -> str | None:
+    for separator in ALLOWED_CSV_SEPARATORS:
+        if separator != configured_separator:
+            return separator
+    return None
+
+
+def _should_retry_with_alternate_separator(rows: list[list[str]], configured_separator: str) -> bool:
+    if len(rows) == 0 or len(rows[0]) != 1:
+        return False
+    alternate_separator: str | None = _get_alternate_csv_separator(configured_separator)
+    if alternate_separator is None:
+        return False
+    return alternate_separator in rows[0][0]
+
+
+def _read_csv_rows(csv_file_name: str, csv_separator: str, csv_encoding: str) -> list[list[str]]:
+    with open(csv_file_name, newline="", encoding=csv_encoding) as csv_file_handle:
+        csv_reader = csv.reader(csv_file_handle, delimiter=csv_separator)
+        rows: list[list[str]] = list(csv_reader)
+        return rows
+
+
+def _read_csv_rows_for_encoding(
+    csv_file_name: str,
+    csv_separator: str,
+    csv_encoding: str,
+    logger: logging.Logger,
+) -> list[list[str]]:
+    rows: list[list[str]] = _read_csv_rows(csv_file_name, csv_separator, csv_encoding)
+    if _should_retry_with_alternate_separator(rows, csv_separator):
+        alternate_separator: str | None = _get_alternate_csv_separator(csv_separator)
+        if alternate_separator is not None:
+            rows = _read_csv_rows(csv_file_name, alternate_separator, csv_encoding)
+            logger.warning(
+                "csv file %s parsed using alternate separator %r instead of configured separator %r",
+                csv_file_name,
+                alternate_separator,
+                csv_separator,
+            )
+    return rows
+
+
+def _read_csv_rows_with_fallback_encodings(
+    csv_file_name: str,
+    csv_separator: str,
+    logger: logging.Logger,
+) -> list[list[str]]:
+    try:
+        return _read_csv_rows_for_encoding(csv_file_name, csv_separator, CSV_FALLBACK_ENCODINGS[0], logger)
+    except UnicodeDecodeError as first_decode_error:
+        try:
+            rows = _read_csv_rows_for_encoding(csv_file_name, csv_separator, CSV_FALLBACK_ENCODINGS[1], logger)
+            logger.warning(
+                "csv file %s decoded using fallback encoding %s",
+                csv_file_name,
+                CSV_FALLBACK_ENCODINGS[1],
+            )
+            return rows
+        except UnicodeDecodeError:
+            try:
+                rows = _read_csv_rows_for_encoding(csv_file_name, csv_separator, CSV_FALLBACK_ENCODINGS[2], logger)
+                logger.warning(
+                    "csv file %s decoded using fallback encoding %s",
+                    csv_file_name,
+                    CSV_FALLBACK_ENCODINGS[2],
+                )
+                return rows
+            except UnicodeDecodeError:
+                raise first_decode_error
 
 
 def _find_header_index(
@@ -55,82 +483,274 @@ def _find_header_index(
     raise ValueError(f"missing required column {column_name}")
 
 
+def _find_required_header_index_by_name(
+    headers: list[str],
+    header_name: str,
+    csv_file_name: str,
+    logger: logging.Logger,
+) -> int:
+    normalized_target: str = header_name.strip().casefold()
+    for i, header in enumerate(headers):
+        if header.strip().casefold() == normalized_target:
+            return i
+    logger.error(
+        "missing required composite id header %s in %s; headers=%s",
+        header_name,
+        csv_file_name,
+        headers,
+    )
+    raise ValueError(f"missing required composite id header {header_name}")
+
+
+def _find_responsibles_header_index(
+    headers: list[str],
+    header_name_or_pattern: str,
+    csv_file_name: str,
+    logger: logging.Logger,
+) -> int | None:
+    normalized_target: str = header_name_or_pattern.strip().casefold()
+    exact_matches: list[int] = [
+        index for index, header in enumerate(headers) if header.strip().casefold() == normalized_target
+    ]
+    if len(exact_matches) == 1:
+        return exact_matches[0]
+    if len(exact_matches) > 1:
+        logger.error(
+            "responsiblesColumns entry %s in %s matched multiple columns exactly; headers=%s",
+            header_name_or_pattern,
+            csv_file_name,
+            headers,
+        )
+        raise ValueError(f"ambiguous responsiblesColumns entry {header_name_or_pattern}")
+
+    try:
+        header_pattern: re.Pattern[str] = re.compile(header_name_or_pattern, re.IGNORECASE)
+    except re.error as err:
+        logger.exception(
+            "invalid responsiblesColumns regex %s in %s",
+            header_name_or_pattern,
+            csv_file_name,
+        )
+        raise ValueError(f"invalid responsiblesColumns regex {header_name_or_pattern}") from err
+
+    pattern_matches: list[int] = [index for index, header in enumerate(headers) if header_pattern.search(header)]
+    if len(pattern_matches) == 1:
+        return pattern_matches[0]
+    if len(pattern_matches) == 0:
+        logger.info(
+            "responsiblesColumns entry %s in %s matched no columns; headers=%s",
+            header_name_or_pattern,
+            csv_file_name,
+            headers,
+        )
+        return None
+
+    logger.error(
+        "responsiblesColumns regex %s in %s matched multiple columns; headers=%s",
+        header_name_or_pattern,
+        csv_file_name,
+        headers,
+    )
+    raise ValueError(f"ambiguous responsiblesColumns entry {header_name_or_pattern}")
+
+
+def _find_composite_id_columns(
+    headers: list[str],
+    composite_id_fields: tuple[str, ...] | None,
+    csv_file_name: str,
+    logger: logging.Logger,
+) -> tuple[int, ...] | None:
+    if not composite_id_fields:
+        return None
+    resolved_columns: list[int] = []
+    header_name: str
+    for header_name in composite_id_fields:
+        resolved_column: int = _find_required_header_index_by_name(headers, header_name, csv_file_name, logger)
+        resolved_columns.append(resolved_column)
+    return tuple(resolved_columns)
+
+
+def _find_responsibles_columns(
+    headers: list[str],
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None,
+    csv_file_name: str,
+    logger: logging.Logger,
+) -> dict[str, tuple[int, ...]] | None:
+    if not responsibles_columns_headers:
+        return None
+    responsibles_columns: dict[str, tuple[int, ...]] = {}
+    responsible_level: str
+    responsible_headers: tuple[str, ...]
+    for responsible_level, responsible_headers in responsibles_columns_headers.items():
+        resolved_headers_list: list[int] = []
+        header_name: str
+        for header_name in responsible_headers:
+            resolved_index: int | None = _find_responsibles_header_index(headers, header_name, csv_file_name, logger)
+            if resolved_index is not None:
+                resolved_headers_list.append(resolved_index)
+        resolved_headers: tuple[int, ...] = tuple(resolved_headers_list)
+        if resolved_headers:
+            responsibles_columns[responsible_level] = resolved_headers
+    if len(responsibles_columns) == 0:
+        logger.warning(
+            "configured responsiblesColumns matched no columns in %s; configured=%s; headers=%s",
+            csv_file_name,
+            responsibles_columns_headers,
+            headers,
+        )
+    return responsibles_columns
+
+
+def _find_additional_information_columns(
+    headers: list[str],
+    additional_information_columns_headers: dict[str, str] | None,
+    csv_file_name: str,
+    logger: logging.Logger,
+) -> dict[str, int] | None:
+    if not additional_information_columns_headers:
+        return None
+    additional_information_columns: dict[str, int] = {}
+    dump_key: str
+    header_name: str
+    for dump_key, header_name in additional_information_columns_headers.items():
+        resolved_index: int = _find_required_header_index_by_name(headers, header_name, csv_file_name, logger)
+        additional_information_columns[dump_key] = resolved_index
+    return additional_information_columns
+
+
 def read_app_data_from_csv(
     csv_file_name: str,
     logger: logging.Logger,
     column_patterns: dict[str, str] | None = None,
+    included_owners_filters: dict[str, tuple[str, ...]] | None = None,
     csv_separator: str = ",",
-) -> tuple[list[list[str]], int, int, int, int]:
+    composite_id_fields: tuple[str, ...] | None = None,
+    criticality_column_header: str | None = None,
+    responsibles_columns_headers: dict[str, tuple[str, ...]] | None = None,
+    additional_information_columns_headers: dict[str, str] | None = None,
+) -> (
+    tuple[
+        list[list[str]],
+        int,
+        int,
+        tuple[int, ...] | None,
+        int,
+        int,
+        int,
+        dict[str, tuple[int, ...]] | None,
+        dict[str, int] | None,
+        tuple[tuple[int, tuple[str, ...]], ...] | None,
+    ]
+    | None
+):
     try:
         header_patterns: dict[str, str] = {**DEFAULT_OWNER_HEADER_PATTERNS, **(column_patterns or {})}
-        with open(csv_file_name, newline="", encoding="utf-8") as csv_file_handle:
-            reader = csv.reader(csv_file_handle, delimiter=csv_separator)
-            headers: list[str] = _normalize_headers(next(reader))  # Get header row first
+        all_rows: list[list[str]] = _read_csv_rows_with_fallback_encodings(csv_file_name, csv_separator, logger)
+        if len(all_rows) == 0:
+            raise ValueError("csv file is empty")
+        headers: list[str] = _normalize_headers(all_rows[0])  # Get header row first
 
-            name_pattern: re.Pattern[str] = re.compile(header_patterns["name"], re.IGNORECASE)
-            app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
-            owner_tiso_pattern: re.Pattern[str] = re.compile(header_patterns["owner_tiso"], re.IGNORECASE)
-            owner_kwita_pattern: re.Pattern[str] = re.compile(header_patterns["owner_kwita"], re.IGNORECASE)
+        name_pattern: re.Pattern[str] = re.compile(header_patterns["name"], re.IGNORECASE)
+        app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
+        owner_kwita_pattern: re.Pattern[str] = re.compile(header_patterns["owner_kwita"], re.IGNORECASE)
+        owner_lifecycle_state_pattern: re.Pattern[str] = re.compile(
+            header_patterns["owner_lifecycle_state"], re.IGNORECASE
+        )
 
-            app_name_column: int = _find_header_index(headers, name_pattern, "name", csv_file_name, logger)
-            app_id_column: int = _find_header_index(headers, app_id_pattern, "app_id", csv_file_name, logger)
-            app_owner_tiso_column: int = _find_header_index(
-                headers, owner_tiso_pattern, "owner_tiso", csv_file_name, logger
+        app_name_column: int = _find_header_index(headers, name_pattern, "name", csv_file_name, logger)
+        app_id_column: int = _find_header_index(
+            headers, app_id_pattern, "app_id", csv_file_name, logger, required=composite_id_fields is None
+        )
+        composite_id_columns: tuple[int, ...] | None = _find_composite_id_columns(
+            headers, composite_id_fields, csv_file_name, logger
+        )
+        app_owner_kwita_column: int = _find_header_index(
+            headers, owner_kwita_pattern, "owner_kwita", csv_file_name, logger, required=False
+        )
+        owner_lifecycle_state_column: int = _find_header_index(
+            headers,
+            owner_lifecycle_state_pattern,
+            "owner_lifecycle_state",
+            csv_file_name,
+            logger,
+            required=False,
+        )
+        criticality_column: int = -1
+        if criticality_column_header:
+            criticality_column = _find_required_header_index_by_name(
+                headers, criticality_column_header, csv_file_name, logger
             )
-            app_owner_kwita_column: int = _find_header_index(
-                headers, owner_kwita_pattern, "owner_kwita", csv_file_name, logger, required=False
-            )
+        responsibles_columns: dict[str, tuple[int, ...]] | None = _find_responsibles_columns(
+            headers, responsibles_columns_headers, csv_file_name, logger
+        )
+        additional_information_columns: dict[str, int] | None = _find_additional_information_columns(
+            headers, additional_information_columns_headers, csv_file_name, logger
+        )
+        resolved_included_owners_filters: list[tuple[int, tuple[str, ...]]] = []
+        if included_owners_filters:
+            filter_column_name: str
+            filter_include_values: tuple[str, ...]
+            for filter_column_name, filter_include_values in included_owners_filters.items():
+                escaped_included_owners_column: str = re.escape(filter_column_name)
+                included_owners_pattern: re.Pattern[str] = re.compile(
+                    rf"^\s*{escaped_included_owners_column}\s*$", re.IGNORECASE
+                )
+                included_owners_column_no: int = _find_header_index(
+                    headers, included_owners_pattern, "included_owners", csv_file_name, logger, required=False
+                )
+                if included_owners_column_no < 0:
+                    logger.warning(
+                        "optional filter column '%s' not found in %s; proceeding without this included owners filter",
+                        filter_column_name,
+                        csv_file_name,
+                    )
+                    continue
+                resolved_included_owners_filters.append((included_owners_column_no, filter_include_values))
 
-            apps_from_csv: list[list[str]] = list(reader)  # Read remaining rows
+        apps_from_csv: list[list[str]] = all_rows[1:]
+    except ValueError as err:
+        logger.warning("skipping csv file %s because %s", csv_file_name, err)
+        return None
     except Exception:
         logger.exception("error while trying to read csv file %s", csv_file_name)
-        sys.exit(1)
+        return None
 
-    return apps_from_csv, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column
+    return (
+        apps_from_csv,
+        app_name_column,
+        app_id_column,
+        composite_id_columns,
+        app_owner_kwita_column,
+        owner_lifecycle_state_column,
+        criticality_column,
+        responsibles_columns,
+        additional_information_columns,
+        tuple(resolved_included_owners_filters) if included_owners_filters else None,
+    )
 
 
 def parse_app_line(
     line: list[str],
-    app_name_column: int,
-    app_id_column: int,
-    app_owner_tiso_column: int,
-    app_owner_kwita_column: int,
-    app_list: list[Owner],
+    context: OwnerLineParserContext,
     count_skips: int,
-    ldap_path: str,
-    import_source_string: str,
-    owner_cls: type[Owner],
-    valid_app_id_prefixes: list[str],
-    logger: logging.Logger,
-    debug_level: int,
+    app_list: list[Owner],
 ) -> int:
-    app_id: str = line[app_id_column]
-    if len(valid_app_id_prefixes) == 0 or app_id.lower().startswith(tuple(valid_app_id_prefixes)):
-        app_name: str = line[app_name_column]
-        app_main_user: str = line[app_owner_tiso_column]
-        main_user_dn: str = build_dn(app_main_user, ldap_path, logger)
-        kwita: str = line[app_owner_kwita_column] if app_owner_kwita_column >= 0 else ""
-        if kwita == "" or kwita.lower() == "false":
-            recert_period_days: int = 365
-        else:
-            recert_period_days = 182
-        if main_user_dn == "" and debug_level > 0:
-            logger.warning("adding app without main user: %s", app_id)
-        app_list.append(
-            owner_cls(
-                app_id_external=app_id,
-                name=app_name,
-                main_user=main_user_dn,
-                recert_period_days=recert_period_days,
-                days_until_first_recert=recert_period_days,
-                recert_active=False,
-                import_source=import_source_string,
-            )
-        )
-    else:
-        if debug_level > 1:
-            logger.info("ignoring line from csv file: %s - inconclusive appId", app_id)
-        count_skips += 1
+    if not _is_included_owners_match(line, context):
+        return count_skips + 1
+
+    app_id: str = _build_app_id(line, context)
+    if app_id == "":
+        if context.debug_level > 1:
+            context.logger.info("ignoring line from csv file without app_id value")
+        return count_skips + 1
+    if not _has_valid_app_id_prefix(app_id, context):
+        if context.debug_level > 1:
+            context.logger.info("ignoring line from csv file: %s - inconclusive appId", app_id)
+        return count_skips + 1
+
+    criticality: str = _get_criticality(line, context.criticality_column)
+    owner: Owner = _build_owner_from_line(line, app_id, criticality, context)
+    app_list.append(owner)
     return count_skips
 
 
@@ -142,55 +762,105 @@ def extract_app_data_from_csv(
     owner_cls: type[Owner],
     logger: logging.Logger,
     debug_level: int,
-    base_dir: str = ".",
-    recert_active_app_list: list[str] | None = None,
-    column_patterns: dict[str, str] | None = None,
-    valid_app_id_prefixes: list[str] | None = None,
-    csv_separator: str = ",",
+    options: ExtractAppDataCsvOptions | None = None,
+    **legacy_kwargs: Any,
 ) -> None:
-    if recert_active_app_list is None:
-        recert_active_app_list = []
-    if valid_app_id_prefixes is None:
-        valid_app_id_prefixes = DEFAULT_VALID_APP_ID_PREFIXES
+    resolved_options: ExtractAppDataCsvOptions = _resolve_extract_options(options, legacy_kwargs)
+    valid_app_id_prefixes: list[str] = resolved_options.valid_app_id_prefixes or DEFAULT_VALID_APP_ID_PREFIXES
+    recert_active_app_list: list[str] = resolved_options.recert_active_app_list or []
+    normalized_included_owners_filters: dict[str, tuple[str, ...]] | None = resolved_options.included_owners_filters
+    if normalized_included_owners_filters is None and resolved_options.included_owners_column:
+        normalized_included_owners_filters = {
+            resolved_options.included_owners_column: tuple(resolved_options.include_values or [])
+        }
 
-    apps_from_csv: list[list[str]] = []
-    csv_file_path: str = base_dir + "/" + csv_file  # add directory to csv files
+    composite_id_max_lengths: tuple[int, ...] | None = _get_composite_id_max_lengths(resolved_options, csv_file, logger)
+    if (
+        resolved_options.composite_id_fields_max_length is not None
+        and resolved_options.composite_id_fields is not None
+        and composite_id_max_lengths is None
+    ):
+        return
 
-    apps_from_csv, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column = (
-        read_app_data_from_csv(csv_file_path, logger, column_patterns, csv_separator)
+    csv_file_path: str = resolved_options.base_dir + "/" + csv_file  # add directory to csv files
+
+    csv_data: (
+        tuple[
+            list[list[str]],
+            int,
+            int,
+            tuple[int, ...] | None,
+            int,
+            int,
+            int,
+            dict[str, tuple[int, ...]] | None,
+            dict[str, int] | None,
+            tuple[tuple[int, tuple[str, ...]], ...] | None,
+        ]
+        | None
+    ) = read_app_data_from_csv(
+        csv_file_path,
+        logger,
+        resolved_options.column_patterns,
+        normalized_included_owners_filters,
+        resolved_options.csv_separator,
+        resolved_options.composite_id_fields,
+        resolved_options.criticality_column_header,
+        resolved_options.responsibles_columns_headers,
+        resolved_options.additional_information_columns_headers,
+    )
+    if csv_data is None:
+        return
+
+    (
+        apps_from_csv,
+        app_name_column,
+        app_id_column,
+        composite_id_columns,
+        app_owner_kwita_column,
+        owner_lifecycle_state_column,
+        criticality_column,
+        responsibles_columns,
+        additional_information_columns,
+        included_owners_filters,
+    ) = csv_data
+    parser_context: OwnerLineParserContext = OwnerLineParserContext(
+        app_name_column=app_name_column,
+        app_id_column=app_id_column,
+        composite_id_columns=composite_id_columns,
+        composite_id_delimiter=resolved_options.composite_id_fields_delimiter_str,
+        composite_id_max_lengths=composite_id_max_lengths,
+        app_owner_kwita_column=app_owner_kwita_column,
+        owner_lifecycle_state_column=owner_lifecycle_state_column,
+        fallback_owner_lifecycle=resolved_options.fallback_owner_lifecycle,
+        criticality_column=criticality_column,
+        criticality_recert_period_mapping=resolved_options.criticality_recert_period_mapping,
+        responsibles_columns=responsibles_columns,
+        additional_information_columns=additional_information_columns,
+        add_users_by_pattern=resolved_options.add_users_by_pattern,
+        included_owners_filters=included_owners_filters,
+        ldap_path=ldap_path,
+        import_source_string=import_source_string,
+        owner_cls=owner_cls,
+        valid_app_id_prefixes=valid_app_id_prefixes,
+        logger=logger,
+        debug_level=debug_level,
     )
 
     count_skips: int = 0
     # append all owners from CSV
     for line in apps_from_csv:
-        count_skips = parse_app_line(
-            line,
-            app_name_column,
-            app_id_column,
-            app_owner_tiso_column,
-            app_owner_kwita_column,
-            app_list,
-            count_skips,
-            ldap_path,
-            import_source_string,
-            owner_cls,
-            valid_app_id_prefixes,
-            logger,
-            debug_level,
-        )
+        count_skips = parse_app_line(line, parser_context, count_skips, app_list)
     if debug_level > 0:
         logger.info("%s: #total lines %s, skipped: %s", csv_file_path, len(apps_from_csv), count_skips)
 
-    if len(recert_active_app_list) > 0:
-        # activate recertification for apps in recert_active_app_list
-        for app in app_list:
-            if app.app_id_external in recert_active_app_list:
-                app.recert_active = True
-                app.days_until_first_recert = (
-                    app.recert_period_days
-                )  # settings initial recertification to standard period of days
-            else:
-                app.recert_active = False
+    recert_active_app_set: set[str] = set(recert_active_app_list)
+    for app in app_list:
+        app.recert_active = resolved_options.default_recert_active_state
+        if app.app_id_external in recert_active_app_set:
+            app.recert_active = True
+            # Set initial recertification to standard period of days.
+            app.days_until_first_recert = app.recert_period_days
 
 
 def read_ip_data_from_csv(
@@ -198,23 +868,27 @@ def read_ip_data_from_csv(
     logger: logging.Logger,
     column_patterns: dict[str, str] | None = None,
     csv_separator: str = ",",
-) -> tuple[list[list[str]], int, int]:
+) -> tuple[list[list[str]], int, int] | None:
     try:
         header_patterns: dict[str, str] = {**DEFAULT_IP_HEADER_PATTERNS, **(column_patterns or {})}
-        with open(csv_filename, newline="", encoding="utf-8") as csv_file:
-            reader = csv.reader(csv_file, delimiter=csv_separator)
-            headers: list[str] = _normalize_headers(next(reader))  # Get header row first
+        all_rows: list[list[str]] = _read_csv_rows_with_fallback_encodings(csv_filename, csv_separator, logger)
+        if len(all_rows) == 0:
+            raise ValueError("csv file is empty")
+        headers: list[str] = _normalize_headers(all_rows[0])  # Get header row first
 
-            app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
-            ip_pattern: re.Pattern[str] = re.compile(header_patterns["ip"], re.IGNORECASE)
+        app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
+        ip_pattern: re.Pattern[str] = re.compile(header_patterns["ip"], re.IGNORECASE)
 
-            app_id_column_no: int = _find_header_index(headers, app_id_pattern, "app_id", csv_filename, logger)
-            ip_column_no: int = _find_header_index(headers, ip_pattern, "ip", csv_filename, logger)
+        app_id_column_no: int = _find_header_index(headers, app_id_pattern, "app_id", csv_filename, logger)
+        ip_column_no: int = _find_header_index(headers, ip_pattern, "ip", csv_filename, logger)
 
-            ip_data: list[list[str]] = list(reader)  # Read remaining rows
+        ip_data: list[list[str]] = all_rows[1:]
+    except ValueError as err:
+        logger.warning("skipping csv file %s because %s", csv_filename, err)
+        return None
     except Exception:
         logger.exception("error while trying to read csv file %s", csv_filename)
-        sys.exit(1)
+        return None
 
     return ip_data, app_id_column_no, ip_column_no
 
@@ -276,7 +950,7 @@ def parse_single_ip_line(
         return 1
 
     app_id: str = line[app_id_column_no]
-    app_id_prefix: str = app_id.split("-")[0].lower() + "-"
+    app_id_prefix: str = app_id.split("-", maxsplit=1)[0].lower() + "-"
     # TODO: deal with apps without prefix'
 
     if len(valid_app_id_prefixes) == 0 or app_id_prefix in valid_app_id_prefixes:
@@ -310,17 +984,20 @@ def extract_ip_data_from_csv(
     if valid_app_id_prefixes is None:
         valid_app_id_prefixes = DEFAULT_VALID_APP_ID_PREFIXES
 
-    ip_data: list[list[str]] = []
     csv_file_path: str = base_dir + "/" + csv_filename  # add directory to csv files
 
-    ip_data, app_id_column_no, ip_column_no = read_ip_data_from_csv(
+    ip_data_result: tuple[list[list[str]], int, int] | None = read_ip_data_from_csv(
         csv_file_path, logger, column_patterns, csv_separator
     )
+    if ip_data_result is None:
+        return
+    ip_data, app_id_column_no, ip_column_no = ip_data_result
 
     count_skips: int = 0
     for line in ip_data:
-        count_skips += parse_single_ip_line(
+        line_skip_count: int = parse_single_ip_line(
             line, app_id_column_no, ip_column_no, app_dict, valid_app_id_prefixes, app_ip_cls, logger, debug_level
         )
+        count_skips += line_skip_count
     if debug_level > 0:
         logger.info("%s: #total lines %s, skipped: %s", csv_file_path, len(ip_data), count_skips)

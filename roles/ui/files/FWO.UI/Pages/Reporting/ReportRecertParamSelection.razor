@@ -4,8 +4,10 @@
 
 <div class="p-3">
     <h5 class="text-left">@(userConfig.GetText("recert_parameter"))</h5>
-    <h7 class="text-left text-white">@(userConfig.GetText("due_within")):</h7>
-    <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="RecertFilter.RecertificationDisplayPeriod" />
+    <div class="form-group" data-toggle="tooltip" title="@(userConfig.PureLine("H1112"))">
+        <h7 class="text-left text-white">@(userConfig.GetText("due_within")):</h7>
+        <input type="number" min="0" max="5000" step="1" class="form-control form-control-sm" @bind="RecertFilter.RecertificationDisplayPeriod" />
+    </div>
     @if(ReportType != ReportType.OwnerRecertification)
     {
         <h7 class="text-left text-white">@(userConfig.GetText("owner"))</h7>
@@ -49,6 +51,9 @@
 @code
 {
     [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
@@ -77,7 +82,26 @@
     {
         try
         {
-            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+            bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
+            bool isReporterViewAll = authenticationStateTask.Result.User.IsInRole(Roles.ReporterViewAll);
+            if (isAdmin || isAuditor || isReporterViewAll)
+            {
+                ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            }
+            else
+            {
+                List<int> readableOwnerIds = userConfig.User.Ownerships
+                    .Concat(userConfig.User.RecertOwnerships)
+                    .Distinct()
+                    .ToList();
+                ownerList = readableOwnerIds.Count == 0
+                    ? []
+                    : await apiConnection.SendQueryAsync<List<FwoOwner>>(
+                        OwnerQueries.getEditableOwners,
+                        new { appIds = readableOwnerIds.ToArray() });
+            }
+
             if(ownerList.Count > 0)
             {
                 ownerList.Add(new(){ Id = AllId, Name = userConfig.GetText("all")});

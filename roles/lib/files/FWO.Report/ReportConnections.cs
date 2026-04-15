@@ -5,7 +5,7 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Report.Filter;
-using FWO.Services;
+using FWO.Services.Modelling;
 using System.Text;
 
 namespace FWO.Report
@@ -120,7 +120,7 @@ namespace FWO.Report
             report.AppendLine($"<td>{connection.Id}</td>");
             if (flags.IsInterface)
             {
-                report.AppendLine($"<td>{connection.IsPublished.ShowAsHtml()}</td>");
+                report.AppendLine($"<td>{userConfig.GetText(connection.InterfacePermission)}</td>");
             }
             if (flags.IsGlobalComSvc)
             {
@@ -197,7 +197,7 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
             if (flags.IsInterface)
             {
-                report.AppendLine($"<th>{userConfig.GetText("published")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("interface_permission")}</th>");
             }
             if (flags.IsGlobalComSvc)
             {

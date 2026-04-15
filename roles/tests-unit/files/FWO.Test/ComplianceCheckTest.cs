@@ -124,7 +124,7 @@ namespace FWO.Test
             AggregateCount count = new AggregateCount();
             count.Aggregate.Count = ComplianceCheck.RulesInCheck!.Count;
             ApiConnection
-                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules)
+                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules, Arg.Any<object>())
                 .Returns(Task.FromResult(count));
 
             // Act
@@ -142,6 +142,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AreRulesCompliant_AllSelectedPoliciesPass_ReturnsTrue()
+        {
+            await SetUpBasic(setupRelevantManagements: true, createPolicy: true, createRules: true, setupNoViolations: true);
+
+            bool compliant = await ComplianceCheck.AreRulesCompliant([1, 2], ComplianceCheck.RulesInCheck!);
+
+            Assert.That(compliant, Is.True);
+        }
+
+        [Test]
+        public async Task AreRulesCompliant_OneSelectedPolicyFails_ReturnsFalse()
+        {
+            await SetUpBasic(setupRelevantManagements: true, createPolicy: true, createRules: true);
+
+            bool compliant = await ComplianceCheck.AreRulesCompliant([1], ComplianceCheck.RulesInCheck!);
+
+            Assert.That(compliant, Is.False);
+        }
+
+        [Test]
         public async Task CheckAll_BasicSetup_CompleteWithLog()
         {
             // Arrange
@@ -151,7 +171,7 @@ namespace FWO.Test
             AggregateCount count = new AggregateCount();
             count.Aggregate.Count = ComplianceCheck.RulesInCheck!.Count;
             ApiConnection
-                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules)
+                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules, Arg.Any<object>())
                 .Returns(Task.FromResult(count));
 
             // Act
@@ -183,7 +203,7 @@ namespace FWO.Test
             AggregateCount count = new AggregateCount();
             count.Aggregate.Count = ComplianceCheck.RulesInCheck!.Count;
             ApiConnection
-                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules)
+                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules, Arg.Any<object>())
                 .Returns(Task.FromResult(count));
 
             // Act

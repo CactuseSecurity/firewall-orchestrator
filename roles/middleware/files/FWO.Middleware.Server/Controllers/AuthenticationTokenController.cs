@@ -159,6 +159,8 @@ namespace FWO.Middleware.Server.Controllers
 
             // Get dn of user
             user.Dn = ldapUser.Dn;
+            Log.WriteInfo(UserAuthentication,
+                $"User {user.Name} authenticated with dn={user.Dn}, selected_ldap=({AuthLoggingHelper.FormatSelectedLdap(ldap)})");
 
             // Get email of user
             user.Email = Ldap.GetEmail(ldapUser);
@@ -167,7 +169,8 @@ namespace FWO.Middleware.Server.Controllers
 
             // Get groups of user
             user.Groups = await GetGroups(ldapUser, ldap);
-            Log.WriteDebug("Get Groups", $"Found groups for user: {string.Join("; ", user.Groups)}");
+            Log.WriteInfo(UserAuthentication,
+                $"Resolved groups for user dn={user.Dn}: {AuthLoggingHelper.FormatResolvedGroups(user.Groups)}");
 
             // Get roles of user
             user.Roles = await GetRoles(user);
@@ -185,7 +188,14 @@ namespace FWO.Middleware.Server.Controllers
 
         public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
         {
-            List<string> userGroups = ldap.GetGroups(ldapUser);
+            HashSet<string> userGroups = new(StringComparer.OrdinalIgnoreCase);
+            userGroups.UnionWith(ldap.GetGroups(ldapUser));
+            if (userGroups.Count == 0)
+            {
+                string? groupPath = !string.IsNullOrWhiteSpace(ldap.GroupSearchPath) ? ldap.GroupSearchPath : ldap.GroupWritePath;
+                List<string> groupNames = await ldap.GetGroups([ldapUser.Dn]);
+                userGroups.UnionWith(Ldap.BuildGroupDns(groupNames, groupPath));
+            }
             if (!ldap.IsInternal())
             {
                 object groupsLock = new();
@@ -199,14 +209,14 @@ namespace FWO.Middleware.Server.Controllers
                         List<string> currentGroups = await currentLdap.GetGroups([ldapUser.Dn]);
                         lock (groupsLock)
                         {
-                            currentGroups = Array.ConvertAll(currentGroups.ToArray(), x => "cn=" + x + "," + currentLdap.GroupSearchPath).ToList();
-                            userGroups.AddRange(currentGroups);
+                            string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath) ? currentLdap.GroupSearchPath : currentLdap.GroupWritePath;
+                            userGroups.UnionWith(Ldap.BuildGroupDns(currentGroups, groupPath));
                         }
                     }));
                 }
                 await Task.WhenAll(ldapRoleRequests);
             }
-            return userGroups;
+            return userGroups.ToList();
         }
 
         public async Task<(LdapEntry, Ldap)> AuthenticateInAnyLdap(UiUser user, bool validatePassword)
@@ -233,43 +243,34 @@ namespace FWO.Middleware.Server.Controllers
 
         private async Task<(LdapEntry?, Ldap?)> TryLoginAnywhere(UiUser user, bool validatePassword)
         {
-            LdapEntry? ldapEntry = null;
-            Ldap? ldap = null;
-            List<Task> ldapValidationRequests = [];
-            object dnLock = new();
-            bool ldapFound = false;
-
-            foreach (Ldap currentLdap in ldaps.Where(x => x.Active))
+            List<Ldap> activeLdaps = ldaps.Where(x => x.Active).ToList();
+            if (activeLdaps.Count == 0)
             {
+                return (null, null);
+            }
+
+            (LdapEntry? Entry, Ldap? Ldap)[] ldapResults = new (LdapEntry?, Ldap?)[activeLdaps.Count];
+            List<Task> ldapValidationRequests = [];
+
+            for (int ldapIndex = 0; ldapIndex < activeLdaps.Count; ldapIndex++)
+            {
+                int currentIndex = ldapIndex;
+                Ldap currentLdap = activeLdaps[currentIndex];
                 ldapValidationRequests.Add(Task.Run(async () =>
                 {
                     Log.WriteDebug(UserAuthentication, $"Trying to authenticate {user.Name + " " + user.Dn} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
-
                     LdapEntry? currentLdapEntry = await TryLogin(currentLdap, user, validatePassword);
-                    if (currentLdapEntry != null)
-                    {
-                        lock (dnLock)
-                        {
-                            if (!ldapFound)
-                            {
-                                ldapEntry = currentLdapEntry;
-                                ldap = currentLdap;
-                                ldapFound = true;
-                            }
-                        }
-                    }
+                    ldapResults[currentIndex] = (currentLdapEntry, currentLdapEntry != null ? currentLdap : null);
                 }));
             }
 
-            while (ldapValidationRequests.Count > 0) // NOSONAR: requests list is drained in loop
-            {
-                Task finishedDnRequest = await Task.WhenAny(ldapValidationRequests);
+            await Task.WhenAll(ldapValidationRequests);
 
-                if (ldapEntry != null && ldap != null)
-                {
-                    return (ldapEntry, ldap);
-                }
-                ldapValidationRequests.Remove(finishedDnRequest);
+            int preferredLdapIndex = AuthLdapSelection.GetPreferredLdapIndex(
+                ldapResults.Select(result => result.Entry != null).ToList());
+            if (preferredLdapIndex >= 0)
+            {
+                return ldapResults[preferredLdapIndex];
             }
             return (null, null);
         }

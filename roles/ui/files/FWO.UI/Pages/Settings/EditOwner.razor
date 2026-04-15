@@ -1,0 +1,907 @@
+
+@using System
+@using System.Linq
+@using FWO.Basics
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using FWO.Data
+@using FWO.Data.Middleware
+@using FWO.Logging
+@using FWO.Middleware.Client
+@using FWO.Recert
+@using FWO.Services
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@using Newtonsoft.Json
+@using RestSharp
+@using System.Net
+@using System.Text.RegularExpressions
+@using System.Text.Json.Serialization
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+@inject MiddlewareClient middlewareClient
+@inject IEventMediator EventMediator
+
+<PopUp Title="@(userConfig.GetText(Readonly ? "owner" : "edit_owner"))" Show="@Display" Size=PopupSize.XLarge OnClose="ClosePopup">
+    <Body>
+        @if (Display)
+        {
+            <div class="col-sm-12">
+                <div class="form-group row me-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-9 col-form-label col-form-label-sm">@(ActOwner.Id)</label>
+                </div>
+                <div class="form-group row me-2 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5582"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    @if(Readonly)
+                    {
+                        <label class="col-sm-9 col-form-label col-form-label-sm">@ActOwner.Name</label>
+                    }
+                    else
+                    {
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control form-control-sm" @bind="ActOwner.Name" />
+                        </div>
+                    }
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5664"))">@(userConfig.GetText("owner_lc_state")):</label>
+                    @if (Readonly)
+                    {
+                        <label class="col-sm-5">@(OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ActOwner.OwnerLifeCycleStateId)?.Display(userConfig.GetText("inactive")) ?? "")</label>
+                    }
+                    else
+                    {
+                        <div class="col-sm-5">
+                            <Dropdown ElementType="OwnerLifeCycleState" ElementToString="@(state => state.Display(userConfig.GetText("inactive")))" @bind-SelectedElement="SelectedOwnerLifeCycleState" Elements="OwnerLifeCycleStates" Nullable="true">
+                                <ElementTemplate Context="lifecycleState">
+                                    @lifecycleState.Display(userConfig.GetText("inactive"))
+                                </ElementTemplate>
+                            </Dropdown>
+                        </div>
+                    }
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("criticality")):</label>
+                    <div class="col-sm-5">
+                        @if(Readonly)
+                        {
+                            <label>@ActOwner.Criticality</label>
+                        }
+                        else
+                        {
+                            <input type="text" class="form-control form-control-sm" @bind="ActOwner.Criticality" />
+                        }
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5672"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("additional_info")):</label>
+                    <div class="col-sm-9">
+                        @if (Readonly)
+                        {
+                            <pre class="form-control-plaintext small mb-0">@AdditionalInfoJson</pre>
+                        }
+                        else
+                        {
+                            <textarea class="form-control form-control-sm font-monospace" rows="8" @bind="AdditionalInfoJson"></textarea>
+                        }
+                    </div>
+                </div>
+                @foreach (OwnerResponsibleType type in OwnerResponsibleTypes)
+                {
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(GetResponsibleTypeTooltip(type))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@GetResponsibleTypeEditLabel(type):</label>
+                        @if(Readonly)
+                        {
+                            <label class="col-sm-9 me-auto">@FormatOwnerResponsibles(ActOwner.GetOwnerResponsiblesByType(type.Id))</label>
+                        }
+                        else
+                        {
+                            <div class="col-sm-9">
+                                <div class="d-flex gap-1">
+                                    <input type="text" class="col-sm-9" @bind="NewOwnerResponsibleDnByType[type.Id]" disabled="@(!type.Active)" />
+                                    <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="() => AddOwnerResponsible(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                                    <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="() => SearchUser(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "search", Icons.Search, "user"))</button>
+                                    <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="() => SearchGroup(type.Id)" disabled="@(!type.Active)">@(DisplayService.DisplayButton(userConfig, "search", Icons.Search, "group"))</button>
+                                </div>
+                                <div class="mt-1">
+                                    @foreach (string dn in ActOwner.GetOwnerResponsiblesByType(type.Id))
+                                    {
+                                        <div class="d-flex align-items-center gap-2">
+                                            <small>@dn</small>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => ActOwner.RemoveOwnerResponsible(type.Id, dn)">@(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5585"))">@(userConfig.GetText("tenant")):</label>
+                    @if(Readonly)
+                    {
+                        <label class="col-sm-5">@(ActOwner.TenantId != null ? Tenants.FirstOrDefault(x => x.Id == ActOwner.TenantId)?.Name ?? "" : "" )</label>
+                    }
+                    else
+                    {
+                        <div class="col-sm-5">
+                            <Dropdown ElementType="Tenant" ElementToString="@(t => t.Name)" @bind-SelectedElement="SelectedTenant" Elements="Tenants" Nullable="true">
+                                <ElementTemplate Context="tenant">
+                                    @tenant.Name
+                                </ElementTemplate>
+                            </Dropdown>
+                        </div>
+                    }
+                    <div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591"))">
+                        @if(Readonly && userConfig.AllowManualOwnerAdmin)
+                        {
+                            <input id="cbx_comm_svc_possible" disabled class="form-check-input" type="checkbox" @bind="ActOwner.CommSvcPossible">
+                        }
+                        else
+                        {
+                            <input id="cbx_comm_svc_possible" class="form-check-input" type="checkbox" @bind="ActOwner.CommSvcPossible">
+                        }
+                        <label for="cbx_comm_svc_possible" class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5586"))">@(userConfig.GetText("ext_app_id")):</label>
+                    <div class="col-sm-5">
+                        @if(Readonly)
+                        {
+                            <label>@ActOwner.ExtAppId</label>
+                        }
+                        else
+                        {
+                            <input type="text" class="form-control form-control-sm" @bind="ActOwner.ExtAppId" />
+                        }
+                    </div>
+                    <label class="col-sm-2 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5592"))">@(userConfig.GetText("import_source")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(ActOwner.ImportSource)</label>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5587"))">
+                    <div class="col-sm-6">
+                        <div class="form-group row">
+                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("recert_interval")):</label>
+                            <div class="col-sm-6">
+                                @if(Readonly)
+                                {
+                                    <label>@ActOwner.RecertInterval</label>
+                                }
+                                else
+                                {
+                                    <input type="text" class="form-control form-control-sm" @bind="ActOwner.RecertInterval" />
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591a"))">
+                        @if(Readonly)
+                        {
+                            <input id="cbx_recert_activated" disabled class="form-check-input" type="checkbox" @bind="ActOwner.RecertActive">
+                        }
+                        else
+                        {
+                            <input id="cbx_recert_activated" class="form-check-input" type="checkbox" @bind="ActOwner.RecertActive">
+                        }
+                        <label for="cbx_recert_activated" class="form-check-label"><small>@(userConfig.GetText("recert_activated"))</small></label>
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5588"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("recert_check_every")):</label>
+                    <div class="form-group row col-sm-9">
+                        <div class="col-sm-2">
+                            @if(Readonly)
+                            {
+                                <label>@ActRecCheckParams.RecertCheckOffset</label>
+                            }
+                            else
+                            {
+                                <input type="number" min="1" class="form-control form-control-sm" @bind="ActRecCheckParams.RecertCheckOffset" />
+                            }
+                        </div>
+                        <div class="col-sm-4">
+                            @if(Readonly)
+                            {
+                                <label>@userConfig.GetText(ActRecCheckParams.RecertCheckInterval.ToString())</label>
+                            }
+                            else
+                            {
+                                <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="ActRecCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                          Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
+                                    <ElementTemplate Context="interval">
+                                        @(userConfig.GetText(interval.ToString()))
+                                    </ElementTemplate>
+                                </Dropdown>
+                            }
+                        </div>
+                        @if(ActRecCheckParams.RecertCheckInterval == SchedulerInterval.Weeks)
+                        {
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                            <div class="col-sm-4">
+                                @if(Readonly)
+                                {
+                                    <label>@userConfig.GetText(((DayOfWeek?)ActRecCheckParams.RecertCheckWeekday)?.ToString() ?? "undefined")</label>
+                                }
+                                else
+                                {
+                                    <Dropdown ElementType="DayOfWeek?" ElementToString="@(d => userConfig.GetText(d?.ToString() ?? "undefined"))" @bind-SelectedElement="SelectedDayOfWeek" Elements="Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek?>()" Nullable="true">
+                                        <ElementTemplate Context="weekday">
+                                            @(weekday != null ? userConfig.GetText(weekday.ToString() ?? "undefined") : "-")
+                                        </ElementTemplate>
+                                    </Dropdown>
+                                }
+                            </div>
+                        }
+                        else if(ActRecCheckParams.RecertCheckInterval == SchedulerInterval.Months)
+                        {
+                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("each_on")):</label>
+                            <div class="col-sm-4">
+                                @if(Readonly)
+                                {
+                                    <label>@ActRecCheckParams.RecertCheckDayOfMonth</label>
+                                }
+                                else
+                                {
+                                    <input type="number" min="0" max ="31" class="form-control form-control-sm" @bind="ActRecCheckParams.RecertCheckDayOfMonth" />
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                @if (!ActOwner.IsDefault)
+                {
+                    <div class="col-sm-12 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5589"))">
+                        <RuleSelector SelectedRules="ActRules" @bind-RulesToAdd="RulesToAdd" @bind-RulesToDelete="RulesToDelete" Readonly="Readonly"/>
+                    </div>
+                    <div class="col-sm-12 mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5590"))">
+                        <IpSelector IpAddresses="ActIpAddresses" @bind-IpsToAdd="IpsToAdd" @bind-IpsToDelete="IpsToDelete" Readonly="Readonly"/>
+                    </div>
+                }
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if(!Readonly || !userConfig.AllowManualOwnerAdmin)
+            {
+                <AuthorizeView Roles="@Roles.Admin">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="HandleSave">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                    </NotAuthorized>
+                </AuthorizeView>
+            }
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="HandleCancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<SearchUser @bind-Display="SearchMode" AddUser="AddUser" AddGroup="AddGroup" UserSearchMode="UserSearchMode" GroupSearchMode="@(!UserSearchMode)" Title="@(ActOwner.Name)" OwnerGroupsOnly="true"/>
+
+@code {
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public bool Readonly { get; set; }
+    [Parameter] public required FwoOwner ActOwner { get; set; }
+    [Parameter] public required List<OwnerResponsibleType> OwnerResponsibleTypes { get; set; }
+    [Parameter] public required List<Tenant> Tenants { get; set; }
+    [Parameter] public required List<OwnerLifeCycleState> OwnerLifeCycleStates { get; set; }
+    [Parameter] public required List<FwoOwner> ExistingOwners { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private bool SearchMode { get; set; }
+    private bool UserSearchMode { get; set; }
+    private int SearchResponsibleTypeId { get; set; } = GlobalConst.kOwnerResponsibleTypeMain;
+    private bool RecertActiveBefore { get; set; }
+    private bool DisplayWasOpen { get; set; }
+    private FwoOwner? LoadedOwnerRef;
+    private int? OriginalOwnerLifeCycleStateId { get; set; }
+    private HashSet<string> OriginalOwnedIpKeys = new(StringComparer.OrdinalIgnoreCase);
+
+    private Dictionary<int, string> NewOwnerResponsibleDnByType = [];
+    private string AdditionalInfoJson = "";
+    private Tenant? SelectedTenant;
+    private OwnerLifeCycleState? SelectedOwnerLifeCycleState;
+    private DayOfWeek? SelectedDayOfWeek;
+    private RecertCheckParams ActRecCheckParams = new();
+    private List<NwObjectElement> ActIpAddresses = [];
+    private List<NwObjectElement> IpsToAdd = [];
+    private List<NwObjectElement> IpsToDelete = [];
+    private List<Rule> ActRules = [];
+    private List<Rule> RulesToAdd = [];
+    private List<Rule> RulesToDelete = [];
+
+    private Dictionary<string, string> RoleDnByName = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, HashSet<string>> RoleUsersByName = new(StringComparer.OrdinalIgnoreCase);
+
+    private class RuleHelper : Rule
+    {
+        [JsonProperty("rule_metadata_id"), JsonPropertyName("rule_metadata_id")]
+        public long MetadataId { get; set; }
+
+        public Rule ToRule()
+        {
+            return new Rule(this) { Metadata = new() { Id = this.MetadataId } };
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Display)
+        {
+            DisplayWasOpen = false;
+            return;
+        }
+
+        if (DisplayWasOpen && ReferenceEquals(LoadedOwnerRef, ActOwner))
+        {
+            return;
+        }
+
+        DisplayWasOpen = true;
+        LoadedOwnerRef = ActOwner;
+
+        ActOwner.OwnerResponsibles ??= [];
+        RecertActiveBefore = ActOwner.RecertActive;
+        OriginalOwnerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId;
+
+        NewOwnerResponsibleDnByType = OwnerResponsibleTypes.ToDictionary(type => type.Id, _ => "");
+        AdditionalInfoJson = OwnerAdditionalInfoJson.Serialize(ActOwner.AdditionalInfo);
+        SelectedTenant = Tenants.FirstOrDefault(x => x.Id == ActOwner.TenantId);
+        SelectedOwnerLifeCycleState = OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ActOwner.OwnerLifeCycleStateId);
+        ActRecCheckParams = (ActOwner.RecertCheckParamString != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(ActOwner.RecertCheckParamString) ?? new RecertCheckParams() : new RecertCheckParams());
+        SelectedDayOfWeek = (DayOfWeek?)ActRecCheckParams.RecertCheckWeekday;
+
+        if (ActOwner.Id <= 0)
+        {
+            ActIpAddresses = [];
+            ActRules = [];
+        }
+        else
+        {
+            ActIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(OwnerQueries.getNetworkOwnerships, new { ownerId = ActOwner.Id });
+            ActRules = (await apiConnection.SendQueryAsync<List<RuleHelper>>(OwnerQueries.getRuleOwnerships, new { ownerId = ActOwner.Id })).ConvertAll(r => r.ToRule());
+        }
+        OriginalOwnedIpKeys = BuildOwnedIpKeys(ActIpAddresses);
+
+        IpsToAdd = [];
+        IpsToDelete = [];
+        RulesToAdd = [];
+        RulesToDelete = [];
+        SearchMode = false;
+    }
+
+    private void ClosePopup()
+    {
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            PrepareOwnerForSave();
+            if (!TryParseAdditionalInfo())
+            {
+                return;
+            }
+            if (ActOwner.Sanitize())
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("U0001"), true);
+            }
+            if (!CheckValues())
+            {
+                return;
+            }
+
+            bool addOwnerMode = ActOwner.Id <= 0;
+            if (addOwnerMode)
+            {
+                await AddOwnerInDb();
+            }
+            else
+            {
+                await UpdateOwnerInDb();
+            }
+
+            if (ActOwner.RecertActive && !RecertActiveBefore)
+            {
+                RecertHandler recertHandler = new(apiConnection, userConfig);
+                await recertHandler.InitOwnerRecert(ActOwner);
+            }
+
+            await ReinitializeRuleOwnerMappingIfNeeded();
+
+            await OnSaved.InvokeAsync();
+            await DisplayChanged.InvokeAsync(false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_owner"), "", true);
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+        await DisplayChanged.InvokeAsync(false);
+    }
+
+    private void PrepareOwnerForSave()
+    {
+        ActOwner.TenantId = SelectedTenant?.Id;
+        ActOwner.OwnerLifeCycleStateId = SelectedOwnerLifeCycleState?.Id;
+        if (ActRecCheckParams.RecertCheckDayOfMonth == 0)
+        {
+            ActRecCheckParams.RecertCheckDayOfMonth = null;
+        }
+        ActRecCheckParams.RecertCheckWeekday = (int?)SelectedDayOfWeek;
+        ActOwner.RecertCheckParamString = System.Text.Json.JsonSerializer.Serialize(ActRecCheckParams);
+    }
+
+    private bool TryParseAdditionalInfo()
+    {
+        if (OwnerAdditionalInfoJson.TryDeserialize(AdditionalInfoJson, out Dictionary<string, string>? additionalInfo))
+        {
+            ActOwner.AdditionalInfo = additionalInfo;
+            AdditionalInfoJson = OwnerAdditionalInfoJson.Serialize(additionalInfo);
+            return true;
+        }
+
+        DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5296"), true);
+        return false;
+    }
+
+    private void SearchUser(int responsibleTypeId)
+    {
+        SearchResponsibleTypeId = responsibleTypeId;
+        UserSearchMode = true;
+        SearchMode = true;
+    }
+
+    private void SearchGroup(int responsibleTypeId)
+    {
+        SearchResponsibleTypeId = responsibleTypeId;
+        UserSearchMode = false;
+        SearchMode = true;
+    }
+
+    private async Task AddUser(UiUser user)
+    {
+        ActOwner.AddOwnerResponsible(SearchResponsibleTypeId, user.Dn);
+        await DefaultInit.DoNothing();
+    }
+
+    private async Task AddGroup(string groupDn)
+    {
+        ActOwner.AddOwnerResponsible(SearchResponsibleTypeId, groupDn);
+        await DefaultInit.DoNothing();
+    }
+
+    private void AddOwnerResponsible(int typeId)
+    {
+        if (!NewOwnerResponsibleDnByType.TryGetValue(typeId, out string? dn) || string.IsNullOrWhiteSpace(dn))
+        {
+            return;
+        }
+        ActOwner.AddOwnerResponsible(typeId, dn);
+        NewOwnerResponsibleDnByType[typeId] = "";
+    }
+
+    private static string FormatOwnerResponsibles(IEnumerable<string> dns)
+    {
+        List<string> formatted = [];
+        foreach (string dn in dns.Where(dn => !string.IsNullOrWhiteSpace(dn)))
+        {
+            DistName distName = new(dn);
+            string display = !string.IsNullOrWhiteSpace(distName.UserName) ? distName.UserName : distName.Group;
+            formatted.Add(string.IsNullOrWhiteSpace(display) ? dn : display);
+        }
+        return string.Join(", ", formatted);
+    }
+
+    private static string NormalizeDnForRoleComparison(string? dn)
+    {
+        if (string.IsNullOrWhiteSpace(dn))
+        {
+            return "";
+        }
+
+        return Regex.Replace(dn.Trim(), @"\\2c", "\\,", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    }
+
+    private string GetResponsibleTypeDisplayName(OwnerResponsibleType type)
+    {
+        string label = type.Name;
+        if (!type.Active)
+        {
+            label += $" ({userConfig.GetText("inactive")})";
+        }
+        return label;
+    }
+
+    private string GetResponsibleTypeEditLabel(OwnerResponsibleType type)
+    {
+        string label = GetResponsibleTypeDisplayName(type);
+        if (IsRequiredResponsibleType(type))
+        {
+            label += "*";
+        }
+        return label;
+    }
+
+    private string GetResponsibleTypeTooltip(OwnerResponsibleType type)
+    {
+        if (type.Id == GlobalConst.kOwnerResponsibleTypeMain)
+        {
+            return userConfig.PureLine("H5583");
+        }
+        if (type.Id == GlobalConst.kOwnerResponsibleTypeSupporting)
+        {
+            return userConfig.PureLine("H5584");
+        }
+        return "";
+    }
+
+    private static bool IsRequiredResponsibleType(OwnerResponsibleType type)
+    {
+        return type.Id == GlobalConst.kOwnerResponsibleTypeMain
+            || type.Id == GlobalConst.kOwnerResponsibleTypeSupporting;
+    }
+
+    private bool CheckValues()
+    {
+        if (string.IsNullOrWhiteSpace(ActOwner.Name))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if (ActOwner.Id <= 0 && ExistingOwners.Exists(x => x.Name == ActOwner.Name))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5235"), true);
+            return false;
+        }
+        if (ActOwner.GetAllOwnerResponsibles().Count == 0)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5292"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private async Task AddOwnerInDb()
+    {
+        var variables = new
+        {
+            name = ActOwner.Name,
+            tenantId = ActOwner.TenantId,
+            recertInterval = ActOwner.RecertInterval,
+            appIdExternal = string.IsNullOrEmpty(ActOwner.ExtAppId) ? null : ActOwner.ExtAppId,
+            recertCheckParams = ActOwner.RecertCheckParamString,
+            additionalInfo = ActOwner.AdditionalInfo,
+            criticality = string.IsNullOrWhiteSpace(ActOwner.Criticality) ? null : ActOwner.Criticality,
+            commSvcPossible = ActOwner.CommSvcPossible,
+            recertActive = ActOwner.RecertActive,
+            ownerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId,
+            decommDate = ActOwner.DecommDate
+        };
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
+        if (returnIds == null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5291"), true);
+            return;
+        }
+
+        ActOwner.Id = returnIds[0].NewId;
+        await UpdateOwnerResponsiblesInDb(ActOwner);
+        await EnsureOwnerResponsibleRolesFromConfig(ActOwner);
+        await AddRuleOwners();
+        await AddNetworkOwners();
+        ExistingOwners.Add(ActOwner);
+
+        Log.WriteAudit(
+            Title: "Owners Settings",
+            Text: $"Added Owner: {ActOwner.Name} (Responsibles: {FormatOwnerResponsibles(ActOwner.GetAllOwnerResponsibles())})",
+            UserName: userConfig.User.Name,
+            UserDN: userConfig.User.Dn);
+    }
+
+    private async Task UpdateOwnerInDb()
+    {
+        DateTime? decommDate = GetDecommDateAfterLifecycleChange();
+        var variables = new
+        {
+            id = ActOwner.Id,
+            name = ActOwner.Name,
+            tenantId = ActOwner.TenantId,
+            recertInterval = ActOwner.RecertInterval,
+            appIdExternal = string.IsNullOrEmpty(ActOwner.ExtAppId) ? null : ActOwner.ExtAppId,
+            recertCheckParams = ActOwner.RecertCheckParamString,
+            additionalInfo = ActOwner.AdditionalInfo,
+            criticality = string.IsNullOrWhiteSpace(ActOwner.Criticality) ? null : ActOwner.Criticality,
+            ownerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId,
+            commSvcPossible = ActOwner.CommSvcPossible,
+            recertActive = ActOwner.RecertActive,
+            decommDate
+        };
+        int updatedId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwner, variables)).UpdatedId;
+        if (updatedId != ActOwner.Id)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5291"), true);
+            return;
+        }
+
+        ActOwner.DecommDate = decommDate;
+        await UpdateOwnerResponsiblesInDb(ActOwner);
+        await EnsureOwnerResponsibleRolesFromConfig(ActOwner);
+        await DeleteRuleOwners();
+        await AddRuleOwners();
+        await DeleteNetworkOwners();
+        await AddNetworkOwners();
+        ExistingOwners[ExistingOwners.FindIndex(x => x.Id == ActOwner.Id)] = ActOwner;
+
+        Log.WriteAudit(
+            Title: "Owners Settings",
+            Text: $"Edited Owner: {ActOwner.Name} (Responsibles: {FormatOwnerResponsibles(ActOwner.GetAllOwnerResponsibles())})",
+            UserName: userConfig.User.Name,
+            UserDN: userConfig.User.Dn);
+    }
+
+    private async Task UpdateOwnerResponsiblesInDb(FwoOwner owner)
+    {
+        await apiConnection.SendQueryAsync<object>(OwnerQueries.deleteOwnerResponsibles, new { ownerId = owner.Id });
+        List<OwnerResponsible> responsibles = owner.OwnerResponsibles ?? [];
+        if (responsibles.Count == 0)
+        {
+            return;
+        }
+
+        var objects = responsibles.ConvertAll(responsible => new
+        {
+            owner_id = owner.Id,
+            dn = responsible.Dn,
+            responsible_type = responsible.ResponsibleTypeId
+        });
+        await apiConnection.SendQueryAsync<object>(OwnerQueries.newOwnerResponsibles, new { responsibles = objects });
+    }
+
+    private async Task EnsureRoleCachesLoaded()
+    {
+        if (RoleDnByName.Count > 0 && RoleUsersByName.Count > 0)
+        {
+            return;
+        }
+        List<Role> roles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
+        RoleDnByName = roles
+            .Where(r => !string.IsNullOrWhiteSpace(r.Name) && !string.IsNullOrWhiteSpace(r.Dn))
+            .ToDictionary(r => r.Name, r => r.Dn, StringComparer.OrdinalIgnoreCase);
+        RoleUsersByName = roles.ToDictionary(
+            r => r.Name,
+            r => new HashSet<string>(r.Users.Select(u => NormalizeDnForRoleComparison(u.Dn)), StringComparer.OrdinalIgnoreCase),
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task EnsureOwnerResponsibleRolesFromConfig(FwoOwner owner)
+    {
+        await EnsureRoleCachesLoaded();
+        List<ConfigItem> configResult = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
+            new { key = "rolesWithAppDataImport" });
+        string rolesJson = configResult.Count > 0 ? configResult[0].Value ?? "[]" : "[]";
+        Dictionary<int, List<string>> rolesByType = ParseRolesWithImport(rolesJson);
+        Dictionary<int, OwnerResponsibleType> typeById = OwnerResponsibleTypes.ToDictionary(type => type.Id, type => type);
+
+        foreach (OwnerResponsible responsible in owner.OwnerResponsibles ?? [])
+        {
+            if (!rolesByType.TryGetValue(responsible.ResponsibleTypeId, out List<string>? requiredRoles))
+            {
+                continue;
+            }
+            bool allowModelling = typeById.TryGetValue(responsible.ResponsibleTypeId, out OwnerResponsibleType? type) && type.AllowModelling;
+            bool allowRecertification = typeById.TryGetValue(responsible.ResponsibleTypeId, out type) && type.AllowRecertification;
+            List<string> filteredRoles = OwnerResponsibleRoleHelper.FilterRoles(requiredRoles, allowModelling, allowRecertification);
+            if (filteredRoles.Count == 0)
+            {
+                continue;
+            }
+            foreach (string roleName in filteredRoles)
+            {
+                if (!RoleDnByName.TryGetValue(roleName, out string? roleDn))
+                {
+                    continue;
+                }
+                string normalizedDn = NormalizeDnForRoleComparison(responsible.Dn);
+                if (RoleUsersByName.TryGetValue(roleName, out HashSet<string>? users) && users.Contains(normalizedDn))
+                {
+                    continue;
+                }
+                await AddRoleToLdap(responsible.Dn, roleDn, roleName);
+            }
+        }
+    }
+
+    private async Task AddRoleToLdap(string dn, string roleDn, string roleName)
+    {
+        RoleAddDeleteUserParameters parameters = new() { Role = roleDn, UserDn = dn };
+        RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
+        if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
+            return;
+        }
+        if (!RoleUsersByName.TryGetValue(roleName, out HashSet<string>? users))
+        {
+            users = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            RoleUsersByName[roleName] = users;
+        }
+        users.Add(NormalizeDnForRoleComparison(dn));
+    }
+
+    private static Dictionary<int, List<string>> ParseRolesWithImport(string rolesJson)
+    {
+        Dictionary<int, List<string>> rolesByType = [];
+        if (string.IsNullOrWhiteSpace(rolesJson))
+        {
+            return rolesByType;
+        }
+
+        string trimmed = rolesJson.TrimStart();
+        if (trimmed.StartsWith("["))
+        {
+            List<string> roles = System.Text.Json.JsonSerializer.Deserialize<List<string>>(rolesJson) ?? [];
+            rolesByType[GlobalConst.kOwnerResponsibleTypeSupporting] = roles;
+            return rolesByType;
+        }
+
+        Dictionary<string, List<string>>? parsed = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, List<string>>>(rolesJson);
+        if (parsed != null)
+        {
+            foreach (var entry in parsed)
+            {
+                if (int.TryParse(entry.Key, out int typeId))
+                {
+                    rolesByType[typeId] = entry.Value;
+                }
+            }
+        }
+        return rolesByType;
+    }
+
+    private async Task AddRuleOwners()
+    {
+        foreach (var rule in RulesToAdd)
+        {
+            var variables = new
+            {
+                ownerId = ActOwner.Id,
+                ruleMetadataId = rule.Metadata.Id
+            };
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newRuleOwnership, variables);
+            ActRules.Add(rule);
+        }
+    }
+
+    private async Task DeleteRuleOwners()
+    {
+        foreach (var rule in RulesToDelete)
+        {
+            var variables = new
+            {
+                ownerId = ActOwner.Id,
+                ruleMetadataId = rule.Metadata.Id
+            };
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.deleteRuleOwnership, variables);
+            ActRules.Remove(rule);
+        }
+    }
+
+    private async Task AddNetworkOwners()
+    {
+        foreach (var ipAdd in IpsToAdd)
+        {
+            var variables = new
+            {
+                ownerId = ActOwner.Id,
+                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null),
+                ip_end = (ipAdd.IpEndString != null && ipAdd.Cidr != null && ipAdd.Cidr.Valid && ipAdd.IpEndString != "" ? ipAdd.IpEndString : null)
+            };
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newNetworkOwnership, variables);
+            ActIpAddresses.Add(ipAdd);
+        }
+    }
+
+    private async Task DeleteNetworkOwners()
+    {
+        foreach (var ipDel in IpsToDelete)
+        {
+            var variables = new
+            {
+                ownerId = ActOwner.Id,
+                id = ipDel.ElemId
+            };
+            await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.deleteNetworkOwnership, variables);
+            ActIpAddresses.Remove(ipDel);
+        }
+    }
+
+    private async Task ReinitializeRuleOwnerMappingIfNeeded()
+    {
+        if (!HasRelevantOwnerMappingChanges())
+        {
+            return;
+        }
+
+        TaskCompletionSource<bool> tcs = new();
+        UpdateRuleOwnerMappingEventArgs args = new() { isFullReInitialize = true, Completion = tcs };
+        EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
+
+        bool success = await tcs.Task;
+        if (!success)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("owner_mapping"), userConfig.GetText("E5502"), true);
+        }
+    }
+
+    private bool HasRelevantOwnerMappingChanges()
+    {
+        return HasOwnerLifecycleActivityChanged() || !OriginalOwnedIpKeys.SetEquals(BuildOwnedIpKeys(ActIpAddresses));
+    }
+
+    private bool HasOwnerLifecycleActivityChanged()
+    {
+        if (!TryGetOwnerLifeCycleStateActive(OriginalOwnerLifeCycleStateId, out bool originalActiveState)
+            || !TryGetOwnerLifeCycleStateActive(ActOwner.OwnerLifeCycleStateId, out bool currentActiveState))
+        {
+            return false;
+        }
+
+        return originalActiveState != currentActiveState;
+    }
+
+    private DateTime? GetDecommDateAfterLifecycleChange()
+    {
+        return OwnerLifeCycleState.GetDecommDate(
+            ActOwner.DecommDate,
+            GetOwnerLifeCycleState(OriginalOwnerLifeCycleStateId),
+            GetOwnerLifeCycleState(ActOwner.OwnerLifeCycleStateId),
+            DateTime.UtcNow);
+    }
+
+    private bool TryGetOwnerLifeCycleStateActive(int? ownerLifeCycleStateId, out bool activeState)
+    {
+        OwnerLifeCycleState? state = OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ownerLifeCycleStateId);
+        if (state == null)
+        {
+            activeState = false;
+            return false;
+        }
+
+        activeState = state.ActiveState;
+        return true;
+    }
+
+    private OwnerLifeCycleState? GetOwnerLifeCycleState(int? ownerLifeCycleStateId)
+    {
+        return OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ownerLifeCycleStateId);
+    }
+
+    private static HashSet<string> BuildOwnedIpKeys(IEnumerable<NwObjectElement> ipAddresses)
+    {
+        HashSet<string> keys = new(StringComparer.OrdinalIgnoreCase);
+        foreach (NwObjectElement ipAddress in ipAddresses)
+        {
+            string ip = ipAddress.Cidr?.Valid == true ? ipAddress.IpString : "";
+            string ipEnd = ipAddress.CidrEnd?.Valid == true ? ipAddress.IpEndString : ip;
+            keys.Add($"{ip}|{ipEnd}");
+        }
+        return keys;
+    }
+}

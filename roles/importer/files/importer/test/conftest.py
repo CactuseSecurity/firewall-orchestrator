@@ -6,7 +6,6 @@ from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import (
     ConnectionInfo,
@@ -158,15 +157,7 @@ def service_provider(
     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: group_flats_mapper, Lifetime.IMPORT)
     service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: group_flats_mapper, Lifetime.IMPORT)
     service_provider.register(Services.UID2ID_MAPPER, Uid2IdMapper, Lifetime.IMPORT)
-    service_provider.register(Services.RULE_ORDER_SERVICE, RuleOrderService, Lifetime.IMPORT)
     return service_provider
-
-
-@pytest.fixture
-def rule_order_service(
-    service_provider: ServiceProvider,
-) -> RuleOrderService:
-    return service_provider.get_rule_order_service()
 
 
 @pytest.fixture
@@ -177,9 +168,7 @@ def fwconfig_import_rule_mock() -> FwConfigImportRule:
 
 @pytest.fixture
 def fwconfig_import_rule() -> FwConfigImportRule:
-    fw_config_import_rule = FwConfigImportRule()
-    fw_config_import_rule.create_new_rule_version = unittest.mock.MagicMock()
-    return fw_config_import_rule
+    return FwConfigImportRule()
 
 
 @pytest.fixture

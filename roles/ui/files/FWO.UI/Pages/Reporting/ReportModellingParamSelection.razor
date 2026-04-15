@@ -6,24 +6,31 @@
 <div class="p-3">
     @if(ReportType == ReportType.OwnerRecertification)
     {
-        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1001"))">
-            <input class="form-check-input" id="recertActivated" type="checkbox" @bind="ModellingFilter.RecertActivated" />
-            <label class="form-check-label text-white" for="recertActivated">@(userConfig.GetText("recert_activated"))</label>
-        </div>
         <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1000"))">
             <input class="form-check-input" id="allOwners" type="checkbox" @bind="ModellingFilter.ShowAllOwners" />
             <label class="form-check-label text-white" for="allOwners">@(userConfig.GetText("show_all_owners"))</label>
+        </div>
+        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1002"))">
+            <input class="form-check-input" id="showInactiveRecertOwners" type="checkbox" @bind="ModellingFilter.ShowInactiveRecertOwners" />
+            <label class="form-check-label text-white" for="showInactiveRecertOwners">@(userConfig.GetText("show_inactive_recert_owners"))</label>
         </div>
     }
     else
     {
         <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
-        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
-                SelectedElement="ModellingFilter.SelectedOwner" SelectedElementChanged="OwnerChanged" Elements="ownerList">
-            <ElementTemplate Context="owner">
-                @owner.Display(userConfig.GetText("common_service"))
-            </ElementTemplate>
-        </Dropdown>
+        @if(ownerList.Count == 1)
+        {
+            <label class="col-form-label mb-3 text-white">@((MarkupString)ModellingFilter.SelectedOwner.Display(userConfig.GetText("common_service")))</label>
+        }
+        else
+        {
+            <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
+                    SelectedElement="ModellingFilter.SelectedOwner" SelectedElementChanged="OwnerChanged" Elements="ownerList">
+                <ElementTemplate Context="owner">
+                    @owner.Display(userConfig.GetText("common_service"))
+                </ElementTemplate>
+            </Dropdown>
+        }
     }
     @if(ReportType == ReportType.AppRules)
     {
@@ -127,12 +134,14 @@
     private OwnerRecertification? selectedOwnerRecert;
     private ModellingFilter prevModellingFilter = new();
     private ReportType prevReportType = ReportType.Connections;
+    private bool Initialized = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             ownerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask ?? throw new AuthenticationException("Authentication missing"), userConfig, apiConnection, DisplayMessageInUi);
+            Initialized = true;
         }
         catch (Exception exception)
         {
@@ -142,7 +151,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if(ModellingFilter != prevModellingFilter || ReportType != prevReportType)
+        if(Initialized && (ModellingFilter != prevModellingFilter || ReportType != prevReportType))
         {
             prevModellingFilter = ModellingFilter;
             prevReportType = ReportType;

@@ -49,6 +49,14 @@
     height: 40vh;
 }
 
+.custom-modal-auto {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 60vw;
+}
+
 .custom-modal-sm {
     max-width: 30vw;
     margin-top: 16em;
@@ -83,7 +91,10 @@
 
 .custom-modal-footer {
     background-color: rgba(255, 255, 255, 1);
-    padding: 1em;
+    padding-top: 1em;
+    padding-bottom: 1em;
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
 }
 .modal-content {
     padding: 2em 2em 0 2em;

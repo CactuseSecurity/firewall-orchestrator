@@ -87,6 +87,7 @@ class FwConfigImportCheckConsistency:
         self.check_service_object_consistency(config, global_config, fix_inconsistencies=fix_config)
         self.check_user_object_consistency(config, global_config, fix_unresolvable_refs=fix_config)
         self.check_zone_object_consistency(config, global_config, fix_unresolvable_refs=fix_config)
+        self.check_time_object_consistency(config, global_config)
         self.check_rulebase_consistency(config, fix_inconsistencies=fix_config)
         self.check_gateway_consistency(config)
         self.check_rulebase_link_consistency(config, global_config, fix_inconsistencies=fix_config)
@@ -368,6 +369,21 @@ class FwConfigImportCheckConsistency:
                 if rule.rule_dst_zone is not None:
                     all_used_zones_refs.update(rule.rule_dst_zone.split(fwo_const.LIST_DELIMITER))
         return all_used_zones_refs
+
+    def check_time_object_consistency(self, config: FwConfigNormalized, global_config: FwConfigNormalized | None):
+        all_used_obj_refs = {
+            time_obj_uid
+            for rb in config.rulebases
+            for rule in rb.rules.values()
+            if rule.rule_time is not None
+            for time_obj_uid in rule.rule_time.split(fwo_const.LIST_DELIMITER)
+        }
+        all_time_object_uids = set(config.time_objects.keys())
+        if global_config is not None:
+            all_time_object_uids |= set(global_config.time_objects.keys())
+        unresolvable_object_refs = all_used_obj_refs - all_time_object_uids
+        if unresolvable_object_refs:
+            self.issues.update({"unresolvableTimeObjRefs": list(unresolvable_object_refs)})
 
     # check if all color refs are valid (in the DB)
     # fix=True means that missing color refs will be replaced by the default color (black)

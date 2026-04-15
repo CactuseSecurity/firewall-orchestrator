@@ -58,6 +58,7 @@ namespace FWO.Test
                     interfaces = [ new()
                     {
                         Name = "Interf1",
+                        InterfacePermission = InterfacePermissions.Public.ToString(),
                         SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }],
                         SourceOtherGroups = [new(){ Content = new(){ Name = "NwGroup1" } }],
                         ServiceGroups = [new(){ Content = new(){ Name = "ServiceGrp1" } }]
@@ -68,9 +69,72 @@ namespace FWO.Test
                     interfaces = [ new()
                     {
                         Name = "Interf2",
+                        InterfacePermission = InterfacePermissions.Public.ToString(),
                         DestinationAppServers = [new(){ Content = new(){ Name = "AppServer2" } }],
                         DestinationAppRoles = [new(){ Content = new(){ Name = "AppRole2" } }],
                         Services = [new(){ Content = new(){ Name = "Service2" } }]
+                    }];
+                }
+                else if (intId == "3")
+                {
+                    interfaces = [ new()
+                    {
+                        Name = "Interf3",
+                        InterfacePermission = InterfacePermissions.Restricted.ToString(),
+                        PermittedOwnerWrappers = [new() { Owner = new() { Id = 1 } }],
+                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
+                    }];
+                }
+                else if (intId == "4")
+                {
+                    interfaces = [ new()
+                    {
+                        Name = "Interf4",
+                        InterfacePermission = InterfacePermissions.Restricted.ToString(),
+                        PermittedOwnerWrappers = [new() { Owner = new() { Id = 2 } }],
+                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
+                    }];
+                }
+                else if (intId == "5")
+                {
+                    interfaces = [ new()
+                    {
+                        Name = "Interf5",
+                        InterfacePermission = InterfacePermissions.Private.ToString(),
+                        AppId = 1,
+                        PermittedOwnerWrappers = [new() { Owner = new() { Id = 1 } }],
+                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
+                    }];
+                }
+                else if (intId == "6")
+                {
+                    interfaces = [ new()
+                    {
+                        Name = "Interf6",
+                        InterfacePermission = InterfacePermissions.Public.ToString(),
+                        PermittedOwnerWrappers = [],
+                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
+                    }];
+                }
+                else if (intId == "7")
+                {
+                    interfaces = [ new()
+                    {
+                        Name = "Interf7",
+                        InterfacePermission = InterfacePermissions.Private.ToString(),
+                        AppId = 2,
+                        PermittedOwnerWrappers = [new() { Owner = new() { Id = 1 } }],
+                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
+                    }];
+                }
+                else if (intId == "8")
+                {
+                    interfaces = [ new()
+                    {
+                        Name = "Interf8",
+                        InterfacePermission = "Unknown",
+                        AppId = 2,
+                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
                     }];
                 }
 

@@ -1,5 +1,6 @@
 from copy import deepcopy
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, cast
 
 import fwo_const
 from fw_modules.fortiadom5ff import fmgr_getter
@@ -18,6 +19,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.import_state import ImportState
 from models.management import Management
+from models.time_object import TimeObject
 from utils.conversion_utils import convert_list_to_dict
 
 
@@ -38,89 +40,7 @@ def get_config(
         parsing_config_only = True
 
     if not parsing_config_only:  # no native config was passed in, so getting it from FortiManager
-        sid = get_sid(import_state.state)
-        limit = import_state.state.fwo_config.api_fetch_size
-        fm_api_url = import_state.state.mgm_details.build_fw_api_string()
-        native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
-        config_in.native_config["domains"].append(native_config_global)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
-        adom_list = build_adom_list(import_state.state)
-        adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
-        # delete_v: das geht schief für unschöne adoms
-        arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
-        adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(
-            adom_device_vdom_structure, sid, fm_api_url
-        )
-
-        # get global
-        get_objects(
-            sid,
-            fm_api_url,
-            native_config_global,
-            native_config_global,
-            "",
-            limit,
-            nw_obj_types,
-            svc_obj_types,
-            "global",
-            arbitrary_vdom_for_updateable_objects,
-        )
-        get_zones(sid, fm_api_url, native_config_global, "", limit)
-
-        for adom in adom_list:
-            adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM config import")
-            native_config_adom = initialize_native_config_domain(adom)
-            config_in.native_config["domains"].append(native_config_adom)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
-
-            adom_scope = "adom/" + adom_name
-            get_objects(
-                sid,
-                fm_api_url,
-                native_config_adom,
-                native_config_global,
-                adom_name,
-                limit,
-                nw_obj_types,
-                svc_obj_types,
-                adom_scope,
-                arbitrary_vdom_for_updateable_objects,
-            )
-            # currently reading zone from objects/rules for backward compat with FortiManager 6.x
-            get_zones(sid, fm_api_url, native_config_adom, adom_name, limit)
-
-            # TODO: bring interfaces and routing in new domain native config format
-            # getInterfacesAndRouting(
-            #    sid, fm_api_url, nativeConfig, adom_name, adom.Devices, limit)
-
-            for mgm_details_device in adom.devices:
-                device_config = initialize_device_config(mgm_details_device)
-                native_config_adom["gateways"].append(device_config)
-                get_access_policy(
-                    sid,
-                    fm_api_url,
-                    native_config_adom,
-                    native_config_global,
-                    adom_device_vdom_policy_package_structure,
-                    adom_name,
-                    mgm_details_device,
-                    device_config,
-                    limit,
-                )
-                get_nat_policy(
-                    sid,
-                    fm_api_url,
-                    native_config_adom,
-                    adom_device_vdom_policy_package_structure,
-                    adom_name,
-                    mgm_details_device,
-                    limit,
-                )
-
-        try:  # logout of fortimanager API
-            fmgr_getter.logout(fm_api_url, sid)
-        except Exception:
-            raise FwLogoutFailedError("logout exception probably due to timeout - irrelevant, so ignoring it")
-
-        write_native_config_to_file(import_state.state, config_in.native_config)
+        get_native_config(config_in, import_state)
 
     if not config_in.native_config:
         raise ImportError("native config missing")
@@ -128,6 +48,96 @@ def get_config(
     normalized_managers = normalize_config(config_in.native_config)
     FWOLogger.info("completed getting config")
     return 0, normalized_managers
+
+
+def get_native_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> None:
+    sid = get_sid(import_state.state)
+    limit = import_state.state.fwo_config.api_fetch_size
+    fm_api_url = import_state.state.mgm_details.build_fw_api_string()
+    native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
+    config_in.native_config["domains"].append(native_config_global)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
+    adom_list = build_adom_list(import_state.state)
+    adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url, import_state.state)
+    # delete_v: das geht schief für unschöne adoms
+    arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
+    adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url)
+
+    # get global
+    get_objects(
+        sid,
+        fm_api_url,
+        native_config_global,
+        native_config_global,
+        "",
+        limit,
+        nw_obj_types,
+        svc_obj_types,
+        "global",
+        arbitrary_vdom_for_updateable_objects,
+    )
+    get_zones(sid, fm_api_url, native_config_global, "", limit)
+
+    for adom in adom_list:
+        if adom.import_disabled and not import_state.state.force_import:
+            continue
+        # TODO: check if adom exists on fw and fail gracefully if not (custom exception)
+        adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM config import")
+        native_config_adom = initialize_native_config_domain(adom)
+        config_in.native_config["domains"].append(native_config_adom)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
+
+        adom_scope = "adom/" + adom_name
+        get_objects(
+            sid,
+            fm_api_url,
+            native_config_adom,
+            native_config_global,
+            adom_name,
+            limit,
+            nw_obj_types,
+            svc_obj_types,
+            adom_scope,
+            arbitrary_vdom_for_updateable_objects,
+        )
+        # currently reading zone from objects/rules for backward compat with FortiManager 6.x
+        get_zones(sid, fm_api_url, native_config_adom, adom_name, limit)
+
+        # TODO: bring interfaces and routing in new domain native config format
+        # getInterfacesAndRouting(
+        #    sid, fm_api_url, nativeConfig, adom_name, adom.Devices, limit)
+
+        for mgm_details_device in adom.devices:
+            if mgm_details_device["importDisabled"] and not import_state.state.force_import:
+                continue
+            # TODO: check if device exists on fw inside adom and fail gracefully if not (custom exception)
+            device_config = initialize_device_config(mgm_details_device)
+            native_config_adom["gateways"].append(device_config)
+            get_access_policy(
+                sid,
+                fm_api_url,
+                native_config_adom,
+                native_config_global,
+                adom_device_vdom_policy_package_structure,
+                adom_name,
+                mgm_details_device,
+                device_config,
+                limit,
+            )
+            get_nat_policy(
+                sid,
+                fm_api_url,
+                native_config_adom,
+                adom_device_vdom_policy_package_structure,
+                adom_name,
+                mgm_details_device,
+                limit,
+            )
+
+    try:  # logout of fortimanager API
+        fmgr_getter.logout(fm_api_url, sid)
+    except Exception:
+        raise FwLogoutFailedError("logout exception probably due to timeout - irrelevant, so ignoring it")
+
+    write_native_config_to_file(import_state.state, config_in.native_config)
 
 
 def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
@@ -142,6 +152,7 @@ def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
         "nat_rulebases": [],
         "zones": [],
         "gateways": [],
+        "time_objects": [],
     }
 
 
@@ -181,6 +192,10 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
             is_global_loop_iteration,
         )
 
+        normalized_time_objects = normalized_config_adom.get("time_objects", {})
+        if not isinstance(normalized_time_objects, dict):
+            normalized_time_objects = {}
+
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT,
             network_objects=convert_list_to_dict(normalized_config_adom.get("network_objects", []), "obj_uid"),
@@ -188,6 +203,7 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
             zone_objects=convert_list_to_dict(normalized_config_adom.get("zone_objects", []), "zone_name"),
             rulebases=normalized_config_adom.get("policies", []),
             gateways=normalized_config_adom.get("gateways", []),
+            time_objects=cast("dict[str, TimeObject]", normalized_time_objects),
         )
 
         # TODO: identify the correct manager
@@ -258,6 +274,8 @@ def normalize_single_manager_config(
         is_global_loop_iteration,
     )
     FWOLogger.info("completed normalizing rulebases for manager: " + native_config.get("domain_name", ""))
+    normalize_time_objects(native_config, normalized_config_adom)
+    FWOLogger.info("completed normalizing time objects for manager: " + native_config.get("domain_name", ""))
 
     normalize_gateways(native_config, normalized_config_adom)
 
@@ -270,10 +288,12 @@ def build_adom_list(import_state: ImportState) -> list[Management]:
 
 
 def build_adom_device_vdom_structure(
-    adom_list: list[Management], sid: str, fm_api_url: str
+    adom_list: list[Management], sid: str, fm_api_url: str, import_state: ImportState
 ) -> dict[str, dict[str, dict[str, Any]]]:
     adom_device_vdom_structure: dict[str, dict[str, dict[str, Any]]] = {}
     for adom in adom_list:
+        if adom.import_disabled and not import_state.force_import:
+            continue
         adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM device/vdom mapping")
         adom_device_vdom_structure.update({adom_name: {}})
         if len(adom.devices) > 0:
@@ -442,6 +462,18 @@ def get_objects(
             limit=limit,
         )
 
+    # schedules: /pm/config/adom/root/obj/firewall/schedule/onetime, /pm/config/adom/root/obj/firewall/schedule/recurring, /pm/config/adom/root/obj/firewall/schedule/group
+    # get schedules:
+    for object_type in ["onetime", "recurring", "group"]:
+        fmgr_getter.update_config_with_fortinet_api_call(
+            native_config_domain["time_objects"],
+            sid,
+            fm_api_url,
+            api_base_path + "firewall/schedule/" + object_type,
+            "schedule_obj_" + adom_scope + "_" + "firewall/schedule/" + object_type,
+            limit=limit,
+        )
+
     # get one arbitrary device and vdom to get dynamic objects
     # they are equal across all adoms, vdoms, devices
     if arbitrary_vdom_for_updateable_objects is None:
@@ -505,3 +537,73 @@ def normalize_links(rulebase_links: list[dict[str, Any]]) -> list[dict[str, Any]
             if link["from_rule_uid"] is not None:
                 link["from_rule_uid"] = None
     return rulebase_links
+
+
+def normalize_time_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any]):
+    time_object_by_uid: dict[str, TimeObject] = {}
+
+    # Get time objects from native
+    time_objects_from_native = [
+        to_time_object(item)
+        for native_time_object in native_config.get("time_objects", [])
+        for item in native_time_object.get("data", [])
+    ]
+
+    for rulebase in native_config.get("rulebases", []):  # include nat rulebases?
+        for rule in rulebase.get("data", []):
+            if "schedule" in rule and rule["schedule"] is not None:
+                schedule_ref: list[str] = rule["schedule"]
+
+                # Find the time object in native config that matches the schedule reference
+
+                matching_time_objects = [obj for obj in time_objects_from_native if obj.time_obj_name in schedule_ref]
+
+                if matching_time_objects:
+                    time_object_by_uid.update({time_obj.time_obj_uid: time_obj for time_obj in matching_time_objects})
+                else:
+                    FWOLogger.warning(
+                        f"Schedule reference {schedule_ref} in rule {rule['name']} does not match any known time object."
+                    )
+
+    normalized_config_adom.update({"time_objects": time_object_by_uid})
+
+
+def to_time_object(d: dict[str, Any]) -> TimeObject:
+    def parse_schedule_timestamp(value: list[str] | str | None, field_name: str) -> str | None:
+        # format is like: "start": ["12:00", "2026/02/17"]
+        # or: "start": "00:00 2020/01/01"
+        # or: "start": "12:00" -> currently not supported
+        if value is None:
+            return None
+        if isinstance(value, str):
+            if value == "00:00":
+                return None
+            value = value.split()
+        if len(value) != 2:  # noqa: PLR2004
+            FWOLogger.warning(
+                f"Found time object with currently unsupported date/time format for {field_name} in time object {d.get('name', '')}: {value}"
+            )
+            return None
+        time_part, date_part = value
+        # format needs to be 1970-01-01T00:00:00
+        try:
+            dt = datetime.strptime(date_part + " " + time_part, "%Y/%m/%d %H:%M").replace(tzinfo=timezone.utc)
+            return dt.strftime("%Y-%m-%dT%H:%M:%S")
+        except ValueError as e:
+            FWOLogger.warning(f"Error parsing date/time for {field_name} in time object {d.get('name', '')}: {e}")
+            return None
+
+    name = d.get("name")
+
+    if not name:
+        raise ImportInterruptionError("Time object missing name field, cannot normalize.")
+
+    start_time = parse_schedule_timestamp(d.get("start"), "start")
+    end_time = parse_schedule_timestamp(d.get("end"), "end")
+
+    return TimeObject(
+        time_obj_uid=name,
+        time_obj_name=name,
+        start_time=start_time,
+        end_time=end_time,
+    )

@@ -18,11 +18,14 @@ class ImportStatisticsController:
             + self.statistics.user_object_change_count
             + self.statistics.zone_object_add_count
             + self.statistics.zone_object_delete_count
-            + self.statistics.zone_object_change_count
+            + self.statistics.time_object_add_count
+            + self.statistics.time_object_delete_count
+            + self.statistics.time_object_change_count
             + self.statistics.rule_add_count
             + self.statistics.rule_delete_count
             + self.statistics.rule_change_count
-            + self.statistics.rule_enforce_change_count
+            + self.statistics.rule_ref_add_count
+            + self.statistics.rule_ref_delete_count
             + self.statistics.rulebase_add_count
             + self.statistics.rulebase_change_count
             + self.statistics.rulebase_delete_count
@@ -33,7 +36,6 @@ class ImportStatisticsController:
             self.statistics.rule_add_count
             + self.statistics.rule_delete_count
             + self.statistics.rule_change_count
-            + self.statistics.rule_enforce_change_count
             + self.statistics.rulebase_add_count
             + self.statistics.rulebase_change_count
             + self.statistics.rulebase_delete_count
@@ -44,6 +46,7 @@ class ImportStatisticsController:
         self.collect_nw_obj_change_details(result)
         self.collect_svc_obj_change_details(result)
         self.collect_usr_obj_change_details(result)
+        self.collect_time_obj_change_details(result)
         self.collect_zone_obj_change_details(result)
         self.collect_rule_change_details(result)
         self.collect_inconsistent_deletion_details(result)
@@ -78,8 +81,14 @@ class ImportStatisticsController:
             result["zone_object_add_count"] = self.statistics.zone_object_add_count
         if self.statistics.zone_object_delete_count > 0:
             result["zone_object_delete_count"] = self.statistics.zone_object_delete_count
-        if self.statistics.zone_object_change_count > 0:
-            result["zone_object_change_count"] = self.statistics.zone_object_change_count
+
+    def collect_time_obj_change_details(self, result: dict[str, int]):
+        if self.statistics.time_object_add_count > 0:
+            result["time_object_add_count"] = self.statistics.time_object_add_count
+        if self.statistics.time_object_delete_count > 0:
+            result["time_object_delete_count"] = self.statistics.time_object_delete_count
+        if self.statistics.time_object_change_count > 0:
+            result["time_object_change_count"] = self.statistics.time_object_change_count
 
     def collect_rule_change_details(self, result: dict[str, int]):
         if self.statistics.rule_add_count > 0:
@@ -90,8 +99,10 @@ class ImportStatisticsController:
             result["rule_change_count"] = self.statistics.rule_change_count
         if self.statistics.rule_move_count > 0:
             result["rule_move_count"] = self.statistics.rule_move_count
-        if self.statistics.rule_enforce_change_count > 0:
-            result["rule_enforce_change_count"] = self.statistics.rule_enforce_change_count
+        if self.statistics.rule_ref_add_count > 0:
+            result["rule_ref_add_count"] = self.statistics.rule_ref_add_count
+        if self.statistics.rule_ref_delete_count > 0:
+            result["rule_ref_delete_count"] = self.statistics.rule_ref_delete_count
         if self.statistics.rulebase_change_count > 0:
             result["rulebase_change_count"] = self.statistics.rulebase_change_count
         if self.statistics.rulebase_add_count > 0:
@@ -112,6 +123,8 @@ class ImportStatisticsController:
             result["inconsistent_user_object_delete_count"] = self.statistics.inconsistent_userobj_delete_count
         if self.statistics.inconsistent_rule_delete_count > 0:
             result["inconsistent_rule_delete_count"] = self.statistics.inconsistent_rule_delete_count
+        if self.statistics.inconsistent_ref_delete_count > 0:
+            result["inconsistent_ref_delete_count"] = self.statistics.inconsistent_ref_delete_count
         if self.statistics.inconsistent_rulebase_link_delete_count > 0:
             result["inconsistent_rulebase_link_delete_count"] = self.statistics.inconsistent_rulebase_link_delete_count
 
@@ -151,14 +164,14 @@ class ImportStatisticsController:
     def increment_rule_move_count(self, increment: int = 1):
         self.statistics.rule_move_count += increment
 
-    def increment_rule_enforce_change_count(self, increment: int = 1):
-        self.statistics.rule_enforce_change_count += increment
+    def increment_rule_ref_add_count(self, increment: int = 1):
+        self.statistics.rule_ref_add_count += increment
+
+    def increment_rule_ref_delete_count(self, increment: int = 1):
+        self.statistics.rule_ref_delete_count += increment
 
     def increment_rulebase_link_add_count(self, increment: int = 1):
         self.statistics.rulebase_link_add_count += increment
 
     def increment_rulebase_link_delete_count(self, increment: int = 1):
         self.statistics.rulebase_link_delete_count += increment
-
-    def increment_rulebase_link_change_count(self, increment: int = 1):
-        self.statistics.rulebase_link_change_count += increment

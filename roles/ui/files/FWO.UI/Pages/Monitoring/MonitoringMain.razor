@@ -1,12 +1,13 @@
 @using FWO.Data.Middleware
 @using FWO.Middleware.Client
+@using FWO.Services
 @using RestSharp
 @using System.Net
 @using System.Text.Json
 
 @page "/monitoring"
 @page "/monitoring/main"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -30,6 +31,7 @@
         }
         else
         {
+            <button type="button" class="btn btn-sm btn-danger" @onclick="RequestAcknowledgeAllOpen">@(DisplayService.DisplayButton(userConfig, "acknowledge_all", Icons.Acknowledge))</button>
             <div class="vheight75">
                 <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
                 <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary sticky-header" TableItem="Alert" Items="alertEntrys">
@@ -38,31 +40,31 @@
                             <div class="btn-group">
                                 @if (alert.Source == GlobalConst.kAutodiscovery && alert.AlertCode != AlertCode.AutoDiscoveryErrorUnspecific)
                                 {
-                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(userConfig.GetText("details"))</button>
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowAutodiscDetails(alert)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                                 }
                                 else if (alert.AlertCode == AlertCode.NoImport || alert.AlertCode == AlertCode.SuccessfulImportOverdue)
                                 {
-                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(userConfig.GetText("details"))</button>
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportDetails(alert)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                                 }
                                 else if (alert.AlertCode == AlertCode.ImportRunningTooLong)
                                 {
-                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(userConfig.GetText("details"))</button>
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportRollback(alert)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                                 }
                                 else if (alert.AlertCode == AlertCode.SampleDataExisting)
                                 {
-                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(userConfig.GetText("details"))</button>
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowRemoveSampleData(alert)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                                 }
                                 else
                                 {
-                                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("details"))</button>
+                                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                                 }
 
                                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                                     <Authorized Context="ctx">
-                                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(userConfig.GetText("acknowledge"))</button>
+                                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(DisplayService.DisplayButton(userConfig, "acknowledge", Icons.Acknowledge))</button>
                                     </Authorized>
                                     <NotAuthorized Context="ctx">
-                                        <button type="button" class="btn btn-sm btn-secondary" disabled>@(userConfig.GetText("acknowledge"))</button>
+                                        <button type="button" class="btn btn-sm btn-secondary" disabled>@(DisplayService.DisplayButton(userConfig, "acknowledge", Icons.Acknowledge))</button>
                                     </NotAuthorized>
                                 </AuthorizeView>
                             </div>
@@ -95,6 +97,7 @@
 <ImportDetails ImportStatus="actStatus" @bind-DetailsMode="DetailsMode" Closing="async () => {DetailsMode = false; await RefreshAlerts();}" />
 <ImportRollback ManagementId="actMgmtId" LastIncompleteImport="LastIncompleteImport" @bind-RollbackMode="RollbackMode" Closing="async () => {RollbackMode = false; await RefreshAlerts();}" />
 <ConfirmDelete @bind-Display="RemoveSampleDataMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@userConfig.GetText("U7003")" />
+<Confirm @bind-Display="AckAllMode" PerformAction="AcknowledgeAllOpen" Title="@userConfig.GetText("acknowledge")" Message="@userConfig.GetText("U7102")" />
 <InProgress Display="workInProgress" />
 
 @code
@@ -118,6 +121,7 @@
     private bool DetailsMode = false;
     private bool RemoveSampleDataMode = false;
     private Alert actAlert = new();
+    private bool AckAllMode = false;
     private bool workInProgress = false;
     private bool InitComplete = false;
     private int deletedSampleManagements;
@@ -166,14 +170,36 @@
     {
         try
         {
-            var Variables = new
-            {
-                id = alert.Id,
-                ackUser = userConfig.User.DbId,
-                ackTime = DateTime.Now
-            };
-            await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
+            await AlertHelper.AcknowledgeAlert(apiConnection, alert.Id, userConfig.User.DbId);
             alertEntrys.Remove(alert);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("acknowledge_alert"), "", true);
+        }
+    }
+
+    private void RequestAcknowledgeAllOpen()
+    {
+        AckAllMode = true;
+    }
+
+    private async Task AcknowledgeAllOpen()
+    {
+        try
+        {
+            AckAllMode = false;
+            int AffectedRows = await AlertHelper.AcknowledgeAllOpenAlerts(apiConnection, userConfig.User.DbId);
+            if(AffectedRows >= 0)
+            {
+                alertEntrys.Clear();
+                DisplayMessageInUi(null, userConfig.GetText("acknowledge_alert"), $"{AffectedRows} {userConfig.GetText("alerts_acknowledged")}", false);
+            }
+            else
+            {
+                await RefreshAlerts();
+                DisplayMessageInUi(null, userConfig.GetText("acknowledge_alert"), userConfig.GetText("E7015"), true);
+            }
         }
         catch (Exception exception)
         {
@@ -200,7 +226,7 @@
         {
             actMgmtId = alert.ManagementId ?? throw new ArgumentException($"Missing ManagementId!");
             LastIncompleteImport = JsonSerializer.Deserialize<ImportControl[]?>(( alert.JsonData ?? throw new ArgumentException($"Missing Import Data!") ).ToString()
-				?? throw new FormatException($"Could not convert Import Data to string!"));
+                ?? throw new FormatException($"Could not convert Import Data to string!"));
             RollbackMode = true;
         }
         catch (Exception exception)
@@ -214,7 +240,7 @@
         try
         {
             actStatus = JsonSerializer.Deserialize<ImportStatus>(( alert.JsonData ?? throw new ArgumentException($"Missing Import Data!") ).ToString()
-				?? throw new FormatException($"Could not convert Import Data to string!")) ?? throw new JsonException($"Import Data not converted!");
+                ?? throw new FormatException($"Could not convert Import Data to string!")) ?? throw new JsonException($"Import Data not converted!");
             DetailsMode = true;
         }
         catch (Exception exception)
@@ -508,6 +534,7 @@
     private void Cancel()
     {
         RemoveSampleDataMode = false;
+        AckAllMode = false;
         DetailsMode = false;
         RollbackMode = false;
     }

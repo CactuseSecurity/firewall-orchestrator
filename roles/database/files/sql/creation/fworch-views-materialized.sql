@@ -186,28 +186,6 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
     FROM ( SELECT * FROM v_rule_with_rule_owner AS rul UNION SELECT * FROM v_rule_with_ip_owner AS ips) AS ar
     LEFT JOIN rule AS r USING (rule_id);
 
--- refresh materialized view view_rule_with_owner;
-
--------------------------
--- recert refresh trigger
-
--- create or replace function refresh_view_rule_with_owner()
--- returns trigger language plpgsql
--- as $$
--- begin
---     refresh materialized view view_rule_with_owner;
---     return null;
--- end $$;
-
--- drop trigger IF exists refresh_view_rule_with_owner_delete_trigger ON recertification CASCADE;
-
--- create trigger refresh_view_rule_with_owner_delete_trigger
--- after delete on recertification for each statement 
--- execute procedure refresh_view_rule_with_owner();
-
-GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, configimporters;
-
-
 CREATE TABLE IF NOT EXISTS refresh_log (
     id SERIAL PRIMARY KEY,
     view_name TEXT NOT NULL,

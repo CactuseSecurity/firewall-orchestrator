@@ -3,10 +3,13 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Logging;
 using FWO.DeviceAutoDiscovery;
 using FWO.Logging;
+using FWO.Services;
 using Quartz;
 using System.Linq;
+using FWO.Services.Logging;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -58,7 +61,7 @@ namespace FWO.Middleware.Server.Jobs
                             action.AlertId = await SetAlert(action);
                             changeCounter++;
                         }
-                        await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, 0, globalConfig.GetText("scheduled_autodiscovery"),
+                        await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("scheduled_autodiscovery"),
                             changeCounter > 0 ? changeCounter + globalConfig.GetText("changes_found") : globalConfig.GetText("found_no_changes"),
                             GlobalConst.kAutodiscovery, superManagement.Id);
                     }
@@ -74,7 +77,7 @@ namespace FWO.Middleware.Server.Jobs
                             JsonData = excMgm.Message
                         };
                         await SetAlert(actionException);
-                        await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, 1, globalConfig.GetText("scheduled_autodiscovery"),
+                        await AlertHelper.AddLogEntry(apiConnection, 1, globalConfig.GetText("scheduled_autodiscovery"),
                             $"Ran into exception while handling management {superManagement.Name} (id: {superManagement.Id}): " + excMgm.Message,
                             GlobalConst.kAutodiscovery, superManagement.Id);
                     }
@@ -82,15 +85,40 @@ namespace FWO.Middleware.Server.Jobs
             }
             catch (Exception exc)
             {
-                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kAutodiscovery, AlertCode.Autodiscovery, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kAutodiscovery, AlertCode.Autodiscovery, exc);
             }
         }
 
         private async Task<long?> SetAlert(ActionItem action)
         {
             string title = "Supermanagement: " + action.Supermanager;
-            lastMgmtAlertId = await SchedulerJobHelper.SetAlert(apiConnection, title, action.ActionType ?? "", GlobalConst.kAutodiscovery, AlertCode.Autodiscovery,
-                new SchedulerJobHelper.AdditionalAlertData { MgmtId = action.ManagementId, JsonData = action.JsonData?.ToString(), DevId = action.DeviceId, RefAlertId = action.RefAlertId }, true);
+            lastMgmtAlertId = await AlertHelper.SetAlert(apiConnection, title, action.ActionType ?? "", GlobalConst.kAutodiscovery, AlertCode.Autodiscovery,
+                new AlertHelper.AdditionalAlertData
+                {
+                    MgmtId = action.ManagementId,
+                    JsonData = action.JsonData?.ToString(),
+                    DevId = action.DeviceId,
+                    RefAlertId = action.RefAlertId,
+                    CompareDesc = true
+                });
+            if (!AutodiscoveryLogMapper.TryMapPromptAction(action, out AutodiscoveryLogMapper.PromptLogData? logData))
+            {
+                Log.WriteWarning("Logging", $"Unmapped autodiscovery action type: {action.ActionType}");
+                return lastMgmtAlertId;
+            }
+            if (logData != null)
+            {
+                await PromptLogHelper.LogPrompt(new PromptLogRequest
+                {
+                    PromptEvent = PromptLogEvent.Created,
+                    Object = logData.Object,
+                    Operation = logData.Operation,
+                    UserId = "AutodiscoveryJob",
+                    Timestamp = DateTime.UtcNow,
+                    Origin = ChangeLogOrigin.Autodiscovery,
+                    Fields = logData.Fields
+                });
+            }
             return lastMgmtAlertId;
         }
     }

@@ -61,7 +61,7 @@ namespace FWO.Test
         {
         }
 
-
+        #region HTML Tests
         [Test]
         public void RulesGenerateHtml()
         {
@@ -132,7 +132,7 @@ namespace FWO.Test
             ReportRules reportRecerts = ConstructReportRules(query, userConfig, ReportType.Recertification,
                 ConstructRecertReportRules(false));
 
-            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Recertification Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Recertification Report</h2><p>Generated on: Z (UTC)</p><p>Managements: TestMgt</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Mock Rulebase 1</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Users</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">Mock Rulebase 1</h4><table><tr><th>Next Recertification Date</th><th>Owner</th><th>IP address match</th><th>Last Hit</th><th>LastModified</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td><p>1.&nbsp;" + DateOnly.FromDateTime(DateTime.Now.AddDays(5)).ToString("yyyy-MM-dd") + "</p><p style=\"color: red;\">2.&nbsp;" + DateOnly.FromDateTime(DateTime.Now.AddDays(-5)).ToString("yyyy-MM-dd") + "</p></td><td><p>1.&nbsp;TestOwner1</p><p>2.&nbsp;TestOwner2</p></td><td><p>1.&nbsp;TestIp1</p><p>2.&nbsp;TestIp2</p></td><td>2022-04-19</td><td>2023-04-05</td><td>TestRule1</td><td>srczn1<br>srczn2<br>srczn3</td><td><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td>dstzn1<br>dstzn2<br>dstzn3</td><td><span style=\"\"><span class=\"" + Icons.Range + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td><span class=\"" + Icons.Service + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr><tr><td><p style=\"color: red;\">" + DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd") + "</p></td><td><p>TestOwner1</p></td><td><p>TestIpRange</p></td><td></td><td>2023-04-05</td><td>TestRule2</td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.UserGroup + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"" + Icons.Range + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td>not<br><span class=\"" + Icons.Service + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td><td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr style=\"\"><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=user1x1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr></table><hr></body></html>";
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Recertification Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Recertification Report</h2><p>Generated on: Z (UTC)</p><p>Managements: TestMgt</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Mock Rulebase 2</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Users</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">Mock Rulebase 2</h4><table><tr><th>Next Recertification Date</th><th>Owner</th><th>IP address match</th><th>Last Hit</th><th>LastModified</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td><p>1.&nbsp;" + DateOnly.FromDateTime(DateTime.Now.AddDays(5)).ToString("yyyy-MM-dd") + "</p><p style=\"color: red;\">2.&nbsp;" + DateOnly.FromDateTime(DateTime.Now.AddDays(-5)).ToString("yyyy-MM-dd") + "</p></td><td><p>1.&nbsp;TestOwner1</p><p>2.&nbsp;TestOwner2</p></td><td><p>1.&nbsp;TestIp1</p><p>2.&nbsp;TestIp2</p></td><td>2022-04-19</td><td>2023-04-05</td><td>TestRule1</td><td>srczn1<br>srczn2<br>srczn3</td><td><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td>dstzn1<br>dstzn2<br>dstzn3</td><td><span style=\"\"><span class=\"" + Icons.Range + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td><span class=\"" + Icons.Service + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr><tr><td><p style=\"color: red;\">" + DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd") + "</p></td><td><p>TestOwner1</p></td><td><p>TestIpRange</p></td><td></td><td>2023-04-05</td><td>TestRule2</td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.UserGroup + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"" + Icons.Range + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td>not<br><span class=\"" + Icons.Service + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td><td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr style=\"\"><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=user1x1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr></table><hr></body></html>";
 
             string reportHtml = RemoveLinebreaks(RemoveGenDate(reportRecerts.ExportToHtml(), true));
 
@@ -237,24 +237,130 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
         }
 
-        [Test, Ignore("temporarily disabled for importer-rework")]
+        [Test]
         public async Task AppRulesGenerateHtml()
         {
-            // TODO: to be enhanced
             Log.WriteInfo("Test Log", "starting AppRules report html generation");
-            ReportAppRules reportAppRules = new(query, userConfig, ReportType.AppRules, new())
-            {
-                ReportData = await ConstructAppRulesReport()
-            };
-
-            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>App Rules</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>App Rules</h2><p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [TestDev]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">TestDev</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">TestDev</h4><table><tr><th>No.</th><th>Last Hit</th><th>LastModified</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td>2022-04-19</td><td>2023-04-05</td><td>TestRule1</td><td>srczn</td><td><span style=\" color: red;\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x1\" target=\"_top\" style=\" color: red;\">TestIp1</a> (1.2.3.4/32)</span><br><span class=\"text-secondary\">... (1 more)</span></td><td>dstzn</td><td><span style=\" color: red;\"><span class=\"" + Icons.Range + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x3\" target=\"_top\" style=\" color: red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td><span class=\"" + Icons.Service + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr></table><hr></body></html>";
-
-            string reportHtml = RemoveLinebreaks(RemoveGenDate(reportAppRules.ExportToHtml(), true));
+            var reportRules = await ConstructAppReportRules(query, userConfig, ReportType.AppRules, ConstructRuleReportRules(false));
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>App Rules</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>App Rules</h2><p>Generated on: Z (UTC)</p><p>Managements: TestMgt</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Mock Rulebase 1</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">Mock Rulebase 1</h4><table><tr><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th><th>LastModified</th></tr><tr><td>TestRule1</td><td>srczn1<br>srczn2<br>srczn3</td><td><span style=\" color: red;\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x1\" target=\"_top\" style=\" color: red;\">TestIp1</a> (1.2.3.4/32)</span><br><span class=\"text-secondary\">... (1 more)</span></td><td>dstzn1<br>dstzn2<br>dstzn3</td><td><span style=\" color: red;\"><span class=\"" + Icons.Range + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x3\" target=\"_top\" style=\" color: red;\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td><span class=\"" + Icons.Service + "\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td><td>2023-04-05</td></tr></table><hr></body></html>";
+            string reportHtml = RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true));
 
             IEnumerable<string> matches = reportHtml.GetMatches(ToCRegexPattern, ToCAnkerIdGroupName);
             reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
 
             ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
+        }
+
+        [Test]
+        public void OwnerRecertificationSupportsCsvExport()
+        {
+            ClassicAssert.IsTrue(ReportType.OwnerRecertification.SupportsCsvExport());
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsv()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("# Statistics", csv);
+            StringAssert.Contains("# Overdue owners: 1", csv);
+            StringAssert.Contains("# Owners due within 7 days: 1", csv);
+            StringAssert.Contains("# Further active owners: 1", csv);
+            StringAssert.Contains("# Owners with inactive recertification: 1", csv);
+            StringAssert.Contains("\"Next Recertification Date\",\"Id\",\"Name\",\"Last Recertified\",\"Last Recertifier\",", csv);
+            StringAssert.Contains("\"EXT-OVERDUE\",\"Overdue Owner\",", csv);
+            StringAssert.Contains("\"EXT-UPCOMING\",\"Upcoming Owner\",", csv);
+            StringAssert.Contains("\"EXT-FURTHER\",\"Further Owner\",", csv);
+            StringAssert.Contains("# Owners with inactive recertification", csv);
+            StringAssert.Contains("\"Id\",\"Name\",", csv);
+            StringAssert.Contains("\"EXT-INACTIVE\",\"Inactive Owner\",", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvWithoutUpcomingSectionForZeroDisplayPeriod()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport(0)
+            };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("# Overdue owners: 1", csv);
+            StringAssert.DoesNotContain("# Owners due within 0 days", csv);
+            StringAssert.DoesNotContain("# No owners due within 0 days.", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlIncludesStatisticsAndInactiveSection()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+
+            string html = report.ExportToHtml();
+
+            StringAssert.Contains("<h3", html);
+            StringAssert.Contains(">Statistics</h3>", html);
+            StringAssert.Contains("<li>Overdue owners: 1</li>", html);
+            StringAssert.Contains("<li>Owners due within 7 days: 1</li>", html);
+            StringAssert.Contains("<li>Further active owners: 1</li>", html);
+            StringAssert.Contains("<li>Owners with inactive recertification: 1</li>", html);
+            StringAssert.Contains(">Owners with inactive recertification</h3>", html);
+            StringAssert.Contains("<th>Id</th><th>Name</th>", RemoveLinebreaks(html));
+            StringAssert.DoesNotContain("<th>Last Recertified</th><th>Last Recertifier</th></tr><tr><td>EXT-INACTIVE", RemoveLinebreaks(html));
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlWithoutUpcomingSectionForZeroDisplayPeriod()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport(0)
+            };
+
+            string html = report.ExportToHtml();
+
+            StringAssert.DoesNotContain(">Owners due within 0 days</h3>", html);
+            StringAssert.DoesNotContain("<li>Owners due within 0 days:", html);
+            StringAssert.DoesNotContain("No owners due within 0 days.", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationUsesAlternativeFurtherHeadlineWhenNextRecertDateIsMissing()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport(withNullFurtherDate: true)
+            };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("# Further owners: 1", csv);
+            StringAssert.DoesNotContain("# Further active owners: 1", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationInactiveOwnersAreOrderedByIdInCsv()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport(withMultipleInactiveOwners: true)
+            };
+
+            string csv = report.ExportToCsv();
+            int firstInactive = csv.IndexOf("\"EXT-INACTIVE-LOW\",\"Inactive Owner Low\",", StringComparison.Ordinal);
+            int secondInactive = csv.IndexOf("\"EXT-INACTIVE\",\"Inactive Owner\",", StringComparison.Ordinal);
+
+            Assert.That(firstInactive, Is.GreaterThanOrEqualTo(0));
+            Assert.That(secondInactive, Is.GreaterThanOrEqualTo(0));
+            Assert.That(firstInactive, Is.LessThan(secondInactive));
         }
 
         [Test]
@@ -266,7 +372,7 @@ namespace FWO.Test
                 ReportData = ConstructConnectionReport()
             };
 
-            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Connections Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Connections Report</h2><p>Generated on: Z (UTC)</p><p>Owners: TestOwner</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestOwner (APP-1234)</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Interfaces</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Own Common Services</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul><li><a href=\"#" + StaticAnkerId + "\">Global Common Services</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestOwner (APP-1234)</h3><h4 id=\"" + StaticAnkerId + "\">Connections</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>101</td><td>Conn1</td><td></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x41\" target=\"_top\" style=\"\">ServiceGroup1</a><br><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x31\" target=\"_top\" style=\"\">Service1 (1234/TCP)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x21\" target=\"_top\" style=\"\">AppRole1 (AR1)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Interfaces</h4><table><tr><th>No.</th><th>Id</th><th>Published</th><th>Name</th><th>Interface Description</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>102</td><td><span class=\"" + Icons.Close + "\"></span></td><td>Inter2</td><td></td><td></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x0\" target=\"_top\" style=\"\"></a><br><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x0\" target=\"_top\" style=\"\">noRole ()</a><br><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Own Common Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>103</td><td>ComSvc3</td><td></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x0\" target=\"_top\" style=\"\"></a><br><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>21</td><td><a name=nwobj1x21>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td><tr><td>2</td><td>11</td><td><a name=nwobj1x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>3</td><td>0</td><td><a name=nwobj1x0>noRole ()</a></td><td></td><td></td><tr><td>4</td><td>12</td><td><a name=nwobj1x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>41</td><td><a name=svc1x41>ServiceGroup1</a></td><td></td><td></td><td>Service1</td><tr><td>2</td><td>31</td><td><a name=svc1x31>Service1</a></td><td>TCP</td><td>1234</td><td></td><tr><td>3</td><td>0</td><td><a name=svc1x0></a></td><td></td><td></td><td></td><tr><td>4</td><td>32</td><td><a name=svc1x32>Service2</a></td><td>UDP</td><td>2345</td><td></td></table><hr><hr><h3 id=\"" + StaticAnkerId + "\">Global Common Services</h3><table><tr><th>No.</th><th>Id</th><th>Owner</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>103</td><td>App1</td><td>ComSvc3</td><td></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj2x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc2x0\" target=\"_top\" style=\"\"></a><br><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc2x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj2x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>11</td><td><a name=nwobj2x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>2</td><td>12</td><td><a name=nwobj2x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>0</td><td><a name=svc2x0></a></td><td></td><td></td><td></td><tr><td>2</td><td>32</td><td><a name=svc2x32>Service2</a></td><td>UDP</td><td>2345</td><td></td></table><hr></body></html>";
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Connections Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Connections Report</h2><p>Generated on: Z (UTC)</p><p>Owners: TestOwner</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestOwner (APP-1234)</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Connections</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Interfaces</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Own Common Services</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul><li><a href=\"#" + StaticAnkerId + "\">Global Common Services</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestOwner (APP-1234)</h3><h4 id=\"" + StaticAnkerId + "\">Connections</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>101</td><td>Conn1</td><td></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x41\" target=\"_top\" style=\"\">ServiceGroup1</a><br><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x31\" target=\"_top\" style=\"\">Service1 (1234/TCP)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x21\" target=\"_top\" style=\"\">AppRole1 (AR1)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Interfaces</h4><table><tr><th>No.</th><th>Id</th><th>Interface Permission</th><th>Name</th><th>Interface Description</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>102</td><td>Public</td><td>Inter2</td><td></td><td></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x0\" target=\"_top\" style=\"\"></a><br><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x0\" target=\"_top\" style=\"\">noRole ()</a><br><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Own Common Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>103</td><td>ComSvc3</td><td></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x0\" target=\"_top\" style=\"\"></a><br><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc1x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj1x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>21</td><td><a name=nwobj1x21>AppRole1 (AR1)</a></td><td></td><td>AppServer1</td><tr><td>2</td><td>11</td><td><a name=nwobj1x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>3</td><td>0</td><td><a name=nwobj1x0>noRole ()</a></td><td></td><td></td><tr><td>4</td><td>12</td><td><a name=nwobj1x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>41</td><td><a name=svc1x41>ServiceGroup1</a></td><td></td><td></td><td>Service1</td><tr><td>2</td><td>31</td><td><a name=svc1x31>Service1</a></td><td>TCP</td><td>1234</td><td></td><tr><td>3</td><td>0</td><td><a name=svc1x0></a></td><td></td><td></td><td></td><tr><td>4</td><td>32</td><td><a name=svc1x32>Service2</a></td><td>UDP</td><td>2345</td><td></td></table><hr><hr><h3 id=\"" + StaticAnkerId + "\">Global Common Services</h3><table><tr><th>No.</th><th>Id</th><th>Owner</th><th>Name</th><th>Functional Reason</th><th>Source</th><th>Services</th><th>Destination</th></tr><tr><td>1</td><td>103</td><td>App1</td><td>ComSvc3</td><td></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj2x11\" target=\"_top\" style=\"\">AppServer1 (1.0.0.0)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc2x0\" target=\"_top\" style=\"\"></a><br><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#svc2x32\" target=\"_top\" style=\"\">Service2 (2345/UDP)</a></td><td><span class=\"\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"#nwobj2x12\" target=\"_top\" style=\"\">AppServer2 (2.0.0.0)</a></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Ip</th><th>Members</th></tr><tr><td>1</td><td>11</td><td><a name=nwobj2x11>AppServer1</a></td><td>1.0.0.0</td><td></td><tr><td>2</td><td>12</td><td><a name=nwobj2x12>AppServer2</a></td><td>2.0.0.0</td><td></td></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Id</th><th>Name</th><th>Protocol</th><th>Port</th><th>Members</th></tr><tr><td>1</td><td>0</td><td><a name=svc2x0></a></td><td></td><td></td><td></td><tr><td>2</td><td>32</td><td><a name=svc2x32>Service2</a></td><td>UDP</td><td>2345</td><td></td></table><hr></body></html>";
 
             string reportHtml = RemoveLinebreaks(RemoveGenDate(reportConnections.ExportToHtml(), true));
 
@@ -327,7 +433,8 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(expectedHtmlResult2, reportHtml);
         }
-
+        #endregion
+        #region CSV Tests
         [Test]
         public void ResolvedRulesGenerateCsv()
         {
@@ -453,8 +560,8 @@ namespace FWO.Test
             "\"TestMgt\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4-1.2.3.5)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"\",\"uid2:123\",\"comment2\"";
             ClassicAssert.AreEqual(expectedCsvResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToCsv())));
         }
-
-
+        #endregion
+        #region Json Tests
         [Test]
         public void RulesGenerateJson()
         {
@@ -482,7 +589,7 @@ namespace FWO.Test
                                         "\"rule_action\": \"accept\",\"rule_track\": \"none\",\"section_header\": \"\"," +
                                         "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"removed\": null,\"removed_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": \"2022-04-19T00:00:00\",\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"Recert\": false}," +
                                         "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
-                                        "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"rulebase_id\": 0,\"rule_num\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"violations\": [],\"rulebase\": {\"id\": 0,\"name\": \"\",\"uid\": \"\",\"mgm_id\": 0,\"is_global\": false,\"created\": 0,\"removed\": 0,\"rules\": []},\"uiuser\": null,\"rule\": null,\"ChangeID\": \"\",\"AdoITID\": \"\",\"Compliance\": 0,\"ViolationDetails\": \"\",\"DisplayOrderNumberString\": \"1\",\"DisplayOrderNumber\": 1,\"Certified\": false,\"DeviceName\": \"\",\"RulebaseName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false}," +
+                                        "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"rulebase_id\": 0,\"rule_num\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"rule_times\": [],\"violations\": [],\"rulebase\": {\"id\": 0,\"name\": \"\",\"uid\": \"\",\"mgm_id\": 0,\"is_global\": false,\"created\": 0,\"removed\": 0,\"rules\": []},\"uiuser\": null,\"rule\": null,\"rule_owners\": [],\"ChangeID\": \"\",\"AdoITID\": \"\",\"Compliance\": 0,\"ViolationDetails\": \"\",\"DisplayOrderNumberString\": \"1\",\"DisplayOrderNumber\": 1,\"Certified\": false,\"DeviceName\": \"\",\"RulebaseName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false}," +
                                         "{\"rule_id\": 0,\"rule_uid\": \"uid2:123\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule2\",\"rule_comment\": \"comment2\",\"rule_disabled\": false," +
                                         "\"rule_services\": [{\"service\": {\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 17,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": [],\"svc_rpcnr\": null}}]," +
                                         "\"rule_svc_neg\": true,\"rule_svc\": \"\",\"rule_svc_refs\": \"\",\"rule_src_neg\": true,\"rule_src\": \"\",\"rule_src_refs\": \"\",\"rule_from_zones\": []," +
@@ -495,7 +602,7 @@ namespace FWO.Test
                                         "\"rule_action\": \"deny\",\"rule_track\": \"none\",\"section_header\": \"\"," +
                                         "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"removed\": null,\"removed_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"Recert\": false}," +
                                         "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
-                                        "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"rulebase_id\": 0,\"rule_num\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"violations\": [],\"rulebase\": {\"id\": 0,\"name\": \"\",\"uid\": \"\",\"mgm_id\": 0,\"is_global\": false,\"created\": 0,\"removed\": 0,\"rules\": []},\"uiuser\": null,\"rule\": null,\"ChangeID\": \"\",\"AdoITID\": \"\",\"Compliance\": 0,\"ViolationDetails\": \"\",\"DisplayOrderNumberString\": \"\",\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceName\": \"\",\"RulebaseName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false}]}]," +
+                                        "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"rulebase_id\": 0,\"rule_num\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"rule_times\": [],\"violations\": [],\"rulebase\": {\"id\": 0,\"name\": \"\",\"uid\": \"\",\"mgm_id\": 0,\"is_global\": false,\"created\": 0,\"removed\": 0,\"rules\": []},\"uiuser\": null,\"rule\": null,\"rule_owners\": [],\"ChangeID\": \"\",\"AdoITID\": \"\",\"Compliance\": 0,\"ViolationDetails\": \"\",\"DisplayOrderNumberString\": \"\",\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceName\": \"\",\"RulebaseName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false}]}]," +
                                         "\"changelog_rules\": null,\"changelog_objects\": null,\"changelog_services\": null,\"changelog_users\": null,\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"import_controls\": [],\"RelevantImportId\": null,\"is_super_manager\": false,\"multi_device_manager_id\": null,\"management\": null,\"managementByMultiDeviceManagerId\": [],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"zoneObjects\": []," +
                                         "\"reportNetworkObjects\": [{\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"\",\"zone\": null,\"active\": false,\"obj_create\": 0," +
                                         "\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\"," +
@@ -712,6 +819,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
+        #endregion
         private static NetworkLocation[] InitFroms(bool resolved, bool user = false)
         {
             if (resolved)
@@ -880,6 +988,15 @@ namespace FWO.Test
             reportRules.TryBuildMockRuleTree();
 
             return reportRules;
+        }
+
+        private static async Task<ReportRules> ConstructAppReportRules(DynGraphqlQuery query, UserConfig userConfig,
+            ReportType reportType, Rule[] rules)
+        {
+            ReportRules report = ConstructReportRules(query, userConfig, reportType, rules);
+            ModellingVarianceAnalysisTestApiConn apiConnection = new();
+            report.ReportData.ManagementData = await ReportAppRules.PrepareAppRulesReport(report.ReportData.ManagementData, new ModellingFilter(), apiConnection, 1);
+            return report;
         }
 
         private Rule[] ConstructRuleReportRules(bool resolved)
@@ -1246,6 +1363,84 @@ namespace FWO.Test
             reportData.OwnerData[0].RuleDifferences.Add(new() { ModelledConnection = Conn2, ImplementedRules = [Rule1] });
             reportData.OwnerData[0].PrepareObjectData(true);
             return reportData;
+        }
+
+        private static ReportData ConstructOwnerRecertReport(int recertificationDisplayPeriod = 7, bool withNullFurtherDate = false, bool withMultipleInactiveOwners = false)
+        {
+            List<OwnerConnectionReport> ownerData =
+            [
+                new()
+                {
+                    Owner = new()
+                    {
+                        Id = 1,
+                        Name = "Overdue Owner",
+                        ExtAppId = "EXT-OVERDUE",
+                        RecertActive = true,
+                        RecertOverdue = true,
+                        NextRecertDate = DateTime.Today.AddDays(-1),
+                        LastRecertified = DateTime.Today.AddDays(-30),
+                        LastRecertifierDn = "cn=overdue.user,ou=users,dc=test,dc=local"
+                    }
+                },
+                new()
+                    {
+                        Owner = new()
+                        {
+                            Id = 2,
+                            Name = "Upcoming Owner",
+                            ExtAppId = "EXT-UPCOMING",
+                            RecertActive = true,
+                            RecertUpcoming = recertificationDisplayPeriod > 0,
+                            NextRecertDate = DateTime.Today.AddDays(3),
+                            LastRecertified = DateTime.Today.AddDays(-20),
+                            LastRecertifierDn = "cn=upcoming.user,ou=users,dc=test,dc=local"
+                        }
+                    },
+                new()
+                {
+                    Owner = new()
+                    {
+                        Id = 3,
+                        Name = "Further Owner",
+                        ExtAppId = "EXT-FURTHER",
+                        RecertActive = true,
+                        NextRecertDate = withNullFurtherDate ? null : DateTime.Today.AddDays(20),
+                        LastRecertified = DateTime.Today.AddDays(-10),
+                        LastRecertifierDn = "cn=further.user,ou=users,dc=test,dc=local"
+                    }
+                },
+                new()
+                {
+                    Owner = new()
+                    {
+                        Id = 4,
+                        Name = "Inactive Owner",
+                        ExtAppId = "EXT-INACTIVE",
+                        RecertActive = false
+                    }
+                }
+            ];
+
+            if (withMultipleInactiveOwners)
+            {
+                ownerData.Add(new()
+                {
+                    Owner = new()
+                    {
+                        Id = 0,
+                        Name = "Inactive Owner Low",
+                        ExtAppId = "EXT-INACTIVE-LOW",
+                        RecertActive = false
+                    }
+                });
+            }
+
+            return new ReportData()
+            {
+                RecertificationDisplayPeriod = recertificationDisplayPeriod,
+                OwnerData = ownerData
+            };
         }
 
         private static string RemoveGenDate(string exportString, bool html = false, bool json = false)

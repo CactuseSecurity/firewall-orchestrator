@@ -1,10 +1,11 @@
-using NUnit.Framework;
-using NUnit.Framework.Legacy;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
-using FWO.Ui.Services;
 using FWO.Services;
-using FWO.Basics;
+using FWO.Services.Modelling;
+using FWO.Ui.Services;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace FWO.Test
 {
@@ -119,6 +120,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestExtractUsedInterface_InterfaceNoPermissionDependsOnPermissionMode()
+        {
+            ModellingConnection connRestrictedAllowed = new() { Id = 31, AppId = 1, UsedInterfaceId = 3 };
+            await AppHandler!.ExtractUsedInterface(connRestrictedAllowed);
+            ClassicAssert.IsFalse(connRestrictedAllowed.InterfaceNoPermission);
+
+            ModellingConnection connRestrictedDenied = new() { Id = 32, AppId = 1, UsedInterfaceId = 4 };
+            await AppHandler!.ExtractUsedInterface(connRestrictedDenied);
+            ClassicAssert.IsTrue(connRestrictedDenied.InterfaceNoPermission);
+
+            ModellingConnection connPrivate = new() { Id = 33, AppId = 1, UsedInterfaceId = 5 };
+            await AppHandler!.ExtractUsedInterface(connPrivate);
+            ClassicAssert.IsFalse(connPrivate.InterfaceNoPermission);
+
+            ModellingConnection connPublic = new() { Id = 34, AppId = 1, UsedInterfaceId = 6 };
+            await AppHandler!.ExtractUsedInterface(connPublic);
+            ClassicAssert.IsFalse(connPublic.InterfaceNoPermission);
+
+            ModellingConnection connPrivateForeign = new() { Id = 35, AppId = 1, UsedInterfaceId = 7 };
+            await AppHandler!.ExtractUsedInterface(connPrivateForeign);
+            ClassicAssert.IsTrue(connPrivateForeign.InterfaceNoPermission);
+        }
+
+        [Test]
+        public async Task TestExtractUsedInterface_InterfaceNoPermissionUnknownPermissionDefaultsToTrue()
+        {
+            ModellingConnection connUnknown = new() { Id = 36, AppId = 1, UsedInterfaceId = 8 };
+            await AppHandler!.ExtractUsedInterface(connUnknown);
+            ClassicAssert.IsTrue(connUnknown.InterfaceNoPermission);
+        }
+
+        [Test]
         public void TestGetSrcDstSvcNames()
         {
             ModellingConnection conn = new()
@@ -148,6 +181,48 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedSrc, ModellingHandlerBase.GetSrcNames(conn, userConfig));
             ClassicAssert.AreEqual(expectedDst, ModellingHandlerBase.GetDstNames(conn, userConfig));
             ClassicAssert.AreEqual(expectedSvc, ModellingHandlerBase.GetSvcNames(conn, userConfig));
+        }
+
+        [Test]
+        public void TestDisplayAppActiveNoConnections()
+        {
+            FwoOwner owner = new()
+            {
+                Name = "App1",
+                Active = true,
+                ConnectionCount = new AggregateCount { Aggregate = new Aggregate { Count = 0 } }
+            };
+
+            string expected = "<span class=\"text-success\" data-toggle=\"tooltip\" title=\"No connections\">*App1</span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayApp(userConfig, owner));
+        }
+
+        [Test]
+        public void TestDisplayAppInactiveWithConnections()
+        {
+            FwoOwner owner = new()
+            {
+                Name = "App2",
+                Active = false,
+                ConnectionCount = new AggregateCount { Aggregate = new Aggregate { Count = 2 } }
+            };
+
+            string expected = "<span class=\"text-danger\" data-toggle=\"tooltip\" title=\"App disabled\"><i>!App2</i></span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayApp(userConfig, owner));
+        }
+
+        [Test]
+        public void TestDisplayReqIntRequestedOtherOwner()
+        {
+            string expected = "<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"Requested by other owner\"><i>Interface requested: (Ticket 123)</i></span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayReqInt(userConfig, 123, true));
+        }
+
+        [Test]
+        public void TestDisplayReqIntRejected()
+        {
+            string expected = "<span class=\"text-danger\" data-toggle=\"tooltip\" title=\"Rejected\"><i>Interface rejected: (Ticket 456)</i></span>";
+            ClassicAssert.AreEqual(expected, ModellingHandlerBase.DisplayReqInt(userConfig, 456, false, true));
         }
 
 

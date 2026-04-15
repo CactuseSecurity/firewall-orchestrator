@@ -43,6 +43,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
+
         public string DisplayChangeAction(ObjectChange objectChange)
         {
             switch (objectChange.ChangeAction)
@@ -53,6 +54,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
+
         public string DisplayChangeAction(ServiceChange serviceChange)
         {
             switch (serviceChange.ChangeAction)
@@ -63,6 +65,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
+
         public string DisplayChangeAction(UserChange userChange)
         {
             switch (userChange.ChangeAction)
@@ -84,6 +87,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
+
         public string DisplayName(ObjectChange objectChange)
         {
             switch (objectChange.ChangeAction)
@@ -94,6 +98,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
+
         public string DisplayName(ServiceChange serviceChange)
         {
             switch (serviceChange.ChangeAction)
@@ -104,6 +109,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
+
         public string DisplayName(UserChange userChange)
         {
             switch (userChange.ChangeAction)
@@ -222,6 +228,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
+
         public string DisplayUid(ObjectChange objectChange)
         {
             switch (objectChange.ChangeAction)
@@ -232,6 +239,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
+
         public string DisplayUid(ServiceChange serviceChange)
         {
             switch (serviceChange.ChangeAction)
@@ -264,6 +272,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
+
         public string DisplayComment(ObjectChange objectChange)
         {
             switch (objectChange.ChangeAction)
@@ -274,6 +283,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
+
         public string DisplayComment(ServiceChange serviceChange)
         {
             switch (serviceChange.ChangeAction)
@@ -284,6 +294,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
+
         public string DisplayComment(UserChange userChange)
         {
             switch (userChange.ChangeAction)
@@ -305,6 +316,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
+
         public string DisplayStyle(ObjectChange objectChange)
         {
             switch (objectChange.ChangeAction)
@@ -315,6 +327,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
+
         public string DisplayStyle(ServiceChange serviceChange)
         {
             switch (serviceChange.ChangeAction)
@@ -325,6 +338,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
+
         public string DisplayStyle(UserChange userChange)
         {
             switch (userChange.ChangeAction)
@@ -346,6 +360,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
+
         public string DisplayObjectType(ObjectChange objectChange)
         {
             switch (objectChange.ChangeAction)
@@ -356,6 +371,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
+
         public string DisplayServiceType(ServiceChange serviceChange)
         {
             switch (serviceChange.ChangeAction)
@@ -377,6 +393,7 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
+
         public string DisplayServiceMemberNames(ServiceChange serviceChange)
         {
             switch (serviceChange.ChangeAction)
@@ -387,13 +404,13 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
+
         public string DisplayServiceProtocol(ServiceChange serviceChange)
         {
-            
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Protocol!.Name);
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.Protocol!.Name);
+                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Protocol?.Name ?? "");
+                case 'I': return OutputHtmlAdded(serviceChange.NewService.Protocol?.Name ?? "");
                 case 'C': return DisplayDiff(serviceChange.OldService.Protocol?.Name ?? "", serviceChange.NewService.Protocol?.Name ?? "");
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }

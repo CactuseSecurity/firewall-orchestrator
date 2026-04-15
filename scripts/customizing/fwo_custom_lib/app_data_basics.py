@@ -40,6 +40,7 @@ def write_owners_to_json(
         file_out = build_owner_json_path(script_file_path)
     if logger:
         logger.info("dumping into file %s", file_out)
+    owner_data: dict[str, list[dict[str, Any]]] = transform_owner_dict_to_list(app_dict)
     with open(file_out, "w", encoding="utf-8") as out_fh:
-        json.dump(transform_owner_dict_to_list(app_dict), out_fh, indent=3)
+        json.dump(owner_data, out_fh, indent=3)
     return file_out

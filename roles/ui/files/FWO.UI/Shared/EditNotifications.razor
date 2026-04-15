@@ -4,6 +4,7 @@
 @using FWO.Data
 @using FWO.Recert
 @using FWO.Services
+@using FWO.Ui.Services
 @using System.Text.Json
 
 
@@ -72,37 +73,44 @@
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4102"))">
                 <label class="col-form-label col-sm-3">@(userConfig.GetText("layout")):</label>
                 <div class="col-sm-3">
-                    <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="actNotification.Layout" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                            Elements="OfferedLayoutOptions()" >
-                        <ElementTemplate Context="layout">
-                            @(userConfig.GetText(layout.ToString()))
-                        </ElementTemplate>
-                    </Dropdown>
+                    @if(OfferedLayoutOptions().Count > 1)
+                    {
+                        <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="actNotification.Layout" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                Elements="OfferedLayoutOptions()" >
+                            <ElementTemplate Context="layout">
+                                @(userConfig.GetText(layout.ToString()))
+                            </ElementTemplate>
+                        </Dropdown>
+                    }
+                    else
+                    {
+                        @(userConfig.GetText(actNotification.Layout.ToString()))
+                    }
                 </div>
             </div>
 
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4103"))">
                 <label class="col-form-label col-sm-3">@(userConfig.GetText("deadline")):</label>
                 <div class="col-sm-3">
-                    @if(Client == NotificationClient.InterfaceRequest)
-                    {
-                        @(userConfig.GetText(actNotification.Deadline.ToString()))
-                    }
-                    else
+                    @if(OfferedDeadlineOptions().Count > 1)
                     {
                         <Dropdown ElementType="NotificationDeadline" @bind-SelectedElement="actNotification.Deadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                                Elements="Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>()" >
+                                Elements="OfferedDeadlineOptions()" >
                             <ElementTemplate Context="deadline">
                                 @(userConfig.GetText(deadline.ToString()))
                             </ElementTemplate>
                         </Dropdown>
+                    }
+                    else
+                    {
+                        @(userConfig.GetText(actNotification.Deadline.ToString()))
                     }
                 </div>
             </div>
 
             @if(actNotification.Deadline != NotificationDeadline.None)
             {
-                @if(actNotification.Deadline != NotificationDeadline.RequestDate)
+                @if(!actNotification.Deadline.IsAlwaysInPast())
                 {
                     <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4104"))">
                         <label class="col-form-label col-sm-3">@(userConfig.GetText("notif_before_deadline")):</label>
@@ -110,7 +118,7 @@
                             <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.OffsetBeforeDeadline" />
                         </div>
                         <div class="col-sm-2">
-                            <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actNotification.IntervalBeforeDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                            <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="IntervalBeforeDeadlineSelection" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                     Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
                                 <ElementTemplate Context="interval">
                                     @(userConfig.GetText(interval.ToString()))
@@ -125,7 +133,7 @@
                         <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.RepeatOffsetAfterDeadline" />
                     </div>
                     <div class="col-sm-2">
-                        <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actNotification.RepeatIntervalAfterDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                        <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="RepeatIntervalAfterDeadlineSelection" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                 Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
                             <ElementTemplate Context="interval">
                                 @(userConfig.GetText(interval.ToString()))
@@ -267,14 +275,26 @@
         actNotification = new(){ NotificationClient = Client };
         actNotification.RecipientTo = EmailRecipientOption.OwnerMainResponsible;
         actNotification.RecipientCc = EmailRecipientOption.None;
-        if(Client == NotificationClient.Recertification)
+        if(Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
         {
-            actNotification.Deadline = NotificationDeadline.RecertDate;
+            actNotification.Layout = NotificationLayout.HtmlInBody;
         }
-        else if(Client == NotificationClient.InterfaceRequest)
+        if(OfferedDeadlineOptions().Count == 1)
         {
-            actNotification.Deadline = NotificationDeadline.RequestDate;
+            actNotification.Deadline = OfferedDeadlineOptions()[0];
         }
+    }
+
+    private SchedulerInterval IntervalBeforeDeadlineSelection
+    {
+        get => actNotification.IntervalBeforeDeadline ?? SchedulerInterval.Weeks;
+        set => actNotification.IntervalBeforeDeadline = value;
+    }
+
+    private SchedulerInterval RepeatIntervalAfterDeadlineSelection
+    {
+        get => actNotification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Weeks;
+        set => actNotification.RepeatIntervalAfterDeadline = value;
     }
 
     private void EditNotification(FwoNotification notification)
@@ -330,8 +350,9 @@
 
     public string DisplayNotification(FwoNotification notification)
     {
-        string DisplayedInterval = notification.OffsetBeforeDeadline > 0 ? $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline.ToString())}"
-            : $"{notification.RepeatOffsetAfterDeadline} {userConfig.GetText(notification.RepeatIntervalAfterDeadline.ToString())}";
+        string DisplayedInterval = notification.OffsetBeforeDeadline > 0
+            ? $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline?.ToString() ?? "")}"
+            : $"{notification.RepeatOffsetAfterDeadline} {userConfig.GetText(notification.RepeatIntervalAfterDeadline?.ToString() ?? "")}";
         return $"{notification.Name}: {DisplayedInterval}: {notification.RecipientTo.ToString()}";
     }
 
@@ -340,22 +361,27 @@
         return userConfig.GetText("U4001") + DisplayNotification(actNotification);
     }
 
-    private IEnumerable<EmailRecipientOption> OfferedAdressOptions()
+    private List<EmailRecipientOption> OfferedAdressOptions()
     {
-        if(Client == NotificationClient.InterfaceRequest)
+        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
         {
-            return EmailRecipientGroups.GetModellingOptions();
+            return EmailRecipientGroups.GetModellingOptions().ToList();
         }
-        return Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>();
+        return Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>().ToList();
     }
 
-    private IEnumerable<NotificationLayout> OfferedLayoutOptions()
+    private List<NotificationLayout> OfferedLayoutOptions()
     {
-        if(Client == NotificationClient.InterfaceRequest)
+        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
         {
-            return NotificationLayoutGroups.WithoutAttachments();
+            return NotificationLayoutGroups.WithoutAttachments().ToList();
         }
-        return Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>();
+        return Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>().ToList();
+    }
+
+    private List<NotificationDeadline> OfferedDeadlineOptions()
+    {
+        return FwoNotification.OfferedDeadlineOptions(Client);
     }
 
     private async Task Save()
@@ -363,58 +389,17 @@
         try
         {
             SyncAddresses();
+            EnsureNotificationIntervals();
             if(CheckConsistency())
             {
                 if(AddNotifMode)
                 {
-                    var Variables = new
-                    {
-                        client = Client.ToString(),
-                        channel = actNotification.Channel.ToString(),
-                        name = actNotification.Name,
-                        recipientTo = actNotification.RecipientTo.ToString(),
-                        emailAddressTo = actNotification.EmailAddressTo,
-                        recipientCc = actNotification.RecipientCc.ToString(),
-                        emailAddressCc = actNotification.EmailAddressCc,
-                        subject = actNotification.EmailSubject,
-                        layout = actNotification.Layout.ToString(),
-                        deadline = actNotification.Deadline.ToString(),
-                        intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
-                        offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
-                        intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
-                        initialOffsetAfterDeadline = actNotification.InitialOffsetAfterDeadline,
-                        offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
-                        repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
-                    };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.addNotification, Variables)).ReturnIds;
-                    if (returnIds != null)
-                    {
-                        actNotification.Id = returnIds[0].NewId;
-                        Notifications.Add(actNotification);
-                    }
+                    actNotification = await NotificationMutationHelper.AddAsync(apiConnection, Client, actNotification);
+                    Notifications.Add(actNotification);
                 }
                 else
                 {
-                    var Variables = new
-                    {
-                        id = actNotification.Id,
-                        channel = actNotification.Channel.ToString(),
-                        name = actNotification.Name,
-                        recipientTo = actNotification.RecipientTo.ToString(),
-                        emailAddressTo = actNotification.EmailAddressTo,
-                        recipientCc = actNotification.RecipientCc.ToString(),
-                        emailAddressCc = actNotification.EmailAddressCc,
-                        subject = actNotification.EmailSubject,
-                        layout = actNotification.Layout.ToString(),
-                        deadline = actNotification.Deadline.ToString(),
-                        intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
-                        offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
-                        intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
-                        initialOffsetAfterDeadline = actNotification.InitialOffsetAfterDeadline,
-                        offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
-                        repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
-                    };
-                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.updateNotification, Variables);
+                    actNotification = await NotificationMutationHelper.UpdateAsync(apiConnection, Client, actNotification);
                     Notifications[Notifications.FindIndex(x => x.Id == actNotification.Id)] = actNotification;
                 }
                 Close();
@@ -447,6 +432,19 @@
         actNotification.EmailAddressCc = String.Join(",", CcAddresses);
     }
 
+    private void EnsureNotificationIntervals()
+    {
+        if (actNotification.OffsetBeforeDeadline != null && actNotification.IntervalBeforeDeadline == null)
+        {
+            actNotification.IntervalBeforeDeadline = IntervalBeforeDeadlineSelection;
+        }
+
+        if (actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepeatIntervalAfterDeadline == null)
+        {
+            actNotification.RepeatIntervalAfterDeadline = RepeatIntervalAfterDeadlineSelection;
+        }
+    }
+
     private bool CheckConsistency()
     {
         if(actNotification.Channel == NotificationChannel.Email && actNotification.EmailSubject == "")
@@ -468,6 +466,12 @@
                 DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), true);
                 return false;
             }
+            if (actNotification.OffsetBeforeDeadline != null && actNotification.IntervalBeforeDeadline == null
+                || actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepeatIntervalAfterDeadline == null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), true);
+                return false;
+            }
             if(actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepetitionsAfterDeadline == null ||
                 (actNotification.RepeatOffsetAfterDeadline == null && actNotification.RepetitionsAfterDeadline != null))
             {
@@ -482,7 +486,7 @@
     {
         try
         {
-            await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.deleteNotification, new { id = actNotification.Id });
+            await NotificationMutationHelper.DeleteAsync(apiConnection, actNotification.Id);
             Notifications.Remove(actNotification);
             DeleteNotifMode = false;
             StateHasChanged();

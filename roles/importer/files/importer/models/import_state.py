@@ -24,7 +24,6 @@ class ImportState:
     last_full_import_id: int
     last_full_import_date: str | None = None
     last_successful_import: str | None = None
-    is_full_import: bool = False
     is_initial_import: bool = False
     responsible_for_importing: bool = True
     is_clearing_import: bool = False
@@ -43,7 +42,6 @@ class ImportState:
         self.service_obj_type_map: dict[str, int] = {}
         self.user_obj_type_map: dict[str, int] = {}
         self.protocol_map: dict[str, int] = {}
-        self.rulebase_to_gateway_map: dict[int, list[int]] = {}
         self.data_retention_days: int = 30
 
     def lookup_action(self, action_str: str) -> int:

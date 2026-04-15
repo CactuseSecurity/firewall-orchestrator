@@ -1,13 +1,16 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Compliance;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
-using FWO.Logging;
-using FWO.Services;
 using FWO.ExternalSystems;
 using FWO.ExternalSystems.Tufin.SecureChange;
+using FWO.Logging;
+using FWO.Services;
+using FWO.Services.Modelling;
+using FWO.Services.Workflow;
 using System.Text.Json;
 
 
@@ -39,7 +42,7 @@ namespace FWO.Middleware.Server
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
             Task.Run(GetInternalGroups).Wait();
-            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
+            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, ownerGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
         }
 
         /// <summary>
@@ -50,7 +53,7 @@ namespace FWO.Middleware.Server
             ApiConnection = apiConnection;
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
-            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, userGroups);
+            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, userGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
         }
 
         /// <summary>
@@ -477,9 +480,18 @@ namespace FWO.Middleware.Server
             foreach (WfReqTask task in tasks)
             {
                 (long objId, ModellingTypes.ModObjectType objType) = GetObject(task);
-                await ModellingHandlerBase.LogChange(changeType, objType, objId,
-                    $"{ConstructLogMessageText(changeType)} {task.Title} on {task.OnManagement?.Name}{(comment != null ? ", " + comment : "")}",
-                    ApiConnection, UserConfig, task.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, requester);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = changeType,
+                    ObjectType = objType,
+                    ObjectId = objId,
+                    Text = $"{ConstructLogMessageText(changeType)} {task.Title} on {task.OnManagement?.Name}{(comment != null ? ", " + comment : "")}",
+                    ApiConnection = ApiConnection,
+                    UserConfig = UserConfig,
+                    ApplicationId = task.Owners.FirstOrDefault()?.Owner.Id,
+                    DisplayMessageInUi = DefaultInit.DoNothing,
+                    Requester = requester
+                });
             }
         }
 
@@ -548,7 +560,8 @@ namespace FWO.Middleware.Server
             {
                 if (disposing)
                 {
-                    UserConfig?.Dispose();
+                    // UserConfig is caller-owned and can be reused across multiple request handling steps.
+                    // Disposing it here breaks subsequent handler instances that receive the same config.
                 }
                 disposed = true;
             }

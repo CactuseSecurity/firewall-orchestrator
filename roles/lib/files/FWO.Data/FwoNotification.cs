@@ -9,7 +9,10 @@ namespace FWO.Data
         Recertification = 1,
         ImportChange = 2,
         Compliance = 3,
-        InterfaceRequest = 4
+        InterfaceRequest = 4,
+        RuleTimer = 5,
+        AppDecomm = 6,
+        Report = 7
     }
 
     public enum NotificationChannel
@@ -21,7 +24,33 @@ namespace FWO.Data
     {
         None = 0,
         RecertDate = 1,
-        RequestDate = 2
+        RequestDate = 2,
+        RuleExpiry = 3,
+        DecommissionDate = 4
+    }
+
+    public enum BundleType
+    {
+        Attachments = 1
+    }
+
+    public static class NotificationDeadlineGroups
+    {
+        /// <summary>
+        /// Returns whether the deadline source is only meaningful as a past event and therefore
+        /// cannot support a "before deadline" notification configuration.
+        /// </summary>
+        /// <param name="notificationDeadline">Deadline type to classify.</param>
+        /// <returns>True for deadlines that are always treated as past events.</returns>
+        public static bool IsAlwaysInPast(this NotificationDeadline notificationDeadline)
+        {
+            return notificationDeadline switch
+            {
+                NotificationDeadline.RequestDate or
+                NotificationDeadline.DecommissionDate => true,
+                _ => false
+            };
+        }
     }
 
     public class FwoNotification
@@ -59,6 +88,18 @@ namespace FWO.Data
         [JsonProperty("email_subject"), JsonPropertyName("email_subject")]
         public string EmailSubject { get; set; } = "";
 
+        [JsonProperty("email_body"), JsonPropertyName("email_body")]
+        public string EmailBody { get; set; } = "";
+
+        [JsonProperty("schedule_id"), JsonPropertyName("schedule_id")]
+        public int? ScheduleId { get; set; }
+
+        [JsonProperty("bundle_type"), JsonPropertyName("bundle_type")]
+        public BundleType? BundleType { get; set; }
+
+        [JsonProperty("bundle_id"), JsonPropertyName("bundle_id")]
+        public string? BundleId { get; set; }
+
         [JsonProperty("layout"), JsonPropertyName("layout")]
         public NotificationLayout Layout { get; set; } = NotificationLayout.SimpleText;
 
@@ -66,13 +107,13 @@ namespace FWO.Data
         public NotificationDeadline Deadline { get; set; } = NotificationDeadline.None;
 
         [JsonProperty("interval_before_deadline"), JsonPropertyName("interval_before_deadline")]
-        public SchedulerInterval IntervalBeforeDeadline { get; set; } = SchedulerInterval.Weeks;
+        public SchedulerInterval? IntervalBeforeDeadline { get; set; }
 
         [JsonProperty("offset_before_deadline"), JsonPropertyName("offset_before_deadline")]
         public int? OffsetBeforeDeadline { get; set; }
 
         [JsonProperty("repeat_interval_after_deadline"), JsonPropertyName("repeat_interval_after_deadline")]
-        public SchedulerInterval RepeatIntervalAfterDeadline { get; set; } = SchedulerInterval.Weeks;
+        public SchedulerInterval? RepeatIntervalAfterDeadline { get; set; }
 
         [JsonProperty("initial_offset_after_deadline"), JsonPropertyName("initial_offset_after_deadline")]
         public int? InitialOffsetAfterDeadline { get; set; }
@@ -85,5 +126,18 @@ namespace FWO.Data
 
         [JsonProperty("last_sent"), JsonPropertyName("last_sent")]
         public DateTime? LastSent { get; set; }
+
+
+        public static List<NotificationDeadline> OfferedDeadlineOptions(NotificationClient client)
+        {
+            return client switch
+            {
+                NotificationClient.Recertification => [NotificationDeadline.RecertDate],
+                NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
+                NotificationClient.InterfaceRequest => [NotificationDeadline.RequestDate],
+                NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],
+                _ => Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>().ToList()
+            };
+        }
     }
 }

@@ -82,7 +82,6 @@ Note that the following domains (and their sub-domains) must be reachable throug
     canonical.com
     github.com, api.github.com
     githubusercontent.com
-    docker.com (and subdomains)
     docker.io (and subdomains)
     hasura.io, releases.hasura.io
     postgresql.org
@@ -140,9 +139,9 @@ ansible-playbook -e "api_no_metadata=yes" site.yml -K
 ansible-playbook -e "force_install=yes" site.yml -K
 ```
 
-### Parameter "docker_network" to change the Docker bridge network
+### Parameter "docker_network" after the Podman migration
 
-Use this if the default Docker bridge network conflicts with your existing network ranges. The value is written to `/etc/docker/daemon.json` as the `bip` setting and Docker is restarted (works for `installation_mode=upgrade` as well).
+This legacy parameter is ignored by the current installer because Hasura now runs with Podman host networking instead of a Docker bridge.
 
 ```console
 ansible-playbook -e "docker_network=172.26.0.1/16" site.yml -K
@@ -335,10 +334,9 @@ enter the address of the database backend server, e.g.
 fworch database hostname              10.5.10.10
 ```
 
-modify /etc/postgresql/x.y/main/pg_hba.conf to allow secuadmins access from web frontend(s), e.g.
+modify /etc/postgresql/x.y/main/pg_hba.conf to allow dbadmin access from web frontend(s), e.g.
 
 ```console
-host    all         +secuadmins         127.0.0.1/32           md5
-host    all         +secuadmins         10.5.5.5/32            md5
+
 host    all         dbadmin             10.5.10.10/32          md5
 ```

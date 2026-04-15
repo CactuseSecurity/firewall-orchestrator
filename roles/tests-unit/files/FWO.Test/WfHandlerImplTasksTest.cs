@@ -205,6 +205,23 @@ namespace FWO.Test
             Assert.That(reqTask.ImplementationTasks.Select(task => task.DeviceId), Is.EqualTo(new int?[] { 3, 5 }));
         }
 
+        [Test]
+        public async Task AutoCreateImplTasks_NonAccessTask_CreatesSingleGenericImplTask()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.forEachDevice },
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+            };
+            WfReqTask reqTask = new() { TaskType = WfTaskType.group_create.ToString(), StateId = 4, Title = "Group" };
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(reqTask.ImplementationTasks[0].DeviceId, Is.Null);
+            Assert.That(reqTask.ImplementationTasks[0].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+        }
+
         private static async Task InvokeAutoCreateImplTasks(WfHandler handler, WfReqTask reqTask)
         {
             MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)

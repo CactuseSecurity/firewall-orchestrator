@@ -109,7 +109,7 @@ class FwConfigBuilder:
 
         if uid2id_mapper is not None:
             uid2id_mapper.add_network_object_mappings(
-                [{"obj_uid": obj.obj_uid, "obj_id": len(uid2id_mapper.nwobj_uid2id.local) + 1}]
+                [{"obj_uid": obj.obj_uid, "obj_id": self._next_uid2id_map_id(uid2id_mapper.nwobj_uid2id)}]
             )
 
         return obj
@@ -133,7 +133,7 @@ class FwConfigBuilder:
 
         if uid2id_mapper is not None:
             uid2id_mapper.add_service_object_mappings(
-                [{"svc_uid": svc.svc_uid, "svc_id": len(uid2id_mapper.svc_uid2id.local) + 1}]
+                [{"svc_uid": svc.svc_uid, "svc_id": self._next_uid2id_map_id(uid2id_mapper.svc_uid2id)}]
             )
 
         return svc
@@ -154,7 +154,7 @@ class FwConfigBuilder:
             rb = rulebase
 
         if uid2id_mapper is not None:
-            rulebase_id = len(uid2id_mapper.rulebase_uid2id.local) + 1
+            rulebase_id = self._next_uid2id_map_id(uid2id_mapper.rulebase_uid2id)
             uid2id_mapper.add_rulebase_mappings([{"uid": rb.uid, "id": rulebase_id}])
         config.rulebases.append(rb)
         return rb
@@ -213,7 +213,7 @@ class FwConfigBuilder:
             normalized_rule = rule
 
         if uid2id_mapper is not None:
-            rule_id = len(uid2id_mapper.rule_uid2id.local) + 1
+            rule_id = self._next_uid2id_map_id(uid2id_mapper.rule_uid2id)
             uid2id_mapper.add_rule_mappings([{"rule_uid": normalized_rule.rule_uid, "rule_id": rule_id}])
 
         rulebase = self._get_rulebase(config, rulebase_uid)
@@ -260,7 +260,7 @@ class FwConfigBuilder:
 
         if uid2id_mapper is not None:
             uid2id_mapper.add_user_mappings(
-                [{"user_uid": obj["user_uid"], "user_id": len(uid2id_mapper.user_uid2id.local) + 1}]
+                [{"user_uid": obj["user_uid"], "user_id": self._next_uid2id_map_id(uid2id_mapper.user_uid2id)}]
             )
         return obj
 
@@ -386,6 +386,15 @@ class FwConfigBuilder:
         if count >= len(pool):
             return pool
         return self._rng.sample(pool, count)
+
+    def _next_uid2id_map_id(self, uid2id_map: Uid2IdMap) -> int:
+        existing_ids = (
+            *uid2id_map.local.values(),
+            *uid2id_map.global_map.values(),
+            *uid2id_map.outdated_local.values(),
+            *uid2id_map.outdated_global.values(),
+        )
+        return max(existing_ids, default=0) + 1
 
     def update_rule_map_and_rulebase_map(
         self,

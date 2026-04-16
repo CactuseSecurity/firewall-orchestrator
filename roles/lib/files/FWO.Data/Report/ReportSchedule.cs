@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Data;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
@@ -36,6 +37,12 @@ namespace FWO.Data.Report
 
         [JsonProperty("report_schedule_counter"), JsonPropertyName("report_schedule_counter")]
         public int Counter { get; set; }
+
+        [JsonProperty("archive"), JsonPropertyName("archive")]
+        public bool Archive { get; set; }
+
+        [JsonProperty("notifications"), JsonPropertyName("notifications")]
+        public List<FwoNotification> Notifications { get; set; } = [];
 
         public bool Sanitize()
         {

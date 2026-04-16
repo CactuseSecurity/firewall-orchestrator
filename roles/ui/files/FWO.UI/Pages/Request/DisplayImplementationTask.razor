@@ -2,7 +2,7 @@
 @using FWO.Ui.Pages.NetworkModelling
 @using FWO.Ui.Display
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig

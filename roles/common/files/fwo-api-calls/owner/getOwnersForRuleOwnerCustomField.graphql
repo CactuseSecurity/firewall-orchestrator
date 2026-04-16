@@ -1,5 +1,5 @@
 
-query getOwnersForRuleOwner {
+query getOwnersForRuleOwnerCustomField {
   owner (where: { active: { _eq: true } })
   {
     id

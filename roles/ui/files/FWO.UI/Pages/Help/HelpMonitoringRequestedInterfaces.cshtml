@@ -1,0 +1,23 @@
+@page "/help/monitoring/requested_interfaces"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpMonitoringSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("requested_interfaces")</h3>
+    @(Html.Raw(userConfig.GetText("H7421")))
+    <br><br>
+    @(Html.Raw(userConfig.GetText("H7422")))
+    <br><br>
+    @(Html.Raw(userConfig.GetText("H7423")))
+    <br><br>
+    @(Html.Raw(userConfig.GetText("H7424")))
+</div>

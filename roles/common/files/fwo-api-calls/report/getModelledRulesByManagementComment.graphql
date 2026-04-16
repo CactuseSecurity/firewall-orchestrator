@@ -13,7 +13,7 @@ query getModelledRulesByManagementComment (
     rule_head_text: { _is_null: true }
     rule_disabled: { _eq: false }
     action_id: { _nin: [2,3,7] }
-    import_control: { control_id: {_lte: $import_id_end } }, importControlByRuleLastSeen: { control_id: {_gte: $import_id_start } }
+    import_control: {control_id: {_lte: $import_id_end}}, _or: [{removed: {_is_null: true}}, {removed: {_gt: $import_id_start}}]
     rule_comment: { _ilike: $marker }
   }
   order_by: { rule_num_numeric: asc }){

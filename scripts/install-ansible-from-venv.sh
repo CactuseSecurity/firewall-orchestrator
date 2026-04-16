@@ -29,7 +29,7 @@ esac
 
 python3 -m venv installer-venv
 source installer-venv/bin/activate
-if [ -n "${http_proxy:-}" ];
+if [[ ! "$http_proxy" == "" ]];
 then
     pip config set global.proxy $http_proxy
 fi    

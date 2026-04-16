@@ -1,4 +1,5 @@
 using FWO.Basics;
+using System.Text;
 
 namespace FWO.Data
 {
@@ -29,43 +30,34 @@ namespace FWO.Data
             {
                 while (lastValue == false)
                 {
-                    int IndexPrefixDelim = dn.IndexOf('=');
-                    if (IndexPrefixDelim > 0)
+                    int indexPrefixDelim = dn.IndexOf('=');
+                    if (indexPrefixDelim > 0)
                     {
-                        string Name = dn[..IndexPrefixDelim];
-                        string Value;
-                        dn = dn[(IndexPrefixDelim + 1)..];
-                        int IndexValueDelim = dn.IndexOf(',');
-                        if (IndexValueDelim > 0)
-                        {
-                            Value = dn[..IndexValueDelim];
-                            dn = dn[(IndexValueDelim + 1)..];
-                        }
-                        else
-                        {
-                            Value = dn;
-                            lastValue = true;
-                        }
-                        switch (Name.ToLower())
+                        string name = dn[..indexPrefixDelim];
+                        (string value, string remainingDn) = ReadDnValue(dn[(indexPrefixDelim + 1)..]);
+                        dn = remainingDn;
+                        lastValue = dn.Length == 0;
+
+                        switch (name.ToLower())
                         {
                             case "uid":
                             case "samaccountname":
                             case "userprincipalname":
                             case "mail":
-                                UserName = Value;
+                                UserName = value;
                                 break;
                             case "cn":
                                 if (UserName == "")
                                 {
                                     // the first one may be the user if not delivered as uid or a role or a group
-                                    UserName = Value;
-                                    Role = Value;
-                                    Group = Value;
+                                    UserName = value;
+                                    Role = value;
+                                    Group = value;
                                 }
                                 else
                                 {
                                     // following ones belong to the path
-                                    Path.Add(Value);
+                                    Path.Add(value);
                                 }
                                 break;
                             case "ou":
@@ -73,12 +65,12 @@ namespace FWO.Data
                             case "l":
                             case "st":
                             case "street":
-                                Path.Add(Value);
+                                Path.Add(value);
                                 break;
                             case "dc":
                             case "c":
-                                Root.Add(Value);
-                                Path.Add(Value);
+                                Root.Add(value);
+                                Path.Add(value);
                                 break;
                             default:
                                 break;
@@ -90,6 +82,82 @@ namespace FWO.Data
                     }
                 }
             }
+        }
+
+        private static (string value, string remainingDn) ReadDnValue(string dn)
+        {
+            StringBuilder value = new();
+            int index = 0;
+
+            while (index < dn.Length)
+            {
+                char currentChar = dn[index];
+
+                if (currentChar == ',')
+                {
+                    return (value.ToString(), dn[(index + 1)..]);
+                }
+
+                if (currentChar == '\\')
+                {
+                    if (TryReadHexEscapedValue(dn, index, out string hexEscapedValue, out int nextIndex))
+                    {
+                        value.Append(hexEscapedValue);
+                        index = nextIndex;
+                        continue;
+                    }
+
+                    if (index + 1 < dn.Length)
+                    {
+                        value.Append(dn[index + 1]);
+                        index += 2;
+                        continue;
+                    }
+                }
+
+                value.Append(currentChar);
+                index++;
+            }
+
+            return (value.ToString(), "");
+        }
+
+        private static bool TryReadHexEscapedValue(string dn, int currentIndex, out string decodedValue, out int nextIndex)
+        {
+            decodedValue = "";
+            nextIndex = currentIndex;
+            if (currentIndex + 2 >= dn.Length || !IsHexPair(dn, currentIndex + 1))
+            {
+                return false;
+            }
+
+            List<byte> escapedBytes = [];
+            int scanIndex = currentIndex;
+
+            do
+            {
+                escapedBytes.Add(Convert.ToByte(dn.Substring(scanIndex + 1, 2), 16));
+                scanIndex += 3;
+            }
+            while (scanIndex + 2 < dn.Length && dn[scanIndex] == '\\' && IsHexPair(dn, scanIndex + 1));
+
+            decodedValue = Encoding.UTF8.GetString([.. escapedBytes]);
+            nextIndex = scanIndex;
+            return true;
+        }
+
+        private static bool IsHexPair(string value, int startIndex)
+        {
+            return startIndex + 1 < value.Length
+                && IsHexCharacter(value[startIndex])
+                && IsHexCharacter(value[startIndex + 1]);
+        }
+
+        private static bool IsHexCharacter(char character)
+        {
+            return (character >= '0' && character <= '9')
+                || (character >= 'a' && character <= 'f')
+                || (character >= 'A' && character <= 'F');
         }
 
         public bool IsInternal()

@@ -21,7 +21,7 @@
   listen: "api handler"
 
 - name: restore from backup
-  include_tasks: hasura-install.yml
+  include_tasks: ../tasks/rollback-restore.yml
   listen: "api handler"
   
 - name: fail message

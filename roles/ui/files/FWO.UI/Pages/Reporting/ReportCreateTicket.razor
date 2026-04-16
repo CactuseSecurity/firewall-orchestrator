@@ -1,4 +1,5 @@
 ﻿@using FWO.Middleware.Client
+@using FWO.Compliance
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Requester}")]
 
@@ -95,13 +96,14 @@
 
     private async Task CreateTicket()
     {
-        apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
-        TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-        foreach(int rulebaseId in ruleUidsPerRulebase.Keys)
+        await apiConnection.RunWithProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ], async () =>
         {
-            await ticketCreator.CreateUnusedRuleDeleteTicket(rulebaseId, ruleUidsPerRulebase[rulebaseId], commentText, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
-        }
-        apiConnection.SwitchBack();
+            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+            foreach(int rulebaseId in ruleUidsPerRulebase.Keys)
+            {
+                await ticketCreator.CreateUnusedRuleDeleteTicket(rulebaseId, ruleUidsPerRulebase[rulebaseId], commentText, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+            }
+        });
         Close();
     }
 }

@@ -1,2 +1,1 @@
-
 - include_tasks: "apache/{{ ansible_os_family }}.yml"

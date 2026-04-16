@@ -179,6 +179,16 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FormatOwnerResponsibles_ShowsFullNameWhenCnContainsEscapedComma()
+        {
+            string dnUser = @"CN=Mustermann\, Max,OU=Users,DC=example,DC=com";
+
+            string formatted = (string)GetPrivateStaticMethod("FormatOwnerResponsibles").Invoke(null, [new List<string> { dnUser }])!;
+
+            Assert.That(formatted, Is.EqualTo("Mustermann, Max"));
+        }
+
+        [Test]
         public void OrderActiveResponsibleTypes_FiltersInactiveAndSorts()
         {
             List<OwnerResponsibleType> input =

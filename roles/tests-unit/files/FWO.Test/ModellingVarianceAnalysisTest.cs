@@ -418,7 +418,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestAnalyseModelledConnectionsForRequest_RequestOnlyOwnObjectsFiltersForeignGroups()
+        public async Task TestAnalyseModelledConnectionsForRequest_RequestOnlyOwnObjectsKeepsForeignAppRolesInAccessTask()
         {
             userConfig.ModRequestOnlyOwnObjects = true;
             try
@@ -448,11 +448,57 @@ namespace FWO.Test
                     .Select(e => e.GroupName!)
                     .ToList();
                 CollectionAssert.Contains(sourceGroups, "OWN-AR");
-                CollectionAssert.DoesNotContain(sourceGroups, "AZ4711");
+                CollectionAssert.Contains(sourceGroups, "AZ4711");
+                ClassicAssert.IsNull(taskList.FirstOrDefault(t => t.Title == "New AppRole: AZ4711"));
+                ClassicAssert.IsNull(taskList.FirstOrDefault(t => t.Title == "Update AppRole: AZ4711" + userConfig.GetText("add_members")));
                 ClassicAssert.IsFalse(connection.GetBoolProperty(ConState.ForeignNonProdObjects.ToString()));
             }
             finally
             {
+                userConfig.ModRequestOnlyOwnObjects = false;
+            }
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_RequestOnlyOwnObjectsKeepsForeignServiceGroupsInAccessTask()
+        {
+            userConfig.ModRequestOnlyOwnObjects = true;
+            userConfig.ModRolloutResolveServiceGroups = false;
+            try
+            {
+                ModellingServiceGroup ownSvcGrp = new() { Id = 10, Name = "OwnSvcGrp", AppId = 1, Services = [new() { Content = Svc1 }] };
+                ModellingServiceGroup foreignSvcGrp = new() { Id = 11, Name = "ForeignSvcGrp", AppId = 2, Services = [new() { Content = Svc2 }] };
+                ModellingConnection connection = new()
+                {
+                    Id = 69,
+                    AppId = 1,
+                    UsedInterfaceId = 101,
+                    Name = "Conn69",
+                    DestinationAppServers = [new() { Content = AS1 }],
+                    ServiceGroups =
+                    [
+                        new() { Content = ownSvcGrp },
+                        new() { Content = foreignSvcGrp }
+                    ]
+                };
+
+                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest([connection]);
+                WfReqTask? accessTask = taskList.FirstOrDefault(t => t.GetAddInfoValue(AdditionalInfoKeys.ConnId) == "69");
+
+                ClassicAssert.IsNotNull(accessTask);
+                List<string> serviceGroups = accessTask!.Elements
+                    .Where(e => e.Field == ElemFieldType.service.ToString() && !string.IsNullOrEmpty(e.GroupName))
+                    .Select(e => e.GroupName!)
+                    .ToList();
+                CollectionAssert.Contains(serviceGroups, "OwnSvcGrp");
+                CollectionAssert.Contains(serviceGroups, "ForeignSvcGrp");
+                ClassicAssert.IsNotNull(taskList.FirstOrDefault(t => t.Title == "New Servicegroup: OwnSvcGrp"));
+                ClassicAssert.IsNull(taskList.FirstOrDefault(t => t.Title == "New Servicegroup: ForeignSvcGrp"));
+            }
+            finally
+            {
+                userConfig.ModRolloutResolveServiceGroups = true;
                 userConfig.ModRequestOnlyOwnObjects = false;
             }
         }

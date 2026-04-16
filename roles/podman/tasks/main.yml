@@ -1,0 +1,11 @@
+---
+- name: install Podman runtime
+  package:
+    name: podman
+    state: present
+  become: true
+
+- name: warn that docker_network is ignored with Podman host networking
+  debug:
+    msg: "Ignoring docker_network={{ docker_network }} because the Hasura container now runs with Podman host networking."
+  when: docker_network is defined and docker_network | length > 0

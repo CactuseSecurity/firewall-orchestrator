@@ -25,8 +25,8 @@
   listen: "lib handler"
   when: lib_handler_guard == "start"
 
-- name: Reload and Restart AppArmor
-  service:
-    name: apparmor
-    state: restarted
+- name: Reload Chrome AppArmor profile
+  command:
+    cmd: apparmor_parser --replace --write-cache /etc/apparmor.d/chrome
+  changed_when: false
   become: true

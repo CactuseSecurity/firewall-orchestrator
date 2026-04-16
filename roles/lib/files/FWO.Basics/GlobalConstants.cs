@@ -50,6 +50,7 @@ namespace FWO.Basics
         public const string kUpdatable = "updatable";
         public const string kNAT = "NAT";
         public const string k_demo = "_demo";
+        public const string kClosed = "closed";
 
         public const string kPlaceholderMarker = "@@";
         public const string kModellerGroup = "ModellerGroup_";
@@ -197,5 +198,14 @@ namespace FWO.Basics
         public const Char DELETE = 'D';
         public const Char DEACTIVATE = 'X';
         public const Char REACTIVATE = 'R';
+    }
+
+    public struct RuleActions
+    {
+        public const string Accept = "accept";
+        public const string Deny = "deny";
+        public const string Any = "any";
+        public const string Reject = "reject";
+        public const string Drop = "drop";
     }
 }

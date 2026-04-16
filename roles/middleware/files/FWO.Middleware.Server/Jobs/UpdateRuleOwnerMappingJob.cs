@@ -13,7 +13,7 @@ namespace FWO.Middleware.Server.Jobs
     [DisallowConcurrentExecution]
     public class UpdateRuleOwnerMappingJob : IJob
     {
-        private const string LogMessageTitle = "Import Change Notify";
+        private const string LogMessageTitle = "Update rule_owner Notify";
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
 

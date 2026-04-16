@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # $Id: write_config_report.sh,v 1.1.2.9 2012-03-24 13:57:21 tim Exp $
 # $Source: /home/cvs/iso/package/install/bin/Attic/write_config_report.sh,v $
 # itsecorg cli script to export a config to html files 
@@ -44,13 +44,13 @@ shift $(expr $OPTIND - 1)
 
 REPORT_NAME=$DATE-itsecorg-configreport-dev-$DEVICE_ID.$REPORT_FORMAT
 
-if [ "$DEVICE_ID" = "" ]; then
+if [[ "$DEVICE_ID" = "" ]]; then
 	echo "ERROR: no device id specified"
 	show_syntax
 	exit 1
 fi
 
-if [ "$vflag" = "on" ]; then
+if [[ "$vflag" = "on" ]]; then
 	echo "generating report for device $DEVICE_ID, report date = $DATE, outfile = $REPORT_OUT_DIR/$REPORT_NAME"
 fi
 

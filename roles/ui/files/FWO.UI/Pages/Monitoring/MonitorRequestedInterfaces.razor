@@ -3,6 +3,7 @@
 
 @using FWO.Data.Modelling
 @using FWO.Data.Workflow
+@using FWO.Compliance
 @using FWO.Middleware.Client
 @using FWO.Services.Modelling
 @using FWO.Services.Workflow
@@ -31,18 +32,23 @@
                     </ElementTemplate>
                 </Dropdown>
             </div>
-            <div class="col-sm-5 d-flex align-items-center">
+            <div class="col-sm-7 d-flex align-items-center">
                 <input id="cbx_show_removed_requested_interfaces" class="form-check-input me-2" type="checkbox"
                        @bind="ShowRemovedRequestedInterfaces" @bind:after="FetchRequestedInterfaces">
                 <label for="cbx_show_removed_requested_interfaces" class="form-check-label">
                     @(userConfig.GetText("show_removed_requested_interfaces"))
                 </label>
-                @if (ShowRemovedRequestedInterfaces && OpenRemovedTicketIds.Count > 0)
-                {
-                    <button type="button" class="btn btn-sm btn-danger ms-2" @onclick="ShowRejectRemovedTicketsConfirm">
-                        @(DisplayService.DisplayButton(userConfig, "reject_tickets", Icons.Reject))
+                <div class="ms-auto d-flex align-items-center">
+                    @if (ShowRemovedRequestedInterfaces && OpenRemovedTicketIds.Count > 0)
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="ShowRejectRemovedTicketsConfirm">
+                            @(DisplayService.DisplayButtonWithTooltip(userConfig, "reject_tickets", Icons.Reject, userConfig.GetText("H7423")))
+                        </button>
+                    }
+                    <button type="button" class="btn btn-sm btn-dark ms-2" @onclick="OpenOrphanedTicketsPopup">
+                        @(DisplayService.DisplayButtonWithTooltip(userConfig, "orphaned_requested_interface_tickets", Icons.Display, userConfig.GetText("H7424"), "", Icons.Workflow))
                     </button>
-                }
+                </div>
             </div>
         </div>
         <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
@@ -122,6 +128,7 @@ else
 
 <EditConnPopup @bind-Display="ShowDisplayPopup" ConnHandler="DisplayConnHandler" />
 <RejectInterfacePopup @bind-Display="ShowRejectPopup" ConnHandler="RejectConnHandler" RefreshParent="FetchRequestedInterfaces" AllowAdminReject="true" />
+<OrphanedRequestedInterfaceTicketsPopup @bind-Display="ShowOrphanedTicketsPopup" OpenTicket="DisplayTicketById" />
 <PopUp Title="@(userConfig.GetText("reject_tickets"))" Show="@ConfirmRejectRemovedTickets" Size=PopupSize.Medium OnClose="CloseRejectRemovedTicketsConfirm">
     <Body>
         @if (ConfirmRejectRemovedTickets)
@@ -164,7 +171,6 @@ else
     private Dictionary<int, string> UsedByConnectionIdsByInterfaceId = [];
     private Dictionary<int, int> TicketStateIdByConnectionId = [];
     private Dictionary<int, DateTime> TicketCreationDateByConnectionId = [];
-    private Dictionary<int, string> StateNameById = [];
     private List<RequestedInterfaceRow> RequestedInterfaceRows = [];
     private bool InitComplete = false;
     private int PageSize { get; set; }
@@ -175,6 +181,7 @@ else
     private bool ShowDisplayPopup { get; set; } = false;
     private ModellingConnectionHandler? RejectConnHandler { get; set; }
     private bool ShowRejectPopup { get; set; } = false;
+    private bool ShowOrphanedTicketsPopup { get; set; } = false;
     private bool ConfirmRejectRemovedTickets { get; set; } = false;
     private StateMatrix NewInterfaceStateMatrix { get; set; } = new();
     private WfHandler wfHandler = new();
@@ -203,6 +210,12 @@ else
         RejectRemovedTicketsReason = "";
     }
 
+    private async Task OpenOrphanedTicketsPopup()
+    {
+        ShowOrphanedTicketsPopup = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await FetchRequestedInterfaces();
@@ -218,8 +231,7 @@ else
                 new { showRemoved = ShowRemovedRequestedInterfaces });
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             OwnersById = owners.ToDictionary(owner => owner.Id, owner => owner);
-            List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
-            StateNameById = states.ToDictionary(state => state.Id, state => state.Name);
+            await states.Init(apiConnection);
             await ResolveUsedByConnections();
             await ResolveRequestingAppsFromTickets();
             BuildRequestedInterfaceRows();
@@ -306,11 +318,7 @@ else
         {
             return "-";
         }
-        if (StateNameById.TryGetValue(stateId, out string? stateName) && !string.IsNullOrWhiteSpace(stateName))
-        {
-            return stateName;
-        }
-        return stateId.ToString();
+        return states.GetName(stateId);
     }
 
     private void BuildRequestedInterfaceRows()
@@ -350,11 +358,13 @@ else
 
         foreach (long ticketId in ticketIds)
         {
-            WfTicket? ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
-            if (ticket?.Tasks == null)
+            ApiResponse<WfTicket> ticketResponse = await apiConnection.SendQuerySafeAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
+            if (ticketResponse.HasErrors || ticketResponse.Result?.Tasks == null)
             {
                 continue;
             }
+
+            WfTicket ticket = ticketResponse.Result;
 
             foreach (WfReqTask task in ticket.Tasks)
             {
@@ -448,8 +458,8 @@ else
                 .GroupBy(row => row.TicketId!.Value)
                 .ToDictionary(group => group.Key, group => group.First());
 
-            TicketCreator ticketCreator = new( apiConnection, userConfig, authenticationStateTask!.Result.User,
-                middlewareClient, WorkflowPhases.implementation);
+            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User,
+                middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
             int rejectedCount = 0;
             foreach (long ticketId in OpenRemovedTicketIds)
             {
@@ -502,13 +512,18 @@ else
             return;
         }
 
+        await DisplayTicketById((long)connection.TicketId);
+    }
+
+    private async Task DisplayTicketById(long ticketId)
+    {
         WorkInProgress = true;
         await states.Init(apiConnection);
         wfHandler = new(DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User,
-            apiConnection, middlewareClient, WorkflowPhases.request) { };
+            apiConnection, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection)) { };
         wfHandler.ReadOnlyMode = true;
         await wfHandler.Init();
-        WfTicket? ticket = await wfHandler.ResolveTicket((long)connection.TicketId);
+        WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
         if (ticket != null)
         {
             WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
@@ -522,6 +537,7 @@ else
                 }
             }
         }
+
         WorkInProgress = false;
         StateHasChanged();
     }

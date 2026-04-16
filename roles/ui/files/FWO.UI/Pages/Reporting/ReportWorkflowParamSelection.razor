@@ -1,0 +1,478 @@
+@using FWO.Data.Report
+@using FWO.Data.Workflow
+@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+@using FWO.Basics
+@using FWO.Services.Workflow
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if (UseFormLayout)
+{
+    @WorkflowFields
+}
+else
+{
+    <div class="p-3">
+        <h5 class="@SectionHeaderClass">@(userConfig.GetText("workflow"))</h5>
+        @WorkflowFields
+    </div>
+}
+
+<PopUp Size=PopupSize.Small Title="@(userConfig.GetText("label"))" Show="@showLabelFilterDialog" OnClose="CloseLabelFilterDialog">
+    <Body>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H1523"))">
+            <label for="workflowLabelName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+            <div class="col-sm-9">
+                <Dropdown ElementType="string" @bind-SelectedElement="labelFilterDraft.Name" ElementToString="LabelNameToString" Elements="availableLabelNames">
+                    <ElementTemplate Context="labelName">
+                        @(LabelNameToString(labelName))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <label for="workflowLabelMode" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("select")):</label>
+            <div class="col-sm-9">
+                <Dropdown ElementType="WorkflowLabelFilterMode" @bind-SelectedElement="labelFilterDraft.Mode" ElementToString="LabelFilterModeToString" Elements="availableLabelFilterModes">
+                    <ElementTemplate Context="mode">
+                        @(LabelFilterModeToString(mode))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        @if (labelFilterDraft.Mode == WorkflowLabelFilterMode.value)
+        {
+            <div class="form-group row mt-2">
+                <label for="workflowLabelValue" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("value")):</label>
+                <div class="col-sm-9">
+                    <input id="workflowLabelValue" type="text" class="form-control form-control-sm" @bind="labelFilterDraft.Value" />
+                </div>
+            </div>
+        }
+        <div class="mt-3 d-flex justify-content-end">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-primary" @onclick="ApplyLabelFilterDialog">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteLabelFilterDialog">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseLabelFilterDialog">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+            </div>
+        </div>
+    </Body>
+</PopUp>
+
+@code
+{
+    private readonly List<WfTaskType> availableRealTaskTypes = [.. Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().Where(taskType => taskType != WfTaskType.master)];
+    private readonly List<WorkflowReferenceDate> availableReferenceDates = [.. Enum.GetValues(typeof(WorkflowReferenceDate)).Cast<WorkflowReferenceDate>()];
+    private readonly List<WorkflowLabelFilterMode> availableLabelFilterModes = [.. Enum.GetValues(typeof(WorkflowLabelFilterMode)).Cast<WorkflowLabelFilterMode>()];
+    private GlobalStateMatrix masterStateMatrix = new();
+    private StateMatrix masterRequestStateMatrix = new();
+    private List<string> availablePhases = [];
+    private string? selectedPhase;
+    private IEnumerable<WfTaskType?> selectedTaskTypesForUi = [];
+    private List<WfState> allStates = [];
+    private IEnumerable<int?> selectedStateIdsForUi = [];
+    private bool showLabelFilterDialog;
+    private WorkflowLabelFilter labelFilterDraft = new();
+    private List<string> availableLabelNames = [];
+
+    private List<WfTaskType?> availableTaskTypes => [null, .. availableRealTaskTypes.Cast<WfTaskType?>()];
+    private List<WfState> availableStates => GetAvailableStates();
+    private List<int?> availableStateIds => [null, .. availableStates.Select(state => (int?)state.Id)];
+
+    [Parameter]
+    public WorkflowFilter WorkflowFilter { get; set; } = new();
+
+    [Parameter]
+    public ReportType SelectedReportType { get; set; }
+
+    [Parameter]
+    public EventCallback<WorkflowFilter> WorkflowFilterChanged { get; set; }
+
+    [Parameter]
+    public bool UseLightText { get; set; } = true;
+
+    [Parameter]
+    public bool UseFormLayout { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            allStates = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+            List<WfStateAction> actions = await apiConnection.SendQueryAsync<List<WfStateAction>>(RequestQueries.getActions);
+            masterStateMatrix = GlobalStateMatrix.Create();
+            await masterStateMatrix.Init(apiConnection, WfTaskType.master);
+            await masterRequestStateMatrix.Init(WorkflowPhases.request, apiConnection, WfTaskType.master);
+            availablePhases =
+            [
+                .. Enum.GetValues(typeof(WorkflowPhases)).Cast<WorkflowPhases>()
+                    .Where(phase => masterStateMatrix.GlobalMatrix.TryGetValue(phase, out StateMatrix? stateMatrix) && stateMatrix.Active)
+                    .Select(phase => phase.ToString())
+            ];
+            if (GetClosedStartStateId() > 0)
+            {
+                availablePhases.Add(GlobalConst.kClosed);
+            }
+            availableLabelNames = BuildAvailableLabelNames(actions);
+        }
+        catch
+        {
+            allStates = [];
+            masterStateMatrix = new();
+            masterRequestStateMatrix = new();
+            availablePhases = [];
+            availableLabelNames = BuildAvailableLabelNames([]);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        EnsureSelectedLabelNameIsAvailable();
+        selectedPhase = string.IsNullOrWhiteSpace(WorkflowFilter.Phase) ? null : WorkflowFilter.Phase;
+        PruneSelectedStatesToPhase();
+        selectedTaskTypesForUi = BuildSelectedTaskTypesForUi();
+        selectedStateIdsForUi = BuildSelectedStateIdsForUi();
+    }
+
+    private string TaskTypeToString(WfTaskType? taskType)
+    {
+        return taskType == null ? userConfig.GetText("all") : userConfig.GetText(taskType.ToString() ?? "");
+    }
+
+    private string SectionHeaderClass => UseLightText ? "text-left text-white" : "text-left";
+    private string CheckboxLabelClass => UseLightText ? "form-check-label text-white" : "form-check-label";
+    private string DetailedViewCheckboxId => UseFormLayout ? "detailedViewTemplate" : "detailedView";
+    private string ShowFullTicketCheckboxId => UseFormLayout ? "showFullTicketTemplate" : "showFullTicket";
+    private string FieldContainerClass => UseFormLayout ? "form-group row mt-2" : "mt-3";
+    private string FieldLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : SectionHeaderClass;
+    private string ShowFullTicketLabelClass => UseFormLayout ? "form-check-label" : CheckboxLabelClass;
+    private string FieldContentClass => UseFormLayout ? "col-sm-8" : string.Empty;
+    private string BooleanFieldContainerClass => UseFormLayout ? "form-group row mt-2 align-items-center" : "d-flex align-items-center justify-content-between mt-3";
+    private string BooleanFieldLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm mb-0" : $"{SectionHeaderClass} mb-0";
+    private string BooleanFieldContentClass => UseFormLayout ? "col-sm-8" : "ms-3";
+
+    private RenderFragment WorkflowFields => @<text>
+        @if (SelectedReportType == ReportType.TicketChangeReport)
+        {
+            <div class="@FieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1517"))">
+                <label class="@FieldLabelClass">@(userConfig.GetText("reference_date")):</label>
+                <div class="@FieldContentClass">
+                    <Dropdown ElementType="WorkflowReferenceDate" @bind-SelectedElement="WorkflowFilter.ReferenceDate"
+                              ElementToString="ReferenceDateToString" Elements="availableReferenceDates">
+                        <ElementTemplate>
+                            @(ReferenceDateToString(context))
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        }
+        <div class="@FieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1518"))">
+            <label class="@FieldLabelClass">@(userConfig.GetText("task_type")):</label>
+            <div class="@FieldContentClass">
+                <Dropdown ElementType="WfTaskType?" SelectedElements="selectedTaskTypesForUi" SelectedElementsChanged="TaskTypesChanged"
+                          ElementToString="TaskTypeToString" Elements="availableTaskTypes" Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate>
+                        @(TaskTypeToString(context))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="@FieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1521"))">
+            <label class="@FieldLabelClass">@(userConfig.GetText("phase")):</label>
+            <div class="@FieldContentClass">
+                <Dropdown ElementType="string" SelectedElement="selectedPhase" SelectedElementChanged="PhaseChanged"
+                          ElementToString="PhaseToString" Elements="availablePhases" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate Context="phase">
+                        @(PhaseToString(phase))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="@FieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1519"))">
+            <label class="@FieldLabelClass">@(userConfig.GetText("state")):</label>
+            <div class="@FieldContentClass">
+                <Dropdown ElementType="int?" SelectedElements="selectedStateIdsForUi" SelectedElementsChanged="StateIdsChanged"
+                          ElementToString="StateIdToString" Elements="availableStateIds" Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate>
+                        @(StateIdToString(context))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="@FieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1522"))">
+            <label class="@FieldLabelClass">@(userConfig.GetText("label")):</label>
+            <div class="@FieldContentClass">
+                <div class="input-group">
+                    <input type="text" class="form-control form-control-sm" value="@GetLabelFilterSummary()" readonly />
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="OpenLabelFilterDialog">@(DisplayService.DisplayButton(userConfig, "change", Icons.Edit))</button>
+                </div>
+            </div>
+        </div>
+        <div class="@BooleanFieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1524"))">
+            <label class="@BooleanFieldLabelClass" for="@DetailedViewCheckboxId">@(userConfig.GetText("detailed_view")):</label>
+            <div class="@BooleanFieldContentClass">
+                <div class="form-check mt-1">
+                    <input class="form-check-input" id="@DetailedViewCheckboxId" type="checkbox" @bind="WorkflowFilter.DetailedView" />
+                    <label class="@ShowFullTicketLabelClass" for="@DetailedViewCheckboxId"></label>
+                </div>
+            </div>
+        </div>
+        @if (WorkflowFilter.DetailedView && SelectedReportType == ReportType.TicketChangeReport)
+        {
+            <div class="@BooleanFieldContainerClass" data-toggle="tooltip" title="@(userConfig.PureLine("H1520"))">
+                <label class="@BooleanFieldLabelClass" for="@ShowFullTicketCheckboxId">@(userConfig.GetText("show_full_ticket")):</label>
+                <div class="@BooleanFieldContentClass">
+                    <div class="form-check mt-1">
+                        <input class="form-check-input" id="@ShowFullTicketCheckboxId" type="checkbox" @bind="WorkflowFilter.ShowFullTicket" />
+                        <label class="@ShowFullTicketLabelClass" for="@ShowFullTicketCheckboxId"></label>
+                    </div>
+                </div>
+            </div>
+        }
+    </text>;
+
+    private string ReferenceDateToString(WorkflowReferenceDate referenceDate)
+    {
+        return userConfig.GetText(referenceDate.ToString());
+    }
+
+    private string PhaseToString(string phase)
+    {
+        return userConfig.GetText(phase);
+    }
+
+    private string StateIdToString(int? stateId)
+    {
+        return stateId == null
+            ? userConfig.GetText("all")
+            : allStates.FirstOrDefault(state => state.Id == stateId)?.Name ?? stateId.ToString() ?? "";
+    }
+
+    private string LabelFilterModeToString(WorkflowLabelFilterMode mode)
+    {
+        return userConfig.GetText(mode.ToString());
+    }
+
+    private string LabelNameToString(string labelName)
+    {
+        return labelName;
+    }
+
+    private string GetLabelFilterSummary()
+    {
+        if (string.IsNullOrWhiteSpace(WorkflowFilter.LabelFilter.Name))
+        {
+            return "-";
+        }
+
+        if (WorkflowFilter.LabelFilter.Mode == WorkflowLabelFilterMode.value)
+        {
+            return $"{WorkflowFilter.LabelFilter.Name}: {WorkflowFilter.LabelFilter.Value}";
+        }
+
+        return $"{WorkflowFilter.LabelFilter.Name}: {LabelFilterModeToString(WorkflowFilter.LabelFilter.Mode)}";
+    }
+
+    private IEnumerable<WfTaskType?> BuildSelectedTaskTypesForUi()
+    {
+        if (WorkflowFilter.TaskTypes.Count == availableRealTaskTypes.Count)
+        {
+            return [];
+        }
+        return [.. WorkflowFilter.TaskTypes.Cast<WfTaskType?>()];
+    }
+
+    private IEnumerable<int?> BuildSelectedStateIdsForUi()
+    {
+        if (WorkflowFilter.StateIds.Count == 0 || WorkflowFilter.StateIds.Count == availableStates.Count)
+        {
+            return [];
+        }
+        return [.. WorkflowFilter.StateIds.Select(stateId => (int?)stateId)];
+    }
+
+    private async Task TaskTypesChanged(IEnumerable<WfTaskType?> taskTypes)
+    {
+        List<WfTaskType?> taskTypeList = taskTypes.ToList();
+        List<WfTaskType> selectedRealTaskTypes = [.. taskTypeList.Where(taskType => taskType.HasValue).Select(taskType => taskType!.Value)];
+
+        if (taskTypeList.Count == 0 || taskTypeList.Contains(null))
+        {
+            WorkflowFilter.TaskTypes = [.. availableRealTaskTypes];
+        }
+        else
+        {
+            WorkflowFilter.TaskTypes = selectedRealTaskTypes;
+        }
+
+        selectedTaskTypesForUi = BuildSelectedTaskTypesForUi();
+        await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+
+    private async Task PhaseChanged(string? phase)
+    {
+        selectedPhase = phase;
+        WorkflowFilter.Phase = phase ?? "";
+        PruneSelectedStatesToPhase();
+        selectedStateIdsForUi = BuildSelectedStateIdsForUi();
+        await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+
+    private async Task StateIdsChanged(IEnumerable<int?> stateIds)
+    {
+        List<int?> stateIdList = stateIds.ToList();
+
+        if (stateIdList.Count == 0 || stateIdList.Contains(null))
+        {
+            WorkflowFilter.StateIds = [];
+        }
+        else
+        {
+            WorkflowFilter.StateIds = [.. stateIdList.Where(stateId => stateId.HasValue).Select(stateId => stateId!.Value)];
+        }
+
+        selectedStateIdsForUi = BuildSelectedStateIdsForUi();
+        await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+
+    private void OpenLabelFilterDialog()
+    {
+        EnsureSelectedLabelNameIsAvailable();
+        labelFilterDraft = new(WorkflowFilter.LabelFilter);
+        showLabelFilterDialog = true;
+    }
+
+    private void CloseLabelFilterDialog()
+    {
+        showLabelFilterDialog = false;
+    }
+
+    private async Task ApplyLabelFilterDialog()
+    {
+        WorkflowFilter.LabelFilter = new(labelFilterDraft);
+        showLabelFilterDialog = false;
+        await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+
+    private async Task DeleteLabelFilterDialog()
+    {
+        WorkflowFilter.LabelFilter = new();
+        showLabelFilterDialog = false;
+        await WorkflowFilterChanged.InvokeAsync(WorkflowFilter);
+    }
+
+    private List<WfState> GetAvailableStates()
+    {
+        HashSet<int> usedStateIds = GetUsedActiveStateIds();
+        IEnumerable<WfState> statesInScope = allStates.Where(state => usedStateIds.Contains(state.Id));
+
+        if (string.Equals(WorkflowFilter.Phase, GlobalConst.kClosed, StringComparison.OrdinalIgnoreCase))
+        {
+            int closedStartStateId = GetClosedStartStateId();
+            return [.. statesInScope.Where(state => state.Id >= closedStartStateId)];
+        }
+
+        if (string.IsNullOrWhiteSpace(WorkflowFilter.Phase) || !Enum.TryParse(WorkflowFilter.Phase, true, out WorkflowPhases phase))
+        {
+            return [.. statesInScope];
+        }
+
+        if (!masterStateMatrix.GlobalMatrix.TryGetValue(phase, out StateMatrix? stateMatrix))
+        {
+            return [.. statesInScope];
+        }
+
+        return [.. statesInScope.Where(state => state.Id >= stateMatrix.LowestInputState && state.Id < stateMatrix.LowestEndState)];
+    }
+
+    private int GetClosedStartStateId()
+    {
+        return masterRequestStateMatrix.MinTicketCompleted;
+    }
+
+    private void PruneSelectedStatesToPhase()
+    {
+        HashSet<int> allowedStateIds = [.. availableStates.Select(state => state.Id)];
+        if (WorkflowFilter.StateIds.Count == 0 || WorkflowFilter.StateIds.All(allowedStateIds.Contains))
+        {
+            return;
+        }
+
+        WorkflowFilter.StateIds = [.. WorkflowFilter.StateIds.Where(allowedStateIds.Contains)];
+    }
+
+    private HashSet<int> GetUsedActiveStateIds()
+    {
+        HashSet<int> usedStateIds = [];
+        foreach (KeyValuePair<WorkflowPhases, StateMatrix> phaseEntry in masterStateMatrix.GlobalMatrix.Where(entry => entry.Value.Active))
+        {
+            foreach (KeyValuePair<int, List<int>> transition in phaseEntry.Value.Matrix)
+            {
+                usedStateIds.Add(transition.Key);
+                foreach (int toState in transition.Value)
+                {
+                    usedStateIds.Add(toState);
+                }
+            }
+
+            foreach (KeyValuePair<int, int> derivedState in phaseEntry.Value.DerivedStates)
+            {
+                usedStateIds.Add(derivedState.Key);
+                usedStateIds.Add(derivedState.Value);
+            }
+
+            usedStateIds.Add(phaseEntry.Value.LowestInputState);
+            usedStateIds.Add(phaseEntry.Value.LowestStartedState);
+            usedStateIds.Add(phaseEntry.Value.LowestEndState);
+        }
+
+        return usedStateIds;
+    }
+
+    private static List<string> BuildAvailableLabelNames(IEnumerable<WfStateAction> actions)
+    {
+        HashSet<string> labelNames =
+        [
+            .. typeof(AdditionalInfoKeys)
+                .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                .Where(field => field.FieldType == typeof(string))
+                .Select(field => field.GetValue(null)?.ToString())
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Cast<string>()
+        ];
+
+        foreach (WfStateAction action in actions)
+        {
+            if (!string.Equals(action.ActionType, StateActionTypes.AutoPromote.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (WfStateAction.TryParseAutoPromoteParams(action.ExternalParams, out _, out ConditionalAutoPromoteParams? conditionalParams)
+                && !string.IsNullOrWhiteSpace(conditionalParams?.CheckResultLabel))
+            {
+                labelNames.Add(conditionalParams.CheckResultLabel);
+            }
+        }
+
+        return [.. labelNames.OrderBy(label => label, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    private void EnsureSelectedLabelNameIsAvailable()
+    {
+        if (string.IsNullOrWhiteSpace(WorkflowFilter.LabelFilter.Name))
+        {
+            return;
+        }
+
+        if (availableLabelNames.Any(label => string.Equals(label, WorkflowFilter.LabelFilter.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        availableLabelNames = [.. availableLabelNames, WorkflowFilter.LabelFilter.Name];
+        availableLabelNames = [.. availableLabelNames.OrderBy(label => label, StringComparer.OrdinalIgnoreCase)];
+    }
+}

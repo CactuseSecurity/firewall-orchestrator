@@ -24,7 +24,7 @@ namespace FWO.Report
         {
             this.modellingFilter = modellingFilter;
         }
-        
+
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             await base.Generate(elementsPerFetch, apiConnection, callback, ct);

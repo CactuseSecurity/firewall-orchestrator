@@ -19,6 +19,9 @@ openldap_server_organization: IT
 openldap_server_email_address: "{{ product_name }}@cactus.de"
 
 openldap_server_enable_ssl: true
+openldap_server_services: >-
+  {{ "ldap://" ~ openldap_server ~ "/ ldaps:///" if openldap_server_enable_ssl
+     else "ldap://" ~ openldap_server ~ "/" }}
 
 #The path to the pw dir
 fworch_secrets_dir: /tmp

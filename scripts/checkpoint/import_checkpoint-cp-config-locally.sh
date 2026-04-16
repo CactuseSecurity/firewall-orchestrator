@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # $Id: checkpoint-cp-config-locally.sh,v 1.1.2.9 2010-06-18 07:36:54 tim Exp $
 # $Source: /home/cvs/iso/package/install/bin/agents/Attic/checkpoint-cp-config-locally.sh,v $
 # itsecorg import support script for copying check point config files in case of access problems
@@ -37,7 +37,7 @@ set_os_specific_cmds () {
         UNAME=/bin/uname
         OS_RESULT=$($UNAME)
         # Solaris:
-        if [ "$OS_RESULT" = "SunOS" ]
+        if [[ "$OS_RESULT" = "SunOS" ]]
         then
 			group=other
 			CP=/bin/cp
@@ -46,7 +46,7 @@ set_os_specific_cmds () {
 			WC=/bin/wc
         fi
         # SPLAT:
-        if [ "$OS_RESULT" = "Linux" ]
+        if [[ "$OS_RESULT" = "Linux" ]]
         then
 			group=itsecorg
 			CP="/bin/cp -u"
@@ -63,14 +63,14 @@ cp_config_files_to_itsecorg_dir () {
 }
 
 wait_for_scp_to_finish () {
-        while [ $($PS | $GREP scp | $GREP itsecorg | $WC -l) != 0 ]
+        while [[ $($PS | $GREP scp | $GREP itsecorg | $WC -l) != 0 ]]
         do
                 $SLEEP 1
         done
 }
 
 block_scp () {
-        while [ $($PS | $GREP scp | $GREP itsecorg | $WC -l) != 0 ]
+        while [[ $($PS | $GREP scp | $GREP itsecorg | $WC -l) != 0 ]]
         do
                 $SLEEP 1
         done
@@ -78,7 +78,7 @@ block_scp () {
 }
 
 accept_scp () {
-        while [ $($PS | $GREP scp | $GREP itsecorg | $WC -l) != 0 ]
+        while [[ $($PS | $GREP scp | $GREP itsecorg | $WC -l) != 0 ]]
         do
                 $SLEEP 1
         done
@@ -87,10 +87,10 @@ accept_scp () {
 
 move_if_changed () {
         wait_for_scp_to_finish
-        if [ -f "$2" ]
+        if [[ -f "$2" ]]
         then
                 CMP_RESULT=$($CMP "$1" "$2")
-                if [ "$CMP_RESULT" = "" ]
+                if [[ "$CMP_RESULT" = "" ]]
                 then
                         $RM "$1"
                 else
@@ -126,7 +126,7 @@ set_all_file_access_rights () {
 
 start_audit_log_export () {
 	# start export only if it is not already running
-	if [ $($PS | grep "fw log" | grep -v grep | grep fw.adtlog | $WC -l) = 0 ]
+	if [[ $($PS | grep "fw log" | grep -v grep | grep fw.adtlog | $WC -l) = 0 ]]
 	then 
 		/bin/rm -f $LOGDIR/$AUDITLOG
 		/bin/rm -f $DST/$AUDITLOG

@@ -22,7 +22,8 @@ create table owner
 	last_recertifier_dn Varchar,
 	next_recert_date Timestamp,
     recert_active boolean default false,
-    decomm_date Timestamp
+    decomm_date Timestamp,
+    additional_info jsonb
 );
 
 create table owner_responsible
@@ -77,6 +78,7 @@ create table rule_owner
     rule_id bigint NOT NULL,
     created bigint NOT NULL,
     removed bigint,
+    matched_objects jsonb,
     owner_mapping_source_id smallint NOT NULL,
     primary key (rule_id, owner_id, created)
 );

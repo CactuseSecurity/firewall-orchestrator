@@ -1,3 +1,4 @@
+using FWO.Basics;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using SystemTextJsonIgnore = System.Text.Json.Serialization.JsonIgnoreAttribute;
@@ -239,7 +240,7 @@ namespace FWO.Data
 
         public bool IsDropRule()
         {
-            return Action == "drop" || Action == "reject" || Action == "deny";
+            return Action == RuleActions.Drop || Action == RuleActions.Reject || Action == RuleActions.Deny;
         }
 
         /// <summary>

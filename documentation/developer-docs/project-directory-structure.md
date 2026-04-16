@@ -35,15 +35,15 @@ database_dir: /var/lib/pgsql/data
 ```
 
 - The roles to be installed on the backend are
-  - docker
+  - podman
   - database
   - api
   - auth
   - openldap-server
   
-- The role docker executes the tasks
-  - downloads and installs Docker and related packages
-  - creates local config directory {{ fworch_home }}/.docker and adds config.json
+- The role podman executes the tasks
+  - installs Podman on the API host
+  - prepares the container runtime used for the Hasura API service
 
 - The role database executes the tasks
   - installs postgresql DBMS

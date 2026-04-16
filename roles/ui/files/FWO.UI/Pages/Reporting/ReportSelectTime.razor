@@ -7,7 +7,7 @@
 <PopUp Size=PopupSize.Small Title="@(userConfig.GetText("report_time"))" Show="@Display" OnClose="Close">
     <Body>
         <div>
-            @if (SelectedReportType.IsChangeReport())
+            @if (SelectedReportType.IsChangeReport() || SelectedReportType == ReportType.TicketChangeReport)
             {
                 <div class="row">
                     <div class="col-sm-1">
@@ -187,7 +187,7 @@
 
     private void SetTimeSelection()
     {
-        if (SelectedReportType.IsChangeReport())
+        if (SelectedReportType.IsChangeReport() || SelectedReportType == ReportType.TicketChangeReport)
         {
             switch(ActTimeFilter.TimeRangeType)
             {

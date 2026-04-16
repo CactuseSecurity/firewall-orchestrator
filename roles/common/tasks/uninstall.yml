@@ -8,11 +8,19 @@
 #
 # caveat: run this script with "wipe_packages" switch only if you are on an fworch-exclusive system
 
-- name: stop docker container
+- name: stop Podman container
+  command: podman stop fworch-api
+  ignore_errors: true
+
+- name: remove Podman container
+  command: podman rm fworch-api
+  ignore_errors: true
+
+- name: stop legacy Docker container
   command: docker stop fworch-api
   ignore_errors: true
 
-- name: remove docker container
+- name: remove legacy Docker container
   command: docker rm fworch-api
   ignore_errors: true
 
@@ -88,16 +96,66 @@
     enabled: no
   ignore_errors: true
 
-- name: stop and disable hasura-docker-api
+- name: stop and disable current Hasura API service
   service:
-    name: hasura-docker-api
+    name: "{{ api_service_name }}"
     state: stopped
     enabled: no
   ignore_errors: true
 
+- name: stop and disable legacy Hasura API services
+  service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  loop: "{{ api_legacy_service_names | default([]) }}"
+  ignore_errors: true
+
 - block:
-    - name: include OS specific package uninstall tasks
-      include_tasks: "os/uninstall-packages.{{ ansible_os_family }}.yml"
+    - name: disable apache sites
+      command: a2dissite {{ product_name }}-ui
+      ignore_errors: true
+
+    - name: disable apache modules (due to a bug with php mod not properly getting purged)
+      apache2_module: state=absent name={{ item }}
+      loop: "{{ apache2_required_modules }}"
+      ignore_errors: true
+
+    - name: uninstall all packages for {{ product_name }}, keeping git and ansible
+      package:
+        state: absent
+        name: "{{ item }}"
+        purge: yes
+      loop:
+        - rsyslog
+        - apache2
+        - gnupg2
+        - apt-transport-https
+        - software-properties-common
+        - npm
+        - python3-pip
+        - python3-virtualenv
+        - python3-psycopg2
+        - libpq-dev
+        - "{{ postgresql_package }}"
+        - libpq-dev
+        - postgresql-client
+        - ldap-utils
+        - libldap-common
+        - libldap
+        - podman
+        - dotnet-sdk-3.1
+        - make
+        - "{{ postgresql_dev_package }}"
+        - "{{ postgresql_test_package }}"
+        - apache2
+      when: wipe_packages is defined and wipe_packages|bool
+
+    - name: uninstall openldap
+      package:
+        state: absent
+        name: slapd
+        purge: yes
 
     - name: remove {{ product_name }} dirs and files
       file:
@@ -114,10 +172,13 @@
         - /etc/apache2/sites-enabled/{{ product_name }}-api.conf
         - /etc/apache2/sites-enabled/{{ product_name }}-mw.conf
         - /etc/apache2/sites-enabled/{{ product_name }}-maintenance.conf
+        - /lib/systemd/system/{{ api_service_name }}.service
+        - /lib/systemd/system/fworch-hasura-docker-api.service
         - /var/lib/ldap/{{ product_name }}.internal
         - /var/lib/ldap/example.com
         - /var/lib/pgsql/data
         - "{{ api_hasura_cli_bin }}"
+        - "{{ api_env_file }}"
         - /var/{{ product_name }}
         - /var/log/{{ product_name }}
       ignore_errors: true

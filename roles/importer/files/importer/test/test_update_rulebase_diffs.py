@@ -18,7 +18,7 @@ from test.utils.test_utils import mock_get_graphql_code
 
 @pytest.fixture
 def mock_graphql(mocker: MockerFixture):
-    mock_get_graphql_code(mocker, "query { dummy }")
+    mock_get_graphql_code(mocker, "query { rulebase_update_diffs }")
 
 
 @pytest.fixture
@@ -129,6 +129,18 @@ def mock_api_connection_response(api_connection: FwoApi):
                     "insert_rule_enforced_on_gateway": {
                         "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
                     },
+                }
+            )
+
+        if "rulebase_update_diffs" in query:
+            outcome["data"].update(
+                {
+                    "rulebase": [
+                        {
+                            "uid": "rulebase-uid-1",
+                            "id": 69,
+                        }
+                    ]
                 }
             )
 

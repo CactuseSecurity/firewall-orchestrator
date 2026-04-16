@@ -123,6 +123,8 @@ INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t
 INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
 INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
 INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
+INSERT INTO txt VALUES ('oneTaskForAllDevices', 'German', 	'Ein Auftrag f&uuml;r alle Ger&auml;te');
+INSERT INTO txt VALUES ('oneTaskForAllDevices', 'English', 	'One task for all devices');
 INSERT INTO txt VALUES ('afterPathAnalysis',    'German', 	'Nach Pfadanalyse');
 INSERT INTO txt VALUES ('afterPathAnalysis',    'English', 	'After path analysis');
 INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste eintragen');
@@ -2452,6 +2454,12 @@ INSERT INTO txt VALUES ('reqActivatePathAnalysis','German', 'Pfadanalyse aktivie
 INSERT INTO txt VALUES ('reqActivatePathAnalysis','English','Activate Path Analysis');
 INSERT INTO txt VALUES ('reqShowCompliance',    'German',   'Compliance-Modul anzeigen');
 INSERT INTO txt VALUES ('reqShowCompliance',    'English',  'Show Compliance Module');
+INSERT INTO txt VALUES ('reqAllowedChangesByApprover','German', 'Erlaubte &Auml;nderungen durch Genehmiger');
+INSERT INTO txt VALUES ('reqAllowedChangesByApprover','English','Allowed changes by approver');
+INSERT INTO txt VALUES ('ticket_fields',        'German',   'Ticket-Felder');
+INSERT INTO txt VALUES ('ticket_fields',        'English',  'Ticket fields');
+INSERT INTO txt VALUES ('task_fields',          'German',   'Auftragsfelder');
+INSERT INTO txt VALUES ('task_fields',          'English',  'Task fields');
 INSERT INTO txt VALUES ('numeric_prio', 		'German', 	'Numerische Priorit&auml;t');
 INSERT INTO txt VALUES ('numeric_prio', 		'English', 	'Numeric Priority');
 INSERT INTO txt VALUES ('ticket_deadline',      'German', 	'Ticket-Deadline (in Tagen)');
@@ -5959,14 +5967,18 @@ INSERT INTO txt VALUES ('H5572', 'English', 'Only one if device available: The f
 ');
 INSERT INTO txt VALUES ('H5573', 'German',  'F&uuml;r jedes Ger&auml;t: F&uuml;r jedes der bekannten Ger&auml;te wird ein eigener Implementierungs-Auftrag angelegt (Vorsicht bei grosser Anzahl angeschlossener Ger&auml;te).');
 INSERT INTO txt VALUES ('H5573', 'English', 'For each device: For each of the known devices an own implementation task is created (Take care in case of a big number of connected devices).');
-INSERT INTO txt VALUES ('H5574', 'German',  'Ger&auml;t im Antrag eingeben: Standardm&auml;ssig eingestellt: Bereits bei Antragstellung wird ein Pflichtfeld zur Auswahl der betroffenen Ger&auml;te eingeblendet,
-    falls vom Tasktypen ben&ouml;tigt (hier wird also schon dem Antragsteller technisches Wissen abverlangt).
+INSERT INTO txt VALUES ('H5574', 'German',  'Ger&auml;t im Antrag eingeben: Bereits bei Antragstellung wird ein Pflichtfeld zur Auswahl der betroffenen Ger&auml;te eingeblendet,
+    falls vom Tasktypen ben&ouml;tigt (hier wird also schon dem Antragsteller technisches Wissen abverlangt). F&uuml;r jedes ausgew&auml;hlte Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt; bei Auswahl von Alle also f&uuml;r jedes vorhandene Ger&auml;t.
 ');
-INSERT INTO txt VALUES ('H5574', 'English', 'Enter device in request: Default value: A mandatory field to select devices is already displayed during request task creation,
-    if needed in the task type (in this case some technical know-how is presumed from the requester).
+INSERT INTO txt VALUES ('H5574', 'English', 'Enter device in request: A mandatory field to select the affected devices is already displayed during request task creation,
+    if needed in the task type (in this case some technical know-how is presumed from the requester). One implementation task is created for each selected device; if all is selected, one task is created for every existing device.
 ');
 INSERT INTO txt VALUES ('H5575', 'German',  'Nach Pfadanalyse: F&uuml;r jedes bei der automatischen Pfadanalyse gefundene Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt.');
 INSERT INTO txt VALUES ('H5575', 'English', 'After path analysis: For each device found in the automatic path analysis an own implementation task is created.');
+INSERT INTO txt VALUES ('H5576', 'German',  'Erlaubte &Auml;nderungen durch Genehmiger: Hier wird festgelegt, welche Ticket- und Auftragsfelder ein Genehmiger in der Genehmigungsphase bearbeiten darf. Felder, die bereits in Implementierungsauftr&auml;ge kopiert wurden, k&ouml;nnen danach nicht mehr ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('H5576', 'English', 'Allowed changes by approver: Defines which ticket and task fields an approver may edit during the approval phase. Fields already copied to implementation tasks can no longer be changed afterwards.');
+INSERT INTO txt VALUES ('H5577', 'German',  'Ein Auftrag f&uuml;r alle Ger&auml;te: Wie bei Ger&auml;t im Antrag eingeben wird die Ger&auml;teauswahl bereits im Antrag gepflegt. Der Unterschied ist nur: Falls dort Alle gew&auml;hlt ist, wird genau ein Implementierungs-Auftrag angelegt statt eines pro vorhandenem Ger&auml;t.');
+INSERT INTO txt VALUES ('H5577', 'English', 'One task for all devices: As with Enter device in request, the device selection is already maintained in the request. The only difference is this: if all is selected there, exactly one implementation task is created instead of one per existing device.');
 INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden.
     Die Eigent&uuml;merschaft muss Nutzern entweder direkt oder &uuml;ber Eigent&uuml;mergruppen zugeordnet werden.
     Es ist geplant, die Eigent&uuml;merschaft mit der Zust&auml;ndigkeit bei der Antragsstellung zu verkn&uuml;pfen.

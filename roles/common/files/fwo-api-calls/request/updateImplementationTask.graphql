@@ -4,7 +4,6 @@ mutation updateImplementationTask(
   $reqTaskId: bigint!
   $implIaskNumber: Int
   $state: Int
-  $taskType: String!
   $device: Int
   $implAction: action_enum
   $ruleAction: Int
@@ -21,7 +20,6 @@ mutation updateImplementationTask(
     reqtask_id: $reqTaskId
     task_number: $implIaskNumber
     state_id: $state
-    task_type: $taskType
     device_id: $device
     implementation_action: $implAction
     rule_action: $ruleAction

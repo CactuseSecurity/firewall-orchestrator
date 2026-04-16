@@ -1,0 +1,108 @@
+@using FWO.Data.Workflow
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("reqAllowedChangesByApprover"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <form>
+                <div class="form-group row mt-2">
+                    <div class="col-sm-12">
+                        <h5>@(userConfig.GetText("ticket_fields"))</h5>
+                    </div>
+                    @foreach (WorkflowEditableFieldDefinition field in ApproverAllowedChangesCatalog.TicketFields)
+                    {
+                        <div class="col-sm-3">
+                            <label class="col-form-label">
+                                <input type="checkbox" checked="@actConfig.IsTicketFieldAllowed(field.Key)" @onchange="args => SetTicketField(field.Key, args)" />
+                                @(userConfig.GetText(field.Key))
+                            </label>
+                        </div>
+                    }
+                </div>
+                <hr />
+                <div class="form-group row mt-2">
+                    <div class="col-sm-12">
+                        <h5>@(userConfig.GetText("task_fields"))</h5>
+                    </div>
+                </div>
+                @foreach (KeyValuePair<WfTaskType, List<WorkflowEditableFieldDefinition>> taskTypeFields in ApproverAllowedChangesCatalog.TaskTypeFields)
+                {
+                    WfTaskType taskType = taskTypeFields.Key;
+                    <div class="form-group row mt-2">
+                        <div class="col-sm-2">
+                            <label class="col-form-label fw-bold">@(userConfig.GetText(taskType.ToString())):</label>
+                        </div>
+                        <div class="col-sm-10">
+                            <div class="row">
+                                @foreach (WorkflowEditableFieldDefinition field in taskTypeFields.Value)
+                                {
+                                    <div class="col-sm-4">
+                                        <label class="col-form-label">
+                                            <input type="checkbox" checked="@actConfig.IsTaskFieldAllowed(taskType, field.Key)" @onchange="args => SetTaskField(taskType, field.Key, args)" />
+                                            @(userConfig.GetText(field.Key))
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Confirm">@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public string ConfigValue { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ConfigValueChanged { get; set; }
+
+    private ApproverAllowedChangesConfig actConfig = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Display)
+        {
+            actConfig = ApproverAllowedChangesConfig.Parse(ConfigValue);
+        }
+    }
+
+    private void SetTicketField(string fieldKey, ChangeEventArgs args)
+    {
+        actConfig.SetTicketField(fieldKey, args.Value is bool isChecked && isChecked);
+    }
+
+    private void SetTaskField(WfTaskType taskType, string fieldKey, ChangeEventArgs args)
+    {
+        actConfig.SetTaskField(taskType, fieldKey, args.Value is bool isChecked && isChecked);
+    }
+
+    private async Task Confirm()
+    {
+        await ConfigValueChanged.InvokeAsync(actConfig.ToConfigValue());
+        Close();
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

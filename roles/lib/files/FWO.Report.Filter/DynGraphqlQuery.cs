@@ -927,15 +927,32 @@ namespace FWO.Report.Filter
                 query.QueryVariables["selectedOwners"] = new List<int>(modellingFilter.SelectedOwners.Select(o => o.Id)).ToArray();
                 query.OwnerWhereStatement += $@"{{ id: {{ _in: $selectedOwners }} }}";
 
-                if (modellingFilter.RecertActivated)
-                {
-                    query.OwnerWhereStatement += $@"{{ recert_active: {{ _eq: true }} }}";
-                }
+                List<string> ownerStateFilters = [];
+                string activeOwnersFilter = $@"{{ recert_active: {{ _eq: true }} }}";
                 if (!modellingFilter.ShowAllOwners)
                 {
                     query.QueryParameters.Add("$refDate: timestamp");
                     query.QueryVariables["refDate"] = DateTime.Now.AddDays(recertFilter?.RecertificationDisplayPeriod ?? 0);
-                    query.OwnerWhereStatement += $@"{{ next_recert_date: {{ _lte: $refDate }} }}";
+                    activeOwnersFilter = $@"{{ _and: [{{ recert_active: {{ _eq: true }} }}, {{ next_recert_date: {{ _lte: $refDate }} }}] }}";
+                }
+                ownerStateFilters.Add(activeOwnersFilter);
+
+                if (modellingFilter.ShowInactiveRecertOwners)
+                {
+                    ownerStateFilters.Add($@"{{ recert_active: {{ _eq: false }} }}");
+                }
+
+                if (ownerStateFilters.Count == 1)
+                {
+                    query.OwnerWhereStatement += ownerStateFilters[0];
+                }
+                else if (ownerStateFilters.Count > 1)
+                {
+                    query.OwnerWhereStatement += $@"{{ _or: [{string.Join(", ", ownerStateFilters)}] }}";
+                }
+                else
+                {
+                    query.OwnerWhereStatement += $@"{{ id: {{ _eq: -1 }} }}";
                 }
             }
         }

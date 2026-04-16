@@ -21,6 +21,7 @@ namespace FWO.Basics
         public const string Cleanup = "bi bi-slash-circle-fill";
         public const string Create = "bi bi-patch-plus-fill";
         public const string Enter = "bi bi-arrow-return-left";
+        public const string Migrate = "bi-database-fill-gear";
 
         // General
         public const string Locked = "bi bi-lock-fill";

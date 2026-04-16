@@ -179,32 +179,33 @@ namespace FWO.Services.Workflow
             {
                 if (owner != null && ticketId != null) // todo: role check
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin]);
-                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
-                    foreach (var conn in Connections)
+                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
                     {
-                        if (conn.IsRequested)
+                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
+                        foreach (var conn in Connections)
                         {
-                            var Variables = new
+                            if (conn.IsRequested)
                             {
-                                id = conn.Id,
-                                propAppId = owner.Id
-                            };
-                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateProposedConnectionOwner, Variables);
-                            await ModellingHandlerBase.LogChange(new LogChangeRequest
-                            {
-                                ChangeType = ModellingTypes.ChangeType.Update,
-                                ObjectType = ModellingTypes.ModObjectType.Connection,
-                                ObjectId = conn.Id,
-                                Text = $"Updated {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
-                                ApiConnection = apiConnection,
-                                UserConfig = wfHandler.userConfig,
-                                ApplicationId = owner.Id,
-                                DisplayMessageInUi = DefaultInit.DoNothing
-                            });
+                                var Variables = new
+                                {
+                                    id = conn.Id,
+                                    propAppId = owner.Id
+                                };
+                                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateProposedConnectionOwner, Variables);
+                                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                                {
+                                    ChangeType = ModellingTypes.ChangeType.Update,
+                                    ObjectType = ModellingTypes.ModObjectType.Connection,
+                                    ObjectId = conn.Id,
+                                    Text = $"Updated {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
+                                    ApiConnection = apiConnection,
+                                    UserConfig = wfHandler.userConfig,
+                                    ApplicationId = owner.Id,
+                                    DisplayMessageInUi = DefaultInit.DoNothing
+                                });
+                            }
                         }
-                    }
-                    apiConnection.SwitchBack();
+                    });
                 }
             }
             catch (Exception exc)
@@ -220,16 +221,17 @@ namespace FWO.Services.Workflow
             {
                 if (owner != null && ticketId != null) // todo: role check
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin]);
-                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
-                    foreach (var conn in Connections)
+                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
                     {
-                        if (conn.IsRequested && !conn.IsPublished)
+                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
+                        foreach (var conn in Connections)
                         {
-                            await PublishInterface(conn, owner);
+                            if (conn.IsRequested && !conn.IsPublished)
+                            {
+                                await PublishInterface(conn, owner);
+                            }
                         }
-                    }
-                    apiConnection.SwitchBack();
+                    });
                 }
             }
             catch (Exception exc)
@@ -274,33 +276,34 @@ namespace FWO.Services.Workflow
             {
                 if (owner != null && ticketId != null)
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin]);
-                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
-                    foreach (var conn in Connections)
+                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
                     {
-                        if (conn.IsRequested)
+                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
+                        foreach (var conn in Connections)
                         {
-                            conn.AddProperty(ConState.Rejected.ToString());
-                            var Variables = new
+                            if (conn.IsRequested)
                             {
-                                id = conn.Id,
-                                connProp = conn.Properties
-                            };
-                            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, Variables);
-                            await ModellingHandlerBase.LogChange(new LogChangeRequest
-                            {
-                                ChangeType = ModellingTypes.ChangeType.Reject,
-                                ObjectType = ModellingTypes.ModObjectType.Connection,
-                                ObjectId = conn.Id,
-                                Text = $"Rejected {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
-                                ApiConnection = apiConnection,
-                                UserConfig = wfHandler.userConfig,
-                                ApplicationId = owner.Id,
-                                DisplayMessageInUi = DefaultInit.DoNothing
-                            });
+                                conn.AddProperty(ConState.Rejected.ToString());
+                                var Variables = new
+                                {
+                                    id = conn.Id,
+                                    connProp = conn.Properties
+                                };
+                                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, Variables);
+                                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                                {
+                                    ChangeType = ModellingTypes.ChangeType.Reject,
+                                    ObjectType = ModellingTypes.ModObjectType.Connection,
+                                    ObjectId = conn.Id,
+                                    Text = $"Rejected {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
+                                    ApiConnection = apiConnection,
+                                    UserConfig = wfHandler.userConfig,
+                                    ApplicationId = owner.Id,
+                                    DisplayMessageInUi = DefaultInit.DoNothing
+                                });
+                            }
                         }
-                    }
-                    apiConnection.SwitchBack();
+                    });
                 }
             }
             catch (Exception exc)
@@ -323,16 +326,17 @@ namespace FWO.Services.Workflow
                 FwoOwner? owner = wfHandler.ActReqTask.Owners?.FirstOrDefault()?.Owner;
                 if (owner != null && wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
                 {
-                    apiConnection.SetProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin, Roles.Auditor]);
-                    List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner.Id });
-                    ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
-                    if (conn != null)
+                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin, Roles.Auditor], async () =>
                     {
-                        ConnHandler = new ModellingConnectionHandler(apiConnection, wfHandler.userConfig, owner, Connections, conn, false, true, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
-                        await ConnHandler.Init();
-                        DisplayConnectionMode = true;
-                    }
-                    apiConnection.SwitchBack();
+                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner.Id });
+                        ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
+                        if (conn != null)
+                        {
+                            ConnHandler = new ModellingConnectionHandler(apiConnection, wfHandler.userConfig, owner, Connections, conn, false, true, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
+                            await ConnHandler.Init();
+                            DisplayConnectionMode = true;
+                        }
+                    });
                 }
             }
             catch (Exception exc)

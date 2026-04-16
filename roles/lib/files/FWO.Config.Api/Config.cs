@@ -98,33 +98,71 @@ namespace FWO.Config.Api
             List<string> remainingConfigItemNames = Array.ConvertAll(configItems, c => c.Key).ToList();
             foreach (PropertyInfo property in GetType().GetProperties())
             {
-                // Is the property storing a config value (marked by JsonPropertyName Attribute)?
-                if (property.GetCustomAttribute<JsonPropertyNameAttribute>() != null)
+                if (TryGetConfigKey(property, out string? key))
                 {
-                    string key = property.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name;
-                    ConfigItem? configItem = configItems.FirstOrDefault(configItem => configItem.Key == key);
-
-                    if (configItem != null)
-                    {
-                        try
-                        {
-                            remainingConfigItemNames.Remove(configItem.Key);
-                            TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
-                            property.SetValue(this, converter.ConvertFromString(configItem.Value
-                                ?? throw new ArgumentNullException($"Config value (with key: {configItem.Key}) is null."))
-                                ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.PropertyType}."));
-                        }
-                        catch (Exception exception)
-                        {
-                            Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be loaded. Using default value.", exception);
-                        }
-                    }
+                    string resolvedKey = key!;
+                    ConfigItem? configItem = configItems.FirstOrDefault(item => item.Key == resolvedKey);
+                    ApplyConfigValue(property, resolvedKey, configItem, remainingConfigItemNames);
                 }
             }
             foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately
             {
                 Log.WriteDebug($"Load {(UserId == 0 ? "Global " : "")}Config Items", $"Config item with key \"{name}\" could not be found. {(UserId == 0 ? "" : "User might not have customized the setting. ")}Using default value.");
             }
+        }
+
+        /// <summary>
+        /// Tries to resolve the config key from a property marked with <see cref="JsonPropertyNameAttribute"/>.
+        /// </summary>
+        private static bool TryGetConfigKey(PropertyInfo property, out string? key)
+        {
+            key = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name;
+            return key != null;
+        }
+
+        /// <summary>
+        /// Applies a config item value to the matching property and logs conversion issues.
+        /// </summary>
+        private void ApplyConfigValue(PropertyInfo property, string key, ConfigItem? configItem, List<string> remainingConfigItemNames)
+        {
+            if (configItem == null)
+            {
+                return;
+            }
+
+            try
+            {
+                remainingConfigItemNames.Remove(configItem.Key);
+                property.SetValue(this, ConvertConfigValue(property, configItem));
+            }
+            catch (ArgumentException exception) when (property.PropertyType.IsEnum)
+            {
+                Log.WriteWarning("Load Config Items", $"Config item with key \"{key}\" contains unsupported value \"{configItem.Value}\". Using default value.");
+                Log.WriteDebug("Load Config Items", $"Unsupported enum value ignored for key \"{key}\": {exception.Message}");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be loaded. Using default value.", exception);
+            }
+        }
+
+        private static object ConvertConfigValue(PropertyInfo property, ConfigItem configItem)
+        {
+            string rawValue = configItem.Value ?? throw new ArgumentNullException($"Config value (with key: {configItem.Key}) is null.");
+
+            if (property.PropertyType.IsEnum)
+            {
+                object parsedEnum = Enum.Parse(property.PropertyType, rawValue, ignoreCase: true);
+                if (!Enum.IsDefined(property.PropertyType, parsedEnum))
+                {
+                    throw new InvalidEnumArgumentException(property.Name, Convert.ToInt32(parsedEnum), property.PropertyType);
+                }
+                return parsedEnum;
+            }
+
+            TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
+            return converter.ConvertFromString(rawValue)
+                ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.PropertyType}.");
         }
 
         public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)

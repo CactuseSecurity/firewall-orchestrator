@@ -12,6 +12,7 @@ namespace FWO.Services.Triviality
         public const string BroadNetworkObjectReason = "BroadNetworkObject";
         public const string BidirectionalDuplicateReason = "BidirectionalDuplicate";
         public const string Ipv6NotSupportedReason = "IPv6NotSupported";
+        public const string ZoneObjectUsageReason = "ZoneObjectUsage";
 
         private readonly RuleRecognitionOption _ruleRecognitionOption = new();
         private readonly NetworkObjectRangeAnalyzer _rangeAnalyzer = new();
@@ -112,6 +113,27 @@ namespace FWO.Services.Triviality
             };
         }
 
+        /// <summary>
+        /// Evaluates whether the rule directly uses a zone object in source or destination.
+        /// </summary>
+        public TrivialityCheckResult EvaluateZoneObjectCriterion(Rule rule)
+        {
+            bool containsZoneObject =
+                FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object)).Any(IsZoneObject)
+                || FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object)).Any(IsZoneObject);
+
+            return containsZoneObject
+                ? new()
+                {
+                    IsTrivial = false,
+                    Reason = ZoneObjectUsageReason
+                }
+                : new()
+                {
+                    IsTrivial = true
+                };
+        }
+
         private static List<NetworkObject> FlattenRuleNetworkObjects(IEnumerable<NetworkObject> objects)
         {
             return objects
@@ -146,6 +168,12 @@ namespace FWO.Services.Triviality
             return left.Count == right.Count
                 && !left.Except(right, _networkServiceComparer).Any()
                 && !right.Except(left, _networkServiceComparer).Any();
+        }
+
+        private static bool IsZoneObject(NetworkObject networkObject)
+        {
+            return !string.IsNullOrWhiteSpace(networkObject.Name)
+                && networkObject.Name.EndsWith("_ZONE", StringComparison.OrdinalIgnoreCase);
         }
     }
 

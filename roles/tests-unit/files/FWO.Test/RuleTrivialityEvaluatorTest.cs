@@ -170,6 +170,59 @@ namespace FWO.Test
             ClassicAssert.AreEqual(RuleTrivialityEvaluator.BidirectionalDuplicateReason, result.Reason);
         }
 
+        [Test]
+        public void EvaluateZoneObjectCriterion_ShouldReturnNonTrivialForSourceZoneObject()
+        {
+            Rule rule = CreateRule(
+                [CreateNetworkLocation(CreateNetworkObject("DMZ_ZONE", "10.1.2.3/32", "10.1.2.3/32"))],
+                [CreateNetworkLocation(CreateNetworkObject("Destination", "10.9.8.7/32", "10.9.8.7/32"))]);
+
+            TrivialityCheckResult result = _evaluator.EvaluateZoneObjectCriterion(rule);
+
+            ClassicAssert.IsFalse(result.IsTrivial);
+            ClassicAssert.AreEqual(RuleTrivialityEvaluator.ZoneObjectUsageReason, result.Reason);
+        }
+
+        [Test]
+        public void EvaluateZoneObjectCriterion_ShouldReturnNonTrivialForDestinationZoneObject()
+        {
+            Rule rule = CreateRule(
+                [CreateNetworkLocation(CreateNetworkObject("Source", "10.1.2.3/32", "10.1.2.3/32"))],
+                [CreateNetworkLocation(CreateNetworkObject("INTERN_ZONE", "10.9.8.7/32", "10.9.8.7/32"))]);
+
+            TrivialityCheckResult result = _evaluator.EvaluateZoneObjectCriterion(rule);
+
+            ClassicAssert.IsFalse(result.IsTrivial);
+            ClassicAssert.AreEqual(RuleTrivialityEvaluator.ZoneObjectUsageReason, result.Reason);
+        }
+
+        [Test]
+        public void EvaluateZoneObjectCriterion_ShouldResolveGroupMembers()
+        {
+            NetworkObject zoneMember = CreateNetworkObject("PARTNER_ZONE", "10.9.8.7/32", "10.9.8.7/32");
+            Rule rule = CreateRule(
+                [CreateNetworkLocation(CreateGroup("Group", zoneMember))],
+                [CreateNetworkLocation(CreateNetworkObject("Destination", "10.1.2.3/32", "10.1.2.3/32"))]);
+
+            TrivialityCheckResult result = _evaluator.EvaluateZoneObjectCriterion(rule);
+
+            ClassicAssert.IsFalse(result.IsTrivial);
+            ClassicAssert.AreEqual(RuleTrivialityEvaluator.ZoneObjectUsageReason, result.Reason);
+        }
+
+        [Test]
+        public void EvaluateZoneObjectCriterion_ShouldReturnTrivialWhenNoZoneObjectIsUsed()
+        {
+            Rule rule = CreateRule(
+                [CreateNetworkLocation(CreateNetworkObject("Source", "10.1.2.3/32", "10.1.2.3/32"))],
+                [CreateNetworkLocation(CreateNetworkObject("Destination", "10.9.8.7/32", "10.9.8.7/32"))]);
+
+            TrivialityCheckResult result = _evaluator.EvaluateZoneObjectCriterion(rule);
+
+            ClassicAssert.IsTrue(result.IsTrivial);
+            ClassicAssert.AreEqual(string.Empty, result.Reason);
+        }
+
         private static Rule CreateRule(List<NetworkLocation> froms, List<NetworkLocation> tos, List<NetworkService>? services = null, int mgmtId = 0, long id = 0)
         {
             return new()

@@ -68,7 +68,7 @@ def import_management(
     except FwLoginFailedError as e:
         exception = e
         import_state.delete_import()  # delete whole import
-        roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
+        roll_back_exception_handler(global_state, import_state, config_importer=config_importer, exc=e, error_text="")
     except (
         ImportRecursionLimitReachedError,
         FwoImporterErrorInconsistenciesError,
@@ -77,6 +77,7 @@ def import_management(
         exception = e
     except (KeyboardInterrupt, ImportInterruptionError, ShutdownRequestedError) as e:
         roll_back_exception_handler(
+            global_state,
             import_state,
             config_importer=config_importer,
             exc=e,
@@ -85,13 +86,15 @@ def import_management(
         raise
     except (FwoApiWriteError, FwoImporterError) as e:
         exception = e
-        roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
+        roll_back_exception_handler(global_state, import_state, config_importer=config_importer, exc=e, error_text="")
     except Exception as e:
         exception = e
-        handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
+        handle_unexpected_exception(
+            global_state=global_state, import_state=import_state, config_importer=config_importer, e=e
+        )
     finally:
         try:
-            import_state.fwo_api_call.complete_import(import_state, exception)
+            global_state.fwo_api_call.complete_import(import_state, exception)
         except Exception as e:
             FWOLogger.error(f"Error during import completion: {e!s}")
 
@@ -127,7 +130,7 @@ def _import_management(
     Path(IMPORT_TMP_PATH).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
     gateways = ManagementController.build_gateway_list(import_state.mgm_details)
 
-    import_state.import_id = import_state.fwo_api_call.set_import_lock(
+    import_state.import_id = global_state.fwo_api_call.set_import_lock(
         import_state.mgm_details,
         import_state.is_initial_import,
     )
@@ -136,7 +139,7 @@ def _import_management(
     )
 
     if fwo_config.clear:
-        config_normalized = config_importer.clear_management(import_state=import_state)
+        config_normalized = config_importer.clear_management(import_state=import_state, global_state=global_state)
     else:
         # get config
         config_changed_since_last_import, config_normalized = get_config_top_level(
@@ -159,20 +162,22 @@ def _import_management(
     # TODO: replace by deletion of old data with removed date > retention?
     if not fwo_config.clear and import_state.data_retention_days < import_state.days_since_last_full_import:
         config_importer.delete_old_imports(
-            import_state=import_state
+            import_state=import_state, fwo_api_call=global_state.fwo_api_call
         )  # delete all imports of the current management before the last but one full import
 
 
 def handle_unexpected_exception(
+    global_state: GlobalState,
     import_state: ImportState | None = None,
     config_importer: FwConfigImport | None = None,
     e: Exception | None = None,
 ):
     if import_state is not None and config_importer is not None:
-        roll_back_exception_handler(import_state, config_importer=config_importer, exc=e)
+        roll_back_exception_handler(global_state, import_state, config_importer=config_importer, exc=e)
 
 
 def roll_back_exception_handler(
+    global_state: GlobalState,
     import_state: ImportState,
     config_importer: FwConfigImport | None = None,
     exc: BaseException | None = None,
@@ -189,7 +194,7 @@ def roll_back_exception_handler(
             FWOLogger.error("Exception: no exception provided")
         if config_importer is not None:
             FwConfigImportRollback().rollback_current_import(
-                import_state=import_state, fwo_api_call=import_state.fwo_api_call
+                import_state=import_state, fwo_api_call=global_state.fwo_api_call
             )
         else:
             FWOLogger.info("No config_importer found, skipping rollback.")
@@ -212,7 +217,7 @@ def get_config_top_level(
     file_name = in_file or config_uri
     if file_name is not None:
         ### getting config from file ######################
-        _, config_from_file = import_from_file(import_state, file_name)
+        _, config_from_file = import_from_file(global_state, import_state, file_name)
         if not config_from_file.is_native_non_empty():
             config_has_changes = True
             return config_has_changes, config_from_file
@@ -221,14 +226,16 @@ def get_config_top_level(
     return get_config_from_api(global_state, import_state, config_from_file, force_import)
 
 
-def import_from_file(import_state: ImportState, file_name: str = "") -> tuple[bool, FwConfigManagerListController]:
+def import_from_file(
+    global_state: GlobalState, import_state: ImportState, file_name: str = ""
+) -> tuple[bool, FwConfigManagerListController]:
     FWOLogger.debug(f"import_management - not getting config from API but from file: {file_name}")
 
     config_changed_since_last_import = True
 
     set_filename(import_state, file_name=file_name)
 
-    config_from_file = fwo_file_import.read_json_config_from_file(import_state.fwo_api_call, import_state)
+    config_from_file = fwo_file_import.read_json_config_from_file(global_state.fwo_api_call, import_state)
 
     return config_changed_since_last_import, config_from_file
 

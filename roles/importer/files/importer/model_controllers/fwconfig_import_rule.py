@@ -262,7 +262,7 @@ class FwConfigImportRule:
             query_variables = {"hit_info": new_hit_information}
 
             try:
-                import_result = self.import_state.fwo_api.call(
+                import_result = self.global_state.fwo_api.call(
                     update_last_hit_mutation, query_variables=query_variables, analyze_payload=True
                 )
                 if "errors" in import_result:
@@ -545,7 +545,7 @@ class FwConfigImportRule:
         }
 
         try:
-            import_result = self.import_state.fwo_api.call(
+            import_result = self.global_state.fwo_api.call(
                 import_mutation, query_variables=query_variables, analyze_payload=True
             )
             if "errors" in import_result:
@@ -709,7 +709,7 @@ class FwConfigImportRule:
         }
 
         try:
-            import_result = self.import_state.fwo_api.call(
+            import_result = self.global_state.fwo_api.call(
                 import_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
@@ -749,7 +749,7 @@ class FwConfigImportRule:
         FWOLogger.debug(json.dumps(query_variables), 10)  # just for debugging purposes
 
         try:
-            import_result = self.import_state.fwo_api.call(
+            import_result = self.global_state.fwo_api.call(
                 add_new_rule_metadata_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
@@ -794,7 +794,7 @@ class FwConfigImportRule:
         if len(new_rules) > 0:
             query_variables = {"rules": [rule.model_dump() for rule in new_rules]}
             try:
-                import_result = self.import_state.fwo_api.call(
+                import_result = self.global_state.fwo_api.call(
                     upsert_rules, query_variables=query_variables, analyze_payload=True
                 )
             except Exception:
@@ -840,7 +840,7 @@ class FwConfigImportRule:
         query_variables = {"rulebases": [rb.model_dump(by_alias=True) for rb in new_rulebases_for_import]}
 
         try:
-            import_result = self.import_state.fwo_api.call(
+            import_result = self.global_state.fwo_api.call(
                 add_rulebases_without_rules_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
@@ -900,7 +900,7 @@ class FwConfigImportRule:
         }
 
         try:
-            remove_result = self.import_state.fwo_api.call(
+            remove_result = self.global_state.fwo_api.call(
                 remove_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
@@ -933,7 +933,7 @@ class FwConfigImportRule:
         }
 
         try:
-            remove_result = self.import_state.fwo_api.call(
+            remove_result = self.global_state.fwo_api.call(
                 remove_mutation, query_variables=query_variables, analyze_payload=True
             )
         except Exception:
@@ -1052,7 +1052,7 @@ class FwConfigImportRule:
                 "importId": self.import_state.import_id,
             }
             try:
-                remove_result = self.import_state.fwo_api.call(
+                remove_result = self.global_state.fwo_api.call(
                     remove_mutation, query_variables=remove_variables, analyze_payload=True
                 )
             except Exception:
@@ -1079,7 +1079,7 @@ class FwConfigImportRule:
                 ]
             }
             try:
-                add_result = self.import_state.fwo_api.call(
+                add_result = self.global_state.fwo_api.call(
                     add_mutation, query_variables=add_variables, analyze_payload=True
                 )
             except Exception:
@@ -1181,7 +1181,7 @@ class FwConfigImportRule:
 
         if len(changelog_rule_insert_objects) > 0:
             try:
-                update_changelog_rules_result = self.import_state.fwo_api.call(
+                update_changelog_rules_result = self.global_state.fwo_api.call(
                     update_changelog_rules, query_variables=query_variables, analyze_payload=True
                 )
                 if "errors" in update_changelog_rules_result:

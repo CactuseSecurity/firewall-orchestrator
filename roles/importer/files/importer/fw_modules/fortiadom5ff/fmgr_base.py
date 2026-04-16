@@ -1,12 +1,12 @@
 from typing import Any
 
+from fwo_api_call import FwoApiCall
 from fwo_log import FWOLogger
-from states.import_state import ImportState
 
 
 # TODO: unused functions - remove?
 def set_alerts_for_missing_objects(
-    import_state: ImportState,
+    fwo_api_call: FwoApiCall,
     objects_not_found: list[str],
     import_id: int,
     rule_uid: str | None,
@@ -17,15 +17,15 @@ def set_alerts_for_missing_objects(
         if obj in {"all", "Original"}:
             continue
 
-        api_call = import_state.fwo_api_call
-
-        api_call.create_data_issue(obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type)
+        fwo_api_call.create_data_issue(
+            obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type
+        )
 
         desc = "found a broken network object reference '" + obj + "' "
         if object_type is not None:
             desc += "(type=" + object_type + ") "
         desc += "in rule with UID '" + str(rule_uid) + "'"
-        api_call.set_alert(
+        fwo_api_call.set_alert(
             import_id=import_id,
             title="object reference error",
             mgm_id=mgm_id,

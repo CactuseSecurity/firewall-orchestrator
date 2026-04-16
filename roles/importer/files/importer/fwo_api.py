@@ -24,9 +24,9 @@ class FwoApi:
     query_info: dict[str, Any]
     query_analyzer: QueryAnalyzer
 
-    def __init__(self, api_uri: str, jwt: str):
+    def __init__(self, api_uri: str, importer_user_name: str, importer_password: str, importer_mgm_uri: str):
         self.fwo_api_url = api_uri
-        self.fwo_jwt = jwt
+        self.fwo_jwt = self.login(importer_user_name, importer_password, importer_mgm_uri)
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
 
@@ -98,8 +98,8 @@ class FwoApi:
             raise FwoImporterError(f"Unexpected error during API call: {e!s}")
         return return_object
 
-    @staticmethod
     def login(
+        self,
         user: str,
         password: str | None,
         user_management_api_base_url: str | None,

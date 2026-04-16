@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Any
 
 import fwo_const
-from fwo_api_call import FwoApi
+from fwo_api_call import FwoApi, FwoApiCall
 from fwo_exceptions import FwoDuplicateKeyViolationError, FwoImporterError
 from fwo_log import ChangeLogger, FWOLogger
 from models.fwconfig_normalized import FwConfigNormalized
@@ -120,9 +120,15 @@ class FwConfigImportObject:
 
         # need to do this first, since we need the old object IDs for the group memberships
         # TODO: computationally expensive? Even without changes, all group objects and their members are compared to the previous config.
-        self.remove_outdated_memberships(import_state, management_state, prev_config, Type.NETWORK_OBJECT)
-        self.remove_outdated_memberships(import_state, management_state, prev_config, Type.SERVICE_OBJECT)
-        self.remove_outdated_memberships(import_state, management_state, prev_config, Type.USER)
+        self.remove_outdated_memberships(
+            import_state, management_state, global_state.fwo_api_call, prev_config, Type.NETWORK_OBJECT
+        )
+        self.remove_outdated_memberships(
+            import_state, management_state, global_state.fwo_api_call, prev_config, Type.SERVICE_OBJECT
+        )
+        self.remove_outdated_memberships(
+            import_state, management_state, global_state.fwo_api_call, prev_config, Type.USER
+        )
 
         # calculate zone object diffs
         deleted_zone_names: list[str] = list(
@@ -155,6 +161,7 @@ class FwConfigImportObject:
         ) = self.update_objects_via_api(
             import_state,
             management_state,
+            global_state.fwo_api_call,
             single_manager,
             new_nw_obj_uids,
             new_svc_obj_uids,
@@ -168,6 +175,7 @@ class FwConfigImportObject:
         self.update_time_objs_via_api(
             import_state,
             management_state,
+            global_state.fwo_api_call,
             prev_config.time_objects,
             management_state.normalized_config.time_objects,
             is_global=single_manager.is_super_manager,
@@ -183,9 +191,27 @@ class FwConfigImportObject:
         management_state.uid2id_mapper.add_zone_mappings(new_zone_ids, is_global=single_manager.is_super_manager)
 
         # insert new and updated group memberships
-        self.add_group_memberships(import_state, management_state, prev_config, Type.NETWORK_OBJECT)
-        self.add_group_memberships(import_state, management_state, prev_config, Type.SERVICE_OBJECT)
-        self.add_group_memberships(import_state, management_state, prev_config, Type.USER)
+        self.add_group_memberships(
+            import_state,
+            management_state,
+            global_state.fwo_api_call,
+            prev_config,
+            Type.NETWORK_OBJECT,
+        )
+        self.add_group_memberships(
+            import_state,
+            management_state,
+            global_state.fwo_api_call,
+            prev_config,
+            Type.SERVICE_OBJECT,
+        )
+        self.add_group_memberships(
+            import_state,
+            management_state,
+            global_state.fwo_api_call,
+            prev_config,
+            Type.USER,
+        )
 
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 
@@ -247,6 +273,7 @@ class FwConfigImportObject:
         self,
         import_state: ImportState,
         management_state: ManagementState,
+        fwo_api_call: FwoApiCall,
         single_manager: FwConfigManager,
         new_nw_object_uids: list[str],
         new_svc_obj_uids: list[str],
@@ -317,9 +344,7 @@ class FwConfigImportObject:
         FWOLogger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}", 9)
 
         try:
-            import_result = import_state.fwo_api_call.call(
-                import_mutation, query_variables=query_variables, analyze_payload=True
-            )
+            import_result = fwo_api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
             if "errors" in import_result:
                 raise FwoImporterError(f"failed to update objects in updateObjectsViaApi: {import_result['errors']!s}")
             _ = (
@@ -356,6 +381,7 @@ class FwConfigImportObject:
         self,
         import_state: ImportState,
         management_state: ManagementState,
+        fwo_api_call: FwoApiCall,
         previous_time_objs: dict[str, TimeObject],
         current_time_objs: dict[str, TimeObject],
         is_global: bool,
@@ -392,9 +418,7 @@ class FwConfigImportObject:
             ],
         }
         try:
-            import_result = import_state.fwo_api_call.call(
-                import_mutation, query_variables=query_variables, analyze_payload=True
-            )
+            import_result = fwo_api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
             if "errors" in import_result:
                 raise FwoImporterError(f"failed to update time objects: {import_result['errors']!s}")
             insert_count = int(import_result["data"]["insert_time_object"]["affected_rows"])
@@ -560,7 +584,12 @@ class FwConfigImportObject:
         return "usergrp"
 
     def remove_outdated_memberships(
-        self, import_state: ImportState, management_state: ManagementState, prev_config: FwConfigNormalized, typ: Type
+        self,
+        import_state: ImportState,
+        management_state: ManagementState,
+        fwo_api_call: FwoApiCall,
+        prev_config: FwConfigNormalized,
+        typ: Type,
     ):
         removed_members: list[dict[str, Any]] = []
         removed_flats: list[dict[str, Any]] = []
@@ -609,9 +638,7 @@ class FwConfigImportObject:
             "removedFlats": removed_flats,
         }
         try:
-            import_result = import_state.fwo_api_call.call(
-                import_mutation, query_variables=query_variables, analyze_payload=True
-            )
+            import_result = fwo_api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
             if "errors" in import_result:
                 FWOLogger.exception(
                     f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {import_result['errors']!s}"
@@ -680,6 +707,7 @@ class FwConfigImportObject:
         self,
         import_state: ImportState,
         management_state: ManagementState,
+        fwo_api_call: FwoApiCall,
         prev_config: FwConfigNormalized,
         obj_type: Type,
     ):
@@ -740,7 +768,7 @@ class FwConfigImportObject:
         if len(new_group_members) == 0:
             return
 
-        self.write_member_updates(import_state, new_group_members, new_group_member_flats, prefix)
+        self.write_member_updates(fwo_api_call, new_group_members, new_group_member_flats, prefix)
 
     def collect_flat_group_members(
         self,
@@ -799,7 +827,7 @@ class FwConfigImportObject:
 
     def write_member_updates(
         self,
-        import_state: ImportState,
+        fwo_api_call: FwoApiCall,
         new_group_members: list[dict[str, Any]],
         new_group_member_flats: list[dict[str, Any]],
         prefix: str,
@@ -819,9 +847,7 @@ class FwConfigImportObject:
             "groupFlats": new_group_member_flats,
         }
         try:
-            import_result = import_state.fwo_api_call.call(
-                import_mutation, query_variables=query_variables, analyze_payload=True
-            )
+            import_result = fwo_api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
             if "errors" in import_result:
                 FWOLogger.exception(f"fwo_api:addGroupMemberships: {import_result['errors']!s}")
                 if "duplicate" in import_result["errors"]:
@@ -963,7 +989,7 @@ class FwConfigImportObject:
 
         if len(nwobjs_changed) + len(svcobjs_changed) > 0:
             try:
-                changelog_result = import_state.fwo_api_call.call(
+                changelog_result = global_state.fwo_api_call.call(
                     changelog_mutation,
                     query_variables=query_variables,
                     analyze_payload=True,

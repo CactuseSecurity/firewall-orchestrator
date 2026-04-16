@@ -18,9 +18,6 @@ from services.uid2id_mapper import Uid2IdMapper
 class ImportState:
     import_id: int = -1
 
-    fwo_api: FwoApi
-    fwo_api_call: FwoApiCall
-
     super_config: FwConfigNormalized | None = None
     previous_super_config: FwConfigNormalized | None = None
 
@@ -44,9 +41,7 @@ class ImportState:
     responsible_for_importing: bool = True
     input_file: str | None = None
 
-    def __init__(self, fwo_api: FwoApi, fwo_api_call: FwoApiCall, mgm_id: int, input_file: str | None = None):
-        self.fwo_api = fwo_api
-        self.fwo_api_call = fwo_api_call
+    def __init__(self, mgm_id: int, fwo_api: FwoApi, fwo_api_call: FwoApiCall, input_file: str | None = None):
         self.input_file = input_file
 
         self.statistics_controller: ImportStatisticsController = ImportStatisticsController()
@@ -74,7 +69,7 @@ class ImportState:
             raise
 
         try:  # get last import data
-            _, last_import_date = self.fwo_api_call.get_last_complete_import({"mgmId": mgm_id})
+            _, last_import_date = fwo_api_call.get_last_complete_import({"mgmId": mgm_id})
         except Exception:
             FWOLogger.error(f"import_management - error while getting last import data for mgm={mgm_id}")
             raise

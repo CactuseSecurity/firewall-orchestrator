@@ -11,6 +11,7 @@ from fw_modules.checkpointR8x import cp_const, cp_network
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.management_controller import ManagementController
+from states.global_state import GlobalState
 from states.import_state import ImportState
 
 # Constants for status values
@@ -336,7 +337,7 @@ def get_global_assignments(api_v_url: str, sid: str, show_params_policy_structur
 
 
 def get_rulebases(
-    import_state: ImportState,
+    global_state: GlobalState,
     api_v_url: str,
     sid: str | None,
     show_params_rules: dict[str, Any],
@@ -383,7 +384,7 @@ def get_rulebases(
     # get rulebase in chunks
     if rulebase_uid not in fetched_rulebase_list:
         current_rulebase = get_rulebases_in_chunks(
-            import_state,  # type: ignore  # noqa: PGH003
+            global_state,  # type: ignore  # noqa: PGH003
             rulebase_uid,  # type: ignore  # noqa: PGH003
             show_params_rules,
             api_v_url,
@@ -395,7 +396,7 @@ def get_rulebases(
 
     # use recursion to get inline layers
     return get_inline_layers_recursively(
-        import_state,
+        global_state,
         current_rulebase,
         device_config,
         native_config_domain,
@@ -428,7 +429,7 @@ def get_uid_of_rulebase(
 
 
 def get_rulebases_in_chunks(
-    import_state: ImportState,
+    global_state: GlobalState,
     rulebase_uid: str,
     show_params_rules: dict[str, Any],
     api_v_url: str,
@@ -452,7 +453,7 @@ def get_rulebases_in_chunks(
             FWOLogger.error("could not find rulebase uid=" + rulebase_uid)
 
             description = f"failed to get show-access-rulebase  {rulebase_uid}"
-            import_state.fwo_api_call.create_data_issue(severity=2, description=description)
+            global_state.fwo_api_call.create_data_issue(severity=2, description=description)
             raise FwApiError("")
 
         resolve_checkpoint_uids_via_object_dict(
@@ -518,7 +519,7 @@ def control_while_loop_in_get_rulebases_in_chunks(
 
 
 def get_inline_layers_recursively(
-    import_state: ImportState,
+    global_state: GlobalState,
     current_rulebase: dict[str, Any],
     device_config: dict[str, Any],
     native_config_domain: dict[str, Any],
@@ -557,7 +558,7 @@ def get_inline_layers_recursively(
 
                         # get inline layer
                         policy_rulebases_uid_list = get_rulebases(
-                            import_state,
+                            global_state,
                             api_v_url,
                             sid,
                             show_params_rules,

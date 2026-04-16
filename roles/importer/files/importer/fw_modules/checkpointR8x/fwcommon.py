@@ -5,6 +5,7 @@ from typing import Any
 import fwo_const
 import fwo_globals
 from fw_modules.checkpointR8x import cp_const, cp_gateway, cp_getter, cp_network, cp_rule, cp_service
+from fwo_api_call import FwoApiCall
 from fwo_base import ConfigAction
 from fwo_exceptions import FwLoginFailedError, FwoImporterError, ImportInterruptionError
 from fwo_log import FWOLogger
@@ -90,7 +91,9 @@ def get_config(
         sid: str = ""
         if not parsing_config_only:
             sid = cp_getter.login(import_state.mgm_details)
-        normalized_config = normalize_config(import_state, config_in, parsing_config_only, sid)
+        normalized_config = normalize_config(
+            import_state, global_state.fwo_api_call, config_in, parsing_config_only, sid
+        )
         FWOLogger.info("completed getting config")
         return 0, normalized_config
     # we already have a native config (from file import)
@@ -122,7 +125,11 @@ def initialize_native_config(config_in: FwConfigManagerListController, import_st
 
 
 def normalize_config(
-    import_state: ImportState, config_in: FwConfigManagerListController, parsing_config_only: bool, sid: str
+    import_state: ImportState,
+    fwo_api_call: FwoApiCall,
+    config_in: FwConfigManagerListController,
+    parsing_config_only: bool,
+    sid: str,
 ) -> FwConfigManagerListController:
     native_and_normalized_config_dict_list: list[dict[str, Any]] = []
 
@@ -147,6 +154,7 @@ def normalize_config(
             normalized_config_dict,
             normalized_config_global,
             import_state,
+            fwo_api_call,
             parsing_config_only,
             sid,
             is_global_loop_iteration,
@@ -216,12 +224,13 @@ def normalize_single_manager_config(
     normalized_config_dict: dict[str, Any],
     normalized_config_global: dict[str, Any],
     import_state: ImportState,
+    fwo_api_call: FwoApiCall,
     parsing_config_only: bool,
     sid: str,
     is_global_loop_iteration: bool,
 ):
     cp_network.normalize_network_objects(
-        import_state,
+        fwo_api_call,
         native_config,
         normalized_config_dict,
         import_state.import_id,

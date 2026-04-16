@@ -876,6 +876,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
         mocker: MockerFixture,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -907,6 +908,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object.add_group_memberships(
             import_state=import_state,
             management_state=management_state,
+            fwo_api_call=global_state.fwo_api_call,
             obj_type=Type.NETWORK_OBJECT,
             prev_config=prev_config,
         )
@@ -938,6 +940,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
         mocker: MockerFixture,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -978,6 +981,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object.add_group_memberships(
             import_state=import_state,
             management_state=management_state,
+            fwo_api_call=global_state.fwo_api_call,
             obj_type=Type.NETWORK_OBJECT,
             prev_config=prev_config,
         )

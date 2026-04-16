@@ -1,5 +1,6 @@
 import fwo_globals
 import pytest
+from fwo_api import FwoApi
 from fwo_exceptions import FwoApiLoginFailedError
 from model_controllers.management_controller import ManagementController
 from pytest_mock.plugin import MockerFixture
@@ -9,7 +10,6 @@ from test.data.mock_objects import MockObjectsFactory
 from test.utils.test_utils import mock_get_graphql_code, mock_login
 
 from importer.import_main_loop import (
-    get_fwo_jwt,
     import_single_management,
     wait_with_shutdown_check,
 )
@@ -25,7 +25,7 @@ class TestGetFwoJwt:
         mock_login(mocker, return_value=expected_value)
 
         # Act
-        jwt_token = get_fwo_jwt("mocked_username", "", "mocked_mgm_api")
+        jwt_token = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
 
         # Assert
         assert jwt_token == expected_value
@@ -40,7 +40,7 @@ class TestGetFwoJwt:
         mock_login(mocker, side_effect=side_effect)
 
         # Act
-        jwt_token = get_fwo_jwt("mocked_username", "", "mocked_mgm_api")
+        jwt_token = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
 
         # Assert
         assert jwt_token is None
@@ -56,7 +56,7 @@ class TestGetFwoJwt:
         mock_login(mocker, side_effect=Exception("Unexpected error"))
 
         # Act & Assert
-        jwt_token = get_fwo_jwt("mocked_username", "", "mocked_mgm_api")
+        jwt_token = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
 
         # Assert
         assert jwt_token is None

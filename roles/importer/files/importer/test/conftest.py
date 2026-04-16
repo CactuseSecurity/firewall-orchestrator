@@ -52,12 +52,12 @@ def import_state(
     api_call.get_config_value = mocker.Mock(return_value="30")
 
     import_state = ImportState(
+        super_management_id,
         api_connection,
         api_call,
-        mgm_id=super_management_id,
     )
 
-    import_state.super_uid2id_mapper = Uid2IdMapper(import_state)
+    import_state.super_uid2id_mapper = Uid2IdMapper(api_connection)
 
     import_state.link_types = {
         "ordered": 2,
@@ -115,8 +115,9 @@ def global_state() -> GlobalState:
 @pytest.fixture
 def management_state(
     import_state: ImportState,
+    api_connection: FwoApi,
 ) -> ManagementState:
-    return ManagementState(import_state, 1, FwConfigNormalized(), is_super_manager=True)
+    return ManagementState(import_state, api_connection, 1, FwConfigNormalized(), is_super_manager=True)
 
 
 @pytest.fixture
@@ -167,9 +168,11 @@ def fw_config_manager() -> FwConfigManager:
 
 
 @pytest.fixture
-def uid2id_mapper(import_state: ImportState) -> Uid2IdMapper:
+def uid2id_mapper(import_state: ImportState, api_connection: FwoApi) -> Uid2IdMapper:
     return (
-        import_state.super_uid2id_mapper if import_state.super_uid2id_mapper is not None else Uid2IdMapper(import_state)
+        import_state.super_uid2id_mapper
+        if import_state.super_uid2id_mapper is not None
+        else Uid2IdMapper(api_connection)
     )
 
 

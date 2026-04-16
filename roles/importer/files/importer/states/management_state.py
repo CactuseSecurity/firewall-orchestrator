@@ -1,3 +1,4 @@
+from fwo_api import FwoApi
 from models.fwconfig_normalized import FwConfigNormalized
 from services.group_flats_mapper import GroupFlatsMapper
 from services.uid2id_mapper import Uid2IdMapper
@@ -17,7 +18,12 @@ class ManagementState:
     is_super_manager: bool
 
     def __init__(
-        self, import_state: ImportState, mgm_id: int, normalized_config: FwConfigNormalized, is_super_manager: bool
+        self,
+        import_state: ImportState,
+        fwo_api: FwoApi,
+        mgm_id: int,
+        normalized_config: FwConfigNormalized,
+        is_super_manager: bool,
     ):
         self.is_super_manager = is_super_manager
         self.mgm_id = mgm_id
@@ -25,6 +31,6 @@ class ManagementState:
         self.previous_config = None
         self.group_flats_mapper = GroupFlatsMapper()
         self.prev_group_flats_mapper = GroupFlatsMapper()
-        self.uid2id_mapper = Uid2IdMapper(import_state=import_state)
+        self.uid2id_mapper = Uid2IdMapper(fwo_api)
         if import_state.super_uid2id_mapper is not None:
             self.uid2id_mapper.copy_maps_from(import_state.super_uid2id_mapper)

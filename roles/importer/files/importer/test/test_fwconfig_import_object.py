@@ -1207,6 +1207,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -1216,25 +1217,27 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             network_object_count=2,
         )
         prev_config = copy.deepcopy(management_state.normalized_config)
-        import_state.fwo_api_call.call = mocker.Mock()
+        global_state.fwo_api_call.call = mocker.Mock()
         management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
 
         # Act
         fwconfig_import_object.remove_outdated_memberships(
             import_state=import_state,
             management_state=management_state,
+            fwo_api_call=global_state.fwo_api_call,
             prev_config=prev_config,
             typ=Type.NETWORK_OBJECT,
         )
 
         # Assert
-        import_state.fwo_api_call.call.assert_not_called()
+        global_state.fwo_api_call.call.assert_not_called()
 
     def test_remove_outdated_memberships_with_changes_and_success(
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -1251,7 +1254,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
 
         management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
         management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
-        import_state.fwo_api_call.call = mocker.Mock(
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "data": {
                     "update_objgrp_flat": {
@@ -1269,13 +1272,14 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object.remove_outdated_memberships(
             import_state=import_state,
             management_state=management_state,
+            fwo_api_call=global_state.fwo_api_call,
             prev_config=prev_config,
             typ=Type.NETWORK_OBJECT,
         )
 
         # Assert
-        import_state.fwo_api_call.call.assert_called_once()
-        call_args = import_state.fwo_api_call.call.call_args
+        global_state.fwo_api_call.call.assert_called_once()
+        call_args = global_state.fwo_api_call.call.call_args
         assert call_args.kwargs["query_variables"] == {
             "importId": 5,
             "removedMembers": [
@@ -1293,6 +1297,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -1309,7 +1314,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             obj.obj_member_refs = "old-member-uid"
 
         management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
-        import_state.fwo_api_call.call = mocker.Mock(
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "errors": [
                     {
@@ -1327,10 +1332,11 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             management_state=management_state,
             prev_config=management_state.previous_config,
             typ=Type.NETWORK_OBJECT,
+            fwo_api_call=global_state.fwo_api_call,
         )
 
         # Assert
-        import_state.fwo_api_call.call.assert_called_once()
+        global_state.fwo_api_call.call.assert_called_once()
         mock_logger.assert_called_once()
         assert (
             mock_logger.call_args[0][0]
@@ -1342,6 +1348,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -1357,7 +1364,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             obj.obj_member_refs = "old-member-uid"
         management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
         management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
-        import_state.fwo_api_call.call = mocker.Mock(
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "error": "Some unexpected error occurred",
             }
@@ -1371,10 +1378,11 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             management_state=management_state,
             prev_config=management_state.previous_config,
             typ=Type.NETWORK_OBJECT,
+            fwo_api_call=global_state.fwo_api_call,
         )
 
         # Assert
-        import_state.fwo_api_call.call.assert_called_once()
+        global_state.fwo_api_call.call.assert_called_once()
         mock_logger.assert_called_once()
         assert str(mock_logger.call_args[0][0]).startswith(
             "failed to remove outdated group memberships for Type.NETWORK_OBJECT: Traceback"
@@ -1385,6 +1393,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -1405,7 +1414,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
 
         management_state.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
         management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
-        import_state.fwo_api_call.call = mocker.Mock(
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "data": {
                     "update_objgrp": {"affected_rows": 1},
@@ -1421,10 +1430,11 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             management_state=management_state,
             prev_config=management_state.previous_config,
             typ=Type.NETWORK_OBJECT,
+            fwo_api_call=global_state.fwo_api_call,
         )
 
         # Assert
-        call_args = import_state.fwo_api_call.call.call_args
+        call_args = global_state.fwo_api_call.call.call_args
         assert call_args.kwargs["query_variables"] == {
             "importId": 6,
             "removedMembers": [{"_and": [{"objgrp_id": {"_eq": 10}}, {"objgrp_member_id": {"_eq": 20}}]}],
@@ -1438,6 +1448,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
         management_state: ManagementState,
+        global_state: GlobalState,
     ):
         # Arrange
         management_state.normalized_config, _ = fwconfig_builder.build_config(
@@ -1467,7 +1478,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(
             return_value=[member_uid_one, member_uid_two]
         )
-        import_state.fwo_api_call.call = mocker.Mock(
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "data": {
                     "update_objgrp": {"affected_rows": 2},
@@ -1483,10 +1494,11 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             management_state=management_state,
             prev_config=prev_config,
             typ=Type.NETWORK_OBJECT,
+            fwo_api_call=global_state.fwo_api_call,
         )
 
         # Assert
-        call_args = import_state.fwo_api_call.call.call_args
+        call_args = global_state.fwo_api_call.call.call_args
         assert call_args.kwargs["query_variables"] == {
             "importId": 12,
             "removedMembers": [
@@ -2254,18 +2266,20 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fw_config_manager: FwConfigManager,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
         # Arrange
         import_state.lookup_management_id = mocker.Mock(return_value=None)
-        import_state.fwo_api_call.call = mocker.Mock()
+        global_state.fwo_api_call.call = mocker.Mock()
 
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.update_objects_via_api(
                 import_state=import_state,
                 management_state=management_state,
+                fwo_api_call=global_state.fwo_api_call,
                 new_nw_object_uids=[],
                 new_svc_obj_uids=[],
                 new_user_uids=[],
@@ -2278,13 +2292,14 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
             )
 
         # Assert
-        import_state.fwo_api_call.call.assert_not_called()
+        global_state.fwo_api_call.call.assert_not_called()
 
     def test_update_objects_via_api_with_errors(
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fw_config_manager: FwConfigManager,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -2293,7 +2308,7 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         # Arrange
         import_state.lookup_management_id = mocker.Mock(return_value=1)
         mock_get_graphql_code(mocker, "importObjectsMutation")
-        import_state.fwo_api_call.call = mocker.Mock(
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "errors": [
                     {
@@ -2317,10 +2332,11 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
                 single_manager=fw_config_manager,
                 import_state=import_state,
                 management_state=management_state,
+                fwo_api_call=global_state.fwo_api_call,
             )
 
         # Assert
-        import_state.fwo_api_call.call.assert_called_once()
+        global_state.fwo_api_call.call.assert_called_once()
 
     def test_update_objects_via_api_with_exception(
         self,
@@ -2329,11 +2345,12 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         fw_config_manager: FwConfigManager,
         import_state: ImportState,
         management_state: ManagementState,
+        global_state: GlobalState,
     ):
         # Arrange
         import_state.lookup_management_id = mocker.Mock(return_value=1)
         mock_get_graphql_code(mocker, "importObjectsMutation")
-        import_state.fwo_api_call.call = mocker.Mock(side_effect=Exception("Unexpected error occurred"))
+        global_state.fwo_api_call.call = mocker.Mock(side_effect=Exception("Unexpected error occurred"))
 
         management_state.normalized_config = FwConfigNormalized()
         # Act
@@ -2350,10 +2367,11 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
                 single_manager=fw_config_manager,
                 import_state=import_state,
                 management_state=management_state,
+                fwo_api_call=global_state.fwo_api_call,
             )
 
         # Assert
-        import_state.fwo_api_call.call.assert_called_once()
+        global_state.fwo_api_call.call.assert_called_once()
 
     def test_update_objects_via_api_with_wrong_response_format(
         self,
@@ -2362,12 +2380,13 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         fw_config_manager: FwConfigManager,
         import_state: ImportState,
         management_state: ManagementState,
+        global_state: GlobalState,
     ):
 
         # Arrange
         import_state.lookup_management_id = mocker.Mock(return_value=1)
         mock_get_graphql_code(mocker, "importObjectsMutation")
-        import_state.fwo_api_call.call = mocker.Mock(return_value={"unexpected_key": {}})
+        global_state.fwo_api_call.call = mocker.Mock(return_value={"unexpected_key": {}})
 
         management_state.normalized_config = FwConfigNormalized()
 
@@ -2385,10 +2404,11 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
                 single_manager=fw_config_manager,
                 import_state=import_state,
                 management_state=management_state,
+                fwo_api_call=global_state.fwo_api_call,
             )
 
         # Assert
-        import_state.fwo_api_call.call.assert_called_once()
+        global_state.fwo_api_call.call.assert_called_once()
 
     def test_update_objects_via_api(
         self,
@@ -2397,11 +2417,12 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         fw_config_manager: FwConfigManager,
         import_state: ImportState,
         management_state: ManagementState,
+        global_state: GlobalState,
     ):
         # Arrange
         FWOLogger.instance.debug_level = 9
         import_state.lookup_management_id = mocker.Mock(return_value=1)
-        import_state.fwo_api_call.call = mocker.Mock(
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "data": {
                     "insert_object": {"affected_rows": 1, "returning": [{"id": 1}]},
@@ -2441,6 +2462,7 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
             single_manager=fw_config_manager,
             import_state=import_state,
             management_state=management_state,
+            fwo_api_call=global_state.fwo_api_call,
         )
 
         # Assert

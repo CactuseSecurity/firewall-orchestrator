@@ -67,13 +67,13 @@ def import_management(
         )
     except FwLoginFailedError as e:
         exception = e
-        import_state.delete_import()  # delete whole import
+        import_state.delete_import(global_state.fwo_api_call)  # delete whole import
         roll_back_exception_handler(global_state, import_state, config_importer=config_importer, exc=e, error_text="")
     except (
         ImportRecursionLimitReachedError,
         FwoImporterErrorInconsistenciesError,
     ) as e:
-        import_state.delete_import()  # delete whole import
+        import_state.delete_import(global_state.fwo_api_call)  # delete whole import
         exception = e
     except (KeyboardInterrupt, ImportInterruptionError, ShutdownRequestedError) as e:
         roll_back_exception_handler(
@@ -198,7 +198,7 @@ def roll_back_exception_handler(
             )
         else:
             FWOLogger.info("No config_importer found, skipping rollback.")
-        import_state.delete_import()  # delete whole import
+        import_state.delete_import(global_state.fwo_api_call)  # delete whole import
     except Exception as rollbackError:
         FWOLogger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
 

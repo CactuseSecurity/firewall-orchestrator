@@ -8,11 +8,11 @@ import fwo_const
 import fwo_globals
 import requests
 from fw_modules.checkpointR8x import cp_const, cp_network
+from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.management_controller import ManagementController
 from states.global_state import GlobalState
-from states.import_state import ImportState
 
 # Constants for status values
 STATUS_IN_PROGRESS = "in progress"
@@ -841,7 +841,7 @@ def handle_cpmi_any_object(obj: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def handle_gateway_objects(import_state: ImportState, obj: dict[str, Any]) -> dict[str, Any]:
+def handle_gateway_objects(fwo_api_call: FwoApiCall, obj: dict[str, Any]) -> dict[str, Any]:
     """Handle various gateway and network member objects."""
     color = obj.get("color", "black")
     return {
@@ -855,7 +855,7 @@ def handle_gateway_objects(import_state: ImportState, obj: dict[str, Any]) -> di
                         "color": color,
                         "comments": obj["comments"],
                         "type": "host",
-                        "ipv4-address": cp_network.get_ip_of_obj(import_state, obj),
+                        "ipv4-address": cp_network.get_ip_of_obj(fwo_api_call, obj),
                         "domain": obj["domain"],
                     }
                 ]
@@ -933,7 +933,7 @@ def handle_network_zone_objects(obj: dict[str, Any]) -> dict[str, Any]:
 
 
 def get_object_details_from_api(
-    import_state: ImportState, uid_missing_obj: str, sid: str = "", apiurl: str = ""
+    fwo_api_call: FwoApiCall, uid_missing_obj: str, sid: str = "", apiurl: str = ""
 ) -> dict[str, Any]:
     FWOLogger.debug(f"getting {uid_missing_obj} from API", 6)
 
@@ -968,7 +968,7 @@ def get_object_details_from_api(
         "CpmiVsxClusterMember",
         "CpmiVsxNetobj",
     ]:
-        return handle_gateway_objects(import_state, obj)
+        return handle_gateway_objects(fwo_api_call, obj)
     if obj_type == "Global":
         return handle_global_object(obj)
     if obj_type in ["updatable-object", "CpmiVoipSipDomain", "CpmiVoipMgcpDomain", "gsn_handover_group"]:

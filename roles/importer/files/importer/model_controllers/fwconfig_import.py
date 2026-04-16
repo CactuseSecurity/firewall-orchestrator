@@ -86,7 +86,7 @@ class FwConfigImport:
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {manager.manager_uid}")
 
-        management_state = ManagementState(import_state, mgm_id, config, manager.is_super_manager)
+        management_state = ManagementState(import_state, global_state.fwo_api, mgm_id, config, manager.is_super_manager)
 
         if manager.is_super_manager:
             # store global config as it is needed when importing sub managers which might reference it

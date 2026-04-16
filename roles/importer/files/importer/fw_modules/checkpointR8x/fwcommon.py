@@ -382,7 +382,6 @@ def process_devices(
         global_ordered_layer_count = 0
         if import_state.mgm_details.is_super_manager:
             global_ordered_layer_count = handle_global_rulebase_links(
-                import_state,
                 manager_details,
                 global_state,
                 device_config,
@@ -398,7 +397,7 @@ def process_devices(
             define_initial_rulebase(device_config, ordered_layer_uids, is_global=False)
 
         add_ordered_layers_to_native_config(
-            import_state,
+            global_state,
             ordered_layer_uids,
             get_rules_params(global_state),
             cp_manager_api_base_url,
@@ -421,7 +420,6 @@ def initialize_device_config(device: dict[str, Any]) -> dict[str, Any]:
 
 
 def handle_global_rulebase_links(
-    import_state: ImportState,
     manager_details: ManagementController,
     global_state: GlobalState,
     device_config: dict[str, Any],
@@ -455,7 +453,7 @@ def handle_global_rulebase_links(
 
                 global_ordered_layer_count = len(global_ordered_layer_uids)
                 global_policy_rulebases_uid_list = add_ordered_layers_to_native_config(
-                    import_state,
+                    global_state,
                     global_ordered_layer_uids,
                     get_rules_params(global_state),
                     cp_manager_api_base_url,
@@ -572,7 +570,7 @@ def handle_nat_rules(
 
 
 def add_ordered_layers_to_native_config(
-    import_state: ImportState,
+    global_state: GlobalState,
     ordered_layer_uids: list[str],
     show_params_rules: dict[str, Any],
     cp_manager_api_base_url: str,
@@ -590,7 +588,7 @@ def add_ordered_layers_to_native_config(
         show_params_rules.update({"uid": ordered_layer_uid})
 
         policy_rulebases_uid_list = cp_getter.get_rulebases(
-            import_state,
+            global_state,
             cp_manager_api_base_url,
             sid,
             show_params_rules,
@@ -673,7 +671,7 @@ def get_objects(native_config_dict: dict[str, Any], import_state: ImportState, g
             manager_details.domain_name = ""
             manager_details.domain_uid = ""  # Check Point Data
             get_objects_per_domain(
-                import_state,
+                global_state.fwo_api_call,
                 manager_details,
                 native_config_dict["domains"][0],
                 obj_type_array,
@@ -685,7 +683,7 @@ def get_objects(native_config_dict: dict[str, Any], import_state: ImportState, g
             manager_details.domain_name = "Global"
             manager_details.domain_uid = "Global"
             get_objects_per_domain(
-                import_state,
+                global_state.fwo_api_call,
                 manager_details,
                 native_config_dict["domains"][0],
                 obj_type_array,
@@ -694,7 +692,7 @@ def get_objects(native_config_dict: dict[str, Any], import_state: ImportState, g
             )
         else:
             get_objects_per_domain(
-                import_state,
+                global_state.fwo_api_call,
                 manager_details,
                 native_config_dict["domains"][manager_index],
                 obj_type_array,
@@ -707,7 +705,7 @@ def get_objects(native_config_dict: dict[str, Any], import_state: ImportState, g
 
 
 def get_objects_per_domain(
-    import_state: ImportState,
+    fwo_api_call: FwoApiCall,
     manager_details: ManagementController,
     native_domain: dict[str, Any],
     obj_type_array: list[str],
@@ -718,7 +716,7 @@ def get_objects_per_domain(
     cp_url = manager_details.build_fw_api_string()
     for obj_type in obj_type_array:
         object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_url)
-        add_special_objects_to_global_domain(import_state, object_table, obj_type, sid, cp_api_url=cp_url)
+        add_special_objects_to_global_domain(fwo_api_call, object_table, obj_type, sid, cp_api_url=cp_url)
         if not is_stand_alone_manager and not manager_details.is_super_manager:
             remove_predefined_objects_for_domains(object_table)
         native_domain["objects"].append(object_table)
@@ -773,23 +771,23 @@ def get_objects_per_type(
 
 
 def add_special_objects_to_global_domain(
-    import_state: ImportState, object_table: dict[str, Any], obj_type: str, sid: str, cp_api_url: str
+    fwo_api_call: FwoApiCall, object_table: dict[str, Any], obj_type: str, sid: str, cp_api_url: str
 ) -> None:
     """
     Appends special objects Original, Any, None and Internet to global domain
     """
     # getting Original (NAT) object (both for networks and services)
     orig_obj = cp_getter.get_object_details_from_api(
-        import_state, cp_const.original_obj_uid, sid=sid, apiurl=cp_api_url
+        fwo_api_call, cp_const.original_obj_uid, sid=sid, apiurl=cp_api_url
     )["chunks"][0]
-    any_obj = cp_getter.get_object_details_from_api(import_state, cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)[
+    any_obj = cp_getter.get_object_details_from_api(fwo_api_call, cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)[
         "chunks"
     ][0]
-    none_obj = cp_getter.get_object_details_from_api(import_state, cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)[
+    none_obj = cp_getter.get_object_details_from_api(fwo_api_call, cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)[
         "chunks"
     ][0]
     internet_obj = cp_getter.get_object_details_from_api(
-        import_state, cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url
+        fwo_api_call, cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url
     )["chunks"][0]
 
     if obj_type == "networks":

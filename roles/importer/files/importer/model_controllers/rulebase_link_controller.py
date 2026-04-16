@@ -47,7 +47,7 @@ class RulebaseLinkController:
             changes = add_result["data"]["update_rulebase_link"]["affected_rows"]
             stats.increment_rulebase_link_delete_count(changes)
 
-    def get_rulebase_links(self, import_state: ImportState) -> None:
+    def get_rulebase_links(self, import_state: ImportState, fwo_api_call: FwoApiCall) -> None:
         gw_ids = import_state.lookup_all_gateway_ids(import_state.mgm_details.mgm_id)
         if len(gw_ids) == 0:
             FWOLogger.warning(
@@ -59,7 +59,7 @@ class RulebaseLinkController:
         query_variables = {"gwIds": gw_ids}
 
         query = FwoApi.get_graphql_code(file_list=[f"{fwo_const.GRAPHQL_QUERY_PATH}rule/getRulebaseLinks.graphql"])
-        links = import_state.fwo_api_call.call(query, query_variables=query_variables)
+        links = fwo_api_call.call(query, query_variables=query_variables)
         if "errors" in links:
             FWOLogger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {links['errors']!s}")
         else:

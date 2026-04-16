@@ -29,7 +29,7 @@ class FwConfigImportGateway:
         rb_link_controller: RulebaseLinkController,
     ):
         # add gateway details:
-        rb_link_controller.get_rulebase_links(import_state)
+        rb_link_controller.get_rulebase_links(import_state, global_state.fwo_api_call)
         if (
             global_state.fwo_config_controller.fwo_config.clear
             and management_state.normalized_config is not None

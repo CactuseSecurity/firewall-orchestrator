@@ -189,7 +189,7 @@ class FwConfigImportCheckConsistency:
 
     def _check_objects_with_missing_ips(self, config: FwConfigNormalized):
         # check if there are any objects with obj_typ<>group and empty ip addresses (breaking constraint)
-        non_group_nw_obj_with_missing_ips: list["NetworkObject"] = []
+        non_group_nw_obj_with_missing_ips: list[NetworkObject] = []
         for obj_id in config.network_objects:
             if config.network_objects[obj_id].obj_typ != "group":
                 ip1 = config.network_objects[obj_id].obj_ip
@@ -653,7 +653,7 @@ class FwConfigImportCheckConsistency:
 
         # remove rules containing unresolvable nw obj refs
         for rb in config.rulebases:
-            filtered_rules: dict[str, "RuleNormalized"] = {}
+            filtered_rules: dict[str, RuleNormalized] = {}
             for rule_uid, rule in rb.rules.items():
                 src_refs = set(rule.rule_src_refs.split(fwo_const.LIST_DELIMITER))
                 dst_refs = set(rule.rule_dst_refs.split(fwo_const.LIST_DELIMITER))
@@ -702,7 +702,7 @@ class FwConfigImportCheckConsistency:
 
         # remove rules containing unresolvable svc obj refs
         for rb in config.rulebases:
-            filtered_rules: dict[str, "RuleNormalized"] = {}
+            filtered_rules: dict[str, RuleNormalized] = {}
             for rule_uid, rule in rb.rules.items():
                 svc_refs = set(rule.rule_svc_refs.split(fwo_const.LIST_DELIMITER))
                 if svc_refs & unresolvable_svc_obj_refs:
@@ -748,7 +748,7 @@ class FwConfigImportCheckConsistency:
 
         # remove rules containing unresolvable user obj refs
         for rb in config.rulebases:
-            filtered_rules: dict[str, "RuleNormalized"] = {}
+            filtered_rules: dict[str, RuleNormalized] = {}
             for rule_uid, rule in rb.rules.items():
                 src_refs = rule.rule_src_refs.split(fwo_const.LIST_DELIMITER)
                 dst_refs = rule.rule_dst_refs.split(fwo_const.LIST_DELIMITER)
@@ -771,7 +771,7 @@ class FwConfigImportCheckConsistency:
         """
         # remove rules containing unresolvable zone obj refs
         for rb in config.rulebases:
-            filtered_rules: dict[str, "RuleNormalized"] = {}
+            filtered_rules: dict[str, RuleNormalized] = {}
             for rule_uid, rule in rb.rules.items():
                 src_zone_refs: set[str] = set()
                 dst_zone_refs: set[str] = set()
@@ -795,7 +795,7 @@ class FwConfigImportCheckConsistency:
 
         """
         for rb in config.rulebases:
-            filtered_rules: dict[str, "RuleNormalized"] = {}
+            filtered_rules: dict[str, RuleNormalized] = {}
             for rule_uid, rule in rb.rules.items():
                 if rule_uid in rule_uids_to_remove:
                     self.rules_to_remove.append(rule_uid)
@@ -816,7 +816,7 @@ class FwConfigImportCheckConsistency:
 
         """
         for gw in config.gateways:
-            filtered_rulebase_links: list["RulebaseLinkUidBased"] = []
+            filtered_rulebase_links: list[RulebaseLinkUidBased] = []
             for rulebase_link in gw.RulebaseLinks:
                 if (
                     (rulebase_link.from_rulebase_uid and rulebase_link.from_rulebase_uid not in all_rulebase_uids)

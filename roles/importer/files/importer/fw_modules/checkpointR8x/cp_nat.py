@@ -76,7 +76,7 @@ def parse_native_nat_rulebases(
         insert_rulebase_link(
             from_rulebase_uid=initial_to_rulebase_uid,
             to_rulebase_uid=normalized_nat_rulebase.uid,
-            link_type="ordered",
+            link_type="nat",
             normalized_gateway=normalized_gateway,
         )
 
@@ -157,7 +157,7 @@ def parse_nat_rulebase(
     insert_rulebase_link(
         from_rulebase_uid=normalized_nat_rulebase.uid,
         to_rulebase_uid=section_rulebase.uid,
-        link_type="concatenated",
+        link_type="nat",
         normalized_gateway=normalized_gateway,
     )
 
@@ -225,7 +225,7 @@ def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], 
         "service": [nat_rule["original-service"]],
         "action": [{"name": "accept", "type": "nat-action", "uid": nat_rule["uid"] + "_original-action"}],
         "track": [{"type": "nat", "name": "None", "uid": nat_rule["uid"]}],
-        "type": "nat",
+        "rule_type": "nat",
         "rule-number": 0,
         "source-negate": False,
         "destination-negate": False,
@@ -245,7 +245,7 @@ def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], 
         "service": [nat_rule["translated-service"]],
         "action": [{"name": "accept", "type": "nat-action", "uid": nat_rule["uid"] + "_translated-action"}],
         "track": [{"type": "nat", "name": "None", "uid": nat_rule["uid"] + "_translated"}],
-        "type": "nat",
+        "rule_type": "nat",
         "rule-number": 0,
         "enabled": True,
         "source-negate": False,

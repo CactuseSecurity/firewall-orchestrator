@@ -134,7 +134,7 @@ namespace FWO.Middleware.Server
         /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
         /// <param name="htmlBody">Optional fully rendered HTML body for HtmlInBody notifications.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotificationIfDue(FwoNotification notification, FwoOwner? owner, DateTime? extDeadline, string? content = null, ReportBase? report = null, string timeIntervalText = "",  string? htmlBody = null)
+        public async Task<int> SendNotificationIfDue(FwoNotification notification, FwoOwner? owner, DateTime? extDeadline, string? content = null, ReportBase? report = null, string timeIntervalText = "", string? htmlBody = null)
         {
             if (IsNotificationDue(owner, extDeadline, notification))
             {

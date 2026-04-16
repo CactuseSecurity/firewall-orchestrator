@@ -104,10 +104,22 @@ namespace FWO.Test
             FwoNotification notification = notificationService.Notifications[0];
             FwoOwner owner = new();
 
-            MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo? prepareEmail = typeof(NotificationService).GetMethod(
+                "PrepareEmail",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                [
+                    typeof(FwoNotification),
+                    typeof(string),
+                    typeof(FwoOwner),
+                    typeof(ReportBase),
+                    typeof(string),
+                    typeof(string)
+                ],
+                null);
             ClassicAssert.IsNotNull(prepareEmail);
 
-            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, ""]) 
+            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, "", null])
                 ?? throw new InvalidOperationException("PrepareEmail returned null task."));
             FWO.Mail.MailData mailData = await task;
 

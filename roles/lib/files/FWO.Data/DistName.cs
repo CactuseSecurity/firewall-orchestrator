@@ -122,6 +122,44 @@ namespace FWO.Data
             return (value.ToString(), "");
         }
 
+        /// <summary>
+        /// Normalizes a distinguished name for safe membership comparisons across equivalent escaped forms.
+        /// </summary>
+        /// <param name="dn">Distinguished name to normalize.</param>
+        /// <returns>Normalized distinguished name.</returns>
+        public static string NormalizeDnForComparison(string? dn)
+        {
+            if (string.IsNullOrWhiteSpace(dn))
+            {
+                return "";
+            }
+
+            StringBuilder normalizedDn = new();
+            int index = 0;
+
+            while (index < dn.Length)
+            {
+                if (TryReadHexEscapedValue(dn, index, out string decodedValue, out int nextIndex))
+                {
+                    normalizedDn.Append(decodedValue);
+                    index = nextIndex;
+                    continue;
+                }
+
+                if (dn[index] == '\\' && index + 1 < dn.Length)
+                {
+                    normalizedDn.Append(dn[index + 1]);
+                    index += 2;
+                    continue;
+                }
+
+                normalizedDn.Append(dn[index]);
+                index++;
+            }
+
+            return normalizedDn.ToString().ToLowerInvariant();
+        }
+
         private static bool TryReadHexEscapedValue(string dn, int currentIndex, out string decodedValue, out int nextIndex)
         {
             decodedValue = "";

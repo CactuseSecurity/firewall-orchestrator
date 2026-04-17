@@ -6,7 +6,6 @@ using FWO.Logging;
 using Novell.Directory.Ldap;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -689,67 +688,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         public static string NormalizeDnForComparison(string? dn)
         {
-            if (string.IsNullOrWhiteSpace(dn))
-            {
-                return "";
-            }
-
-            StringBuilder normalizedDn = new();
-            int index = 0;
-
-            while (index < dn.Length)
-            {
-                if (TryReadHexEscapedSequence(dn, index, out string decodedValue, out int nextIndex))
-                {
-                    normalizedDn.Append(decodedValue);
-                    index = nextIndex;
-                    continue;
-                }
-
-                if (dn[index] == '\\' && index + 1 < dn.Length)
-                {
-                    normalizedDn.Append(dn[index + 1]);
-                    index += 2;
-                    continue;
-                }
-
-                normalizedDn.Append(dn[index]);
-                index++;
-            }
-
-            return normalizedDn.ToString().ToLowerInvariant();
-        }
-
-        private static bool TryReadHexEscapedSequence(string dn, int currentIndex, out string decodedValue, out int nextIndex)
-        {
-            decodedValue = "";
-            nextIndex = currentIndex;
-
-            if (currentIndex + 2 >= dn.Length || dn[currentIndex] != '\\' || !IsHexPair(dn, currentIndex + 1))
-            {
-                return false;
-            }
-
-            List<byte> escapedBytes = [];
-            int scanIndex = currentIndex;
-
-            do
-            {
-                escapedBytes.Add(Convert.ToByte(dn.Substring(scanIndex + 1, 2), 16));
-                scanIndex += 3;
-            }
-            while (scanIndex + 2 < dn.Length && dn[scanIndex] == '\\' && IsHexPair(dn, scanIndex + 1));
-
-            decodedValue = Encoding.UTF8.GetString([.. escapedBytes]);
-            nextIndex = scanIndex;
-            return true;
-        }
-
-        private static bool IsHexPair(string value, int startIndex)
-        {
-            return startIndex + 1 < value.Length
-                && Uri.IsHexDigit(value[startIndex])
-                && Uri.IsHexDigit(value[startIndex + 1]);
+            return DistName.NormalizeDnForComparison(dn);
         }
 
         private async Task<bool> ModifyUserInEntry(string userDn, string entry, int ldapModification)

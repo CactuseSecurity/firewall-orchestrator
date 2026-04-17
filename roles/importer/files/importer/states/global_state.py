@@ -32,6 +32,7 @@ class GlobalState:
             importer_user_name=self.fwo_config_controller.fwo_config.importer_user_name,
             importer_password=self.fwo_config_controller.fwo_config.importer_password,
             importer_mgm_uri=self.fwo_config_controller.fwo_config.fwo_user_mgmt_api_uri,
+            fwo_user_mgmt_api_uri=self.fwo_config_controller.fwo_config.fwo_user_mgmt_api_uri,
         )
 
         self.fwo_api_call = FwoApiCall(self.fwo_api)

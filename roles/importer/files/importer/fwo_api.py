@@ -11,7 +11,6 @@ import requests
 from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT
 from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
-from models.fwo_config_controller import FwoConfigController
 from query_analyzer import QueryAnalyzer
 
 JSON_CONTENT_TYPE = "application/json"
@@ -23,12 +22,21 @@ class FwoApi:
     fwo_jwt: str
     query_info: dict[str, Any]
     query_analyzer: QueryAnalyzer
+    fwo_user_mgmt_api_uri: str
 
-    def __init__(self, api_uri: str, importer_user_name: str, importer_password: str, importer_mgm_uri: str):
+    def __init__(
+        self,
+        api_uri: str,
+        importer_user_name: str,
+        importer_password: str,
+        importer_mgm_uri: str,
+        fwo_user_mgmt_api_uri: str,
+    ):
         self.fwo_api_url = api_uri
         self.fwo_jwt = self.login(importer_user_name, importer_password, importer_mgm_uri)
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
+        self.fwo_user_mgmt_api_uri = fwo_user_mgmt_api_uri
 
     def call(
         self,
@@ -152,7 +160,7 @@ class FwoApi:
             FwoImporterError: If request fails or returns error
 
         """
-        url = FwoConfigController().fwo_config.fwo_user_mgmt_api_uri + endpoint.lstrip("/")
+        url = self.fwo_user_mgmt_api_uri + endpoint.lstrip("/")
 
         with requests.Session() as session:
             if fwo_globals.verify_certs is None:

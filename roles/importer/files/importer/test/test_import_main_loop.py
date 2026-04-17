@@ -25,7 +25,7 @@ class TestGetFwoJwt:
         mock_login(mocker, return_value=expected_value)
 
         # Act
-        api = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
+        api = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api", "")
 
         # Assert
         assert api.fwo_jwt == expected_value
@@ -40,7 +40,7 @@ class TestGetFwoJwt:
 
         # Act & Assert
         with pytest.raises(FwoApiLoginFailedError, match="Login failed"):
-            FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
+            FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api", "")
 
     def test_get_fwo_jwt_unexpected_exception(
         self,
@@ -51,7 +51,7 @@ class TestGetFwoJwt:
 
         # Act & Assert
         with pytest.raises(Exception, match="Unexpected error"):
-            FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
+            FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api", "")
 
 
 class TestWaitWithShutdownCheck:

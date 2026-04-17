@@ -49,9 +49,7 @@ jobs:
         with:
           python-version: '3.11' 
 
-      - run: pip install -r roles/importer/files/importer/requirements.txt
-
-      - run: pip install -r scripts/customizing/app_data_import/requirements-for-app-data-import.txt
+      - run: pip install -r requirements.txt
 
       - uses: astral-sh/ruff-action@0ce1b0bf8b818ef400413f810f8a11cdbda0034b
         with:

@@ -38,7 +38,7 @@ user@test:~$
 ruff and pre-commit are in requirements.txt
 
 ```
-pip install -r .\roles\importer\files\importer\requirements.txt
+pip install -r requirements.txt
 ```
 
 ```

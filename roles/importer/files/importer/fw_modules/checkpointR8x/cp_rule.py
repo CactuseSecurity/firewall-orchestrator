@@ -6,10 +6,10 @@ from fwo_base import sanitize, sort_and_join_refs
 from fwo_const import DEFAULT_SECTION_HEADER_TEXT, LIST_DELIMITER
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
-from models.import_state import ImportState
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
 from models.rulebase import Rulebase
+from states.import_state import ImportState
 
 uid_to_name_map: dict[str, str] = {}
 

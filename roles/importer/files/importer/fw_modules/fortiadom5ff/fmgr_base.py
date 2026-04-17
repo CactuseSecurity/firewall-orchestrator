@@ -1,29 +1,31 @@
 from typing import Any
 
+from fwo_api_call import FwoApiCall
 from fwo_log import FWOLogger
-from services.service_provider import ServiceProvider
 
 
 # TODO: unused functions - remove?
 def set_alerts_for_missing_objects(
-    objects_not_found: list[str], import_id: int, rule_uid: str | None, object_type: str | None, mgm_id: int
+    fwo_api_call: FwoApiCall,
+    objects_not_found: list[str],
+    import_id: int,
+    rule_uid: str | None,
+    object_type: str | None,
+    mgm_id: int,
 ):
     for obj in objects_not_found:
         if obj in {"all", "Original"}:
             continue
 
-        service_provider = ServiceProvider()
-        global_state = service_provider.get_global_state()
-
-        api_call = global_state.import_state.api_call
-
-        api_call.create_data_issue(obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type)
+        fwo_api_call.create_data_issue(
+            obj_name=obj, severity=1, rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type
+        )
 
         desc = "found a broken network object reference '" + obj + "' "
         if object_type is not None:
             desc += "(type=" + object_type + ") "
         desc += "in rule with UID '" + str(rule_uid) + "'"
-        api_call.set_alert(
+        fwo_api_call.set_alert(
             import_id=import_id,
             title="object reference error",
             mgm_id=mgm_id,

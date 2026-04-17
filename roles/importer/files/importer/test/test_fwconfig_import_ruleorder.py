@@ -4,6 +4,7 @@ import copy
 
 from fwo_const import RULE_NUM_NUMERIC_STEPS
 from model_controllers.fwconfig_import_ruleorder import update_rule_order_diffs
+from states.management_state import ManagementState
 from test.utils.config_builder import FwConfigBuilder
 from test.utils.rule_helper_functions import (
     get_rule,
@@ -17,9 +18,11 @@ class TestFwConfigImportRuleOrderOldMigration:
     def test_initialize_on_insert_delete_and_move(
         self,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
         normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -70,9 +73,11 @@ class TestFwConfigImportRuleOrderOldMigration:
     def test_initialize_on_consecutive_insertions(
         self,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
         normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -166,9 +171,11 @@ class TestFwConfigImportRuleOrderOldMigration:
     def test_initialize_on_move_across_rulebases(
         self,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
         normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -207,9 +214,11 @@ class TestFwConfigImportRuleOrderOldMigration:
     def test_update_rulebase_diffs_on_moves_to_beginning_middle_and_end_of_rulebase(
         self,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
         normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -254,9 +263,11 @@ class TestFwConfigImportRuleOrderOldMigration:
     def test_update_rulebase_diffs_multiple_on_same_spot(
         self,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
         normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -322,9 +333,11 @@ class TestFwConfigImportRuleOrderOldMigration:
     def test_update_rulebase_diffs_on_no_changes(
         self,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
         normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -352,9 +365,11 @@ class TestFwConfigImportRuleOrderOldMigration:
     def test_update_rulebase_diffs_on_all_rules_moved(
         self,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
         normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,

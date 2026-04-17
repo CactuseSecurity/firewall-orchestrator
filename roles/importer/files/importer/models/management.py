@@ -18,8 +18,6 @@ class Management(BaseModel):
     import_user: str
     secret: str
     sub_manager_ids: list[int]
-    current_mgm_id: int
-    current_mgm_is_super_manager: bool
     domain_name: str | None
     domain_uid: str | None
     sub_managers: list["Management"]

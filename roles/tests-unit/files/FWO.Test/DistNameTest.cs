@@ -70,5 +70,16 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Müller", dn7.Role);
             ClassicAssert.AreEqual("Müller", dn7.Group);
         }
+
+        [TestCase(@"cn=Müller \2C (xy),ou=users,dc=example,dc=com", @"cn=Müller \, (xy),ou=users,dc=example,dc=com")]
+        [TestCase(@"cn=M\C3\BCller \2C (xy),ou=users,dc=example,dc=com", @"cn=Müller \, (xy),ou=users,dc=example,dc=com")]
+        [TestCase(@"CN=User\, Example,OU=Users,DC=Example,DC=COM", @"cn=User\2C Example,ou=users,dc=example,dc=com")]
+        public void NormalizeDnForComparison_TreatsEquivalentEscapedDnsAsEqual(string leftDn, string rightDn)
+        {
+            string normalizedLeft = DistName.NormalizeDnForComparison(leftDn);
+            string normalizedRight = DistName.NormalizeDnForComparison(rightDn);
+
+            Assert.That(normalizedLeft, Is.EqualTo(normalizedRight));
+        }
     }
 }

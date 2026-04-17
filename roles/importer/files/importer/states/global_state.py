@@ -3,6 +3,7 @@ import warnings
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from models.fwo_config_controller import FwoConfigController
+from services.stm_mapper import StmMapper
 
 
 class GlobalState:
@@ -12,6 +13,7 @@ class GlobalState:
     fwo_api: FwoApi
     fwo_api_call: FwoApiCall
     # stm tabellen
+    stm_mapper: StmMapper
 
     def __init__(
         self,
@@ -25,6 +27,7 @@ class GlobalState:
         )
         self.importer_version = self.fwo_config_controller.fwo_config.major_version
         self.login_to_api()
+        self.stm_mapper = StmMapper(self.fwo_api_call)
 
     def login_to_api(self):
         self.fwo_api = FwoApi(

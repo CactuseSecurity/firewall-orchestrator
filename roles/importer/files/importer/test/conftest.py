@@ -13,6 +13,7 @@ from models.fwconfigmanager import FwConfigManager
 from models.fwo_config_controller import FwoConfigController
 from pytest_mock import MockerFixture
 from services.group_flats_mapper import GroupFlatsMapper
+from services.stm_mapper import StmMapper
 from services.uid2id_mapper import Uid2IdMapper
 from states.global_state import GlobalState
 from states.import_state import ImportState
@@ -49,7 +50,6 @@ def import_state(
 
     mocker.patch("states.import_state.ManagementController.get_mgm_details", return_value={})
     mocker.patch("states.import_state.ManagementController.from_json", return_value=mock_mgm)
-    mocker.patch.object(ImportState, "set_core_data", return_value=None)
 
     api_call.get_last_complete_import = mocker.Mock(return_value=(0, ""))
     api_call.get_config_value = mocker.Mock(return_value="30")
@@ -61,34 +61,6 @@ def import_state(
     )
 
     import_state.super_uid2id_mapper = Uid2IdMapper(api_connection)
-
-    import_state.link_types = {
-        "ordered": 2,
-        "inline": 3,
-        "concatenated": 4,
-        "domain": 5,
-    }
-
-    import_state.color_map = {
-        "black": 1,
-        "red": 2,
-        "green": 3,
-        "blue": 4,
-    }
-
-    import_state.actions = {
-        "none": 1,
-        "accept": 2,
-    }
-
-    import_state.tracks = {
-        "none": 1,
-        "log": 2,
-    }
-
-    import_state.network_obj_type_map = {"network": 1, "group": 2, "host": 3, "machine_range": 4}
-    import_state.service_obj_type_map = {"simple": 1, "group": 2, "rpc": 3}
-    import_state.user_obj_type_map = {"group": 1, "simple": 2}
     return import_state
 
 
@@ -98,9 +70,26 @@ def group_flats_mapper() -> GroupFlatsMapper:
 
 
 @pytest.fixture
+def stm_mapper() -> StmMapper:
+
+    stm_mapper = StmMapper.__new__(StmMapper)
+    stm_mapper.color_map = {"black": 1, "red": 2, "green": 3, "blue": 4}
+    stm_mapper.network_obj_type_map = {"network": 1, "group": 2, "host": 3, "machine_range": 4}
+    stm_mapper.service_obj_type_map = {"simple": 1, "group": 2, "rpc": 3}
+    stm_mapper.user_obj_type_map = {"group": 1, "simple": 2}
+    stm_mapper.link_types = {"ordered": 2, "inline": 3, "concatenated": 4, "domain": 5}
+    stm_mapper.gateway_map = {3: {"mock-gateway-uid": 1}}
+    stm_mapper.protocol_map = {"tcp": 6, "udp": 17, "icmp": 1}
+    stm_mapper.actions = {"none": 1, "accept": 2}
+    stm_mapper.tracks = {"none": 1, "log": 2}
+    return stm_mapper
+
+
+@pytest.fixture
 def global_state(
     api_call: FwoApiCall,
     api_connection: FwoApi,
+    stm_mapper: StmMapper,
 ) -> GlobalState:
 
     with unittest.mock.patch.object(
@@ -117,9 +106,14 @@ def global_state(
         ),
     ):
         GlobalState.login_to_api = unittest.mock.Mock(return_value=None)
+        GlobalState.__init__ = unittest.mock.Mock(return_value=None)
         global_state = GlobalState(FWO_CONFIG_FILENAME, force=True, clear=False, debug_level=0)
+        global_state.fwo_config_controller = FwoConfigController(
+            FWO_CONFIG_FILENAME, force=True, clear=False, debug_level=0
+        )
         global_state.fwo_api = api_connection
         global_state.fwo_api_call = api_call
+        global_state.stm_mapper = stm_mapper
         return global_state
 
 

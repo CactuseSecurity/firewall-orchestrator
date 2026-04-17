@@ -63,7 +63,7 @@ def test_fwconfig_import_gateway_init(
         }
     )
 
-    import_state.gateway_map = {import_state.mgm_details.mgm_id: {"uid": 69}}
+    global_state.stm_mapper.gateway_map = {import_state.mgm_details.mgm_id: {"uid": 69}}
 
     fwconfig_import_gateway.update_gateway_diffs(global_state, import_state, management_state, rb_link_controller)
 
@@ -99,7 +99,7 @@ def test_fwconfig_import_gateway_init_no_links(
 
     get_graphql_code = mock_get_graphql_code(mocker, "lol")
 
-    import_state.gateway_map = {}
+    global_state.stm_mapper.gateway_map = {}
     get_graphql_code.assert_not_called()
 
     fwconfig_import_gateway.update_gateway_diffs(global_state, import_state, management_state, rb_link_controller)
@@ -130,7 +130,7 @@ def test_fwconfig_import_gateway_init_no_gateway_ids(
     api_call.call = unittest.mock.Mock(return_value={"data": {"rulebase_link": []}})
 
     get_graphql_code = mock_get_graphql_code(mocker, "lol")
-    import_state.gateway_map = {import_state.mgm_details.mgm_id: {}}
+    global_state.stm_mapper.gateway_map = {import_state.mgm_details.mgm_id: {}}
 
     fwconfig_import_gateway.update_gateway_diffs(global_state, import_state, management_state, rb_link_controller)
     get_graphql_code.assert_not_called()
@@ -139,6 +139,7 @@ def test_fwconfig_import_gateway_init_no_gateway_ids(
 
 
 def test_fwconfig_import_gateway_update_rulebase_link_diffs_no_configs(
+    global_state: GlobalState,
     import_state: ImportState,
     management_state: ManagementState,
     fwconfig_import_gateway: FwConfigImportGateway,
@@ -146,5 +147,7 @@ def test_fwconfig_import_gateway_update_rulebase_link_diffs_no_configs(
 ):
     management_state.normalized_config = None
     with pytest.raises(FwoImporterError) as excinfo:
-        fwconfig_import_gateway.update_rulebase_link_diffs(import_state, management_state, rb_link_controller)
+        fwconfig_import_gateway.update_rulebase_link_diffs(
+            global_state, import_state, management_state, rb_link_controller
+        )
     assert "normalized_config is None in update_rulebase_link_diffs" in str(excinfo.value)

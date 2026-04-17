@@ -15,10 +15,10 @@ class FortiosManagementRESTCommon(FwCommon):
         self,
         config_in: FwConfigManagerListController,
         import_state: ImportState,
-        global_state: GlobalState,  # noqa: ARG002
+        global_state: GlobalState,
     ) -> tuple[int, FwConfigManagerListController]:
         ensure_manager_set(config_in, import_state)
-        ensure_device_name(import_state)
+        ensure_device_name(global_state, import_state)
         if config_in.native_config_is_empty():
             # get native config via REST API
             fm_api_url = f"https://{import_state.mgm_details.hostname}:{import_state.mgm_details.port!s}/api/v2"
@@ -58,9 +58,11 @@ def ensure_manager_set(config_in: FwConfigManagerListController, import_state: I
     )
 
 
-def ensure_device_name(import_state: ImportState) -> None:
+def ensure_device_name(global_state: GlobalState, import_state: ImportState) -> None:
     mgm_details = import_state.mgm_details
-    gw_map = import_state.gateway_map.get(mgm_details.mgm_id, {})  # Watch out changed from current_mgm_id to mgm_id
+    gw_map = global_state.stm_mapper.gateway_map.get(
+        mgm_details.mgm_id, {}
+    )  # Watch out changed from current_mgm_id to mgm_id
     gateway_uid = next(iter(gw_map.keys()), None)
 
     if (

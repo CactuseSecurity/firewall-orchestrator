@@ -6,6 +6,7 @@ from fwo_api_call import FwoApiCall
 from fwo_log import FWOLogger
 from model_controllers.import_statistics_controller import ImportStatisticsController
 from models.rulebase_link import RulebaseLink, parse_rulebase_links
+from states.global_state import GlobalState
 from states.import_state import ImportState
 
 
@@ -47,8 +48,10 @@ class RulebaseLinkController:
             changes = add_result["data"]["update_rulebase_link"]["affected_rows"]
             stats.increment_rulebase_link_delete_count(changes)
 
-    def get_rulebase_links(self, import_state: ImportState, fwo_api_call: FwoApiCall) -> None:
-        gw_ids = import_state.lookup_all_gateway_ids(import_state.mgm_details.mgm_id)
+    def get_rulebase_links(
+        self, global_state: GlobalState, import_state: ImportState, fwo_api_call: FwoApiCall
+    ) -> None:
+        gw_ids = global_state.stm_mapper.lookup_all_gateway_ids(import_state.mgm_details.mgm_id)
         if len(gw_ids) == 0:
             FWOLogger.warning(
                 "RulebaseLinkController:get_rulebase_links - no gateway ids found for current management - skipping getting rulebase links"

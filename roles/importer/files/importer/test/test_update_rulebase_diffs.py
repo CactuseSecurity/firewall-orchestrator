@@ -9,6 +9,7 @@ from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rule import RuleNormalized
 from pytest_mock import MockerFixture
 from services.uid2id_mapper import Uid2IdMapper
+from states.global_state import GlobalState
 from states.import_state import ImportState
 from states.management_state import ManagementState
 from test.utils.config_builder import FwConfigBuilder
@@ -297,6 +298,7 @@ def mock_api_call_response(api_call: FwoApiCall):
 class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
     def test_update_rulebase_diffs_on_insert_delete_and_move(
         self,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
         fwconfig_import_rule: FwConfigImportRule,
@@ -316,7 +318,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
             rules_per_rulebase_count=10,
         )
 
-        import_state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+        global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
         management_state.previous_config = config
         management_state.normalized_config = copy.deepcopy(config)
         fwconfig_builder.initialize_rule_num_numerics(management_state.previous_config)

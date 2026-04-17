@@ -3,6 +3,7 @@ import unittest.mock
 
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.rulebase_link_controller import RulebaseLinkController
+from states.global_state import GlobalState
 from states.import_state import ImportState
 from states.management_state import ManagementState
 from test.utils.config_builder import FwConfigBuilder
@@ -14,8 +15,9 @@ def test_add_cp_section_header_at_the_bottom(
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
     rb_link_controller: RulebaseLinkController,
+    global_state: GlobalState,
 ):
-    import_state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
         management_state.uid2id_mapper,
@@ -39,11 +41,11 @@ def test_add_cp_section_header_at_the_bottom(
     from_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(last_rulebase.uid)
     fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller)
 
-    import_state.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
     new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs(
-        import_state, management_state, rb_link_controller
+        global_state, import_state, management_state, rb_link_controller
     )
 
     # Assert
@@ -66,8 +68,9 @@ def test_add_cp_section_header_in_existing_rulebase(
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
     rb_link_controller: RulebaseLinkController,
+    global_state: GlobalState,
 ):
-    import_state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
         management_state.uid2id_mapper,
@@ -100,11 +103,11 @@ def test_add_cp_section_header_in_existing_rulebase(
     from_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(last_rulebase.uid)
     fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller)
 
-    import_state.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
     new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs(
-        import_state, management_state, rb_link_controller
+        global_state, import_state, management_state, rb_link_controller
     )
 
     # Assert
@@ -125,8 +128,9 @@ def test_delete_cp_section_header(
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
     rb_link_controller: RulebaseLinkController,
+    global_state: GlobalState,
 ):
-    import_state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
         management_state.uid2id_mapper,
@@ -160,11 +164,11 @@ def test_delete_cp_section_header(
 
     fwconfig_builder.update_rule_num_numerics(management_state.previous_config)
     fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller)
-    import_state.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
     _, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs(
-        import_state, management_state, rb_link_controller
+        global_state, import_state, management_state, rb_link_controller
     )
 
     # Assert
@@ -177,8 +181,9 @@ def test_add_inline_layer(
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
     rb_link_controller: RulebaseLinkController,
+    global_state: GlobalState,
 ):
-    import_state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
         management_state.uid2id_mapper,
@@ -207,11 +212,11 @@ def test_add_inline_layer(
     from_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(from_rulebase.uid)
     to_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(added_rulebase.uid)
     fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller)
-    import_state.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
     new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs(
-        import_state, management_state, rb_link_controller
+        global_state, import_state, management_state, rb_link_controller
     )
 
     # Assert
@@ -234,8 +239,9 @@ def test_delete_inline_layer(
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
     rb_link_controller: RulebaseLinkController,
+    global_state: GlobalState,
 ):
-    import_state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
         management_state.uid2id_mapper,
@@ -262,11 +268,11 @@ def test_delete_inline_layer(
 
     fwconfig_builder.update_rule_map_and_rulebase_map(management_state, management_state.previous_config)
     fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller)
-    import_state.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
     _, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs(
-        import_state, management_state, rb_link_controller
+        global_state, import_state, management_state, rb_link_controller
     )
 
     # Assert
@@ -275,13 +281,14 @@ def test_delete_inline_layer(
 
 
 def test_move_inline_layer(
+    global_state: GlobalState,
     management_state: ManagementState,
     import_state: ImportState,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
     rb_link_controller: RulebaseLinkController,
 ):
-    import_state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
         management_state.uid2id_mapper,
@@ -327,11 +334,11 @@ def test_move_inline_layer(
     fwconfig_builder.update_rb_links(
         gateway_previous.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller
     )
-    import_state.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
     new_links, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs(
-        import_state, management_state, rb_link_controller
+        global_state, import_state, management_state, rb_link_controller
     )
 
     # Assert

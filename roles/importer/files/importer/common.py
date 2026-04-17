@@ -155,7 +155,9 @@ def _import_management(
     # check config consistency and import it
     if config_changed_since_last_import or fwo_config.force:
         if not fwo_config.suppress_consistency_check:
-            FwConfigImportCheckConsistency(import_state).check_fwconfig_managerlist_consistency(config_normalized)
+            FwConfigImportCheckConsistency(global_state, import_state).check_fwconfig_managerlist_consistency(
+                config_normalized
+            )
         config_importer.import_management_set(global_state, import_state, config_normalized)
 
     # delete data that has passed the retention time

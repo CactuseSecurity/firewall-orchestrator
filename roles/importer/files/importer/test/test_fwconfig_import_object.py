@@ -212,30 +212,30 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
 class TestFwConfigImportObjectLookupProtoNameToId:
     def test_lookup_proto_name_to_id_unknown_name(
         self,
-        import_state: ImportState,
+        global_state: GlobalState,
     ):
         # Arrange
-        proto_name = "tcp"
+        proto_name = "tcp_not_exists"
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state.lookup_protocol_id(proto_name)
+            global_state.stm_mapper.lookup_protocol_id(proto_name)
 
     def test_lookup_proto_name_to_id_known_name(
         self,
-        import_state: ImportState,
+        global_state: GlobalState,
     ):
         # Arrange
         proto_name = "icmp"
         expected_proto_id = 1
-        import_state.protocol_map = {
+        global_state.stm_mapper.protocol_map = {
             "icmp": 1,
             "tcp": 6,
             "udp": 17,
         }
 
         # Act
-        proto_id = import_state.lookup_protocol_id(proto_name)
+        proto_id = global_state.stm_mapper.lookup_protocol_id(proto_name)
         # Assert
         assert proto_id == expected_proto_id
 
@@ -243,30 +243,30 @@ class TestFwConfigImportObjectLookupProtoNameToId:
 class TestFwConfigImportObjectLookupUserType:
     def test_lookup_user_type_unknown(
         self,
-        import_state: ImportState,
+        global_state: GlobalState,
     ):
         # Arrange
         user_type_str = "some-user-type"
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state.lookup_user_obj_type_id(user_type_str)
+            global_state.stm_mapper.lookup_user_obj_type_id(user_type_str)
 
     def test_lookup_user_type_known(
         self,
-        import_state: ImportState,
+        global_state: GlobalState,
     ):
         # Arrange
         user_type_str = "imported"
         expected_user_type = 2
-        import_state.user_obj_type_map = {
+        global_state.stm_mapper.user_obj_type_map = {
             "admin": 1,
             "imported": 2,
             "readonly": 3,
         }
 
         # Act
-        user_type = import_state.lookup_user_obj_type_id(user_type_str)
+        user_type = global_state.stm_mapper.lookup_user_obj_type_id(user_type_str)
 
         # Assert
         assert user_type == expected_user_type
@@ -275,30 +275,30 @@ class TestFwConfigImportObjectLookupUserType:
 class TestFwConfigImportObjectLookupSvcType:
     def test_lookup_svc_type_unknown(
         self,
-        import_state: ImportState,
+        global_state: GlobalState,
     ):
         # Arrange
         svc_type_str = "some-svc-type"
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state.lookup_service_obj_type_id(svc_type_str)
+            global_state.stm_mapper.lookup_service_obj_type_id(svc_type_str)
 
     def test_lookup_svc_type_known(
         self,
-        import_state: ImportState,
+        global_state: GlobalState,
     ):
         # Arrange
         svc_type_str = "imported"
         expected_svc_type = 2
-        import_state.service_obj_type_map = {
+        global_state.stm_mapper.service_obj_type_map = {
             "builtin": 1,
             "imported": 2,
             "custom": 3,
         }
 
         # Act
-        svc_type = import_state.lookup_service_obj_type_id(svc_type_str)
+        svc_type = global_state.stm_mapper.lookup_service_obj_type_id(svc_type_str)
 
         # Assert
         assert svc_type == expected_svc_type
@@ -2101,6 +2101,7 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
     def test_prepare_new_userobjs_no_normalized_config(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -2110,6 +2111,7 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.prepare_new_userobjs(
+                global_state=global_state,
                 import_state=import_state,
                 management_state=management_state,
                 new_user_uids=["user1", "user2"],
@@ -2121,6 +2123,7 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
         fwconfig_builder: FwConfigBuilder,
         import_state: ImportState,
         management_state: ManagementState,
+        global_state: GlobalState,
     ):
         # Arrange
         management_state.normalized_config, _ = fwconfig_builder.build_config(
@@ -2131,6 +2134,7 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
 
         # Act
         new_userobjs = fwconfig_import_object.prepare_new_userobjs(
+            global_state=global_state,
             import_state=import_state,
             management_state=management_state,
             new_user_uids=new_user_uids,
@@ -2161,6 +2165,7 @@ class TestFwConfigImportObjectPrepareNewSvcobjs:
     def test_prepare_new_svcobjs_no_normalized_config(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -2170,6 +2175,7 @@ class TestFwConfigImportObjectPrepareNewSvcobjs:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.prepare_new_svcobjs(
+                global_state=global_state,
                 import_state=import_state,
                 management_state=management_state,
                 new_svcobj_uids=["svc1", "svc2"],
@@ -2179,6 +2185,7 @@ class TestFwConfigImportObjectPrepareNewSvcobjs:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -2191,6 +2198,7 @@ class TestFwConfigImportObjectPrepareNewSvcobjs:
 
         # Act
         new_svcobjs = fwconfig_import_object.prepare_new_svcobjs(
+            global_state=global_state,
             import_state=import_state,
             management_state=management_state,
             new_svcobj_uids=new_svc_uids,
@@ -2202,10 +2210,10 @@ class TestFwConfigImportObjectPrepareNewSvcobjs:
                 svc_object=management_state.normalized_config.service_objects[uid],
                 mgm_id=1,
                 import_id=import_state.import_id,
-                color_id=import_state.lookup_color_id(
+                color_id=global_state.stm_mapper.lookup_color_id(
                     management_state.normalized_config.service_objects[uid].svc_color
                 ),
-                typ_id=import_state.lookup_service_obj_type_id(
+                typ_id=global_state.stm_mapper.lookup_service_obj_type_id(
                     management_state.normalized_config.service_objects[uid].svc_typ
                 ),
             ).to_dict()
@@ -2217,6 +2225,7 @@ class TestFwConfgImportObjectPrepareNewNwobjs:
     def test_prepare_new_nwobjs_no_normalized_config(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -2226,6 +2235,7 @@ class TestFwConfgImportObjectPrepareNewNwobjs:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.prepare_new_nwobjs(
+                global_state=global_state,
                 import_state=import_state,
                 management_state=management_state,
                 new_nwobj_uids=["nwobj1", "nwobj2"],
@@ -2235,6 +2245,7 @@ class TestFwConfgImportObjectPrepareNewNwobjs:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
     ):
@@ -2247,6 +2258,7 @@ class TestFwConfgImportObjectPrepareNewNwobjs:
 
         # Act
         new_nwobjs = fwconfig_import_object.prepare_new_nwobjs(
+            global_state=global_state,
             import_state=import_state,
             management_state=management_state,
             new_nwobj_uids=new_nwobj_uids,
@@ -2258,10 +2270,10 @@ class TestFwConfgImportObjectPrepareNewNwobjs:
                 nw_object=management_state.normalized_config.network_objects[uid],
                 mgm_id=1,
                 import_id=import_state.import_id,
-                color_id=import_state.lookup_color_id(
+                color_id=global_state.stm_mapper.lookup_color_id(
                     management_state.normalized_config.network_objects[uid].obj_color
                 ),
-                typ_id=import_state.lookup_network_obj_type_id(
+                typ_id=global_state.stm_mapper.lookup_network_obj_type_id(
                     management_state.normalized_config.network_objects[uid].obj_typ
                 ),
             ).to_dict()
@@ -2286,6 +2298,7 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.update_objects_via_api(
+                global_state=global_state,
                 import_state=import_state,
                 management_state=management_state,
                 fwo_api_call=global_state.fwo_api_call,
@@ -2330,6 +2343,7 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.update_objects_via_api(
+                global_state=global_state,
                 new_nw_object_uids=[],
                 new_svc_obj_uids=[],
                 new_user_uids=[],
@@ -2365,6 +2379,7 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.update_objects_via_api(
+                global_state=global_state,
                 new_nw_object_uids=[],
                 new_svc_obj_uids=[],
                 new_user_uids=[],
@@ -2402,6 +2417,7 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.update_objects_via_api(
+                global_state=global_state,
                 new_nw_object_uids=[],
                 new_svc_obj_uids=[],
                 new_user_uids=[],
@@ -2460,6 +2476,7 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
             removed_user_ids,
             removed_zone_ids,
         ) = fwconfig_import_object.update_objects_via_api(
+            global_state=global_state,
             new_nw_object_uids=[],
             new_svc_obj_uids=[],
             new_user_uids=[],
@@ -2652,18 +2669,19 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
 
         # Assert: update_objects_via_api called with expected uid sets
         args, _ = fwconfig_import_object.update_objects_via_api.call_args
-        assert args[0] is import_state
-        assert args[1] is management_state
-        assert args[2] is global_state.fwo_api_call
-        assert args[3] is fw_config_manager
-        assert set(args[4]) == {first_nwobj_uid}
-        assert set(args[5]) == {first_svcobj_uid}
-        assert set(args[6]) == {first_userobj_uid}
-        assert set(args[7]) == {first_zone_name}
-        assert set(args[8]) == {first_nwobj_uid}
-        assert set(args[9]) == {first_svcobj_uid}
-        assert set(args[10]) == {first_userobj_uid}
-        assert set(args[11]) == {first_zone_name}
+        assert args[0] is global_state
+        assert args[1] is import_state
+        assert args[2] is management_state
+        assert args[3] is global_state.fwo_api_call
+        assert args[4] is fw_config_manager
+        assert set(args[5]) == {first_nwobj_uid}
+        assert set(args[6]) == {first_svcobj_uid}
+        assert set(args[7]) == {first_userobj_uid}
+        assert set(args[8]) == {first_zone_name}
+        assert set(args[9]) == {first_nwobj_uid}
+        assert set(args[10]) == {first_svcobj_uid}
+        assert set(args[11]) == {first_userobj_uid}
+        assert set(args[12]) == {first_zone_name}
 
         assert fwconfig_import_object.remove_outdated_memberships.call_count == 3
         assert fwconfig_import_object.add_group_memberships.call_count == 3

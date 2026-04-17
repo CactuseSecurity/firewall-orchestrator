@@ -18,26 +18,16 @@ def import_state(
 
     mocker.patch("states.import_state.ManagementController.get_mgm_details", return_value={})
     mocker.patch("states.import_state.ManagementController.from_json", return_value=mock_mgm)
-    mocker.patch.object(ImportState, "set_core_data", return_value=None)
 
     api_call.get_last_complete_import = mocker.Mock(return_value=(0, ""))
     api_call.get_config_value = mocker.Mock(return_value="30")
 
-    import_state = ImportState(fwo_api=api_connection, fwo_api_call=api_call, mgm_id=mgm_id)
-    import_state.tracks = {"ordered": 2, "inline": 3, "concatenated": 4, "domain": 5}
-    import_state.link_types = {
-        "ordered": 2,
-        "inline": 3,
-        "concatenated": 4,
-        "domain": 5,
-    }
-    return import_state
+    return ImportState(fwo_api=api_connection, fwo_api_call=api_call, mgm_id=mgm_id)
 
 
 class TestFwConfigImportObjectGetProtocolMap:
     def test_get_protocol_map(
         self,
-        import_state: ImportState,
         mocker: MockerFixture,
         global_state: GlobalState,
     ):
@@ -59,34 +49,33 @@ class TestFwConfigImportObjectGetProtocolMap:
         }
 
         # Act
-        import_state.set_protocol_map(global_state.fwo_api_call)
+        global_state.stm_mapper.set_protocol_map(global_state.fwo_api_call)
 
         # Assert
-        assert import_state.protocol_map == expected_protocol_map
+        assert global_state.stm_mapper.protocol_map == expected_protocol_map
 
     def test_get_protocol_map_with_exception(
         self,
         global_state: GlobalState,
-        import_state: ImportState,
         mocker: MockerFixture,
     ):
         # Arrange
         global_state.fwo_api_call.call = mocker.Mock(side_effect=Exception("Unexpected error occurred"))
+        global_state.stm_mapper.protocol_map = {}
         mock_logger = mocker.patch("fwo_log.FWOLogger.error")
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state.set_protocol_map(global_state.fwo_api_call)
+            global_state.stm_mapper.set_protocol_map(global_state.fwo_api_call)
 
         # Assert
         mock_logger.assert_called_once()
-        assert import_state.protocol_map == {}
+        assert global_state.stm_mapper.protocol_map == {}
 
 
 class TestFwConfigImportObjectGetUserObjTypeMap:
     def test_get_userobj_type_map(
         self,
-        import_state: ImportState,
         mocker: MockerFixture,
         global_state: GlobalState,
     ):
@@ -108,34 +97,33 @@ class TestFwConfigImportObjectGetUserObjTypeMap:
         }
 
         # Act
-        import_state.set_user_obj_type_map(global_state.fwo_api_call)
+        global_state.stm_mapper.set_user_obj_type_map(global_state.fwo_api_call)
 
         # Assert
-        assert import_state.user_obj_type_map == expected_userobj_type_map
+        assert global_state.stm_mapper.user_obj_type_map == expected_userobj_type_map
 
     def test_get_userobj_type_map_with_exception(
         self,
-        import_state: ImportState,
         global_state: GlobalState,
         mocker: MockerFixture,
     ):
         # Arrange
         global_state.fwo_api_call.call = mocker.Mock(side_effect=Exception("Unexpected error occurred"))
+        global_state.stm_mapper.user_obj_type_map = {}
         mock_logger = mocker.patch("fwo_log.FWOLogger.error")
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state.set_user_obj_type_map(global_state.fwo_api_call)
+            global_state.stm_mapper.set_user_obj_type_map(global_state.fwo_api_call)
 
         # Assert
         mock_logger.assert_called_once()
-        assert import_state.user_obj_type_map == {}
+        assert global_state.stm_mapper.user_obj_type_map == {}
 
 
 class TestFwConfigImportObjectGetServiceObjTypeMap:
     def test_get_serviceobj_type_map(
         self,
-        import_state: ImportState,
         mocker: MockerFixture,
         global_state: GlobalState,
     ):
@@ -157,34 +145,33 @@ class TestFwConfigImportObjectGetServiceObjTypeMap:
         }
 
         # Act
-        import_state.set_service_obj_type_map(global_state.fwo_api_call)
+        global_state.stm_mapper.set_service_obj_type_map(global_state.fwo_api_call)
 
         # Assert
-        assert import_state.service_obj_type_map == expected_serviceobj_type_map
+        assert global_state.stm_mapper.service_obj_type_map == expected_serviceobj_type_map
 
     def test_get_serviceobj_type_map_with_exception(
         self,
-        import_state: ImportState,
         global_state: GlobalState,
         mocker: MockerFixture,
     ):
         # Arrange
         global_state.fwo_api_call.call = mocker.Mock(side_effect=Exception("Unexpected error occurred"))
+        global_state.stm_mapper.service_obj_type_map = {}
         mock_logger = mocker.patch("fwo_log.FWOLogger.error")
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state.set_service_obj_type_map(global_state.fwo_api_call)
+            global_state.stm_mapper.set_service_obj_type_map(global_state.fwo_api_call)
 
         # Assert
         mock_logger.assert_called_once()
-        assert import_state.service_obj_type_map == {}
+        assert global_state.stm_mapper.service_obj_type_map == {}
 
 
 class TestFwConfigImportObjectGetNetworkObjTypeMap:
     def test_get_networkobj_type_map(
         self,
-        import_state: ImportState,
         mocker: MockerFixture,
         global_state: GlobalState,
     ):
@@ -206,14 +193,13 @@ class TestFwConfigImportObjectGetNetworkObjTypeMap:
         }
 
         # Act
-        import_state.set_network_obj_type_map(global_state.fwo_api_call)
+        global_state.stm_mapper.set_network_obj_type_map(global_state.fwo_api_call)
 
         # Assert
-        assert import_state.network_obj_type_map == expected_networkobj_type_map
+        assert global_state.stm_mapper.network_obj_type_map == expected_networkobj_type_map
 
     def test_get_networkobj_type_map_with_exception(
         self,
-        import_state: ImportState,
         global_state: GlobalState,
         mocker: MockerFixture,
     ):
@@ -223,7 +209,7 @@ class TestFwConfigImportObjectGetNetworkObjTypeMap:
 
         # Act
         with pytest.raises(FwoImporterError):
-            import_state.set_network_obj_type_map(global_state.fwo_api_call)
+            global_state.stm_mapper.set_network_obj_type_map(global_state.fwo_api_call)
 
         # Assert
         mock_logger.assert_called_once()
@@ -232,30 +218,30 @@ class TestFwConfigImportObjectGetNetworkObjTypeMap:
 class TestFwConfigImportObjectLookupObjType:
     def test_lookup_obj_type_unknown(
         self,
-        import_state: ImportState,
+        global_state: GlobalState,
     ):
         # Arrange
         obj_type_str = "some-obj-type"
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state.lookup_network_obj_type_id(obj_type_str)
+            global_state.stm_mapper.lookup_network_obj_type_id(obj_type_str)
 
     def test_lookup_obj_type_known(
         self,
-        import_state: ImportState,
+        global_state: GlobalState,
     ):
         # Arrange
         obj_type_str = "imported"
         expected_obj_type = 2
-        import_state.network_obj_type_map = {
+        global_state.stm_mapper.network_obj_type_map = {
             "builtin": 1,
             "imported": 2,
             "custom": 3,
         }
 
         # Act
-        obj_type = import_state.lookup_network_obj_type_id(obj_type_str)
+        obj_type = global_state.stm_mapper.lookup_network_obj_type_id(obj_type_str)
 
         # Assert
         assert obj_type == expected_obj_type

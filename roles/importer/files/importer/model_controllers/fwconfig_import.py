@@ -55,7 +55,7 @@ class FwConfigImport:
         if single_manager.is_super_manager:
             import_state.previous_super_config = previous_config
 
-        self.check_and_fix_db_consistency(import_state, management_state, global_state.fwo_api_call)
+        self.check_and_fix_db_consistency(global_state, import_state, management_state, global_state.fwo_api_call)
 
         # calculate differences and write them to the database via API
         self.update_diffs(global_state, import_state, management_state, single_manager)
@@ -442,6 +442,7 @@ class FwConfigImport:
 
     def check_and_fix_db_consistency(
         self,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
         fwo_api_call: FwoApiCall,
@@ -450,7 +451,7 @@ class FwConfigImport:
         Check consistency of the latest config (=previous config) built from database state before import.
         If inconsistencies are found, they will be fixed in the database by marking objects/rules/links as removed.
         """
-        consistency_checker = FwConfigImportCheckConsistency(import_state)
+        consistency_checker = FwConfigImportCheckConsistency(global_state, import_state)
         consistency_checker.check_config_consistency(
             management_state.normalized_config, import_state.previous_super_config, fix_config=True
         )
@@ -465,7 +466,7 @@ class FwConfigImport:
         self.fix_rules_in_db(import_state, management_state, fwo_api_call, consistency_checker.rules_to_remove)
         if consistency_checker.invalid_rulebase_links_exist:
             self.fix_rulebase_links_in_db(import_state, management_state, fwo_api_call)
-        self.fix_rule_to_gw_refs_in_db(import_state, management_state, fwo_api_call)
+        self.fix_rule_to_gw_refs_in_db(global_state, import_state, management_state, fwo_api_call)
         self.fix_ref_tables_in_db(import_state, management_state, fwo_api_call)
         self.fix_changelog_rule(management_state, fwo_api_call)
 
@@ -585,8 +586,8 @@ class FwConfigImport:
 
     def _insert_missing_rule_to_gw_refs_in_db(
         self,
+        global_state: GlobalState,
         refs_to_add: set[tuple[str, str]],
-        import_state: ImportState,
         management_state: ManagementState,
         fwo_api_call: FwoApiCall,
     ):
@@ -625,7 +626,7 @@ class FwConfigImport:
             "rulesEnforcedOnGateway": [
                 {
                     "rule_id": rule_uid_to_id_create[rule_uid][0],
-                    "dev_id": import_state.lookup_gateway_id(gw_uid, mgm_id),
+                    "dev_id": global_state.stm_mapper.lookup_gateway_id(gw_uid, mgm_id),
                     "created": rule_uid_to_id_create[rule_uid][1],
                 }
                 for rule_uid, gw_uid in refs_to_add
@@ -645,7 +646,11 @@ class FwConfigImport:
             raise FwoImporterError("error while trying to add missing rule enforced on gateway references") from None
 
     def fix_rule_to_gw_refs_in_db(
-        self, import_state: ImportState, management_state: ManagementState, fwo_api_call: FwoApiCall
+        self,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
+        fwo_api_call: FwoApiCall,
     ):
         """
         Set inconsistent rule_enforced_on_gateway entries removed and insert missing ones.
@@ -653,10 +658,10 @@ class FwConfigImport:
         if management_state.previous_config is None:
             return  # nothing to compare against, so nothing to fix
         mgm_id = management_state.mgm_id
-        if mgm_id not in import_state.gateway_map:
+        if mgm_id not in global_state.stm_mapper.gateway_map:
             # no gateways assigned to management (e.g. super-mgr)
             return
-        gw_ids = import_state.lookup_all_gateway_ids(mgm_id)
+        gw_ids = global_state.stm_mapper.lookup_all_gateway_ids(mgm_id)
         query = FwoApi.get_graphql_code(
             file_list=[fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulesEnforcedOnGateways.graphql"]
         )
@@ -728,7 +733,7 @@ class FwConfigImport:
                 ) from None
 
         if refs_to_add:
-            self._insert_missing_rule_to_gw_refs_in_db(refs_to_add, import_state, management_state, fwo_api_call)
+            self._insert_missing_rule_to_gw_refs_in_db(global_state, refs_to_add, management_state, fwo_api_call)
 
     def fix_ref_tables_in_db(
         self, import_state: ImportState, management_state: ManagementState, fwo_api_call: FwoApiCall

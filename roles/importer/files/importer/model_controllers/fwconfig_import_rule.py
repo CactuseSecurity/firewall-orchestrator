@@ -1042,7 +1042,9 @@ class FwConfigImportRule:
                             {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
                             {
                                 "dev_id": {
-                                    "_eq": self.import_state.lookup_gateway_id(gw_uid, self.management_state.mgm_id)
+                                    "_eq": self.global_state.stm_mapper.lookup_gateway_id(
+                                        gw_uid, self.management_state.mgm_id
+                                    )
                                 }
                             },
                         ]
@@ -1072,7 +1074,7 @@ class FwConfigImportRule:
                 "rulesEnforcedOnGateway": [
                     {
                         "rule_id": self.uid2id_mapper.get_rule_id(rule_uid),
-                        "dev_id": self.import_state.lookup_gateway_id(gw_uid, self.management_state.mgm_id),
+                        "dev_id": self.global_state.stm_mapper.lookup_gateway_id(gw_uid, self.management_state.mgm_id),
                         "created": self.import_state.import_id,
                     }
                     for rule_uid, gw_uid in refs_to_add
@@ -1126,8 +1128,8 @@ class FwConfigImportRule:
             rule_create=self.import_state.import_id,
             rule_last_seen=self.import_state.import_id,
             rule_num_numeric=rule.rule_num_numeric,
-            action_id=self.import_state.lookup_action(rule.rule_action),
-            track_id=self.import_state.lookup_track(rule.rule_track),
+            action_id=self.global_state.stm_mapper.lookup_action(rule.rule_action),
+            track_id=self.global_state.stm_mapper.lookup_track(rule.rule_track),
             rule_head_text=rule.rule_head_text,
             rule_installon=rule.rule_installon,
             last_change_admin=None,  # TODO: get id from rule.last_change_admin

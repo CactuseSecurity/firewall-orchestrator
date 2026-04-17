@@ -159,6 +159,7 @@ class FwConfigImportObject:
             _,
             _,
         ) = self.update_objects_via_api(
+            global_state,
             import_state,
             management_state,
             global_state.fwo_api_call,
@@ -271,6 +272,7 @@ class FwConfigImportObject:
     # TODO: split into multiple functions again, as large queries are not handled efficiently in some scenarios
     def update_objects_via_api(
         self,
+        global_state: GlobalState,
         import_state: ImportState,
         management_state: ManagementState,
         fwo_api_call: FwoApiCall,
@@ -331,9 +333,9 @@ class FwConfigImportObject:
         query_variables: dict[str, Any] = {
             "mgmId": this_managements_id,
             "importId": import_state.import_id,
-            "newNwObjects": self.prepare_new_nwobjs(import_state, management_state, new_nw_object_uids),
-            "newSvcObjects": self.prepare_new_svcobjs(import_state, management_state, new_svc_obj_uids),
-            "newUsers": self.prepare_new_userobjs(import_state, management_state, new_user_uids),
+            "newNwObjects": self.prepare_new_nwobjs(global_state, import_state, management_state, new_nw_object_uids),
+            "newSvcObjects": self.prepare_new_svcobjs(global_state, import_state, management_state, new_svc_obj_uids),
+            "newUsers": self.prepare_new_userobjs(global_state, import_state, management_state, new_user_uids),
             "newZones": self.prepare_new_zones(import_state, management_state, new_zone_names),
             "removedNwObjectUids": removed_nw_object_uids,
             "removedSvcObjectUids": removed_svc_object_uids,
@@ -436,7 +438,11 @@ class FwConfigImportObject:
             raise FwoImporterError(f"failed to update time objects: {traceback.format_exc()!s}")
 
     def prepare_new_nwobjs(
-        self, import_state: ImportState, management_state: ManagementState, new_nwobj_uids: list[str]
+        self,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
+        new_nwobj_uids: list[str],
     ) -> list[dict[str, Any]]:
         if management_state.normalized_config is None:
             raise FwoImporterError("no normalized config available in FwConfigImportObject.prepare_new_nwobjs")
@@ -446,10 +452,10 @@ class FwConfigImportObject:
                 nw_object=management_state.normalized_config.network_objects[nwobj_uid],
                 mgm_id=management_state.mgm_id,
                 import_id=import_state.import_id,
-                color_id=import_state.lookup_color_id(
+                color_id=global_state.stm_mapper.lookup_color_id(
                     management_state.normalized_config.network_objects[nwobj_uid].obj_color
                 ),
-                typ_id=import_state.lookup_network_obj_type_id(
+                typ_id=global_state.stm_mapper.lookup_network_obj_type_id(
                     management_state.normalized_config.network_objects[nwobj_uid].obj_typ
                 ),
             )
@@ -458,7 +464,11 @@ class FwConfigImportObject:
         return new_nwobjs
 
     def prepare_new_svcobjs(
-        self, import_state: ImportState, management_state: ManagementState, new_svcobj_uids: list[str]
+        self,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
+        new_svcobj_uids: list[str],
     ) -> list[dict[str, Any]]:
         if management_state.normalized_config is None:
             raise FwoImporterError("no normalized config available in FwConfigImportObject.prepare_new_svcobjs")
@@ -467,10 +477,10 @@ class FwConfigImportObject:
                 svc_object=management_state.normalized_config.service_objects[uid],
                 mgm_id=management_state.mgm_id,
                 import_id=import_state.import_id,
-                color_id=import_state.lookup_color_id(
+                color_id=global_state.stm_mapper.lookup_color_id(
                     management_state.normalized_config.service_objects[uid].svc_color
                 ),
-                typ_id=import_state.lookup_service_obj_type_id(
+                typ_id=global_state.stm_mapper.lookup_service_obj_type_id(
                     management_state.normalized_config.service_objects[uid].svc_typ
                 ),
             ).to_dict()
@@ -478,7 +488,11 @@ class FwConfigImportObject:
         ]
 
     def prepare_new_userobjs(
-        self, import_state: ImportState, management_state: ManagementState, new_user_uids: list[str]
+        self,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
+        new_user_uids: list[str],
     ) -> list[dict[str, Any]]:
         if management_state.normalized_config is None:
             raise FwoImporterError("no normalized config available in FwConfigImportObject.prepare_new_userobjs")
@@ -488,7 +502,7 @@ class FwConfigImportObject:
                 "mgm_id": management_state.mgm_id,
                 "user_create": import_state.import_id,
                 "user_last_seen": import_state.import_id,
-                "usr_typ_id": import_state.lookup_user_obj_type_id(
+                "usr_typ_id": global_state.stm_mapper.lookup_user_obj_type_id(
                     management_state.normalized_config.users[uid]["user_typ"]
                 ),
                 "user_name": management_state.normalized_config.users[uid]["user_name"],

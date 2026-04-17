@@ -339,10 +339,13 @@ class TestCheckConsistencyNetworkObjects:
 
     def test_check_network_object_consistency_with_two_groups_circular_reference(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
         fwconfig_builder: FwConfigBuilder,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -356,7 +359,8 @@ class TestCheckConsistencyNetworkObjects:
         group_b.obj_member_refs = group_a.obj_uid
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            global_state=global_state,
+            import_state=import_state,
         )
 
         consistency_checker.check_network_object_consistency(
@@ -632,10 +636,13 @@ class TestCheckConsistencyServiceObjects:
 
     def test_check_service_object_consistency_with_two_groups_circular_reference(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
+        import_state: ImportState,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -649,7 +656,8 @@ class TestCheckConsistencyServiceObjects:
         group_b.svc_member_refs = group_a.svc_uid
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            global_state=global_state,
+            import_state=import_state,
         )
 
         consistency_checker.check_service_object_consistency(
@@ -789,9 +797,12 @@ class TestCheckUserObjectConsistency:
     def test_check_user_object_circular_reference(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -812,7 +823,8 @@ class TestCheckUserObjectConsistency:
         config.users["GroupWithCircularRef"] = group
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            global_state=global_state,
+            import_state=import_state,
         )
 
         consistency_checker.check_user_object_consistency(
@@ -824,9 +836,12 @@ class TestCheckUserObjectConsistency:
     def test_check_user_object_with_two_groups_circular_reference(
         self,
         fwconfig_builder: FwConfigBuilder,
-        import_state_controller: ImportStateController,
+        import_state: ImportState,
+        management_state: ManagementState,
+        global_state: GlobalState,
     ):
         config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -856,7 +871,8 @@ class TestCheckUserObjectConsistency:
         config.users["GroupB"] = group_b
 
         consistency_checker = FwConfigImportCheckConsistency(
-            import_state=import_state_controller.state,
+            global_state=global_state,
+            import_state=import_state,
         )
 
         consistency_checker.check_user_object_consistency(

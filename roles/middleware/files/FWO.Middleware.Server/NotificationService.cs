@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Config.Api;
 using FWO.Mail;
 using FWO.Encryption;
+using FWO.Logging;
 using FWO.Report;
 using FWO.Services;
 
@@ -167,7 +168,10 @@ namespace FWO.Middleware.Server
             DateTime deadline = GetDeadlineDate(notification.Deadline, owner, extDeadline);
             if (deadline >= DateTime.Now)
             {
-                SchedulerInterval intervalBeforeDeadline = GetRequiredInterval(notification.IntervalBeforeDeadline, nameof(notification.IntervalBeforeDeadline));
+                if (!TryGetConfiguredInterval(notification.IntervalBeforeDeadline, nameof(notification.IntervalBeforeDeadline), out SchedulerInterval intervalBeforeDeadline))
+                {
+                    return false;
+                }
                 var notifDate = intervalBeforeDeadline switch
                 {
                     SchedulerInterval.Days => deadline.AddDays(-notification.OffsetBeforeDeadline ?? 0),
@@ -179,7 +183,10 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                SchedulerInterval repeatIntervalAfterDeadline = GetRequiredInterval(notification.RepeatIntervalAfterDeadline, nameof(notification.RepeatIntervalAfterDeadline));
+                if (!TryGetConfiguredInterval(notification.RepeatIntervalAfterDeadline, nameof(notification.RepeatIntervalAfterDeadline), out SchedulerInterval repeatIntervalAfterDeadline))
+                {
+                    return false;
+                }
                 var nextNotifDate = repeatIntervalAfterDeadline switch
                 {
                     SchedulerInterval.Days => deadline.Date.AddDays(notification.InitialOffsetAfterDeadline ?? 0),
@@ -209,9 +216,17 @@ namespace FWO.Middleware.Server
             return (lastSent == null || ((DateTime)lastSent).Date < notifDate.Date) && notifDate.Date <= DateTime.Now.Date;
         }
 
-        private static SchedulerInterval GetRequiredInterval(SchedulerInterval? interval, string propertyName)
+        private static bool TryGetConfiguredInterval(SchedulerInterval? interval, string propertyName, out SchedulerInterval configuredInterval)
         {
-            return interval ?? throw new InvalidOperationException($"Notification interval '{propertyName}' is not configured.");
+            if (interval != null)
+            {
+                configuredInterval = (SchedulerInterval)interval;
+                return true;
+            }
+
+            Log.WriteWarning("Notifications", $"Notification interval '{propertyName}' is not configured. Skipping due evaluation.");
+            configuredInterval = default;
+            return false;
         }
 
         private static DateTime GetDeadlineDate(NotificationDeadline deadline, FwoOwner? owner, DateTime? extDeadline)
@@ -263,11 +278,11 @@ namespace FWO.Middleware.Server
 
         private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
-            string subject = notification.EmailSubject
+            string subject = (notification.EmailSubject ?? "")
                 .Replace(Placeholder.APPNAME, owner?.Name ?? "")
                 .Replace(Placeholder.APPID, owner?.ExtAppId ?? "")
                 .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
-            string body = string.IsNullOrEmpty(content) ? notification.EmailBody : content;
+            string body = string.IsNullOrEmpty(content) ? notification.EmailBody ?? "" : content;
             body = body.Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             if (report != null && notification.Layout == NotificationLayout.HtmlInBody)

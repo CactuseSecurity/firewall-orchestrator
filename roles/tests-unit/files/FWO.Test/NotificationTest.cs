@@ -87,6 +87,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public void IsNotificationDue_ReturnsFalse_WhenBeforeDeadlineIntervalIsMissing()
+        {
+            FwoOwner owner = new() { NextRecertDate = DateTime.Now.AddDays(7) };
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.RecertDate,
+                IntervalBeforeDeadline = null,
+                OffsetBeforeDeadline = 1
+            };
+
+            ClassicAssert.IsFalse(NotificationService.IsNotificationDue(owner, null, notification));
+        }
+
+        [Test]
+        public void IsNotificationDue_ReturnsFalse_WhenAfterDeadlineIntervalIsMissing()
+        {
+            FwoOwner owner = new();
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.RuleExpiry,
+                RepeatIntervalAfterDeadline = null,
+                InitialOffsetAfterDeadline = 0,
+                RepeatOffsetAfterDeadline = 1,
+                RepetitionsAfterDeadline = 1
+            };
+
+            ClassicAssert.IsFalse(NotificationService.IsNotificationDue(owner, DateTime.Now.AddDays(-1), notification));
+        }
+
+        [Test]
         public async Task TestNotificationEmailBodyIsLoaded()
         {
             List<UserGroup> ownerGroups = [];
@@ -112,6 +142,27 @@ namespace FWO.Test
             FWO.Mail.MailData mailData = await task;
 
             ClassicAssert.AreEqual(notification.EmailBody, mailData.Body);
+        }
+
+        [Test]
+        public async Task SendNotification_PrepareEmail_HandlesNullSubjectAndBody()
+        {
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.EmailSubject = null!;
+            notification.EmailBody = null!;
+            FwoOwner owner = new();
+
+            MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
+            ClassicAssert.IsNotNull(prepareEmail);
+
+            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, ""]) 
+                ?? throw new InvalidOperationException("PrepareEmail returned null task."));
+            FWO.Mail.MailData mailData = await task;
+
+            ClassicAssert.AreEqual(string.Empty, mailData.Subject);
+            ClassicAssert.AreEqual(string.Empty, mailData.Body);
         }
 
         [Test]

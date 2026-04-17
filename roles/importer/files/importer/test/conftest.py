@@ -25,13 +25,16 @@ def api_call(mocker: MockerFixture, api_connection: FwoApi) -> FwoApiCall:
     fwo_api_call: FwoApiCall = unittest.mock.create_autospec(FwoApiCall)
     fwo_api_call.call = mocker.MagicMock()
     fwo_api_call.api = api_connection
+
     return fwo_api_call
 
 
 @pytest.fixture
 def api_connection(mocker: MockerFixture) -> FwoApi:
     fwo_api_connection: FwoApi = unittest.mock.create_autospec(FwoApi)
+    fwo_api_connection.login = unittest.mock.Mock(return_value="blabla")
     fwo_api_connection.call = mocker.MagicMock()
+
     return fwo_api_connection
 
 
@@ -95,7 +98,11 @@ def group_flats_mapper() -> GroupFlatsMapper:
 
 
 @pytest.fixture
-def global_state() -> GlobalState:
+def global_state(
+    api_call: FwoApiCall,
+    api_connection: FwoApi,
+) -> GlobalState:
+
     with unittest.mock.patch.object(
         FwoConfigController,
         "read_config",
@@ -109,7 +116,11 @@ def global_state() -> GlobalState:
             90,
         ),
     ):
-        return GlobalState(FWO_CONFIG_FILENAME, force=True, clear=False, debug_level=0)
+        GlobalState.login_to_api = unittest.mock.Mock(return_value=None)
+        global_state = GlobalState(FWO_CONFIG_FILENAME, force=True, clear=False, debug_level=0)
+        global_state.fwo_api = api_connection
+        global_state.fwo_api_call = api_call
+        return global_state
 
 
 @pytest.fixture

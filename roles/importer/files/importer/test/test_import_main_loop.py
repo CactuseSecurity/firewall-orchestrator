@@ -25,45 +25,33 @@ class TestGetFwoJwt:
         mock_login(mocker, return_value=expected_value)
 
         # Act
-        jwt_token = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
+        api = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
 
         # Assert
-        assert jwt_token == expected_value
+        assert api.fwo_jwt == expected_value
 
     def test_get_fwo_jwt_failure(
         self,
         mocker: MockerFixture,
     ):
         # Arrange
-        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
         side_effect = FwoApiLoginFailedError("Login failed")
         mock_login(mocker, side_effect=side_effect)
 
-        # Act
-        jwt_token = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
-
-        # Assert
-        assert jwt_token is None
-        call_args = mock_logger.call_args[0][0]
-        assert call_args == "Login failed"
+        # Act & Assert
+        with pytest.raises(FwoApiLoginFailedError, match="Login failed"):
+            FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
 
     def test_get_fwo_jwt_unexpected_exception(
         self,
         mocker: MockerFixture,
     ):
         # Arrange
-        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
         mock_login(mocker, side_effect=Exception("Unexpected error"))
 
         # Act & Assert
-        jwt_token = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
-
-        # Assert
-        assert jwt_token is None
-        logged_error_message = mock_logger.call_args[0][0]
-        assert logged_error_message.startswith(
-            "import_main_loop - unspecified error during FWO API login - skipping: Traceback"
-        )
+        with pytest.raises(Exception, match="Unexpected error"):
+            FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api")
 
 
 class TestWaitWithShutdownCheck:

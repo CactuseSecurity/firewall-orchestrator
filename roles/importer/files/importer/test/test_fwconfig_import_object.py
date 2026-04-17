@@ -310,7 +310,6 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         fwconfig_import_object: FwConfigImportObject,
         api_call: FwoApiCall,
         mocker: MockerFixture,
-        import_state: ImportState,
     ):
         # Arrange
         prefix = "nwobj"
@@ -329,7 +328,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
 
         # Act
         fwconfig_import_object.write_member_updates(
-            import_state=import_state,
+            fwo_api_call=api_call,
             new_group_member_flats=[
                 {
                     "admin": 1,
@@ -385,7 +384,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
 
         # Act
         fwconfig_import_object.write_member_updates(
-            import_state=import_state,
+            fwo_api_call=api_call,
             new_group_member_flats=[],
             new_group_members=[],
             prefix=prefix,
@@ -424,7 +423,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.write_member_updates(
-                import_state=import_state,
+                fwo_api_call=api_call,
                 new_group_member_flats=[],
                 new_group_members=[],
                 prefix=prefix,
@@ -458,7 +457,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         # Act
         with pytest.raises(FwoDuplicateKeyViolationError):
             fwconfig_import_object.write_member_updates(
-                import_state=import_state,
+                fwo_api_call=api_call,
                 new_group_member_flats=[],
                 new_group_members=[],
                 prefix=prefix,
@@ -485,7 +484,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         # Act
         with pytest.raises(TypeError):
             fwconfig_import_object.write_member_updates(
-                import_state=import_state,
+                fwo_api_call=api_call,
                 new_group_member_flats=[],
                 new_group_members=[],
                 prefix=prefix,
@@ -684,6 +683,7 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
 class TestFwConfigImportObjectAddGroupMemberships:
     def test_add_group_memberships_no_changes(
         self,
+        api_call: FwoApiCall,
         import_state: ImportState,
         management_state: ManagementState,
         fwconfig_import_object: FwConfigImportObject,
@@ -696,6 +696,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object.add_group_memberships(
             import_state=import_state,
             management_state=management_state,
+            fwo_api_call=api_call,
             obj_type=Type.NETWORK_OBJECT,
             prev_config=FwConfigNormalized(),
         )
@@ -710,6 +711,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         import_state: ImportState,
         management_state: ManagementState,
         mocker: MockerFixture,
+        api_call: FwoApiCall,
     ):
         # Arrange
         management_state.normalized_config, _ = fwconfig_builder.build_config(
@@ -729,6 +731,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
 
         # Act
         fwconfig_import_object.add_group_memberships(
+            fwo_api_call=api_call,
             import_state=import_state,
             management_state=management_state,
             obj_type=Type.NETWORK_OBJECT,
@@ -745,6 +748,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
         mocker: MockerFixture,
+        api_call: FwoApiCall,
     ):
         # Arrange
         management_state.normalized_config, _ = fwconfig_builder.build_config(
@@ -758,6 +762,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object.add_group_memberships(
             import_state=import_state,
             management_state=management_state,
+            fwo_api_call=api_call,
             obj_type=Type.NETWORK_OBJECT,
             prev_config=management_state.previous_config,
         )
@@ -772,6 +777,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         import_state: ImportState,
         management_state: ManagementState,
         mocker: MockerFixture,
+        api_call: FwoApiCall,
     ):
         # Arrange
         management_state.normalized_config, _ = fwconfig_builder.build_config(
@@ -790,6 +796,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         management_state.group_flats_mapper.init_config(management_state.normalized_config, import_state.super_config)
 
         fwconfig_import_object.add_group_memberships(
+            fwo_api_call=api_call,
             import_state=import_state,
             management_state=management_state,
             obj_type=Type.NETWORK_OBJECT,
@@ -798,7 +805,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
 
         # Assert
         fwconfig_import_object.write_member_updates.assert_called_once_with(
-            import_state,
+            api_call,
             [
                 {
                     "import_created": 5,
@@ -825,6 +832,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         mocker: MockerFixture,
         import_state: ImportState,
         management_state: ManagementState,
+        api_call: FwoApiCall,
     ):
         # Arrange
         management_state.normalized_config, _ = fwconfig_builder.build_config(
@@ -847,11 +855,12 @@ class TestFwConfigImportObjectAddGroupMemberships:
             management_state=management_state,
             obj_type=Type.NETWORK_OBJECT,
             prev_config=management_state.previous_config,
+            fwo_api_call=api_call,
         )
 
         # Assert
         fwconfig_import_object.write_member_updates.assert_called_once_with(
-            import_state,
+            api_call,
             [
                 {
                     "import_created": 7,
@@ -915,7 +924,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
 
         # Assert
         fwconfig_import_object.write_member_updates.assert_called_once_with(
-            import_state,
+            global_state.fwo_api_call,
             [
                 {
                     "import_created": 9,
@@ -988,7 +997,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
 
         # Assert
         fwconfig_import_object.write_member_updates.assert_called_once_with(
-            import_state,
+            global_state.fwo_api_call,
             [
                 {
                     "import_created": 11,
@@ -2649,15 +2658,16 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
         args, _ = fwconfig_import_object.update_objects_via_api.call_args
         assert args[0] is import_state
         assert args[1] is management_state
-        assert args[2] is fw_config_manager
-        assert set(args[3]) == {first_nwobj_uid}
-        assert set(args[4]) == {first_svcobj_uid}
-        assert set(args[5]) == {first_userobj_uid}
-        assert set(args[6]) == {first_zone_name}
-        assert set(args[7]) == {first_nwobj_uid}
-        assert set(args[8]) == {first_svcobj_uid}
-        assert set(args[9]) == {first_userobj_uid}
-        assert set(args[10]) == {first_zone_name}
+        assert args[2] is global_state.fwo_api_call
+        assert args[3] is fw_config_manager
+        assert set(args[4]) == {first_nwobj_uid}
+        assert set(args[5]) == {first_svcobj_uid}
+        assert set(args[6]) == {first_userobj_uid}
+        assert set(args[7]) == {first_zone_name}
+        assert set(args[8]) == {first_nwobj_uid}
+        assert set(args[9]) == {first_svcobj_uid}
+        assert set(args[10]) == {first_userobj_uid}
+        assert set(args[11]) == {first_zone_name}
 
         assert fwconfig_import_object.remove_outdated_memberships.call_count == 3
         assert fwconfig_import_object.add_group_memberships.call_count == 3

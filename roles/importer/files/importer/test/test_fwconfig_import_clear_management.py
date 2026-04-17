@@ -1,4 +1,5 @@
 from model_controllers.fwconfig_import import FwConfigImport
+from states.global_state import GlobalState
 from states.import_state import ImportState
 
 
@@ -6,6 +7,7 @@ class TestFwconfigImportClearManagement:
     def test_clear_management_uses_management_uid(
         self,
         import_state: ImportState,
+        global_state: GlobalState,
     ):
 
         import_state.mgm_details.uid = "mock-mgm-uid"
@@ -16,6 +18,6 @@ class TestFwconfigImportClearManagement:
         import_state.mgm_details.domain_uid = "mock-domain-uid"
 
         importer = FwConfigImport()
-        config = importer.clear_management(import_state)
+        config = importer.clear_management(import_state, global_state)
 
         assert config.ManagerSet[0].manager_uid == import_state.mgm_details.uid

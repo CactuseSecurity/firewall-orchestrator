@@ -453,7 +453,7 @@ class FwConfigImport:
         """
         consistency_checker = FwConfigImportCheckConsistency(global_state, import_state)
         consistency_checker.check_config_consistency(
-            management_state.normalized_config, import_state.previous_super_config, fix_config=True
+            management_state.previous_config, import_state.previous_super_config, fix_config=True
         )
         self.fix_objects_in_db(
             import_state,

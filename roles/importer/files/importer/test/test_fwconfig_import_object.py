@@ -365,7 +365,6 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         fwconfig_import_object: FwConfigImportObject,
         api_call: FwoApiCall,
         mocker: MockerFixture,
-        import_state: ImportState,
     ):
         # Arrange
         prefix = "nwobj"
@@ -405,7 +404,6 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         fwconfig_import_object: FwConfigImportObject,
         api_call: FwoApiCall,
         mocker: MockerFixture,
-        import_state: ImportState,
     ):
         # Arrange
         prefix = "nwobj"
@@ -441,7 +439,6 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         fwconfig_import_object: FwConfigImportObject,
         api_call: FwoApiCall,
         mocker: MockerFixture,
-        import_state: ImportState,
     ):
         # Arrange
         prefix = "nwobj"
@@ -474,7 +471,6 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         fwconfig_import_object: FwConfigImportObject,
         api_call: FwoApiCall,
         mocker: MockerFixture,
-        import_state: ImportState,
     ):
         # Arrange
         prefix = "nwobj"

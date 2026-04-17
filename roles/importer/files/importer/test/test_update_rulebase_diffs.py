@@ -32,7 +32,7 @@ def mock_uid2id_mapper_response(uid2id_mapper: Uid2IdMapper, fwconfig_import_rul
 @pytest.fixture
 def mock_api_connection_response(api_connection: FwoApi):
     def api_connection_side_effect(
-        query: str,  # noqa: ARG001
+        query: str,
         query_variables: dict[str, list[dict[str, Any]]],
         analyze_payload: bool = False,  # noqa: ARG001
     ) -> dict[str, Any]:

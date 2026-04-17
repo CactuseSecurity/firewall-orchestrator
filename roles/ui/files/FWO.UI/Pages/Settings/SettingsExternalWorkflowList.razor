@@ -224,9 +224,22 @@
         try
         {
             configData = await globalConfig.GetEditableConfig();
+            extReqStartDate = extReqStartTime = configData.ExternalRequestStartAt;
             extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems) ? new List<ExternalTicketSystem>()
                                                         : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
                                                         ?? new List<ExternalTicketSystem>();
+
+            foreach (ExternalTicketSystem system in extTicketSystems.Where(system =>
+                system.Templates.Count == 0 &&
+                (!string.IsNullOrWhiteSpace(system.TicketTemplate) || !string.IsNullOrWhiteSpace(system.TasksTemplate))))
+            {
+                system.Templates.Add(new ExternalTicketTemplate
+                {
+                    TaskType = SCTaskType.AccessRequest.ToString(),
+                    TicketTemplate = system.TicketTemplate,
+                    TasksTemplate = system.TasksTemplate
+                });
+            }
 
             InitComplete = true;
         }
@@ -330,6 +343,7 @@
     {
         if (configData != null)
         {
+            configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
             await globalConfig.WriteToDatabase(configData, apiConnection);
             DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);     //TODO TEXT
         }

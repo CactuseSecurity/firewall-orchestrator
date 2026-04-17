@@ -65,6 +65,7 @@ class ImportState:
         self.is_initial_import = last_import_date == ""
 
         self.get_past_import_infos(fwo_api_call)
+        self.set_management_map(fwo_api_call)
 
     def set_import_file_name(self, import_file_name: str):
         self.import_file_name = import_file_name

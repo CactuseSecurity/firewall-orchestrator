@@ -140,5 +140,63 @@ namespace FWO.Test
 
             Assert.That(found, Is.False);
         }
+
+        [Test]
+        public void BuildReqTaskUpdateVariables_DoesNotIncludeTaskType()
+        {
+            WfReqTask reqTask = new()
+            {
+                Title = "Access request",
+                TaskNumber = 3,
+                StateId = 0,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                RuleAction = 1,
+                Tracking = 1,
+                Reason = "test",
+                AdditionalInfo = "{}",
+                FreeText = "text",
+                ManagementId = 5
+            };
+
+            MethodInfo? buildMethod = typeof(WfDbAccess).GetMethod("BuildReqTaskUpdateVariables", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.That(buildMethod, Is.Not.Null);
+
+            Dictionary<string, object?> variables = (Dictionary<string, object?>)buildMethod!.Invoke(null, [reqTask])!;
+
+            Assert.That(variables.ContainsKey("taskType"), Is.False);
+            Assert.That(variables["title"], Is.EqualTo("Access request"));
+            Assert.That(variables["state"], Is.EqualTo(0));
+            Assert.That(variables["managementId"], Is.EqualTo(5));
+        }
+
+        [Test]
+        public void BuildImplTaskUpdateVariables_DoesNotIncludeTaskType()
+        {
+            WfImplTask implTask = new()
+            {
+                Title = "Implementation task",
+                ReqTaskId = 11,
+                TaskNumber = 2,
+                StateId = 4,
+                TaskType = WfTaskType.group_create.ToString(),
+                DeviceId = 7,
+                ImplAction = RequestAction.create.ToString(),
+                RuleAction = 1,
+                Tracking = 1,
+                FreeText = "impl text"
+            };
+
+            MethodInfo? buildMethod = typeof(WfDbAccess).GetMethod("BuildImplTaskUpdateVariables", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.That(buildMethod, Is.Not.Null);
+
+            Dictionary<string, object?> variables = (Dictionary<string, object?>)buildMethod!.Invoke(null, [implTask])!;
+
+            Assert.That(variables.ContainsKey("taskType"), Is.False);
+            Assert.That(variables["title"], Is.EqualTo("Implementation task"));
+            Assert.That(variables["reqTaskId"], Is.EqualTo((long)11));
+            Assert.That(variables["state"], Is.EqualTo(4));
+            Assert.That(variables["device"], Is.EqualTo(7));
+        }
     }
 }

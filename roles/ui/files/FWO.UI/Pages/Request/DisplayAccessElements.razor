@@ -10,53 +10,62 @@
 <hr />
 @if(InitComplete)
 {
-    @if (EditMode && userConfig.ReqAllowObjectSearch)
+    @if (AnyEditMode && userConfig.ReqAllowObjectSearch)
     {
         <div class="bg-secondary p-2">
             <div class="form-group row col-sm-12">
-                <div class="col-sm-4">
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <div class="col-sm-9">
-                            <Dropdown ElementType="NetworkObject" @bind-SelectedElement="newSourceNetwork" ElementToString="@(n => n.Name)" Elements="nwObjects">
-                                <ElementTemplate Context="nwObject">
-                                    @nwObject.Name
-                                </ElementTemplate>
-                            </Dropdown>
+                @if (CanEditSources)
+                {
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                            <div class="col-sm-9">
+                                <Dropdown ElementType="NetworkObject" @bind-SelectedElement="newSourceNetwork" ElementToString="@(n => n.Name)" Elements="nwObjects">
+                                    <ElementTemplate Context="nwObject">
+                                        @nwObject.Name
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <div class="col-sm-9">
-                            <Dropdown ElementType="NetworkObject" @bind-SelectedElement="newDestinationNetwork" ElementToString="@(n => n.Name)" Elements="nwObjects">
-                                <ElementTemplate Context="nwObject">
-                                    @nwObject.Name
-                                </ElementTemplate>
-                            </Dropdown>
+                }
+                @if (CanEditDestinations)
+                {
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                            <div class="col-sm-9">
+                                <Dropdown ElementType="NetworkObject" @bind-SelectedElement="newDestinationNetwork" ElementToString="@(n => n.Name)" Elements="nwObjects">
+                                    <ElementTemplate Context="nwObject">
+                                        @nwObject.Name
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="form-group row">
-                        <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <div class="col-sm-9">
-                            <Dropdown ElementType="NetworkService" @bind-SelectedElement="newService" ElementToString="@(s => s.Name)" Elements="nwServices">
-                                <ElementTemplate Context="nwService">
-                                    @nwService.Name
-                                </ElementTemplate>
-                            </Dropdown>
+                }
+                @if (CanEditServices)
+                {
+                    <div class="col-sm-4">
+                        <div class="form-group row">
+                            <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
+                            <div class="col-sm-9">
+                                <Dropdown ElementType="NetworkService" @bind-SelectedElement="newService" ElementToString="@(s => s.Name)" Elements="nwServices">
+                                    <ElementTemplate Context="nwService">
+                                        @nwService.Name
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
                         </div>
                     </div>
-                </div>
+                }
             </div>
         </div>
     }
     <div class="form-group row col-sm-12 mh-13">
         <div class="col-sm-4">
             <label class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("source"))*:</label>
-            @if (EditMode)
+            @if (CanEditSources)
             {
                 @foreach(var source in Sources.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
                 {
@@ -95,7 +104,7 @@
         </div>
         <div class="col-sm-4">
             <label for="taskDest" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("destination"))*:</label>
-            @if (EditMode)
+            @if (CanEditDestinations)
             {
                 @foreach(var destination in Destinations.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
                 {
@@ -134,7 +143,7 @@
         </div>
         <div class="col-sm-4">
             <label for="taskService" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("service"))*:</label>
-            @if (EditMode)
+            @if (CanEditServices)
             {
                 @foreach(var service in Services.Where(x => (x.ServiceId != null && x.ServiceId != 0)))
                 {
@@ -228,7 +237,20 @@ else
     [Parameter]
     public bool EditMode { get; set; } = false;
 
+    [Parameter]
+    public bool EditSources { get; set; } = false;
+
+    [Parameter]
+    public bool EditDestinations { get; set; } = false;
+
+    [Parameter]
+    public bool EditServices { get; set; } = false;
+
     private bool InitComplete = false;
+    private bool CanEditSources => EditMode || EditSources;
+    private bool CanEditDestinations => EditMode || EditDestinations;
+    private bool CanEditServices => EditMode || EditServices;
+    private bool AnyEditMode => CanEditSources || CanEditDestinations || CanEditServices;
     private List<NetworkObject> nwObjects = [];
     private List<NetworkService> nwServices = [];
     

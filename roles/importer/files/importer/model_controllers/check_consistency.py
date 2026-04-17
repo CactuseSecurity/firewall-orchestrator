@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 import fwo_const
@@ -128,6 +129,39 @@ class FwConfigImportCheckConsistency:
 
         self._check_network_object_types_exist(config)
         self._check_objects_with_missing_ips(config)
+        self._check_network_object_circular_references(config)
+
+    def _check_service_object_circular_references(self, config: FwConfigNormalized):
+        """
+        Check for circular references in service object groups.
+
+        :param self: FwConfigImportCheckConsistency instance
+        :param config: FwConfigNormalized instance
+        :type config: FwConfigNormalized
+        """
+        self._find_cycles(
+            objects=config.service_objects,
+            # Object access needs .attr
+            is_group_fn=lambda x: getattr(x, "svc_typ", "") == "group",
+            get_members_fn=lambda x: getattr(x, "svc_member_refs", ""),
+            issue_key="circularSvcObjRefs",
+        )
+
+    def _check_network_object_circular_references(self, config: FwConfigNormalized):
+        """
+        Check for circular references in network object groups.
+
+        :param self: FwConfigImportCheckConsistency instance
+        :param config: FwConfigNormalized instance
+        :type config: FwConfigNormalized
+        """
+        self._find_cycles(
+            objects=config.network_objects,
+            # Object access needs .attr
+            is_group_fn=lambda x: getattr(x, "obj_typ", "") == "group",
+            get_members_fn=lambda x: getattr(x, "obj_member_refs", ""),
+            issue_key="circularNwObjRefs",
+        )
 
     def _check_network_object_types_exist(self, config: FwConfigNormalized):
         all_used_obj_types: set[str] = set()
@@ -196,6 +230,8 @@ class FwConfigImportCheckConsistency:
             else:
                 self.issues.update({"unresolvableSvcObjRefs": list(unresolvable_obj_refs)})
 
+        self._check_service_object_circular_references(config)
+
     def _check_service_object_types_exist(self, config: FwConfigNormalized):
         # check that all obj_typ exist
         all_used_obj_types: set[str] = set()
@@ -252,6 +288,23 @@ class FwConfigImportCheckConsistency:
                 self.remove_userobj_refs_from_config(config, unresolvable_obj_refs)
             else:
                 self.issues.update({"unresolvableUserObjRefs": list(unresolvable_obj_refs)})
+
+        self._check_user_object_circular_references(config)
+
+    def _check_user_object_circular_references(self, config: FwConfigNormalized):
+        """
+        Check for circular references in user object groups.
+
+        :param self: FwConfigImportCheckConsistency instance
+        :param config: FwConfigNormalized instance
+        :type config: FwConfigNormalized
+        """
+        self._find_cycles(
+            objects=config.users,
+            is_group_fn=lambda x: x.get("user_typ") == "group",
+            get_members_fn=lambda x: x.get("user_member_refs", ""),
+            issue_key="circularUserObjRefs",
+        )
 
     def _collect_users_from_rules(self, single_config: FwConfigNormalized) -> set[str]:
         all_used_obj_refs: set[str] = set()
@@ -781,3 +834,64 @@ class FwConfigImportCheckConsistency:
                 else:
                     filtered_rulebase_links.append(rulebase_link)
             gw.RulebaseLinks = filtered_rulebase_links
+
+    def _detect_circular_reference(
+        self, all_groups: dict[str, Any], get_members_fn: Callable[[Any], str], current_group_id: str, path: set[str]
+    ) -> bool:
+        """
+        Helper function to detect circular references using DFS.
+
+        :param all_groups: Dictionary of all group objects
+        :param get_members_fn: Function to get member references from a group object
+        :param current_group_id: The current group ID being checked
+        :param path: Set of group IDs in the current DFS path
+        :return: True if a circular reference is detected, False otherwise
+        """
+        if current_group_id in path:
+            return True  # Circular reference detected
+
+        path.add(current_group_id)
+        current_group = all_groups.get(current_group_id)
+
+        raw_refs = get_members_fn(current_group) if current_group else None
+
+        if raw_refs:
+            member_ids = raw_refs.split(fwo_const.LIST_DELIMITER)
+            for member_id in member_ids:
+                if member_id in all_groups and self._detect_circular_reference(
+                    all_groups, get_members_fn, member_id, path
+                ):
+                    return True
+
+        path.remove(current_group_id)
+        return False
+
+    def _find_cycles(
+        self,
+        objects: dict[str, Any],
+        is_group_fn: Callable[[Any], bool],
+        get_members_fn: Callable[[Any], str],
+        issue_key: str,
+    ):
+        """
+        Generic DFS algorithm to detect circular references.
+
+        :param objects: The dictionary of objects to scan (users, network_objects, etc.)
+        :param is_group_fn: A function returning True if the object is a group
+        :param get_members_fn: A function returning the raw member string (e.g. "id1|id2")
+        :param issue_key: The key to update in self.issues if cycles are found
+        """
+        # 1. Filter only groups using the provided lambda
+        all_groups = {obj_id: obj for obj_id, obj in objects.items() if is_group_fn(obj)}
+
+        visited: set[str] = set()
+        circular_references: set[str] = set()
+
+        for group_id in all_groups:
+            if group_id not in visited:
+                if self._detect_circular_reference(all_groups, get_members_fn, group_id, set()):
+                    circular_references.add(group_id)
+                visited.add(group_id)
+
+        if circular_references:
+            self.issues.update({issue_key: list(circular_references)})

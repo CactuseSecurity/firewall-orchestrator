@@ -7,6 +7,10 @@ namespace FWO.Config.File
 {
     public class ConfigFile
     {
+        private const string configPathEnvVar = "FWO_CONFIG_FILE_PATH";
+        private const string jwtPublicKeyPathEnvVar = "FWO_JWT_PUBLIC_KEY_PATH";
+        private const string jwtPrivateKeyPathEnvVar = "FWO_JWT_PRIVATE_KEY_PATH";
+
         /// <summary>
         /// Path to config file
         /// </summary>
@@ -115,7 +119,10 @@ namespace FWO.Config.File
 
         static ConfigFile()
         {
-            Read(configPath, jwtPrivateKeyPath, jwtPublicKeyPath);
+            Read(
+                ResolvePath(configPathEnvVar, configPath),
+                ResolvePath(jwtPrivateKeyPathEnvVar, jwtPrivateKeyPath),
+                ResolvePath(jwtPublicKeyPathEnvVar, jwtPublicKeyPath));
         }
 
         private static void Read(string configFilePath, string privateKeyFilePath, string publicKeyFilePath)
@@ -156,15 +163,23 @@ namespace FWO.Config.File
             if (configValue == null)
             {
                 Log.WriteError("Config value read", $"A necessary config value could not be found.", LogStackTrace: true);
-#if RELEASE
-                Environment.Exit(1); // Exit with error
-#endif
-                throw new ApplicationException("A necessary config value could not be found.");
+
+                throw new InvalidOperationException("A necessary config value could not be found.");
             }
-            else
+
+            return configValue;
+        }
+
+        private static string ResolvePath(string environmentVariableName, string fallbackPath)
+        {
+            string? configuredPath = Environment.GetEnvironmentVariable(environmentVariableName);
+
+            if (!string.IsNullOrWhiteSpace(configuredPath))
             {
-                return configValue;
+                return configuredPath;
             }
+
+            return fallbackPath;
         }
 
         private static void IgnoreExceptions(Action method)

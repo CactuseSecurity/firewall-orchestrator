@@ -14286,6 +14286,59 @@
             },
             {
               "table": {
+                "name": "refresh_token",
+                "schema": "public"
+              },
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "token_hash",
+                      "id",
+                      "user_id",
+                      "created_at",
+                      "expires_at",
+                      "revoked_at"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "token_hash",
+                      "id",
+                      "user_id",
+                      "created_at",
+                      "expires_at",
+                      "revoked_at"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "revoked_at"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "report",
                 "schema": "public"
               },

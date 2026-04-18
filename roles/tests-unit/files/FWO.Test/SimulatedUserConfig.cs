@@ -397,7 +397,7 @@ namespace FWO.Test
 
         public override string GetText(string key)
         {
-            return DummyTranslate[key];
+            return DummyTranslate.TryGetValue(key, out string? value) ? value : key;
         }
 
         public static ConfigItem[] GetAsConfigs()

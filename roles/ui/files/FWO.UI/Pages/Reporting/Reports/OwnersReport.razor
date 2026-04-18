@@ -1,0 +1,92 @@
+@using System.Net
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if (OwnerData.Count > 0)
+{
+    <table class="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header">
+        <thead>
+            <tr>
+                <th>@(userConfig.GetText("id"))</th>
+                <th>@(userConfig.GetText("name"))</th>
+                <th>@(userConfig.GetText("criticality"))</th>
+                <th>@(userConfig.GetText("state"))</th>
+                @foreach (OwnerResponsibleType type in ownerResponsibleTypes)
+                {
+                    <th>@type.Name</th>
+                }
+                <th>@(userConfig.GetText("additional_info"))</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (FwoOwner owner in Owners)
+            {
+                <tr>
+                    <td>@owner.ExtAppId</td>
+                    <td>@owner.Name</td>
+                    <td>@owner.Criticality</td>
+                    <td>@GetOwnerState(owner)</td>
+                    @foreach (OwnerResponsibleType type in ownerResponsibleTypes)
+                    {
+                        <td>@((MarkupString)FormatMultilineCell(FormatResponsibles(owner, type.Id)))</td>
+                    }
+                    <td>@((MarkupString)FormatMultilineCell(FormatAdditionalInfo(owner)))</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code
+{
+    [Parameter]
+    public List<OwnerConnectionReport> OwnerData { get; set; } = [];
+
+    private List<OwnerLifeCycleState> ownerLifeCycleStates = [];
+    private List<OwnerResponsibleType> ownerResponsibleTypes = [];
+    private List<FwoOwner> Owners => [.. OwnerData
+        .Select(ownerReport => ownerReport.Owner)
+        .OrderBy(owner => owner.ExtAppId ?? "")
+        .ThenBy(owner => owner.Name)];
+
+    protected override async Task OnInitializedAsync()
+    {
+        ownerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(FWO.Api.Client.Queries.OwnerQueries.getOwnerLifeCycleStates);
+        ownerResponsibleTypes = [.. (await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(FWO.Api.Client.Queries.OwnerQueries.getOwnerResponsibleTypes))
+            .Where(type => type.Active)
+            .OrderBy(type => type.SortOrder)
+            .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    private string GetOwnerState(FwoOwner owner)
+    {
+        return ownerLifeCycleStates.FirstOrDefault(state => state.Id == owner.OwnerLifeCycleStateId)?.Display(userConfig.GetText("inactive")) ?? "";
+    }
+
+    private static string FormatAdditionalInfo(FwoOwner owner)
+    {
+        return owner.AdditionalInfo == null
+            ? ""
+            : string.Join(Environment.NewLine, owner.AdditionalInfo.OrderBy(entry => entry.Key).Select(entry => $"{entry.Key}: {entry.Value}"));
+    }
+
+    private static string FormatResponsibles(FwoOwner owner, int responsibleTypeId)
+    {
+        return string.Join(Environment.NewLine, owner.GetOwnerResponsiblesByType(responsibleTypeId)
+            .Where(dn => !string.IsNullOrWhiteSpace(dn))
+            .OrderBy(dn => dn)
+            .Select(FormatResponsible));
+    }
+
+    private static string FormatMultilineCell(string value)
+    {
+        return WebUtility.HtmlEncode(value).Replace(Environment.NewLine, "<br>");
+    }
+
+    private static string FormatResponsible(string dn)
+    {
+        DistName distName = new(dn);
+        string display = !string.IsNullOrWhiteSpace(distName.UserName) ? distName.UserName : distName.Group;
+        return string.IsNullOrWhiteSpace(display) ? dn : display;
+    }
+}

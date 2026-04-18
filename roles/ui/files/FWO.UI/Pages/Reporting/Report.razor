@@ -35,6 +35,10 @@
         {
             <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" @bind-TimeFilter="actReportFilters.TimeFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType" />
         }
+        @if(actReportFilters.ReportType == ReportType.Owners)
+        {
+            <ReportOwnerParamSelection @bind-OwnerFilter="actReportFilters.OwnerFilter" />
+        }
         @if(actReportFilters.ReportType == ReportType.Recertification || actReportFilters.ReportType == ReportType.OwnerRecertification)
         {
             <ReportRecertParamSelection @bind-FilterInput="filterInput" @bind-RecertFilter="actReportFilters.RecertFilter" ReportType="actReportFilters.ReportType" />
@@ -188,6 +192,10 @@
 
                             case ReportType.OwnerRecertification:
                                 <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData" RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod" />
+                                break;
+
+                            case ReportType.Owners:
+                                <OwnersReport OwnerData="currentReport.ReportData.OwnerData" />
                                 break;
 
                             case ReportType.RecertEventReport:
@@ -412,18 +420,7 @@
                 CleanUri();
             }
 
-            // Hide right sidebar for compliance or workflow report.
-
-            if(newReportType.IsComplianceReport() || newReportType.IsWorkflowReport())
-            {
-                _showRightSidebar = false;
-                sidebarRightWidth = 0;                
-            }
-            else
-            {
-                _showRightSidebar = true;
-                sidebarRightWidth = GlobalConst.kSidebarRightWidth;
-            }
+            UpdateRightSidebarVisibility(newReportType);
 
             actReportFilters.ReportType = newReportType;
             SetProperRoleForReport();
@@ -501,7 +498,7 @@
 
     private async Task SyncFiltersFromTemplate(ReportTemplate template)
     {
-        if(template.ReportParams.ReportType == (int)ReportType.OwnerRecertification)
+        if (((ReportType)template.ReportParams.ReportType).IsOwnerReport())
         {
             template.ReportParams.ModellingFilter.SelectedOwners = owners;
         }
@@ -518,8 +515,22 @@
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);
         actReportFilters.IncludeObjectsInReportChanges = template.IncludeObjectsInReportChanges;
+        UpdateRightSidebarVisibility(actReportFilters.ReportType);
 
         StateHasChanged();
+    }
+
+    private void UpdateRightSidebarVisibility(ReportType reportType)
+    {
+        _showRightSidebar = ShouldShowRightSidebar(reportType);
+        sidebarRightWidth = _showRightSidebar ? GlobalConst.kSidebarRightWidth : 0;
+    }
+
+    private static bool ShouldShowRightSidebar(ReportType reportType)
+    {
+        return !reportType.IsComplianceReport()
+            && !reportType.IsWorkflowReport()
+            && reportType != ReportType.Owners;
     }
 
     private void SelectTime()

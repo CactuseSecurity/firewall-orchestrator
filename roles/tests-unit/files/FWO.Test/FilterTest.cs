@@ -296,6 +296,161 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void OwnersFilterIncludesStateAndCriticality()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+            t.ReportParams.OwnerFilter.SelectedOwnerLifeCycleStateId = 3;
+            t.ReportParams.OwnerFilter.SelectedCriticality = "High";
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_lifecycle_state_id: { _eq: $ownerLifeCycleStateId }", query.OwnerWhereStatement);
+            StringAssert.Contains("criticality: { _eq: $ownerCriticality }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerLifeCycleStateId"], Is.EqualTo(3));
+            Assert.That(query.QueryVariables["ownerCriticality"], Is.EqualTo("High"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnersFilterLineIncludesStateAndCriticality()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "ownerstate=3 and criticality=High"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_lifecycle_state_id: { _eq: $ownerLifeCycleStateId0 }", query.OwnerWhereStatement);
+            StringAssert.Contains("criticality: { _ilike: $ownerCriticality1 }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerLifeCycleStateId0"], Is.EqualTo(3));
+            Assert.That(query.QueryVariables["ownerCriticality1"], Is.EqualTo("%High%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnersFilterLineIncludesStateName()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "ownerstate=Production"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_lifecycle_state: { name: { _ilike: $ownerLifeCycleStateName0 } }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerLifeCycleStateName0"], Is.EqualTo("%Production%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnersFilterLineIncludesStateIdNotEquals()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "ownerstate!=3"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_lifecycle_state_id: { _neq: $ownerLifeCycleStateId0 }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerLifeCycleStateId0"], Is.EqualTo(3));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnersFilterLineIncludesStateIdLessThan()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "ownerstate<3"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_lifecycle_state_id: { _lt: $ownerLifeCycleStateId0 }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerLifeCycleStateId0"], Is.EqualTo(3));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnersFilterLineIncludesStateIdGreaterThan()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "ownerstate>3"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_lifecycle_state_id: { _gt: $ownerLifeCycleStateId0 }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerLifeCycleStateId0"], Is.EqualTo(3));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnersFilterLineIncludesStateNameLessThan()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "ownerstate<Production"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_lifecycle_state: { name: { _lt: $ownerLifeCycleStateName0 } }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerLifeCycleStateName0"], Is.EqualTo("Production"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void DynGraphqlQuery_OwnersCombinesSidebarAndFilterLineStateFilters()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "ownerstate=Production"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+            t.ReportParams.OwnerFilter.SelectedOwnerLifeCycleStateId = 3;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("{ id: { _gt: 0 } }", query.OwnerWhereStatement);
+            StringAssert.Contains("{ owner_lifecycle_state_id: { _eq: $ownerLifeCycleStateId } }", query.OwnerWhereStatement);
+            StringAssert.Contains("owner_lifecycle_state: { name: { _ilike: $ownerLifeCycleStateName0 } }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerLifeCycleStateId"], Is.EqualTo(3));
+            Assert.That(query.QueryVariables["ownerLifeCycleStateName0"], Is.EqualTo("%Production%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void DynGraphqlQuery_OwnersCombinesSidebarAndFilterLineCriticalityFilters()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "criticality=High"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+            t.ReportParams.OwnerFilter.SelectedCriticality = "Medium";
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("{ id: { _gt: 0 } }", query.OwnerWhereStatement);
+            StringAssert.Contains("{ criticality: { _eq: $ownerCriticality } }", query.OwnerWhereStatement);
+            StringAssert.Contains("criticality: { _ilike: $ownerCriticality0 }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerCriticality"], Is.EqualTo("Medium"));
+            Assert.That(query.QueryVariables["ownerCriticality0"], Is.EqualTo("%High%"));
+        }
+
+        [Test]
+        [Parallelizable]
         public void ConnIpFilter()
         {
             ReportTemplate t = new()

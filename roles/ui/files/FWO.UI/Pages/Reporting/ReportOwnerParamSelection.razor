@@ -1,0 +1,105 @@
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if (UseFormLayout)
+{
+    @OwnerFields
+}
+else
+{
+    <div class="p-3">
+        @OwnerFields
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public OwnerFilter OwnerFilter { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<OwnerFilter> OwnerFilterChanged { get; set; }
+
+    [Parameter]
+    public bool UseLightText { get; set; } = true;
+
+    [Parameter]
+    public bool UseFormLayout { get; set; }
+
+    private List<OwnerLifeCycleState> ownerLifeCycleStates = [];
+    private List<string> availableCriticalities = [];
+    private OwnerLifeCycleState? selectedOwnerLifeCycleState;
+    private string? selectedCriticality;
+
+    private string SectionHeaderClass => UseLightText ? "text-left text-white" : "text-left";
+    private string FieldContainerClass => UseFormLayout ? "form-group row mt-2" : string.Empty;
+    private string FieldLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : SectionHeaderClass;
+    private string FieldContentClass => UseFormLayout ? "col-sm-8" : string.Empty;
+    private string SpacingClass => UseFormLayout ? string.Empty : "mt-3";
+
+    private RenderFragment OwnerFields => @<text>
+        <div class="@FieldContainerClass">
+            <label class="@FieldLabelClass">@(userConfig.GetText("state")):</label>
+            <div class="@FieldContentClass">
+                <Dropdown ElementType="OwnerLifeCycleState" ElementToString="@(state => state.Display(userConfig.GetText("inactive")))"
+                          SelectedElement="selectedOwnerLifeCycleState" SelectedElementChanged="OwnerLifeCycleStateChanged"
+                          Elements="ownerLifeCycleStates.OrderBy(state => state.Name).ToList()" Nullable="true"
+                          NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate Context="state">
+                        @state.Display(userConfig.GetText("inactive"))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+
+        <div class="@FieldContainerClass @SpacingClass">
+            <label class="@FieldLabelClass">@(userConfig.GetText("criticality")):</label>
+            <div class="@FieldContentClass">
+                <Dropdown ElementType="string" SelectedElement="selectedCriticality" SelectedElementChanged="CriticalityChanged"
+                          Elements="availableCriticalities" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate Context="criticality">
+                        @criticality
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+    </text>;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ownerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(FWO.Api.Client.Queries.OwnerQueries.getOwnerLifeCycleStates);
+        List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+        availableCriticalities = [.. owners
+            .Select(owner => owner.Criticality)
+            .Where(criticality => !string.IsNullOrWhiteSpace(criticality))
+            .Cast<string>()
+            .Distinct()
+            .OrderBy(criticality => criticality)];
+        SyncSelectionsFromFilter();
+    }
+
+    protected override void OnParametersSet()
+    {
+        SyncSelectionsFromFilter();
+    }
+
+    private async Task OwnerLifeCycleStateChanged(OwnerLifeCycleState? newState)
+    {
+        selectedOwnerLifeCycleState = newState;
+        OwnerFilter.SelectedOwnerLifeCycleStateId = newState?.Id;
+        await OwnerFilterChanged.InvokeAsync(OwnerFilter);
+    }
+
+    private async Task CriticalityChanged(string? newCriticality)
+    {
+        selectedCriticality = newCriticality;
+        OwnerFilter.SelectedCriticality = string.IsNullOrWhiteSpace(newCriticality) ? null : newCriticality;
+        await OwnerFilterChanged.InvokeAsync(OwnerFilter);
+    }
+
+    private void SyncSelectionsFromFilter()
+    {
+        selectedOwnerLifeCycleState = ownerLifeCycleStates.FirstOrDefault(state => state.Id == OwnerFilter.SelectedOwnerLifeCycleStateId);
+        selectedCriticality = OwnerFilter.SelectedCriticality;
+    }
+}

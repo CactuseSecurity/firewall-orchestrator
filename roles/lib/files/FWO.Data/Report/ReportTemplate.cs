@@ -74,6 +74,9 @@ namespace FWO.Data.Report
         [JsonProperty("modelling_filter"), JsonPropertyName("modelling_filter")]
         public ModellingFilter ModellingFilter { get; set; } = new();
 
+        [JsonProperty("owner_filter"), JsonPropertyName("owner_filter")]
+        public OwnerFilter OwnerFilter { get; set; } = new();
+
         [JsonProperty("compliance_filter"), JsonPropertyName("compliance_filter")]
         public ComplianceFilter ComplianceFilter { get; set; } = new();
 

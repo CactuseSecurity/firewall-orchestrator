@@ -125,6 +125,10 @@
                     <label class="col-sm-8">@(DisplayTime())</label>
                 </div>
             }
+            @if (reportTypeInEdit == ReportType.Owners)
+            {
+                <ReportOwnerParamSelection @bind-OwnerFilter="reportTemplateInEdit.ReportParams.OwnerFilter" UseLightText="false" UseFormLayout="true" />
+            }
             @if (reportTypeInEdit.IsWorkflowReport())
             {
                 <ReportWorkflowParamSelection @bind-WorkflowFilter="reportTemplateInEdit.ReportParams.WorkflowFilter" SelectedReportType="reportTypeInEdit" UseLightText="false" UseFormLayout="true" />
@@ -149,7 +153,7 @@
                     </div>
                 </div>
             }
-            else if (!reportTypeInEdit.IsWorkflowReport() && reportTypeInEdit != ReportType.OwnerRecertification)
+            else if (!reportTypeInEdit.IsWorkflowReport() && !reportTypeInEdit.IsOwnerReport())
             {
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>

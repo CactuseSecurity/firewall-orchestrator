@@ -10,6 +10,7 @@ using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Test.Mocks;
 using FWO.Ui.Pages.Reporting;
+using System.Reflection;
 
 
 
@@ -361,6 +362,60 @@ namespace FWO.Test
             Assert.That(firstInactive, Is.GreaterThanOrEqualTo(0));
             Assert.That(secondInactive, Is.GreaterThanOrEqualTo(0));
             Assert.That(firstInactive, Is.LessThan(secondInactive));
+        }
+
+        [Test]
+        public void OwnersGenerateCsvAndHtml()
+        {
+            ReportOwners report = new(query, userConfig, ReportType.Owners)
+            {
+                ReportData = new ReportData()
+                {
+                    OwnerData =
+                    [
+                        new OwnerConnectionReport()
+                        {
+                            Owner = new FwoOwner()
+                            {
+                                ExtAppId = "APP-1",
+                                Name = "Owner One",
+                                Criticality = "High",
+                                OwnerLifeCycleStateId = 1,
+                                AdditionalInfo = new Dictionary<string, string>() { { "department", "IT" }, { "region", "EU" } },
+                                OwnerResponsibles =
+                                [
+                                    new OwnerResponsible(){ Dn = "cn=user1,ou=users,dc=test", ResponsibleTypeId = 1 },
+                                    new OwnerResponsible(){ Dn = "cn=user2,ou=users,dc=test", ResponsibleTypeId = 2 }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            };
+            SetPrivateField(report, "ownerLifeCycleStates", new Dictionary<int, string> { { 1, "Active" } });
+            SetPrivateField(report, "ownerResponsibleTypes", new List<OwnerResponsibleType>
+            {
+                new OwnerResponsibleType() { Id = 1, Name = "Main", Active = true, SortOrder = 1 },
+                new OwnerResponsibleType() { Id = 2, Name = "Backup", Active = true, SortOrder = 2 }
+            });
+
+            string csv = report.ExportToCsv();
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("\"Id\",\"Name\",\"Criticality\",\"State\",\"Main\",\"Backup\",\"Additional Info\",", csv);
+            StringAssert.Contains("\"APP-1\",\"Owner One\",\"High\",\"Active\",\"user1\",\"user2\",\"department: IT; region: EU\",", csv);
+            StringAssert.Contains("<th>Id</th><th>Name</th><th>Criticality</th><th>State</th><th>Main</th><th>Backup</th><th>Additional Info</th>", html);
+            StringAssert.Contains("<td>APP-1</td><td>Owner One</td><td>High</td><td>Active</td><td>user1</td><td>user2</td><td>department: IT<br>region: EU</td>", html);
+        }
+
+        private static void SetPrivateField<T>(object target, string fieldName, T value)
+        {
+            FieldInfo? field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field == null)
+            {
+                throw new MissingFieldException(target.GetType().FullName, fieldName);
+            }
+            field.SetValue(target, value);
         }
 
         [Test]

@@ -25,7 +25,9 @@ namespace FWO.Basics
         ComplianceDiffReport = 32,
 
         TicketReport = 41,
-        TicketChangeReport = 42
+        TicketChangeReport = 42,
+
+        Owners = 51
     }
 
     public static class ReportTypeGroups
@@ -111,6 +113,11 @@ namespace FWO.Basics
             };
         }
 
+        public static bool IsOwnerReport(this ReportType reportType)
+        {
+            return reportType == ReportType.Owners || reportType == ReportType.OwnerRecertification;
+        }
+
         public static bool IsComplianceReport(this ReportType reportType)
         {
             return reportType == ReportType.ComplianceReport || reportType == ReportType.ComplianceDiffReport;
@@ -147,7 +154,7 @@ namespace FWO.Basics
         {
             return reportType.IsResolvedReport()
                 || reportType.IsComplianceReport()
-                || reportType == ReportType.OwnerRecertification
+                || reportType.IsOwnerReport()
                 || reportType.IsWorkflowReport() && !detailedView;
         }
 
@@ -180,7 +187,8 @@ namespace FWO.Basics
         public static bool IsVisibleTemplateType(this ReportType reportType, bool ruleRelated, bool modellingRelated, bool complianceRelated, bool modellingOwnerAllowed = true)
         {
             return ruleRelated && reportType.IsDeviceRelatedReport()
-                || modellingRelated && reportType.IsModellingReport() && modellingOwnerAllowed
+                || ruleRelated && reportType == ReportType.Owners
+                || modellingRelated && reportType.IsModellingReport() && (modellingOwnerAllowed || reportType.IsOwnerReport())
                 || complianceRelated && reportType.IsComplianceReport()
                 || reportType.IsWorkflowReport();
         }
@@ -201,6 +209,7 @@ namespace FWO.Basics
                 ReportType.Recertification,
                 ReportType.OwnerRecertification,
                 ReportType.RecertEventReport,
+                ReportType.Owners,
                 ReportType.TicketReport,
                 ReportType.TicketChangeReport
             ];

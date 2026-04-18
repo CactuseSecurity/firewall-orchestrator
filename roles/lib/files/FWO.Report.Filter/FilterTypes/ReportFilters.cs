@@ -27,6 +27,7 @@ namespace FWO.Report.Filter.FilterTypes
         public int UnusedDays = 0;
 
         public ModellingFilter ModellingFilter { get; set; } = new();
+        public OwnerFilter OwnerFilter { get; set; } = new();
 
         public ComplianceFilter ComplianceFilter { get; set; } = new();
 
@@ -70,6 +71,7 @@ namespace FWO.Report.Filter.FilterTypes
             RecertFilter = new(template.ReportParams.RecertFilter);
             UnusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
             ModellingFilter = template.ReportParams.ModellingFilter;
+            OwnerFilter = new(template.ReportParams.OwnerFilter);
             ComplianceFilter = new(template.ReportParams.ComplianceFilter);
             WorkflowFilter = new(template.ReportParams.WorkflowFilter);
         }
@@ -86,6 +88,7 @@ namespace FWO.Report.Filter.FilterTypes
                     CreationTolerance = userConfig?.CreationTolerance ?? 0
                 },
                 ModellingFilter = new ModellingFilter(ModellingFilter),
+                OwnerFilter = new OwnerFilter(OwnerFilter),
                 ComplianceFilter = new ComplianceFilter(ComplianceFilter),
                 WorkflowFilter = new WorkflowFilter(WorkflowFilter)
             };

@@ -17642,6 +17642,20 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "access_rule",
+                      "active",
+                      "dev_id",
+                      "rule_id",
+                      "rule_uid"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -30930,6 +30944,32 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "device_id",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "request_action"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -31264,6 +31304,32 @@
               ],
               "update_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "device_id",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [
@@ -31291,6 +31357,13 @@
                 }
               ],
               "delete_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "fw-admin",
                   "permission": {
@@ -31880,10 +31953,20 @@
                       "additional_info",
                       "assigned_group",
                       "current_handler",
+                      "devices",
+                      "free_text",
+                      "mgm_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
+                      "rule_action",
+                      "rule_tracking",
                       "start",
                       "state_id",
-                      "stop"
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "title"
                     ],
                     "filter": {},
                     "check": null
@@ -33028,10 +33111,12 @@
                       "assigned_group",
                       "current_handler",
                       "date_completed",
+                      "reason",
                       "recent_handler",
                       "state_id",
                       "ticket_deadline",
-                      "ticket_priority"
+                      "ticket_priority",
+                      "title"
                     ],
                     "filter": {},
                     "check": null

@@ -2,6 +2,7 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -153,6 +154,80 @@ namespace FWO.Test
             Assert.That(handler.AllVisibleImplTasks, Has.Count.EqualTo(1));
             Assert.That(handler.AllVisibleImplTasks[0].TicketId, Is.EqualTo(5));
             Assert.That(handler.AllVisibleImplTasks[0].ReqTaskId, Is.EqualTo(11));
+        }
+
+        [Test]
+        public async Task AutoCreateImplTasks_EnterInReqTask_ResolvesAllMarkerToEveryDevice()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask },
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+            };
+            WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
+            reqTask.SetDeviceList([WfReqTaskBase.kAllDevicesId]);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks.Select(task => task.DeviceId), Is.EqualTo(new int?[] { 3, 5 }));
+        }
+
+        [Test]
+        public async Task AutoCreateImplTasks_OneTaskForAllDevices_CreatesSingleImplTaskWithoutConcreteDevice()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices },
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+            };
+            WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
+            reqTask.SetDeviceList([WfReqTaskBase.kAllDevicesId]);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(reqTask.ImplementationTasks[0].DeviceId, Is.Null);
+        }
+
+        [Test]
+        public async Task AutoCreateImplTasks_OneTaskForAllDevices_KeepsPerDeviceCreationForExplicitSelection()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices },
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+            };
+            WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
+            reqTask.SetDeviceList([new Device { Id = 3 }, new Device { Id = 5 }]);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks.Select(task => task.DeviceId), Is.EqualTo(new int?[] { 3, 5 }));
+        }
+
+        [Test]
+        public async Task AutoCreateImplTasks_NonAccessTask_CreatesSingleGenericImplTask()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.forEachDevice },
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+            };
+            WfReqTask reqTask = new() { TaskType = WfTaskType.group_create.ToString(), StateId = 4, Title = "Group" };
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(reqTask.ImplementationTasks[0].DeviceId, Is.Null);
+            Assert.That(reqTask.ImplementationTasks[0].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+        }
+
+        private static async Task InvokeAutoCreateImplTasks(WfHandler handler, WfReqTask reqTask)
+        {
+            MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "AutoCreateImplTasks");
+            Task task = (Task)(method.Invoke(handler, [reqTask]) ?? throw new InvalidOperationException("AutoCreateImplTasks returned null."));
+            await task;
         }
     }
 }

@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Data;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace FWO.Services.Triviality
 {
@@ -8,7 +9,7 @@ namespace FWO.Services.Triviality
     /// Builds a reusable lookup for detecting reverse-direction duplicate rules within one specific rule list.
     /// Create a new instance whenever the caller receives a new list snapshot.
     /// </summary>
-    public class RuleBidirectionalDuplicateIndex
+    public sealed class RuleBidirectionalDuplicateIndex
     {
         private readonly Dictionary<RuleDirectionSignature, List<string>> _ruleKeysBySignature = [];
 
@@ -69,7 +70,7 @@ namespace FWO.Services.Triviality
         private static ImmutableArray<NetworkObjectSignature> CreateNetworkObjectSetSignature(IEnumerable<NetworkObject> objects)
         {
             return [..
-                FlattenRuleNetworkObjects(objects)
+                RuleTrivialityNormalization.FlattenRuleNetworkObjects(objects)
                     .Select(obj => new NetworkObjectSignature(obj.IP ?? "", obj.IpEnd ?? ""))
                     .Distinct()
                     .OrderBy(signature => signature.StartIp, StringComparer.Ordinal)
@@ -79,7 +80,7 @@ namespace FWO.Services.Triviality
         private static ImmutableArray<ServiceSignature> CreateServiceSetSignature(IEnumerable<NetworkService> services, bool reverseServices)
         {
             return [..
-                FlattenRuleServices(services)
+                RuleTrivialityNormalization.FlattenRuleServices(services)
                     .Select(service => CreateServiceSignature(service, reverseServices))
                     .Distinct()
                     .OrderBy(signature => signature.ProtocolId ?? -1)
@@ -92,52 +93,39 @@ namespace FWO.Services.Triviality
         private static ServiceSignature CreateServiceSignature(NetworkService service, bool reverseServices)
         {
             int? protocolId = service.Protocol?.Id ?? service.ProtoId;
-            if (protocolId.HasValue)
-            {
-                return new(protocolId.Value, 0, 0, 0, 0);
-            }
-
             int sourcePortStart = reverseServices ? service.DestinationPort ?? 0 : service.SourcePort ?? 0;
             int sourcePortEnd = reverseServices ? service.DestinationPortEnd ?? service.DestinationPort ?? 0 : service.SourcePortEnd ?? service.SourcePort ?? 0;
             int destinationPortStart = reverseServices ? service.SourcePort ?? 0 : service.DestinationPort ?? 0;
             int destinationPortEnd = reverseServices ? service.SourcePortEnd ?? service.SourcePort ?? 0 : service.DestinationPortEnd ?? service.DestinationPort ?? 0;
 
+            if (protocolId.HasValue)
+            {
+                return new(protocolId.Value, sourcePortStart, sourcePortEnd, destinationPortStart, destinationPortEnd);
+            }
+
             return new(null, sourcePortStart, sourcePortEnd, destinationPortStart, destinationPortEnd);
         }
-
-        private static List<NetworkObject> FlattenRuleNetworkObjects(IEnumerable<NetworkObject> objects)
-        {
-            return objects
-                .SelectMany(obj =>
-                    new[] { obj }
-                        .Concat(obj.ObjectGroupFlats.Select(groupFlat => groupFlat.Object)))
-                .OfType<NetworkObject>()
-                .ToList();
-        }
-
-        private static List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
-        {
-            return services
-                .SelectMany(service =>
-                    service.Type.Name == ServiceType.Group
-                        ? service.ServiceGroupFlats.Select(groupFlat => groupFlat.Object)
-                        : new[] { service })
-                .OfType<NetworkService>()
-                .Where(service => service.Type.Name != ServiceType.Group)
-                .ToList();
-        }
-
         private static string CreateRuleKey(Rule rule)
         {
-            return $"id:{rule.Id}";
+            if (!string.IsNullOrWhiteSpace(rule.Uid))
+            {
+                return $"uid:{rule.Uid}";
+            }
+
+            if (rule.Id > 0)
+            {
+                return $"id:{rule.Id}";
+            }
+
+            return $"ref:{RuntimeHelpers.GetHashCode(rule)}";
         }
     }
     
-    public readonly record struct NetworkObjectSignature(string StartIp, string EndIp);
+    internal readonly record struct NetworkObjectSignature(string StartIp, string EndIp);
 
-    public readonly record struct ServiceSignature(int? ProtocolId, int SourcePortStart, int SourcePortEnd, int DestinationPortStart, int DestinationPortEnd);
+    internal readonly record struct ServiceSignature(int? ProtocolId, int SourcePortStart, int SourcePortEnd, int DestinationPortStart, int DestinationPortEnd);
 
-    public sealed class RuleDirectionSignature : IEquatable<RuleDirectionSignature>
+    internal sealed class RuleDirectionSignature : IEquatable<RuleDirectionSignature>
     {
         public ImmutableArray<NetworkObjectSignature> Sources { get; }
         public ImmutableArray<NetworkObjectSignature> Destinations { get; }

@@ -9,10 +9,10 @@ namespace FWO.Services.Triviality
     /// </summary>
     public class RuleTrivialityEvaluator
     {
-        public const string BroadNetworkObjectReason = "BroadNetworkObject";
-        public const string BidirectionalDuplicateReason = "BidirectionalDuplicate";
-        public const string ForbidZonesAsDestinationReason = "ForbidZonesAsDestination";
-        public const string ForbidZonesAsSourceReason = "ForbidZonesAsSource";
+        public const string MinimumCIDRLengthReason = nameof(CriterionType.MinimumCIDRLength);
+        public const string ForbidBidirectionalDuplicateReason = nameof(CriterionType.ForbidBidirectionalDuplicate);
+        public const string ForbidZonesAsDestinationReason = nameof(CriterionType.ForbidZonesAsDestination);
+        public const string ForbidZonesAsSourceReason = nameof(CriterionType.ForbidZonesAsSource);
         public const string Ipv6NotSupportedReason = "IPv6NotSupported";
 
         private readonly NetworkObjectRangeAnalyzer _rangeAnalyzer = new();
@@ -20,12 +20,12 @@ namespace FWO.Services.Triviality
         /// <summary>
         /// Evaluates whether the rule remains trivial under a minimum IPv4 prefix-length criterion.
         /// </summary>
-        public TrivialityCheckResult EvaluateBroadNetworkObjectCriterion(Rule rule, int minPrefixLength)
+        public TrivialityCheckResult EvaluateMinimumCIDRLengthCriterion(Rule rule, int minPrefixLength)
         {
             List<NetworkObject> ruleObjects =
             [
-                .. FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object)),
-                .. FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object))
+                .. RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object)),
+                .. RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object))
             ];
 
             List<NetworkObjectRangeAnalysis> analyses = _rangeAnalyzer.AnalyzeMany(ruleObjects);
@@ -44,7 +44,7 @@ namespace FWO.Services.Triviality
                 return new()
                 {
                     IsTrivial = false,
-                    Reason = BroadNetworkObjectReason
+                    Reason = MinimumCIDRLengthReason
                 };
             }
 
@@ -57,7 +57,7 @@ namespace FWO.Services.Triviality
         /// <summary>
         /// Evaluates whether an active accept rule has an identical reverse-direction counterpart in the provided index.
         /// </summary>
-        public TrivialityCheckResult EvaluateBidirectionalDuplicateCriterion(Rule rule, RuleBidirectionalDuplicateIndex duplicateIndex)
+        public TrivialityCheckResult EvaluateForbidBidirectionalDuplicateCriterion(Rule rule, RuleBidirectionalDuplicateIndex duplicateIndex)
         {
             if (rule.Disabled || rule.Action != RuleActions.Accept)
             {
@@ -72,7 +72,7 @@ namespace FWO.Services.Triviality
                 return new()
                 {
                     IsTrivial = false,
-                    Reason = BidirectionalDuplicateReason
+                    Reason = ForbidBidirectionalDuplicateReason
                 };
             }
 
@@ -85,9 +85,9 @@ namespace FWO.Services.Triviality
         /// <summary>
         /// Evaluates whether the rule directly uses a zone object in source.
         /// </summary>
-        public TrivialityCheckResult EvaluateZoneObjectAsSourceCriterion(Rule rule)
+        public TrivialityCheckResult EvaluateForbidZonesAsSourceCriterion(Rule rule)
         {
-            bool containsZoneObject = FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object)).Any(IsZoneObject);
+            bool containsZoneObject = RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object)).Any(IsZoneObject);
 
             return containsZoneObject
                 ? new()
@@ -104,9 +104,9 @@ namespace FWO.Services.Triviality
         /// <summary>
         /// Evaluates whether the rule directly uses a zone object in destination.
         /// </summary>
-        public TrivialityCheckResult EvaluateZoneObjectAsDestinationCriterion(Rule rule)
+        public TrivialityCheckResult EvaluateForbidZonesAsDestinationCriterion(Rule rule)
         {
-            bool containsZoneObject = FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object)).Any(IsZoneObject);
+            bool containsZoneObject = RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object)).Any(IsZoneObject);
 
             return containsZoneObject
                 ? new()
@@ -118,16 +118,6 @@ namespace FWO.Services.Triviality
                 {
                     IsTrivial = true
                 };
-        }
-
-        private static List<NetworkObject> FlattenRuleNetworkObjects(IEnumerable<NetworkObject> objects)
-        {
-            return objects
-                .SelectMany(obj =>
-                    new[] { obj }
-                        .Concat(obj.ObjectGroupFlats.Select(groupFlat => groupFlat.Object)))
-                .OfType<NetworkObject>()
-                .ToList();
         }
 
         private static bool IsZoneObject(NetworkObject networkObject)

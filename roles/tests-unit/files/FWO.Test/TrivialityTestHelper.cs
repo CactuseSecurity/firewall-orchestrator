@@ -67,6 +67,23 @@ namespace FWO.Test
             };
         }
 
+        internal static NetworkService CreateProtocolService(string name, int protoId, int sourcePortStart, int sourcePortEnd, int destinationPortStart, int destinationPortEnd)
+        {
+            return new()
+            {
+                Name = name,
+                ProtoId = protoId,
+                SourcePort = sourcePortStart,
+                SourcePortEnd = sourcePortEnd,
+                DestinationPort = destinationPortStart,
+                DestinationPortEnd = destinationPortEnd,
+                Type = new NetworkServiceType
+                {
+                    Name = ServiceType.SimpleService
+                }
+            };
+        }
+
         internal static NetworkService CreatePortOnlyService(string name, int sourcePortStart, int sourcePortEnd, int destinationPortStart, int destinationPortEnd)
         {
             return new()

@@ -1,4 +1,5 @@
 using FWO.Report.Filter;
+using FWO.Report.Filter.Ast;
 using FWO.Report.Filter.Exceptions;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -12,6 +13,18 @@ namespace FWO.Test
     [Parallelizable]
     public class FilterTest
     {
+        private delegate void StubExtractDelegate(ref DynGraphqlQuery query, ReportType? reportType);
+
+        private sealed class StubAstNode(StubExtractDelegate extractAction) : AstNode
+        {
+            private readonly StubExtractDelegate _extractAction = extractAction;
+
+            public override void Extract(ref DynGraphqlQuery query, ReportType? reportType)
+            {
+                _extractAction(ref query, reportType);
+            }
+        }
+
         [SetUp]
         public void Initialize()
         {
@@ -411,6 +424,38 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void OwnersFilterLineIncludesStateNameNotEquals()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "ownerstate!=Production"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_lifecycle_state: { name: { _nilike: $ownerLifeCycleStateName0 } }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerLifeCycleStateName0"], Is.EqualTo("Production"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnersFilterLineIncludesStateNameGreaterThan()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "ownerstate>Production"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_lifecycle_state: { name: { _gt: $ownerLifeCycleStateName0 } }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables["ownerLifeCycleStateName0"], Is.EqualTo("Production"));
+        }
+
+        [Test]
+        [Parallelizable]
         public void DynGraphqlQuery_OwnersCombinesSidebarAndFilterLineStateFilters()
         {
             ReportTemplate t = new()
@@ -447,6 +492,113 @@ namespace FWO.Test
             StringAssert.Contains("criticality: { _ilike: $ownerCriticality0 }", query.OwnerWhereStatement);
             Assert.That(query.QueryVariables["ownerCriticality"], Is.EqualTo("Medium"));
             Assert.That(query.QueryVariables["ownerCriticality0"], Is.EqualTo("%High%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void DynGraphqlQuery_OwnersBuildsOwnerQueryWithNameOrdering()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "criticality=High"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Owners;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("query getOwners", query.FullQuery);
+            StringAssert.Contains("owner (where:", query.FullQuery);
+            StringAssert.Contains("order_by: { name: asc }", query.FullQuery);
+            StringAssert.DoesNotContain("$mgmId: [Int!]", query.FullQuery);
+            Assert.That(query.QueryVariables["ownerCriticality0"], Is.EqualTo("%High%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void DynGraphqlQuery_OwnerRecertificationBuildsOwnerQueryWithRecertOrdering()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.OwnerRecertification;
+            t.ReportParams.ModellingFilter.SelectedOwners = [new() { Id = 1 }];
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("query getOwners", query.FullQuery);
+            StringAssert.Contains("owner (where:", query.FullQuery);
+            StringAssert.Contains("order_by: { next_recert_date: desc, name: asc }", query.FullQuery);
+            Assert.That(query.QueryVariables["selectedOwners"], Is.EqualTo(new[] { 1 }));
+            Assert.That(query.QueryVariables.ContainsKey("refDate"), Is.True);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void ManagementFilterUsesNumericIdAcrossAllObjectQueries()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "management=7"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("management: {mgm_id : {_ilike: $mgmId0 } }", query.RuleWhereStatement);
+            StringAssert.Contains("management: {mgm_id : {_ilike: $mgmId0 } }", query.NwObjWhereStatement);
+            StringAssert.Contains("management: {mgm_id : {_ilike: $mgmId0 } }", query.SvcObjWhereStatement);
+            StringAssert.Contains("management: {mgm_id : {_ilike: $mgmId0 } }", query.UserObjWhereStatement);
+            Assert.That(query.QueryVariables["mgmId0"], Is.EqualTo("%7%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void ManagementFilterUsesNameAcrossAllObjectQueries()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "management=demo"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("management: {mgm_name : {_ilike: $mgmName0 } }", query.RuleWhereStatement);
+            StringAssert.Contains("management: {mgm_name : {_ilike: $mgmName0 } }", query.NwObjWhereStatement);
+            StringAssert.Contains("management: {mgm_name : {_ilike: $mgmName0 } }", query.SvcObjWhereStatement);
+            StringAssert.Contains("management: {mgm_name : {_ilike: $mgmName0 } }", query.UserObjWhereStatement);
+            Assert.That(query.QueryVariables["mgmName0"], Is.EqualTo("%demo%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void ProtocolFilterTargetsRuleAndConnectionQueries()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "protocol=tcp"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("ip_proto_name: { _ilike: $proto0 }", query.RuleWhereStatement);
+            StringAssert.Contains("ip_proto_name: { _ilike: $proto0 }", query.ConnectionWhereStatement);
+            Assert.That(query.QueryVariables["proto0"], Is.EqualTo("%tcp%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void ActionFilterTargetsRuleQuery()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "action=accept"
+            };
+            t.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("rule_action: { _ilike: $action0 }", query.RuleWhereStatement);
+            Assert.That(query.QueryVariables["action0"], Is.EqualTo("%accept%"));
         }
 
         [Test]
@@ -762,6 +914,170 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void ChangesReport_LastHitLessThanUsesNestedRuleMetadataAndIncludesNullHits()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit<2025-01-01"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Changes;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("rule: { rule_metadatum: { rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.Contains("_is_null: true", query.RuleWhereStatement);
+            StringAssert.Contains("_or:", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RulesReport_LastHitGreaterThanOmitsNullHits()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit>2025-01-01"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("rule_metadatum: { rule_last_hit:", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("rule_last_hit: {_is_null: true", query.RuleWhereStatement);
+            StringAssert.DoesNotContain("rule: { rule_metadatum", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void LastHitNotEqualsRaisesSemanticException()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit!=2025-01-01"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            Assert.Throws<SemanticException>(() => Compiler.Compile(template));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OrConnectorBuildsOrWhereClause()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "action=accept or protocol=tcp"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("{_or: [{rule_action: { _ilike: $action0 }}, {rule_services: {service: {stm_ip_proto: {ip_proto_name: { _ilike: $proto1 } } } }}] }", query.RuleWhereStatement);
+            StringAssert.Contains("rule_action: { _ilike: $action0 }", query.RuleWhereStatement);
+            StringAssert.Contains("ip_proto_name: { _ilike: $proto1 }", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void AstNodeConnector_AndExtractWrapsAllWhereStatements()
+        {
+            DynGraphqlQuery query = new("");
+            AstNodeConnector connector = new()
+            {
+                Connector = new Token(new Range(), "and", TokenKind.And),
+                Left = new StubAstNode((ref DynGraphqlQuery q, ReportType? _) =>
+                {
+                    q.RuleWhereStatement += "left-rule";
+                    q.NwObjWhereStatement += "left-nw";
+                    q.SvcObjWhereStatement += "left-svc";
+                    q.UserObjWhereStatement += "left-user";
+                    q.ConnectionWhereStatement += "left-conn";
+                }),
+                Right = new StubAstNode((ref DynGraphqlQuery q, ReportType? _) =>
+                {
+                    q.RuleWhereStatement += "right-rule";
+                    q.NwObjWhereStatement += "right-nw";
+                    q.SvcObjWhereStatement += "right-svc";
+                    q.UserObjWhereStatement += "right-user";
+                    q.ConnectionWhereStatement += "right-conn";
+                })
+            };
+
+            connector.Extract(ref query, ReportType.Rules);
+
+            Assert.That(query.RuleWhereStatement, Is.EqualTo("_and: [{left-rule}, {right-rule}] "));
+            Assert.That(query.NwObjWhereStatement, Is.EqualTo("_and: [{left-nw}, {right-nw}] "));
+            Assert.That(query.SvcObjWhereStatement, Is.EqualTo("_and: [{left-svc}, {right-svc}] "));
+            Assert.That(query.UserObjWhereStatement, Is.EqualTo("_and: [{left-user}, {right-user}] "));
+            Assert.That(query.ConnectionWhereStatement, Is.EqualTo("_and: [{left-conn}, {right-conn}] "));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void AstNodeConnector_ExtractThrowsWhenConnectorMissing()
+        {
+            DynGraphqlQuery query = new("");
+            AstNodeConnector connector = new()
+            {
+                Left = new StubAstNode((ref DynGraphqlQuery _, ReportType? _) => { }),
+                Right = new StubAstNode((ref DynGraphqlQuery _, ReportType? _) => { })
+            };
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => connector.Extract(ref query, ReportType.Rules))!;
+
+            Assert.That(exception.Message, Does.Contain("Connector"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void AstNodeConnector_ExtractThrowsWhenLeftMissing()
+        {
+            DynGraphqlQuery query = new("");
+            AstNodeConnector connector = new()
+            {
+                Connector = new Token(new Range(), "and", TokenKind.And),
+                Right = new StubAstNode((ref DynGraphqlQuery _, ReportType? _) => { })
+            };
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => connector.Extract(ref query, ReportType.Rules))!;
+
+            Assert.That(exception.Message, Does.Contain("Left"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void AstNodeConnector_ExtractThrowsWhenRightMissing()
+        {
+            DynGraphqlQuery query = new("");
+            AstNodeConnector connector = new()
+            {
+                Connector = new Token(new Range(), "and", TokenKind.And),
+                Left = new StubAstNode((ref DynGraphqlQuery _, ReportType? _) => { })
+            };
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => connector.Extract(ref query, ReportType.Rules))!;
+
+            Assert.That(exception.Message, Does.Contain("Right"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void AstNodeConnector_ExtractThrowsForUnsupportedConnector()
+        {
+            DynGraphqlQuery query = new("");
+            AstNodeConnector connector = new()
+            {
+                Connector = new Token(new Range(), "xor", TokenKind.Not),
+                Left = new StubAstNode((ref DynGraphqlQuery _, ReportType? _) => { }),
+                Right = new StubAstNode((ref DynGraphqlQuery _, ReportType? _) => { })
+            };
+
+            SemanticException exception = Assert.Throws<SemanticException>(() => connector.Extract(ref query, ReportType.Rules))!;
+
+            Assert.That(exception.Message, Does.Contain("unsupported connector token"));
+        }
+
+        [Test]
+        [Parallelizable]
         public void ReportTypeFilter_ParsesStatisticsAliasAndAddsStatisticsRuleFilter()
         {
             ReportTemplate template = new()
@@ -820,6 +1136,22 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void BoolFilter_DisabledNotEqualsBuildsNegativeRuleDisabledFilter()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "disabled!=true"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["disabled0"], Is.EqualTo("true"));
+            StringAssert.Contains("rule_disabled: { _neq: $disabled0 }", query.RuleWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
         public void IntFilter_UnusedBuildsLastHitCutoffFilter()
         {
             ReportTemplate template = new()
@@ -846,6 +1178,60 @@ namespace FWO.Test
             template.ReportParams.ReportType = (int)ReportType.Rules;
 
             Assert.Throws<SemanticException>(() => Compiler.Compile(template));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void IntFilter_DestinationPortBuildsRuleAndConnectionFilters()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "port=443"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["dport0"], Is.EqualTo("443"));
+            StringAssert.Contains("svc_port: {_lte: $dport0}", query.RuleWhereStatement);
+            StringAssert.Contains("service_connections: {service: { port: { _lte: $dport0 }, port_end: { _gte: $dport0 } } }", query.ConnectionWhereStatement);
+            StringAssert.Contains("service_group_connections: {service_group: { service_service_groups:", query.ConnectionWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void NetworkFilter_SourceNameExactEqualsBuildsNameFilters()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "src==AppServer1"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["src0"], Is.EqualTo("AppServer1"));
+            StringAssert.Contains("rule_froms: { object: { objgrp_flats: { objectByObjgrpFlatMemberId: { obj_name: { _eq: $src0 } } } } }", query.RuleWhereStatement);
+            StringAssert.Contains("owner_network: {name: { _eq: $src0 } }", query.ConnectionWhereStatement);
+            StringAssert.Contains("id_string: { _eq: $src0 }", query.ConnectionWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void NetworkFilter_DestinationNameNotEqualsBuildsNegativeNameFilters()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "dst!=AppRole1"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["dst0"], Is.EqualTo("AppRole1"));
+            StringAssert.Contains("obj_name: { _nilike: $dst0 }", query.RuleWhereStatement);
+            StringAssert.Contains("owner_network: {name: { _nilike: $dst0 } }", query.ConnectionWhereStatement);
+            StringAssert.Contains("id_string: { _nilike: $dst0 }", query.ConnectionWhereStatement);
         }
 
         [Test]

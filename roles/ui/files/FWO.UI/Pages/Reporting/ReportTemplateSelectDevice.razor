@@ -1,12 +1,21 @@
 ﻿@using FWO.Report.Filter
 
+@using FWO.Basics
+
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
 
-<PopUp Title="@(userConfig.GetText("select_device"))" Show="@Display" Size=PopupSize.Medium OnClose="Cancel">
+<PopUp Title="@(userConfig.GetText(SelectedReportType == ReportType.AppRules || SelectedReportType == ReportType.Recertification ? "select_management" : "select_device"))" Show="@Display" Size=PopupSize.Small OnClose="Cancel">
     <Body>
-        <DeviceSelection @bind-DeviceFilter="DeviceFilter" @bind-CollapseAll="collapseDevices" ShowTitle="false"/>
+        @if (SelectedReportType == ReportType.AppRules || SelectedReportType == ReportType.Recertification)
+        {
+            <ManagementSelection @bind-DeviceFilter="DeviceFilter" @bind-SelectAll="selectAll" ShowTitle="false" UseLightText="false" />
+        }
+        else
+        {
+            <DeviceSelection @bind-DeviceFilter="DeviceFilter" @bind-CollapseAll="collapseDevices" ShowTitle="false"/>
+        }
     </Body>
     <Footer>
         <button type="button" class="btn btn-primary" @onclick="Commit">@(DisplayService.DisplayButton(userConfig, "commit_changes", Icons.Save))</button>
@@ -32,7 +41,11 @@
     [Parameter]
     public EventCallback<DeviceFilter> DeviceFilterChanged { get; set; }
 
+    [Parameter]
+    public ReportType SelectedReportType { get; set; }
+
     private bool collapseDevices = false;
+    private bool selectAll = true;
     private DeviceFilter DeviceFilterOrig = new();
     private bool FirstTry = true;
 
@@ -50,6 +63,7 @@
                 {
                     collapseDevices = true;
                 }
+                selectAll = !DeviceFilter.IsAnyDeviceFilterSet();
             }
         }
         catch (Exception exception)

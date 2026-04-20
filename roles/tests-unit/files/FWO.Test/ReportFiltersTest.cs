@@ -81,7 +81,8 @@ namespace FWO.Test
                         LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.not_existing },
                         DetailedView = true,
                         ShowFullTicket = false
-                    }
+                    },
+                    IncludeObjects = true
                 }
             };
 
@@ -97,6 +98,33 @@ namespace FWO.Test
             Assert.That(filters.WorkflowFilter.LabelFilter.Value, Is.EqualTo(string.Empty));
             Assert.That(filters.WorkflowFilter.DetailedView, Is.True);
             Assert.That(filters.WorkflowFilter.ShowFullTicket, Is.False);
+            Assert.That(filters.IncludeObjects, Is.True);
+        }
+
+        [Test]
+        public void ToReportParams_CopiesIncludeObjectChangesSettings_ForChangesReport()
+        {
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.Changes,
+                IncludeObjects = true
+            };
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.IncludeObjects, Is.True);
+        }
+
+        [Test]
+        public void Init_CopiesGlobalDefaultForIncludeObjectChanges()
+        {
+            SimulatedUserConfig userConfig = new();
+            userConfig.GlobalConfig = new() { ImpChangeIncludeObjectChanges = true };
+            ReportFilters filters = new();
+
+            filters.Init(userConfig, true);
+
+            Assert.That(filters.IncludeObjects, Is.True);
         }
 
         [Test]
@@ -224,6 +252,39 @@ namespace FWO.Test
             Assert.That(filters.OwnerFilter.SelectedOwnerLifeCycleStateId, Is.EqualTo(5));
             Assert.That(filters.OwnerFilter.SelectedCriticality, Is.EqualTo("Medium"));
             Assert.That(ReferenceEquals(filters.OwnerFilter, template.ReportParams.OwnerFilter), Is.False);
+        }
+
+        [Test]
+        public void ToReportParams_PreservesExplicitTemplateOwner_ForAppRules()
+        {
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.AppRules
+            };
+            filters.ModellingFilter.SelectedOwner = new FwoOwner { Id = 17, Name = "App A" };
+            filters.ModellingFilter.SelectedTemplateOwner = new FwoOwner { Id = 23, Name = "Template App" };
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.ModellingFilter.SelectedOwner.Id, Is.EqualTo(17));
+            Assert.That(reportParams.ModellingFilter.SelectedTemplateOwner.Id, Is.EqualTo(23));
+            Assert.That(reportParams.ModellingFilter.SelectedTemplateOwner.Name, Is.EqualTo("Template App"));
+        }
+
+        [Test]
+        public void ToReportParams_CopiesVarianceFlags()
+        {
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.VarianceAnalysis
+            };
+            filters.ModellingFilter.RulesForDeletedConns = true;
+            filters.ModellingFilter.AnalyseRemainingRules = true;
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.ModellingFilter.RulesForDeletedConns, Is.True);
+            Assert.That(reportParams.ModellingFilter.AnalyseRemainingRules, Is.True);
         }
 
         [Test]
@@ -360,6 +421,44 @@ namespace FWO.Test
             Assert.That(filters.DeviceFilter.Managements[0].Devices[0].Visible, Is.True);
             Assert.That(filters.DeviceFilter.Managements[0].Devices[1].Visible, Is.False);
             Assert.That(filters.DeviceFilter.Managements[0].Devices[1].Selected, Is.False);
+        }
+
+        [Test]
+        public void DeviceFilter_ListAllSelectedManagements_ReturnsSelectedManagementNames()
+        {
+            DeviceFilter deviceFilter = new(
+            [
+                new ManagementSelect
+                {
+                    Id = 7,
+                    Name = "Mgmt A",
+                    Devices =
+                    [
+                        new DeviceSelect { Id = 70, Name = "gw70", Selected = true },
+                        new DeviceSelect { Id = 71, Name = "gw71", Selected = false }
+                    ]
+                },
+                new ManagementSelect
+                {
+                    Id = 8,
+                    Name = "Mgmt B",
+                    Devices =
+                    [
+                        new DeviceSelect { Id = 80, Name = "gw80", Selected = true }
+                    ]
+                },
+                new ManagementSelect
+                {
+                    Id = 9,
+                    Name = "Mgmt C",
+                    Devices =
+                    [
+                        new DeviceSelect { Id = 90, Name = "gw90", Selected = false }
+                    ]
+                }
+            ]);
+
+            Assert.That(deviceFilter.ListAllSelectedManagements(), Is.EqualTo("Mgmt A, Mgmt B"));
         }
     }
 }

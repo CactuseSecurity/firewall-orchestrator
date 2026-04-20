@@ -25,7 +25,7 @@
                     <div class="form-check mb-1">
                         <input class="form-check-input" type="checkbox" id="@management.Id" @bind="management.Selected"
                             @ref="management.UiReference" @oninput="async () => await ToggleSelectManagement(management)" />
-                        <label class="form-check-label text-white" for="@management.Id">@management.Name</label>
+                        <label class="@CheckboxLabelClass" for="@management.Id">@management.Name</label>
                     </div>
                 }
             }
@@ -56,11 +56,15 @@
     [Parameter]
     public bool ShowTitle { get; set; } = true;
 
+    [Parameter]
+    public bool UseLightText { get; set; } = true;
+
 
     private string cssClass = "btn-group w-100 sticky-marker";
     private string selectAllText = "";
     private string clearAllText = "";
     private CollapseState collapseDevices = new CollapseState();
+    private string CheckboxLabelClass => UseLightText ? "form-check-label text-white" : "form-check-label";
 
     protected override void OnInitialized()
     {

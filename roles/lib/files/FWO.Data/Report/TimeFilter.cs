@@ -62,5 +62,23 @@ namespace FWO.Data.Report
 
         [JsonProperty("open_end"), JsonPropertyName("open_end")]
         public bool OpenEnd { get; set; } = false;
+
+        public TimeFilter()
+        { }
+
+        public TimeFilter(TimeFilter source)
+        {
+            IsShortcut = source.IsShortcut;
+            TimeShortcut = source.TimeShortcut;
+            ReportTime = source.ReportTime;
+            TimeRangeType = source.TimeRangeType;
+            TimeRangeShortcut = source.TimeRangeShortcut;
+            Offset = source.Offset;
+            Interval = source.Interval;
+            StartTime = source.StartTime;
+            OpenStart = source.OpenStart;
+            EndTime = source.EndTime;
+            OpenEnd = source.OpenEnd;
+        }
     }
 }

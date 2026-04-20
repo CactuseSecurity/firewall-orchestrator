@@ -31,6 +31,7 @@ namespace FWO.Data.Report
         public ModellingFilter(ModellingFilter modellingFilter)
         {
             SelectedOwners = modellingFilter.SelectedOwners;
+            SelectedTemplateOwner = modellingFilter.SelectedTemplateOwner;
             ShowSourceMatch = modellingFilter.ShowSourceMatch;
             ShowDestinationMatch = modellingFilter.ShowDestinationMatch;
             ShowAnyMatch = modellingFilter.ShowAnyMatch;

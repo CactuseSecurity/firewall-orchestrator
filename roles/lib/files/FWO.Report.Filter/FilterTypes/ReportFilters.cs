@@ -37,9 +37,7 @@ namespace FWO.Report.Filter.FilterTypes
 
         private UserConfig? userConfig;
 
-        public bool IncludeObjectsInReportChanges { get; set; } = false;
-
-        public bool IncludeObjectsInReportChangesUiPresesed { get; set; } = false;
+        public bool IncludeObjects { get; set; } = false;
 
         public void Init(UserConfig userConfigIn, bool showRuleRelatedReports)
         {
@@ -47,6 +45,7 @@ namespace FWO.Report.Filter.FilterTypes
             ReportType = showRuleRelatedReports ? ReportType.Rules : ReportType.Connections;
             DisplayedTimeSelection = userConfig.GetText("now");
             UnusedDays = userConfig.UnusedTolerance;
+            IncludeObjects = userConfig.GlobalConfig?.ImpChangeIncludeObjectChanges ?? false;
 
             if (DeviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
             {
@@ -57,6 +56,7 @@ namespace FWO.Report.Filter.FilterTypes
         public void SyncFiltersFromTemplate(ReportTemplate template)
         {
             ReportType = (ReportType)template.ReportParams.ReportType;
+            IncludeObjects = template.ReportParams.IncludeObjects;
             if (template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
             {
                 DeviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
@@ -80,6 +80,7 @@ namespace FWO.Report.Filter.FilterTypes
         {
             ReportParams reportParams = new((int)ReportType, ReportType == ReportType.UnusedRules ? ReducedDeviceFilter : DeviceFilter)
             {
+                IncludeObjects = IncludeObjects,
                 TimeFilter = SavedTimeFilter,
                 RecertFilter = new RecertFilter(RecertFilter),
                 UnusedFilter = new UnusedFilter()

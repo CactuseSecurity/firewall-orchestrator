@@ -29,9 +29,6 @@ namespace FWO.Data.Report
 
         public bool Detailed { get; set; } = false;
 
-        public bool IncludeObjectsInReportChanges { get; set; } = false;
-        public bool IncludeObjectsInReportChangesUiPresesed { get; set; } = false;
-
         public ReportTemplate()
         { }
 
@@ -55,6 +52,9 @@ namespace FWO.Data.Report
     {
         [JsonProperty("report_type"), JsonPropertyName("report_type")]
         public int ReportType { get; set; } = 0;
+
+        [JsonProperty("include_objects"), JsonPropertyName("include_objects")]
+        public bool IncludeObjects { get; set; } = false;
 
         [JsonProperty("device_filter"), JsonPropertyName("device_filter")]
         public DeviceFilter DeviceFilter { get; set; } = new();

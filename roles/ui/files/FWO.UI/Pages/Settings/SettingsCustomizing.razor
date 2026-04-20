@@ -87,8 +87,17 @@
                 <input id="cbx_activate_path_analysis" type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5576"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowedChangesByApprover")):</label>
+            <div class="col-sm-4">
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editAllowedChangesByApproverMode = true">
+                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                </button>
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5566") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" +
-                userConfig.PureLine("H5572") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" + userConfig.PureLine("H5575"))">
+                userConfig.PureLine("H5572") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" +
+                userConfig.PureLine("H5577") + "\r\n" + userConfig.PureLine("H5575"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
             <div class="col-sm-4">
                 <Dropdown ElementType="AutoCreateImplTaskOptions" @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
@@ -103,10 +112,10 @@
     <hr />
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </Authorized>
         <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </NotAuthorized> 
     </AuthorizeView>
     <br><br>
@@ -114,6 +123,11 @@
 else
 {
     <Loading/>
+}
+
+@if (configData != null)
+{
+    <AllowedChangesByApprover @bind-Display="editAllowedChangesByApproverMode" ConfigValue="@configData.ReqAllowedChangesByApprover" ConfigValueChanged="HandleAllowedChangesByApproverChanged" />
 }
 
 
@@ -125,6 +139,7 @@ else
 
     private ConfigData? configData;
     private bool InitComplete = false;
+    private bool editAllowedChangesByApproverMode = false;
 
     private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private Dictionary<WfTaskType, bool> taskTypesActiveDict = [];
@@ -174,6 +189,27 @@ else
             {
                 throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+    private async Task HandleAllowedChangesByApproverChanged(string configValue)
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Allowed approver changes were updated before the settings page was initialized.");
+            }
+
+            ConfigData singleValueConfig = await globalConfig.GetEditableConfig();
+            singleValueConfig.ReqAllowedChangesByApprover = configValue;
+            await globalConfig.WriteToDatabase(singleValueConfig, apiConnection);
+            configData.ReqAllowedChangesByApprover = configValue;
+            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)
         {

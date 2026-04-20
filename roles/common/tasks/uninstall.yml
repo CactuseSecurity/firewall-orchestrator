@@ -8,11 +8,19 @@
 #
 # caveat: run this script with "wipe_packages" switch only if you are on an fworch-exclusive system
 
-- name: stop docker container
+- name: stop Podman container
+  command: podman stop fworch-api
+  ignore_errors: true
+
+- name: remove Podman container
+  command: podman rm fworch-api
+  ignore_errors: true
+
+- name: stop legacy Docker container
   command: docker stop fworch-api
   ignore_errors: true
 
-- name: remove docker container
+- name: remove legacy Docker container
   command: docker rm fworch-api
   ignore_errors: true
 
@@ -100,11 +108,19 @@
     enabled: no
   ignore_errors: true
 
-- name: stop and disable hasura-docker-api
+- name: stop and disable current Hasura API service
   service:
-    name: hasura-docker-api
+    name: "{{ api_service_name }}"
     state: stopped
     enabled: no
+  ignore_errors: true
+
+- name: stop and disable legacy Hasura API services
+  service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  loop: "{{ api_legacy_service_names | default([]) }}"
   ignore_errors: true
 
 - block:
@@ -139,9 +155,7 @@
         - ldap-utils
         - libldap-common
         - libldap
-        - docker-ce
-        - docker-ce-cli
-        - containerd.io
+        - podman
         - dotnet-sdk-3.1
         - make
         - "{{ postgresql_dev_package }}"
@@ -170,10 +184,13 @@
         - /etc/apache2/sites-enabled/{{ product_name }}-api.conf
         - /etc/apache2/sites-enabled/{{ product_name }}-mw.conf
         - /etc/apache2/sites-enabled/{{ product_name }}-maintenance.conf
+        - /lib/systemd/system/{{ api_service_name }}.service
+        - /lib/systemd/system/fworch-hasura-docker-api.service
         - /var/lib/ldap/{{ product_name }}.internal
         - /var/lib/ldap/example.com
         - /var/lib/pgsql/data
         - "{{ api_hasura_cli_bin }}"
+        - "{{ api_env_file }}"
         - /var/{{ product_name }}
         - /var/log/{{ product_name }}
       ignore_errors: true

@@ -1,0 +1,251 @@
+@using FWO.Config.Api.Data
+@using FWO.Services
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@using FWO.Ui.Services
+@using System.Text.Json;
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+@inject IEventMediator EventMediator
+
+@implements IDisposable
+
+<PopUp Title="@(userConfig.GetText("owner_mapping"))" HelpPage="settings/owners" Show="@Display" Size=PopupSize.Medium OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <div class="form-group row mt-2 align-items-center">
+                <label class="col-sm-4 col-form-label me-2" for="ownerMappingSourceDropdown">@(userConfig.GetText("source"))</label>
+                <div class="col-sm-5">
+                    <Dropdown ElementType="OwnerMappingSourceStm?" ElementToString="GetOwnerMappingSourceText" SelectedElement="@SelectedOwnerMappingSource"
+                              SelectedElementChanged="@(src => { SelectedOwnerMappingSource = src; StateHasChanged(); })" Elements="OwnerMappingSources" Nullable="true" id="ownerMappingSourceDropdown">
+                        <ElementTemplate Context="source">
+                            @GetOwnerMappingSourceText(source)
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+            @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField)
+            {
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5677"))">
+                    <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_Owner_key"):</label>
+                    <div class="col-sm-5">
+                        <EditList ElementType="string" Elements="OwnerKeys.ToArray()" ElementsToAdd="OwnerKeysToAdd"
+                                  ElementsToDelete="OwnerKeysToDelete" StdLayout="false">
+                            <Display>
+                                <div class="row">
+                                    <div class="col-sm-12 border bg-transparent">@context</div>
+                                </div>
+                            </Display>
+                        </EditList>
+                        <div class="row col-sm-12 mt-1">
+                            <input type="text" class="col-sm-10" @bind="actOwnerKey" />
+                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddOwnerKey"
+                                    @onclick:preventDefault>
+                                @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group align-items-center">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveOwnerMappingSourceConfig">
+                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+            </button>
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    @if (!OwnerMappingCalcInProgress)
+                    {
+                        <button type="button" class="btn btn-sm btn-info" @onclick="OwnerSourceImportNotifier">
+                            @(DisplayService.DisplayButton(userConfig, "H5913", Icons.Refresh))
+                        </button>
+                    }
+                    else
+                    {
+                        <Loading />
+                    }
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" disabled class="btn btn-sm btn-info">
+                        @(DisplayService.DisplayButton(userConfig, "H5913", Icons.Refresh))
+                    </button>
+                </NotAuthorized>
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">
+                @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? ConfigData;
+    private List<OwnerMappingSourceStm?> OwnerMappingSources = [];
+    private OwnerMappingSourceStm? SelectedOwnerMappingSource = null;
+    private bool OwnerMappingCalcInProgress = false;
+    private UpdateRuleOwnerMapping? updateOwnerRuleMappings;
+
+    private string actOwnerKey = "";
+    private List<string> OwnerKeys = [];
+    private List<string> OwnerKeysToAdd = [];
+    private List<string> OwnerKeysToDelete = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        updateOwnerRuleMappings = new UpdateRuleOwnerMapping(apiConnection, globalConfig);
+        EventMediator.Subscribe<UpdateRuleOwnerMappingEvent>("UpdateOwnerRuleMappings", evt => _ = updateOwnerRuleMappings.HandleEvent(evt));
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            ConfigData = await globalConfig.GetEditableConfig();
+            OwnerMappingSources = Enum.GetValues(typeof(OwnerMappingSourceStm))
+                .Cast<OwnerMappingSourceStm>()
+                .Where(oms => oms != OwnerMappingSourceStm.Manual)
+                .Cast<OwnerMappingSourceStm?>()
+                .ToList();
+
+            if (Enum.IsDefined(typeof(OwnerMappingSourceStm), userConfig.OwnerSoruceMappingID))
+            {
+                SelectedOwnerMappingSource = (OwnerMappingSourceStm)userConfig.OwnerSoruceMappingID;
+            }
+
+            if (!string.IsNullOrWhiteSpace(userConfig.CustomFieldOwnerKey))
+            {
+                var json = userConfig.CustomFieldOwnerKey.Trim();
+
+                if (json.StartsWith("[") && json.EndsWith("]"))
+                {
+                    OwnerKeys = JsonSerializer.Deserialize<string[]>(json)?.ToList() ?? new List<string>();
+                }
+                else
+                {
+                    OwnerKeys = new List<string> { json };
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
+        }
+    }
+
+    private async Task OwnerSourceImportNotifier()
+    {
+        OwnerMappingCalcInProgress = true;
+        try
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            var args = new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true, Completion = tcs };
+            EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
+
+            bool success = await tcs.Task;
+            if (!success)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("owner_mapping"), userConfig.GetText("E5502"), true);
+                return;
+            }
+
+            DisplayMessageInUi(null, userConfig.GetText("owner_mapping"), userConfig.GetText("U5503"), false);
+        }
+        catch (Exception ex)
+        {
+            DisplayMessageInUi(ex, userConfig.GetText("owner_mapping"), userConfig.GetText("E5503"), true);
+        }
+        finally
+        {
+            OwnerMappingCalcInProgress = false;
+        }
+    }
+
+    private async Task SaveOwnerMappingSourceConfig()
+    {
+        try
+        {
+            
+            if (ConfigData == null)
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+
+            if (SelectedOwnerMappingSource == null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5504"), true);
+                return;
+            }
+            PrepareOwnerKeys();
+            if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField && !OwnerKeys.Any())
+            {
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("E5505"), true);
+                return;
+            }
+
+            ConfigData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
+            ConfigData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
+            await globalConfig.WriteToDatabase(ConfigData, apiConnection);
+
+            DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
+        }
+    }
+
+    private void AddOwnerKey()
+    {
+        if (actOwnerKey != "")
+        {
+            OwnerKeysToAdd.Add(actOwnerKey);
+            actOwnerKey = "";
+        }
+    }
+
+    private void PrepareOwnerKeys()
+    {
+        foreach (var key in OwnerKeysToDelete)
+        {
+            OwnerKeys.Remove(key);
+        }
+        foreach (var key in OwnerKeysToAdd)
+        {
+            OwnerKeys.Add(key);
+        }
+        OwnerKeysToDelete = [];
+        OwnerKeysToAdd = [];
+    }
+
+    private void Close()
+    {
+        Display = false;
+        _ = DisplayChanged.InvokeAsync(Display);
+    }
+
+    private string GetOwnerMappingSourceText(OwnerMappingSourceStm? source)
+    {
+        return userConfig.GetText(source?.ToString() ?? "");
+    }
+
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<UpdateRuleOwnerMappingEvent>("UpdateOwnerRuleMappings");
+    }
+}

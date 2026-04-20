@@ -49,6 +49,37 @@ namespace FWO.Middleware.Server
             });
         }
 
+        /// <summary>
+        /// Build group DNs from group names and a group path.
+        /// </summary>
+        /// <param name="groupNames">List of group names or DNs.</param>
+        /// <param name="groupPath">LDAP path where groups are located.</param>
+        /// <returns>Distinct list of group DNs.</returns>
+        public static List<string> BuildGroupDns(IEnumerable<string> groupNames, string? groupPath)
+        {
+            if (string.IsNullOrWhiteSpace(groupPath))
+            {
+                return [];
+            }
+            HashSet<string> dns = new(StringComparer.OrdinalIgnoreCase);
+            foreach (string name in groupNames)
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+                if (name.Contains('='))
+                {
+                    dns.Add(name);
+                }
+                else
+                {
+                    dns.Add($"cn={name},{groupPath}");
+                }
+            }
+            return dns.ToList();
+        }
+
         private async Task<List<string>> GetMemberships(List<string> dnList, string? searchPath)
         {
             List<string> userMemberships = [];
@@ -126,9 +157,7 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
-                    using LdapConnection connection = await Connect();
-                    // Authenticate as search user
-                    await TryBind(connection, SearchUser, SearchUserPwd);
+                    using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
 
                     // Search for Ldap roles in given directory          
                     int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?
@@ -169,9 +198,7 @@ namespace FWO.Middleware.Server
             List<string> allGroups = [];
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as search user
-                await TryBind(connection, SearchUser, SearchUserPwd);
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
 
                 // Search for Ldap groups in given directory          
                 int searchScope = LdapConnection.ScopeSub;
@@ -201,9 +228,7 @@ namespace FWO.Middleware.Server
 
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as search user
-                await TryBind(connection, SearchUser, SearchUserPwd);
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
 
                 // Search for Ldap groups in given directory          
                 int searchScope = LdapConnection.ScopeSub;
@@ -241,9 +266,7 @@ namespace FWO.Middleware.Server
 
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as search user
-                await TryBind(connection, SearchUser, SearchUserPwd);
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
 
                 // Search for Ldap groups in given directory          
                 int searchScope = LdapConnection.ScopeSub;
@@ -297,14 +320,14 @@ namespace FWO.Middleware.Server
         {
             List<string> allMembers = [];
 
-            if (string.IsNullOrEmpty(GroupSearchPath) ||
-                !groupDn.EndsWith(GroupSearchPath, StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(groupDn))
+            {
                 return allMembers;
+            }
 
             try
             {
-                using LdapConnection connection = await Connect();
-                await TryBind(connection, SearchUser, SearchUserPwd);
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
 
                 LdapEntry? entry = await connection.ReadAsync(groupDn);
                 if (entry == null)
@@ -322,6 +345,10 @@ namespace FWO.Middleware.Server
 
                 string[] groupMemberDn = entry.Get(memberKey).StringValueArray;
                 allMembers.AddRange(groupMemberDn.Where(m => !string.IsNullOrWhiteSpace(m)));
+            }
+            catch (LdapException ex) when (ex.ResultCode == LdapException.NoSuchObject)
+            {
+                Log.WriteDebug("GetGroupMembers", $"Group not found: {groupDn}");
             }
             catch (Exception ex)
             {
@@ -415,8 +442,7 @@ namespace FWO.Middleware.Server
             List<string> userGroups = [];
             try
             {
-                using LdapConnection connection = await Connect();
-                await TryBind(connection, SearchUser, SearchUserPwd);
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd);
 
                 // searchfilter for users
                 string searchFilter = $"(|(cn={userToSearch})(sAMAccountName={userToSearch}))";
@@ -475,9 +501,7 @@ namespace FWO.Middleware.Server
             string groupDn = groupName;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 if (!IsFullyQualifiedDn(groupDn))
                 {
@@ -525,9 +549,7 @@ namespace FWO.Middleware.Server
 
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 try
                 {
@@ -558,9 +580,7 @@ namespace FWO.Middleware.Server
             bool groupDeleted = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 try
                 {

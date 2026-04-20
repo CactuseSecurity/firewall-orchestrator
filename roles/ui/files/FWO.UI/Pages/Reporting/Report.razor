@@ -6,15 +6,17 @@
 @using FWO.Report.Filter.Exceptions
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
+@using FWO.Services.RuleTreeBuilder
 @using System.Diagnostics
 @using System.Text.Json
 
 @page "/report/generation/{appId?}"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}, {Roles.Recertifier}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject NavigationManager NavigationManager
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @if(InitDone)
 {
@@ -54,7 +56,10 @@
                 </div>
             </div>
         }
-
+        @if(actReportFilters.ReportType.IsWorkflowReport())
+        {
+            <ReportWorkflowParamSelection @bind-WorkflowFilter="actReportFilters.WorkflowFilter" SelectedReportType="actReportFilters.ReportType" />
+        }
         @if (actReportFilters.ReportType.IsComplianceReport())
         {
             <div class="p-3">
@@ -190,6 +195,21 @@
                                                    @bind-SelectedRules="selectedItemsRuleReportTable" />
                                 break;
 
+                            case ReportType.TicketReport:
+                            case ReportType.TicketChangeReport:
+                                string ticketTimeStart = currentReport.Query.QueryVariables.ContainsKey("ticket_time_start") ? currentReport.Query.QueryVariables["ticket_time_start"]?.ToString() ?? string.Empty : string.Empty;
+                                string ticketTimeEnd = currentReport.Query.QueryVariables.ContainsKey("ticket_time_end") ? currentReport.Query.QueryVariables["ticket_time_end"]?.ToString() ?? string.Empty : string.Empty;
+                                <ReportedTickets Tickets="currentReport.ReportData.Tickets" StateNames="currentReport.ReportData.WorkflowStateNames"
+                                                 SelectedReportType="currentReport.ReportType"
+                                                 ReferenceDate="currentReport.ReportData.WorkflowFilter.ReferenceDate"
+                                                 LabelName="@currentReport.ReportData.WorkflowFilter.LabelFilter.Name"
+                                                 DetailedView="currentReport.ReportData.WorkflowFilter.DetailedView"
+                                                 ShowFullTicket="currentReport.ReportData.WorkflowFilter.ShowFullTicket"
+                                                 TaskTypes="currentReport.ReportData.WorkflowFilter.TaskTypes"
+                                                 TimeRangeStart="ticketTimeStart"
+                                                 TimeRangeEnd="ticketTimeEnd" />
+                                break;
+
                             default:
                                 break;
                         }
@@ -197,22 +217,14 @@
                 </div>
             }
         </div>
-        @if(currentReport != null && reportGenerationDuration != 0)
+        @if(_hasReportDuration)
         {
-            if(reportGenerationDuration < 600)
-            {
-                <small>@(userConfig.GetText("report_duration")) @reportGenerationDuration.ToString("0.00") @(userConfig.GetText("seconds")).</small>
-            }
-            else
-            {
-                <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration / 60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
-            }
-        }   
-        @if (currentReport != null && currentReport.ReportType != ReportType.Statistics && currentReport.ReportData.ElementsCount > 0)
-        {
-            <small>@(userConfig.GetText("report_elements")): @currentReport.ReportData.ElementsCount.</small>
+            <small>@GetReportDurationText()</small>
         }
-            
+        @if(_hasReportElementCount)
+        {
+            <small>@GetReportElementCountText()</small>
+        }
 
     </div>
 
@@ -288,10 +300,12 @@
         || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
         || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier);
     private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier);
 
     private bool _showAnyRulesInComplianceReport = true;
 
@@ -300,6 +314,47 @@
     private bool _filterInitialViolations = false;
 
     private ComplianceReport? _complianceReport;
+
+    private bool _hasReportDuration => currentReport != null && reportGenerationDuration > 0;
+
+    private bool _hasReportElementCount => currentReport?.ReportType != ReportType.Statistics && currentReport?.ReportData.ElementsCount > 0;
+
+    /// <summary>
+    /// Formats the report runtime for the footer without embedding branching logic in the markup.
+    /// </summary>
+    private string GetReportDurationText()
+    {
+        TimeSpan generationTime = TimeSpan.FromSeconds(reportGenerationDuration);
+
+        // Display durations less than 1 second
+
+        if(generationTime.TotalSeconds < 1)
+        {
+            return $"{userConfig.GetText("report_duration")} <1 {userConfig.GetText("seconds")}. ";
+        }
+
+        string reportDurationLabel = userConfig.GetText("report_duration");
+        double durationValue = generationTime.TotalSeconds;
+        string durationUnit = userConfig.GetText("seconds");
+
+        // Display durations above ten minutes (else display durations in between)
+        
+        if(generationTime.TotalMinutes >= 10)
+        {
+            durationValue = generationTime.TotalMinutes;
+            durationUnit = userConfig.GetText("minutes");
+        }
+
+        return $"{reportDurationLabel} {durationValue:0.00} {durationUnit}. ";
+    }
+
+    /// <summary>
+    /// Formats the report element count shown in the footer.
+    /// </summary>
+    private string GetReportElementCountText()
+    {
+        return $"{userConfig.GetText("report_elements")}: {currentReport!.ReportData.ElementsCount}.";
+    }
 
 
     protected override async Task OnInitializedAsync()
@@ -357,9 +412,9 @@
                 CleanUri();
             }
 
-            // Hide right sidebar for compliance report.
+            // Hide right sidebar for compliance or workflow report.
 
-            if(newReportType.IsComplianceReport())
+            if(newReportType.IsComplianceReport() || newReportType.IsWorkflowReport())
             {
                 _showRightSidebar = false;
                 sidebarRightWidth = 0;                
@@ -399,11 +454,11 @@
     {
         if(actReportFilters.ReportType.IsModellingReport())
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Modeller, Roles.Auditor]);
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor]);
         }
         else
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Auditor]);
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Recertifier, Roles.Modeller, Roles.Auditor]);
         }
     }
 
@@ -512,7 +567,7 @@
             await PrepareReportGeneration();
             ReportTemplate temp = ConstructReportTemplate();
             
-            currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token);
+            currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token, ruleTreeBuilder);
             processing = false;
             PostProcess();
         }
@@ -640,6 +695,8 @@
             ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
             ReportType.Recertification,
             ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
+            ReportType.TicketReport,
+            ReportType.TicketChangeReport,
             ReportType.Statistics,
             ReportType.Connections,
             ReportType.AppRules,
@@ -649,7 +706,9 @@
         {
             if (ListIn.Contains(reportType))
             {
-                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport() || showModellingReports && reportType.IsModellingReport())
+                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport()
+                    || showModellingReports && reportType.IsModellingReport()
+                    || reportType.IsWorkflowReport())
                 {
                     ListOut.Add(reportType);
                 }

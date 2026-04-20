@@ -20,6 +20,7 @@ namespace FWO.Basics
         public const string Planner = "planner";
         public const string Implementer = "implementer";
         public const string Reviewer = "reviewer";
+        public const string WorkflowRolesList = $"{Requester}, {Approver}, {Planner}, {Implementer}, {Reviewer}";
 
         // Technical
         public const string MiddlewareServer = "middleware-server";

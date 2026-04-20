@@ -170,6 +170,55 @@ namespace FWO.Compliance
         }
 
         /// <summary>
+        /// Evaluates the provided rules against all selected policies and returns true only if every selected policy passes.
+        /// </summary>
+        /// <param name="policyIds">Compliance policy identifiers to evaluate.</param>
+        /// <param name="rulesToCheck">Rules to check for compliance.</param>
+        public async Task<bool> AreRulesCompliant(IEnumerable<int> policyIds, IEnumerable<Rule> rulesToCheck)
+        {
+            GlobalConfig? globalConfig = _userConfig.GlobalConfig;
+            if (globalConfig == null)
+            {
+                Logger.TryWriteInfo("Compliance Check", "Global config is necessary for compliance check, but was not found. Aborting compliance check.", true);
+                return false;
+            }
+
+            List<int> selectedPolicyIds = policyIds.Where(id => id > 0).Distinct().ToList();
+            List<Rule> selectedRules = rulesToCheck.Select(rule => new Rule(rule)).ToList();
+
+            if (selectedPolicyIds.Count == 0 || selectedRules.Count == 0)
+            {
+                return false;
+            }
+
+            ApplyGlobalConfig(globalConfig);
+            Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+
+            foreach (int policyId in selectedPolicyIds)
+            {
+                Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
+                if (Policy == null || Policy.Criteria.Count == 0)
+                {
+                    return false;
+                }
+
+                RulesInCheck = [];
+                CurrentViolationsInCheck.Clear();
+                _currentViolations.Clear();
+                await LoadNetworkZones();
+                await CalculateCompliance(selectedRules.Select(rule => new Rule(rule)).ToList());
+                CurrentViolationsInCheck = _currentViolations.ToList();
+
+                if (CurrentViolationsInCheck.Count > 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Retrieves rules with violations from DB, calculates current violations, and prepares diff arguments.
         /// </summary>
         /// <param name="managementIds">Management identifiers whose rules should be checked.</param>
@@ -192,7 +241,10 @@ namespace FWO.Compliance
 
             // Getting total number of rules, for calculating chunks.
 
-            AggregateCount? result = await _apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules);
+            AggregateCount? result = await _apiConnection.SendQueryAsync<AggregateCount>(
+                RuleQueries.countActiveRules,
+                new { mgm_ids = managementIds }
+            );
             int activeRulesCount = result?.Aggregate?.Count ?? 0;
 
             Logger.TryWriteInfo("Compliance Check", $"Loading {activeRulesCount} active rules in chunks of {_elementsPerFetch} for managements: {string.Join(",", managementIds)}.", LocalSettings.ComplianceCheckVerbose);
@@ -373,7 +425,7 @@ namespace FWO.Compliance
 
             // Check only accept rules for assessability.
 
-            if (rule.Action == "accept")
+            if (rule.Action == RuleActions.Accept)
             {
                 foreach (NetworkObject networkObject in resolvedSources.Concat(resolvedDestinations))
                 {
@@ -426,7 +478,7 @@ namespace FWO.Compliance
         {
             bool ruleIsCompliant = true;
 
-            if (rule.Action == "accept")
+            if (rule.Action == RuleActions.Accept)
             {
                 // Resolve network locations
 
@@ -591,10 +643,7 @@ namespace FWO.Compliance
                 }
 
                 _complianceCheckPolicyId = globalConfig.ComplianceCheckPolicyId;
-                _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone;
-                _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
-                _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch;
-                _maxDegreeOfParallelism = globalConfig.ComplianceCheckAvailableProcessors;
+                ApplyGlobalConfig(globalConfig);
 
                 Logger.TryWriteInfo("Compliance Check", $"Parallelizing config: {_elementsPerFetch} elements per fetch and {_maxDegreeOfParallelism} processors.", LocalSettings.ComplianceCheckVerbose);
 
@@ -669,6 +718,14 @@ namespace FWO.Compliance
                 Logger.TryWriteError("Compliance Check", e, true);
             }
 
+        }
+
+        private void ApplyGlobalConfig(GlobalConfig globalConfig)
+        {
+            _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone;
+            _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
+            _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch;
+            _maxDegreeOfParallelism = globalConfig.ComplianceCheckAvailableProcessors;
         }
 
         /// <summary>

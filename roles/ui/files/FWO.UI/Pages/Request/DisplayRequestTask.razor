@@ -1,10 +1,11 @@
 @using FWO.Ui.Display
 @using FWO.Ui.Pages.NetworkModelling
 @using FWO.Ui.Services
+@using FWO.Data.Workflow
 @using System.Text.Json
 
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -28,7 +29,7 @@
                         <div class="form-group row">
                             <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
                             <div class="col-sm-11">
-                                <input type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditReqTaskMode)" @bind="WfHandler.ActReqTask.Title" />
+                                <input type="text" class="form-control form-control-sm" readonly="@(!CanEditReqTaskField(WorkflowEditableFieldKeys.Title))" @bind="WfHandler.ActReqTask.Title" />
                             </div>
                         </div>
                     </div>
@@ -38,7 +39,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@States.Name[WfHandler.ActReqTask.StateId]</label>
+                                <label class="col-sm-12 h-100 border bg-secondary">@States.GetName(WfHandler.ActReqTask.StateId)</label>
                             </div>
                         </div>
                     </div>
@@ -64,7 +65,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
                             <div class="col-sm-8">
-                                @if (WfHandler.EditReqTaskMode)
+                                @if (WfHandler.AddReqTaskMode)
                                 {
                                     <Dropdown ElementType="WfTaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes.Where(x => x != WfTaskType.master)" >
                                         <ElementTemplate Context="type">
@@ -86,7 +87,7 @@
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("management")):</label>
                                 <div class="col-sm-8">
-                                    @if (WfHandler.EditReqTaskMode)
+                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Management))
                                     {
                                         <Dropdown ElementType="Management" @bind-SelectedElement="actManagement" ElementToString="@(d => d.Name)" Elements="managements" Nullable="true">
                                             <ElementTemplate Context="management">
@@ -103,15 +104,15 @@
                         </div>
                     }
 
-                    @if(actTaskType == WfTaskType.access && !WfHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask)
+                    @if(actTaskType == WfTaskType.access && NeedsManualDeviceSelection())
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("gateway"))@(actTaskType == WfTaskType.rule_modify || actTaskType == WfTaskType.rule_delete ? "*" : ""):</label>
                                 <div class="col-sm-8">
-                                    @if (WfHandler.EditReqTaskMode)
+                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Gateways))
                                     {
-                                        <Dropdown ElementType="Device" SelectedElementsChanged="SetDevices" SelectedElementChanged="SetDevice" SelectedElements="selectedDevices" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices" Multiselect="true">
+                                        <Dropdown ElementType="Device" SelectedElementsChanged="SetDevices" SelectedElementChanged="SetDevice" SelectedElements="selectedDevices" ElementToString="@(d => d.Name)" Elements="selectableDevices" Multiselect="true">
                                             <ElementTemplate Context="device">
                                                 @device.Name
                                             </ElementTemplate>
@@ -131,7 +132,7 @@
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("gateway"))*:</label>
                                 <div class="col-sm-8">
-                                    @if (WfHandler.EditReqTaskMode)
+                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Gateway))
                                     {
                                         <Dropdown ElementType="Device" @bind-SelectedElement="actRuleDevice" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices" Nullable="true">
                                             <ElementTemplate Context="device">
@@ -149,11 +150,34 @@
                     }
                     else if(actTaskType == WfTaskType.new_interface)
                     {
-                        @if (WfHandler.EditReqTaskMode)
+                        @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Owner) || CanEditReqTaskField(WorkflowEditableFieldKeys.RequestingOwner))
                         {
-                            <div class="col-sm-7">
+                            <div class="col-sm-8">
                                 <div class="form-group row">
-                                    <SelectOwner @bind-SelectedOwner="actOwner" Apps="WfHandler.AllOwners" WithConnectionStatus="false" Nullable="true"/>
+                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Owner))
+                                    {
+                                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                                        <div class="col-sm-9">
+                                            <Dropdown ElementType="FwoOwner" @bind-SelectedElement="actOwner"
+                                                ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="WfHandler.AllOwners" Nullable="true">
+                                                <ElementTemplate Context="app">
+                                                    @app.Display(userConfig.GetText("common_service"))
+                                                </ElementTemplate>
+                                            </Dropdown>
+                                        </div>
+                                    }
+                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.RequestingOwner))
+                                    {
+                                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requesting_owner")):</label>
+                                        <div class="col-sm-9">
+                                            <Dropdown ElementType="FwoOwner" @bind-SelectedElement="actRequestingOwner"
+                                                ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="WfHandler.AllOwners" Nullable="true">
+                                                <ElementTemplate Context="app">
+                                                    @app.Display(userConfig.GetText("common_service"))
+                                                </ElementTemplate>
+                                            </Dropdown>
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         }
@@ -191,7 +215,7 @@
                             <div class="form-group row">
                                 <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                                 <div class="col-sm-11">
-                                    <input type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditReqTaskMode)" @bind="actGrpName" />
+                                    <input type="text" class="form-control form-control-sm" readonly="@(!CanEditReqTaskField(WorkflowEditableFieldKeys.Name))" @bind="actGrpName" />
                                 </div>
                             </div>
                         </div>
@@ -202,7 +226,7 @@
                     <div class="form-group row mt-2">
                         <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
                         <div class="col-sm-11">
-                            <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditReqTaskMode)" @bind="WfHandler.ActReqTask.FreeText"/>   
+                            <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!CanEditReqTaskField(WorkflowEditableFieldKeys.FreeText))" @bind="WfHandler.ActReqTask.FreeText"/>   
                         </div>
                     </div>
                 }
@@ -213,7 +237,7 @@
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action"))*:</label>
                                 <div class="col-sm-8">
-                                    @if (WfHandler.EditReqTaskMode)
+                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.RuleAction))
                                     {
                                         <Dropdown ElementType="RuleAction" @bind-SelectedElement="actRuleAction" ElementToString="@(a => a.Name)" Elements="ruleActions" Nullable="true">
                                             <ElementTemplate Context="action">
@@ -232,7 +256,7 @@
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("track"))*:</label>
                                 <div class="col-sm-8">
-                                    @if (WfHandler.EditReqTaskMode)
+                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Track))
                                     {
                                         <Dropdown ElementType="Tracking" @bind-SelectedElement="actTracking" ElementToString="@(t => t.Name)" Elements="trackings" Nullable="true">
                                             <ElementTemplate Context="track">
@@ -251,7 +275,7 @@
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
                                 <div class="col-sm-8">
-                                    @if (WfHandler.EditReqTaskMode)
+                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.ValidFrom))
                                     {
                                         <input type="date" class="form-control form-control-sm" @bind="WfHandler.ActReqTask.TargetBeginDate" />
                                     }
@@ -266,7 +290,7 @@
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
                                 <div class="col-sm-8">
-                                    @if (WfHandler.EditReqTaskMode)
+                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.ValidTo))
                                     {
                                         <input type="date" class="form-control form-control-sm" @bind="WfHandler.ActReqTask.TargetEndDate" />
                                     }
@@ -282,7 +306,7 @@
                 <div class="form-group row mt-2">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <div class="col-sm-11">
-                        <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditReqTaskMode)" @bind="WfHandler.ActReqTask.Reason"/>   
+                        <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!CanEditReqTaskField(WorkflowEditableFieldKeys.Reason))" @bind="WfHandler.ActReqTask.Reason"/>   
                     </div>
                 </div>
 
@@ -291,11 +315,14 @@
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                     Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
                     Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                    IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode" />
+                    IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode"
+                    EditSources="CanEditReqTaskField(WorkflowEditableFieldKeys.Source)"
+                    EditDestinations="CanEditReqTaskField(WorkflowEditableFieldKeys.Destination)"
+                    EditServices="CanEditReqTaskField(WorkflowEditableFieldKeys.Services)" />
                 }
                 else if(actTaskType == WfTaskType.rule_delete)
                 {
-                    <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode" />
+                    <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActReqTask.Id" EditMode="CanEditReqTaskField(WorkflowEditableFieldKeys.Rules)" />
                 }
                 else if(actTaskType == WfTaskType.group_create)
                 {
@@ -490,6 +517,7 @@
     private List<WfStateAction> offeredActions = [];
     private string allComments = "";
     private IEnumerable<Device> selectedDevices { get; set; } = new List<Device>();
+    private List<Device> selectableDevices = [];
     private Device? actRuleDevice;
     private RuleAction? actRuleAction;
     private Tracking? actTracking;
@@ -500,8 +528,8 @@
     private bool firstParamSet = false;
     private List<Management> managements = [];
     private Management? actManagement;
-
-
+    private FwoOwner? actRequestingOwner;
+  
     protected override async Task OnInitializedAsync()
     {
         try
@@ -513,6 +541,11 @@
             managements.Add(new(){ Id = -1, Name = userConfig.GetText("all"), DeviceType = new(){ Id = 0 } });
             managements.AddRange(await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames));
             ipProtos = DisplayBase.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols));
+            selectableDevices =
+            [
+                new Device() { Id = WfReqTaskBase.kAllDevicesId, Name = userConfig.GetText("all"), DeviceType = new() { Id = 0 } },
+                .. WfHandler.Devices
+            ];
             InitElements();
             firstParamSet = true;
         }
@@ -555,12 +588,29 @@
 
     private void SetDevice(Device device)
     {
-        selectedDevices = new[] { device };
+        selectedDevices = device.Id == WfReqTaskBase.kAllDevicesId ? [GetAllDevicesOption()] : new[] { device };
     }
 
     private void SetDevices(IEnumerable<Device> devices)
     {
-        selectedDevices = devices;
+        List<Device> deviceList = [.. devices];
+        bool containsAll = deviceList.Any(device => device.Id == WfReqTaskBase.kAllDevicesId);
+        bool containsConcreteDevice = deviceList.Any(device => device.Id != WfReqTaskBase.kAllDevicesId);
+        bool previouslyHadAll = selectedDevices.Any(device => device.Id == WfReqTaskBase.kAllDevicesId);
+        if (containsAll && containsConcreteDevice)
+        {
+            selectedDevices = previouslyHadAll
+                ? deviceList.Where(device => device.Id != WfReqTaskBase.kAllDevicesId)
+                : [GetAllDevicesOption()];
+        }
+        else if (containsAll)
+        {
+            selectedDevices = [GetAllDevicesOption()];
+        }
+        else
+        {
+            selectedDevices = deviceList;
+        }
     }
 
     private void InitElements()
@@ -598,13 +648,25 @@
         {
             offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActReqTask, WfObjectScopes.RequestTask, WfHandler.Phase);
         }
-        selectedDevices = new List<Device>();
-        foreach(int devId in WfHandler.ActReqTask.GetDeviceList().ToArray())
+        List<int> selectedDeviceIds = WfHandler.ActReqTask.GetDeviceList().ToList();
+        if ((selectedDeviceIds.Count == 0 && NeedsManualDeviceSelection())
+            || WfHandler.ActReqTask.HasAllDevicesSelected()
+            || (selectedDeviceIds.Count > 0 && selectedDeviceIds.Count == WfHandler.Devices.Count
+             && !WfHandler.Devices.Select(x => x.Id).Except(selectedDeviceIds).Any())
+           )
         {
-            Device? dev = WfHandler.Devices.FirstOrDefault(x => x.Id == devId);
-            if(dev != null)
+            selectedDevices = [GetAllDevicesOption()];
+        }
+        else
+        {
+            selectedDevices = new List<Device>();
+            foreach(int devId in selectedDeviceIds)
             {
-                selectedDevices = selectedDevices.Append<Device>(dev);
+                Device? dev = WfHandler.Devices.FirstOrDefault(x => x.Id == devId);
+                if(dev != null)
+                {
+                    selectedDevices = selectedDevices.Append(dev);
+                }
             }
         }
         actRuleDevice = WfHandler.Devices.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetRuleDeviceId());
@@ -612,6 +674,7 @@
         actTracking = trackings.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.Tracking);
         actManagement = WfHandler.ActReqTask.ManagementId != null ? managements.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.ManagementId) : managements.FirstOrDefault();
         actOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
+        actRequestingOwner = WfHandler.AllOwners.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
         await InvokeAsync(StateHasChanged);
     }
 
@@ -622,12 +685,29 @@
 
     private string DisplayDevices()
     {
+        if (selectedDevices.Any(dev => dev.Id == WfReqTaskBase.kAllDevicesId))
+        {
+            return userConfig.GetText("all");
+        }
         List<string> devNames = new();
         foreach(var dev in selectedDevices)
         {
             devNames.Add(dev?.Name ?? "");
         }
         return string.Join(", ", devNames);
+    }
+
+    private Device GetAllDevicesOption()
+    {
+        return selectableDevices.First(dev => dev.Id == WfReqTaskBase.kAllDevicesId);
+    }
+
+    private bool NeedsManualDeviceSelection()
+    {
+        bool planningPhaseActive = WfHandler.ActStateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool isActive) && isActive;
+        return !planningPhaseActive
+            && (userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask
+                || userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.oneTaskForAllDevices);
     }
 
     private async Task PerformAction(WfStateAction action)
@@ -657,6 +737,14 @@
 
     private async Task ConfApproveTask(WfStatefulObject approval)
     {
+        if (CanSaveReqTaskChanges())
+        {
+            if (!await PrepareReqTaskForSave())
+            {
+                return;
+            }
+            await WfHandler.ChangeReqTask();
+        }
         await WfHandler.ApproveTask(approval);
     }
 
@@ -744,45 +832,8 @@
     {
         try
         {
-            WfHandler.ActReqTask.TaskType = actTaskType.ToString();
-            WfHandler.ActReqTask.RuleAction = actRuleAction?.Id;
-            WfHandler.ActReqTask.Tracking = actTracking?.Id;
-            WfHandler.ActReqTask.ManagementId = actManagement != null && actManagement.Id >= 0 ? actManagement.Id : null;
-            WfHandler.ActReqTask.RemovedOwners = new();
-            WfHandler.ActReqTask.NewOwners = new();
-            if(actOwner != oldOwner)
+            if (await PrepareReqTaskForSave())
             {
-                if(oldOwner != null)
-                {
-                    WfHandler.ActReqTask.RemovedOwners.Add(oldOwner);
-                }
-                if(actOwner != null)
-                {
-                    WfHandler.ActReqTask.NewOwners.Add(actOwner);
-                }
-            }
-            if (WfHandler.ActReqTask.Sanitize())
-            {
-                DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
-            }
-            if(actTaskType == WfTaskType.rule_delete)
-            {
-                WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
-            }
-            else if(actTaskType == WfTaskType.group_create)
-            {
-                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, actGrpName ?? "");
-            }
-
-            UpdateElements();
-            if (await CheckTaskValues())
-            {
-                WfHandler.ActReqTask.SetDeviceList(selectedDevices.ToList());
-                WfHandler.ActReqTask.Owners = [];
-                if (actOwner != null)
-                {
-                    WfHandler.ActReqTask.Owners.Add(new() { Owner = actOwner });
-                }
                 if (WfHandler.AddReqTaskMode)
                 {
                     await WfHandler.AddApproval();
@@ -802,6 +853,60 @@
         }
     }
 
+    private async Task<bool> PrepareReqTaskForSave()
+    {
+        WfHandler.ActReqTask.TaskType = actTaskType.ToString();
+        WfHandler.ActReqTask.RuleAction = actRuleAction?.Id;
+        WfHandler.ActReqTask.Tracking = actTracking?.Id;
+        WfHandler.ActReqTask.ManagementId = actManagement != null && actManagement.Id >= 0 ? actManagement.Id : null;
+        WfHandler.ActReqTask.RemovedOwners = new();
+        WfHandler.ActReqTask.NewOwners = new();
+        if(actOwner != oldOwner)
+        {
+            if(oldOwner != null)
+            {
+                WfHandler.ActReqTask.RemovedOwners.Add(oldOwner);
+            }
+            if(actOwner != null)
+            {
+                WfHandler.ActReqTask.NewOwners.Add(actOwner);
+            }
+        }
+        if (WfHandler.ActReqTask.Sanitize())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
+        }
+        if(actTaskType == WfTaskType.rule_delete)
+        {
+            WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
+        }
+        else if(actTaskType == WfTaskType.group_create)
+        {
+            WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, actGrpName ?? "");
+        }
+
+        if (actTaskType == WfTaskType.new_interface)
+        {
+            WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, actRequestingOwner?.Id.ToString() ?? "");
+        }
+
+        UpdateElements();
+        if (!await CheckTaskValues())
+        {
+            return false;
+        }
+
+        WfHandler.ActReqTask.SetDeviceList(selectedDevices.Any(dev => dev.Id == WfReqTaskBase.kAllDevicesId)
+            ? [WfReqTaskBase.kAllDevicesId]
+            : [.. selectedDevices.Select(dev => dev.Id)]);
+        WfHandler.ActReqTask.Owners = [];
+        if (actOwner != null)
+        {
+            WfHandler.ActReqTask.Owners.Add(new() { Owner = actOwner });
+        }
+        return true;
+    }
+
     private async Task<bool> CheckTaskValues()
     {
         if (WfHandler.ActReqTask.Title == null || WfHandler.ActReqTask.Title == "" ||
@@ -813,7 +918,7 @@
         if (actTaskType == WfTaskType.access)
         {
             if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
-                (!WfHandler.ActStateMatrix.PhaseActive[WorkflowPhases.planning] && userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask && selectedDevices.Count<Device>() == 0))
+                (NeedsManualDeviceSelection() && selectedDevices.Count<Device>() == 0))
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
                 return false;
@@ -855,5 +960,33 @@
             }
         }
         return true;
+    }
+
+    private bool CanEditReqTaskField(string fieldKey)
+    {
+        return ApproverAllowedChangesAccess.CanEditTaskField(GetApproverAllowedChanges(), GetTaskFieldEditContext(), fieldKey);
+    }
+
+    private bool CanSaveReqTaskChanges()
+    {
+        return ApproverAllowedChangesAccess.CanSaveTaskChanges(GetApproverAllowedChanges(), GetTaskFieldEditContext());
+    }
+
+    private ApproverAllowedChangesConfig GetApproverAllowedChanges()
+    {
+        return ApproverAllowedChangesConfig.Parse(userConfig.ReqAllowedChangesByApprover);
+    }
+
+    private ApproverAllowedChangesAccess.TaskFieldEditContext GetTaskFieldEditContext()
+    {
+        return new()
+        {
+            IsApprovalPhase = Phase == WorkflowPhases.approval,
+            EditReqTaskMode = WfHandler.EditReqTaskMode,
+            ApproveReqTaskMode = WfHandler.ApproveReqTaskMode,
+            ReadOnlyMode = WfHandler.ReadOnlyMode,
+            TaskType = actTaskType,
+            HasImplementationTasks = WfHandler.ActReqTask.ImplementationTasks.Count > 0
+        };
     }
 }

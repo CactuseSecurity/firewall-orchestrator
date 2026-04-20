@@ -9,7 +9,7 @@
 sudo apt install python3-venv -y
 python3 -m venv installer-venv
 source installer-venv/bin/activate
-if [ ! $http_proxy == "" ];
+if [[ ! "$http_proxy" == "" ]];
 then
     pip config set global.proxy $http_proxy
 fi    

@@ -2,6 +2,7 @@ using FWO.Report.Filter.Ast;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Report;
+using FWO.Data.Workflow;
 using System.Text.RegularExpressions;
 using FWO.Logging;
 using FWO.Basics;
@@ -15,33 +16,14 @@ namespace FWO.Report.Filter
         public int parameterCounter { get; set; } = 0;
         public Dictionary<string, object> QueryVariables { get; set; } = [];
         public string FullQuery { get; set; } = "";
+        public string RulebaseLinkWhereStatement { get; set; } = "";
         public string RuleWhereStatement { get; set; } = "";
         public string NwObjWhereStatement { get; set; } = "";
         public string SvcObjWhereStatement { get; set; } = "";
         public string UserObjWhereStatement { get; set; } = "";
         public string ConnectionWhereStatement { get; set; } = "";
         public string OwnerWhereStatement { get; set; } = "";
-        public string OpenRuleBaseTable { get; set; } = $@" rulebase_links {{
-                                linkType: stm_link_type  {{
-                                    name
-                                    id
-                                }}
-                                link_type
-                                is_initial
-                                is_global
-                                is_section
-                                gw_id
-                                from_rule_id
-                                from_rulebase_id
-                                to_rulebase_id
-                                created
-                                removed
-                            }}
-                        }}
-                        rulebases {{
-                            name
-                            uid
-                            id ";
+        public string OpenRuleBaseTable { get; set; } = $@" rulebase_links (";
         public string OpenRulesTable { get; set; } = $@" rules (";
         public string OpenChangeLogRulesTable { get; set; } = "changelog_rules(";
         public List<string> QueryParameters { get; set; } =
@@ -53,6 +35,10 @@ namespace FWO.Report.Filter
 
         public string ReportTimeString { get; set; } = "";
         public List<int> RelevantManagementIds { get; set; } = [];
+        public List<WfTaskType> WorkflowTaskTypes { get; set; } = [];
+        public List<int> WorkflowStateIds { get; set; } = [];
+        public string WorkflowPhase { get; set; } = "";
+        public WorkflowReferenceDate? WorkflowReferenceDateFilter { get; set; }
 
         public ReportType ReportType { get; set; } = ReportType.Rules;
         public FwoOwner? SelectedOwner { get; set; }
@@ -174,6 +160,28 @@ namespace FWO.Report.Filter
                             name: dev_name
                             uid: dev_uid
                             {query.OpenRuleBaseTable}
+                                where: {{ {query.RulebaseLinkWhereStatement} }}
+                            ) {{
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            name
+                            uid
+                            id
                             {query.OpenRulesTable}
                                 {limitOffsetString}
                                 where: {{ access_rule: {{_eq: true}} {query.RuleWhereStatement} }} 
@@ -220,7 +228,28 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
-                            {query.OpenRuleBaseTable}
+                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
+                            {{
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            id
+                            uid
+                            name
                             {query.OpenRulesTable}
                                 where: {{ 
                                     rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
@@ -363,15 +392,17 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
-                            {query.OpenRuleBaseTable}
-                            {query.OpenRulesTable}
-                                {limitOffsetString}
-                                where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
-                                order_by: {{ rule_num_numeric: asc }} )
+                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
+                            {{
+                                {query.OpenRulesTable}
+                                    {limitOffsetString}
+                                    where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
+                                    order_by: {{ rule_num_numeric: asc }} )
                                 {{
                                     mgm_id: mgm_id
                                     ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
                                 }} 
+                            }}
                         }}
                     }} 
                 }}";
@@ -434,6 +465,13 @@ namespace FWO.Report.Filter
                     query.FullQuery = Queries.Compact(ConstructChangesQuery(query, paramString, filter));
                     break;
 
+                case ReportType.TicketReport:
+                    query.FullQuery = Queries.Compact(ConstructTicketQuery(query, filter));
+                    break;
+                case ReportType.TicketChangeReport:
+                    query.FullQuery = Queries.Compact(ConstructTicketChangesQuery(query, filter));
+                    break;
+
                 case ReportType.NatRules:
                     query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
                     break;
@@ -450,6 +488,120 @@ namespace FWO.Report.Filter
             }
         }
 
+        private static string ConstructTicketQuery(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            InitializeTicketQuery(query, filter);
+            return BuildTicketReportQuery("ticketReport", query.QueryParameters, BuildTicketFilters(query, filter));
+        }
+
+        private static string ConstructTicketChangesQuery(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            InitializeTicketQuery(query, filter, true);
+            List<string> ticketFilters = BuildTicketFilters(query, filter);
+            ticketFilters.Add(BuildTicketReferenceDateFilter(ResolveWorkflowReferenceDate(query, filter.ReportParams.WorkflowFilter)));
+            return BuildTicketReportQuery("ticketChangeReport", query.QueryParameters, ticketFilters);
+        }
+
+        private static void InitializeTicketQuery(DynGraphqlQuery query, ReportTemplate filter, bool includeTimeRange = false)
+        {
+            query.QueryParameters = [];
+            query.QueryVariables = [];
+
+            if (includeTimeRange)
+            {
+                query.QueryParameters.Add("$ticket_time_start: timestamp ");
+                query.QueryParameters.Add("$ticket_time_end: timestamp ");
+                (string ticketTimeStart, string ticketTimeEnd) = ResolveTimeRange(filter.ReportParams.TimeFilter);
+                query.QueryVariables["ticket_time_start"] = ticketTimeStart;
+                query.QueryVariables["ticket_time_end"] = ticketTimeEnd;
+            }
+
+            query.QueryParameters.Add("$task_types: [String!] ");
+            query.QueryVariables["task_types"] = ResolveWorkflowTaskTypes(query, filter.ReportParams.WorkflowFilter).Select(taskType => taskType.ToString()).ToList();
+        }
+
+        private static List<string> BuildTicketFilters(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            List<string> ticketFilters = ["{ reqtasks: { task_type: { _in: $task_types } } }"];
+            List<int> stateIds = ResolveWorkflowStateIds(query, filter.ReportParams.WorkflowFilter);
+            if (stateIds.Count > 0)
+            {
+                query.QueryParameters.Add("$state_ids: [Int!] ");
+                query.QueryVariables["state_ids"] = stateIds;
+                ticketFilters.Add("{ state_id: { _in: $state_ids } }");
+            }
+
+            if (!string.IsNullOrWhiteSpace(ResolveWorkflowPhase(query, filter.ReportParams.WorkflowFilter)))
+            {
+                query.QueryParameters.Add("$phase_lowest_input_state: Int! ");
+                if (string.Equals(ResolveWorkflowPhase(query, filter.ReportParams.WorkflowFilter), GlobalConst.kClosed, StringComparison.OrdinalIgnoreCase))
+                {
+                    ticketFilters.Add("{ state_id: { _gte: $phase_lowest_input_state } }");
+                }
+                else
+                {
+                    query.QueryParameters.Add("$phase_lowest_end_state: Int! ");
+                    ticketFilters.Add("{ state_id: { _gte: $phase_lowest_input_state, _lt: $phase_lowest_end_state } }");
+                }
+            }
+
+            string? labelFilter = BuildTicketLabelFilter(query, filter.ReportParams.WorkflowFilter.LabelFilter);
+            if (!string.IsNullOrWhiteSpace(labelFilter))
+            {
+                ticketFilters.Add(labelFilter);
+            }
+
+            return ticketFilters;
+        }
+
+        private static string BuildTicketReportQuery(string operationName, List<string> queryParameters, List<string> ticketFilters)
+        {
+            string paramString = string.Join(" ", queryParameters.ToArray());
+            return $@"
+                {RequestQueries.ticketDetailsReqTaskOverviewFragment}
+                query {operationName} ({paramString})
+                {{
+                    request_ticket(
+                        where: {{
+                            _and: [
+                                {string.Join(",", ticketFilters)}
+                            ]
+                        }},
+                        order_by: {{ id: desc }}
+                    ) {{
+                        ...ticketDetailsReqTaskOverview
+                    }}
+                }}";
+        }
+
+        private static string BuildTicketReferenceDateFilter(WorkflowReferenceDate referenceDate)
+        {
+            return referenceDate switch
+            {
+                WorkflowReferenceDate.TicketCreation => "{ _and: [{ date_created: { _gte: $ticket_time_start } }, { date_created: { _lt: $ticket_time_end } }] }",
+                WorkflowReferenceDate.TicketClosure => "{ _and: [{ date_completed: { _gte: $ticket_time_start } }, { date_completed: { _lt: $ticket_time_end } }] }",
+                WorkflowReferenceDate.ApprovalOpened => "{ reqtasks: { approvals: { _and: [{ date_opened: { _gte: $ticket_time_start } }, { date_opened: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.Approved => "{ reqtasks: { approvals: { _and: [{ approval_date: { _gte: $ticket_time_start } }, { approval_date: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.TaskStart => "{ reqtasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } }",
+                WorkflowReferenceDate.TaskEnd => "{ reqtasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } }",
+                WorkflowReferenceDate.ImplementationStart => "{ reqtasks: { impltasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.ImplementationEnd => "{ reqtasks: { impltasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } } }",
+                WorkflowReferenceDate.AnyActivity => @"{
+                    _or: [
+                        { _and: [{ date_created: { _gte: $ticket_time_start } }, { date_created: { _lt: $ticket_time_end } }] },
+                        { _and: [{ date_completed: { _gte: $ticket_time_start } }, { date_completed: { _lt: $ticket_time_end } }] },
+                        { reqtasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } },
+                        { reqtasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } },
+                        { reqtasks: { impltasks: { _and: [{ start: { _gte: $ticket_time_start } }, { start: { _lt: $ticket_time_end } }] } } },
+                        { reqtasks: { impltasks: { _and: [{ stop: { _gte: $ticket_time_start } }, { stop: { _lt: $ticket_time_end } }] } } },
+                        { reqtasks: { approvals: { _and: [{ date_opened: { _gte: $ticket_time_start } }, { date_opened: { _lt: $ticket_time_end } }] } } },
+                        { reqtasks: { approvals: { _and: [{ approval_date: { _gte: $ticket_time_start } }, { approval_date: { _lt: $ticket_time_end } }] } } }
+                    ]
+                }",
+                _ => "{ _and: [{ date_created: { _gte: $ticket_time_start } }, { date_created: { _lt: $ticket_time_end } }] }"
+            };
+        }
+
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
         {
             ReportType reportType = (ReportType)reportParams.ReportParams.ReportType;
@@ -459,42 +611,99 @@ namespace FWO.Report.Filter
             }
 
             // leave out all header texts
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Statistics ||
-                (ReportType)reportParams.ReportParams.ReportType == ReportType.Recertification ||
-                (((ReportType)reportParams.ReportParams.ReportType).IsRuleReport() && !string.IsNullOrWhiteSpace(reportParams.Filter)))
+            if (reportType == ReportType.Statistics ||
+                reportType == ReportType.Recertification ||
+                (reportType.IsRuleReport() && !string.IsNullOrWhiteSpace(reportParams.Filter)))
             {
                 query.RuleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
             SetTenantFilter(ref query, reportParams);
-            if (((ReportType)reportParams.ReportParams.ReportType).IsDeviceRelatedReport())
+            if (reportType.IsDeviceRelatedReport())
             {
                 SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
-                SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
+                SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, reportType, reportParams.ReportParams.RecertFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.Recertification)
+            if (reportType == ReportType.Recertification)
             {
                 SetRecertFilter(ref query, reportParams.ReportParams.RecertFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.OwnerRecertification)
+            if (reportType == ReportType.OwnerRecertification)
             {
                 SetOwnerRecertFilter(ref query, reportParams.ReportParams.ModellingFilter, reportParams.ReportParams.RecertFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.UnusedRules)
+            if (reportType == ReportType.UnusedRules)
             {
                 SetUnusedFilter(ref query, reportParams.ReportParams.UnusedFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.AppRules)
+            if (reportType == ReportType.AppRules)
             {
                 SetOwnerFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
-            if (((ReportType)reportParams.ReportParams.ReportType).IsConnectionRelatedReport())
+            if (reportType.IsConnectionRelatedReport())
             {
                 SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
-            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.RecertEventReport)
+            if (reportType == ReportType.RecertEventReport)
             {
                 SetRuleRecertFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
+        }
+
+        private static List<WfTaskType> ResolveWorkflowTaskTypes(DynGraphqlQuery query, WorkflowFilter workflowFilter)
+        {
+            return query.WorkflowTaskTypes.Count > 0 ? query.WorkflowTaskTypes : workflowFilter.TaskTypes;
+        }
+
+        private static List<int> ResolveWorkflowStateIds(DynGraphqlQuery query, WorkflowFilter workflowFilter)
+        {
+            return query.WorkflowStateIds.Count > 0 ? query.WorkflowStateIds : workflowFilter.StateIds;
+        }
+
+        private static string ResolveWorkflowPhase(DynGraphqlQuery query, WorkflowFilter workflowFilter)
+        {
+            return string.IsNullOrWhiteSpace(query.WorkflowPhase) ? workflowFilter.Phase : query.WorkflowPhase;
+        }
+
+        private static WorkflowReferenceDate ResolveWorkflowReferenceDate(DynGraphqlQuery query, WorkflowFilter workflowFilter)
+        {
+            return query.WorkflowReferenceDateFilter ?? workflowFilter.ReferenceDate;
+        }
+
+        private static string? BuildTicketLabelFilter(DynGraphqlQuery query, WorkflowLabelFilter labelFilter)
+        {
+            if (string.IsNullOrWhiteSpace(labelFilter.Name))
+            {
+                return null;
+            }
+
+            return labelFilter.Mode switch
+            {
+                WorkflowLabelFilterMode.not_existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: true),
+                WorkflowLabelFilterMode.existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: false),
+                WorkflowLabelFilterMode.value => BuildTicketLabelValueFilter(query, labelFilter.Name, labelFilter.Value),
+                _ => null
+            };
+        }
+
+        private static string BuildTicketLabelExistsFilter(DynGraphqlQuery query, string labelName, bool negate)
+        {
+            string keyPatternVar = AddQueryVariable(query, "labelKeyPattern", "String", $"%\"{labelName}\":%");
+            string filter = $"{{ reqtasks: {{ additional_info: {{ _ilike: ${keyPatternVar} }} }} }}";
+            return negate ? $"{{ _not: {filter} }}" : filter;
+        }
+
+        private static string BuildTicketLabelValueFilter(DynGraphqlQuery query, string labelName, string value)
+        {
+            string valuePatternVar = AddQueryVariable(query, "labelValuePattern", "String", $"%\"{labelName}\":\"{value}\"%");
+            return $"{{ reqtasks: {{ additional_info: {{ _ilike: ${valuePatternVar} }} }} }}";
+        }
+
+        private static string AddQueryVariable(DynGraphqlQuery query, string name, string type, object value)
+        {
+            string queryVarName = name + query.parameterCounter++;
+            query.QueryParameters.Add($"${queryVarName}: {type}! ");
+            query.QueryVariables[queryVarName] = value;
+            return queryVarName;
         }
 
         private static void SetRuleRecertFilter(ref DynGraphqlQuery query, ModellingFilter modellingFilter)
@@ -564,6 +773,9 @@ namespace FWO.Report.Filter
                     case ReportType.RecertEventReport:
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");
+                        query.RulebaseLinkWhereStatement +=
+                            $"created: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.RuleWhereStatement +=
                             $"rule_create: {{_lte: $import_id_end}}" +
                             $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
@@ -715,15 +927,32 @@ namespace FWO.Report.Filter
                 query.QueryVariables["selectedOwners"] = new List<int>(modellingFilter.SelectedOwners.Select(o => o.Id)).ToArray();
                 query.OwnerWhereStatement += $@"{{ id: {{ _in: $selectedOwners }} }}";
 
-                if (modellingFilter.RecertActivated)
-                {
-                    query.OwnerWhereStatement += $@"{{ recert_active: {{ _eq: true }} }}";
-                }
+                List<string> ownerStateFilters = [];
+                string activeOwnersFilter = $@"{{ recert_active: {{ _eq: true }} }}";
                 if (!modellingFilter.ShowAllOwners)
                 {
                     query.QueryParameters.Add("$refDate: timestamp");
                     query.QueryVariables["refDate"] = DateTime.Now.AddDays(recertFilter?.RecertificationDisplayPeriod ?? 0);
-                    query.OwnerWhereStatement += $@"{{ next_recert_date: {{ _lte: $refDate }} }}";
+                    activeOwnersFilter = $@"{{ _and: [{{ recert_active: {{ _eq: true }} }}, {{ next_recert_date: {{ _lte: $refDate }} }}] }}";
+                }
+                ownerStateFilters.Add(activeOwnersFilter);
+
+                if (modellingFilter.ShowInactiveRecertOwners)
+                {
+                    ownerStateFilters.Add($@"{{ recert_active: {{ _eq: false }} }}");
+                }
+
+                if (ownerStateFilters.Count == 1)
+                {
+                    query.OwnerWhereStatement += ownerStateFilters[0];
+                }
+                else if (ownerStateFilters.Count > 1)
+                {
+                    query.OwnerWhereStatement += $@"{{ _or: [{string.Join(", ", ownerStateFilters)}] }}";
+                }
+                else
+                {
+                    query.OwnerWhereStatement += $@"{{ id: {{ _eq: -1 }} }}";
                 }
             }
         }

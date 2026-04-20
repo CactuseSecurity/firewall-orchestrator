@@ -1,3 +1,5 @@
+@using FWO.Basics
+@using FWO.Compliance
 @using FWO.Data.Middleware
 @using FWO.Data.Modelling
 @using FWO.Data.Workflow
@@ -25,14 +27,14 @@
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Ticket.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="() => Details(context)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                         @if(ReInitPossible(context))
                         {
-                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestReInit(context)">@(userConfig.GetText("reinit_ext_request"))</button>
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => RequestReInit(context)">@(DisplayService.DisplayButton(userConfig, "reinit_ext_request", Icons.Refresh))</button>
                         }
                         @if(ClosePossible(context))
                         {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestClose(context)">@(userConfig.GetText("reject_ticket"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestClose(context)">@(DisplayService.DisplayButton(userConfig, "reject_ticket", Icons.Reject))</button>
                         }
                     </div>
                 </Template>
@@ -49,7 +51,7 @@
                 </Template>
             </Column>
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("creation_date"))" Field="@(x => x.Ticket.CreationDate)" Sortable="true" Filterable="true" />
-	        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     </div>
 }
@@ -94,14 +96,14 @@ else
                         </Template>
                     </Column>
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("start_time"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
-	                <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
                 </Table>
             </form>
         }
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "ok", Icons.Confirm))</button>
         </div>
     </Footer>
 </PopUp>
@@ -121,7 +123,7 @@ else
 
     private List<FwoOwner> allOwners = [];
     private FwoOwner actOwner = new();
-	private List<OwnerTicket> ownerTickets = [];
+    private List<OwnerTicket> ownerTickets = [];
     private OwnerTicket actOwnerTicket = new();
     private WfStateDict statesDict = new ();
     private StateMatrixDict stateMatrixDict = new ();
@@ -235,9 +237,18 @@ else
                 Log.WriteDebug("ReInit ExtRequest", $"External Request for Ticket {actOwnerTicket.Ticket.Id.ToString()} created.");
             }
 
-            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
-                0, $"Reinitialized Rollout Requests", apiConnection, userConfig,
-				actOwnerTicket.Ticket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, userConfig.User.Name);
+            await ModellingHandlerBase.LogChange(new LogChangeRequest
+            {
+                ChangeType = ModellingTypes.ChangeType.InitRequests,
+                ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
+                ObjectId = 0,
+                Text = "Reinitialized Rollout Requests",
+                ApiConnection = apiConnection,
+                UserConfig = userConfig,
+                ApplicationId = actOwnerTicket.Ticket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
+                DisplayMessageInUi = DefaultInit.DoNothing,
+                Requester = userConfig.User.Name
+            });
         }
         catch (Exception exception)
         {
@@ -266,7 +277,7 @@ else
     {
         try
         {
-            TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
+            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
             if (await ticketCreator.PromoteTicket(actOwnerTicket.Ticket.Id, ExtStates.ExtReqRejected.ToString()))
             {
                 Log.WriteDebug("Close Ticket", $"Ticket {actOwnerTicket.Ticket.Id.ToString()} closed as rejected.");

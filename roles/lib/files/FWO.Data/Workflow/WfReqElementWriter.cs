@@ -11,9 +11,6 @@ namespace FWO.Data.Workflow
         [JsonProperty("device_id"), JsonPropertyName("device_id")]
         public int? DeviceId { get; set; }
 
-        public WfReqElementWriter()
-        { }
-
         public WfReqElementWriter(WfReqElement element) : base(element)
         {
             RequestAction = element.RequestAction;

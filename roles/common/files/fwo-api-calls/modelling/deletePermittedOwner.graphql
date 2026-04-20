@@ -1,0 +1,12 @@
+mutation deletePermittedOwner(
+  $connectionId: Int!
+  $appId: Int!
+  ) {
+  delete_modelling_permitted_owners_by_pk(
+    connection_id: $connectionId,
+    app_id: $appId
+  ) {
+    connection_id
+    app_id
+  }
+}

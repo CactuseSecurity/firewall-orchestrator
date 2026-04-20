@@ -1,0 +1,23 @@
+
+query getChangedOwnersForRuleOwnerMappingCustomField($controlId: bigint!) {
+  changelog_owner(where: { control_id: { _eq: $controlId } }) {
+    import: import_control {
+      control_id
+    }
+    change_action
+    old: ownerByOldOwnerId  {
+      id
+      name
+      app_id_external 
+      active
+      import_source
+    }
+    new: owner {
+      id
+      name
+      app_id_external 
+      active
+      import_source
+    }
+  }
+}

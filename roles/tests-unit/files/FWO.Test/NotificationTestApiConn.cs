@@ -13,6 +13,7 @@ namespace FWO.Test
             RecipientTo = EmailRecipientOption.OtherAddresses,
             EmailAddressTo = "a@b.de",
             EmailSubject = "subject1",
+            EmailBody = "body1",
             Deadline = NotificationDeadline.RequestDate,
             RepeatIntervalAfterDeadline = SchedulerInterval.Weeks,
             RepeatOffsetAfterDeadline = 1,
@@ -25,6 +26,7 @@ namespace FWO.Test
             RecipientTo = EmailRecipientOption.OtherAddresses,
             EmailAddressTo = "a@b.de",
             EmailSubject = "subject2",
+            EmailBody = "body2",
             Deadline = NotificationDeadline.RequestDate,
             RepeatIntervalAfterDeadline = SchedulerInterval.Days,
             RepeatOffsetAfterDeadline = 7,
@@ -37,6 +39,7 @@ namespace FWO.Test
             RecipientTo = EmailRecipientOption.OtherAddresses,
             EmailAddressTo = "a@b.de",
             EmailSubject = "subject",
+            EmailBody = "body",
             Deadline = NotificationDeadline.RecertDate,
             IntervalBeforeDeadline = SchedulerInterval.Weeks,
             OffsetBeforeDeadline = 3,
@@ -46,6 +49,19 @@ namespace FWO.Test
             Layout = NotificationLayout.HtmlAsAttachment
         };
 
+        readonly FwoNotification NotifRuleTimer = new()
+        {
+            Id = 3,
+            RecipientTo = EmailRecipientOption.OtherAddresses,
+            EmailAddressTo = "a@b.de",
+            EmailSubject = "subject3",
+            EmailBody = "body3",
+            Deadline = NotificationDeadline.RuleExpiry,
+            RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+            RepeatOffsetAfterDeadline = 7,
+            RepetitionsAfterDeadline = 2
+        };
+
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
@@ -53,7 +69,11 @@ namespace FWO.Test
             if (responseType == typeof(List<FwoNotification>))
             {
                 string? Vars = variables?.ToString();
-                List<FwoNotification>? notifs = Vars != null && Vars.Contains($"{NotificationClient.InterfaceRequest}") ? [NotifReq1, NotifReq2] : [NotifRec];
+                List<FwoNotification>? notifs = Vars != null && Vars.Contains($"{NotificationClient.InterfaceRequest}")
+                    ? [CloneNotification(NotifReq1), CloneNotification(NotifReq2)]
+                    : Vars != null && Vars.Contains($"{NotificationClient.RuleTimer}")
+                        ? [CloneNotification(NotifRuleTimer)]
+                        : [CloneNotification(NotifRec)];
                 GraphQLResponse<dynamic> response = new() { Data = notifs };
                 return response.Data;
             }
@@ -74,6 +94,37 @@ namespace FWO.Test
             }
 
             throw new NotImplementedException();
+        }
+
+        private static FwoNotification CloneNotification(FwoNotification notification)
+        {
+            return new FwoNotification
+            {
+                Id = notification.Id,
+                NotificationClient = notification.NotificationClient,
+                UserId = notification.UserId,
+                OwnerId = notification.OwnerId,
+                Channel = notification.Channel,
+                Name = notification.Name,
+                RecipientTo = notification.RecipientTo,
+                EmailAddressTo = notification.EmailAddressTo,
+                RecipientCc = notification.RecipientCc,
+                EmailAddressCc = notification.EmailAddressCc,
+                EmailSubject = notification.EmailSubject,
+                EmailBody = notification.EmailBody,
+                ScheduleId = notification.ScheduleId,
+                BundleType = notification.BundleType,
+                BundleId = notification.BundleId,
+                Layout = notification.Layout,
+                Deadline = notification.Deadline,
+                IntervalBeforeDeadline = notification.IntervalBeforeDeadline,
+                OffsetBeforeDeadline = notification.OffsetBeforeDeadline,
+                RepeatIntervalAfterDeadline = notification.RepeatIntervalAfterDeadline,
+                InitialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline,
+                RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
+                RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
+                LastSent = notification.LastSent
+            };
         }
     }
 }

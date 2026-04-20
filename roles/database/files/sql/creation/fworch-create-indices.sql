@@ -8,9 +8,6 @@ Create index IF NOT EXISTS idx_changelog_service02 on changelog_service (mgm_id)
 Create index IF NOT EXISTS idx_changelog_user01 on changelog_user (change_type_id);
 Create index IF NOT EXISTS idx_changelog_user02 on changelog_user (mgm_id);
 Create index IF NOT EXISTS idx_import_control01 on import_control (control_id);
-Create index IF NOT EXISTS idx_import_object01 on import_object (control_id);
-Create index IF NOT EXISTS idx_import_object02 on import_object (obj_id);
-Create index IF NOT EXISTS idx_import_rule01 on import_rule (rule_id);
 Create index IF NOT EXISTS idx_object01 on object (mgm_id);
 Create index IF NOT EXISTS idx_object02 on object (obj_name,mgm_id,zone_id,active);
 Create index IF NOT EXISTS idx_object03 on object (obj_uid,mgm_id,zone_id,active);
@@ -41,12 +38,7 @@ CREATE UNIQUE INDEX uidx_import_control_only_one_null_stop_time_per_mgm_when_nul
 CREATE UNIQUE index if not exists only_one_default_owner on owner(is_default) where is_default = true;
 CREATE UNIQUE index if not exists owner_responsible_owner_dn_type_unique on owner_responsible(owner_id, dn, responsible_type);
 CREATE index if not exists owner_responsible_dn_idx on owner_responsible(dn);
-
--- probably useful:
-Create index "IX_Relationship59" on "import_service" ("control_id");
-Create index "IX_Relationship61" on "import_rule" ("control_id");
-Create index "IX_Relationship62" on "import_user" ("control_id");
-Create index "IX_Relationship132" on "import_zone" ("control_id");
+CREATE UNIQUE index if not exists owner_responsible_type_name_unique on owner_responsible_type(name);
 
 Create index "IX_Relationship68" on "changelog_object" ("control_id");
 Create index "IX_Relationship76" on "changelog_service" ("control_id");
@@ -123,3 +115,6 @@ where is_default = true;
 Create index IF NOT EXISTS idx_fkey_network_zone_id on compliance.ip_range USING HASH (network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_from on compliance.network_zone_communication USING HASH (from_network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_communication USING HASH (to_network_zone_id);
+
+-- rule_owner
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;

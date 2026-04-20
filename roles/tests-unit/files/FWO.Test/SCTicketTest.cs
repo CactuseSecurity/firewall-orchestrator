@@ -4,6 +4,9 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
 using FWO.ExternalSystems.Tufin.SecureChange;
+using FWO.Basics.Exceptions;
+using System.Net;
+using RestSharp;
 
 namespace FWO.Test
 {
@@ -210,12 +213,101 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestSCAccessTicketSortsSourceObjectsAlphabetically()
+        {
+            List<WfReqTask> unsortedAccessReqTask =
+            [
+                ConstructAccTask(1, "new Connection", 1, WfTaskType.access.ToString(), RequestAction.create.ToString())
+            ];
+            unsortedAccessReqTask[0].Elements.Insert(0, new()
+            {
+                Id = 5,
+                TaskId = 1,
+                RequestAction = RequestAction.create.ToString(),
+                GroupName = "ARxx12345-200",
+                Field = ElemFieldType.source.ToString()
+            });
+            unsortedAccessReqTask[0].Elements.Insert(0, new()
+            {
+                Id = 6,
+                TaskId = 1,
+                RequestAction = RequestAction.create.ToString(),
+                GroupName = "ARxx12345-050",
+                Field = ElemFieldType.source.ToString()
+            });
+
+            SCTicket ticket = new(ticketSystem);
+            await ticket.CreateRequestString(unsortedAccessReqTask, ipProtos, NamingConvention);
+
+            ClassicAssert.IsTrue(ticket.TicketText.Contains(
+                "\"sources\":{\"source\":[{\"@type\": \"Object\", \"object_name\": \"ARxx12345-050\", \"management_name\": \"CheckpointExt\"}," +
+                "{\"@type\": \"Object\", \"object_name\": \"ARxx12345-100\", \"management_name\": \"CheckpointExt\"}," +
+                "{\"@type\": \"Object\", \"object_name\": \"ARxx12345-200\", \"management_name\": \"CheckpointExt\"}]}"));
+        }
+
+        [Test]
         public async Task TestSCRemoveTicket()
         {
             SCTicket ticket = new(ticketSystem);
             await ticket.CreateRequestString(removeReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(RemoveFilledTicketText, ticket.TicketText);
+        }
+
+        [Test]
+        public async Task TestSCLookupRequesterIdSuccess()
+        {
+            ExternalTicketSystem lookupSystem = CreateTicketSystem(true);
+            SimulatedSCClient scClient = new(lookupSystem);
+            scClient.EnqueueResponse("users.json?user_name=alice",
+                new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"users\":{\"user\":[{\"id\":55}]}}" });
+
+            SCTicket ticket = new(lookupSystem, scClient) { Requester = "alice" };
+            await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention);
+
+            ClassicAssert.IsTrue(ticket.TicketText.Contains("\"requester\":\"55\""));
+        }
+
+        [Test]
+        public void TestSCLookupRequesterIdUnknownUserThrows()
+        {
+            ExternalTicketSystem lookupSystem = CreateTicketSystem(true);
+            SimulatedSCClient scClient = new(lookupSystem);
+            scClient.EnqueueResponse("users.json?user_name=unknown",
+                new(new()) { StatusCode = HttpStatusCode.OK, Content = "" });
+
+            SCTicket ticket = new(lookupSystem, scClient) { Requester = "unknown" };
+
+            Assert.ThrowsAsync<ProcessingFailedException>(async () =>
+                await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention));
+        }
+
+        [Test]
+        public void TestSCLookupRequesterIdHttpErrorThrows()
+        {
+            ExternalTicketSystem lookupSystem = CreateTicketSystem(true);
+            SimulatedSCClient scClient = new(lookupSystem);
+            scClient.EnqueueResponse("users.json?user_name=error",
+                new(new()) { StatusCode = HttpStatusCode.BadRequest, Content = "{\"error\":\"bad\"}" });
+
+            SCTicket ticket = new(lookupSystem, scClient) { Requester = "error" };
+
+            Assert.ThrowsAsync<ProcessingFailedException>(async () =>
+                await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention));
+        }
+
+        private ExternalTicketSystem CreateTicketSystem(bool lookupRequesterId)
+        {
+            return new()
+            {
+                Id = ticketSystem.Id,
+                Type = ticketSystem.Type,
+                Authorization = ticketSystem.Authorization,
+                Name = ticketSystem.Name,
+                Url = ticketSystem.Url,
+                LookupRequesterId = lookupRequesterId,
+                Templates = ticketSystem.Templates
+            };
         }
     }
 }

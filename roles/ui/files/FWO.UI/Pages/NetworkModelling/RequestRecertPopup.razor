@@ -5,6 +5,8 @@
 @using FWO.Middleware.Client
 @using FWO.Recert
 @using FWO.Report
+@using FWO.Services.RuleTreeBuilder
+@using FWO.Services.Workflow
 @using FWO.Ui.Pages.Reporting
 @using Newtonsoft.Json
 @using RestSharp
@@ -15,6 +17,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @if (Display && AppHandler != null)
 {
@@ -56,7 +59,7 @@
                     <br>
                     @(userConfig.GetText("U9028"))
                     <br><br>
-                    <ConnectionTable Connections="ModellingErrors" @bind-AppHandler="AppHandler" Readonly="true"/>
+                    <ConnectionTable Connections="ModellingErrors" @bind-AppHandler="AppHandler" Readonly="true" PopupMode="true"/>
                 }
             }
             @if(ImplementationError)
@@ -69,13 +72,13 @@
                 {
                     <br>
                     <h5>@(userConfig.GetText("connections_not_implemented"))</h5>
-                    <ConnectionTable Connections="VarianceResult.ConnsNotImplemented" @bind-AppHandler="AppHandler" Readonly="true"/>
+                    <ConnectionTable Connections="VarianceResult.ConnsNotImplemented" @bind-AppHandler="AppHandler" Readonly="true" PopupMode="true"/>
                 }
                 @if(VarianceResult.RuleDifferences.Count > 0)
                 {
                     <br>
                     <h5>@(userConfig.GetText("connections_with_diffs"))</h5>
-                    <ConnectionTable Connections="VarianceResult.RuleDifferences.Select(d => d.ModelledConnection).ToList()" @bind-AppHandler="AppHandler" Readonly="true"/>
+                    <ConnectionTable Connections="VarianceResult.RuleDifferences.Select(d => d.ModelledConnection).ToList()" @bind-AppHandler="AppHandler" Readonly="true" PopupMode="true"/>
                 }
                 @if(RulesFromDeletedConns.Count > 0)
                 {
@@ -108,9 +111,9 @@
         <Footer>
             @if (!WorkInProgress && RecertPossible)
             {
-                <AuthorizeView Roles="@Roles.Modeller">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
                     <Authorized>
-                        @if (userConfig.User.Ownerships.Contains(AppHandler.Application.Id))
+                        @if (CanRecertify)
                         {
                             <button type="button" class="btn btn-sm btn-success" @onclick="StartRecert">@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
                         }
@@ -151,6 +154,9 @@
 
     [Parameter]
     public Func<FwoOwner, bool> RefreshParent { get; set; } = DefaultInit.DoNothingSync;
+
+    [Parameter]
+    public bool CanRecertify { get; set; } = false;
 
     private bool WorkInProgress = false;
     private bool FirstTry = true;
@@ -256,6 +262,11 @@
 
     private async Task StartRecert()
     {
+        if (!CanRecertify || !HasRecertWriteAccess())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("recertify"), userConfig.GetText("E9104"), true);
+            return;
+        }
         try
         {
             WorkInProgress = true;
@@ -278,9 +289,17 @@
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
                 FwoOwner recertifiedOwner = await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules(), null);
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Recertify, ModellingTypes.ModObjectType.CommunicationProfile, 0,
-                    $"Recertified Application: {AppHandler.Application.Name} with {VarianceResult.GetAllOkRules().Count.ToString()} rules",
-                    apiConnection, userConfig, AppHandler.Application.Id, DisplayMessageInUi);
+                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                {
+                    ChangeType = ModellingTypes.ChangeType.Recertify,
+                    ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
+                    ObjectId = 0,
+                    Text = $"Recertified Application: {AppHandler.Application.Name} with {VarianceResult.GetAllOkRules().Count.ToString()} rules",
+                    ApiConnection = apiConnection,
+                    UserConfig = userConfig,
+                    ApplicationId = AppHandler.Application.Id,
+                    DisplayMessageInUi = DisplayMessageInUi
+                });
                 await GenerateAndSaveReport(recertifiedOwner);
                 RefreshParent(recertifiedOwner);
 
@@ -297,11 +316,17 @@
         }
     }
 
+    private bool HasRecertWriteAccess()
+    {
+        return authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+            || authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
+    }
+
     private async Task GenerateAndSaveReport(FwoOwner owner)
     {
         ReportBase? report = await ReportGenerator.GenerateFromTemplate(
             new ReportTemplate("", new(){ ReportType = (int)ReportType.RecertificationEvent, ModellingFilter = new(){ SelectedOwner = owner}}),
-            apiConnection, userConfig, DefaultInit.DoNothing);
+            apiConnection, userConfig, DefaultInit.DoNothing, null, ruleTreeBuilder);
         if(report != null)
         {
             var variables = new

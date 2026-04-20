@@ -1,7 +1,7 @@
 @using FWO.Ui.Services
 
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -119,13 +119,13 @@
                 {
                     <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("gateway"))" Field="@(x => x.DeviceId)" Sortable="true">
                         <Template>
-                            @(implTask.DeviceId != null && implTask.DeviceId != 0 ? WfHandler.Devices[WfHandler.Devices.FindIndex(x => x.Id == implTask.DeviceId)].Name : "")
+                            @(GetDeviceName(implTask))
                         </Template>
                     </Column>
                 }
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                     <Template>
-                        @(States.Name[implTask.StateId])
+                        @(States.GetName(implTask.StateId))
                     </Template>
                 </Column>
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("implementer"))" Field="@(x => x.CurrentHandler)" Sortable="true" Filterable="true" >
@@ -176,6 +176,7 @@
 <DisplayImplementationTask Phase="Phase" WfHandler="WfHandler" ResetParent="Reset" StateMatrix="WfHandler.ActStateMatrix" States="States" />
 <AssignObject @bind-Display="WfHandler.DisplayAssignImplTaskMode" ResetParent="Reset" StatefulObject="WfHandler.ActImplTask" Assign="Assign"
     AssignBack="AssignBack" ObjectName="@WfHandler.ActImplTask.Title" RoleList="validRoles" Owner="@WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner"/>
+
 <DeleteObject @bind-Display="WfHandler.DisplayDeleteImplTaskMode" ResetParent="Reset" Delete="WfHandler.ConfDeleteImplTask" ObjectName="@(WfHandler.ActImplTask.Title)"/>
 <DeleteObject @bind-Display="WfHandler.DisplayCleanupMode" ResetParent="Reset" Delete="WfHandler.ConfCleanupImplTasks" ObjectName="@(userConfig.GetText("all_impltasks"))"/>
 <DisplayApprovals @bind-Display="WfHandler.DisplayApprovalImplMode" WfHandler="WfHandler" ResetParent="Reset" Approvals="WfHandler.ActReqTask.Approvals" States="States"/>
@@ -210,7 +211,18 @@
     static List<string> validRoles = new (){ Roles.Implementer, Roles.FwAdmin };
     private bool DisplayInfo = false;
     private List<KeyValuePair<string, bool>> deviceCheck = [];
+    private Dictionary<long, WfTicket> ticketsById = [];
+    private Dictionary<long, WfReqTask> reqTasksById = [];
 
+    protected override Task OnParametersSetAsync()
+    {
+        ticketsById = WfHandler.TicketList.ToDictionary(ticket => ticket.Id, ticket => ticket);
+        reqTasksById = WfHandler.TicketList
+            .SelectMany(ticket => ticket.Tasks)
+            .GroupBy(task => task.Id)
+            .ToDictionary(group => group.Key, group => group.First());
+        return Task.CompletedTask;
+    }
 
     private async Task Reset()
     {
@@ -221,13 +233,9 @@
 
     private WfTicket? ResolveTicket(WfImplTask implTask)
     {
-        if(implTask.TicketId != 0)
+        if (implTask.TicketId != 0 && ticketsById.TryGetValue(implTask.TicketId, out WfTicket? ticket))
         {
-            int idx = WfHandler.TicketList.FindIndex(x => x.Id == implTask.TicketId);
-            if(idx >= 0)
-            {
-                return WfHandler.TicketList[idx];
-            }
+            return ticket;
         }
         return null;
     }
@@ -244,19 +252,34 @@
 
     private string GetOwnerName(WfImplTask implTask)
     {
-        if(implTask.ReqTaskId != 0)
+        if (implTask.ReqTaskId != 0 && reqTasksById.TryGetValue(implTask.ReqTaskId, out WfReqTask? reqTask))
         {
-            WfTicket? ticket = ResolveTicket(implTask);
-            if(ticket != null && ticket.Tasks.Count > 0)
+            if(reqTask.Owners != null && reqTask.Owners.Count > 0)
             {
-                WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.Id == implTask.ReqTaskId);
-                if(reqTask != null && reqTask.Owners != null && reqTask.Owners.Count > 0)
-                {
-                    return reqTask.Owners?.FirstOrDefault()?.Owner.Name ?? "";
-                }
+                return reqTask.Owners?.FirstOrDefault()?.Owner.Name ?? "";
             }
         }
         return "";
+    }
+
+    private string GetDeviceName(WfImplTask implTask)
+    {
+        if (implTask.DeviceId == null || implTask.DeviceId == 0)
+        {
+            if (implTask.TaskType == WfTaskType.access.ToString() && IsAllDevicesImplTask(implTask))
+            {
+                return userConfig.GetText("all");
+            }
+            return "";
+        }
+        return WfHandler.Devices.FirstOrDefault(device => device.Id == implTask.DeviceId)?.Name ?? "";
+    }
+
+    private bool IsAllDevicesImplTask(WfImplTask implTask)
+    {
+        return implTask.ReqTaskId != 0
+            && reqTasksById.TryGetValue(implTask.ReqTaskId, out WfReqTask? reqTask)
+            && reqTask.HasAllDevicesSelected();
     }
 
     private void ShowImplTask(WfImplTask implTask)

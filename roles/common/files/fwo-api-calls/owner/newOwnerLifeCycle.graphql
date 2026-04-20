@@ -1,0 +1,13 @@
+mutation newOwnerLifeCycle(
+  $name: String!
+  $activeState: Boolean!
+  ) {
+  insert_owner_lifecycle_state(objects: {
+    name: $name
+    active_state: $activeState
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

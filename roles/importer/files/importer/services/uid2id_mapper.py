@@ -1,4 +1,3 @@
-from logging import Logger
 from typing import TYPE_CHECKING, Any
 
 from fwo_log import FWOLogger
@@ -57,12 +56,12 @@ class Uid2IdMapper:
     """
 
     import_state: "ImportStateController"
-    logger: Logger
 
     nwobj_uid2id: Uid2IdMap
     svc_uid2id: Uid2IdMap
     user_uid2id: Uid2IdMap
     zone_name2id: Uid2IdMap
+    timeobj_uid2id: Uid2IdMap
     rule_uid2id: Uid2IdMap
     rulebase_uid2id: Uid2IdMap
 
@@ -80,28 +79,9 @@ class Uid2IdMapper:
         self.svc_uid2id = Uid2IdMap()
         self.user_uid2id = Uid2IdMap()
         self.zone_name2id = Uid2IdMap()
+        self.timeobj_uid2id = Uid2IdMap()
         self.rule_uid2id = Uid2IdMap()
         self.rulebase_uid2id = Uid2IdMap()
-
-    def log_error(self, message: str) -> None:
-        """
-        Log an error message.
-
-        Args:
-            message (str): The error message to log.
-
-        """
-        self.logger.error(message)
-
-    def log_debug(self, message: str) -> None:
-        """
-        Log a debug message.
-
-        Args:
-            message (str): The debug message to log.
-
-        """
-        FWOLogger.debug(message)
 
     def get_network_object_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """
@@ -171,6 +151,23 @@ class Uid2IdMapper:
             raise KeyError(f"Zone Name '{name}' not found in mapping.")
         return zone_id
 
+    def get_time_object_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
+        """
+        Get the ID for a given time object UID.
+
+        Args:
+            uid (str): The UID of the time object.
+            before_update (bool): If True, use the outdated mapping if available.
+
+        Returns:
+            int: The ID of the time object.
+
+        """
+        time_obj_id = self.timeobj_uid2id.get(uid, before_update, local_only)
+        if time_obj_id is None:
+            raise KeyError(f"Time object UID '{uid}' not found in mapping.")
+        return time_obj_id
+
     def get_rule_id(self, uid: str, before_update: bool = False) -> int:
         """
         Get the ID for a given rule UID.
@@ -219,8 +216,7 @@ class Uid2IdMapper:
                 raise ValueError("Invalid mapping format. Each mapping must contain 'obj_uid' and 'obj_id'.")
             self.nwobj_uid2id.set(mapping["obj_uid"], mapping["obj_id"], is_global)
 
-        msg = f"Added {len(mappings)} {'global ' if is_global else ''}network object mappings."
-        self.log_debug(msg)
+        FWOLogger.debug(f"Added {len(mappings)} {'global ' if is_global else ''}network object mappings.")
 
     def add_service_object_mappings(self, mappings: list[dict[str, Any]], is_global: bool = False):
         """
@@ -236,7 +232,7 @@ class Uid2IdMapper:
                 raise ValueError("Invalid mapping format. Each mapping must contain 'svc_uid' and 'svc_id'.")
             self.svc_uid2id.set(mapping["svc_uid"], mapping["svc_id"], is_global)
 
-        self.log_debug(f"Added {len(mappings)} {'global ' if is_global else ''}service object mappings.")
+        FWOLogger.debug(f"Added {len(mappings)} {'global ' if is_global else ''}service object mappings.")
 
     def add_user_mappings(self, mappings: list[dict[str, Any]], is_global: bool = False):
         """
@@ -252,7 +248,7 @@ class Uid2IdMapper:
                 raise ValueError("Invalid mapping format. Each mapping must contain 'user_uid' and 'user_id'.")
             self.user_uid2id.set(mapping["user_uid"], mapping["user_id"], is_global)
 
-        self.log_debug(f"Added {len(mappings)} {'global ' if is_global else ''}user mappings.")
+        FWOLogger.debug(f"Added {len(mappings)} {'global ' if is_global else ''}user mappings.")
 
     def add_zone_mappings(self, mappings: list[dict[str, Any]], is_global: bool = False):
         """
@@ -268,7 +264,23 @@ class Uid2IdMapper:
                 raise ValueError("Invalid mapping format. Each mapping must contain 'zone_name' and 'zone_id'.")
             self.zone_name2id.set(mapping["zone_name"], mapping["zone_id"], is_global)
 
-        self.log_debug(f"Added {len(mappings)} {'global ' if is_global else ''}zone mappings.")
+        FWOLogger.debug(f"Added {len(mappings)} {'global ' if is_global else ''}zone mappings.")
+
+    def add_time_object_mappings(self, mappings: list[dict[str, Any]], is_global: bool = False):
+        """
+        Add time object mappings to the internal mapping dictionary.
+
+        Args:
+            mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
+                    Each dictionary should have 'time_obj_uid' and 'time_obj_id' keys.
+
+        """
+        for mapping in mappings:
+            if "time_obj_uid" not in mapping or "time_obj_id" not in mapping:
+                raise ValueError("Invalid mapping format. Each mapping must contain 'time_obj_uid' and 'time_obj_id'.")
+            self.timeobj_uid2id.set(mapping["time_obj_uid"], mapping["time_obj_id"], is_global)
+
+        FWOLogger.debug(f"Added {len(mappings)} {'global ' if is_global else ''}time object mappings.")
 
     def add_rule_mappings(self, mappings: list[dict[str, Any]]):
         """
@@ -284,7 +296,7 @@ class Uid2IdMapper:
                 raise ValueError("Invalid mapping format. Each mapping must contain 'rule_uid' and 'rule_id'.")
             self.rule_uid2id.set(mapping["rule_uid"], mapping["rule_id"])
 
-        self.log_debug(f"Added {len(mappings)} rule mappings.")
+        FWOLogger.debug(f"Added {len(mappings)} rule mappings.")
 
     def add_rulebase_mappings(self, mappings: list[dict[str, Any]]):
         """
@@ -300,7 +312,7 @@ class Uid2IdMapper:
                 raise ValueError("Invalid mapping format. Each mapping must contain 'uid' and 'id'.")
             self.rulebase_uid2id.set(mapping["uid"], mapping["id"])
 
-        self.log_debug(f"Added {len(mappings)} rulebase mappings.")
+        FWOLogger.debug(f"Added {len(mappings)} rulebase mappings.")
 
     def update_network_object_mapping(self, uids: list[str] | None = None, is_global: bool = False) -> None:
         """
@@ -314,7 +326,7 @@ class Uid2IdMapper:
 
         if uids is not None:
             if len(uids) == 0:
-                self.log_debug("Network object mapping updated for 0 objects")
+                FWOLogger.debug("Network object mapping updated for 0 objects")
                 return
             variables = {"uids": uids}
         else:
@@ -328,7 +340,7 @@ class Uid2IdMapper:
                 {obj["obj_uid"]: obj["obj_id"] for obj in response["data"]["object"]},
                 is_global,
             )
-            self.log_debug(f"Network object mapping updated for {len(response['data']['object'])} objects")
+            FWOLogger.debug(f"Network object mapping updated for {len(response['data']['object'])} objects")
         except Exception as e:
             raise FwoImporterError(f"Error updating network object mapping: {e}")
 
@@ -343,7 +355,7 @@ class Uid2IdMapper:
         query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "networkService/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
-                self.log_debug("Service object mapping updated for 0 objects")
+                FWOLogger.debug("Service object mapping updated for 0 objects")
                 return
             variables = {"uids": uids}
         else:
@@ -357,7 +369,7 @@ class Uid2IdMapper:
                 {obj["svc_uid"]: obj["svc_id"] for obj in response["data"]["service"]},
                 is_global,
             )
-            self.log_debug(f"Service object mapping updated for {len(response['data']['service'])} objects")
+            FWOLogger.debug(f"Service object mapping updated for {len(response['data']['service'])} objects")
         except Exception as e:
             raise FwoImporterError(f"Error updating service object mapping: {e}")
 
@@ -372,7 +384,7 @@ class Uid2IdMapper:
         query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "user/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
-                self.log_debug("User mapping updated for 0 objects")
+                FWOLogger.debug("User mapping updated for 0 objects")
                 return
             variables = {"uids": uids}
         else:
@@ -386,7 +398,7 @@ class Uid2IdMapper:
                 {obj["user_uid"]: obj["user_id"] for obj in response["data"]["usr"]},
                 is_global,
             )
-            self.log_debug(f"User mapping updated for {len(response['data']['usr'])} objects")
+            FWOLogger.debug(f"User mapping updated for {len(response['data']['usr'])} objects")
         except Exception as e:
             raise FwoImporterError(f"Error updating user mapping: {e}")
 
@@ -401,7 +413,7 @@ class Uid2IdMapper:
         query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "zone/getMapOfName2Id.graphql"])
         if names is not None:
             if len(names) == 0:
-                self.log_debug("Zone mapping updated for 0 objects")
+                FWOLogger.debug("Zone mapping updated for 0 objects")
                 return
             variables = {"names": names}
         else:
@@ -415,9 +427,38 @@ class Uid2IdMapper:
                 {obj["zone_name"]: obj["zone_id"] for obj in response["data"]["zone"]},
                 is_global,
             )
-            self.log_debug(f"Zone mapping updated for {len(response['data']['zone'])} objects")
+            FWOLogger.debug(f"Zone mapping updated for {len(response['data']['zone'])} objects")
         except Exception as e:
             raise FwoImporterError(f"Error updating zone mapping: {e}")
+
+    def update_time_object_mapping(self, uids: list[str] | None = None, is_global: bool = False) -> None:
+        """
+        Update the mapping for time objects based on the provided UIDs.
+
+        Args:
+            uids (list[str] | None): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
+
+        """
+        query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "time/getMapOfUid2Id.graphql"])
+        if uids is not None:
+            if len(uids) == 0:
+                FWOLogger.debug("Time object mapping updated for 0 objects")
+                return
+            variables = {"uids": uids}
+        else:
+            # If no UIDs are provided, fetch all UIDs for the Management
+            variables = {"mgmId": self.import_state.state.mgm_details.current_mgm_id}
+        try:
+            response = self.import_state.api_connection.call(query, variables)
+            if "errors" in response:
+                raise FwoImporterError(f"Error updating time object mapping: {response['errors']}")
+            self.timeobj_uid2id.update(
+                {obj["time_obj_uid"]: obj["time_obj_id"] for obj in response["data"]["time_object"]},
+                is_global,
+            )
+            FWOLogger.debug(f"Time object mapping updated for {len(response['data']['time_object'])} objects")
+        except Exception as e:
+            raise FwoImporterError(f"Error updating time object mapping: {e}")
 
     def update_rule_mapping(self, uids: list[str] | None = None) -> None:
         """
@@ -430,7 +471,7 @@ class Uid2IdMapper:
         query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
-                self.log_debug("Rule mapping updated for 0 objects")
+                FWOLogger.debug("Rule mapping updated for 0 objects")
                 return
             variables = {"uids": uids}
         else:
@@ -441,7 +482,7 @@ class Uid2IdMapper:
             if "errors" in response:
                 raise FwoImporterError(f"Error updating rule mapping: {response['errors']}")
             self.rule_uid2id.update({obj["rule_uid"]: obj["rule_id"] for obj in response["data"]["rule"]})
-            self.log_debug(f"Rule mapping updated for {len(response['data']['rule'])} objects")
+            FWOLogger.debug(f"Rule mapping updated for {len(response['data']['rule'])} objects")
         except Exception as e:
             raise FwoImporterError(f"Error updating rule mapping: {e}")
 
@@ -456,7 +497,7 @@ class Uid2IdMapper:
         query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rulebase/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
-                self.log_debug("Rulebase mapping updated for 0 objects")
+                FWOLogger.debug("Rulebase mapping updated for 0 objects")
                 return
             variables = {"uids": uids}
         else:
@@ -467,6 +508,6 @@ class Uid2IdMapper:
             if "errors" in response:
                 raise FwoImporterError(f"Error updating rulebase mapping: {response['errors']}")
             self.rulebase_uid2id.update({obj["uid"]: obj["id"] for obj in response["data"]["rulebase"]})
-            self.log_debug(f"Rulebase mapping updated for {len(response['data']['rulebase'])} objects")
+            FWOLogger.debug(f"Rulebase mapping updated for {len(response['data']['rulebase'])} objects")
         except Exception as e:
             raise FwoImporterError(f"Error updating rulebase mapping: {e}")

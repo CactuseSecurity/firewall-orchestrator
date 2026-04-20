@@ -1,4 +1,4 @@
-#!/usr/local/fworch/importer_venv/bin/python3
+#!/usr/local/fworch/importer/importer-venv/bin/python3
 import argparse
 import sys
 import traceback
@@ -88,7 +88,6 @@ def main(
         force,
         fwo_major_version,
         clear_management_data,
-        is_full_import=True,
     )
     register_global_state(import_state)
 
@@ -107,7 +106,11 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(
-        "-m", "--mgmId", metavar="management_id", required=True, help="FWORCH DB ID of the management server to import"
+        "-m",
+        "--mgmId",
+        metavar="management_id",
+        required=True,
+        help="FWORCH DB ID of the management server to import",
     )
     parser.add_argument(
         "-c",
@@ -139,9 +142,19 @@ if __name__ == "__main__":
                                     (default=0), \
                                     config files are saved to $FWORCH/tmp/import dir",
     )
-    parser.add_argument("-v", "--verify_certificates", action="store_true", default=None, help="verify certificates")
     parser.add_argument(
-        "-s", "--suppress_certificate_warnings", action="store_true", default=None, help="suppress certificate warnings"
+        "-v",
+        "--verify_certificates",
+        action="store_true",
+        default=None,
+        help="verify certificates",
+    )
+    parser.add_argument(
+        "-s",
+        "--suppress_certificate_warnings",
+        action="store_true",
+        default=None,
+        help="suppress certificate warnings",
     )
     parser.add_argument(
         "-l",

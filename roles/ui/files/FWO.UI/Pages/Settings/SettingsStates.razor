@@ -39,6 +39,11 @@
             </Column>
             <Column TableItem="WfState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="WfState" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="WfState" Title="@(userConfig.GetText("automatic"))" Field="@(x => x.AutomaticOnly)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.AutomaticOnly.ShowAsHtml())
+                </Template>
+            </Column>
             <Column TableItem="WfState" Title="@(userConfig.GetText("state_actions"))" Field="@(x => x.Actions)" Sortable="false">
                 <Template>
                     @(context.ActionList())
@@ -52,7 +57,7 @@
             @if (EditStateMode)
             {
                 <div class="form-group row">
-                    <div class="col-sm-3">
+                    <div class="col-sm-2">
                         @if(AddStateMode)
                         {
                             <input type="number" class="form-control form-control-sm" @bind="actState.Id" />
@@ -62,8 +67,14 @@
                             <label class="col-sm-2 col-form-label col-form-label-sm">@(actState.Id)</label>
                         }
                     </div>
-                    <div class="col-sm-8">
+                    <div class="col-sm-6">
                         <input type="text" class="form-control form-control-sm" @bind="actState.Name" />
+                    </div>
+                    <div class="col-sm-4 d-flex align-items-center">
+                        <div class="form-check">
+                            <input id="stateAutomatic" type="checkbox" class="form-check-input" @bind="actState.AutomaticOnly" />
+                            <label class="form-check-label" for="stateAutomatic">@(userConfig.GetText("automatic"))</label>
+                        </div>
                     </div>
                 </div>
                 <br><br>
@@ -220,7 +231,24 @@ else
             {
                 if(action.ActionType == nameof(StateActionTypes.AutoPromote))
                 {
-                    usedStateIds.Add(Convert.ToInt32(action.ExternalParams));
+                    if (WfStateAction.TryParseAutoPromoteParams(action.ExternalParams, out int? toState, out ConditionalAutoPromoteParams? conditionalParams))
+                    {
+                        if (toState != null && toState >= 0)
+                        {
+                            usedStateIds.Add((int)toState);
+                        }
+                        if (conditionalParams != null)
+                        {
+                            if (conditionalParams.IfCompliantState >= 0)
+                            {
+                                usedStateIds.Add(conditionalParams.IfCompliantState);
+                            }
+                            if (conditionalParams.IfNotCompliantState >= 0)
+                            {
+                                usedStateIds.Add(conditionalParams.IfNotCompliantState);
+                            }
+                        }
+                    }
                 }
                 else if(action.ActionType == nameof(StateActionTypes.AddApproval))
                 {
@@ -256,10 +284,11 @@ else
     {
         try
         {
-            await apiConnection.SendQueryAsync<object>(RequestQueries.upsertState, new { id = actState.Id, name = actState.Name });
+            await apiConnection.SendQueryAsync<object>(RequestQueries.upsertState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
             if(AddStateMode)
             {
                 states.Add(actState);
+                states = states.OrderBy(x => x.Id).ToList();
                 foreach(var action in actState.Actions)
                 {
                     await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id });

@@ -30,12 +30,13 @@ namespace FWO.Report
         }
     }
 
-    public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportDevicesBase(query, userConfig, reportType)
+    public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : ReportDevicesBase(query, userConfig, reportType)
     {
         private const int ColumnCount = 14;
         protected bool UseAdditionalFilter = false;
 
         private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = [];
+        private readonly IRuleTreeBuilder? ruleTreeBuilderFromScope = ruleTreeBuilder;
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
@@ -118,11 +119,30 @@ namespace FWO.Report
 
         protected void TryBuildRuleTree()
         {
-            // Get rule tree builder from service provider
+            // Use scoped IRuleTreeBuilder from the caller when available
 
-            IRuleTreeBuilder? ruleTreeBuilder = Services.ServiceProvider.Services?.GetService<IRuleTreeBuilder>();
+            IRuleTreeBuilder? scopedRuleTreeBuilder = ruleTreeBuilderFromScope;
 
-            if (ruleTreeBuilder == null)
+            if (scopedRuleTreeBuilder == null && Services.ServiceProvider.Services == null)
+            {
+                Log.WriteError("Generate Rules Report", "Cannot build rule tree: IServiceProvider not set and no scoped IRuleTreeBuilder provided");
+                return;
+            }
+
+            if (scopedRuleTreeBuilder == null)
+            {
+                try
+                {
+                    scopedRuleTreeBuilder = Services.ServiceProvider.Services!.GetRequiredService<IRuleTreeBuilder>();
+                }
+                catch (InvalidOperationException exception)
+                {
+                    Log.WriteError("Generate Rules Report", "Cannot build rule tree: scoped IRuleTreeBuilder must be provided by the caller", exception);
+                    return;
+                }
+            }
+
+            if (scopedRuleTreeBuilder == null)
             {
                 Log.WriteError("Generate Rules Report", "Cannot build rule tree: IRuleTreeBuilder service not found");
                 return;
@@ -136,10 +156,9 @@ namespace FWO.Report
             {
                 foreach (DeviceReport deviceReport in managementReport.Devices)
                 {
-                    ruleCount = 0;
-                    ruleTreeBuilder.Reset(managementReport.Rulebases, deviceReport.RulebaseLinks);
+                    scopedRuleTreeBuilder.Reset(managementReport.Rulebases, deviceReport.RulebaseLinks);
 
-                    List<Rule> allRules = ruleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks);
+                    List<Rule> allRules = scopedRuleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks, managementReport.Id, deviceReport.Id);
 
                     Rule[] rulesArray = [.. allRules];
                     _rulesCache[(deviceReport.Id, managementReport.Id)] = rulesArray;
@@ -150,7 +169,7 @@ namespace FWO.Report
                         rulesArray.Select(r => r.Id).Except(managementReport.ReportedRuleIds)
                     );
 
-                    ruleCount += allRules.Count;
+                    ruleCount += rulesArray.Count(rule => string.IsNullOrEmpty(rule.SectionHeader));
                 }
             }
 
@@ -305,11 +324,11 @@ namespace FWO.Report
             return [];
         }
 
-        public static Rule[] GetAllRulesOfGateway(DeviceReport deviceReport, ManagementReport managementReport)
+        public static Rule[] GetAllRulesOfGateway(DeviceReport deviceReport, ManagementReport managementReport, IRuleTreeBuilder ruleTreeBuilder)
         {
-            if (_rulesCache.TryGetValue((deviceReport.Id, managementReport.Id), out Rule[]? allRules))
+            if (ruleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, deviceReport.Id), out RuleTreeItem? ruleTreeFromCache))
             {
-                return allRules;
+                return ruleTreeBuilder.FlattedRules[ruleTreeFromCache];
             }
             else
             {

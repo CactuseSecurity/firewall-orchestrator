@@ -63,6 +63,37 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Builds a connection and attempts an LDAP bind with the provided user.
+        /// </summary>
+        /// <param name="user">LDAP user name to bind with.</param>
+        /// <param name="password">LDAP password to bind with.</param>
+        /// <param name="followReferrals">Whether LDAP referrals should be followed.</param>
+        /// <returns>Connected LDAP connection that has attempted the bind.</returns>
+        private async Task<LdapConnection> GetBoundConnection(string? user, string? password, bool followReferrals = false)
+        {
+            LdapConnection connection = await Connect();
+            await TryBind(connection, user, password);
+
+            if (followReferrals)
+            {
+                EnableReferralFollowing(connection);
+            }
+
+            return connection;
+        }
+
+        /// <summary>
+        /// Enables LDAP referral following for the given connection.
+        /// </summary>
+        /// <param name="connection">LDAP connection to configure.</param>
+        private static void EnableReferralFollowing(LdapConnection connection)
+        {
+            LdapSearchConstraints constraints = connection.SearchConstraints;
+            constraints.ReferralFollowing = true;
+            connection.Constraints = constraints;
+        }
+
+        /// <summary>
         /// try an ldap bind, decrypting pwd before bind; using pwd as is if it cannot be decrypted
         /// false if bind fails
         /// </summary>
@@ -150,12 +181,7 @@ namespace FWO.Middleware.Server
             Log.WriteDebug("User Validation", $"Validating User: \"{user.Name}\" ...");
             try
             {
-                using LdapConnection connection = await Connect();
-                await TryBind(connection, SearchUser, SearchUserPwd);
-
-                LdapSearchConstraints cons = connection.SearchConstraints;
-                cons.ReferralFollowing = true;
-                connection.Constraints = cons;
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
                 List<LdapEntry> possibleUserEntries = [];
 
@@ -236,12 +262,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await Connect();
-                await TryBind(connection, SearchUser, SearchUserPwd);
-
-                LdapSearchConstraints cons = connection.SearchConstraints;
-                cons.ReferralFollowing = true;
-                connection.Constraints = cons;
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
                 // Try to read user entry directly
                 return await connection.ReadAsync(distinguishedName);
@@ -335,6 +356,36 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Determines whether the given LDAP entry represents a group object.
+        /// </summary>
+        /// <param name="entry">LDAP entry to classify.</param>
+        /// <returns>True if the entry is a group; otherwise false.</returns>
+        public static bool IsGroupEntry(LdapEntry entry)
+        {
+            return HasAttribute(entry, "member")
+                || HasAttribute(entry, "uniqueMember")
+                || HasAttribute(entry, "uniquemember")
+                || GetAttributeValues(entry, "objectClass").Any(value =>
+                    value.Equals("group", StringComparison.OrdinalIgnoreCase)
+                    || value.Equals("groupOfNames", StringComparison.OrdinalIgnoreCase)
+                    || value.Equals("groupOfUniqueNames", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool HasAttribute(LdapEntry entry, string attributeName)
+        {
+            return entry.GetAttributeSet().ContainsKey(attributeName);
+        }
+
+        private static IEnumerable<string> GetAttributeValues(LdapEntry entry, string attributeName)
+        {
+            if (entry.GetAttributeSet().ContainsKey(attributeName))
+            {
+                return entry.Get(attributeName).StringValueArray;
+            }
+            return [];
+        }
+
+        /// <summary>
         /// Get the tenant name for the given user
         /// </summary>
         /// <returns>tenant name of the given user</returns>
@@ -406,8 +457,8 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await Connect();
-                if (await TryBind(connection, WriteUser, WriteUserPwd))
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+                if (connection.Bound)
                 {
                     // authentication was successful: set new password
                     LdapAttribute attribute = new("userPassword", newPassword);
@@ -439,16 +490,10 @@ namespace FWO.Middleware.Server
 
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as search user
-                await TryBind(connection, SearchUser, SearchUserPwd);
+                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
                 // Search for Ldap users in given directory          
                 int searchScope = LdapConnection.ScopeSub;
-
-                LdapSearchConstraints cons = connection.SearchConstraints;
-                cons.ReferralFollowing = true;
-                connection.Constraints = cons;
 
                 ILdapSearchResults? searchResults = await connection.SearchAsync(UserSearchPath, searchScope, GetUserSearchFilter(searchPattern), null, false);
 
@@ -480,9 +525,7 @@ namespace FWO.Middleware.Server
             bool userAdded = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 string userName = new DistName(userDn).UserName;
                 LdapAttributeSet attributeSet = new()
@@ -526,9 +569,7 @@ namespace FWO.Middleware.Server
             bool userUpdated = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
                 LdapAttribute attribute = new("mail", email);
                 LdapModification[] mods = [new(LdapModification.Replace, attribute)];
 
@@ -561,9 +602,7 @@ namespace FWO.Middleware.Server
             bool userDeleted = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 try
                 {
@@ -644,14 +683,20 @@ namespace FWO.Middleware.Server
             };
         }
 
+        /// <summary>
+        /// Normalizes a distinguished name for safe membership comparisons across equivalent escaped forms.
+        /// </summary>
+        public static string NormalizeDnForComparison(string? dn)
+        {
+            return DistName.NormalizeDnForComparison(dn);
+        }
+
         private async Task<bool> ModifyUserInEntry(string userDn, string entry, int ldapModification)
         {
             bool userModified = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 LdapEntry? entryData;
                 try
@@ -669,10 +714,14 @@ namespace FWO.Middleware.Server
                     return false;
                 }
 
-                bool memberExists = entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
-                    && entryData.Get(UniqueMemberLowerCase)
-                             .StringValueArray
-                             .Any(m => m.Equals(userDn, StringComparison.OrdinalIgnoreCase));
+                string[] existingMembers = entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
+                    ? entryData.Get(UniqueMemberLowerCase).StringValueArray
+                    : [];
+                string normalizedRequestedDn = NormalizeDnForComparison(userDn);
+                string? matchingStoredMemberDn = existingMembers.FirstOrDefault(memberDn =>
+                    NormalizeDnForComparison(memberDn).Equals(normalizedRequestedDn, StringComparison.Ordinal));
+                bool memberExists = !string.IsNullOrWhiteSpace(matchingStoredMemberDn);
+
                 if (!ShouldModifyMembership(memberExists, ldapModification))
                 {
                     if (ldapModification == LdapModification.Add)
@@ -683,16 +732,20 @@ namespace FWO.Middleware.Server
                     {
                         Log.WriteDebug("Modify Entry", $"User {userDn} not member of {entry}");
                     }
-                    return false;
+                    // Treat no-op membership changes as success so callers can use add/remove idempotently.
+                    return true;
                 }
 
-                LdapAttribute attribute = new(UniqueMemberLowerCase, userDn);
+                string memberDnForModification = ldapModification == LdapModification.Delete
+                    ? matchingStoredMemberDn ?? userDn
+                    : userDn;
+                LdapAttribute attribute = new(UniqueMemberLowerCase, memberDnForModification);
                 LdapModification[] mods = [new(ldapModification, attribute)];
 
                 await connection.ModifyAsync(entry, mods);
                 userModified = true;
 
-                Log.WriteDebug("Modify Entry", $"User {userDn} modified in {entry}");
+                Log.WriteDebug("Modify Entry", $"User {memberDnForModification} modified in {entry}");
             }
             catch (Exception ex)
             {

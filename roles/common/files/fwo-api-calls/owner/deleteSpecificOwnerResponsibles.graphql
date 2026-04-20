@@ -1,0 +1,13 @@
+mutation deleteSpecificOwnerResponsibles(
+  $ownerId: Int!,
+  $objects: [owner_responsible_bool_exp!]!
+) {
+  delete_owner_responsible(
+    where: {
+      owner_id: { _eq: $ownerId },
+      _or: $objects
+    }
+  ) {
+    affected_rows
+  }
+}

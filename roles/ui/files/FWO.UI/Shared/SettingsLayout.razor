@@ -65,36 +65,33 @@
                         <span class="@Icons.Role"></span> @(userConfig.GetText("roles"))
                     </NavLink>
                 </li>
+                <hr />
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/owners">
+                    <h5>@(userConfig.GetText("owners"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/owners" Match="NavLinkMatch.All">
                         <span class="@Icons.Owner"></span> @(userConfig.GetText("owners"))
                     </NavLink>
-                    <ul class="navbar-nav flex-column ms-3">
-                        <li class="nav-item px-2">
-                            <NavLink class="nav-link" href="settings/owners/appdataimport">
-                                <span class="@Icons.Import"></span> @(userConfig.GetText("import_app_data"))
-                            </NavLink>
-                        </li>
-                    </ul>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/owners/responsibles">
+                        <span class="@Icons.Owner"></span> @(userConfig.GetText("responsibles"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/owners/lifecycles">
+                        <span class="@Icons.Owner"></span> @(userConfig.GetText("lifecycle_states"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/owners/appdataimport">
+                        <span class="@Icons.Import"></span> @(userConfig.GetText("import_app_data"))
+                    </NavLink>
                 </li>
                 <hr />
-                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5013"))">
-                    <h5>@(userConfig.GetText("defaults"))</h5>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/email">
-                        <span class="@Icons.Email"></span> @(userConfig.GetText("email_settings"))
-                    </NavLink>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/importer">
-                        <span class="@Icons.Import"></span> @(userConfig.GetText("importer_settings"))
-                    </NavLink>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/defaults">
-                        <span class="@Icons.Settings"></span> @(userConfig.GetText("standards"))
-                    </NavLink>
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5017"))">
+                    <h5>@(userConfig.GetText("modules"))</h5>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/reportgeneral">
@@ -112,23 +109,8 @@
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/extticketing">
-                        <span class="@Icons.Tickets"></span> @(userConfig.GetText("ext_ticketing"))
-                    </NavLink>
-                </li>
-                <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/compliance">
                         <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
-                    </NavLink>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/passwordpolicy">
-                        <span class="@Icons.Policy"></span> @(userConfig.GetText("password_policy"))
-                    </NavLink>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/customtexts">
-                        <span class="@Icons.Text"></span> @(userConfig.GetText("customize_texts"))
                     </NavLink>
                 </li>
                 <hr />
@@ -155,6 +137,50 @@
                         <span class="@Icons.Settings"></span> @(userConfig.GetText("customizing"))
                     </NavLink>
                 </li>
+                <hr />
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5013"))">
+                    <h5>@(userConfig.GetText("defaults"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/defaults">
+                        <span class="@Icons.Settings"></span> @(userConfig.GetText("standards"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/email">
+                        <span class="@Icons.Email"></span> @(userConfig.GetText("email_settings"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/importer">
+                        <span class="@Icons.Import"></span> @(userConfig.GetText("importer_settings"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/changetrigger">
+                        <span class="@Icons.Check "></span> @(userConfig.GetText("change_trigger"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/notifications">
+                        <span class="@Icons.Email"></span> @(userConfig.GetText("notifications"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/extticketing">
+                        <span class="@Icons.Tickets"></span> @(userConfig.GetText("ext_ticketing"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/passwordpolicy">
+                        <span class="@Icons.Policy"></span> @(userConfig.GetText("password_policy"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/customtexts">
+                        <span class="@Icons.Text"></span> @(userConfig.GetText("customize_texts"))
+                    </NavLink>
+                </li>            
             </AuthorizeView>
             <hr />
             <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">

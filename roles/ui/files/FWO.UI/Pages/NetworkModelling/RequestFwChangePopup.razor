@@ -1,5 +1,7 @@
+@using FWO.Compliance
 @using FWO.Data.Middleware
 @using FWO.Data.Workflow
+@using FWO.Services.Workflow
 @using FWO.Middleware.Client
 @using FWO.Report
 @using FWO.ExternalSystems.Tufin.SecureChange
@@ -242,6 +244,10 @@
 
     private string DisplayDevices(WfReqTask task)
     {
+        if (task.HasAllDevicesSelected())
+        {
+            return userConfig.GetText("all");
+        }
         List<string> DevNames = [];
         foreach (var devId in task.GetDeviceList())
         {
@@ -342,38 +348,50 @@
         WorkInProgress = true;
         try
         {
-            apiConnection.SetRole( Roles.Modeller );
-            if (PlannedAppZoneDbUpdate is not null)
+            await apiConnection.RunWithRole(Roles.Modeller, async () =>
             {
-                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
-                await appZoneHandler.UpsertAppZone(PlannedAppZoneDbUpdate);
-            }
+                if (PlannedAppZoneDbUpdate is not null)
+                {
+                    ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
+                    await appZoneHandler.UpsertAppZone(PlannedAppZoneDbUpdate);
+                }
 
-            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-            WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
-                "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler?.GetInternalStateId(ExtStates.ExtReqInitialized), "");
-            if (intTicket.Id > 0)
-            {
-                RequestInProcess = true;
-                TaskList = intTicket.Tasks;
-                await SaveTicketId(intTicket.Id);
-                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
-                    0, $"Initialized Rollout Requests (Ticket {intTicket.Id})", apiConnection, userConfig,
-                    intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
-                SubscribeTaskChanges();
-                await CreateExtRequests(intTicket);
-                await MarkConnectionsAsRequested(Connections);
-                await RefreshParent(intTicket);
-                DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
-            }
-            apiConnection.SwitchBack();
+                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+                WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
+                    "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler?.GetInternalStateId(ExtStates.ExtReqInitialized), "");
+                if (intTicket.Id > 0)
+                {
+                    RequestInProcess = true;
+                    TaskList = intTicket.Tasks;
+                    await MarkConnectionsAsRequested(Connections);
+                    await SaveTicketId(intTicket.Id);
+                    await ModellingHandlerBase.LogChange(new LogChangeRequest
+                    {
+                        ChangeType = ModellingTypes.ChangeType.InitRequests,
+                        ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
+                        ObjectId = 0,
+                        Text = $"Initialized Rollout Requests (Ticket {intTicket.Id})",
+                        ApiConnection = apiConnection,
+                        UserConfig = userConfig,
+                        ApplicationId = intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
+                        DisplayMessageInUi = DefaultInit.DoNothing,
+                        Requester = intTicket.Requester?.Name
+                    });
+                    SubscribeTaskChanges();
+                    await CreateExtRequests(intTicket);
+                    await RefreshParent(intTicket);
+                    DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
+                }
+            });
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
-            apiConnection.SwitchBack();
         }
-        WorkInProgress = false;
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private async Task MarkConnectionsAsRequested(List<ModellingConnection> Connections)
@@ -412,9 +430,18 @@
                 Log.WriteDebug("CreateExtRequest", $"External Request for Ticket {intTicket.Id.ToString()} created.");
             }
 
-            await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
-                0, $"Initialized Rollout Requests", apiConnection, userConfig,
-                intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, intTicket.Requester?.Name);
+            await ModellingHandlerBase.LogChange(new LogChangeRequest
+            {
+                ChangeType = ModellingTypes.ChangeType.InitRequests,
+                ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
+                ObjectId = 0,
+                Text = "Initialized Rollout Requests",
+                ApiConnection = apiConnection,
+                UserConfig = userConfig,
+                ApplicationId = intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
+                DisplayMessageInUi = DefaultInit.DoNothing,
+                Requester = intTicket.Requester?.Name
+            });
         }
         catch (Exception exception)
         {

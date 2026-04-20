@@ -3,11 +3,14 @@ using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Report;
 using FWO.Ui.Pages.Reporting;
+using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -18,7 +21,7 @@ namespace FWO.Test
     public class UiReportModellingParamSelectionTest
     {
         [Test]
-        public void VarianceAnalysisCollapsesMultiOwnerSelectionToDisplayedOwner()
+        public async Task VarianceAnalysisCollapsesMultiOwnerSelectionToDisplayedOwner()
         {
             await using Bunit.TestContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -27,6 +30,7 @@ namespace FWO.Test
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Admin));
             context.Services.AddSingleton<ApiConnection>(new ReportModellingParamSelectionTestApiConn());
+            context.Services.AddScoped<DomEventService>();
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
 
             FwoOwner firstOwner = new() { Id = 11, Name = "App One" };
@@ -56,7 +60,7 @@ namespace FWO.Test
             object? variables = null,
             string? operationName = null)
         {
-            await DefaultInit.DoNothing();
+            await Task.CompletedTask;
 
             if (typeof(QueryResponseType) == typeof(List<FwoOwner>))
             {

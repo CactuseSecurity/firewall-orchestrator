@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
@@ -118,8 +119,8 @@ namespace FWO.Test
         [Test]
         public void Init_CopiesGlobalDefaultForIncludeObjectChanges()
         {
-            SimulatedUserConfig userConfig = new();
-            userConfig.GlobalConfig = new() { ImpChangeIncludeObjectChanges = true };
+            SimulatedGlobalConfig globalConfig = new() { ImpChangeIncludeObjectChanges = true };
+            UserConfig userConfig = new(globalConfig, registerOnChangeHandler: false);
             ReportFilters filters = new();
 
             filters.Init(userConfig, true);

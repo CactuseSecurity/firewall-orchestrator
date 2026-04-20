@@ -49,8 +49,12 @@
                                     @change
                                 </div>
                                 <div class="col-2">
-                                    <Dropdown ElementType="string" Elements="DropdownValues" SelectedElement="@management.SelectedChanges[change]"
-                                              SelectedElementChanged="@(val => management.SelectedChanges[change] = val)" Id="@($"dropdown-{management.Id}-{change}")" />
+                                    <Dropdown ElementType="ExternalTicketSystem" Elements="extTicketSystems" SelectedElement="GetSelectedSystem(management, change)"
+                                              SelectedElementChanged="@(val => SetSelectedSystem(management, change, val))" ElementToString="sys => sys.Name" Id="@($"dropdown-{management.Id}-{change}")">
+                                        <ElementTemplate Context="sys">
+                                            @sys.Name
+                                        </ElementTemplate>
+                                    </Dropdown>
                                 </div>
                             </div>
                         }
@@ -81,6 +85,8 @@ else
     private ConfigData? configData;
 
     private List<ManagementFwConfigChangeState> managementStates = new();
+    private List<ExternalTicketSystem> extTicketSystems = new();
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,6 +94,11 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             var managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+
+            if (!string.IsNullOrWhiteSpace(configData.ExtTicketSystems))
+            {
+                extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems) ?? new List<ExternalTicketSystem>();
+            }
 
             LoadManagementStates(managements);
 
@@ -133,6 +144,25 @@ else
         }
     }
 
+    private ExternalTicketSystem? GetSelectedSystem(ManagementFwConfigChangeState management, string change)
+    {
+        if (management.SelectedChanges.TryGetValue(change, out var val) &&
+            int.TryParse(val, out int id))
+        {
+            return extTicketSystems.FirstOrDefault(s => s.Id == id);
+        }
+
+        return null;
+    }
+
+    private void SetSelectedSystem(ManagementFwConfigChangeState management, string change, ExternalTicketSystem? system)
+    {
+        if (system != null)
+        {
+            management.SelectedChanges[change] = system.Id.ToString();
+        }
+    }
+
     void ToggleManagement(ManagementFwConfigChangeState management)
     {
         management.Enabled = !management.Enabled;
@@ -164,13 +194,6 @@ else
     {
         "Object Changes",
         "Rule Changes"
-    };
-
-    private static List<string> DropdownValues { get; } = new()
-    {
-        "Direct",
-        "Ext Ticket System",
-        "Disabled"
     };
 
     private class ManagementFwConfigChangeState

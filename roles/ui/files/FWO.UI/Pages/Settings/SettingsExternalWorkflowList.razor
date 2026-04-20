@@ -103,8 +103,13 @@
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5597"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_type")):</label>
                         <div class="col-sm-4">
-                            <Dropdown ElementType="ExternalTicketSystemType" SelectedElement="editModel.Type" SelectedElementChanged="OnTypeChanged"
-                                      Elements="Enum.GetValues(typeof(ExternalTicketSystemType)).Cast<ExternalTicketSystemType>()" />
+                            <Dropdown ElementType="ExternalTicketSystemTypeDefinition" SelectedElement="selectedType" SelectedElementChanged="OnTypeChanged"
+                                      ElementToString="@(type => string.IsNullOrWhiteSpace(type.Version) ? type.Name : $"{type.Name} {type.Version}")"
+                                      Elements="availableExternalTicketTypes">
+                                <ElementTemplate Context="type">
+                                    @(string.IsNullOrWhiteSpace(type.Version) ? type.Name : $"{type.Name} {type.Version}")
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                     </div>
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
@@ -133,7 +138,7 @@
                             <input type="number" class="col-sm-6" @bind="editModel.CyclesBetweenAttempts" />
                         </div>
                     </div>
-                    @if (editModel.Type == ExternalTicketSystemType.TufinSecureChange)
+                    @if (editModel.IsTufinSecureChange())
                     {
                         <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
                         <div class="col-sm-2">
@@ -155,21 +160,13 @@
                                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
                                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
                                     <div class="col-sm-4">
-                                        <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="actTaskTypes" />
+                                        <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="AvailableTaskTypesForNewTemplate" />
                                     </div>
                                 </div>
                                 <ExtTicketTemplates Template="newTemplate" />
                             </Tab>
                         </TabSet>
                     </div>
-                    <AuthorizeView Roles="@Roles.Admin">
-                        <Authorized>
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveExternalTicketSystem">@(userConfig.GetText("save"))</button>
-                        </Authorized>
-                        <NotAuthorized>
-                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                        </NotAuthorized>
-                    </AuthorizeView>
                     <hr />
                 }
 
@@ -217,6 +214,8 @@
     private DateTime extReqStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private ExternalTicketTemplate newTemplate = new();
     private List<string> actTaskTypes = [];
+    private List<ExternalTicketSystemTypeDefinition> availableExternalTicketTypes = BuiltInExternalTicketSystemTypes.AllBuildInTicketTypes.ToList();
+    private ExternalTicketSystemTypeDefinition selectedType = BuiltInExternalTicketSystemTypes.GetById(BuiltInExternalTicketSystemTypes.GenericId);
 
 
     protected override async Task OnInitializedAsync()
@@ -228,6 +227,30 @@
             extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems) ? new List<ExternalTicketSystem>()
                                                         : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
                                                         ?? new List<ExternalTicketSystem>();
+
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getUsedMgmDeviceTypes);
+
+            foreach (Management management in managements)
+            {
+                DeviceType dbType = management.DeviceType;
+
+                if (dbType == null || dbType.Id <= 0 || string.IsNullOrWhiteSpace(dbType.Name))
+                {
+                    continue;
+                }
+
+                if (availableExternalTicketTypes.All(type => type.Id != dbType.Id))
+                {
+                    availableExternalTicketTypes.Add(new ExternalTicketSystemTypeDefinition
+                    {
+                        Id = dbType.Id,
+                        Name = dbType.Name,
+                        Version = dbType.Version,
+                        IsBuiltIn = false
+                    });
+                }
+            }
+
 
             foreach (ExternalTicketSystem system in extTicketSystems.Where(system =>
                 system.Templates.Count == 0 &&
@@ -260,7 +283,9 @@
             }
 
 
-            if (!string.IsNullOrWhiteSpace(newTemplate.TicketTemplate) || !string.IsNullOrWhiteSpace(newTemplate.TasksTemplate))
+            if ((!string.IsNullOrWhiteSpace(newTemplate.TicketTemplate) || !string.IsNullOrWhiteSpace(newTemplate.TasksTemplate)) &&
+                !string.IsNullOrWhiteSpace(newTemplate.TaskType) &&
+                editModel.Templates.All(template => template.TaskType != newTemplate.TaskType))
             {
                 editModel.Templates.Add(new ExternalTicketTemplate
                 {
@@ -271,13 +296,14 @@
             }
 
             newTemplate = new ExternalTicketTemplate();
+            SyncNewTemplateTaskType();
 
             if (curExternalTicketSystem != null)
             {
                 var system = extTicketSystems.First(x => x.Id == curExternalTicketSystem.Id);
 
                 system.Name = editModel.Name;
-                system.Type = editModel.Type;
+                system.TypeId = editModel.TypeId;
                 system.Url = editModel.Url;
                 system.ResponseTimeout = editModel.ResponseTimeout;
                 system.MaxAttempts = editModel.MaxAttempts;
@@ -349,29 +375,27 @@
         }
     }
 
-    private async Task SaveExternalTicketSystem()
+    private void InitTaskTypeList(int extTicketSystemTypeId)
     {
-
-    }
-
-    private void InitTaskTypeList(ExternalTicketSystemType extTicketSystemType)
-    {
-        switch (extTicketSystemType)
+        switch (extTicketSystemTypeId)
         {
-            case ExternalTicketSystemType.Generic:
+            case BuiltInExternalTicketSystemTypes.GenericId:
                 actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
                 break;
-            case ExternalTicketSystemType.TufinSecureChange:
+            case BuiltInExternalTicketSystemTypes.TufinSecureChangeId:
                 actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
                 break;
-            case ExternalTicketSystemType.AlgoSec:
+            case BuiltInExternalTicketSystemTypes.AlgoSecId:
                 actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
                 break;
-            case ExternalTicketSystemType.ServiceNow:
+            case BuiltInExternalTicketSystemTypes.ServiceNowId:
+                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
+                break;
+            default:
                 actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
                 break;
         }
-        newTemplate.TaskType = actTaskTypes.Count > 0 ? actTaskTypes.First() : "";
+        SyncNewTemplateTaskType();
     }
 
     private void AddExternalTicketSystem()
@@ -379,12 +403,13 @@
         curExternalTicketSystem = null;
         editModel = new ExternalTicketSystem
         {
-            Type = ExternalTicketSystemType.Generic,
+            TypeId = BuiltInExternalTicketSystemTypes.GenericId,
             Templates = new()
         };
 
         newTemplate = new ExternalTicketTemplate();
-        InitTaskTypeList(editModel.Type);
+        selectedType = ResolveSelectedType(editModel.TypeId);
+        InitTaskTypeList(editModel.TypeId);
         editMode = true;
     }
 
@@ -393,6 +418,8 @@
         curExternalTicketSystem = externalTicketSystem;
         editModel = Clone(externalTicketSystem);
         newTemplate = new ExternalTicketTemplate();
+        selectedType = ResolveSelectedType(editModel.TypeId);
+        InitTaskTypeList(editModel.TypeId);
         editMode = true;
     }
 
@@ -451,7 +478,7 @@
         {
             Id = s.Id,
             Name = s.Name,
-            Type = s.Type,
+            TypeId = s.TypeId,
             Url = s.Url,
             ResponseTimeout = s.ResponseTimeout,
             MaxAttempts = s.MaxAttempts,
@@ -476,9 +503,32 @@
         };
     }
 
-    private void OnTypeChanged(ExternalTicketSystemType t)
-        {
-        editModel.Type = t;
-        InitTaskTypeList(t);
+    private void OnTypeChanged(ExternalTicketSystemTypeDefinition type)
+    {
+        selectedType = type;
+        editModel.TypeId = type.Id;
+        InitTaskTypeList(type.Id);
+    }
+
+    private ExternalTicketSystemTypeDefinition ResolveSelectedType(int typeId)
+    {
+        return availableExternalTicketTypes.FirstOrDefault(type => type.Id == typeId)
+            ?? new ExternalTicketSystemTypeDefinition
+            {
+                Id = typeId,
+                Name = typeId.ToString(),
+                IsBuiltIn = false
+            };
+    }
+
+    private List<string> AvailableTaskTypesForNewTemplate =>
+        actTaskTypes
+            .Where(taskType => editModel.Templates.All(template => template.TaskType != taskType))
+            .ToList();
+
+    private void SyncNewTemplateTaskType()
+    {
+        List<string> availableTaskTypes = AvailableTaskTypesForNewTemplate;
+        newTemplate.TaskType = availableTaskTypes.Count > 0 ? availableTaskTypes.First() : "";
     }
 }

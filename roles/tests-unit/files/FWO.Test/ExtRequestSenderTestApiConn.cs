@@ -18,7 +18,7 @@ namespace FWO.Test
         readonly ExternalTicketSystem ticketSystem = new()
         {
             Id = 1,
-            Type = ExternalTicketSystemType.TufinSecureChange,
+            TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
             Authorization = "xyz",
             Name = "Tufin",
             Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",

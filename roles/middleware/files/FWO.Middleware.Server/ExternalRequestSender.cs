@@ -178,7 +178,7 @@ namespace FWO.Middleware.Server
         {
             ExternalTicket ticket;
 
-            if (ExtTicketSystem?.Type == ExternalTicketSystemType.TufinSecureChange)
+            if (ExtTicketSystem?.TypeId == BuiltInExternalTicketSystemTypes.TufinSecureChangeId)
             {
                 ticket = new SCTicket(ExtTicketSystem, InjScClient)
                 {
@@ -256,7 +256,7 @@ namespace FWO.Middleware.Server
             try
             {
                 ExternalTicket ticket;
-                if (ExtTicketSystem?.Type == ExternalTicketSystemType.TufinSecureChange)
+                if (ExtTicketSystem?.TypeId == BuiltInExternalTicketSystemTypes.TufinSecureChangeId)
                 {
                     ticket = new SCTicket(ExtTicketSystem, InjScClient)
                     {

@@ -1,0 +1,10 @@
+﻿query getUsedMgmDeviceTypes {
+  management(order_by: { mgm_name: asc }) {
+    id: mgm_id
+    deviceType: stm_dev_typ {
+      id: dev_typ_id
+      name: dev_typ_name
+      version: dev_typ_version
+    }
+  }
+}

@@ -26,7 +26,7 @@ namespace FWO.Middleware.Server
         private readonly WfHandler wfHandler;
         private readonly UserConfig UserConfig;
         private bool disposed = false;
-        private ExternalTicketSystemType extSystemType = ExternalTicketSystemType.Generic;
+        private int extSystemType = BuiltInExternalTicketSystemTypes.GenericId;
         private ExternalTicketSystem actSystem = new();
         private string actTaskType = "";
         private List<IpProtocol> ipProtos = [];
@@ -356,7 +356,7 @@ namespace FWO.Middleware.Server
             List<ExternalTicketSystem> extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? [];
             if (extTicketSystems.Count > 0)
             {
-                extSystemType = extTicketSystems[0].Type;
+                extSystemType = extTicketSystems[0].TypeId;
                 actSystem = extTicketSystems[0];
             }
             else
@@ -368,7 +368,7 @@ namespace FWO.Middleware.Server
         private async Task<string> ConstructContent(List<WfReqTask> reqTasks, UiUser? requester)
         {
             ExternalTicket? ticket;
-            if (extSystemType == ExternalTicketSystemType.TufinSecureChange)
+            if (extSystemType == BuiltInExternalTicketSystemTypes.TufinSecureChangeId)
             {
                 ticket = new SCTicket(actSystem)
                 {

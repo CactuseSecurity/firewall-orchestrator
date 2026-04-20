@@ -30,6 +30,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateCredential;
         public static readonly string deleteCredential;
         public static readonly string getMgmtNumberUsingCred;
+        public static readonly string getUsedMgmDeviceTypes;
 
         static DeviceQueries()
         {
@@ -74,6 +75,7 @@ namespace FWO.Api.Client.Queries
                 updateCredential = GetQueryText("device/updateCredential.graphql");
                 deleteCredential = GetQueryText("device/deleteCredential.graphql");
                 getMgmtNumberUsingCred = GetQueryText("device/getMgmtNumberUsingCred.graphql");
+                getUsedMgmDeviceTypes = GetQueryText("device/getUsedMgmDeviceTypes.graphql");
             }
             catch (Exception exception)
             {

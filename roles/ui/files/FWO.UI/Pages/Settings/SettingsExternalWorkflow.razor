@@ -61,9 +61,13 @@
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5597"))">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_type")):</label>
                 <div class="col-sm-4">
-                    <Dropdown ElementType="ExternalTicketSystemType" SelectedElement="actExtTicketSystemType"
-                              SelectedElementChanged="InitTaskTypeList"
-                              Elements="Enum.GetValues(typeof(ExternalTicketSystemType)).Cast<ExternalTicketSystemType>()" />
+                    <Dropdown ElementType="ExternalTicketSystemTypeDefinition" SelectedElement="selectedType"
+                              SelectedElementChanged="OnTypeChanged" ElementToString="@(type => type.Name)"
+                              Elements="availableTypes">
+                        <ElementTemplate Context="type">
+                            @type.Name
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593"))">
@@ -92,7 +96,7 @@
                     <input type="number" class="col-sm-6" @bind="extTicketingSystemCyclesBetweenAttempts" />
                 </div>
             </div>
-            @if (actExtTicketSystemType == ExternalTicketSystemType.TufinSecureChange)
+            @if (actExtTicketSystemTypeId == BuiltInExternalTicketSystemTypes.TufinSecureChangeId)
             {
                 <label for="cbx_ext_ticket_lookup_id" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_lookup_id")):</label>
                 <div class="col-sm-2">
@@ -150,7 +154,7 @@ else
 
     private ConfigData? configData;
     private string extTicketingSystemName = "";
-    private ExternalTicketSystemType actExtTicketSystemType = ExternalTicketSystemType.Generic;
+    private int actExtTicketSystemTypeId = BuiltInExternalTicketSystemTypes.GenericId;
     private string extTicketingSystemUrl = "";
     private int extTicketingSystemTimeout = 300;
     private int extTicketingSystemMaxAttempts = 3;
@@ -163,6 +167,8 @@ else
     private DateTime extReqStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private ExternalTicketTemplate newTemplate = new();
     private List<string> actTaskTypes = [];
+    private IReadOnlyList<ExternalTicketSystemTypeDefinition> availableTypes = BuiltInExternalTicketSystemTypes.AllBuildInTicketTypes;
+    private ExternalTicketSystemTypeDefinition selectedType = BuiltInExternalTicketSystemTypes.GetById(BuiltInExternalTicketSystemTypes.GenericId);
 
     protected override async Task OnInitializedAsync()
     {
@@ -185,8 +191,9 @@ else
             {
                 // Edit-Mode
                 extTicketingSystemName = systemToEdit.Name;
-                actExtTicketSystemType = systemToEdit.Type;
-                InitTaskTypeList(actExtTicketSystemType);
+                actExtTicketSystemTypeId = systemToEdit.TypeId;
+                selectedType = BuiltInExternalTicketSystemTypes.GetById(actExtTicketSystemTypeId);
+                InitTaskTypeList(actExtTicketSystemTypeId);
                 extTicketingSystemUrl = systemToEdit.Url;
                 extTicketingSystemTimeout = systemToEdit.ResponseTimeout;
                 extTicketingSystemMaxAttempts = systemToEdit.MaxAttempts;
@@ -199,8 +206,9 @@ else
             {
                 // Create-Mode
                 extTicketingSystemName = "";
-                actExtTicketSystemType = ExternalTicketSystemType.Generic;
-                InitTaskTypeList(actExtTicketSystemType);
+                actExtTicketSystemTypeId = BuiltInExternalTicketSystemTypes.GenericId;
+                selectedType = BuiltInExternalTicketSystemTypes.GetById(actExtTicketSystemTypeId);
+                InitTaskTypeList(actExtTicketSystemTypeId);
                 extTicketingSystemTemplates = new();
             }
         }
@@ -210,25 +218,31 @@ else
         }
     }
 
-    private void InitTaskTypeList(ExternalTicketSystemType extTicketSystemType)
+    private void InitTaskTypeList(int extTicketSystemTypeId)
     {
-        actExtTicketSystemType = extTicketSystemType;
-        switch (extTicketSystemType)
+        actExtTicketSystemTypeId = extTicketSystemTypeId;
+        switch (extTicketSystemTypeId)
         {
-            case ExternalTicketSystemType.Generic:
+            case BuiltInExternalTicketSystemTypes.GenericId:
                 actTaskTypes = [];
                 break;
-            case ExternalTicketSystemType.TufinSecureChange:
+            case BuiltInExternalTicketSystemTypes.TufinSecureChangeId:
                 actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
                 break;
-            case ExternalTicketSystemType.AlgoSec:
+            case BuiltInExternalTicketSystemTypes.AlgoSecId:
                 actTaskTypes = [];
                 break;
-            case ExternalTicketSystemType.ServiceNow:
+            case BuiltInExternalTicketSystemTypes.ServiceNowId:
                 actTaskTypes = [];
                 break;
         }
         newTemplate.TaskType = actTaskTypes.Count > 0 ? actTaskTypes.First() : "";
+    }
+
+    private void OnTypeChanged(ExternalTicketSystemTypeDefinition type)
+    {
+        selectedType = type;
+        InitTaskTypeList(type.Id);
     }
 
     private async Task Save()
@@ -259,7 +273,7 @@ else
             {
                 system = extTicketSystems.First(s => s.Id == Id.Value);
                 system.Name = extTicketingSystemName;
-                system.Type = actExtTicketSystemType;
+                system.TypeId = actExtTicketSystemTypeId;
                 system.Url = extTicketingSystemUrl;
                 system.ResponseTimeout = extTicketingSystemTimeout;
                 system.MaxAttempts = extTicketingSystemMaxAttempts;
@@ -276,7 +290,7 @@ else
                 {
                     Id = nextId,
                     Name = extTicketingSystemName,
-                    Type = actExtTicketSystemType,
+                    TypeId = actExtTicketSystemTypeId,
                     Url = extTicketingSystemUrl,
                     ResponseTimeout = extTicketingSystemTimeout,
                     MaxAttempts = extTicketingSystemMaxAttempts,
@@ -323,5 +337,3 @@ else
         Navigation.NavigateTo("/settings/direct");
     }
 }
-
-

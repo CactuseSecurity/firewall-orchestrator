@@ -70,6 +70,12 @@ namespace FWO.Middleware.Server
         public Dictionary<string, List<string>>? Responsibles { get; set; } = [];
 
         /// <summary>
+        /// Additional owner metadata imported from customization sources.
+        /// </summary>
+        [JsonProperty("additional_information"), JsonPropertyName("additional_information")]
+        public Dictionary<string, string>? AdditionalInformation { get; set; }
+
+        /// <summary>
         /// Source of App import
         /// </summary>
         [JsonProperty("import_source"), JsonPropertyName("import_source")]

@@ -342,6 +342,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public void EditOwner_NormalizeDnForRoleComparison_NormalizesHexEscapedComma()
+        {
+            string dnUser = @"CN=Mustermann\2C\20Max,OU=Users,DC=example,DC=com";
+
+            string normalized = (string)GetPrivateStaticMethod("NormalizeDnForRoleComparison").Invoke(null, [dnUser])!;
+
+            Assert.That(normalized, Is.EqualTo(@"CN=Mustermann\,\20Max,OU=Users,DC=example,DC=com"));
+        }
+
+        [Test]
+        public void EditOwner_NormalizeDnForRoleComparison_LeavesBackslashEscapedCommaUntouched()
+        {
+            string dnUser = @"CN=Mustermann\, Max,OU=Users,DC=example,DC=com";
+
+            string normalized = (string)GetPrivateStaticMethod("NormalizeDnForRoleComparison").Invoke(null, [dnUser])!;
+
+            Assert.That(normalized, Is.EqualTo(dnUser));
+        }
+
+        [Test]
         public void EditOwner_ParseRolesWithImport_ParsesLegacyArrayToSupportingType()
         {
             string rolesJson = "[\"modeller\", \"recertifier\"]";

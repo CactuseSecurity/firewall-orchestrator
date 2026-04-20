@@ -28,7 +28,15 @@
                     <li class="list-group-item">
                         <div class="mb-1">@(userConfig.GetText("export_as"))</div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="reportExportPdf" @bind="ExportPdf">
+                            @if (PdfAvailable())
+                            {
+                                <input class="form-check-input" type="checkbox" id="reportExportPdf" @bind="ExportPdf">
+                            }
+                            else
+                            {
+                                ExportPdf = false;
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportPdf">
+                            }
                             <label class="form-check-label" for="reportExportPdf">
                                 PDF
                             </label>
@@ -56,7 +64,15 @@
                             }
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
+                            @if (HtmlAvailable())
+                            {
+                                <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
+                            }
+                            else
+                            {
+                                ExportHtml = false;
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportHtml">
+                            }
                             <label class="form-check-label" for="reportExportHtml">
                                 HTML
                             </label>
@@ -152,6 +168,24 @@
         }
     }
 
+    /// <summary>
+    /// Determines whether HTML export is available for the current report.
+    /// </summary>
+    private bool HtmlAvailable()
+    {
+        return ReportToExport is ReportBase report
+            && report.ReportType.SupportsHtmlExport();
+    }
+
+    /// <summary>
+    /// Determines whether PDF export is available for the current report.
+    /// </summary>
+    private bool PdfAvailable()
+    {
+        return ReportToExport is ReportBase report
+            && report.ReportType.SupportsPdfExport();
+    }
+
     private async Task Export()
     {
         if (reportExportFile.Sanitize())
@@ -169,12 +203,12 @@
                         await ReportToExport.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
                     }
 
-                    if (ExportHtml)
+                    if (ExportHtml && HtmlAvailable())
                     {
                         reportExportFile.Html = ReportToExport.ExportToHtml();
                     }
 
-                    if (ExportPdf)
+                    if (ExportPdf && PdfAvailable())
                     {
                         ReportToExport.CustomHeight = PaperSizeHeight;
                         ReportToExport.CustomWidth = PaperSizeWidth;
@@ -184,7 +218,7 @@
                         
                     }
 
-                    if (ExportCsv)
+                    if (ExportCsv && csvAvailable())
                     {
                         reportExportFile.Csv = ReportToExport.ExportToCsv();
                     }

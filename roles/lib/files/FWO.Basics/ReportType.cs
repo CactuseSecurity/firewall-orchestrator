@@ -147,7 +147,24 @@ namespace FWO.Basics
         {
             return reportType.IsResolvedReport()
                 || reportType.IsComplianceReport()
+                || reportType == ReportType.OwnerRecertification
                 || reportType.IsWorkflowReport() && !detailedView;
+        }
+
+        /// <summary>
+        /// Determines whether a report type supports HTML export.
+        /// </summary>
+        public static bool SupportsHtmlExport(this ReportType reportType)
+        {
+            return !reportType.IsComplianceReport();
+        }
+
+        /// <summary>
+        /// Determines whether a report type supports PDF export.
+        /// </summary>
+        public static bool SupportsPdfExport(this ReportType reportType)
+        {
+            return reportType.SupportsHtmlExport();
         }
 
         public static List<ReportType> AllReportTypes()

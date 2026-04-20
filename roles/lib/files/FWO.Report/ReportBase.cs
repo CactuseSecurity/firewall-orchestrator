@@ -226,6 +226,11 @@ namespace FWO.Report
             return $"<span class=\"{symbol}\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"{linkAddress}\" target=\"_top\" style=\"{style}\">{name}</a>";
         }
 
+        protected static string OutputCsv(string? input)
+        {
+            return $"\"{input?.Replace("\"", "\"\"") ?? ""}\",";
+        }
+
         protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? otherFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
         {
             if (string.IsNullOrEmpty(htmlExport))

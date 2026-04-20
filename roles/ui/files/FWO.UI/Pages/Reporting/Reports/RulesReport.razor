@@ -1,4 +1,4 @@
-﻿@using FWO.Report
+@using FWO.Report
 @using FWO.Report.Data
 @using FWO.Ui.Display
 @using FWO.Services.RuleTreeBuilder
@@ -31,7 +31,7 @@
                 {
                     @if (device.ContainsRules() && _ruleDisplay != null)
                     {
-                        <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
+                        <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true" Class="py-1">
                             <Table SelectedItems="new List<RuleTreeItem>()"
                                 RowClickAction="@(async ruleTreeItem => 
                                 {

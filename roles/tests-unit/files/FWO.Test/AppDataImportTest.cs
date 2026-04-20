@@ -1092,6 +1092,31 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SaveApp_ForwardsAdditionalInformationToOwnerMutations()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetExistingApps(import, []);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-Info",
+                ExtAppId = "APP-INFO",
+                ImportSource = "SRC-INFO",
+                AdditionalInformation = new Dictionary<string, string>
+                {
+                    ["cost_center"] = "4711",
+                    ["owner_type"] = "shared"
+                }
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewOwnerAdditionalInfo, Is.Not.Null);
+            Assert.That(apiConn.LastNewOwnerAdditionalInfo, Is.EqualTo(incomingApp.AdditionalInformation));
+        }
+
+        [Test]
         public async Task SaveApp_ClearsDecommDate_WhenLifecycleStateChangesToActive()
         {
             AppDataImportSaveAppApiConn apiConn = new();
@@ -1900,6 +1925,8 @@ namespace FWO.Test
             public Dictionary<(int ownerId, string importSource), List<ModellingAppServer>> AppServersByOwner { get; } = [];
             public DateTime? LastNewOwnerDecommDate { get; private set; }
             public DateTime? LastUpdateOwnerDecommDate { get; private set; }
+            public Dictionary<string, string>? LastNewOwnerAdditionalInfo { get; private set; }
+            public Dictionary<string, string>? LastUpdateOwnerAdditionalInfo { get; private set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
             {
@@ -1907,6 +1934,7 @@ namespace FWO.Test
                 {
                     ++NewOwnerCalls;
                     LastNewOwnerDecommDate = GetAnonymousDateTime(variables, "decommDate");
+                    LastNewOwnerAdditionalInfo = GetAnonymousStringDictionary(variables, "additionalInfo");
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { NewId = 1 }]
@@ -1917,6 +1945,7 @@ namespace FWO.Test
                 {
                     ++UpdateOwnerCalls;
                     LastUpdateOwnerDecommDate = GetAnonymousDateTime(variables, "decommDate");
+                    LastUpdateOwnerAdditionalInfo = GetAnonymousStringDictionary(variables, "additionalInfo");
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { NewId = 1 }]
@@ -2024,6 +2053,21 @@ namespace FWO.Test
                 }
                 object? value = property.GetValue(variables);
                 return value as string ?? "";
+            }
+
+            private static Dictionary<string, string>? GetAnonymousStringDictionary(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return null;
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null)
+                {
+                    return null;
+                }
+                object? value = property.GetValue(variables);
+                return value as Dictionary<string, string>;
             }
         }
 

@@ -364,11 +364,6 @@ namespace FWO.Report
             return report.ToString();
         }
 
-        private static string OutputCsv(string? input)
-        {
-            return $"\"{input?.Replace("\"", "\"\"") ?? ""}\",";
-        }
-
         private string GetLabelValue(WfTicket ticket)
         {
             if (!HasLabelColumn())

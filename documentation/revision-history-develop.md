@@ -388,3 +388,9 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.18 - 03.04.2026 DEVELOP
 - add new column automatic_only to workflow states
+
+# 9.0.19 - 09.04.2026 DEVELOP
+- add owner additional_info jsonb field including owner edit UI support
+
+# 9.0.20 - 11.04.2026 DEVELOP
+- extend notification handling

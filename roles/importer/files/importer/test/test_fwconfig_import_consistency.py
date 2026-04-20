@@ -1,4 +1,3 @@
-import pytest
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
@@ -50,7 +49,7 @@ class TestCheckConsistencyColors:
             rules_per_rulebase_count=10,
         )
 
-        nw_obj = MockObjectsFactory.add_standard_network_host_object(config)
+        nw_obj = fwconfig_builder.add_standard_network_host_object(config)
         nw_obj.obj_color = "nonexistent_color"
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -76,7 +75,7 @@ class TestCheckConsistencyColors:
             rules_per_rulebase_count=10,
         )
 
-        nw_obj = MockObjectsFactory.add_standard_network_host_object(config)
+        nw_obj = fwconfig_builder.add_standard_network_host_object(config)
         nw_obj.obj_color = "nonexistent_color"
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -101,7 +100,7 @@ class TestCheckConsistencyColors:
             rules_per_rulebase_count=10,
         )
 
-        nw_obj = MockObjectsFactory.add_standard_network_host_object(config)
+        nw_obj = fwconfig_builder.add_standard_network_host_object(config)
         nw_obj.obj_color = "red"
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -124,7 +123,7 @@ class TestCheckConsistencyColors:
             rules_per_rulebase_count=10,
         )
 
-        svc_obj = MockObjectsFactory.add_standard_service_object(config)
+        svc_obj = fwconfig_builder.add_standard_service_object(config)
         svc_obj.svc_color = "nonexistent_color"
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -150,7 +149,7 @@ class TestCheckConsistencyColors:
             rules_per_rulebase_count=10,
         )
 
-        svc_obj = MockObjectsFactory.add_standard_service_object(config)
+        svc_obj = fwconfig_builder.add_standard_service_object(config)
         svc_obj.svc_color = "nonexistent_color"
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -198,7 +197,7 @@ class TestCheckConsistencyNetworkObjects:
         )
         # Introduce an inconsistency by referencing a non-existent network object
 
-        nw_obj = MockObjectsFactory.add_standard_network_host_object(config)
+        nw_obj = fwconfig_builder.add_standard_network_host_object(config)
         nw_obj.obj_typ = "DoesNotExist"
 
         manager_controller = FwConfigManagerListController()
@@ -228,8 +227,8 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        nw_obj = MockObjectsFactory.add_standard_network_host_object(config)
-        MockObjectsFactory.add_standard_network_group_object(config, [nw_obj])
+        nw_obj = fwconfig_builder.add_standard_network_host_object(config)
+        fwconfig_builder.add_standard_network_group_object(config, [nw_obj])
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -253,9 +252,9 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        nw_obj1 = MockObjectsFactory.add_standard_network_host_object(config, index=1)
-        nw_obj2 = MockObjectsFactory.add_standard_network_host_object(config, index=2)
-        MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[nw_obj1, nw_obj2])
+        nw_obj1 = fwconfig_builder.add_standard_network_host_object(config)
+        nw_obj2 = fwconfig_builder.add_standard_network_host_object(config)
+        fwconfig_builder.add_standard_network_group_object(config, obj_members=[nw_obj1, nw_obj2])
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
         )
@@ -266,7 +265,6 @@ class TestCheckConsistencyNetworkObjects:
 
         assert len(consistency_checker.issues) == 0
 
-    @pytest.mark.skip(reason="Currently, circular references are not detected.")
     def test_check_network_object_consistency_with_group_referencing_itself(
         self,
         import_state_controller: ImportStateController,
@@ -279,7 +277,7 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        nw_group_obj = MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[])
+        nw_group_obj = fwconfig_builder.add_standard_network_group_object(config, obj_members=[])
         nw_group_obj.obj_member_refs = nw_group_obj.obj_uid  # Circular reference
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -291,7 +289,36 @@ class TestCheckConsistencyNetworkObjects:
         )
 
         assert len(consistency_checker.issues) == 1
-        assert consistency_checker.issues == {"circularNwObjRefs": ["GroupObject"]}
+        assert consistency_checker.issues == {"circularNwObjRefs": [nw_group_obj.obj_uid]}
+
+    def test_check_network_object_consistency_with_two_groups_circular_reference(
+        self,
+        import_state_controller: ImportStateController,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        group_a = fwconfig_builder.add_standard_network_group_object(config, obj_members=[])
+        group_b = fwconfig_builder.add_standard_network_group_object(config, obj_members=[])
+
+        group_a.obj_member_refs = group_b.obj_uid
+        group_b.obj_member_refs = group_a.obj_uid
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_state=import_state_controller.state,
+        )
+
+        consistency_checker.check_network_object_consistency(
+            config=config, global_config=None, fix_unresolvable_refs=False
+        )
+
+        assert len(consistency_checker.issues) == 1
+        assert set(consistency_checker.issues["circularNwObjRefs"]) == {group_a.obj_uid, group_b.obj_uid}
 
     def test_check_network_object_consistency_with_empty_group(
         self,
@@ -305,7 +332,7 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[])
+        fwconfig_builder.add_standard_network_group_object(config, obj_members=[])
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -329,7 +356,7 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        nw_group_obj = MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[])
+        nw_group_obj = fwconfig_builder.add_standard_network_group_object(config, obj_members=[])
         nw_group_obj.obj_member_refs = "NonExistentHost"
 
         manager_controller = FwConfigManagerListController()
@@ -357,8 +384,8 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        valid_nw_obj = MockObjectsFactory.add_standard_network_host_object(config, index=1)
-        group_obj = MockObjectsFactory.add_standard_network_group_object(config, index=1, obj_members=[valid_nw_obj])
+        valid_nw_obj = fwconfig_builder.add_standard_network_host_object(config)
+        group_obj = fwconfig_builder.add_standard_network_group_object(config, obj_members=[valid_nw_obj])
         group_obj.obj_member_refs += "|InvalidHost"  # pyright: ignore[reportOperatorIssue]
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -382,7 +409,7 @@ class TestCheckConsistencyNetworkObjects:
             rules_per_rulebase_count=10,
         )
 
-        nw_obj = MockObjectsFactory.add_standard_network_host_object(config)
+        nw_obj = fwconfig_builder.add_standard_network_host_object(config)
         nw_obj.obj_ip = None
         nw_obj.obj_ip_end = None
 
@@ -409,8 +436,8 @@ class TestCheckConsistencyServiceObjects:
             rules_per_rulebase_count=10,
         )
 
-        svc_obj = MockObjectsFactory.add_standard_service_object(config)
-        MockObjectsFactory.add_standard_service_group_object(config, [svc_obj])
+        svc_obj = fwconfig_builder.add_standard_service_object(config)
+        fwconfig_builder.add_standard_service_group_object(config, [svc_obj])
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -434,7 +461,7 @@ class TestCheckConsistencyServiceObjects:
             rules_per_rulebase_count=10,
         )
 
-        svc_group_obj = MockObjectsFactory.add_standard_service_group_object(config)
+        svc_group_obj = fwconfig_builder.add_standard_service_group_object(config)
         svc_group_obj.svc_member_refs = "NonExistentService"
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -459,7 +486,7 @@ class TestCheckConsistencyServiceObjects:
             rules_per_rulebase_count=10,
         )
 
-        svc_obj = MockObjectsFactory.add_standard_service_object(config)
+        svc_obj = fwconfig_builder.add_standard_service_object(config)
         svc_obj.svc_typ = "DoesNotExist"
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -484,8 +511,8 @@ class TestCheckConsistencyServiceObjects:
             rules_per_rulebase_count=10,
         )
 
-        MockObjectsFactory.add_standard_service_object(config, index=1)
-        MockObjectsFactory.add_standard_service_object(config, index=2)
+        fwconfig_builder.add_standard_service_object(config)
+        fwconfig_builder.add_standard_service_object(config)
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -496,7 +523,6 @@ class TestCheckConsistencyServiceObjects:
         )
         assert len(consistency_checker.issues) == 0
 
-    @pytest.mark.skip(reason="Currently, circular references are not detected.")
     def test_check_service_object_consistency_with_group_referencing_itself(
         self,
         import_state_controller: ImportStateController,
@@ -509,7 +535,7 @@ class TestCheckConsistencyServiceObjects:
             rules_per_rulebase_count=10,
         )
 
-        svc_group_obj = MockObjectsFactory.add_standard_service_group_object(config)
+        svc_group_obj = fwconfig_builder.add_standard_service_group_object(config)
         svc_group_obj.svc_member_refs = svc_group_obj.svc_uid  # Circular reference
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -520,7 +546,35 @@ class TestCheckConsistencyServiceObjects:
             config=config, global_config=None, fix_inconsistencies=False
         )
         assert len(consistency_checker.issues) == 1
-        assert consistency_checker.issues == {"circularSvcObjRefs": ["GroupObject"]}
+        assert consistency_checker.issues == {"circularSvcObjRefs": [svc_group_obj.svc_uid]}
+
+    def test_check_service_object_consistency_with_two_groups_circular_reference(
+        self,
+        import_state_controller: ImportStateController,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        group_a = fwconfig_builder.add_standard_service_group_object(config)
+        group_b = fwconfig_builder.add_standard_service_group_object(config)
+
+        group_a.svc_member_refs = group_b.svc_uid
+        group_b.svc_member_refs = group_a.svc_uid
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_state=import_state_controller.state,
+        )
+
+        consistency_checker.check_service_object_consistency(
+            config=config, global_config=None, fix_inconsistencies=False
+        )
+        assert len(consistency_checker.issues) == 1
+        assert set(consistency_checker.issues["circularSvcObjRefs"]) == {group_a.svc_uid, group_b.svc_uid}
 
     def test_check_service_object_consistency_with_empty_group(
         self,
@@ -534,7 +588,7 @@ class TestCheckConsistencyServiceObjects:
             rules_per_rulebase_count=10,
         )
 
-        svc_group_obj = MockObjectsFactory.add_standard_service_group_object(config)
+        svc_group_obj = fwconfig_builder.add_standard_service_group_object(config)
         svc_group_obj.svc_member_refs = ""
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -558,10 +612,10 @@ class TestCheckConsistencyServiceObjects:
             rules_per_rulebase_count=10,
         )
 
-        MockObjectsFactory.add_standard_service_object(config, index=1)
+        svc_obj = fwconfig_builder.add_standard_service_object(config)
 
-        svc_group_obj = MockObjectsFactory.add_standard_service_group_object(config, index=1)
-        svc_group_obj.svc_member_refs = "ServiceObject1|InvalidService"
+        svc_group_obj = fwconfig_builder.add_standard_service_group_object(config)
+        svc_group_obj.svc_member_refs = f"{svc_obj.svc_uid}|InvalidService"
 
         consistency_checker = FwConfigImportCheckConsistency(
             import_state=import_state_controller.state,
@@ -598,7 +652,6 @@ class TestCheckUserObjectConsistency:
         )
         assert len(consistency_checker.issues) == 0
 
-    @pytest.mark.skip(reason="Currently, unresolvable user objects are not detected.")
     def test_check_user_object_unresolvable_object(
         self,
         fwconfig_builder: FwConfigBuilder,
@@ -629,11 +682,90 @@ class TestCheckUserObjectConsistency:
             import_state=import_state_controller.state,
         )
 
-        consistency_checker.check_service_object_consistency(
-            config=config, global_config=None, fix_inconsistencies=False
+        consistency_checker.check_user_object_consistency(
+            config=config, global_config=None, fix_unresolvable_refs=False
         )
         assert len(consistency_checker.issues) == 1
-        assert consistency_checker.issues == {"unresolvableUserObjTypes": ["DoesNotExist"]}
+        assert consistency_checker.issues == {"unresolvableUserObjRefs": ["DoesNotExist"]}
+
+    def test_check_user_object_circular_reference(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+    ):
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+            user_object_count=1,
+            user_group_object_count=2,
+            user_group_object_member_count=2,
+        )
+
+        group = {
+            "user_typ": "group",
+            "user_uid": "GroupWithCircularRef",
+            "user_name": "GroupWithCircularRef",
+            "user_member_names": "GroupWithCircularRef",
+            "user_member_refs": "GroupWithCircularRef",
+        }
+
+        config.users["GroupWithCircularRef"] = group
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_state=import_state_controller.state,
+        )
+
+        consistency_checker.check_user_object_consistency(
+            config=config, global_config=None, fix_unresolvable_refs=False
+        )
+        assert len(consistency_checker.issues) == 1
+        assert consistency_checker.issues == {"circularUserObjRefs": ["GroupWithCircularRef"]}
+
+    def test_check_user_object_with_two_groups_circular_reference(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+    ):
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+            user_object_count=1,
+            user_group_object_count=2,
+            user_group_object_member_count=2,
+        )
+
+        group_a = {
+            "user_typ": "group",
+            "user_uid": "GroupA",
+            "user_name": "GroupA",
+            "user_member_names": "GroupB",
+            "user_member_refs": "GroupB",
+        }
+
+        group_b = {
+            "user_typ": "group",
+            "user_uid": "GroupB",
+            "user_name": "GroupB",
+            "user_member_names": "GroupA",
+            "user_member_refs": "GroupA",
+        }
+
+        config.users["GroupA"] = group_a
+        config.users["GroupB"] = group_b
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_state=import_state_controller.state,
+        )
+
+        consistency_checker.check_user_object_consistency(
+            config=config, global_config=None, fix_unresolvable_refs=False
+        )
+        assert len(consistency_checker.issues) == 1
+        assert set(consistency_checker.issues["circularUserObjRefs"]) == {"GroupA", "GroupB"}
 
 
 class TestRulebaseConsistency:

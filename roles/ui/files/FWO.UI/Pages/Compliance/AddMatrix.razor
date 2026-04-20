@@ -1,4 +1,7 @@
-﻿@using System.Text.Json
+@using System.Text.Json
+@using FWO.Data.Logging
+@using FWO.Services.Logging
+@using FWO.Services
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
 
@@ -66,6 +69,15 @@
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion, new { name = MatrixName, criterionType = CriterionType.Matrix.ToString() })).ReturnIds;
                 if(returnIds != null && returnIds.Length > 0)
                 {
+                    await ChangeLogHelper.LogMatrixChange(new MatrixChangeLogRequest
+                    {
+                        Family = ChangeLogFamily.Manual,
+                        Operation = ChangeLogOperation.Create,
+                        MatrixId = returnIds[0].InsertedId,
+                        MatrixName = MatrixName,
+                        UserId = userConfig.User.DbId.ToString(),
+                        Origin = ChangeLogOrigin.UiSettings
+                    });
                     _ = RefreshParent(new(){ Id = returnIds[0].InsertedId, Name = MatrixName, CriterionType = CriterionType.Matrix.ToString() });
                 }
                 Close();

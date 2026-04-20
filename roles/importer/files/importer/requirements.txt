@@ -5,7 +5,7 @@ python-dateutil>=2.8
 netaddr>=1.0
 
 # Crypto (AES/CBC via cryptography.hazmat)
-cryptography>=40.0
+cryptography>=46.0.7
 
 # HTTP / GraphQL stack
 # Note: Requests >=2.32.0 is compatible with urllib3 2.x
@@ -18,7 +18,7 @@ scrapli>=2025.01.30
 scrapli-community>=2025.01.30
 
 # Test
-pytest>=9.0
+pytest>=9.0.3
 pytest-mock>=3.0
 
 # Linting

@@ -5,7 +5,7 @@
 @using System.Net
 
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
@@ -27,7 +27,7 @@
                     @if(userAndGroupList.Count > 0 && selectedUserGroup != null && selectedUserGroup.Dn != origAssignedGroup)
                     {
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
+                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="PerformAssign" @onclick:preventDefault>
                                         @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
@@ -48,7 +48,7 @@
                         <label for="backAssignedGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("back_to")):</label>
                         <label id="backAssignedGroup" class="col-sm-8">@StatefulObject.RecentHandler.Name</label>
                         <div class="col-sm-2">
-                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
+                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-success" @onclick="PerformAssignBack" @onclick:preventDefault>
                                         @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>

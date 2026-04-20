@@ -163,24 +163,25 @@
     {
         try
         {
-            apiConnection.SetRole(Roles.Admin);
-            if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = ActServiceGroup.Id })).AffectedRows > 0)
+            await apiConnection.RunWithRole(Roles.Admin, async () =>
             {
-                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = ActServiceGroup.Id })).AffectedRows > 0)
                 {
-                    ChangeType = ModellingTypes.ChangeType.Delete,
-                    ObjectType = ModellingTypes.ModObjectType.ServiceGroup,
-                    ObjectId = ActServiceGroup.Id,
-                    Text = $"Deleted Predefined Service Group: {ActServiceGroup.Display()}",
-                    ApiConnection = apiConnection,
-                    UserConfig = userConfig,
-                    ApplicationId = null,
-                    DisplayMessageInUi = DisplayMessageInUi
-                });
-                PredefServiceGroups.Remove(ActServiceGroup);
-                DeleteSvcGrpMode = false;
-            }
-            apiConnection.SwitchBack();
+                    await ModellingHandlerBase.LogChange(new LogChangeRequest
+                    {
+                        ChangeType = ModellingTypes.ChangeType.Delete,
+                        ObjectType = ModellingTypes.ModObjectType.ServiceGroup,
+                        ObjectId = ActServiceGroup.Id,
+                        Text = $"Deleted Predefined Service Group: {ActServiceGroup.Display()}",
+                        ApiConnection = apiConnection,
+                        UserConfig = userConfig,
+                        ApplicationId = null,
+                        DisplayMessageInUi = DisplayMessageInUi
+                    });
+                    PredefServiceGroups.Remove(ActServiceGroup);
+                    DeleteSvcGrpMode = false;
+                }
+            });
         }
         catch (Exception exception)
         {

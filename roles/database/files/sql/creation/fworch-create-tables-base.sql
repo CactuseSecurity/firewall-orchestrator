@@ -471,8 +471,12 @@ create table notification
 	initial_offset_after_deadline int,
 	repeat_offset_after_deadline int,
 	repetitions_after_deadline int,
-	last_sent Timestamp
-);
+	last_sent Timestamp,
+	email_body Varchar,
+	schedule_id Integer,
+	bundle_type Varchar,
+	bundle_id Varchar
+ );
 
 -- configuration
 
@@ -519,4 +523,3 @@ create table time_object
     created BIGINT,
     removed BIGINT
 );
-

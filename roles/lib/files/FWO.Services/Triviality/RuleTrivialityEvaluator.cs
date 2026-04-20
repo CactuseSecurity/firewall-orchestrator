@@ -1,5 +1,5 @@
+using FWO.Basics;
 using FWO.Data;
-using FWO.Data.Modelling;
 using FWO.Data.Networking;
 
 namespace FWO.Services.Triviality
@@ -11,19 +11,11 @@ namespace FWO.Services.Triviality
     {
         public const string BroadNetworkObjectReason = "BroadNetworkObject";
         public const string BidirectionalDuplicateReason = "BidirectionalDuplicate";
+        public const string ForbidZonesAsDestinationReason = "ForbidZonesAsDestination";
+        public const string ForbidZonesAsSourceReason = "ForbidZonesAsSource";
         public const string Ipv6NotSupportedReason = "IPv6NotSupported";
-        public const string ZoneObjectUsageReason = "ZoneObjectUsage";
 
-        private readonly RuleRecognitionOption _ruleRecognitionOption = new();
         private readonly NetworkObjectRangeAnalyzer _rangeAnalyzer = new();
-        private readonly NetworkObjectComparer _networkObjectComparer;
-        private readonly NetworkServiceComparer _networkServiceComparer;
-
-        public RuleTrivialityEvaluator()
-        {
-            _networkObjectComparer = new(_ruleRecognitionOption);
-            _networkServiceComparer = new(_ruleRecognitionOption);
-        }
 
         /// <summary>
         /// Evaluates whether the rule remains trivial under a minimum IPv4 prefix-length criterion.
@@ -63,11 +55,11 @@ namespace FWO.Services.Triviality
         }
 
         /// <summary>
-        /// Evaluates whether an active accept rule has an identical reverse-direction counterpart.
+        /// Evaluates whether an active accept rule has an identical reverse-direction counterpart in the provided index.
         /// </summary>
-        public TrivialityCheckResult EvaluateBidirectionalDuplicateCriterion(Rule rule, IEnumerable<Rule> candidateRules)
+        public TrivialityCheckResult EvaluateBidirectionalDuplicateCriterion(Rule rule, RuleBidirectionalDuplicateIndex duplicateIndex)
         {
-            if (rule.Disabled || rule.Action != FWO.Basics.RuleActions.Accept)
+            if (rule.Disabled || rule.Action != RuleActions.Accept)
             {
                 return new()
                 {
@@ -75,36 +67,13 @@ namespace FWO.Services.Triviality
                 };
             }
 
-            List<NetworkObject> sourceObjects = FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object));
-            List<NetworkObject> destinationObjects = FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object));
-            List<NetworkService> services = FlattenRuleServices(rule.Services.Select(service => service.Content));
-
-            foreach (Rule candidateRule in candidateRules)
+            if (duplicateIndex.HasReverseDuplicate(rule))
             {
-                if (ReferenceEquals(candidateRule, rule)
-                    || (rule.Id > 0 && candidateRule.Id == rule.Id)
-                    || (!string.IsNullOrEmpty(rule.Uid) && rule.Uid == candidateRule.Uid)
-                    || candidateRule.Disabled
-                    || candidateRule.Action != FWO.Basics.RuleActions.Accept
-                    || candidateRule.MgmtId != rule.MgmtId)
+                return new()
                 {
-                    continue;
-                }
-
-                List<NetworkObject> candidateSources = FlattenRuleNetworkObjects(candidateRule.Froms.Select(source => source.Object));
-                List<NetworkObject> candidateDestinations = FlattenRuleNetworkObjects(candidateRule.Tos.Select(destination => destination.Object));
-                List<NetworkService> candidateServices = FlattenRuleServices(candidateRule.Services.Select(service => service.Content));
-
-                if (ObjectSetsMatch(sourceObjects, candidateDestinations)
-                    && ObjectSetsMatch(destinationObjects, candidateSources)
-                    && ServiceSetsMatch(services, candidateServices))
-                {
-                    return new()
-                    {
-                        IsTrivial = false,
-                        Reason = BidirectionalDuplicateReason
-                    };
-                }
+                    IsTrivial = false,
+                    Reason = BidirectionalDuplicateReason
+                };
             }
 
             return new()
@@ -114,19 +83,36 @@ namespace FWO.Services.Triviality
         }
 
         /// <summary>
-        /// Evaluates whether the rule directly uses a zone object in source or destination.
+        /// Evaluates whether the rule directly uses a zone object in source.
         /// </summary>
-        public TrivialityCheckResult EvaluateZoneObjectCriterion(Rule rule)
+        public TrivialityCheckResult EvaluateZoneObjectAsSourceCriterion(Rule rule)
         {
-            bool containsZoneObject =
-                FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object)).Any(IsZoneObject)
-                || FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object)).Any(IsZoneObject);
+            bool containsZoneObject = FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object)).Any(IsZoneObject);
 
             return containsZoneObject
                 ? new()
                 {
                     IsTrivial = false,
-                    Reason = ZoneObjectUsageReason
+                    Reason = ForbidZonesAsSourceReason
+                }
+                : new()
+                {
+                    IsTrivial = true
+                };
+        }
+
+        /// <summary>
+        /// Evaluates whether the rule directly uses a zone object in destination.
+        /// </summary>
+        public TrivialityCheckResult EvaluateZoneObjectAsDestinationCriterion(Rule rule)
+        {
+            bool containsZoneObject = FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object)).Any(IsZoneObject);
+
+            return containsZoneObject
+                ? new()
+                {
+                    IsTrivial = false,
+                    Reason = ForbidZonesAsDestinationReason
                 }
                 : new()
                 {
@@ -142,32 +128,6 @@ namespace FWO.Services.Triviality
                         .Concat(obj.ObjectGroupFlats.Select(groupFlat => groupFlat.Object)))
                 .OfType<NetworkObject>()
                 .ToList();
-        }
-
-        private List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
-        {
-            return services
-                .SelectMany(service =>
-                    service.Type.Name == FWO.Basics.ServiceType.Group && _ruleRecognitionOption.SvcResolveGroup
-                        ? service.ServiceGroupFlats.Select(groupFlat => groupFlat.Object)
-                        : new[] { service })
-                .OfType<NetworkService>()
-                .Where(service => service.Type.Name != FWO.Basics.ServiceType.Group)
-                .ToList();
-        }
-
-        private bool ObjectSetsMatch(List<NetworkObject> left, List<NetworkObject> right)
-        {
-            return left.Count == right.Count
-                && !left.Except(right, _networkObjectComparer).Any()
-                && !right.Except(left, _networkObjectComparer).Any();
-        }
-
-        private bool ServiceSetsMatch(List<NetworkService> left, List<NetworkService> right)
-        {
-            return left.Count == right.Count
-                && !left.Except(right, _networkServiceComparer).Any()
-                && !right.Except(left, _networkServiceComparer).Any();
         }
 
         private static bool IsZoneObject(NetworkObject networkObject)

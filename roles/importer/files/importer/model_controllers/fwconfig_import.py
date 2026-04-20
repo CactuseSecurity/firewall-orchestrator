@@ -1,3 +1,4 @@
+import re
 import traceback
 from typing import Any
 
@@ -422,6 +423,29 @@ class FwConfigImport:
                 gw.EnforcedNatPolicyUids.sort()
             # TODO: interfaces and routing as soon as they are implemented
 
+    def _normalize_last_hit_for_consistency_diff(self, config_dict: dict[str, Any]):
+        """
+        Normalize rule.last_hit in a normalized config dictionary before strict consistency comparison.
+
+        Rule hit timestamps can differ in representation between importer payload and DB roundtrips
+        (timezone information and seconds precision). This normalization preserves the field in
+        comparisons while avoiding false-positive mismatches for semantically equal timestamps.
+        """
+
+        def normalize_timestamp(value: str | None) -> str | None:
+            if value is None:
+                return None
+            value = value.strip()
+            # Compare at minute precision, as importer and DB can differ in timezone and seconds precision.
+            match = re.match(r"^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})", value)
+            if match is not None:
+                return f"{match.group(1)}T{match.group(2)}"
+            return value
+
+        for rulebase in config_dict.get("rulebases", []):
+            for rule in rulebase.get("rules", {}).values():
+                rule["last_hit"] = normalize_timestamp(rule.get("last_hit"))
+
     def consistency_check_config_against_db(self):
         normalized_config = self.normalized_config
         if normalized_config is None:
@@ -435,7 +459,11 @@ class FwConfigImport:
             for gw in normalized_config_from_db.gateways
             if any(gw.Uid == imported_gw.Uid for imported_gw in normalized_config.gateways)
         ]
-        all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump(), strict=True)
+        normalized_config_dict = normalized_config.model_dump()
+        normalized_config_from_db_dict = normalized_config_from_db.model_dump()
+        self._normalize_last_hit_for_consistency_diff(normalized_config_dict)
+        self._normalize_last_hit_for_consistency_diff(normalized_config_from_db_dict)
+        all_diffs = find_all_diffs(normalized_config_dict, normalized_config_from_db_dict, strict=True)
         if len(all_diffs) > 0:
             FWOLogger.warning(
                 f"normalized config for mgm id {self.import_state.state.mgm_details.current_mgm_id} is inconsistent to database state: {all_diffs[0]}"

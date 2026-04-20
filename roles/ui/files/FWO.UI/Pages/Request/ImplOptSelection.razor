@@ -5,24 +5,18 @@
     <div class="col-sm-4">
         @if(userConfig.ReqOwnerBased)
         {
-            <Dropdown ElementType="FwoOwner" @bind-SelectedElement="selectedOwnerOpt" ElementToString="@(o => o.Display(""))" Elements="ownerOptions" AppendWidth="100">
+            <Dropdown ElementType="FwoOwner" SelectedElement="selectedOwnerOpt" SelectedElementChanged="OwnerSelectionChanged" ElementToString="@(o => o.Display(""))" Elements="ownerOptions">
                 <ElementTemplate Context="owner">
                     @owner.Display("")
                 </ElementTemplate>
-                <Append>
-                    <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="async () => {await SelectOwner(selectedOwnerOpt);}">@(DisplayService.DisplayButton(userConfig, "select", Icons.Enter))</button>
-                </Append>
             </Dropdown>
         }
         else
         {
-            <Dropdown ElementType="Device" @bind-SelectedElement="selectedDeviceOpt" ElementToString="@(d => d.Name)" Elements="deviceOptions" AppendWidth="100">
+            <Dropdown ElementType="Device" SelectedElement="selectedDeviceOpt" SelectedElementChanged="DeviceSelectionChanged" ElementToString="@(d => d.Name)" Elements="deviceOptions">
                 <ElementTemplate Context="device">
                     @device.Name
                 </ElementTemplate>
-                <Append>
-                    <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="async () => {await SelectDevice(selectedDeviceOpt);}">@(DisplayService.DisplayButton(userConfig, "select", Icons.Enter))</button>
-                </Append>
             </Dropdown>
         }
     </div>
@@ -101,5 +95,17 @@
             deviceOptions.Add(optTicket);
             selectedDeviceOpt = optTicket;
         }
+    }
+
+    private async Task OwnerSelectionChanged(FwoOwner owner)
+    {
+        selectedOwnerOpt = owner;
+        await SelectOwner(selectedOwnerOpt);
+    }
+
+    private async Task DeviceSelectionChanged(Device device)
+    {
+        selectedDeviceOpt = device;
+        await SelectDevice(selectedDeviceOpt);
     }
 }

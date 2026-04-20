@@ -13,8 +13,17 @@ namespace FWO.Middleware.Server
     /// </summary>
     public abstract class RuleNotificationBodyBase(GlobalConfig globalConfig)
     {
+        private const string kTextColumnSeparator = " | ";
+
         /// <summary>
-        /// Builds a rule notification body with the standard rule columns and optional extra columns.
+        /// Holds the shared display values for a single rule row.
+        /// </summary>
+        /// <param name="HtmlCells">Cell values rendered for the HTML table.</param>
+        /// <param name="TextCells">Cell values rendered for the plain-text table.</param>
+        private sealed record RuleNotificationRow(List<string?> HtmlCells, List<string> TextCells);
+
+        /// <summary>
+        /// Builds a plain-text rule notification body with the standard rule columns and optional extra columns.
         /// </summary>
         /// <param name="owner">Owner used for placeholder replacement.</param>
         /// <param name="bodyTemplate">Configured mail body template.</param>
@@ -22,8 +31,8 @@ namespace FWO.Middleware.Server
         /// <param name="rules">Rules to render.</param>
         /// <param name="extraHeaders">Optional extra header texts.</param>
         /// <param name="getExtraCellValues">Optional extra cell values per row.</param>
-        /// <returns>HTML mail body.</returns>
-        protected string BuildRuleBody<TRule>(
+        /// <returns>Plain-text mail body.</returns>
+        protected string BuildRuleTextBody<TRule>(
             FwoOwner owner,
             string bodyTemplate,
             string timeIntervalText,
@@ -32,77 +41,46 @@ namespace FWO.Middleware.Server
             Func<TRule, IEnumerable<string?>>? getExtraCellValues = null)
             where TRule : Rule
         {
-            RuleDisplayHtml ruleDisplayHtml = CreateRuleDisplayHtml();
-            List<string> headerTexts =
-            [
-                GlobalConfig.GetText("uid"),
-                GlobalConfig.GetText("name"),
-                GlobalConfig.GetText("source"),
-                GlobalConfig.GetText("destination"),
-                GlobalConfig.GetText("service"),
-                GlobalConfig.GetText("change_id"),
-                GlobalConfig.GetText("last_hit")
-            ];
+            List<string> headerTexts = BuildHeaderTexts(extraHeaders);
+            string introText = BuildIntroText(owner, bodyTemplate, timeIntervalText);
+            List<RuleNotificationRow> rows = BuildNotificationRows(rules, getExtraCellValues);
+            string textRuleTable = BuildTextRuleTable(headerTexts, rows);
 
-            if (extraHeaders != null)
+            return BuildTextBody(introText, textRuleTable);
+        }
+
+        /// <summary>
+        /// Builds an HTML rule notification body with the standard rule columns and optional extra columns.
+        /// </summary>
+        /// <param name="owner">Owner used for placeholder replacement.</param>
+        /// <param name="bodyTemplate">Configured mail body template.</param>
+        /// <param name="timeIntervalText">Resolved notification interval text.</param>
+        /// <param name="rules">Rules to render.</param>
+        /// <param name="extraHeaders">Optional extra header texts.</param>
+        /// <param name="getExtraCellValues">Optional extra cell values per row.</param>
+        /// <param name="frameTitle">Optional localized title for a framed HTML report section.</param>
+        /// <returns>HTML mail body.</returns>
+        protected string BuildRuleHtmlBody<TRule>(
+            FwoOwner owner,
+            string bodyTemplate,
+            string timeIntervalText,
+            IEnumerable<TRule> rules,
+            IEnumerable<string>? extraHeaders = null,
+            Func<TRule, IEnumerable<string?>>? getExtraCellValues = null,
+            string? frameTitle = null)
+            where TRule : Rule
+        {
+            List<string> headerTexts = BuildHeaderTexts(extraHeaders);
+            string introText = BuildIntroText(owner, bodyTemplate, timeIntervalText);
+            List<RuleNotificationRow> rows = BuildNotificationRows(rules, getExtraCellValues);
+            string htmlRuleTable = BuildHtmlRuleTable(headerTexts, rows);
+
+            if (!string.IsNullOrWhiteSpace(frameTitle))
             {
-                headerTexts.AddRange(extraHeaders);
+                htmlRuleTable = BuildHtmlReportSection(frameTitle, htmlRuleTable, owner);
             }
 
-            string introText = bodyTemplate
-                .Replace(Placeholder.APPNAME, owner.Name)
-                .Replace(Placeholder.APPID, owner.ExtAppId ?? "")
-                .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
-
-            StringBuilder tableBuilder = new();
-            tableBuilder.Append("<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\">")
-                .Append("<thead><tr>");
-
-            foreach (string headerText in headerTexts)
-            {
-                tableBuilder.Append("<th>")
-                    .Append(WebUtility.HtmlEncode(headerText))
-                    .Append("</th>");
-            }
-
-            tableBuilder.Append("</tr></thead><tbody>");
-
-            foreach (TRule rule in rules)
-            {
-                tableBuilder.Append("<tr>")
-                    .Append(HtmlCell(rule.Uid))
-                    .Append(HtmlCell(rule.Name))
-                    .Append(HtmlRawCell(ruleDisplayHtml.DisplaySource(rule, FWO.Report.OutputLocation.export, FWO.Basics.ReportType.ResolvedRules)))
-                    .Append(HtmlRawCell(ruleDisplayHtml.DisplayDestination(rule, FWO.Report.OutputLocation.export, FWO.Basics.ReportType.ResolvedRules)))
-                    .Append(HtmlRawCell(ruleDisplayHtml.DisplayServices(rule, FWO.Report.OutputLocation.export, FWO.Basics.ReportType.ResolvedRules)))
-                    .Append(HtmlCell(ExtractChangeId(rule.CustomFields)))
-                    .Append(HtmlCell(rule.Metadata.LastHit?.ToString("yyyy-MM-dd") ?? ""));
-
-                if (getExtraCellValues != null)
-                {
-                    foreach (string? extraCellValue in getExtraCellValues(rule))
-                    {
-                        tableBuilder.Append(HtmlCell(extraCellValue));
-                    }
-                }
-
-                tableBuilder.Append("</tr>");
-            }
-
-            tableBuilder.Append("</tbody></table>");
-            string ruleTable = tableBuilder.ToString();
-
-            StringBuilder bodyBuilder = new();
-            string[] bodyParts = introText.Split(Placeholder.RULE_TABLE, StringSplitOptions.None);
-            for (int index = 0; index < bodyParts.Length; ++index)
-            {
-                AppendEncodedParagraph(bodyBuilder, bodyParts[index]);
-                if (index < bodyParts.Length - 1)
-                {
-                    bodyBuilder.Append(ruleTable);
-                }
-            }
-            return bodyBuilder.ToString();
+            return BuildHtmlDocument(BuildHtmlBody(introText, htmlRuleTable));
         }
 
         /// <summary>
@@ -179,6 +157,257 @@ namespace FWO.Middleware.Server
                 .Append("</p>");
         }
 
+        private static RuleNotificationRow CreateNotificationRow<TRule>(
+            TRule rule,
+            RuleDisplayHtml ruleDisplayHtml,
+            Func<TRule, IEnumerable<string?>>? getExtraCellValues)
+            where TRule : Rule
+        {
+            string? sourceHtml = ruleDisplayHtml.DisplaySource(rule, FWO.Report.OutputLocation.export, FWO.Basics.ReportType.ResolvedRules);
+            string? destinationHtml = ruleDisplayHtml.DisplayDestination(rule, FWO.Report.OutputLocation.export, FWO.Basics.ReportType.ResolvedRules);
+            string? servicesHtml = ruleDisplayHtml.DisplayServices(rule, FWO.Report.OutputLocation.export, FWO.Basics.ReportType.ResolvedRules);
+            string changeId = ExtractChangeId(rule.CustomFields);
+            string lastHit = rule.Metadata.LastHit?.ToString("yyyy-MM-dd") ?? "";
+
+            List<string?> htmlCells =
+            [
+                rule.Uid,
+                rule.Name,
+                sourceHtml,
+                destinationHtml,
+                servicesHtml,
+                changeId,
+                lastHit
+            ];
+
+            List<string> textCells =
+            [
+                NormalizeTextCell(rule.Uid),
+                NormalizeTextCell(rule.Name),
+                NormalizeTextCell(sourceHtml),
+                NormalizeTextCell(destinationHtml),
+                NormalizeTextCell(servicesHtml),
+                NormalizeTextCell(changeId),
+                NormalizeTextCell(lastHit)
+            ];
+
+            if (getExtraCellValues != null)
+            {
+                foreach (string? extraCellValue in getExtraCellValues(rule))
+                {
+                    htmlCells.Add(extraCellValue);
+                    textCells.Add(NormalizeTextCell(extraCellValue));
+                }
+            }
+
+            return new RuleNotificationRow(htmlCells, textCells);
+        }
+
+        private List<string> BuildHeaderTexts(IEnumerable<string>? extraHeaders)
+        {
+            List<string> headerTexts =
+            [
+                GlobalConfig.GetText("uid"),
+                GlobalConfig.GetText("name"),
+                GlobalConfig.GetText("source"),
+                GlobalConfig.GetText("destination"),
+                GlobalConfig.GetText("service"),
+                GlobalConfig.GetText("change_id"),
+                GlobalConfig.GetText("last_hit")
+            ];
+
+            if (extraHeaders != null)
+            {
+                headerTexts.AddRange(extraHeaders);
+            }
+
+            return headerTexts;
+        }
+
+        private static string BuildIntroText(FwoOwner owner, string bodyTemplate, string timeIntervalText)
+        {
+            return bodyTemplate
+                .Replace(Placeholder.APPNAME, owner.Name)
+                .Replace(Placeholder.APPID, owner.ExtAppId ?? "")
+                .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
+        }
+
+        private List<RuleNotificationRow> BuildNotificationRows<TRule>(
+            IEnumerable<TRule> rules,
+            Func<TRule, IEnumerable<string?>>? getExtraCellValues)
+            where TRule : Rule
+        {
+            RuleDisplayHtml ruleDisplayHtml = CreateRuleDisplayHtml();
+            return rules
+                .Select(rule => CreateNotificationRow(rule, ruleDisplayHtml, getExtraCellValues))
+                .ToList();
+        }
+
+        private static string BuildHtmlRuleTable(IEnumerable<string> headerTexts, IEnumerable<RuleNotificationRow> rows)
+        {
+            StringBuilder builder = new();
+            builder.Append("<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\">")
+                .Append("<thead><tr>");
+
+            foreach (string headerText in headerTexts)
+            {
+                builder.Append("<th>")
+                    .Append(WebUtility.HtmlEncode(headerText))
+                    .Append("</th>");
+            }
+
+            builder.Append("</tr></thead><tbody>");
+            foreach (RuleNotificationRow row in rows)
+            {
+                builder.Append("<tr>");
+                for (int index = 0; index < row.HtmlCells.Count; ++index)
+                {
+                    builder.Append(index is 2 or 3 or 4 ? HtmlRawCell(row.HtmlCells[index]) : HtmlCell(row.HtmlCells[index]));
+                }
+                builder.Append("</tr>");
+            }
+
+            builder.Append("</tbody></table>");
+            return builder.ToString();
+        }
+
+        private static string BuildTextRuleTable(IEnumerable<string> headerTexts, IEnumerable<RuleNotificationRow> rows)
+        {
+            StringBuilder builder = new();
+            builder.AppendLine(string.Join(kTextColumnSeparator, headerTexts.Select(NormalizeTextCell)));
+            foreach (RuleNotificationRow row in rows)
+            {
+                builder.AppendLine(string.Join(kTextColumnSeparator, row.TextCells));
+            }
+            return builder.ToString().TrimEnd();
+        }
+
+        private static string BuildHtmlBody(string introText, string htmlRuleTable)
+        {
+            StringBuilder builder = new();
+            string[] bodyParts = introText.Split(Placeholder.RULE_TABLE, StringSplitOptions.None);
+            for (int index = 0; index < bodyParts.Length; ++index)
+            {
+                AppendEncodedParagraph(builder, bodyParts[index]);
+                if (index < bodyParts.Length - 1)
+                {
+                    builder.Append(htmlRuleTable);
+                }
+            }
+            return builder.ToString();
+        }
+
+        private string BuildHtmlDocument(string body)
+        {
+            StringBuilder html = new();
+            html.AppendLine("<!DOCTYPE html>")
+                .AppendLine("<html>")
+                .AppendLine("<head>")
+                .AppendLine("    <meta charset=\"utf-8\"/>")
+                .AppendLine("    <style>")
+                .AppendLine("        table {")
+                .AppendLine("            font-family: arial, sans-serif;")
+                .AppendLine("            font-size: 10px;")
+                .AppendLine("            border-collapse: collapse;")
+                .AppendLine("            width: 100%;")
+                .AppendLine("        }")
+                .AppendLine()
+                .AppendLine("        td {")
+                .AppendLine("            border: 1px solid #000000;")
+                .AppendLine("            text-align: left;")
+                .AppendLine("            padding: 3px;")
+                .AppendLine("        }")
+                .AppendLine()
+                .AppendLine("        th {")
+                .AppendLine("            border: 1px solid #000000;")
+                .AppendLine("            text-align: left;")
+                .AppendLine("            padding: 3px;")
+                .AppendLine("            background-color: #dddddd;")
+                .AppendLine("        }")
+                .AppendLine("    </style>")
+                .AppendLine("</head>")
+                .AppendLine("<body>")
+                .Append(body)
+                .AppendLine()
+                .AppendLine("</body>")
+                .Append("</html>");
+
+            return html.ToString();
+        }
+
+        private string BuildHtmlReportSection(string title, string body, FwoOwner? owner)
+        {
+            UserConfig userConfig = new(GlobalConfig);
+            StringBuilder html = new();
+
+            html.Append("<h2>")
+                .Append(WebUtility.HtmlEncode(title))
+                .AppendLine("</h2>")
+                .Append("<p>")
+                .Append(WebUtility.HtmlEncode(userConfig.GetText("generated_on")))
+                .Append(": ")
+                .Append(DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssK"))
+                .AppendLine(" (UTC)</p>");
+
+            if (owner != null)
+            {
+                html.Append("<p>")
+                    .Append(WebUtility.HtmlEncode(userConfig.GetText("owners")))
+                    .Append(": ")
+                    .Append(WebUtility.HtmlEncode(owner.Name))
+                    .AppendLine("</p>");
+            }
+
+            html.AppendLine("<hr>")
+                .Append(body);
+
+            return html.ToString();
+        }
+
+        private static string BuildTextBody(string introText, string textRuleTable)
+        {
+            StringBuilder builder = new();
+            string[] bodyParts = introText.Split(Placeholder.RULE_TABLE, StringSplitOptions.None);
+            for (int index = 0; index < bodyParts.Length; ++index)
+            {
+                AppendTextSection(builder, bodyParts[index]);
+                if (index < bodyParts.Length - 1)
+                {
+                    AppendTextSection(builder, textRuleTable);
+                }
+            }
+            return builder.ToString().Trim();
+        }
+
+        private static void AppendTextSection(StringBuilder builder, string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.AppendLine().AppendLine();
+            }
+
+            builder.Append(text.Trim());
+        }
+
+        private static string NormalizeTextCell(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "";
+            }
+
+            string normalized = Regex.Replace(value, @"<br\s*/?>", ", ", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            normalized = Regex.Replace(normalized, "<.*?>", string.Empty, RegexOptions.CultureInvariant);
+            normalized = WebUtility.HtmlDecode(normalized);
+            normalized = Regex.Replace(normalized, @"\s+", " ", RegexOptions.CultureInvariant);
+            return normalized.Trim();
+        }
+
         /// <summary>
         /// Returns the global configuration used by the notification body helpers.
         /// </summary>
@@ -189,5 +418,6 @@ namespace FWO.Middleware.Server
             UserConfig displayUserConfig = new(GlobalConfig, false);
             return new RuleDisplayHtml(displayUserConfig);
         }
+
     }
 }

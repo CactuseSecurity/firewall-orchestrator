@@ -218,12 +218,17 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildRuleExpiryBody_ReplacesPlaceholders()
+        public void BuildRuleExpiryBodies_ReplacesPlaceholders_AndSeparatesTextFromHtml()
         {
             RuleExpiryCheck check = new(new RuleExpiryCheckTestApiConn(), CreateGlobalConfig());
-            MethodInfo? buildBodyMethod = typeof(RuleExpiryCheck).GetMethod("BuildRuleBody", BindingFlags.NonPublic | BindingFlags.Instance);
-            ClassicAssert.IsNotNull(buildBodyMethod, "Expected protected method BuildRuleBody.");
-            MethodInfo closedBuildBodyMethod = (buildBodyMethod ?? throw new InvalidOperationException("BuildRuleBody method not found."))
+            MethodInfo? buildTextBodyMethod = typeof(RuleExpiryCheck).GetMethod("BuildRuleTextBody", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo? buildHtmlBodyMethod = typeof(RuleExpiryCheck).GetMethod("BuildRuleHtmlBody", BindingFlags.NonPublic | BindingFlags.Instance);
+            ClassicAssert.IsNotNull(buildTextBodyMethod, "Expected protected method BuildRuleTextBody.");
+            ClassicAssert.IsNotNull(buildHtmlBodyMethod, "Expected protected method BuildRuleHtmlBody.");
+            MethodInfo closedBuildTextBodyMethod = (buildTextBodyMethod ?? throw new InvalidOperationException("BuildRuleTextBody method not found."))
+                .MakeGenericMethod(typeof(RuleExpiryCheck).GetNestedType("RuleExpiryInfo", BindingFlags.NonPublic)
+                    ?? throw new InvalidOperationException("RuleExpiryInfo type not found."));
+            MethodInfo closedBuildHtmlBodyMethod = (buildHtmlBodyMethod ?? throw new InvalidOperationException("BuildRuleHtmlBody method not found."))
                 .MakeGenericMethod(typeof(RuleExpiryCheck).GetNestedType("RuleExpiryInfo", BindingFlags.NonPublic)
                     ?? throw new InvalidOperationException("RuleExpiryInfo type not found."));
 
@@ -253,15 +258,26 @@ namespace FWO.Test
             string bodyTemplate = $"Hello @@APPNAME@@ @@APPID@@ @@TIME_INTERVAL@@ {Placeholder.RULE_TABLE} Bye";
             string intervalText = "2 Weeks";
 
-            string body = (string)(closedBuildBodyMethod.Invoke(check, [owner, bodyTemplate, intervalText, entries, null, null]) ?? "");
+            string textBody = (string?)(closedBuildTextBodyMethod.Invoke(check, [owner, bodyTemplate, intervalText, entries, null, null])) ?? "";
+            string htmlBody = (string?)(closedBuildHtmlBodyMethod.Invoke(check, [owner, bodyTemplate, intervalText, entries, null, null, null])) ?? "";
 
-            ClassicAssert.IsTrue(body.Contains("Hello OwnerX APPX 2 Weeks"));
-            ClassicAssert.IsTrue(body.Contains("<table"));
-            ClassicAssert.IsTrue(body.Contains("</table><p> Bye</p>") || body.Contains("</table><p>Bye</p>"));
-            ClassicAssert.IsFalse(body.Contains("@@APPNAME@@"));
-            ClassicAssert.IsFalse(body.Contains("@@APPID@@"));
-            ClassicAssert.IsFalse(body.Contains("@@TIME_INTERVAL@@"));
-            ClassicAssert.IsFalse(body.Contains(Placeholder.RULE_TABLE));
+            ClassicAssert.IsTrue(textBody.Contains("Hello OwnerX APPX 2 Weeks"));
+            ClassicAssert.IsFalse(textBody.Contains("<table"));
+            ClassicAssert.IsFalse(textBody.Contains("<p>"));
+            ClassicAssert.IsTrue(textBody.Contains("uid"));
+            ClassicAssert.IsTrue(textBody.Contains("Bye"));
+            ClassicAssert.IsFalse(textBody.Contains("@@APPNAME@@"));
+            ClassicAssert.IsFalse(textBody.Contains("@@APPID@@"));
+            ClassicAssert.IsFalse(textBody.Contains("@@TIME_INTERVAL@@"));
+            ClassicAssert.IsFalse(textBody.Contains(Placeholder.RULE_TABLE));
+
+            ClassicAssert.IsTrue(htmlBody.Contains("Hello OwnerX APPX 2 Weeks"));
+            ClassicAssert.IsTrue(htmlBody.Contains("<table"));
+            ClassicAssert.IsTrue(htmlBody.Contains("</table><p> Bye</p>") || htmlBody.Contains("</table><p>Bye</p>"));
+            ClassicAssert.IsFalse(htmlBody.Contains("@@APPNAME@@"));
+            ClassicAssert.IsFalse(htmlBody.Contains("@@APPID@@"));
+            ClassicAssert.IsFalse(htmlBody.Contains("@@TIME_INTERVAL@@"));
+            ClassicAssert.IsFalse(htmlBody.Contains(Placeholder.RULE_TABLE));
         }
 
         private static FwoNotification CreateRuleTimerNotification(int id, int? ownerId = null)

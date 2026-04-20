@@ -36,7 +36,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@States.Name[WfHandler.ActImplTask.StateId]</label>
+                                <label class="col-sm-12 h-100 border bg-secondary">@States.GetName(WfHandler.ActImplTask.StateId)</label>
                             </div>
                         </div>
                     </div>
@@ -82,7 +82,7 @@
                                     }
                                     else
                                     {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@actDevice?.Name</label>
+                                        <label class="col-sm-12 h-100 border bg-secondary">@DisplayDevice()</label>
                                     }
                                 </div>
                             </div>
@@ -458,6 +458,22 @@
         allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActImplTask.Comments);
         WfHandler.DisplayImplTaskCommentMode = false;
         await DefaultInit.DoNothing(); // qad avoid compiler warning
+    }
+
+    private string DisplayDevice()
+    {
+        if (IsAllDevicesImplTask())
+        {
+            return userConfig.GetText("all");
+        }
+        return actDevice?.Name ?? "";
+    }
+
+    private bool IsAllDevicesImplTask()
+    {
+        return WfHandler.ActImplTask.TaskType == WfTaskType.access.ToString()
+            && WfHandler.ActImplTask.DeviceId == null
+            && WfHandler.ActReqTask.HasAllDevicesSelected();
     }
 
     private async Task Close()

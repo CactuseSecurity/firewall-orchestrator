@@ -6,6 +6,7 @@ using NUnit.Framework.Legacy;
 using FWO.Basics;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
+using System.Reflection;
 using System.Text.Json;
 namespace FWO.Test
 {
@@ -23,6 +24,33 @@ namespace FWO.Test
             {
                 _extractAction(ref query, reportType);
             }
+        }
+
+        private static object CreateDateTimeRange(TokenKind operatorKind, string value)
+        {
+            Assembly filterAssembly = typeof(Compiler).Assembly;
+            Type astNodeType = filterAssembly.GetType("FWO.Report.Filter.Ast.AstNodeFilterDateTimeRange", throwOnError: true)!;
+            object astNode = Activator.CreateInstance(astNodeType, nonPublic: true)!;
+
+            astNodeType.GetProperty("Name")!.SetValue(astNode, new Token(new Range(), "lasthit", TokenKind.LastHit));
+            astNodeType.GetProperty("Operator")!.SetValue(astNode, new Token(new Range(), operatorKind.ToString(), operatorKind));
+            astNodeType.GetProperty("Value")!.SetValue(astNode, new Token(new Range(), value, TokenKind.Value));
+
+            Type dateTimeRangeType = filterAssembly.GetType("FWO.Report.Filter.FilterTypes.DateTimeRange", throwOnError: true)!;
+            return Activator.CreateInstance(dateTimeRangeType, [astNode])!;
+        }
+
+        private static DateTime? GetDateTimeRangeBound(object range, string fieldName)
+        {
+            return (DateTime?)range.GetType().GetField(fieldName)!.GetValue(range);
+        }
+
+        private static TException AssertDateTimeRangeThrows<TException>(TokenKind operatorKind, string value)
+            where TException : Exception
+        {
+            TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => CreateDateTimeRange(operatorKind, value))!;
+            Assert.That(exception.InnerException, Is.TypeOf<TException>());
+            return (TException)exception.InnerException!;
         }
 
         [SetUp]
@@ -73,6 +101,80 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, query.QueryVariables.Count);
             ClassicAssert.AreEqual("%teststring%", query.QueryVariables["fullTextFilter0"]);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void DateTimeRange_NowCreatesClosedRangeAtCurrentTime()
+        {
+            DateTime before = DateTime.Now;
+
+            object range = CreateDateTimeRange(TokenKind.EEQ, "now");
+
+            DateTime after = DateTime.Now;
+            DateTime? start = GetDateTimeRangeBound(range, "Start");
+            DateTime? end = GetDateTimeRangeBound(range, "End");
+
+            Assert.That(start, Is.Not.Null);
+            Assert.That(end, Is.EqualTo(start));
+            Assert.That(start, Is.InRange(before, after));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void DateTimeRange_ThisYearCreatesYearBoundaries()
+        {
+            int currentYear = DateTime.Now.Year;
+
+            object range = CreateDateTimeRange(TokenKind.EEQ, "this year");
+
+            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0)));
+            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear + 1, 1, 1, 0, 0, 0)));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void DateTimeRange_LastYearCreatesYearBoundaries()
+        {
+            int currentYear = DateTime.Now.Year;
+
+            object range = CreateDateTimeRange(TokenKind.EEQ, "last year");
+
+            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear - 1, 1, 1, 0, 0, 0)));
+            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0)));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void DateTimeRange_LessThanCreatesOpenStartRange()
+        {
+            DateTime expectedEnd = new(2025, 1, 1, 0, 0, 0);
+
+            object range = CreateDateTimeRange(TokenKind.LSS, "2025-01-01");
+
+            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.Null);
+            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(expectedEnd));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void DateTimeRange_GreaterThanCreatesOpenEndRange()
+        {
+            DateTime expectedStart = new(2025, 1, 1, 0, 0, 0);
+
+            object range = CreateDateTimeRange(TokenKind.GRT, "2025-01-01");
+
+            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(expectedStart));
+            Assert.That(GetDateTimeRangeBound(range, "End"), Is.Null);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void DateTimeRange_InvalidExactValueRaisesSyntaxException()
+        {
+            SyntaxException exception = AssertDateTimeRangeThrows<SyntaxException>(TokenKind.EEQ, "not-a-date");
+
+            Assert.That(exception.Message, Does.Contain("Wrong time range format."));
         }
 
         [Test]

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 from fw_modules.fortiadom5ff.fwcommon import to_time_object
 from fwo_exceptions import ImportInterruptionError
@@ -5,6 +7,15 @@ from pytest_mock import MockerFixture
 
 
 class TestToTimeObject:
+    @staticmethod
+    def _expected_with_local_tz(date_part: str, time_part: str) -> str:
+        local_tz = datetime.now().astimezone().tzinfo
+        return (
+            datetime.strptime(f"{date_part} {time_part}", "%Y/%m/%d %H:%M")
+            .replace(tzinfo=local_tz)
+            .isoformat(timespec="seconds")
+        )
+
     def test_to_time_object_parses_list_timestamps(self):
         time_obj = to_time_object(
             {
@@ -16,8 +27,8 @@ class TestToTimeObject:
 
         assert time_obj.time_obj_uid == "work-hours"
         assert time_obj.time_obj_name == "work-hours"
-        assert time_obj.start_time == "2026-02-17T12:00:00"
-        assert time_obj.end_time == "2026-02-17T18:30:00"
+        assert time_obj.start_time == self._expected_with_local_tz("2026/02/17", "12:00")
+        assert time_obj.end_time == self._expected_with_local_tz("2026/02/17", "18:30")
 
     def test_to_time_object_parses_single_string_timestamp(self):
         time_obj = to_time_object(
@@ -28,8 +39,8 @@ class TestToTimeObject:
             }
         )
 
-        assert time_obj.start_time == "2020-01-01T00:00:00"
-        assert time_obj.end_time == "2020-01-01T23:59:00"
+        assert time_obj.start_time == self._expected_with_local_tz("2020/01/01", "00:00")
+        assert time_obj.end_time == self._expected_with_local_tz("2020/01/01", "23:59")
 
     def test_to_time_object_returns_none_for_default_start_time(self):
         time_obj = to_time_object(

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, field_validator
 
@@ -9,7 +9,7 @@ class TimeObject(BaseModel):
     start_time: str | None = None
     end_time: str | None = None
 
-    # time format must be like '1970-01-01T00:00:00'
+    # time format must be like '1970-01-01T00:00:00+00:00'
     # needs to match format from database, otherwise changes will be detected for all time objects during import
     @field_validator("start_time", "end_time")
     @classmethod
@@ -17,10 +17,13 @@ class TimeObject(BaseModel):
         if value is None:
             return value
         try:
-            datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")  # noqa: DTZ007 - naive datetime matches DB format
-            return value
+            normalized_value = value.replace("Z", "+00:00")
+            parsed_time = datetime.fromisoformat(normalized_value)
+            if parsed_time.tzinfo is None:
+                parsed_time = parsed_time.replace(tzinfo=timezone.utc)
+            return parsed_time.isoformat(timespec="seconds")
         except ValueError:
-            raise ValueError(f"Time value '{value}' does not match format 'YYYY-MM-DDTHH:MM:SS'") from None
+            raise ValueError(f"Time value '{value}' does not match format 'YYYY-MM-DDTHH:MM:SS+HH:MM'") from None
 
 
 class TimeObjectForImport(BaseModel):

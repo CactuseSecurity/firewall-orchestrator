@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, cast
 
 import fwo_const
@@ -585,10 +585,12 @@ def to_time_object(d: dict[str, Any]) -> TimeObject:
             )
             return None
         time_part, date_part = value
-        # format needs to be 1970-01-01T00:00:00
+        # format needs to be 1970-01-01T00:00:00+00:00
         try:
-            dt = datetime.strptime(date_part + " " + time_part, "%Y/%m/%d %H:%M").replace(tzinfo=timezone.utc)
-            return dt.strftime("%Y-%m-%dT%H:%M:%S")
+            # we do not get tz info from fortimanager, so we assume firewall tz = system tz
+            local_tz = datetime.now().astimezone().tzinfo
+            dt = datetime.strptime(date_part + " " + time_part, "%Y/%m/%d %H:%M").replace(tzinfo=local_tz)
+            return dt.isoformat(timespec="seconds")
         except ValueError as e:
             FWOLogger.warning(f"Error parsing date/time for {field_name} in time object {d.get('name', '')}: {e}")
             return None

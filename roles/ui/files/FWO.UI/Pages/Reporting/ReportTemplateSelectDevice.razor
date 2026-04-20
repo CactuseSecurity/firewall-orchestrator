@@ -10,7 +10,7 @@
     <Body>
         @if (SelectedReportType == ReportType.AppRules || SelectedReportType == ReportType.Recertification)
         {
-            <ManagementSelection @bind-DeviceFilter="DeviceFilter" @bind-SelectAll="selectAll" ShowTitle="false" UseLightText="false" />
+            <ManagementSelection @bind-DeviceFilter="DeviceFilter" @bind-SelectAll="SelectAll" ShowTitle="false" UseLightText="false" />
         }
         else
         {
@@ -45,7 +45,7 @@
     public ReportType SelectedReportType { get; set; }
 
     private bool collapseDevices = false;
-    private bool selectAll = true;
+    private bool SelectAll { get; set; } = true;
     private DeviceFilter DeviceFilterOrig = new();
     private bool FirstTry = true;
 
@@ -63,7 +63,7 @@
                 {
                     collapseDevices = true;
                 }
-                selectAll = !DeviceFilter.IsAnyDeviceFilterSet();
+                SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
             }
         }
         catch (Exception exception)

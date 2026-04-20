@@ -27,9 +27,7 @@ else
     public bool UseFormLayout { get; set; }
 
     private List<OwnerLifeCycleState> ownerLifeCycleStates = [];
-    private List<string> availableCriticalities = [];
-    private OwnerLifeCycleState? selectedOwnerLifeCycleState;
-    private string? selectedCriticality;
+    private List<string> AvailableCriticalities { get; set; } = [];
 
     private string SectionHeaderClass => UseLightText ? "text-left text-white" : "text-left";
     private string FieldContainerClass => UseFormLayout ? "form-group row mt-2" : string.Empty;
@@ -42,7 +40,7 @@ else
             <label class="@FieldLabelClass">@(userConfig.GetText("state")):</label>
             <div class="@FieldContentClass">
                 <Dropdown ElementType="OwnerLifeCycleState" ElementToString="@(state => state.Display(userConfig.GetText("inactive")))"
-                          SelectedElement="selectedOwnerLifeCycleState" SelectedElementChanged="OwnerLifeCycleStateChanged"
+                          SelectedElement="@(ownerLifeCycleStates.FirstOrDefault(state => state.Id == OwnerFilter.SelectedOwnerLifeCycleStateId))" SelectedElementChanged="OwnerLifeCycleStateChanged"
                           Elements="ownerLifeCycleStates.OrderBy(state => state.Name).ToList()" Nullable="true"
                           NoneSelectedText="@(userConfig.GetText("all"))">
                     <ElementTemplate Context="state">
@@ -55,8 +53,8 @@ else
         <div class="@FieldContainerClass @SpacingClass">
             <label class="@FieldLabelClass">@(userConfig.GetText("criticality")):</label>
             <div class="@FieldContentClass">
-                <Dropdown ElementType="string" SelectedElement="selectedCriticality" SelectedElementChanged="CriticalityChanged"
-                          Elements="availableCriticalities" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                <Dropdown ElementType="string" SelectedElement="@(OwnerFilter.SelectedCriticality)" SelectedElementChanged="CriticalityChanged"
+                          Elements="AvailableCriticalities" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
                     <ElementTemplate Context="criticality">
                         @criticality
                     </ElementTemplate>
@@ -69,37 +67,23 @@ else
     {
         ownerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(FWO.Api.Client.Queries.OwnerQueries.getOwnerLifeCycleStates);
         List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-        availableCriticalities = [.. owners
+        AvailableCriticalities = [.. owners
             .Select(owner => owner.Criticality)
             .Where(criticality => !string.IsNullOrWhiteSpace(criticality))
             .Cast<string>()
             .Distinct()
             .OrderBy(criticality => criticality)];
-        SyncSelectionsFromFilter();
-    }
-
-    protected override void OnParametersSet()
-    {
-        SyncSelectionsFromFilter();
     }
 
     private async Task OwnerLifeCycleStateChanged(OwnerLifeCycleState? newState)
     {
-        selectedOwnerLifeCycleState = newState;
         OwnerFilter.SelectedOwnerLifeCycleStateId = newState?.Id;
         await OwnerFilterChanged.InvokeAsync(OwnerFilter);
     }
 
     private async Task CriticalityChanged(string? newCriticality)
     {
-        selectedCriticality = newCriticality;
         OwnerFilter.SelectedCriticality = string.IsNullOrWhiteSpace(newCriticality) ? null : newCriticality;
         await OwnerFilterChanged.InvokeAsync(OwnerFilter);
-    }
-
-    private void SyncSelectionsFromFilter()
-    {
-        selectedOwnerLifeCycleState = ownerLifeCycleStates.FirstOrDefault(state => state.Id == OwnerFilter.SelectedOwnerLifeCycleStateId);
-        selectedCriticality = OwnerFilter.SelectedCriticality;
     }
 }

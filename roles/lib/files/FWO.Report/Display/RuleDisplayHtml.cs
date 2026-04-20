@@ -11,7 +11,7 @@ namespace FWO.Ui.Display
         public string DisplayRuleTime(Rule rule)
         {
             // Quick implementation to satisfy current requirements: use only the first time object with an EndTime.
-            DateTime? firstEndTime = rule.RuleTimes.FirstOrDefault(ruleTime => ruleTime.TimeObj?.EndTime != null)?.TimeObj?.EndTime;
+            DateTimeOffset? firstEndTime = rule.RuleTimes.FirstOrDefault(ruleTime => ruleTime.TimeObj?.EndTime != null)?.TimeObj?.EndTime;
             return firstEndTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
         }
 

@@ -359,9 +359,7 @@ def get_policy_for_device(
         FWOLogger.warning("Could not find access policy for gateway, skipping: " + str(device["uid"]))
         return None
 
-    return next(
-        (policy for policy in policy_structure if policy["name"] == gateway_policy["access-policy-name"]), None
-    )
+    return next((policy for policy in policy_structure if policy["name"] == gateway_policy["access-policy-name"]), None)
 
 
 def process_devices(

@@ -35,6 +35,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRulesWithCurrentViolationsByChunk;
         public static readonly string getRulesForSelectedManagements;
         public static readonly string getRulesForOwnerMappingCustomField;
+        public static readonly string getRulesForOwnerMappingNameField;
         public static readonly string getRulesForOwnerMappingIpBased;
         public static readonly string getChangedRulesForRuleOwnerMappingCustomField;
         public static readonly string getChangedRulesForRuleOwnerMappingIpBased;
@@ -120,6 +121,7 @@ namespace FWO.Api.Client.Queries
                 countRules = GetQueryText("rule/countRules.graphql");
                 countActiveRules = GetQueryText("rule/countActiveRules.graphql");
                 getRulesForOwnerMappingCustomField = GetQueryText("rule/getRulesForOwnerMappingCustomField.graphql");
+                getRulesForOwnerMappingNameField = GetQueryText("rule/getRulesForOwnerMappingNameField.graphql");
                 getRulesForOwnerMappingIpBased = GetQueryText("rule/getRulesForOwnerMappingIpBased.graphql");
                 getChangedRulesForRuleOwnerMappingCustomField = GetQueryText("rule/getChangedRulesForRuleOwnerMappingCustomField.graphql");
                 getChangedRulesForRuleOwnerMappingIpBased = GetQueryText("rule/getChangedRulesForRuleOwnerMappingIpBased.graphql");

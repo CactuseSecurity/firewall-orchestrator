@@ -27,7 +27,7 @@ namespace FWO.Data
         public DateTime? FirstHit { get; set; }
 
         [JsonProperty("rule_last_hit"), JsonPropertyName("rule_last_hit")]
-        public DateTime? LastHit { get; set; }
+        public DateTimeOffset? LastHit { get; set; }
 
         [JsonProperty("recertification"), JsonPropertyName("recertification")]
         public List<Recertification> RuleRecertification { get; set; } = [];

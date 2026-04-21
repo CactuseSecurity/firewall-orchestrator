@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 import pytest
+from fw_modules.fortiadom5ff.fmgr_rule import rule_parse_last_hit
 from fw_modules.fortiadom5ff.fwcommon import to_time_object
 from fwo_exceptions import ImportInterruptionError
 from models.time_object import TimeObject
@@ -107,3 +108,14 @@ class TestToTimeObject:
                     "end": ["18:00", "2026/02/17"],
                 }
             )
+
+
+def test_rule_parse_last_hit_returns_offset_aware_iso_timestamp():
+    epoch_seconds = 1761998205
+
+    parsed = rule_parse_last_hit({"_last_hit": epoch_seconds})
+
+    assert parsed is not None
+    parsed_time = datetime.fromisoformat(parsed)
+    assert parsed_time.tzinfo is not None
+    assert int(parsed_time.timestamp()) == epoch_seconds

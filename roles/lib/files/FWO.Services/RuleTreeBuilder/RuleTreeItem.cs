@@ -125,7 +125,29 @@ namespace FWO.Services.RuleTreeBuilder
             }
         }
 
-        private IEnumerable<RuleTreeItem> TraverseDown(RuleTreeItem item, Action<RuleTreeItem>? action = null)
+        public static void SetCollapse(RuleTreeItem item, bool collapsed)
+        {
+            if (item.IsRule)
+            {
+                item.IsVisible = !collapsed;
+            }
+            else
+            {
+                if (item.Children.Count > 0)
+                {
+                    foreach (RuleTreeItem childItem in TraverseDown(item))
+                    {
+                        if (item != childItem)
+                        {
+                            SetCollapse(childItem, collapsed);
+                        }
+                    }
+                }
+            }
+        }
+
+
+        private static IEnumerable<RuleTreeItem> TraverseDown(RuleTreeItem item, Action<RuleTreeItem>? action = null)
         {
             if (action != null)
             {

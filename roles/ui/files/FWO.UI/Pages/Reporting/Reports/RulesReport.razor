@@ -34,22 +34,22 @@
                         <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true" Class="py-1">
 
                             <div class="sticky-collapse">
-                                <button class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle"><i class="bi bi-arrows-collapse"></i></button>
-                                <button class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle"><i class="bi bi-arrows-expand"></i></button>
+                                <button @onclick="@(() => ToggleAll(management, device, collapse: true))" class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle"><i class="bi bi-arrows-collapse"></i></button>
+                                <button @onclick="@(() => ToggleAll(management, device, collapse: false))" class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle"><i class="bi bi-arrows-expand"></i></button>
                             </div>
 
                             <Table SelectedItems="new List<RuleTreeItem>()"
                                    RowClickAction="@(async ruleTreeItem =>
-                                                                {
-                                                                    ruleTreeItem.Data?.DeviceName = device.Name ?? "";
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       {
+                                                                       ruleTreeItem.Data?.DeviceName = device.Name ?? "";
 
-                                                                    if (!SelectedRules.Remove(ruleTreeItem.Data!))
-                                                                    {
-                                                                        SelectedRules.Add(ruleTreeItem.Data!);
-                                                                    }
+                                                                       if (!SelectedRules.Remove(ruleTreeItem.Data!))
+                                                                       {
+                                                                           SelectedRules.Add(ruleTreeItem.Data!);
+                                                                       }
 
-                                                                    await SelectedRulesChanged.InvokeAsync(SelectedRules);
-                                                                })"
+                                                                       await SelectedRulesChanged.InvokeAsync(SelectedRules);
+                                                                   })"
                                    style="font-size:small"
                                    TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
                                    TableItem="RuleTreeItem"
@@ -296,11 +296,11 @@
     private bool _showLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
 
     private Rule? _lastClickedRule = null;
-    
+
     #endregion
 
     #region Methods - Overrides
-    
+
     protected override void OnInitialized()
     {
         _ruleDisplay = new NatRuleDisplayHtml(userConfig);
@@ -358,6 +358,14 @@
         }
 
         return ruleTreeItems.ToArray();
+    }
+
+    private void ToggleAll(ManagementReport management, DeviceReport device, bool collapse)
+    {
+        foreach (var item in GetRuleTreeItems(management, device))
+        {
+            RuleTreeItem.SetCollapse(item, collapse);
+        }
     }
 
     private string GetToggleArrow(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)

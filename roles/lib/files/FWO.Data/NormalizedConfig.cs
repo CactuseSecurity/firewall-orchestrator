@@ -38,7 +38,7 @@ namespace FWO.Data
             {
                 dateTime = dateTime.ToUniversalTime();
             }
-            return dateTime.ToString("yyyy-MM-ddTHH:mm:ss") + dateTime.ToString("zzz").Replace(":", "");
+            return dateTime.ToString("yyyy-MM-ddTHH:mm:sszzz");
         }
     }
 }

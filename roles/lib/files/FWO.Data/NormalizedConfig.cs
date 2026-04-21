@@ -32,8 +32,12 @@ namespace FWO.Data
         [JsonProperty("gateways"), JsonPropertyName("gateways")]
         public NormalizedGateway[] Gateways { get; set; } = [];
 
-        public static string FormatDatetimeZ(DateTime dateTime)
+        public static string FormatDatetimeZ(DateTime dateTime, bool convertToUtc = false)
         {
+            if (convertToUtc)
+            {
+                dateTime = dateTime.ToUniversalTime();
+            }
             return dateTime.ToString("yyyy-MM-ddTHH:mm:ss") + dateTime.ToString("zzz").Replace(":", "");
         }
     }

@@ -80,7 +80,7 @@ namespace FWO.Ui.Display
             if (ruleMetadata.LastHit == null)
                 return "";
             else
-                return DateOnly.FromDateTime(ruleMetadata.LastHit.Value.DateTime).ToString("yyyy-MM-dd");
+                return DateOnly.FromDateTime(ruleMetadata.LastHit.Value).ToString("yyyy-MM-dd");
         }
 
         public static string DisplayLastRecertifier(RuleMetadata ruleMetadata)

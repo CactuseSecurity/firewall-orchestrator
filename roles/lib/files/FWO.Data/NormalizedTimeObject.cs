@@ -23,8 +23,8 @@ namespace FWO.Data
             {
                 Uid = timeObject.Uid,
                 Name = timeObject.Name,
-                StartTime = timeObject.StartTime.HasValue ? NormalizedConfig.FormatDatetime(timeObject.StartTime.Value) : null,
-                EndTime = timeObject.EndTime.HasValue ? NormalizedConfig.FormatDatetime(timeObject.EndTime.Value) : null
+                StartTime = timeObject.StartTime.HasValue ? NormalizedConfig.FormatDatetimeZ(timeObject.StartTime.Value) : null,
+                EndTime = timeObject.EndTime.HasValue ? NormalizedConfig.FormatDatetimeZ(timeObject.EndTime.Value) : null
             };
         }
     }

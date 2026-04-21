@@ -34,12 +34,7 @@ namespace FWO.Data
 
         public static string FormatDatetimeZ(DateTime dateTime)
         {
-            return dateTime.ToString("yyyy-MM-ddTHH:mm") + dateTime.ToString("zzz").Replace(":", "");
-        }
-
-        public static string FormatDatetime(DateTime dateTime)
-        {
-            return dateTime.ToString("yyyy-MM-ddTHH:mm:ss");
+            return dateTime.ToString("yyyy-MM-ddTHH:mm:ss") + dateTime.ToString("zzz").Replace(":", "");
         }
     }
 }

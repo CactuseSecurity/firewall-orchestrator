@@ -140,7 +140,7 @@ namespace FWO.Services.RuleTreeBuilder
             {
                 trail = ProcessSectionLink(link, rulebase, trail);
             }
-            else if (link.LinkType == 4)
+            else if (link.LinkType == 4 || link.LinkType == 6)
             {
                 trail = ProcessConcatenationLink(link, rulebase, trail);
             }
@@ -336,7 +336,7 @@ namespace FWO.Services.RuleTreeBuilder
         private List<int> EnsureTrailStartsWithZeroForFirstRule(RulebaseLink link, RuleTreeItem lastAddedItem, List<int> trail, int index)
         {
             if (index == 0
-                    && (!(link.LinkType == 4)
+                    && (link.LinkType != 4 && link.LinkType != 6
                         || lastAddedItem.Parent?.Children.Count() == 1))
             {
                 trail = trail.ToList();
@@ -394,7 +394,7 @@ namespace FWO.Services.RuleTreeBuilder
                 {
                     SetParentForTreeItem(RuleTree, item);
                 }
-                else if (link.LinkType == 4 && lastAddedItem.Parent != null)
+                else if ((link.LinkType == 4 || link.LinkType == 6) && lastAddedItem.Parent != null)
                 {
                     SetParentForTreeItem((RuleTreeItem)lastAddedItem.Parent, item);
                 }

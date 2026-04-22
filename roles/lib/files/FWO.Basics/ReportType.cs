@@ -133,6 +133,11 @@ namespace FWO.Basics
             return reportType == ReportType.TicketReport || reportType == ReportType.TicketChangeReport;
         }
 
+        public static bool IsArchiveOnlyReport(this ReportType reportType)
+        {
+            return reportType == ReportType.RecertificationEvent;
+        }
+
         public static bool HasTimeFilter(this ReportType reportType)
         {
             return reportType switch
@@ -179,21 +184,22 @@ namespace FWO.Basics
             return [.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>().Where(r => r != ReportType.Undefined)];
         }
 
-        public static List<ReportType> ReportTypeSelection(bool ruleRelated = true, bool modellingRelated = true)
+        public static List<ReportType> ReportTypeSelection(ReportVisibility? visibility = null)
         {
-            return CustomSortReportType([.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>()], ruleRelated, modellingRelated);
+            return CustomSortReportType([.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>()], visibility ?? new(true, true, true, true));
         }
 
-        public static bool IsVisibleTemplateType(this ReportType reportType, bool ruleRelated, bool modellingRelated, bool complianceRelated, bool modellingOwnerAllowed = true)
+        public static bool IsVisibleTemplateType(this ReportType reportType, ReportVisibility visibility, bool modellingOwnerAllowed = true)
         {
-            return ruleRelated && reportType.IsDeviceRelatedReport()
-                || ruleRelated && reportType == ReportType.Owners
-                || modellingRelated && reportType.IsModellingReport() && (modellingOwnerAllowed || reportType.IsOwnerReport())
-                || complianceRelated && reportType.IsComplianceReport()
-                || reportType.IsWorkflowReport();
+            return !reportType.IsArchiveOnlyReport() && (
+                visibility.RuleRelated && reportType.IsDeviceRelatedReport()
+                || visibility.RuleRelated && reportType == ReportType.Owners
+                || visibility.ModellingRelated && reportType.IsModellingReport() && (modellingOwnerAllowed || reportType.IsOwnerReport())
+                || visibility.ComplianceRelated && reportType.IsComplianceReport()
+                || visibility.WorkflowRelated && reportType.IsWorkflowReport());
         }
 
-        public static List<ReportType> CustomSortReportType(List<ReportType> ListIn, bool ruleRelated, bool modellingRelated)
+        public static List<ReportType> CustomSortReportType(List<ReportType> ListIn, ReportVisibility visibility)
         {
             List<ReportType> ListOut = [];
             List<ReportType> orderedReportTypeList =
@@ -215,14 +221,14 @@ namespace FWO.Basics
             ];
             foreach (var reportType in orderedReportTypeList.Where(r => ListIn.Contains(r)))
             {
-                if (reportType == ReportType.Undefined || reportType.IsVisibleTemplateType(ruleRelated, modellingRelated, false))
+                if (reportType == ReportType.Undefined || reportType.IsVisibleTemplateType(visibility))
                 {
                     ListOut.Add(reportType);
                 }
                 ListIn.Remove(reportType);
             }
-            // finally add remaining report types
-            ListOut.AddRange(ListIn);
+            // Finally add only remaining report types the current user may actually see.
+            ListOut.AddRange(ListIn.Where(reportType => reportType.IsVisibleTemplateType(visibility)));
             return ListOut;
         }
     }

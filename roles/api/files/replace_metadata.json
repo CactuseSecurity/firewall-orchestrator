@@ -989,10 +989,12 @@
                       "found_date",
                       "id",
                       "is_initial",
+                      "mgmt_uid",
                       "policy_id",
                       "removed_date",
                       "risk_score",
-                      "rule_id"
+                      "rule_id",
+                      "rule_uid"
                     ],
                     "filter": {}
                   },
@@ -1007,10 +1009,12 @@
                       "found_date",
                       "id",
                       "is_initial",
+                      "mgmt_uid",
                       "policy_id",
                       "removed_date",
                       "risk_score",
-                      "rule_id"
+                      "rule_id",
+                      "rule_uid"
                     ],
                     "filter": {}
                   },

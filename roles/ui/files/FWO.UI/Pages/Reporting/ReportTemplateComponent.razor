@@ -256,21 +256,12 @@
     private DeviceFilter DeviceFilterOrig = new();
     private TimeFilter templateActTimeFilter = new();
 
-    private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
-    private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
-
-    private bool showComplianceReport => authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+    private ReportVisibility reportVisibility => RoleGroups.GetReportVisibility(authenticationStateTask!.Result.User);
 
     protected override async Task OnInitializedAsync()
     {
         recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-        if (showModellingReports)
+        if (reportVisibility.ModellingRelated)
         {
             modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection,
             DisplayMessageInUi);
@@ -374,7 +365,7 @@
     {
         ReportType reportType = (ReportType)reportTemplate.ReportParams.ReportType;
         bool modellingOwnerAllowed = modOwnerList.FirstOrDefault(o => o.Id == reportTemplate.ReportParams.ModellingFilter.SelectedOwner.Id) != null;
-        return reportType.IsVisibleTemplateType(showRuleRelatedReports, showModellingReports, showComplianceReport, modellingOwnerAllowed);
+        return !reportType.IsArchiveOnlyReport() && reportType.IsVisibleTemplateType(reportVisibility, modellingOwnerAllowed);
     }
 
     public void NewTemplate(ReportTemplate reportTemplate)

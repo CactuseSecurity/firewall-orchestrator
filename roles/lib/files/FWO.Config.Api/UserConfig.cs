@@ -41,6 +41,7 @@ namespace FWO.Config.Api
             Translate = globalConfig.LangDict[user.Language!];
             Overwrite = apiConnection != null ? Task.Run(async () => await GetCustomDict(user.Language!)).Result : globalConfig.OverDict[user.Language!];
             this.globalConfig = globalConfig;
+            OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
             globalConfig.OnChange += OnGlobalConfigChange;
         }
 
@@ -67,7 +68,7 @@ namespace FWO.Config.Api
             if (IsDisposed) return;
             // Get properties that belong to the user config 
             IEnumerable<PropertyInfo> properties = GetType().GetProperties()
-                .Where(prop => prop.CustomAttributes.Any(attr => attr.GetType() == typeof(UserConfigDataAttribute)));
+                .Where(prop => prop.GetCustomAttribute<UserConfigDataAttribute>() != null);
 
             // Exclude all properties from update that belong to the user config
             ConfigItem[] relevantChangedItems = changedItems.Where(configItem =>

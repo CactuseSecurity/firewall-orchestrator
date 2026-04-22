@@ -163,10 +163,17 @@ namespace FWO.Middleware.Server.Jobs
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
             UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, reportSchedule.ScheduleOwningUser.DbId);
 
-            if (((ReportType)reportSchedule.Template.ReportParams.ReportType).IsModellingReport())
+            ReportType reportType = (ReportType)reportSchedule.Template.ReportParams.ReportType;
+            if (reportType.IsModellingReport() || reportType.IsWorkflowReport())
             {
+                userConfig.User.Roles = reportSchedule.ScheduleOwningUser.Roles;
                 userConfig.User.Groups = reportSchedule.ScheduleOwningUser.Groups;
                 await UiUserHandler.GetOwnershipsFromOwnerLdap(apiConnectionScheduler, userConfig.User);
+                Log.WriteDebug(LogMessageTitle, $"Scheduled report context: reportType={reportType}, reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, roles=[{string.Join(", ", userConfig.User.Roles)}], groupCount={userConfig.User.Groups.Count}, ownershipCount={userConfig.User.Ownerships.Count}, ownerIds=[{string.Join(", ", userConfig.User.Ownerships)}]");
+            }
+
+            if (reportType.IsModellingReport())
+            {
                 bool canAccessAllOwners = reportSchedule.ScheduleOwningUser.Roles.Contains(Roles.Admin)
                     || reportSchedule.ScheduleOwningUser.Roles.Contains(Roles.Auditor);
                 if (!canAccessAllOwners

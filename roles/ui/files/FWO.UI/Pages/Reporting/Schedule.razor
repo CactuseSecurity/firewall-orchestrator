@@ -242,16 +242,7 @@
 
     private AuthenticationState? authenticationState;
     private List<FwoOwner> modOwnerList = [];
-    private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
-    private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
-
-    private bool showComplianceReport => authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+    private ReportVisibility reportVisibility => RoleGroups.GetReportVisibility(authenticationStateTask!.Result.User);
 
     private bool scheduleToEmail;
     private string scheduleEmailRecipients = "";
@@ -264,7 +255,7 @@
         {
             uiUserDbId = userConfig.User.DbId;
 
-            if(showModellingReports)
+            if(reportVisibility.ModellingRelated)
             {
                 modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi);
             }
@@ -277,7 +268,7 @@
             {
                 ReportType reportType = (ReportType)rt.ReportParams.ReportType;
                 bool modellingOwnerAllowed = modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null;
-                return reportType.IsVisibleTemplateType(showRuleRelatedReports, showModellingReports, showComplianceReport, modellingOwnerAllowed);
+                return !reportType.IsArchiveOnlyReport() && reportType.IsVisibleTemplateType(reportVisibility, modellingOwnerAllowed);
             }).ToList();
             authenticationState = await authenticationStateTask!;
         }

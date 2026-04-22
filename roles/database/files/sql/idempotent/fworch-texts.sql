@@ -327,6 +327,10 @@ INSERT INTO txt VALUES ('RuleExpiryCheck',      'German', 	'Ablaufdatum-Check');
 INSERT INTO txt VALUES ('RuleExpiryCheck',      'English', 	'Rule expiry check');
 INSERT INTO txt VALUES ('OwnerActiveRules',     'German', 	'Aktive Regeln von deaktivierten Eigent&uuml;mern');
 INSERT INTO txt VALUES ('OwnerActiveRules',     'English', 	'Active rules of decommissioned owners');
+INSERT INTO txt VALUES ('PreferredCollapseState_Collapsed', 'German', 'Eingeklappt');
+INSERT INTO txt VALUES ('PreferredCollapseState_Collapsed', 'English', 'Collapsed');
+INSERT INTO txt VALUES ('PreferredCollapseState_Expanded',  'German', 'Aufgeklappt');
+INSERT INTO txt VALUES ('PreferredCollapseState_Expanded',  'English', 'Expanded');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');

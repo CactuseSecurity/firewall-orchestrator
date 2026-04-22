@@ -29,7 +29,7 @@
             {
                <div class="col-sm-9">
                     <Dropdown ElementType="string" @bind-SelectedElement="SelectedCriterion.CriterionType" 
-                            Elements="Enum.GetNames(typeof(CriterionType)).Where(c => c != CriterionType.Matrix.ToString())" >
+                            Elements="SupportedCriterionTypes()" >
                         <ElementTemplate Context="crittype">
                             @(crittype)
                         </ElementTemplate>
@@ -45,7 +45,7 @@
             @if(SelectedCriterion.CriterionType == CriterionType.ForbiddenService.ToString())
             {
                 <div class="form-group row me-auto mt-2">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("elements")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("content")):</label>
                     <div class="col-sm-10">
                         <EditList ElementType="string" Elements="ActElements.ToArray()" ElementsToAdd="ForbiddenElementsToAdd"
                                 ElementsToDelete="ForbiddenElementsToDelete" StdLayout="false">
@@ -60,6 +60,25 @@
                             <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddForbiddenElement"
                                 @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                         </div>
+                    </div>
+                </div>
+            }
+            else if (RequiresTextContent())
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("content"))*:</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control form-control-sm" @bind="ActContent" />
+                        <small class="form-text text-muted">@userConfig.GetText(GetContentHintKey())</small>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(SelectedCriterion.CriterionType))
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("content")):</label>
+                    <div class="col-sm-10">
+                        <label class="col-form-label col-form-label-sm">@userConfig.GetText("criterion_no_content_required")</label>
                     </div>
                 </div>
             }
@@ -111,12 +130,14 @@
     private List<string> ForbiddenElementsToDelete = [];
     private string ActForbiddenElement = "";
     private List<string> ActElements = [];
+    private string ActContent = "";
 
 
     protected override void OnParametersSet()
     {
         if(Display)
         {
+            ActContent = SelectedCriterion.Content;
             ActElements = [.. SelectedCriterion.Content.Split(',').Select(s => s.Trim())
                     .Where(s => !string.IsNullOrEmpty(s))];
         }
@@ -141,14 +162,32 @@
         try
         {
             int oldCritId = SelectedCriterion.Id;
-            if(ForbiddenElementsToAdd.Count > 0 || ForbiddenElementsToDelete.Count > 0)
+            if (SelectedCriterion.CriterionType == nameof(CriterionType.ForbiddenService))
             {
-                foreach(var elem in ForbiddenElementsToDelete)
+                if(ForbiddenElementsToAdd.Count > 0 || ForbiddenElementsToDelete.Count > 0)
                 {
-                    ActElements.Remove(elem);
+                    foreach(var elem in ForbiddenElementsToDelete)
+                    {
+                        ActElements.Remove(elem);
+                    }
+                    ActElements.AddRange(ForbiddenElementsToAdd);
                 }
-                ActElements.AddRange(ForbiddenElementsToAdd);
                 SelectedCriterion.Content = string.Join(",", ActElements);
+            }
+            else if (RequiresTextContent())
+            {
+                if (!TryValidateTextContent(out string content))
+                {
+                    return;
+                }
+
+                SelectedCriterion.Content = content;
+            }
+            else
+            {
+                SelectedCriterion.Content = SupportedCriterionTypes().Contains(SelectedCriterion.CriterionType)
+                    ? ""
+                    : ActContent;
             }
 
             if(!AddMode)
@@ -208,10 +247,57 @@
         }
     }
 
+    private static IEnumerable<string> SupportedCriterionTypes()
+    {
+        return
+        [
+            nameof(CriterionType.Assessability),
+            nameof(CriterionType.ForbiddenService),
+            nameof(CriterionType.MinimumCIDRLength),
+            nameof(CriterionType.ForbidZonesAsSource),
+            nameof(CriterionType.ForbidZonesAsDestination),
+            nameof(CriterionType.ForbidBidirectionalDuplicate)
+        ];
+    }
+
+    private bool RequiresTextContent()
+    {
+        return SelectedCriterion.CriterionType == nameof(CriterionType.MinimumCIDRLength);
+    }
+
+    private string GetContentHintKey()
+    {
+        return SelectedCriterion.CriterionType switch
+        {
+            nameof(CriterionType.MinimumCIDRLength) => "criterion_hint_minimum_cidr_length",
+            _ => "criterion_no_content_required"
+        };
+    }
+
+    private bool TryValidateTextContent(out string content)
+    {
+        content = ActContent.Trim();
+
+        if (SelectedCriterion.CriterionType == nameof(CriterionType.MinimumCIDRLength))
+        {
+            if (!int.TryParse(content, out int minPrefixLength) || minPrefixLength < 0 || minPrefixLength > 32)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_fix_crit"), userConfig.GetText("criterion_error_minimum_cidr_length"), true);
+                return false;
+            }
+
+            content = minPrefixLength.ToString();
+        }
+
+        return true;
+    }
+
     private void Close()
     {
         ForbiddenElementsToAdd = [];
         ForbiddenElementsToDelete = [];
+        ActForbiddenElement = "";
+        ActContent = "";
         Display = false;
         DisplayChanged.InvokeAsync(Display);
     }

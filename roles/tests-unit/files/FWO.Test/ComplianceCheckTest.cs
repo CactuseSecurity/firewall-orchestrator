@@ -162,6 +162,172 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AreRulesCompliant_MinimumCIDRLengthPolicyFails_ReturnsFalse()
+        {
+            await SetUpBasic(setupRelevantManagements: true);
+
+            CompliancePolicy policy = new()
+            {
+                Id = 1,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 11,
+                            Name = "MinimumCIDRLength",
+                            CriterionType = nameof(CriterionType.MinimumCIDRLength),
+                            Content = "24"
+                        }
+                    }
+                ]
+            };
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+
+            Rule violatingRule = CreateSimpleRule(51);
+            violatingRule.Uid = "rule-51";
+            violatingRule.Froms[0].Object.IP = "10.0.0.0/8";
+            violatingRule.Froms[0].Object.IpEnd = "10.255.255.255/8";
+
+            bool compliant = await ComplianceCheck.AreRulesCompliant([1], [violatingRule]);
+
+            Assert.That(compliant, Is.False);
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(1));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck[0].Details, Does.Contain("24"));
+        }
+
+        [Test]
+        public async Task AreRulesCompliant_ForbidZonesAsSourcePolicyFails_ReturnsFalse()
+        {
+            await SetUpBasic(setupRelevantManagements: true);
+
+            CompliancePolicy policy = new()
+            {
+                Id = 1,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 12,
+                            Name = "ForbidZonesAsSource",
+                            CriterionType = nameof(CriterionType.ForbidZonesAsSource)
+                        }
+                    }
+                ]
+            };
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+
+            Rule violatingRule = CreateSimpleRule(52);
+            violatingRule.Uid = "rule-52";
+            violatingRule.Froms[0].Object.Name = "DMZ_ZONE";
+
+            bool compliant = await ComplianceCheck.AreRulesCompliant([1], [violatingRule]);
+
+            Assert.That(compliant, Is.False);
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(1));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck[0].Details, Does.Contain("rule-52"));
+        }
+
+        [Test]
+        public async Task AreRulesCompliant_ForbidZonesAsDestinationPolicyFails_ReturnsFalse()
+        {
+            await SetUpBasic(setupRelevantManagements: true);
+
+            CompliancePolicy policy = new()
+            {
+                Id = 1,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 13,
+                            Name = "ForbidZonesAsDestination",
+                            CriterionType = nameof(CriterionType.ForbidZonesAsDestination)
+                        }
+                    }
+                ]
+            };
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+
+            Rule violatingRule = CreateSimpleRule(53);
+            violatingRule.Uid = "rule-53";
+            violatingRule.Tos[0].Object.Name = "PARTNER_ZONE";
+
+            bool compliant = await ComplianceCheck.AreRulesCompliant([1], [violatingRule]);
+
+            Assert.That(compliant, Is.False);
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(1));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck[0].Details, Does.Contain("rule-53"));
+        }
+
+        [Test]
+        public async Task AreRulesCompliant_ForbidBidirectionalDuplicatePolicyFails_ReturnsFalse()
+        {
+            await SetUpBasic(setupRelevantManagements: true);
+
+            CompliancePolicy policy = new()
+            {
+                Id = 1,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 14,
+                            Name = "ForbidBidirectionalDuplicate",
+                            CriterionType = nameof(CriterionType.ForbidBidirectionalDuplicate)
+                        }
+                    }
+                ]
+            };
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+
+            Rule forwardRule = CreateSimpleRule(54);
+            forwardRule.Uid = "rule-54";
+            forwardRule.Services[0].Content.ProtoId = 6;
+            forwardRule.Services[0].Content.DestinationPort = 443;
+            forwardRule.Services[0].Content.DestinationPortEnd = 443;
+            forwardRule.Services[0].Content.SourcePort = 0;
+            forwardRule.Services[0].Content.SourcePortEnd = 0;
+
+            Rule reverseRule = CreateSimpleRule(55);
+            reverseRule.Uid = "rule-55";
+            reverseRule.Froms[0].Object.IP = forwardRule.Tos[0].Object.IP;
+            reverseRule.Froms[0].Object.IpEnd = forwardRule.Tos[0].Object.IpEnd;
+            reverseRule.Tos[0].Object.IP = forwardRule.Froms[0].Object.IP;
+            reverseRule.Tos[0].Object.IpEnd = forwardRule.Froms[0].Object.IpEnd;
+            reverseRule.Services[0].Content.ProtoId = 6;
+            reverseRule.Services[0].Content.SourcePort = 443;
+            reverseRule.Services[0].Content.SourcePortEnd = 443;
+            reverseRule.Services[0].Content.DestinationPort = 0;
+            reverseRule.Services[0].Content.DestinationPortEnd = 0;
+
+            bool compliant = await ComplianceCheck.AreRulesCompliant([1], [forwardRule, reverseRule]);
+
+            Assert.That(compliant, Is.False);
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(2));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(v => v.Details.Contains("rule-54")), Is.True);
+        }
+
+        [Test]
         public async Task CheckAll_BasicSetup_CompleteWithLog()
         {
             // Arrange

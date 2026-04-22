@@ -12,6 +12,7 @@ using FWO.Data.Extensions;
 using System.Net;
 using System.Collections.Concurrent;
 using FWO.Services;
+using FWO.Services.Triviality;
 
 namespace FWO.Compliance
 {
@@ -102,6 +103,10 @@ namespace FWO.Compliance
         /// Multi-threading helper.
         /// </summary>
         private readonly ParallelProcessor _parallelProcessor;
+        /// <summary>
+        /// Evaluator for rule-level criteria that are attached to policies.
+        /// </summary>
+        private readonly RuleTrivialityEvaluator _ruleTrivialityEvaluator = new();
 
         #endregion
 
@@ -253,7 +258,10 @@ namespace FWO.Compliance
 
             _parallelProcessor.SetUp(activeRulesCount, _maxDegreeOfParallelism, _elementsPerFetch);
 
-            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds, maxImportId);
+            bool requiresGlobalDuplicateIndex = Policy?.Criteria.Any(c => c.Content.CriterionType == nameof(CriterionType.ForbidBidirectionalDuplicate)) == true;
+            Func<List<Rule>, Task<List<Rule>>>? postProcessAsync = requiresGlobalDuplicateIndex ? null : CalculateCompliance;
+
+            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(RuleQueries.getRulesForSelectedManagements, postProcessAsync, managementIds, maxImportId);
 
             if (chunks == null)
             {
@@ -266,6 +274,11 @@ namespace FWO.Compliance
             List<Rule>? rules = chunks
                 .SelectMany(rule => rule)
                 .ToList();
+
+            if (requiresGlobalDuplicateIndex)
+            {
+                await CalculateCompliance(rules);
+            }
 
             Logger.TryWriteInfo("Compliance Check", $"Loaded {rules.Count} rules.", LocalSettings.ComplianceCheckVerbose);
 
@@ -474,7 +487,7 @@ namespace FWO.Compliance
         /// <param name="rule">Rule whose compliance should be checked.</param>
         /// <param name="criteria">Set of criteria derived from the policy.</param>
         /// <returns>True if the rule is compliant with every criterion.</returns>
-        public async Task<bool> CheckRuleCompliance(Rule rule, IEnumerable<ComplianceCriterion> criteria)
+        public async Task<bool> CheckRuleCompliance(Rule rule, IEnumerable<ComplianceCriterion> criteria, RuleBidirectionalDuplicateIndex? duplicateIndex = null)
         {
             bool ruleIsCompliant = true;
 
@@ -509,6 +522,12 @@ namespace FWO.Compliance
                                 break;
                             case nameof(CriterionType.ForbiddenService):
                                 ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
+                                break;
+                            case nameof(CriterionType.MinimumCIDRLength):
+                            case nameof(CriterionType.ForbidZonesAsSource):
+                            case nameof(CriterionType.ForbidZonesAsDestination):
+                            case nameof(CriterionType.ForbidBidirectionalDuplicate):
+                                ruleIsCompliant &= CheckTrivialityCriterion(rule, criterion, duplicateIndex);
                                 break;
                             default:
                                 break;
@@ -778,6 +797,93 @@ namespace FWO.Compliance
         }
 
         /// <summary>
+        /// Executes rule-level criteria that are modeled as triviality checks.
+        /// </summary>
+        /// <param name="rule">Rule under test.</param>
+        /// <param name="criterion">Criterion to execute.</param>
+        /// <param name="duplicateIndex">Optional index for reverse-direction duplicate checks.</param>
+        private bool CheckTrivialityCriterion(Rule rule, ComplianceCriterion criterion, RuleBidirectionalDuplicateIndex? duplicateIndex)
+        {
+            TrivialityCheckResult result;
+            ComplianceViolationType violationType;
+
+            switch (criterion.CriterionType)
+            {
+                case nameof(CriterionType.MinimumCIDRLength):
+                    if (!int.TryParse(criterion.Content, out int minPrefixLength) || minPrefixLength < 0 || minPrefixLength > 32)
+                    {
+                        Logger.TryWriteError("Compliance Check", $"Criterion {criterion.Id} ({criterion.Name}) has invalid content '{criterion.Content}' for {criterion.CriterionType}.", true);
+                        return true;
+                    }
+
+                    result = _ruleTrivialityEvaluator.EvaluateMinimumCIDRLengthCriterion(rule, minPrefixLength);
+                    violationType = ComplianceViolationType.MinimumCIDRLengthViolation;
+                    break;
+
+                case nameof(CriterionType.ForbidZonesAsSource):
+                    result = _ruleTrivialityEvaluator.EvaluateForbidZonesAsSourceCriterion(rule);
+                    violationType = ComplianceViolationType.ZoneObjectSourceViolation;
+                    break;
+
+                case nameof(CriterionType.ForbidZonesAsDestination):
+                    result = _ruleTrivialityEvaluator.EvaluateForbidZonesAsDestinationCriterion(rule);
+                    violationType = ComplianceViolationType.ZoneObjectDestinationViolation;
+                    break;
+
+                case nameof(CriterionType.ForbidBidirectionalDuplicate):
+                    if (duplicateIndex == null)
+                    {
+                        Logger.TryWriteError("Compliance Check", $"Criterion {criterion.Id} ({criterion.Name}) requires a duplicate index, but none was provided.", true);
+                        return true;
+                    }
+
+                    result = _ruleTrivialityEvaluator.EvaluateForbidBidirectionalDuplicateCriterion(rule, duplicateIndex);
+                    violationType = ComplianceViolationType.BidirectionalDuplicateViolation;
+                    break;
+
+                default:
+                    return true;
+            }
+
+            if (result.IsTrivial)
+            {
+                return true;
+            }
+
+            ComplianceCheckResult complianceCheckResult = new(rule, violationType)
+            {
+                Criterion = criterion
+            };
+
+            CreateViolation(violationType, rule, complianceCheckResult, GetTrivialityViolationDetails(rule, criterion, result));
+            return false;
+        }
+
+        /// <summary>
+        /// Builds localized detail strings for triviality-backed criteria.
+        /// </summary>
+        /// <param name="rule">Rule that triggered the violation.</param>
+        /// <param name="criterion">Triggered criterion.</param>
+        /// <param name="result">Triviality evaluator result.</param>
+        private string GetTrivialityViolationDetails(Rule rule, ComplianceCriterion criterion, TrivialityCheckResult result)
+        {
+            return result.Reason switch
+            {
+                RuleTrivialityEvaluator.MinimumCIDRLengthReason =>
+                    $"{_userConfig.GetText("minimum_cidr_length_violation")}: {_userConfig.GetText("criterion_value")} {criterion.Content}",
+                RuleTrivialityEvaluator.ForbidZonesAsSourceReason =>
+                    $"{_userConfig.GetText("zone_object_source_violation")}: {rule.Uid}",
+                RuleTrivialityEvaluator.ForbidZonesAsDestinationReason =>
+                    $"{_userConfig.GetText("zone_object_destination_violation")}: {rule.Uid}",
+                RuleTrivialityEvaluator.ForbidBidirectionalDuplicateReason =>
+                    $"{_userConfig.GetText("bidirectional_duplicate_violation")}: {rule.Uid}",
+                RuleTrivialityEvaluator.Ipv6NotSupportedReason =>
+                    $"{_userConfig.GetText("criterion_ipv6_not_supported")}: {criterion.Name}",
+                _ => result.Reason
+            };
+        }
+
+        /// <summary>
         /// Creates a violation entry from a compliance check result and stores it in the current run buffer.
         /// </summary>
         /// <param name="violationType">Type of violation to record.</param>
@@ -845,6 +951,14 @@ namespace FWO.Compliance
                         violation.Details = $"{_userConfig.GetText("H5841")}: {_userConfig.GetText(assessabilityIssueType)}({networkObject})";
                     }
 
+                    break;
+
+                case ComplianceViolationType.MinimumCIDRLengthViolation:
+                case ComplianceViolationType.ZoneObjectSourceViolation:
+                case ComplianceViolationType.ZoneObjectDestinationViolation:
+                case ComplianceViolationType.BidirectionalDuplicateViolation:
+
+                    violation.Details = detailsOverride ?? complianceCheckResult.Criterion?.Name ?? "";
                     break;
 
                 default:
@@ -1017,9 +1131,13 @@ namespace FWO.Compliance
 
             Logger.TryWriteInfo("Compliance Check", $"Checking compliance for {Policy.Criteria.Count} criteria.", LocalSettings.ComplianceCheckVerbose);
 
+            RuleBidirectionalDuplicateIndex? duplicateIndex = criteria.Any(c => c.CriterionType == nameof(CriterionType.ForbidBidirectionalDuplicate))
+                ? new RuleBidirectionalDuplicateIndex(rules)
+                : null;
+
             foreach (Rule rule in rules)
             {
-                bool ruleIsCompliant = await CheckRuleCompliance(rule, criteria);
+                bool ruleIsCompliant = await CheckRuleCompliance(rule, criteria, duplicateIndex);
 
                 if (!ruleIsCompliant)
                 {

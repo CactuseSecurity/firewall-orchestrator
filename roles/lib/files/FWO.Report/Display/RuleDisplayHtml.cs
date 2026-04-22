@@ -11,7 +11,7 @@ namespace FWO.Ui.Display
         public string DisplayRuleTime(Rule rule)
         {
             // Quick implementation to satisfy current requirements: use only the first time object with an EndTime.
-            DateTime? firstEndTime = rule.RuleTimes.FirstOrDefault(ruleTime => ruleTime.TimeObj?.EndTime != null)?.TimeObj?.EndTime;
+            DateTimeOffset? firstEndTime = rule.RuleTimes.FirstOrDefault(ruleTime => ruleTime.TimeObj?.EndTime != null)?.TimeObj?.EndTime;
             return firstEndTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
         }
 
@@ -80,7 +80,7 @@ namespace FWO.Ui.Display
             if (ruleMetadata.LastHit == null)
                 return "";
             else
-                return DateOnly.FromDateTime((DateTime)ruleMetadata.LastHit).ToString("yyyy-MM-dd");
+                return DateOnly.FromDateTime(ruleMetadata.LastHit.Value).ToString("yyyy-MM-dd");
         }
 
         public static string DisplayLastRecertifier(RuleMetadata ruleMetadata)

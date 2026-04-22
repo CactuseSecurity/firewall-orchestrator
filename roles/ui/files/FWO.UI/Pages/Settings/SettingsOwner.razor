@@ -175,7 +175,7 @@ else
 
     private async Task EditOwner(FwoOwner owner)
     {
-        ActOwner = owner;
+        ActOwner = new(owner);
         ActOwner.OwnerResponsibles ??= [];
         EditOwnerMode = true;
         await Task.CompletedTask;

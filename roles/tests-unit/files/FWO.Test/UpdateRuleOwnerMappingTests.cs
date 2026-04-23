@@ -1,29 +1,29 @@
-using FWO.Api.Client;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Services;
-using Moq;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Text;
 
 namespace FWO.Test
 {
     public class UpdateRuleOwnerMappingTests
     {
-        private UpdateRuleOwnerMapping service = null!;
+        private UpdateRuleOwnerMappingCustomField customFieldService = null!;
+        private UpdateRuleOwnerMappingIpBased ipBasedService = null!;
 
         [SetUp]
         public void Setup()
         {
             var globalConfig = new GlobalConfig
             {
-                CustomFieldOwnerKey = @"[""owner""]"
+                CustomFieldOwnerKey = @"[""owner""]",
+                ModModelledMarker = "FWOC"
             };
 
-            service = new UpdateRuleOwnerMapping(null!, globalConfig);
+            customFieldService = new UpdateRuleOwnerMappingCustomField(null!, globalConfig);
+            ipBasedService = new UpdateRuleOwnerMappingIpBased(null!, globalConfig);
         }
 
         [Test]
@@ -32,7 +32,7 @@ namespace FWO.Test
             var rule = BuildRule();
             var owners = new List<FwoOwner> { BuildOwner() };
 
-            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
+            var result = customFieldService.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
 
             Assert.Multiple(() =>
             {
@@ -49,7 +49,7 @@ namespace FWO.Test
             var rule = BuildRule();
             var owners = new List<FwoOwner> { BuildOwner(id: expectedOwnerId, extAppId: ownerExtAppId) };
 
-            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
+            var result = customFieldService.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
 
             Assert.That(result.Any(), Is.EqualTo(shouldMatch));
             if (shouldMatch)
@@ -69,7 +69,7 @@ namespace FWO.Test
             };
             var owners = new List<FwoOwner> { new FwoOwner { Id = 10, ExtAppId = "TeamA" } };
 
-            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
+            var result = customFieldService.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
 
             Assert.That(result, Is.Empty);
         }
@@ -80,7 +80,7 @@ namespace FWO.Test
             var rule = BuildRule(customFields: "{}");
             var owners = new List<FwoOwner> { BuildOwner() };
 
-            var result = service.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
+            var result = customFieldService.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
 
             Assert.That(result, Is.Empty);
         }
@@ -90,7 +90,7 @@ namespace FWO.Test
         {
             var json = "{'field-1': '20251119', 'field-2': 'CHG000816', 'field-3': '123'}";
 
-            var result = UpdateRuleOwnerMapping.DeserializeCustomFields(json);
+            var result = UpdateRuleOwnerMappingCustomField.DeserializeCustomFields(json);
 
             Assert.That(result["field-3"], Is.EqualTo("123"));
         }
@@ -100,7 +100,7 @@ namespace FWO.Test
         {
             var json = "{invalid json}";
 
-            var result = UpdateRuleOwnerMapping.DeserializeCustomFields(json);
+            var result = UpdateRuleOwnerMappingCustomField.DeserializeCustomFields(json);
 
             Assert.That(result.Count, Is.EqualTo(0));
         }
@@ -108,9 +108,9 @@ namespace FWO.Test
         [Test]
         public void DeserializeCustomFields_ShouldReturnEmpty_WhenNullOrWhitespace()
         {
-            Assert.That(UpdateRuleOwnerMapping.DeserializeCustomFields(null), Is.Empty);
-            Assert.That(UpdateRuleOwnerMapping.DeserializeCustomFields(""), Is.Empty);
-            Assert.That(UpdateRuleOwnerMapping.DeserializeCustomFields("   "), Is.Empty);
+            Assert.That(UpdateRuleOwnerMappingCustomField.DeserializeCustomFields(null), Is.Empty);
+            Assert.That(UpdateRuleOwnerMappingCustomField.DeserializeCustomFields(""), Is.Empty);
+            Assert.That(UpdateRuleOwnerMappingCustomField.DeserializeCustomFields("   "), Is.Empty);
         }
 
         [Test]
@@ -120,7 +120,7 @@ namespace FWO.Test
             var newRule = new Rule { CustomFields = "{'owner':'TeamB'}" };
             var change = new RuleChange { OldRule = oldRule, NewRule = newRule };
 
-            bool result = service.IsOwnerSourceFieldChanged(change);
+            bool result = customFieldService.IsOwnerSourceFieldChanged(change);
 
             Assert.That(result, Is.True);
         }
@@ -132,7 +132,7 @@ namespace FWO.Test
             var newRule = new Rule { CustomFields = "{'owner':'TeamA'}" };
             var change = new RuleChange { OldRule = oldRule, NewRule = newRule };
 
-            bool result = service.IsOwnerSourceFieldChanged(change);
+            bool result = customFieldService.IsOwnerSourceFieldChanged(change);
 
             Assert.That(result, Is.False);
         }
@@ -140,7 +140,7 @@ namespace FWO.Test
         [Test]
         public void GetIpRangeAndVersion_ShouldReturnValidRange()
         {
-            var (range, version) = UpdateRuleOwnerMapping.GetIpRangeAndVersion(
+            var (range, version) = UpdateRuleOwnerMappingIpBased.GetIpRangeAndVersion(
                 "192.168.1.1",
                 "192.168.1.10"
             );
@@ -164,8 +164,8 @@ namespace FWO.Test
                 BuildOwner(ownerNetworks: new[] { BuildOwnerNetwork("192.168.1.0", "192.168.1.255") })
             };
 
-            var prepared = service.PrepareOwnerNetworks(owners);
-            var result = UpdateRuleOwnerMapping.GetMatchingOwnerIds(rule, prepared);
+            var prepared = ipBasedService.PrepareOwnerNetworks(owners);
+            var result = UpdateRuleOwnerMappingIpBased.GetMatchingOwnerIds(rule, prepared);
 
             Assert.That(result.ContainsKey(10));
         }
@@ -174,9 +174,9 @@ namespace FWO.Test
         public void GetMatchingOwnerIds_ShouldReturnEmpty_WhenNoFromsTos()
         {
             var rule = new Rule { Id = 1, Froms = Array.Empty<NetworkLocation>(), Tos = Array.Empty<NetworkLocation>() };
-            var ownerNetworks = new List<UpdateRuleOwnerMapping.OwnerNetworkPrepared>();
+            var ownerNetworks = new List<UpdateRuleOwnerMappingIpBased.OwnerNetworkPrepared>();
 
-            var result = UpdateRuleOwnerMapping.GetMatchingOwnerIds(rule, ownerNetworks);
+            var result = UpdateRuleOwnerMappingIpBased.GetMatchingOwnerIds(rule, ownerNetworks);
 
             Assert.That(result, Is.Empty);
         }
@@ -213,7 +213,7 @@ namespace FWO.Test
                 }
             };
 
-            var result = service.BuildNewRuleOwnersIpBased(new List<Rule> { rule }, owners);
+            var result = ipBasedService.BuildNewRuleOwnersIpBased(new List<Rule> { rule }, owners);
 
             Assert.That(result.Select(r => r.OwnerId), Is.EquivalentTo(new[] { 10, 20 }));
         }
@@ -234,7 +234,7 @@ namespace FWO.Test
                 }
             };
 
-            var prepared = service.PrepareOwnerNetworks(owners);
+            var prepared = ipBasedService.PrepareOwnerNetworks(owners);
 
             Assert.That(prepared.Count, Is.EqualTo(1));
             Assert.That(prepared[0].Ranges.Count, Is.EqualTo(1));
@@ -243,12 +243,12 @@ namespace FWO.Test
         [Test]
         public void GetIpRangeAndVersion_ShouldReturnNull_ForInvalidRange()
         {
-            var (range, version) = UpdateRuleOwnerMapping.GetIpRangeAndVersion("invalid", "192.168.1.10");
+            var (range, version) = UpdateRuleOwnerMappingIpBased.GetIpRangeAndVersion("invalid", "192.168.1.10");
 
             Assert.That(range, Is.Null);
             Assert.That(version, Is.Null);
 
-            (range, version) = UpdateRuleOwnerMapping.GetIpRangeAndVersion("192.168.1.10", "192.168.1.1");
+            (range, version) = UpdateRuleOwnerMappingIpBased.GetIpRangeAndVersion("192.168.1.10", "192.168.1.1");
 
             Assert.That(range, Is.Null);
             Assert.That(version, Is.Null);
@@ -257,10 +257,62 @@ namespace FWO.Test
         [Test]
         public void GetIpRangeAndVersion_ShouldHandleIPv6()
         {
-            var (range, version) = UpdateRuleOwnerMapping.GetIpRangeAndVersion("2001:db8::1", "2001:db8::10");
+            var (range, version) = UpdateRuleOwnerMappingIpBased.GetIpRangeAndVersion("2001:db8::1", "2001:db8::10");
 
             Assert.That(range, Is.Not.Null);
             Assert.That(version, Is.EqualTo(AddressFamily.InterNetworkV6));
+        }
+
+        [TestCase("FWOC123", "FWOC", "123")]
+        [TestCase("FWOC123 CX123", "FWOC", "123")]
+        [TestCase("123FWOC123 CX123", "FWOC", "123")]
+        [TestCase("CCFWOC123 CX123", "FWOC", "123")]
+        [TestCase("FWOC999_test", "FWOC", "999")]
+        [TestCase("FWOC123CX456", "FWOC", "123")]
+        public void ExtractNameFieldValue_ShouldExtractNumber_AfterMarker(string ruleName, string marker, string expected)
+        {
+            var rule = new Rule { Name = ruleName, Id = 1 };
+
+            var result = UpdateRuleOwnerMappingNameField.ExtractNameFieldValue(rule, marker, out var errorMessage);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo(expected));
+                Assert.That(errorMessage, Is.Null);
+            });
+        }
+
+        [TestCase("FWOC", "FWOC")]
+        [TestCase("FWOCabc", "FWOC")]
+        [TestCase("APP123", "FWOC")]
+        public void ExtractNameFieldValue_ShouldReturnNull_WhenMarkerHasNoNumericMatch(string ruleName, string marker)
+        {
+            var rule = new Rule { Name = ruleName, Id = 1 };
+
+            var result = UpdateRuleOwnerMappingNameField.ExtractNameFieldValue(rule, marker, out var errorMessage);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.Null);
+                Assert.That(errorMessage, Is.Not.Null);
+            });
+        }
+
+        [TestCase(null, "FWOC")]
+        [TestCase("", "FWOC")]
+        [TestCase("FWOC123", null)]
+        [TestCase("FWOC123", "")]
+        public void ExtractNameFieldValue_ShouldReturnNull_WhenInputsAreMissing(string? ruleName, string? marker)
+        {
+            var rule = new Rule { Name = ruleName, Id = 1 };
+
+            var result = UpdateRuleOwnerMappingNameField.ExtractNameFieldValue(rule, marker!, out var errorMessage);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.Null);
+                Assert.That(errorMessage, Is.Not.Null);
+            });
         }
 
         #region Test Data Builders
@@ -304,7 +356,6 @@ namespace FWO.Test
         {
             return new OwnerNetwork { IP = ipStart, IpEnd = ipEnd };
         }
-
         #endregion
     }
 }

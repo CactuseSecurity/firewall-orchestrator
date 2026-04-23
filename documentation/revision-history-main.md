@@ -604,3 +604,6 @@ A complete 80K lines rework of FWO, including
 - bug fixing
 - moving from docker to podman
 
+# 9.0.21 - 21.04.2026 MAIN
+- bug fixing
+- dependency updates (notably closing mailkit and pytest vulnerabilities)

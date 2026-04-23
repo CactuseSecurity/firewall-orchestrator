@@ -17,6 +17,7 @@ namespace FWO.Report.Filter
         public Dictionary<string, object> QueryVariables { get; set; } = [];
         public string FullQuery { get; set; } = "";
         public string RulebaseLinkWhereStatement { get; set; } = "";
+        public string NatRulebaseLinkWhereStatement { get; set; } = "";
         public string RuleWhereStatement { get; set; } = "";
         public string NwObjWhereStatement { get; set; } = "";
         public string SvcObjWhereStatement { get; set; } = "";
@@ -387,24 +388,45 @@ namespace FWO.Report.Filter
                     management({mgmtWhereString}) 
                     {{
                         id: mgm_id
+                        uid: mgm_uid
                         name: mgm_name
                         devices ({devWhereStringDefault}) 
                         {{
                             id: dev_id
                             name: dev_name
-                            rulebase_links(where: {{ {query.RulebaseLinkWhereStatement} }})
+                            uid: dev_uid
+                            rulebase_links(where: {{ {query.NatRulebaseLinkWhereStatement} }})
                             {{
-                                {query.OpenRulesTable}
-                                    {limitOffsetString}
-                                    where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
-                                    order_by: {{ rule_num_numeric: asc }} )
-                                {{
-                                    mgm_id: mgm_id
-                                    ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
-                                }} 
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
                             }}
                         }}
-                    }} 
+                        rulebases {{
+                            name
+                            uid
+                            id
+                            {query.OpenRulesTable}
+                                {limitOffsetString}
+                                where: {{ nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
+                                order_by: {{ rule_num_numeric: asc }} )
+                            {{
+                                mgm_id: mgm_id
+                                ...{(filter.Detailed ? "natRuleDetails" : "natRuleOverview")}
+                            }} 
+                        }}
+                    }}
                 }}";
         }
 
@@ -773,9 +795,14 @@ namespace FWO.Report.Filter
                     case ReportType.RecertEventReport:
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");
+                        String removedStatement = $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.RulebaseLinkWhereStatement +=
                             $"created: {{_lte: $import_id_end }}" +
-                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
+                            removedStatement +
+                            $"stm_link_type: {{id: {{_neq: 6}}}}"; // Filter out NAT rulebase links
+                        query.NatRulebaseLinkWhereStatement +=
+                            $"created: {{_lte: $import_id_end }}" +
+                            $"_or: [{{is_initial: {{_eq: true}}, {removedStatement}}}, {{link_type: {{_eq: 6}}, {removedStatement}}}]";
                         query.RuleWhereStatement +=
                             $"rule_create: {{_lte: $import_id_end}}" +
                             $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";

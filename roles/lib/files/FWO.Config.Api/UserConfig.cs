@@ -195,11 +195,11 @@ namespace FWO.Config.Api
         {
             ThrowIfDisposed();
             string text = key;
-            string pattern = @"[A]\d\d\d\d";
+            string pattern = @"[Aa]\d{4}";
             Match m = Regex.Match(key, pattern);
             if (m.Success)
             {
-                string msg = GetText(key[..5]);
+                string msg = GetText(m.Value);
                 if (msg != GlobalConst.kUndefinedText)
                 {
                     text = msg;

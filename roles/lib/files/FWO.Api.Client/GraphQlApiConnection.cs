@@ -202,11 +202,6 @@ namespace FWO.Api.Client
 
                     foreach (GraphQLError error in response.Errors)
                     {
-                        if (error.Message == "Jwt expired.")
-                        {
-                            // JwtEventService
-                        }
-
                         Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
                         errorMessage += $"{error.Message}\n";
                     }

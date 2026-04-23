@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <FWO_RUN_INTEGRATION_TESTS>true</FWO_RUN_INTEGRATION_TESTS>
+      <FWO_TEST_USERNAME>replace_with_local_test_user</FWO_TEST_USERNAME>
+      <FWO_TEST_PASSWORD>replace_with_local_test_password</FWO_TEST_PASSWORD>
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>

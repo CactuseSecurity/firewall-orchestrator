@@ -103,7 +103,7 @@ class FwoApi:
         user: str,
         password: str | None,
         user_management_api_base_url: str | None,
-        method: str = "api/AuthenticationToken/Get",
+        method: str = "api/AuthenticationToken/GetTokenPair",
     ):
         payload: dict[str, str | None] = {"Username": user, "Password": password}
 
@@ -141,7 +141,7 @@ class FwoApi:
 
         Args:
             method: HTTP method (GET, POST, PUT, DELETE, PATCH)
-            endpoint: API endpoint path (e.g., "AuthenticationToken/Get", "User", "Role/User")
+            endpoint: API endpoint path (e.g., "AuthenticationToken/GetTokenPair", "User", "Role/User")
             data: Request payload data
 
         Returns:

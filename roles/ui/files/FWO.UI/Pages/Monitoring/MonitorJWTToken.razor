@@ -1,0 +1,104 @@
+﻿@code {
+#if DEBUG
+    private const bool IsDebugBuild = true;
+#else
+    private const bool IsDebugBuild = false;
+#endif
+}
+
+@if (IsDebugBuild)
+{
+    @page "/monitoring/jwttoken"
+
+    @using FWO.Data.Middleware
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
+
+@inject UserConfig userConfig
+
+    @inject TokenService tokenService
+
+    @inject IEventMediator EventMediator
+
+    @implements IDisposable
+
+<div class="m-2">
+        <div class="alert alert-info py-2 px-3 small">
+            <div class="mb-2"><strong class="text-black">Token</strong></div>
+            <div><strong class="text-primary">Access:</strong> @debugAccessTokenCountdown</div>
+            <div class="mb-2"><strong class="text-danger">Refresh:</strong> @debugRefreshTokenCountdown</div>
+            <button class="btn btn-sm btn-dark"
+                    @onclick="@(async () => await tokenService.RefreshTokenPair(force: true))">Refresh Tokens</button>
+            <button class="btn btn-sm btn-danger"
+                    @onclick="@(async () => { await tokenService.RevokeTokens(); EventMediator.Publish(nameof(JwtExpiredEvent), new JwtExpiredEvent(new(userConfig.User.Dn))); })">Revoke
+                Tokens</button>
+                <button class="btn btn-sm btn-warning @Icons.Display" @onclick="@(_ => showTokens = !showTokens)"><span
+                    class="ps-1">@(showTokens ? "Hide" : "Show")</span></button>
+                    @if (showTokens)
+                    {
+                        TokenPair? token = tokenService.GetTokenPair().GetAwaiter().GetResult();
+                        <div class="mt-2">
+                            <div class="mb-2"><strong class="text-primary">Access:</strong>
+                                <p class="word-wrap">@token?.AccessToken</p>
+                            </div>
+                            <div><strong class="text-danger">Refresh:</strong>
+                                <p class="word-wrap">@token?.RefreshToken</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+@code {
+    private bool showTokens { get; set; }
+    private PeriodicTaskRunner? debugTokenClockRunner;
+    private string debugAccessTokenCountdown = "n/a";
+    private string debugRefreshTokenCountdown = "n/a";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UpdateDebugTokenCountdownAsync();
+        debugTokenClockRunner = new(() => InvokeAsync(UpdateDebugTokenCountdownAsync), TimeSpan.FromSeconds(1));
+        debugTokenClockRunner.Start();
+    }
+
+    private async Task UpdateDebugTokenCountdownAsync()
+    {
+        (DateTime? accessExpiresAtUtc, DateTime? refreshExpiresAtUtc) = await tokenService.GetTokenExpirations();
+
+        debugAccessTokenCountdown = FormatTokenExpiryCountdown(accessExpiresAtUtc);
+        debugRefreshTokenCountdown = FormatTokenExpiryCountdown(refreshExpiresAtUtc);
+
+        StateHasChanged();
+    }
+
+    private static string FormatTokenExpiryCountdown(DateTime? expiresAtUtc)
+    {
+        if (!expiresAtUtc.HasValue)
+        {
+            return "n/a";
+        }
+
+        TimeSpan remaining = expiresAtUtc.Value - DateTime.UtcNow;
+        string expiresAtLabel = expiresAtUtc.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+
+        if (remaining <= TimeSpan.Zero)
+        {
+            return $"expired {FormatDuration(remaining.Duration())} ago ({expiresAtLabel})";
+        }
+
+        return $"in {FormatDuration(remaining)} ({expiresAtLabel})";
+    }
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        return $"{Math.Floor(duration.TotalDays):00}d {duration.Hours:00}h {duration.Minutes:00}m {duration.Seconds:00}s";
+    }
+
+    public void Dispose()
+    {
+        debugTokenClockRunner?.Dispose();
+    }
+}
+}

@@ -1,21 +1,24 @@
-﻿@page "/help/API/subnetdataimport"
+@page "/help/API/subnetdataimport"
 @model FWO.Ui.Pages.Help.MainModel
 @{
-    Layout = "HelpLayout";
+  Layout = "HelpLayout";
 }
+
 @section sidebar{
-    @{ 
-        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
-    }
+  @{
+    await Html.RenderPartialAsync("HelpAPISidebar.cshtml");
+  }
 }
+
 @using FWO.Config.Api
 @inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>@userConfig.GetText("import_subnet_data")</h3>
-    @(Html.Raw(userConfig.GetText("H6931")))
+  <h3>@userConfig.GetText("import_subnet_data")</h3>
+  @(Html.Raw(userConfig.GetText("H6931")))
 
-    <pre>
+  <pre class="code-block" data-lang="json">
+<code>
 {
   "areas": [
     {
@@ -45,7 +48,7 @@
     }
   ]
 }
-    </pre>
-
-    @(Html.Raw(userConfig.GetText("H6932")))
+</code>
+  </pre>
+  @(Html.Raw(userConfig.GetText("H6932")))
 </div>

@@ -16,6 +16,7 @@ namespace FWO.Test
             Assert.That(visibility.RuleRelated, Is.False);
             Assert.That(visibility.ModellingRelated, Is.True);
             Assert.That(visibility.ComplianceRelated, Is.False);
+            Assert.That(visibility.OwnerRelated, Is.False);
             Assert.That(visibility.WorkflowRelated, Is.False);
         }
 
@@ -36,9 +37,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CustomSortReportType_ReporterDoesNotSeeModellingOverlapOrOwnerReports()
+        {
+            ReportVisibility visibility = RoleGroups.GetReportVisibility(BuildPrincipal(Roles.Reporter));
+            List<ReportType> sortedTypes = ReportTypeGroups.CustomSortReportType(
+            [
+                ReportType.Rules,
+                ReportType.AppRules,
+                ReportType.RecertEventReport,
+                ReportType.Owners,
+                ReportType.Connections
+            ], visibility);
+
+            Assert.That(sortedTypes, Is.EqualTo(new List<ReportType> { ReportType.Rules }));
+        }
+
+        [Test]
+        public void CustomSortReportType_AdminSeesOwnersReport()
+        {
+            ReportVisibility visibility = RoleGroups.GetReportVisibility(BuildPrincipal(Roles.Admin));
+            List<ReportType> sortedTypes = ReportTypeGroups.CustomSortReportType(
+            [
+                ReportType.Owners,
+                ReportType.Connections
+            ], visibility);
+
+            Assert.That(sortedTypes, Does.Contain(ReportType.Owners));
+        }
+
+        [Test]
         public void ReportTypeSelection_DoesNotContainArchiveOnlyReport()
         {
-            List<ReportType> reportTypes = ReportTypeGroups.ReportTypeSelection(new(true, true, true, true));
+            List<ReportType> reportTypes = ReportTypeGroups.ReportTypeSelection(new(true, true, true, true, true));
 
             Assert.That(reportTypes, Does.Not.Contain(ReportType.RecertificationEvent));
         }

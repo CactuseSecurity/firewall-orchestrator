@@ -53,6 +53,9 @@ namespace FWO.Basics
                 ComplianceRelated: user.IsInRole(Roles.Admin)
                     || user.IsInRole(Roles.FwAdmin)
                     || user.IsInRole(Roles.Auditor),
+                OwnerRelated: user.IsInRole(Roles.Admin)
+                    || user.IsInRole(Roles.FwAdmin)
+                    || user.IsInRole(Roles.Auditor),
                 WorkflowRelated: user.IsInRole(Roles.Admin)
                     || user.IsInRole(Roles.FwAdmin)
                     || user.IsInRole(Roles.Auditor)
@@ -64,5 +67,5 @@ namespace FWO.Basics
         }
     }
 
-    public readonly record struct ReportVisibility(bool RuleRelated, bool ModellingRelated, bool ComplianceRelated, bool WorkflowRelated);
+    public readonly record struct ReportVisibility(bool RuleRelated, bool ModellingRelated, bool ComplianceRelated, bool OwnerRelated, bool WorkflowRelated);
 }

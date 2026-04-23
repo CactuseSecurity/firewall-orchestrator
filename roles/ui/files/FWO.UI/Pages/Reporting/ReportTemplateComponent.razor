@@ -260,13 +260,23 @@
 
     protected override async Task OnInitializedAsync()
     {
-        recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-        if (reportVisibility.ModellingRelated)
+        try
         {
-            modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection,
-            DisplayMessageInUi);
+            recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            if (reportVisibility.ModellingRelated)
+            {
+                modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection,
+                DisplayMessageInUi);
+            }
+            await RefreshTemplates();
         }
-        await RefreshTemplates();
+        catch (Exception exception)
+        {
+            recertOwnerList = [];
+            modOwnerList = [];
+            reportTemplates = [];
+            DisplayMessageInUi(exception, userConfig.GetText("template_fetch"), "", true);
+        }
     }
 
     public async Task RefreshTemplates()

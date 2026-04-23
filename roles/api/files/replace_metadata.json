@@ -12953,6 +12953,30 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "active_state",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "active_state",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [

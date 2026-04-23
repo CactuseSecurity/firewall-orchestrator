@@ -511,6 +511,8 @@
         }
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);
+        actReportFilters.SelectAll = !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet();
+        AdjustDeviceSelection();
         UpdateRightSidebarVisibility(actReportFilters.ReportType);
 
         StateHasChanged();
@@ -651,8 +653,7 @@
     {
         ReportTemplate template = new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams());
         if (((ReportType)template.ReportParams.ReportType).IsModellingReport()
-            && template.ReportParams.ReportType != (int)ReportType.OwnerRecertification
-            && template.ReportParams.ModellingFilter.SelectedTemplateOwner.Id == 0)
+            && template.ReportParams.ReportType != (int)ReportType.OwnerRecertification)
         {
             template.ReportParams.ModellingFilter.SelectedTemplateOwner = actReportFilters.ModellingFilter.SelectedOwner;
         }

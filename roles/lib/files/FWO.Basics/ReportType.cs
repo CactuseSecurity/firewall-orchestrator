@@ -186,15 +186,15 @@ namespace FWO.Basics
 
         public static List<ReportType> ReportTypeSelection(ReportVisibility? visibility = null)
         {
-            return CustomSortReportType([.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>()], visibility ?? new(true, true, true, true));
+            return CustomSortReportType([.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>()], visibility ?? new(true, true, true, true, true));
         }
 
         public static bool IsVisibleTemplateType(this ReportType reportType, ReportVisibility visibility, bool modellingOwnerAllowed = true)
         {
             return !reportType.IsArchiveOnlyReport() && (
-                visibility.RuleRelated && reportType.IsDeviceRelatedReport()
-                || visibility.RuleRelated && reportType == ReportType.Owners
+                visibility.RuleRelated && reportType.IsDeviceRelatedReport() && !reportType.IsModellingReport()
                 || visibility.ModellingRelated && reportType.IsModellingReport() && (modellingOwnerAllowed || reportType.IsOwnerReport())
+                || visibility.OwnerRelated && reportType == ReportType.Owners
                 || visibility.ComplianceRelated && reportType.IsComplianceReport()
                 || visibility.WorkflowRelated && reportType.IsWorkflowReport());
         }

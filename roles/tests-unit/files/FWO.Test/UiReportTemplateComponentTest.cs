@@ -157,7 +157,9 @@ namespace FWO.Test
                 new ReportTemplateComponentTestApiConn(
                 [
                     CreateTemplate(1, "Rules template", ReportType.Rules),
-                    CreateTemplate(2, "Workflow template", ReportType.TicketReport)
+                    CreateTemplate(2, "Workflow template", ReportType.TicketReport),
+                    CreateTemplate(3, "App rules template", ReportType.AppRules),
+                    CreateTemplate(4, "Owners template", ReportType.Owners)
                 ],
                 []));
 
@@ -169,6 +171,8 @@ namespace FWO.Test
                 string markup = wrapper.Markup;
                 Assert.That(markup, Does.Contain("Rules template"));
                 Assert.That(markup, Does.Not.Contain("Workflow template"));
+                Assert.That(markup, Does.Not.Contain("App rules template"));
+                Assert.That(markup, Does.Not.Contain("Owners template"));
             });
         }
 

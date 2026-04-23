@@ -14,6 +14,9 @@ else
 
 @code
 {
+    [CascadingParameter]
+    private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
     [Parameter]
     public OwnerFilter OwnerFilter { get; set; } = new();
 
@@ -65,14 +68,23 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        ownerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(FWO.Api.Client.Queries.OwnerQueries.getOwnerLifeCycleStates);
-        List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-        AvailableCriticalities = [.. owners
-            .Select(owner => owner.Criticality)
-            .Where(criticality => !string.IsNullOrWhiteSpace(criticality))
-            .Cast<string>()
-            .Distinct()
-            .OrderBy(criticality => criticality)];
+        try
+        {
+            ownerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(FWO.Api.Client.Queries.OwnerQueries.getOwnerLifeCycleStates);
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            AvailableCriticalities = [.. owners
+                .Select(owner => owner.Criticality)
+                .Where(criticality => !string.IsNullOrWhiteSpace(criticality))
+                .Cast<string>()
+                .Distinct()
+                .OrderBy(criticality => criticality)];
+        }
+        catch (Exception exception)
+        {
+            ownerLifeCycleStates = [];
+            AvailableCriticalities = [];
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
     }
 
     private async Task OwnerLifeCycleStateChanged(OwnerLifeCycleState? newState)

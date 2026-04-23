@@ -116,14 +116,17 @@
             }
             else
             {
-                if(ModellingFilter.SelectedOwner.Id == 0)
-                {
-                    PickSelectedOwner();
-                }
-
-                NormalizeSelectedOwners();
+                NormalizeSelectedOwner();
             }
-            await LoadOwnerRecerts(ModellingFilter.SelectedOwner);
+            if(ModellingFilter.SelectedOwner.Id > 0)
+            {
+                await LoadOwnerRecerts(ModellingFilter.SelectedOwner);
+            }
+            else
+            {
+                ownerRecerts = [];
+                selectedOwnerRecert = null;
+            }
         }
     }
 
@@ -134,19 +137,17 @@
         await LoadOwnerRecerts(newOwner);
     }
 
-    private void PickSelectedOwner()
+    private void NormalizeSelectedOwner()
     {
-        if(ownerList.Count > 0)
+        if(ownerList.Count == 0)
         {
-            ModellingFilter.SelectedOwner = InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(o => o.Id == InjectedAppId) ?? ownerList.First();
+            ModellingFilter.SelectedOwners = [];
         }
-    }
-
-    private void NormalizeSelectedOwners()
-    {
-        if(ModellingFilter.SelectedOwners.Count != 1)
+        else
         {
-            ModellingFilter.SelectedOwners = [ModellingFilter.SelectedOwner];
+            FwoOwner selectedOwner = ownerList.FirstOrDefault(owner => owner.Id == ModellingFilter.SelectedOwner.Id)
+                ?? (InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(owner => owner.Id == InjectedAppId) ?? ownerList.First());
+            ModellingFilter.SelectedOwners = [selectedOwner];
         }
     }
 

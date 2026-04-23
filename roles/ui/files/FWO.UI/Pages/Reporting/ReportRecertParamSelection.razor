@@ -138,6 +138,7 @@ else
                 RecertFilter.RecertificationDisplayPeriod = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
             }
             selectedOwner = new(){ Id = UnselectedId };
+            InitOwner();
         }
         catch (Exception exception)
         {

@@ -39,6 +39,9 @@
 
 @code
 {
+    [CascadingParameter]
+    private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
     [Parameter]
     public List<OwnerConnectionReport> OwnerData { get; set; } = [];
 
@@ -51,11 +54,20 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ownerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(FWO.Api.Client.Queries.OwnerQueries.getOwnerLifeCycleStates);
-        ownerResponsibleTypes = [.. (await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(FWO.Api.Client.Queries.OwnerQueries.getOwnerResponsibleTypes))
-            .Where(type => type.Active)
-            .OrderBy(type => type.SortOrder)
-            .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)];
+        try
+        {
+            ownerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(FWO.Api.Client.Queries.OwnerQueries.getOwnerLifeCycleStates);
+            ownerResponsibleTypes = [.. (await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(FWO.Api.Client.Queries.OwnerQueries.getOwnerResponsibleTypes))
+                .Where(type => type.Active)
+                .OrderBy(type => type.SortOrder)
+                .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)];
+        }
+        catch (Exception exception)
+        {
+            ownerLifeCycleStates = [];
+            ownerResponsibleTypes = [];
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
     }
 
     private string GetOwnerState(FwoOwner owner)

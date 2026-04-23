@@ -73,12 +73,14 @@
         DeviceFilter.Managements?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1);
     }
 
+    protected override void OnParametersSet()
+    {
+        SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
+    }
+
     private async Task SetSelectAll()
     {
-        if (DeviceFilter.AreAllDevicesSelected())
-            SelectAll = false;
-        if (!DeviceFilter.IsAnyDeviceFilterSet())
-            SelectAll = true;
+        SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
         await SelectAllChanged.InvokeAsync(SelectAll);
     }
 

@@ -1,48 +1,54 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<PopUp Title="@(userConfig.GetText("edit_policy"))" Size=PopupSize.Small Show="@Display" OnClose="Cancel">
+<PopUp Title="@(userConfig.GetText("edit_policy"))" Size=PopupSize.Medium Show="@Display" OnClose="Cancel">
     <Body>
-        @if(Display)
+        @if (Display)
         {
-            <div class="col-sm-11">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                @if(AddMode)
+            <div class="row pt-2">
+                <div class="col-sm-3">
+                    <label class="col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                </div>
+                @if (AddMode)
                 {
-                    <input type="text" class="col-sm-8" @bind="Policy.Name" />
+                    <div class="col-sm-9">
+                        <input class="form-control form-control-sm" name="txtbPolicyName" type="text" @bind="Policy.Name" />
+                    </div>
                 }
                 else
                 {
-                    <label class="col-sm-8 col-form-label col-form-label-sm"><b>@(Policy.Name)</b></label>
+                    <div class="col-sm-9">
+                        <label class="col-form-label col-form-label-sm"><b>@(Policy.Name)</b></label>
+                    </div>
                 }
             </div>
-            <br>
-            <div class="col-sm-11">
-                <div class="form-group row me-auto">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("criteria"))*:</label>
+            <div class="row py-2">
+                <div class="col-sm-3" />
                 <div class="col-sm-9">
                     <EditList ElementType="ComplianceCriterion" Elements="Policy.Criteria.Select(c => c.Content).ToArray()" ElementsToAdd="CriteriaToAdd" ElementsToDelete="CriteriaToDelete" StdLayout="false">
                         <Display>
-                            <div class="col-sm-12 border bg-transparent">@context.Name</div>
+                            <div class="border bg-transparent">@context.Name</div>
                         </Display>
                     </EditList>
-                    <div class="col-sm-12 mt-1">
-                        <div class="form-group row me-auto">
-                            <div class="col-sm-10">
-                                <Dropdown ElementType="ComplianceCriterion" ElementToString="@(r => r.Name)" @bind-SelectedElement="SelectedCrit" Elements="SelectableCriteria()">
-                                    <ElementTemplate Context="crit">
-                                        @(crit.Name)
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                            <button @onclick="AddCrit" type="button" class="col-sm-2 btn btn-sm btn-success" id="addCrit">@userConfig.GetText("add")</button>
-                        </div>
-                    </div>
                 </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-3">
+                    <label class="col-form-label col-form-label-sm">@(userConfig.GetText("criteria"))*:</label>
+                </div>
+                <div class="col-sm-9">
+                    <div class="d-flex">
+                        <Dropdown ElementType="ComplianceCriterion" ElementToString="@(r => r.Name)" @bind-SelectedElement="SelectedCrit" Elements="SelectableCriteria()">
+                            <ElementTemplate Context="crit">
+                                @(crit.Name)
+                            </ElementTemplate>
+                        </Dropdown>
+                        <button @onclick="AddCrit" type="button" class="btn btn-sm btn-success ms-2" id="addCrit">@userConfig.GetText("add")</button>
+                    </div>
                 </div>
             </div>
         }
@@ -55,7 +61,7 @@
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
-                </NotAuthorized> 
+                </NotAuthorized>
             </AuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -108,7 +114,7 @@
 
     protected override void OnParametersSet()
     {
-        if(Display && AllCriteria.Count > 0)
+        if (Display && AllCriteria.Count > 0)
         {
             SelectedCrit = new();
             CriteriaToAdd = [];
@@ -123,7 +129,7 @@
 
     private void AddCrit()
     {
-        if(SelectedCrit.Id > 0)
+        if (SelectedCrit.Id > 0)
         {
             CriteriaToAdd.Add(SelectedCrit);
             SelectedCrit = new();
@@ -139,14 +145,14 @@
     {
         try
         {
-            if(AddMode)
+            if (AddMode)
             {
-                if(string.IsNullOrEmpty(Policy.Name))
+                if (string.IsNullOrEmpty(Policy.Name))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("edit_policy"), userConfig.GetText("E5234"), true);
                     return;
                 }
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addPolicy, new{ name = Policy.Name })).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addPolicy, new { name = Policy.Name })).ReturnIds;
                 if (returnIds != null)
                 {
                     Policy.Id = returnIds[0].InsertedId;
@@ -169,19 +175,19 @@
 
     private async Task AddCriteriaToPolicy(int policyId)
     {
-        foreach(var crit in CriteriaToAdd)
+        foreach (var crit in CriteriaToAdd)
         {
-            await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.addCritToPolicy, new{ policyId = policyId, criterionId = crit.Id });
-            Policy.Criteria.Add(new(){ Content = crit});
+            await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.addCritToPolicy, new { policyId = policyId, criterionId = crit.Id });
+            Policy.Criteria.Add(new() { Content = crit });
         }
     }
 
     private async Task RemoveCriteriaFromPolicy(int policyId)
     {
-        foreach(var crit in CriteriaToDelete)
+        foreach (var crit in CriteriaToDelete)
         {
             await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCritFromPolicy,
-                new{ policyId = policyId, criterionId = crit.Id, removed = DateTime.UtcNow});
+                new { policyId = policyId, criterionId = crit.Id, removed = DateTime.UtcNow });
             Policy.Criteria.Remove(Policy.Criteria[Policy.Criteria.FindIndex(c => c.Content.Id == crit.Id)]);
         }
     }

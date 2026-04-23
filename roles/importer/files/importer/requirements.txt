@@ -1,3 +1,5 @@
+# NOTE: Install all dependencies by using the top-level requirements.txt
+
 # Core runtime
 pydantic>=2.0,<3.0
 jsonpickle>=3.0
@@ -20,8 +22,3 @@ scrapli-community>=2025.01.30
 # Test
 pytest>=9.0.3
 pytest-mock>=3.0
-
-# Linting
-ruff==0.15.0
-pre-commit>=3.0
-pyright>=1.1.407

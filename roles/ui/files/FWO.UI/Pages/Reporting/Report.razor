@@ -35,6 +35,10 @@
         {
             <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" @bind-TimeFilter="actReportFilters.TimeFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType" />
         }
+        @if(actReportFilters.ReportType == ReportType.Owners)
+        {
+            <ReportOwnerParamSelection @bind-OwnerFilter="actReportFilters.OwnerFilter" />
+        }
         @if(actReportFilters.ReportType == ReportType.Recertification || actReportFilters.ReportType == ReportType.OwnerRecertification)
         {
             <ReportRecertParamSelection @bind-FilterInput="filterInput" @bind-RecertFilter="actReportFilters.RecertFilter" ReportType="actReportFilters.ReportType" />
@@ -84,7 +88,7 @@
             @if (actReportFilters.ReportType.IsChangeReport())
             {
                 <div class="p-3">
-                    <input class="form-check-input" type="checkbox" id="includeObjectChanges" @bind="actReportFilters.IncludeObjectsInReportChanges" />
+                    <input class="form-check-input" type="checkbox" id="includeObjectChanges" @bind="actReportFilters.IncludeObjects" />
                     <label class="form-check-label text-white" for="includeObjectChanges"> @(userConfig.GetText("U1004"))</label>
                 </div>
             }
@@ -115,7 +119,7 @@
         <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
             @if (!processing)
             {
-                <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { actReportFilters.IncludeObjectsInReportChangesUiPresesed = true; await GenerateReport(); }">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
             }
             else
             {
@@ -170,7 +174,7 @@
                             case ReportType.ResolvedChanges:
                             case ReportType.ResolvedChangesTech:
                                 <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                                   @bind-IncludeObjectsInReportChanges="@actReportFilters.IncludeObjectsInReportChanges"                                               
+                                                   @bind-IncludeObjects="@actReportFilters.IncludeObjects"                                               
                                                    @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
                                 break;
 
@@ -188,6 +192,10 @@
 
                             case ReportType.OwnerRecertification:
                                 <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData" RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod" />
+                                break;
+
+                            case ReportType.Owners:
+                                <OwnersReport OwnerData="currentReport.ReportData.OwnerData" />
                                 break;
 
                             case ReportType.RecertEventReport:
@@ -295,17 +303,7 @@
 
     private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
         || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
-
-    private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier);
-    private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.Recertifier);
+    private ReportVisibility reportVisibility => RoleGroups.GetReportVisibility(authenticationStateTask!.Result.User);
 
     private bool _showAnyRulesInComplianceReport = true;
 
@@ -362,15 +360,16 @@
         try
         {
             availableReportTypes = ReportTypeGroups.CustomSortReportType(
-                JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
-                ?? throw new JsonException("Config data could not be parsed."), showRuleRelatedReports, showModellingReports);
+                [.. (JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
+                ?? throw new JsonException("Config data could not be parsed.")).Where(reportType => !reportType.IsArchiveOnlyReport())],
+                reportVisibility);
             SetProperRoleForReport();
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
             {
                 actReportFilters.Init(userConfig, false);
                 injectedAppId = appId;
-                if(showModellingReports)
+                if(reportVisibility.ModellingRelated)
                 {
                     owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = appId });
                     if(owners.Count > 0)
@@ -382,7 +381,7 @@
             }
             else
             {
-                actReportFilters.Init(userConfig, showRuleRelatedReports);
+                actReportFilters.Init(userConfig, reportVisibility.RuleRelated);
             }
             InitDone = true;
             await InvokeAsync(StateHasChanged);
@@ -412,18 +411,7 @@
                 CleanUri();
             }
 
-            // Hide right sidebar for compliance or workflow report.
-
-            if(newReportType.IsComplianceReport() || newReportType.IsWorkflowReport())
-            {
-                _showRightSidebar = false;
-                sidebarRightWidth = 0;                
-            }
-            else
-            {
-                _showRightSidebar = true;
-                sidebarRightWidth = GlobalConst.kSidebarRightWidth;
-            }
+            UpdateRightSidebarVisibility(newReportType);
 
             actReportFilters.ReportType = newReportType;
             SetProperRoleForReport();
@@ -452,7 +440,11 @@
 
     private void SetProperRoleForReport()
     {
-        if(actReportFilters.ReportType.IsModellingReport())
+        if(actReportFilters.ReportType.IsComplianceReport())
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+        }
+        else if(actReportFilters.ReportType.IsModellingReport())
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor]);
         }
@@ -501,13 +493,15 @@
 
     private async Task SyncFiltersFromTemplate(ReportTemplate template)
     {
-        if(template.ReportParams.ReportType == (int)ReportType.OwnerRecertification)
+        if (((ReportType)template.ReportParams.ReportType).IsOwnerReport())
         {
             template.ReportParams.ModellingFilter.SelectedOwners = owners;
         }
         else
         {
-            template.ReportParams.ModellingFilter.SelectedOwner = template.ReportParams.ModellingFilter.SelectedTemplateOwner;
+            FwoOwner selectedTemplateOwner = template.ReportParams.ModellingFilter.SelectedTemplateOwner;
+            FwoOwner selectedOwner = owners.FirstOrDefault(owner => owner.Id == selectedTemplateOwner.Id) ?? selectedTemplateOwner;
+            template.ReportParams.ModellingFilter.SelectedOwner = selectedOwner;
         }
         filterInput = template.Filter;
         Tenant? tenantFromTemplate = null;
@@ -517,9 +511,24 @@
         }
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);
-        actReportFilters.IncludeObjectsInReportChanges = template.IncludeObjectsInReportChanges;
+        actReportFilters.SelectAll = !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet();
+        AdjustDeviceSelection();
+        UpdateRightSidebarVisibility(actReportFilters.ReportType);
 
         StateHasChanged();
+    }
+
+    private void UpdateRightSidebarVisibility(ReportType reportType)
+    {
+        _showRightSidebar = ShouldShowRightSidebar(reportType);
+        sidebarRightWidth = _showRightSidebar ? GlobalConst.kSidebarRightWidth : 0;
+    }
+
+    private static bool ShouldShowRightSidebar(ReportType reportType)
+    {
+        return !reportType.IsComplianceReport()
+            && !reportType.IsWorkflowReport()
+            && !reportType.IsOwnerReport();
     }
 
     private void SelectTime()
@@ -642,11 +651,12 @@
 
     private ReportTemplate ConstructReportTemplate(string? tempFilter = null)
     {
-        ReportTemplate template = new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams())
+        ReportTemplate template = new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams());
+        if (((ReportType)template.ReportParams.ReportType).IsModellingReport()
+            && template.ReportParams.ReportType != (int)ReportType.OwnerRecertification)
         {
-                IncludeObjectsInReportChanges = actReportFilters.IncludeObjectsInReportChanges,
-                IncludeObjectsInReportChangesUiPresesed = actReportFilters.IncludeObjectsInReportChangesUiPresesed
-        };
+            template.ReportParams.ModellingFilter.SelectedTemplateOwner = actReportFilters.ModellingFilter.SelectedOwner;
+        }
         template.ReportParams.ComplianceFilter.ShowNonImpactRules = _showAnyRulesInComplianceReport;
         return template;
     }
@@ -687,39 +697,6 @@
         }
     }
 
-    private List<ReportType> CustomSortReportType(List<ReportType> ListIn)
-    {
-        List<ReportType> ListOut = [];
-        List<ReportType> orderedReportTypeList = new ()
-        {
-            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
-            ReportType.Recertification,
-            ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
-            ReportType.TicketReport,
-            ReportType.TicketChangeReport,
-            ReportType.Statistics,
-            ReportType.Connections,
-            ReportType.AppRules,
-            ReportType.VarianceAnalysis
-        };
-        foreach (var reportType in orderedReportTypeList)
-        {
-            if (ListIn.Contains(reportType))
-            {
-                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport()
-                    || showModellingReports && reportType.IsModellingReport()
-                    || reportType.IsWorkflowReport())
-                {
-                    ListOut.Add(reportType);
-                }
-                ListIn.Remove(reportType);
-            }
-        }
-        // finally add remaining report types
-        ListOut.AddRange(ListIn);
-        return ListOut;
-    }
-    
     private void ToggleShowAnyRule(ChangeEventArgs e)
     {
         _showAnyRulesInComplianceReport = (bool)e.Value!;

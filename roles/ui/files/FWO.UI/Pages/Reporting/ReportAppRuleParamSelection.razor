@@ -1,0 +1,114 @@
+@using FWO.Data.Report
+
+@inject UserConfig userConfig
+
+@if (UseFormLayout)
+{
+    @AppRuleFields
+}
+else
+{
+    <div class="p-3">
+        @AppRuleFields
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public ModellingFilter ModellingFilter { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ModellingFilter> ModellingFilterChanged { get; set; }
+
+    [Parameter]
+    public bool UseLightText { get; set; } = true;
+
+    [Parameter]
+    public bool UseFormLayout { get; set; }
+
+    private string CheckboxLabelClass => UseLightText ? "form-check-label text-white" : "form-check-label";
+    private string FieldContainerClass => UseFormLayout ? "form-group row mt-2" : string.Empty;
+    private string FirstFieldContainerClass => UseFormLayout ? "form-group row" : string.Empty;
+    private string FieldLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : string.Empty;
+    private string FieldContentClass => UseFormLayout ? "offset-sm-3 col-sm-8" : string.Empty;
+
+    private RenderFragment AppRuleFields => @<text>
+        <div class="@FirstFieldContainerClass">
+            <div class="@FieldContentClass">
+                <div class="form-check" @onclick:stopPropagation="true">
+                    <input class="form-check-input" id="appRuleSrcMatch" type="radio" name="appRuleSrcDstMatch"
+                           checked="@(ModellingFilter.ShowSourceMatch && !ModellingFilter.ShowDestinationMatch)"
+                           @onchange="SetSourceMatch">
+                    <label class="@CheckboxLabelClass" for="appRuleSrcMatch">@(userConfig.GetText("match_source"))</label>
+                </div>
+                <div class="form-check" @onclick:stopPropagation="true">
+                    <input class="form-check-input" id="appRuleDstMatch" type="radio" name="appRuleSrcDstMatch"
+                           checked="@(!ModellingFilter.ShowSourceMatch && ModellingFilter.ShowDestinationMatch)"
+                           @onchange="SetDestinationMatch">
+                    <label class="@CheckboxLabelClass" for="appRuleDstMatch">@(userConfig.GetText("match_destination"))</label>
+                </div>
+                <div class="form-check" @onclick:stopPropagation="true">
+                    <input class="form-check-input" id="appRuleEitherMatch" type="radio" name="appRuleSrcDstMatch"
+                           checked="@(ModellingFilter.ShowSourceMatch && ModellingFilter.ShowDestinationMatch)"
+                           @onchange="SetEitherMatch">
+                    <label class="@CheckboxLabelClass" for="appRuleEitherMatch">@(userConfig.GetText("match_either"))</label>
+                </div>
+                <div class="form-check mt-2">
+                    <input class="form-check-input" id="appRuleAnyMatch" type="checkbox"
+                           checked="@ModellingFilter.ShowAnyMatch" @onchange="ToggleAnyMatch" />
+                    <label class="@CheckboxLabelClass" for="appRuleAnyMatch">@(userConfig.GetText("match_any"))</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" id="appRuleDropMatch" type="checkbox"
+                           checked="@ModellingFilter.ShowDropRules" @onchange="ToggleDropRules" />
+                    <label class="@CheckboxLabelClass" for="appRuleDropMatch">@(userConfig.GetText("match_drop_rules"))</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" id="appRuleShowFull" type="checkbox"
+                           checked="@ModellingFilter.ShowFullRules" @onchange="ToggleShowFullRules" />
+                    <label class="@CheckboxLabelClass" for="appRuleShowFull">@(userConfig.GetText("show_full_rules"))</label>
+                </div>
+            </div>
+        </div>
+    </text>;
+
+    private async Task SetSourceMatch()
+    {
+        ModellingFilter.ShowSourceMatch = true;
+        ModellingFilter.ShowDestinationMatch = false;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private async Task SetDestinationMatch()
+    {
+        ModellingFilter.ShowSourceMatch = false;
+        ModellingFilter.ShowDestinationMatch = true;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private async Task SetEitherMatch()
+    {
+        ModellingFilter.ShowSourceMatch = true;
+        ModellingFilter.ShowDestinationMatch = true;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private async Task ToggleAnyMatch(ChangeEventArgs args)
+    {
+        ModellingFilter.ShowAnyMatch = args.Value as bool? ?? false;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private async Task ToggleDropRules(ChangeEventArgs args)
+    {
+        ModellingFilter.ShowDropRules = args.Value as bool? ?? false;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private async Task ToggleShowFullRules(ChangeEventArgs args)
+    {
+        ModellingFilter.ShowFullRules = args.Value as bool? ?? false;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+}

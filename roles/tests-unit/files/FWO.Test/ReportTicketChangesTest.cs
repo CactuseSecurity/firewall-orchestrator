@@ -15,7 +15,7 @@ namespace FWO.Test
     [Parallelizable]
     public class ReportTicketChangesTest
     {
-        private class ReportTicketChangesApiConnection(List<WfTicket> tickets) : ApiConnection
+        private class ReportTicketChangesApiConnection(List<WfTicket> tickets, List<TicketId>? ownerTicketIds = null) : ApiConnection
         {
             public Dictionary<string, object>? LastQueryVariables { get; private set; }
 
@@ -39,6 +39,10 @@ namespace FWO.Test
                 if (typeof(QueryResponseType) == typeof(List<WfState>) && query == RequestQueries.getStates)
                 {
                     return Task.FromResult((QueryResponseType)(object)new List<WfState> { new() { Id = 9, Name = "done" } });
+                }
+                if (typeof(QueryResponseType) == typeof(List<TicketId>) && query == RequestQueries.getOwnerTicketIds)
+                {
+                    return Task.FromResult((QueryResponseType)(object)(ownerTicketIds ?? []));
                 }
                 if (typeof(QueryResponseType) == typeof(List<GlobalStateMatrixHelper>))
                 {
@@ -90,6 +94,77 @@ namespace FWO.Test
             Assert.That(report.ReportData.Tickets[0].Id, Is.EqualTo(1001));
             Assert.That(report.ReportData.ElementsCount, Is.EqualTo(1));
             Assert.That(report.ReportData.WorkflowStateNames[9], Is.EqualTo("done"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketReport_Generate_FiltersTicketsByOwnerVisibility_WhenReqOwnerBasedIsEnabled()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqOwnerBased = true
+            };
+            userConfig.User.DbId = 50;
+            userConfig.User.Roles = [Roles.Requester];
+            userConfig.User.Ownerships = [4];
+            ReportBase report = ReportBase.ConstructReport(template, userConfig);
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 1001,
+                    Title = "Owned ticket",
+                    StateId = 9,
+                    Tasks = [new WfReqTask()],
+                    Requester = new UiUser { Name = "owner-visible", DbId = 99 }
+                },
+                new()
+                {
+                    Id = 1002,
+                    Title = "Foreign ticket",
+                    StateId = 9,
+                    Tasks = [new WfReqTask()],
+                    Requester = new UiUser { Name = "foreign", DbId = 99 }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets, [new() { Id = 1001 }]), _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(report.ReportData.Tickets.Select(ticket => ticket.Id), Is.EqualTo(new List<long> { 1001 }));
+            Assert.That(report.ReportData.ElementsCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketReport_Generate_ReturnsNoTickets_WhenReqOwnerBasedIsEnabledWithoutOwnerships()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqOwnerBased = true
+            };
+            userConfig.User.DbId = 50;
+            userConfig.User.Roles = [Roles.Requester];
+            ReportBase report = ReportBase.ConstructReport(template, userConfig);
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 1001,
+                    Title = "Hidden ticket",
+                    StateId = 9,
+                    Tasks = [new WfReqTask()],
+                    Requester = new UiUser { Name = "foreign", DbId = 99 }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(report.ReportData.Tickets, Is.Empty);
+            Assert.That(report.ReportData.ElementsCount, Is.EqualTo(0));
         }
 
         [Test]

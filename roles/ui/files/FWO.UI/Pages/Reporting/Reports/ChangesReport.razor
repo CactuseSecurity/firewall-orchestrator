@@ -116,7 +116,7 @@
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />                                                            
             </Table>
 
-            @if (IncludeObjectsInReportChanges && management.ObjectChanges != null && management.ObjectChanges.Any())
+            @if (IncludeObjects && management.ObjectChanges != null && management.ObjectChanges.Any())
                 {
                     <Table 
                     Items="management.ObjectChanges" TableItem="ObjectChange"
@@ -174,7 +174,7 @@
                         <Pager ShowPageNumber="true" ShowTotalCount="true" />
                     </Table>
                 }
-            @if (IncludeObjectsInReportChanges && management.ServiceChanges != null && management.ServiceChanges.Any())
+            @if (IncludeObjects && management.ServiceChanges != null && management.ServiceChanges.Any())
                 {
                     <Table Items="management.ServiceChanges" TableItem="ServiceChange"
                     style="font-size:small" PageSize="RulesPerPage" ShowSearchBar="false" ColumnReorder="true" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header">
@@ -238,7 +238,7 @@
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />
                         </Table>
                 }
-            @if (IncludeObjectsInReportChanges && management.UserChanges != null && management.UserChanges.Any())
+            @if (IncludeObjects && management.UserChanges != null && management.UserChanges.Any())
             {
                 <Table Items="management.UserChanges" TableItem="UserChange"
                        style="font-size:small" PageSize="RulesPerPage" ShowSearchBar="false" ColumnReorder="true" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header">
@@ -291,10 +291,10 @@
     public ReportType SelectedReportType { get; set; }
 
     [Parameter]
-    public bool IncludeObjectsInReportChanges { get; set; }
+    public bool IncludeObjects { get; set; }
 
     [Parameter]
-    public EventCallback<bool> IncludeObjectsInReportChangesChanged { get; set; }
+    public EventCallback<bool> IncludeObjectsChanged { get; set; }
 
     public RuleChangeDisplayHtml? ruleChangeDisplayHtml;
 

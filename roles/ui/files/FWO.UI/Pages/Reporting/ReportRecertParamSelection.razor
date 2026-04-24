@@ -2,50 +2,17 @@
 @inject UserConfig userConfig
 
 
-<div class="p-3">
-    <h5 class="text-left">@(userConfig.GetText("recert_parameter"))</h5>
-    <div class="form-group" data-toggle="tooltip" title="@(userConfig.PureLine("H1112"))">
-        <h7 class="text-left text-white">@(userConfig.GetText("due_within")):</h7>
-        <input type="number" min="0" max="5000" step="1" class="form-control form-control-sm" @bind="RecertFilter.RecertificationDisplayPeriod" />
+@if (UseFormLayout)
+{
+    @FormLayoutFields
+}
+else
+{
+    <div class="p-3">
+        <h5 class="text-left">@(userConfig.GetText("recert_parameter"))</h5>
+        @SidebarFields
     </div>
-    @if(ReportType != ReportType.OwnerRecertification)
-    {
-        <h7 class="text-left text-white">@(userConfig.GetText("owner"))</h7>
-        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="false" SelectedElement="selectedOwner" 
-                SelectedElementChanged="SelectedOwnerChanged" Elements="ownerList">
-            <ElementTemplate Context="owner">
-                @owner.Name
-            </ElementTemplate>
-        </Dropdown>
-        <br>
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
-                @bind="RecertFilter.RecertShowAnyMatch"
-                @oninput="@(async () =>
-                { 
-                    RecertFilter.RecertShowAnyMatch = !RecertFilter.RecertShowAnyMatch;
-                    if (!RecertFilter.RecertShowAnyMatch) 
-                    {
-                        if (FilterInput.Length > 0)
-                        {
-                            FilterInput += " and (not src==0.0.0.0 and not dst==0.0.0.0)";
-                        }
-                        else
-                        {
-                            FilterInput = "(not src==0.0.0.0 and not dst==0.0.0.0)";
-                        }
-                    }
-                    else 
-                    {
-                        FilterInput =  FilterInput.Replace("and (not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
-                        FilterInput =  FilterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
-                    }
-                    await FilterInputChanged.InvokeAsync(FilterInput);
-                })" />
-            <label class="form-check-label text-white" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
-        </div>
-    }
-</div>
+}
 
 
 @code
@@ -71,11 +38,66 @@
     [Parameter]
     public ReportType ReportType { get; set; } = ReportType.Recertification;
 
+    [Parameter]
+    public bool UseFormLayout { get; set; }
+
     private List<FwoOwner> ownerList = [];
     private FwoOwner? selectedOwner;
     private bool ownerSet = false;
+    private RecertFilter? previousRecertFilter;
     private const int AllId = -1;
     private const int UnselectedId = -2;
+
+    private string OwnerCheckboxLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "form-check-label text-white";
+    private string OwnerLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : "text-left text-white";
+
+    private RenderFragment OwnerDropdown => @<Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="false" SelectedElement="selectedOwner"
+        SelectedElementChanged="SelectedOwnerChanged" Elements="ownerList">
+        <ElementTemplate Context="owner">
+            @owner.Name
+        </ElementTemplate>
+    </Dropdown>;
+
+    private RenderFragment FormLayoutFields => @<text>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H1112"))">
+            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("due_within")):</label>
+            <input type="number" min="0" max="5000" step="1" class="col-sm-2" @bind="RecertFilter.RecertificationDisplayPeriod" />
+        </div>
+        @if (ReportType != ReportType.OwnerRecertification)
+        {
+            <div class="form-group row mt-2">
+                <label class="@OwnerLabelClass">@(userConfig.GetText("owner")):</label>
+                <div class="col-sm-8">
+                    @OwnerDropdown
+                </div>
+            </div>
+            <div class="form-group row mt-2">
+                <label class="@OwnerCheckboxLabelClass">@(userConfig.GetText("show_any_match"))</label>
+                <div class="col-sm-1">
+                    <input class="form-check-input" type="checkbox" id="recertShowAnyMatch" checked="@RecertFilter.RecertShowAnyMatch"
+                           @oninput="ToggleShowAnyMatch" />
+                </div>
+            </div>
+        }
+    </text>;
+
+    private RenderFragment SidebarFields => @<text>
+        <div class="form-group" data-toggle="tooltip" title="@(userConfig.PureLine("H1112"))">
+            <h7 class="text-left text-white">@(userConfig.GetText("due_within")):</h7>
+            <input type="number" min="0" max="5000" step="1" class="form-control form-control-sm" @bind="RecertFilter.RecertificationDisplayPeriod" />
+        </div>
+        @if(ReportType != ReportType.OwnerRecertification)
+        {
+            <h7 class="@OwnerLabelClass">@(userConfig.GetText("owner"))</h7>
+            @OwnerDropdown
+            <br>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="recertShowAnyMatch" checked="@RecertFilter.RecertShowAnyMatch"
+                       @oninput="ToggleShowAnyMatch" />
+                <label class="@OwnerCheckboxLabelClass" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
+            </div>
+        }
+    </text>;
 
 
     protected override async Task OnInitializedAsync()
@@ -111,8 +133,12 @@
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_owners"), "", true);
             }
-            RecertFilter.RecertificationDisplayPeriod = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
+            if (RecertFilter.RecertificationDisplayPeriod == 0)
+            {
+                RecertFilter.RecertificationDisplayPeriod = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
+            }
             selectedOwner = new(){ Id = UnselectedId };
+            InitOwner();
         }
         catch (Exception exception)
         {
@@ -122,6 +148,12 @@
 
     protected override void OnParametersSet()
     {
+        if (!ReferenceEquals(previousRecertFilter, RecertFilter))
+        {
+            previousRecertFilter = RecertFilter;
+            ownerSet = false;
+        }
+
         if(!ownerSet)
         {
             ownerSet = true;
@@ -166,5 +198,27 @@
         {
             RecertFilter.RecertOwnerList = [newOwner.Id];
         }
+    }
+
+    private async Task ToggleShowAnyMatch()
+    {
+        RecertFilter.RecertShowAnyMatch = !RecertFilter.RecertShowAnyMatch;
+        if (!RecertFilter.RecertShowAnyMatch)
+        {
+            if (FilterInput.Length > 0)
+            {
+                FilterInput += " and (not src==0.0.0.0 and not dst==0.0.0.0)";
+            }
+            else
+            {
+                FilterInput = "(not src==0.0.0.0 and not dst==0.0.0.0)";
+            }
+        }
+        else
+        {
+            FilterInput = FilterInput.Replace("and (not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+            FilterInput = FilterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+        }
+        await FilterInputChanged.InvokeAsync(FilterInput);
     }
 }

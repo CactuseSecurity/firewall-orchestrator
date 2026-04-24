@@ -2,8 +2,10 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
+using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Services.Workflow;
 using System.Text;
@@ -22,12 +24,43 @@ namespace FWO.Report
         {
             await ResolvePhaseFilterAsync(apiConnection);
             List<WfTicket> tickets = await apiConnection.SendQueryAsync<List<WfTicket>>(Query.FullQuery, Query.QueryVariables);
+            tickets = await FilterVisibleTicketsAsync(apiConnection, tickets);
             List<WfState> workflowStates = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             ReportData.WorkflowStateNames = workflowStates.ToDictionary(state => state.Id, state => state.Name);
             ReportData.WorkflowFilter = new(workflowFilter);
             ReportData.Tickets = tickets;
             ReportData.ElementsCount = tickets.Count;
             await callback(ReportData);
+        }
+
+        /// <summary>
+        /// Applies the same owner-based workflow visibility rule used by the request pages.
+        /// </summary>
+        private async Task<List<WfTicket>> FilterVisibleTicketsAsync(ApiConnection apiConnection, List<WfTicket> tickets)
+        {
+            int ticketCountBeforeFilter = tickets.Count;
+            if (!userConfig.ReqOwnerBased
+                || userConfig.User.Roles.Contains(Roles.Admin)
+                || userConfig.User.Roles.Contains(Roles.Auditor))
+            {
+                Log.WriteDebug("Workflow Report Filter", $"Skipping owner-based filtering: reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, roles=[{string.Join(", ", userConfig.User.Roles)}], ticketCount={ticketCountBeforeFilter}");
+                return tickets;
+            }
+
+            if (userConfig.User.Ownerships.Count == 0)
+            {
+                Log.WriteDebug("Workflow Report Filter", $"Owner-based filtering removed all tickets because no ownerships were available: reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, roles=[{string.Join(", ", userConfig.User.Roles)}], ticketCountBefore={ticketCountBeforeFilter}");
+                return [];
+            }
+
+            List<long> registeredTickets = (await apiConnection.SendQueryAsync<List<TicketId>>(
+                RequestQueries.getOwnerTicketIds,
+                new { ownerIds = userConfig.User.Ownerships }))
+                .ConvertAll(ticket => ticket.Id);
+
+            List<WfTicket> visibleTickets = [.. tickets.Where(ticket => ticket.IsVisibleForOwner(registeredTickets, userConfig.User.Ownerships, userConfig.User.DbId))];
+            Log.WriteDebug("Workflow Report Filter", $"Applied owner-based filtering: reqOwnerBased={userConfig.ReqOwnerBased}, userId={userConfig.User.DbId}, roles=[{string.Join(", ", userConfig.User.Roles)}], ownershipCount={userConfig.User.Ownerships.Count}, ownerIds=[{string.Join(", ", userConfig.User.Ownerships)}], registeredTicketCount={registeredTickets.Count}, ticketCountBefore={ticketCountBeforeFilter}, ticketCountAfter={visibleTickets.Count}");
+            return visibleTickets;
         }
 
         /// <inheritdoc />

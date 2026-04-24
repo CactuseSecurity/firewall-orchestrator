@@ -1,4 +1,4 @@
-@using FWO.Report.Filter
+﻿@using FWO.Report.Filter
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
@@ -81,20 +81,10 @@
             </div>
             @if (reportTypeInEdit == ReportType.Recertification)
             {
-                <div class="form-group row mt-2">
-                    <label for="saveTemplateRecertDiplayPeriod" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("due_within")):</label>
-                    <input id="saveTemplateRecertDiplayPeriod" type="number" min="0" class="col-sm-2"
-                           @bind="reportTemplateInEdit.ReportParams.RecertFilter.RecertificationDisplayPeriod">
-                </div>
-                <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
-                    <label class="col-sm-8">
-                        @(reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.Count > 0 ?
-                                                recertOwnerList.FirstOrDefault(o => o.Id ==
-                                                reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First())?.Name ??
-                                                reportTemplateInEdit.ReportParams.RecertFilter.RecertOwnerList.First().ToString() : "")
-                    </label>
-                </div>
+                <ReportRecertParamSelection @bind-FilterInput="reportTemplateInEdit.Filter"
+                                            @bind-RecertFilter="reportTemplateInEdit.ReportParams.RecertFilter"
+                                            ReportType="reportTypeInEdit"
+                                            UseFormLayout="true" />
             }
             else if (reportTypeInEdit == ReportType.UnusedRules)
             {
@@ -122,11 +112,62 @@
                 </div>
 
             }
-            else if (reportTypeInEdit.HasTimeFilter())
+            @if (reportTypeInEdit.HasTimeFilter())
             {
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("report_time")):</label>
-                    <label class="col-sm-8">@(DisplayTime())</label>
+                    <div class="form-group row col-sm-9">
+                        <label class="col-sm-9">@(DisplayTime())</label>
+                        <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditTimeSelection">
+                            @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                    </div>
+                </div>
+            }
+            @if (reportTypeInEdit == ReportType.Owners)
+            {
+                <ReportOwnerParamSelection @bind-OwnerFilter="reportTemplateInEdit.ReportParams.OwnerFilter" UseLightText="false" UseFormLayout="true" />
+            }
+            @if (reportTypeInEdit == ReportType.OwnerRecertification)
+            {
+                <ReportOwnerRecertParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter" UseLightText="false" UseFormLayout="true" />
+                <ReportRecertParamSelection @bind-FilterInput="reportTemplateInEdit.Filter"
+                                            @bind-RecertFilter="reportTemplateInEdit.ReportParams.RecertFilter"
+                                            ReportType="reportTypeInEdit"
+                                            UseFormLayout="true" />
+            }
+            @if (reportTypeInEdit == ReportType.Connections
+                || reportTypeInEdit == ReportType.AppRules
+                || reportTypeInEdit == ReportType.VarianceAnalysis
+                || reportTypeInEdit == ReportType.RecertEventReport)
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false"
+                                  @bind-SelectedElement="reportTemplateInEdit.ReportParams.ModellingFilter.SelectedTemplateOwner" Elements="modOwnerList">
+                            <ElementTemplate Context="owner">
+                                @(owner.Display(userConfig.GetText("common_service")))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            }
+            @if (reportTypeInEdit == ReportType.AppRules)
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("rule_filters")):</label>
+                    <div class="col-sm-8">
+                        <ReportAppRuleParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter" UseLightText="false" />
+                    </div>
+                </div>
+            }
+            @if (reportTypeInEdit == ReportType.VarianceAnalysis)
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("variance_filters")):</label>
+                    <div class="col-sm-8">
+                        <ReportVarianceParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter" UseLightText="false" />
+                    </div>
                 </div>
             }
             @if (reportTypeInEdit.IsWorkflowReport())
@@ -141,30 +182,26 @@
                     <label class="col-sm-8">@(reportTemplateInEdit.ReportParams.TenantFilter.TenantId)</label>
                 </div>
             }
+            @if (reportTypeInEdit.IsChangeReport())
+            {
+                <div class="form-group row mt-2">
+                    <label for="saveTemplateIncludeObjectChanges" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("U1004"))</label>
+                    <div class="col-sm-1">
+                        <input id="saveTemplateIncludeObjectChanges" type="checkbox"
+                               @bind="reportTemplateInEdit.ReportParams.IncludeObjects">
+                    </div>
+                </div>
+            }
 
             @if (reportTypeInEdit.IsDeviceRelatedReport() && (ReportType)reportTypeInEdit != ReportType.RecertEventReport)
             {
                 <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText(reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification ? "managements" : "devices")):</label>
                     <div class="form-group row col-sm-9">
-                        <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedDevices())</label>
+                        <label class="col-sm-9">@(reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification ? reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedManagements() : reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedDevices())</label>
                         <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">
                             @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
                         </button>
-                    </div>
-                </div>
-            }
-            else if (!reportTypeInEdit.IsWorkflowReport() && reportTypeInEdit != ReportType.OwnerRecertification)
-            {
-                <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
-                    <div class="col-sm-8">
-                        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false"
-                                  @bind-SelectedElement="reportTemplateInEdit.ReportParams.ModellingFilter.SelectedTemplateOwner" Elements="modOwnerList">
-                            <ElementTemplate Context="owner">
-                                @(owner.Display(userConfig.GetText("common_service")))
-                            </ElementTemplate>
-                        </Dropdown>
                     </div>
                 </div>
             }
@@ -183,7 +220,9 @@
     </Footer>
 </PopUp>
 
-<ReportTemplateSelectDevice @bind-Display="ShowSelectDeviceDialog" @bind-DeviceFilter="reportTemplateInEdit.ReportParams.DeviceFilter" />
+<ReportTemplateSelectDevice @bind-Display="ShowSelectDeviceDialog" @bind-DeviceFilter="reportTemplateInEdit.ReportParams.DeviceFilter" SelectedReportType="reportTypeInEdit" />
+<ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="reportTypeInEdit" @bind-ActTimeFilter="templateActTimeFilter"
+                  @bind-SavedTimeFilter="reportTemplateInEdit.ReportParams.TimeFilter" DisplayTime="RefreshTimeSelection" />
 
 <ConfirmDelete @bind-Display="ShowDeleteTemplateDialog" PerformAction="DeleteTemplate" Title="@(userConfig.GetText("report_template"))"
                DeleteMessage="@(userConfig.GetText("U1002") + " " + reportTemplateInEdit.Name + " ?")"
@@ -213,31 +252,34 @@
     private bool ShowAddTemplateDialog = false;
     private bool ShowUpdateTemplateDialog = false;
     private bool ShowSelectDeviceDialog = false;
+    private bool ShowSelectTimeDialog = false;
     private bool ShowDeleteTemplateDialog = false;
 
     private Collapse collapseControl = new();
     private DeviceFilter DeviceFilterOrig = new();
+    private TimeFilter templateActTimeFilter = new();
 
-    private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
-    private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-    || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
-
-    private bool showComplianceReport => authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
+    private ReportVisibility reportVisibility => RoleGroups.GetReportVisibility(authenticationStateTask!.Result.User);
 
     protected override async Task OnInitializedAsync()
     {
-        recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
-        if (showModellingReports)
+        try
         {
-            modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection,
-            DisplayMessageInUi);
+            recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            if (reportVisibility.ModellingRelated)
+            {
+                modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection,
+                DisplayMessageInUi);
+            }
+            await RefreshTemplates();
         }
-        await RefreshTemplates();
+        catch (Exception exception)
+        {
+            recertOwnerList = [];
+            modOwnerList = [];
+            reportTemplates = [];
+            DisplayMessageInUi(exception, userConfig.GetText("template_fetch"), "", true);
+        }
     }
 
     public async Task RefreshTemplates()
@@ -336,7 +378,7 @@
     {
         ReportType reportType = (ReportType)reportTemplate.ReportParams.ReportType;
         bool modellingOwnerAllowed = modOwnerList.FirstOrDefault(o => o.Id == reportTemplate.ReportParams.ModellingFilter.SelectedOwner.Id) != null;
-        return reportType.IsVisibleTemplateType(showRuleRelatedReports, showModellingReports, showComplianceReport, modellingOwnerAllowed);
+        return !reportType.IsArchiveOnlyReport() && reportType.IsVisibleTemplateType(reportVisibility, modellingOwnerAllowed);
     }
 
     public void NewTemplate(ReportTemplate reportTemplate)
@@ -478,5 +520,17 @@
     private void EditDeviceSelection()
     {
         ShowSelectDeviceDialog = true;
+    }
+
+    private void EditTimeSelection()
+    {
+        templateActTimeFilter = new TimeFilter(reportTemplateInEdit.ReportParams.TimeFilter);
+        ShowSelectTimeDialog = true;
+    }
+
+    private bool RefreshTimeSelection()
+    {
+        StateHasChanged();
+        return true;
     }
 }

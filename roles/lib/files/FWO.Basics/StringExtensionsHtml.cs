@@ -7,7 +7,7 @@ namespace FWO.Basics
     public static partial class StringExtensions
     {
 
-        private const string HtmlTagPattern = "<.*?>";
+        private const string HtmlTagPattern = "<[^>]*>";
         private static readonly HashSet<string> SafeHtmlTags = new HashSet<string>(["br", "i", "hr", "b", "u", "strong", "em", "p", "ul", "ol", "li", "span", "div"], StringComparer.Ordinal);
 
 

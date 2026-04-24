@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Report.Filter.Exceptions;
 
 
 namespace FWO.Report.Filter.Ast
@@ -9,7 +10,14 @@ namespace FWO.Report.Filter.Ast
 
         public override void ConvertToSemanticType()
         {
-            CheckOperator(Operator, false, TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
+            if (Name.Kind == TokenKind.OwnerState)
+            {
+                CheckOperator(Operator, false, TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ, TokenKind.LSS, TokenKind.GRT);
+            }
+            else
+            {
+                CheckOperator(Operator, false, TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
+            }
             semanticValue = Value.Text;
         }
 
@@ -38,6 +46,12 @@ namespace FWO.Report.Filter.Ast
                     break;
                 case TokenKind.Gateway:
                     ExtractGatewayFilter(query);
+                    break;
+                case TokenKind.OwnerState:
+                    ExtractOwnerStateFilter(query);
+                    break;
+                case TokenKind.Criticality:
+                    ExtractOwnerCriticalityFilter(query);
                     break;
                 default:
                     break;
@@ -166,6 +180,45 @@ namespace FWO.Report.Filter.Ast
             query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}, " +
                 $"{{ service_group_connections: {{service_group: {{ _or: [ {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }}, " +
                 $"{{ service_service_groups: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} ] }} }} }} ]";
+        }
+
+        private void ExtractOwnerCriticalityFilter(DynGraphqlQuery query)
+        {
+            string queryVarName = AddVariable<string>(query, "ownerCriticality", Operator.Kind, semanticValue!);
+            query.OwnerWhereStatement += $"criticality: {{ {ExtractOperator()}: ${queryVarName} }}";
+        }
+
+        private void ExtractOwnerStateFilter(DynGraphqlQuery query)
+        {
+            if (int.TryParse(semanticValue, out int stateId))
+            {
+                string queryVarName = AddNumericVariable(query, "ownerLifeCycleStateId", stateId);
+                query.OwnerWhereStatement += $"owner_lifecycle_state_id: {{ {ExtractNumericOperator()}: ${queryVarName} }}";
+                return;
+            }
+
+            string queryVarNameForName = AddVariable<string>(query, "ownerLifeCycleStateName", Operator.Kind, semanticValue!);
+            query.OwnerWhereStatement += $"owner_lifecycle_state: {{ name: {{ {ExtractOperator()}: ${queryVarNameForName} }} }}";
+        }
+
+        private string ExtractNumericOperator()
+        {
+            return Operator.Kind switch
+            {
+                TokenKind.EQ or TokenKind.EEQ => "_eq",
+                TokenKind.NEQ => "_neq",
+                TokenKind.LSS => "_lt",
+                TokenKind.GRT => "_gt",
+                _ => throw new SemanticException("Invalid numeric operator.", Operator.Position),
+            };
+        }
+
+        private static string AddNumericVariable(DynGraphqlQuery query, string name, int value)
+        {
+            string queryVarName = name + query.parameterCounter++;
+            query.QueryParameters.Add($"${queryVarName}: Int! ");
+            query.QueryVariables[queryVarName] = value;
+            return queryVarName;
         }
     }
 }

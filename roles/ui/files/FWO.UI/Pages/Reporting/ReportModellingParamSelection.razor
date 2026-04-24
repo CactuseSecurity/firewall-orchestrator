@@ -6,14 +6,7 @@
 <div class="p-3">
     @if(ReportType == ReportType.OwnerRecertification)
     {
-        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1000"))">
-            <input class="form-check-input" id="allOwners" type="checkbox" @bind="ModellingFilter.ShowAllOwners" />
-            <label class="form-check-label text-white" for="allOwners">@(userConfig.GetText("show_all_owners"))</label>
-        </div>
-        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1002"))">
-            <input class="form-check-input" id="showInactiveRecertOwners" type="checkbox" @bind="ModellingFilter.ShowInactiveRecertOwners" />
-            <label class="form-check-label text-white" for="showInactiveRecertOwners">@(userConfig.GetText("show_inactive_recert_owners"))</label>
-        </div>
+        <ReportOwnerRecertParamSelection @bind-ModellingFilter="ModellingFilter" />
     }
     else
     {
@@ -36,51 +29,13 @@
     {
         <br>
         <h5 class="text-left">@(userConfig.GetText("rule_filters"))</h5>
-        <div class="row m-2">
-            <div class="form-check" @onclick:stopPropagation="true">
-                <input class="form-check-input" id="srcMatch" type="radio" name="SrcDstMatch" @onchange="() => {ModellingFilter.ShowSourceMatch = true; ModellingFilter.ShowDestinationMatch = false;}">
-                <label class="form-check-label text-white" for="srcMatch">
-                    @(userConfig.GetText("match_source"))
-                </label>
-            </div>
-            <div class="form-check" @onclick:stopPropagation="true">
-                <input class="form-check-input" id="dstMatch" type="radio" name="SrcDstMatch" @onchange="() => {ModellingFilter.ShowSourceMatch = false; ModellingFilter.ShowDestinationMatch = true;}">
-                <label class="form-check-label text-white" for="dstMatch">
-                    @(userConfig.GetText("match_destination"))
-                </label>
-            </div>
-            <div class="form-check" @onclick:stopPropagation="true">
-                <input class="form-check-input" id="eitherMatch" type="radio" name="SrcDstMatch" checked @onchange="() => {ModellingFilter.ShowSourceMatch = true; ModellingFilter.ShowDestinationMatch = true;}">
-                <label class="form-check-label text-white" for="eitherMatch">
-                    @(userConfig.GetText("match_either"))
-                </label>
-            </div>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" id="anyMatch" type="checkbox" @bind="ModellingFilter.ShowAnyMatch" />
-            <label class="form-check-label text-white" for="anyMatch">@(userConfig.GetText("match_any"))</label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" id="dropMatch" type="checkbox" @bind="ModellingFilter.ShowDropRules" />
-            <label class="form-check-label text-white" for="dropMatch">@(userConfig.GetText("match_drop_rules"))</label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" id="showFull" type="checkbox" @bind="ModellingFilter.ShowFullRules" />
-            <label class="form-check-label text-white" for="showFull">@(userConfig.GetText("show_full_rules"))</label>
-        </div>
+        <ReportAppRuleParamSelection @bind-ModellingFilter="ModellingFilter" />
     }
     else if(ReportType == ReportType.VarianceAnalysis)
     {
         <br>
         <h5 class="text-left">@(userConfig.GetText("variance_filters"))</h5>
-        <div class="form-check">
-            <input class="form-check-input" id="deletedConns" type="checkbox" @bind="ModellingFilter.RulesForDeletedConns" />
-            <label class="form-check-label text-white" for="deletedConns">@(userConfig.GetText("rules_for_deleted_conns"))</label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" id="analyseRemaining" type="checkbox" @bind="ModellingFilter.AnalyseRemainingRules" />
-            <label class="form-check-label text-white" for="analyseRemaining">@(userConfig.GetText("analyse_remaining_rules"))</label>
-        </div>
+        <ReportVarianceParamSelection @bind-ModellingFilter="ModellingFilter" />
     }
     else if(ReportType == ReportType.RecertEventReport)
     {
@@ -159,11 +114,19 @@
             {
                 ModellingFilter.SelectedOwners = ownerList;
             }
-            else if(ModellingFilter.SelectedOwner.Id == 0)
+            else
             {
-                PickSelectedOwner();
+                NormalizeSelectedOwner();
             }
-            await LoadOwnerRecerts(ModellingFilter.SelectedOwner);
+            if(ModellingFilter.SelectedOwner.Id > 0)
+            {
+                await LoadOwnerRecerts(ModellingFilter.SelectedOwner);
+            }
+            else
+            {
+                ownerRecerts = [];
+                selectedOwnerRecert = null;
+            }
         }
     }
 
@@ -174,11 +137,17 @@
         await LoadOwnerRecerts(newOwner);
     }
 
-    private void PickSelectedOwner()
+    private void NormalizeSelectedOwner()
     {
-        if(ownerList.Count > 0)
+        if(ownerList.Count == 0)
         {
-            ModellingFilter.SelectedOwner = InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(o => o.Id == InjectedAppId) ?? ownerList.First();
+            ModellingFilter.SelectedOwners = [];
+        }
+        else
+        {
+            FwoOwner selectedOwner = ownerList.FirstOrDefault(owner => owner.Id == ModellingFilter.SelectedOwner.Id)
+                ?? (InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(owner => owner.Id == InjectedAppId) ?? ownerList.First());
+            ModellingFilter.SelectedOwners = [selectedOwner];
         }
     }
 

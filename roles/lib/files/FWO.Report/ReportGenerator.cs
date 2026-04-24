@@ -40,7 +40,7 @@ namespace FWO.Report
                 {
                     await GenerateConnectionRelatedReport(report, reportTemplate, apiConnection, userConfig, displayMessageInUi, token);
                 }
-                else if (report.ReportType == ReportType.OwnerRecertification)
+                else if (report.ReportType.IsOwnerReport())
                 {
                     await GenerateOwnerReport(report, reportTemplate, apiConnection, token);
                 }

@@ -177,6 +177,8 @@ INSERT INTO txt VALUES ('VarianceAnalysis', 	'German', 	'Modell: Soll-Ist');
 INSERT INTO txt VALUES ('VarianceAnalysis',     'English', 	'Model: Variances');
 INSERT INTO txt VALUES ('OwnerRecertification', 'German', 	'Zert: Eigent&uuml;mer-&Uuml;bersicht');
 INSERT INTO txt VALUES ('OwnerRecertification', 'English', 	'Cert: Owner Overview');
+INSERT INTO txt VALUES ('Owners', 'German', 	'Eigent&uuml;mer');
+INSERT INTO txt VALUES ('Owners', 'English', 	'Owners');
 INSERT INTO txt VALUES ('RecertificationEvent', 'German', 	'Zert: Zertifikat');
 INSERT INTO txt VALUES ('RecertificationEvent', 'English', 	'Cert: Certificate');
 INSERT INTO txt VALUES ('RecertEventReport',    'German', 	'Zert: Zert-Regel-Details');
@@ -4185,6 +4187,8 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, devi
     <li>lasthit (last-hit, last-used, last-usage, last-use): Filtern nach Regel-Nutzung - aktuell unterst&uuml;tzt f&uuml;r FortiManager und Check Point >=R80.</li>
     <li>not-used-for-days (unused, unused-days, not-used): nicht genutzt seit der vorgegebenen Anzahl von Tagen oder gar nicht</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
+    <li>ownerstate (owner-state, owner_state, owner_lc_state, owner-lc-state): Eigent&uuml;mer-Report nach Lifecycle-Status-ID oder Lifecycle-Status-Name filtern</li>
+    <li>criticality: Eigent&uuml;mer-Report nach Kritikalit&auml;t filtern</li>
     <li>tasktype (task-type, task_type): Workflow-Ticket-Reports nach Request-Tasktypen filtern</li>
     <li>state/states (state_ids, state-ids): Workflow-Ticket-Reports nach Ticket-Status filtern</li>
     <li>phase: Workflow-Ticket-Reports auf den Statusbereich einer aktiven Workflow-Phase einschr&auml;nken</li>
@@ -4205,6 +4209,8 @@ INSERT INTO txt VALUES ('H1111', 'English', '<li>gateway (gw, firewall, fw, devi
     <li>lasthit (last-hit, last-used, last-usage, last-use): filter by rule usage - supported for FortiManager and Check Point >=R80 only.</li>
     <li>not-used-for-days (unused, unused-days, not-used): not used for the given number of days or never</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
+    <li>ownerstate (owner-state, owner_state, owner_lc_state, owner-lc-state): filter Owners report by lifecycle state id or lifecycle state name</li>
+    <li>criticality: filter Owners report by criticality</li>
     <li>tasktype (task-type, task_type): filter workflow ticket reports by request task types</li>
     <li>state/states (state_ids, state-ids): filter workflow ticket reports by ticket states</li>
     <li>phase: restrict workflow ticket reports to the state range of an active workflow phase</li>
@@ -4487,6 +4493,8 @@ INSERT INTO txt VALUES ('H1523', 'German',  'Name: Referenziert einen Schl&uuml;
 INSERT INTO txt VALUES ('H1523', 'English', 'Name: References a key in the request task additional info field, for example a label that was set earlier by an action.');
 INSERT INTO txt VALUES ('H1524', 'German',  'Detaillierte Ansicht: Ist diese Option aktiviert, werden Request Tasks und deren Details im Bericht angezeigt. Der CSV-Export steht nur zur Verf&uuml;gung, wenn diese Option deaktiviert ist.');
 INSERT INTO txt VALUES ('H1524', 'English', 'Detailed view: If this option is enabled, request tasks and their details are shown in the report. CSV export is only available when this option is disabled.');
+INSERT INTO txt VALUES ('H1525', 'German',  'Nur beim Report Eigent&uuml;mer: Status und Kritikalit&auml;t: Diese Felder schränken die angezeigten Eigentümer auf den ausgewählten Lifecycle-Status bzw. die ausgewählte Kritikalität ein. Die Voreinstellung "alle" lässt den jeweiligen Filter inaktiv.');
+INSERT INTO txt VALUES ('H1525', 'English', 'Only for Owners report: State and Criticality: These fields restrict the displayed owners to the selected lifecycle state and selected criticality. The default value "all" leaves the respective filter inactive.');
 
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.

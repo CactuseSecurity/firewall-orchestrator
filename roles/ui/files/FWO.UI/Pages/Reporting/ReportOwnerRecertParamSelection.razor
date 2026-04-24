@@ -1,0 +1,61 @@
+@using FWO.Data.Report
+
+@inject UserConfig userConfig
+
+@if (UseFormLayout)
+{
+    <div class="form-group row mt-2">
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("parameters")):</label>
+        <div class="col-sm-8">
+            @Fields
+        </div>
+    </div>
+}
+else
+{
+    <div class="p-3">
+        @Fields
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public ModellingFilter ModellingFilter { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ModellingFilter> ModellingFilterChanged { get; set; }
+
+    [Parameter]
+    public bool UseFormLayout { get; set; }
+
+    [Parameter]
+    public bool UseLightText { get; set; } = true;
+
+    private string CheckboxLabelClass => UseLightText ? "form-check-label text-white" : "form-check-label";
+
+    private RenderFragment Fields => @<text>
+        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1000"))">
+            <input class="form-check-input" id="allOwners" type="checkbox"
+                   checked="@ModellingFilter.ShowAllOwners" @onchange="ToggleShowAllOwners" />
+            <label class="@CheckboxLabelClass" for="allOwners">@(userConfig.GetText("show_all_owners"))</label>
+        </div>
+        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1002"))">
+            <input class="form-check-input" id="showInactiveRecertOwners" type="checkbox"
+                   checked="@ModellingFilter.ShowInactiveRecertOwners" @onchange="ToggleShowInactiveRecertOwners" />
+            <label class="@CheckboxLabelClass" for="showInactiveRecertOwners">@(userConfig.GetText("show_inactive_recert_owners"))</label>
+        </div>
+    </text>;
+
+    private async Task ToggleShowAllOwners(ChangeEventArgs args)
+    {
+        ModellingFilter.ShowAllOwners = args.Value as bool? ?? false;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private async Task ToggleShowInactiveRecertOwners(ChangeEventArgs args)
+    {
+        ModellingFilter.ShowInactiveRecertOwners = args.Value as bool? ?? false;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+}

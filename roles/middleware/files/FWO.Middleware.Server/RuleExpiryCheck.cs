@@ -150,7 +150,7 @@ namespace FWO.Middleware.Server
                 SchedulerInterval.Months => "Months",
                 _ => "Days"
             };
-            return GlobalConfig.GetText(intervalTextKey);
+            return GlobalConfig.GetNotificationText(intervalTextKey);
         }
 
         private sealed class RuleOwnerWithRuleTimes

@@ -1,5 +1,6 @@
 @using FWO.Data
 @using FWO.Basics
+@using FWO.Config.Api.Data
 @using System.Text.Json
 
 @page "/settings/notifications"
@@ -19,6 +20,16 @@
 @if(configData != null)
 {
     <form onsubmit="return false">
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5721a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("notificationLanguage")):</label>
+            <div class="col-sm-2">
+                <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedNotificationLanguage" Elements="globalConfig.UiLanguages">
+                    <ElementTemplate Context="language">
+                        @(userConfig.GetText(language.Name))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5721"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleExpiryNotifications")):</label>
             <div class="col-sm-8">
@@ -88,12 +99,14 @@ else
     private List<RuleExpiryInitiatorText> initiatorKeysToAdd = [];
     private List<RuleExpiryInitiatorText> initiatorKeysToDelete = [];
     private RuleExpiryInitiatorText actInitiatorKey = new();
+    private Language selectedNotificationLanguage = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
+            selectedNotificationLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == ResolveNotificationLanguage(configData)) ?? new Language();
             initiatorKeys = ParseInitiatorKeys(configData.RuleExpiryInitiatorKeys);
         }
         catch (Exception exception)
@@ -150,6 +163,7 @@ else
 
     private void PrepareConfigData()
     {
+        configData!.NotificationLanguage = selectedNotificationLanguage.Name;
         foreach (RuleExpiryInitiatorText entryToDelete in initiatorKeysToDelete)
         {
             initiatorKeys.Remove(entryToDelete);
@@ -165,6 +179,11 @@ else
             keyTexts[entry.Key.Trim()] = entry.Text.Trim();
         }
         configData!.RuleExpiryInitiatorKeys = JsonSerializer.Serialize(keyTexts);
+    }
+
+    private static string ResolveNotificationLanguage(ConfigData configData)
+    {
+        return string.IsNullOrWhiteSpace(configData.NotificationLanguage) ? configData.DefaultLanguage : configData.NotificationLanguage;
     }
 
     private static List<RuleExpiryInitiatorText> ParseInitiatorKeys(string? serializedKeys)

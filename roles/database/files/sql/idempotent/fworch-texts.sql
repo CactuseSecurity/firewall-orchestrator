@@ -2418,6 +2418,8 @@ INSERT INTO txt VALUES ('ruleExpiryNotifications','German', 'Regelablauf - Benac
 INSERT INTO txt VALUES ('ruleExpiryNotifications','English','Rule Expiry - Notifications');
 INSERT INTO txt VALUES ('notificationLanguage',  'German', 'Sprache f&uuml;r Benachrichtigungen');
 INSERT INTO txt VALUES ('notificationLanguage',  'English','Notification language');
+INSERT INTO txt VALUES ('useGlobalDefault',      'German', 'Globale Standardsprache verwenden');
+INSERT INTO txt VALUES ('useGlobalDefault',      'English','Use global default');
 INSERT INTO txt VALUES ('ruleExpiryEmailBody',   'German',  'Regelablauf - Email-Text');
 INSERT INTO txt VALUES ('ruleExpiryEmailBody',   'English', 'Rule Expiry - Email body');
 INSERT INTO txt VALUES ('ownerActiveRuleNotifications','German', 'Aktive Regeln - Benachrichtigungen');

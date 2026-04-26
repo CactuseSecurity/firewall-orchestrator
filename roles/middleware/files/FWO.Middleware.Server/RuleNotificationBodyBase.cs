@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Report;
 using FWO.Ui.Display;
 using System.Net;
 using System.Text;
@@ -163,9 +164,9 @@ namespace FWO.Middleware.Server
             Func<TRule, IEnumerable<string?>>? getExtraCellValues)
             where TRule : Rule
         {
-            string? sourceHtml = ruleDisplayHtml.DisplaySource(rule, FWO.Report.OutputLocation.export, FWO.Basics.ReportType.ResolvedRules);
-            string? destinationHtml = ruleDisplayHtml.DisplayDestination(rule, FWO.Report.OutputLocation.export, FWO.Basics.ReportType.ResolvedRules);
-            string? servicesHtml = ruleDisplayHtml.DisplayServices(rule, FWO.Report.OutputLocation.export, FWO.Basics.ReportType.ResolvedRules);
+            string? sourceHtml = ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType.ResolvedRules);
+            string? destinationHtml = ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType.ResolvedRules);
+            string? servicesHtml = ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType.ResolvedRules);
             string changeId = ExtractChangeId(rule.CustomFields);
             string lastHit = rule.Metadata.LastHit?.ToString("yyyy-MM-dd") ?? "";
 
@@ -207,13 +208,13 @@ namespace FWO.Middleware.Server
         {
             List<string> headerTexts =
             [
-                GlobalConfig.GetText("uid"),
-                GlobalConfig.GetText("name"),
-                GlobalConfig.GetText("source"),
-                GlobalConfig.GetText("destination"),
-                GlobalConfig.GetText("service"),
-                GlobalConfig.GetText("change_id"),
-                GlobalConfig.GetText("last_hit")
+                GlobalConfig.GetNotificationText("uid"),
+                GlobalConfig.GetNotificationText("name"),
+                GlobalConfig.GetNotificationText("source"),
+                GlobalConfig.GetNotificationText("destination"),
+                GlobalConfig.GetNotificationText("service"),
+                GlobalConfig.GetNotificationText("change_id"),
+                GlobalConfig.GetNotificationText("last_hit")
             ];
 
             if (extraHeaders != null)
@@ -337,14 +338,13 @@ namespace FWO.Middleware.Server
 
         private string BuildHtmlReportSection(string title, string body, FwoOwner? owner)
         {
-            UserConfig userConfig = new(GlobalConfig);
             StringBuilder html = new();
 
             html.Append("<h2>")
                 .Append(WebUtility.HtmlEncode(title))
                 .AppendLine("</h2>")
                 .Append("<p>")
-                .Append(WebUtility.HtmlEncode(userConfig.GetText("generated_on")))
+                .Append(WebUtility.HtmlEncode(GlobalConfig.GetNotificationText("generated_on")))
                 .Append(": ")
                 .Append(DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssK"))
                 .AppendLine(" (UTC)</p>");
@@ -352,7 +352,7 @@ namespace FWO.Middleware.Server
             if (owner != null)
             {
                 html.Append("<p>")
-                    .Append(WebUtility.HtmlEncode(userConfig.GetText("owners")))
+                    .Append(WebUtility.HtmlEncode(GlobalConfig.GetNotificationText("owners")))
                     .Append(": ")
                     .Append(WebUtility.HtmlEncode(owner.Name))
                     .AppendLine("</p>");

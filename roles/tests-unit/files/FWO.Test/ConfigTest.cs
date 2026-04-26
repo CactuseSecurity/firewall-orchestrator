@@ -95,6 +95,14 @@ namespace FWO.Test
             Assert.That(userConfig.ElementsPerFetch, Is.EqualTo(55));
         }
 
+        [Test]
+        public void DailyCheckSubscription_IncludesNotificationSettingsUsedByRunningJobs()
+        {
+            Assert.That(ConfigQueries.subscribeDailyCheckConfigChanges, Does.Contain("notificationLanguage"));
+            Assert.That(ConfigQueries.subscribeDailyCheckConfigChanges, Does.Contain("ownerActiveRuleEmailBody"));
+            Assert.That(ConfigQueries.subscribeDailyCheckConfigChanges, Does.Contain("ruleExpiryEmailBody"));
+        }
+
         private static void InvokeUpdate(FWO.Config.Api.Config config, ConfigItem[] configItems)
         {
             MethodInfo updateMethod = typeof(FWO.Config.Api.Config).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic)

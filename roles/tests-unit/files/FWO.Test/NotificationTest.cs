@@ -223,6 +223,20 @@ namespace FWO.Test
             ClassicAssert.IsFalse(NotificationDeadline.RuleExpiry.IsAlwaysInPast());
         }
 
+        [Test]
+        public void GetNotificationText_UsesConfiguredNotificationLanguage_AndFallsBackToDefaultLanguage()
+        {
+            globalConfig.DefaultLanguage = "English";
+            globalConfig.NotificationLanguage = "German";
+            globalConfig.GermanTranslate["generated_on"] = "Erstellt am";
+            globalConfig.DummyTranslate["generated_on"] = "Generated on";
+
+            ClassicAssert.AreEqual("Erstellt am", globalConfig.GetNotificationText("generated_on"));
+
+            globalConfig.NotificationLanguage = "";
+            ClassicAssert.AreEqual("Generated on", globalConfig.GetNotificationText("generated_on"));
+        }
+
         private class TestReport() : ReportBase(new DynGraphqlQuery(""), new SimulatedUserConfig(), Basics.ReportType.TicketReport)
         {
             public override Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)

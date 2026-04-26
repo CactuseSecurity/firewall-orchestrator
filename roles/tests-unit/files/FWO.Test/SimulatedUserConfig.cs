@@ -5,16 +5,26 @@ namespace FWO.Test
 {
     internal class SimulatedGlobalConfig : GlobalConfig
     {
-        public Dictionary<string, string> DummyTranslate = SimulatedUserConfig.DummyTranslate;
+        public Dictionary<string, string> DummyTranslate = new(SimulatedUserConfig.DummyTranslate);
+        public Dictionary<string, string> GermanTranslate = new(SimulatedUserConfig.DummyTranslate);
 
         public override string GetText(string key)
         {
-            return DummyTranslate.TryGetValue(key, out string? value) ? value : key;
+            return GetTextInLanguage(key, DefaultLanguage);
         }
 
         public SimulatedGlobalConfig() : base()
         {
-            LangDict = new() { { "English", DummyTranslate } };
+            LangDict = new()
+            {
+                { "English", DummyTranslate },
+                { "German", GermanTranslate }
+            };
+            OverDict = new()
+            {
+                { "English", [] },
+                { "German", [] }
+            };
         }
     }
 

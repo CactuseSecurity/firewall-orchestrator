@@ -3,7 +3,6 @@ using FWO.Config.Api;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Report.Filter;
-using System.Globalization;
 
 namespace FWO.Report
 {
@@ -21,24 +20,31 @@ namespace FWO.Report
                 return [];
             }
 
+            return GetReferenceTasks(ticket);
+        }
+
+        /// <inheritdoc />
+        protected override List<WfReqTask> GetReferenceTasks(WfTicket ticket)
+        {
             if (ReportData.WorkflowFilter.ShowFullTicket)
             {
-                return ticket.Tasks.OrderBy(task => task.Id).ToList();
+                return FilterTasksByTaskType(ticket.Tasks);
             }
 
             List<WfReqTask> tasks = ReportData.WorkflowFilter.ReferenceDate switch
             {
                 WorkflowReferenceDate.TicketCreation => ticket.Tasks.ToList(),
                 WorkflowReferenceDate.TicketClosure => ticket.Tasks.ToList(),
-                WorkflowReferenceDate.TaskStart => ticket.Tasks.Where(task => IsInSelectedTimeRange(task.Start)).ToList(),
-                WorkflowReferenceDate.TaskEnd => ticket.Tasks.Where(task => IsInSelectedTimeRange(task.Stop)).ToList(),
-                WorkflowReferenceDate.ApprovalOpened => ticket.Tasks.Where(task => GetDisplayedApprovals(task).Count > 0).ToList(),
-                WorkflowReferenceDate.Approved => ticket.Tasks.Where(task => GetDisplayedApprovals(task).Count > 0).ToList(),
-                WorkflowReferenceDate.ImplementationStart => ticket.Tasks.Where(task => GetDisplayedImplementationTasks(task).Count > 0).ToList(),
-                WorkflowReferenceDate.ImplementationEnd => ticket.Tasks.Where(task => GetDisplayedImplementationTasks(task).Count > 0).ToList(),
+                WorkflowReferenceDate.TaskStart => ticket.Tasks.Where(task => WorkflowTicketReferenceHelper.IsInSelectedTimeRange(task.Start, GetTicketTimeStart(), GetTicketTimeEnd())).ToList(),
+                WorkflowReferenceDate.TaskEnd => ticket.Tasks.Where(task => WorkflowTicketReferenceHelper.IsInSelectedTimeRange(task.Stop, GetTicketTimeStart(), GetTicketTimeEnd())).ToList(),
+                WorkflowReferenceDate.ApprovalOpened => ticket.Tasks.Where(task => GetReferenceApprovals(task).Count > 0).ToList(),
+                WorkflowReferenceDate.Approved => ticket.Tasks.Where(task => GetReferenceApprovals(task).Count > 0).ToList(),
+                WorkflowReferenceDate.ImplementationStart => ticket.Tasks.Where(task => GetReferenceImplementationTasks(task).Count > 0).ToList(),
+                WorkflowReferenceDate.ImplementationEnd => ticket.Tasks.Where(task => GetReferenceImplementationTasks(task).Count > 0).ToList(),
                 WorkflowReferenceDate.AnyActivity => ticket.Tasks.Where(task =>
-                    IsInSelectedTimeRange(task.Start) || IsInSelectedTimeRange(task.Stop) ||
-                    GetDisplayedImplementationTasks(task).Count > 0 || GetDisplayedApprovals(task).Count > 0).ToList(),
+                    WorkflowTicketReferenceHelper.IsInSelectedTimeRange(task.Start, GetTicketTimeStart(), GetTicketTimeEnd())
+                    || WorkflowTicketReferenceHelper.IsInSelectedTimeRange(task.Stop, GetTicketTimeStart(), GetTicketTimeEnd()) ||
+                    GetReferenceImplementationTasks(task).Count > 0 || GetReferenceApprovals(task).Count > 0).ToList(),
                 _ => []
             };
 
@@ -81,6 +87,12 @@ namespace FWO.Report
                 return [];
             }
 
+            return GetReferenceImplementationTasks(task);
+        }
+
+        /// <inheritdoc />
+        protected override List<WfImplTask> GetReferenceImplementationTasks(WfReqTask task)
+        {
             if (ReportData.WorkflowFilter.ShowFullTicket)
             {
                 return task.ImplementationTasks.OrderBy(implTask => implTask.Id).ToList();
@@ -88,9 +100,11 @@ namespace FWO.Report
 
             List<WfImplTask> implementationTasks = ReportData.WorkflowFilter.ReferenceDate switch
             {
-                WorkflowReferenceDate.ImplementationStart => task.ImplementationTasks.Where(implTask => IsInSelectedTimeRange(implTask.Start)).ToList(),
-                WorkflowReferenceDate.ImplementationEnd => task.ImplementationTasks.Where(implTask => IsInSelectedTimeRange(implTask.Stop)).ToList(),
-                WorkflowReferenceDate.AnyActivity => task.ImplementationTasks.Where(implTask => IsInSelectedTimeRange(implTask.Start) || IsInSelectedTimeRange(implTask.Stop)).ToList(),
+                WorkflowReferenceDate.ImplementationStart => task.ImplementationTasks.Where(implTask => WorkflowTicketReferenceHelper.IsInSelectedTimeRange(implTask.Start, GetTicketTimeStart(), GetTicketTimeEnd())).ToList(),
+                WorkflowReferenceDate.ImplementationEnd => task.ImplementationTasks.Where(implTask => WorkflowTicketReferenceHelper.IsInSelectedTimeRange(implTask.Stop, GetTicketTimeStart(), GetTicketTimeEnd())).ToList(),
+                WorkflowReferenceDate.AnyActivity => task.ImplementationTasks.Where(implTask =>
+                    WorkflowTicketReferenceHelper.IsInSelectedTimeRange(implTask.Start, GetTicketTimeStart(), GetTicketTimeEnd())
+                    || WorkflowTicketReferenceHelper.IsInSelectedTimeRange(implTask.Stop, GetTicketTimeStart(), GetTicketTimeEnd())).ToList(),
                 _ => []
             };
 
@@ -105,6 +119,12 @@ namespace FWO.Report
                 return [];
             }
 
+            return GetReferenceApprovals(task);
+        }
+
+        /// <inheritdoc />
+        protected override List<WfApproval> GetReferenceApprovals(WfReqTask task)
+        {
             if (ReportData.WorkflowFilter.ShowFullTicket)
             {
                 return task.Approvals.OrderBy(approval => approval.Id).ToList();
@@ -112,51 +132,41 @@ namespace FWO.Report
 
             List<WfApproval> approvals = ReportData.WorkflowFilter.ReferenceDate switch
             {
-                WorkflowReferenceDate.ApprovalOpened => task.Approvals.Where(approval => IsInSelectedTimeRange(approval.DateOpened)).ToList(),
-                WorkflowReferenceDate.Approved => task.Approvals.Where(approval => IsInSelectedTimeRange(approval.ApprovalDate)).ToList(),
-                WorkflowReferenceDate.AnyActivity => task.Approvals.Where(approval => IsInSelectedTimeRange(approval.DateOpened) || IsInSelectedTimeRange(approval.ApprovalDate)).ToList(),
+                WorkflowReferenceDate.ApprovalOpened => task.Approvals.Where(approval => WorkflowTicketReferenceHelper.IsInSelectedTimeRange(approval.DateOpened, GetTicketTimeStart(), GetTicketTimeEnd())).ToList(),
+                WorkflowReferenceDate.Approved => task.Approvals.Where(approval => WorkflowTicketReferenceHelper.IsInSelectedTimeRange(approval.ApprovalDate, GetTicketTimeStart(), GetTicketTimeEnd())).ToList(),
+                WorkflowReferenceDate.AnyActivity => task.Approvals.Where(approval =>
+                    WorkflowTicketReferenceHelper.IsInSelectedTimeRange(approval.DateOpened, GetTicketTimeStart(), GetTicketTimeEnd())
+                    || WorkflowTicketReferenceHelper.IsInSelectedTimeRange(approval.ApprovalDate, GetTicketTimeStart(), GetTicketTimeEnd())).ToList(),
                 _ => []
             };
 
             return approvals.OrderBy(approval => approval.Id).ToList();
         }
 
-        /// <summary>
-        /// Checks whether a nullable date is within the selected report range.
-        /// </summary>
-        protected bool IsInSelectedTimeRange(DateTime? date)
+        /// <inheritdoc />
+        protected override IEnumerable<DateTime?> GetReferenceActivityDates(WfReqTask task)
         {
-            if (!date.HasValue)
-            {
-                return false;
-            }
-
-            return IsInSelectedTimeRange(date.Value);
+            return WorkflowTicketReferenceHelper.GetActivityDates(
+                task,
+                false,
+                date => WorkflowTicketReferenceHelper.IsInSelectedTimeRange(date, GetTicketTimeStart(), GetTicketTimeEnd()));
         }
 
-        /// <summary>
-        /// Checks whether a date is within the selected report range.
-        /// </summary>
-        protected bool IsInSelectedTimeRange(DateTime date)
+        /// <inheritdoc />
+        protected override IEnumerable<DateTime?> GetTicketReferenceActivityDates(WfTicket ticket)
         {
-            if (date == default)
-            {
-                return false;
-            }
+            return new DateTime?[] { ticket.CreationDate, ticket.CompletionDate }
+                .Where(date => WorkflowTicketReferenceHelper.IsInSelectedTimeRange(date, GetTicketTimeStart(), GetTicketTimeEnd()));
+        }
 
-            if (!Query.QueryVariables.TryGetValue("ticket_time_start", out object? startObj)
-                || !DateTime.TryParse(startObj?.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime start))
-            {
-                return true;
-            }
+        private string? GetTicketTimeStart()
+        {
+            return Query.QueryVariables.TryGetValue("ticket_time_start", out object? startObj) ? startObj?.ToString() : null;
+        }
 
-            if (!Query.QueryVariables.TryGetValue("ticket_time_end", out object? endObj)
-                || !DateTime.TryParse(endObj?.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime end))
-            {
-                return true;
-            }
-
-            return date >= start && date <= end;
+        private string? GetTicketTimeEnd()
+        {
+            return Query.QueryVariables.TryGetValue("ticket_time_end", out object? endObj) ? endObj?.ToString() : null;
         }
 
         private List<WfReqTask> FilterTasksByTaskType(IEnumerable<WfReqTask> tasks)

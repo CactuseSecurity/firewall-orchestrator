@@ -12874,6 +12874,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "additional_info",
                       "app_id_external",
                       "common_service_possible",
                       "criticality",

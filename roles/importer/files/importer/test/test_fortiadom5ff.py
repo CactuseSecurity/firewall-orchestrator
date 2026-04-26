@@ -11,10 +11,9 @@ from pytest_mock import MockerFixture
 class TestToTimeObject:
     @staticmethod
     def _expected_as_utc(date_part: str, time_part: str) -> str:
-        local_tz = datetime.now().astimezone().tzinfo
         return (
             datetime.strptime(f"{date_part} {time_part}", "%Y/%m/%d %H:%M")
-            .replace(tzinfo=local_tz)
+            .astimezone()
             .astimezone(timezone.utc)
             .isoformat(timespec="seconds")
         )

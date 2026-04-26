@@ -612,3 +612,4 @@ A complete 80K lines rework of FWO, including
 - fixes missing source or destination in rule expiry notification report
 - fixes time zone issues with checkpoint time objects
 - fixes python tests failing on python 3.10
+- fixes owner import from custom file

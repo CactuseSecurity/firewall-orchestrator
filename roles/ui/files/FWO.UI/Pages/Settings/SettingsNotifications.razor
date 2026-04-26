@@ -102,8 +102,9 @@ else
     private List<RuleExpiryInitiatorText> initiatorKeysToAdd = [];
     private List<RuleExpiryInitiatorText> initiatorKeysToDelete = [];
     private RuleExpiryInitiatorText actInitiatorKey = new();
+    private readonly Language defaultNotificationLanguage = new() { Name = "" };
     private Language selectedNotificationLanguage = new();
-    private IEnumerable<Language> NotificationLanguageOptions => globalConfig.UiLanguages.Prepend(new Language { Name = "" });
+    private IEnumerable<Language> NotificationLanguageOptions => globalConfig.UiLanguages.Prepend(defaultNotificationLanguage);
     private bool hasUnknownNotificationLanguageSelection;
 
     protected override async Task OnInitializedAsync()
@@ -111,6 +112,7 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
+            selectedNotificationLanguage = defaultNotificationLanguage;
             hasUnknownNotificationLanguageSelection = !string.IsNullOrWhiteSpace(configData.NotificationLanguage)
                 && globalConfig.UiLanguages.All(language => language.Name != configData.NotificationLanguage);
             selectedNotificationLanguage = ResolveSelectedNotificationLanguage(configData);
@@ -199,9 +201,9 @@ else
     {
         if (string.IsNullOrWhiteSpace(configData.NotificationLanguage))
         {
-            return new Language();
+            return defaultNotificationLanguage;
         }
-        return globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.NotificationLanguage) ?? new Language();
+        return globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.NotificationLanguage) ?? defaultNotificationLanguage;
     }
 
     private static List<RuleExpiryInitiatorText> ParseInitiatorKeys(string? serializedKeys)

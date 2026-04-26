@@ -355,20 +355,6 @@
         return approvals.OrderBy(approval => approval.Id).ToList();
     }
 
-    private IEnumerable<DateTime?> GetReferenceActivityDates(WfReqTask task)
-    {
-        return WorkflowTicketReferenceHelper.GetActivityDates(
-            task,
-            false,
-            date => WorkflowTicketReferenceHelper.IsInSelectedTimeRange(date, TimeRangeStart, TimeRangeEnd));
-    }
-
-    private IEnumerable<DateTime?> GetTicketReferenceActivityDates(WfTicket ticket)
-    {
-        return new DateTime?[] { ticket.CreationDate, ticket.CompletionDate }
-            .Where(date => WorkflowTicketReferenceHelper.IsInSelectedTimeRange(date, TimeRangeStart, TimeRangeEnd));
-    }
-
     private DateTime? GetStoredTicketReferenceDate(WfTicket ticket)
     {
         return TicketReferenceDates.TryGetValue(ticket.Id, out DateTime? referenceDate)

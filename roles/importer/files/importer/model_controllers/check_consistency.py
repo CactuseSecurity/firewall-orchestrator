@@ -2,14 +2,15 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 import fwo_const
-from fwo_exceptions import FwoImporterErrorInconsistenciesError
+from fwo_exceptions import FwoImporterError, FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import (
     FwConfigManagerListController,
 )
 from models.fwconfig_normalized import FwConfigNormalized
-from models.import_state import ImportState
 from models.rulebase import Rulebase
+from states.global_state import GlobalState
+from states.import_state import ImportState
 
 if TYPE_CHECKING:
     from models.networkobject import NetworkObject
@@ -21,8 +22,9 @@ class FwConfigImportCheckConsistency:
     issues: dict[str, Any]
     import_state: ImportState
 
-    def __init__(self, import_state: ImportState):
+    def __init__(self, global_state: GlobalState, import_state: ImportState):
         self.import_state = import_state
+        self.global_state = global_state
         self.issues = {}
         self.network_objects_to_remove: list[str] = []
         self.service_objects_to_remove: list[str] = []
@@ -56,7 +58,7 @@ class FwConfigImportCheckConsistency:
             self.check_config_consistency(mgr.configs[0], global_config, fix_config=False)
 
     def check_config_consistency(
-        self, config: FwConfigNormalized, global_config: FwConfigNormalized | None, fix_config: bool
+        self, config: FwConfigNormalized | None, global_config: FwConfigNormalized | None, fix_config: bool
     ):
         """
         Check the consistency of a given normalized config and corresponding global normalized config.
@@ -82,6 +84,9 @@ class FwConfigImportCheckConsistency:
             FwoImporterErrorInconsistenciesError: If inconsistencies are found in the configurations
 
         """
+        if config is None:
+            raise FwoImporterError("cannot check consistency: config is None")
+
         self.check_color_consistency(config, fix=True)
         self.check_network_object_consistency(config, global_config, fix_unresolvable_refs=fix_config)
         self.check_service_object_consistency(config, global_config, fix_inconsistencies=fix_config)
@@ -163,7 +168,7 @@ class FwConfigImportCheckConsistency:
 
         for obj_id in config.network_objects:
             all_used_obj_types.add(config.network_objects[obj_id].obj_typ)
-        missing_nw_obj_types = all_used_obj_types - self.import_state.network_obj_type_map.keys()
+        missing_nw_obj_types = all_used_obj_types - self.global_state.stm_mapper.network_obj_type_map.keys()
 
         if missing_nw_obj_types:
             self.issues.update({"unresolvableNwObjTypes": list(missing_nw_obj_types)})
@@ -232,7 +237,7 @@ class FwConfigImportCheckConsistency:
         all_used_obj_types: set[str] = set()
         for obj_id in config.service_objects:
             all_used_obj_types.add(config.service_objects[obj_id].svc_typ)
-        missing_obj_types = all_used_obj_types - self.import_state.service_obj_type_map.keys()
+        missing_obj_types = all_used_obj_types - self.global_state.stm_mapper.service_obj_type_map.keys()
         if missing_obj_types:
             self.issues.update({"unresolvableSvcObjTypes": list(missing_obj_types)})
 
@@ -337,7 +342,7 @@ class FwConfigImportCheckConsistency:
         all_used_obj_types: set[str] = set()
         for obj_id in single_config.users:
             all_used_obj_types.add(single_config.users[obj_id]["user_typ"])  # make list unique
-        missing_obj_types = all_used_obj_types - self.import_state.user_obj_type_map.keys()
+        missing_obj_types = all_used_obj_types - self.global_state.stm_mapper.user_obj_type_map.keys()
         if missing_obj_types:
             self.issues.update({"unresolvableUserObjTypes": list(missing_obj_types)})
 
@@ -462,19 +467,19 @@ class FwConfigImportCheckConsistency:
         unresolvable_user_colors: list[str] = []
         # check all nwobj color refs
         for color_string in all_used_nw_obj_color_ref_set:
-            color_id = self.import_state.lookup_color_id_unresolved(color_string)
+            color_id = self.global_state.stm_mapper.lookup_color_id_unresolved(color_string)
             if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
                 unresolvable_nw_obj_colors.append(color_string)
 
         # check all nwobj color refs
         for color_string in all_used_svc_color_ref_set:
-            color_id = self.import_state.lookup_color_id_unresolved(color_string)
+            color_id = self.global_state.stm_mapper.lookup_color_id_unresolved(color_string)
             if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
                 unresolvable_svc_colors.append(color_string)
 
         # check all user color refs
         for color_string in all_used_user_color_ref_set:
-            color_id = self.import_state.lookup_color_id_unresolved(color_string)
+            color_id = self.global_state.stm_mapper.lookup_color_id_unresolved(color_string)
             if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
                 unresolvable_user_colors.append(color_string)
 
@@ -538,11 +543,11 @@ class FwConfigImportCheckConsistency:
     def check_rulebase_consistency(self, config: FwConfigNormalized, fix_inconsistencies: bool):
         all_used_track_refs, all_used_action_refs = self._extract_rule_track_n_action_refs(config.rulebases)
 
-        unresolvable_tracks = all_used_track_refs - self.import_state.tracks.keys()
+        unresolvable_tracks = all_used_track_refs - self.global_state.stm_mapper.tracks.keys()
         if unresolvable_tracks:
             self.issues.update({"unresolvableRuleTracks": list(unresolvable_tracks)})
 
-        unresolvable_actions = all_used_action_refs - self.import_state.actions.keys()
+        unresolvable_actions = all_used_action_refs - self.global_state.stm_mapper.actions.keys()
         if unresolvable_actions:
             self.issues.update({"unresolvableRuleActions": list(unresolvable_actions)})
 

@@ -14,7 +14,6 @@ from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
 from models.serviceobject import ServiceObject
 from netaddr import IPNetwork
-from services.service_provider import ServiceProvider
 from services.uid2id_mapper import Uid2IdMap, Uid2IdMapper
 
 from .uid_manager import UidManager
@@ -22,7 +21,9 @@ from .uid_manager import UidManager
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
+    from model_controllers.rulebase_link_controller import RulebaseLinkController
+    from states.management_state import ManagementState
+
 T = TypeVar("T")
 
 
@@ -39,6 +40,7 @@ class FwConfigBuilder:
 
     def build_config(
         self,
+        uid2id_mapper: Uid2IdMapper,
         rulebase_count: int = 1,
         rules_per_rulebase_count: int = 1,
         network_object_count: int = 3,
@@ -53,10 +55,10 @@ class FwConfigBuilder:
         mgm_uid = self.uid_manager.create_uid()
 
         for _ in range(network_object_count):
-            self.add_network_object(config)
+            self.add_network_object(config, uid2id_mapper=uid2id_mapper)
 
         for _ in range(service_object_count):
-            self.add_service_object(config)
+            self.add_service_object(config, uid2id_mapper=uid2id_mapper)
 
         for _ in range(user_object_count):
             self.add_user_object(config)
@@ -65,12 +67,12 @@ class FwConfigBuilder:
             self.add_zone_object(config)
 
         for _ in range(user_group_object_count):
-            self.add_user_group_object(config, member_count=user_group_object_member_count)
+            self.add_user_group_object(config, uid2id_mapper=uid2id_mapper, member_count=user_group_object_member_count)
 
         for _ in range(rulebase_count):
-            rb = self.add_rulebase(config, mgm_uid)
+            rb = self.add_rulebase(config, mgm_uid, uid2id_mapper=uid2id_mapper)
             for _ in range(rules_per_rulebase_count):
-                rule = self.add_rule(config, rb.uid)
+                rule = self.add_rule(config, rb.uid, uid2id_mapper=uid2id_mapper)
                 self.add_references_to_rule(config, rule)
 
         if include_gateway:
@@ -78,8 +80,9 @@ class FwConfigBuilder:
 
         return config, mgm_uid
 
-    def build_empty_config(self) -> FwConfigNormalized:
+    def build_empty_config(self, uid2id_mapper: Uid2IdMapper) -> FwConfigNormalized:
         config, _ = self.build_config(
+            uid2id_mapper=uid2id_mapper,
             rulebase_count=0,
             rules_per_rulebase_count=0,
             network_object_count=0,
@@ -88,7 +91,9 @@ class FwConfigBuilder:
         )
         return config
 
-    def add_network_object(self, config: FwConfigNormalized, *, name: str | None = None) -> NetworkObject:
+    def add_network_object(
+        self, config: FwConfigNormalized, *, name: str | None = None, uid2id_mapper: Uid2IdMapper | None = None
+    ) -> NetworkObject:
         uid = self.uid_manager.create_uid()
         obj = NetworkObject(
             obj_uid=uid,
@@ -101,9 +106,17 @@ class FwConfigBuilder:
             obj_member_refs="",
         )
         config.network_objects[uid] = obj
+
+        if uid2id_mapper is not None:
+            uid2id_mapper.add_network_object_mappings(
+                [{"obj_uid": obj.obj_uid, "obj_id": self._next_uid2id_map_id(uid2id_mapper.nwobj_uid2id)}]
+            )
+
         return obj
 
-    def add_service_object(self, config: FwConfigNormalized, *, name: str | None = None) -> ServiceObject:
+    def add_service_object(
+        self, config: FwConfigNormalized, *, name: str | None = None, uid2id_mapper: Uid2IdMapper | None = None
+    ) -> ServiceObject:
         uid = self.uid_manager.create_uid()
         svc = ServiceObject(
             svc_uid=uid,
@@ -117,6 +130,12 @@ class FwConfigBuilder:
             svc_member_refs="",
         )
         config.service_objects[uid] = svc
+
+        if uid2id_mapper is not None:
+            uid2id_mapper.add_service_object_mappings(
+                [{"svc_uid": svc.svc_uid, "svc_id": self._next_uid2id_map_id(uid2id_mapper.svc_uid2id)}]
+            )
+
         return svc
 
     def add_rulebase(
@@ -126,12 +145,17 @@ class FwConfigBuilder:
         rulebase: Rulebase | None = None,
         *,
         name: str | None = None,
+        uid2id_mapper: Uid2IdMapper | None = None,
     ) -> Rulebase:
         if rulebase is None:
             uid = self.uid_manager.create_uid()
             rb = Rulebase(uid=uid, name=name or f"rb-{uid}", mgm_uid=mgm_uid)
         else:
             rb = rulebase
+
+        if uid2id_mapper is not None:
+            rulebase_id = self._next_uid2id_map_id(uid2id_mapper.rulebase_uid2id)
+            uid2id_mapper.add_rulebase_mappings([{"uid": rb.uid, "id": rulebase_id}])
         config.rulebases.append(rb)
         return rb
 
@@ -150,6 +174,7 @@ class FwConfigBuilder:
         *,
         name: str | None = None,
         rule_type: RuleType = RuleType.SECTIONHEADER,
+        uid2id_mapper: Uid2IdMapper | None = None,
     ) -> RuleNormalized:
         if rule is None:
             uid = self.uid_manager.create_uid()
@@ -187,6 +212,10 @@ class FwConfigBuilder:
             uid = rule.rule_uid or self.uid_manager.create_uid()
             normalized_rule = rule
 
+        if uid2id_mapper is not None:
+            rule_id = self._next_uid2id_map_id(uid2id_mapper.rule_uid2id)
+            uid2id_mapper.add_rule_mappings([{"rule_uid": normalized_rule.rule_uid, "rule_id": rule_id}])
+
         rulebase = self._get_rulebase(config, rulebase_uid)
         rulebase.rules[uid] = normalized_rule
         return normalized_rule
@@ -217,7 +246,9 @@ class FwConfigBuilder:
         config.gateways.append(gw)
         return gw
 
-    def add_user_object(self, config: FwConfigNormalized, *, name: str | None = None) -> dict[str, Any]:
+    def add_user_object(
+        self, config: FwConfigNormalized, *, name: str | None = None, uid2id_mapper: Uid2IdMapper | None = None
+    ) -> dict[str, Any]:
         uid = self.uid_manager.create_uid()
         obj = {
             "user_typ": "simple",
@@ -226,10 +257,20 @@ class FwConfigBuilder:
             "user_color": "black",
         }
         config.users[uid] = obj
+
+        if uid2id_mapper is not None:
+            uid2id_mapper.add_user_mappings(
+                [{"user_uid": obj["user_uid"], "user_id": self._next_uid2id_map_id(uid2id_mapper.user_uid2id)}]
+            )
         return obj
 
     def add_user_group_object(
-        self, config: FwConfigNormalized, member_count: int, *, name: str | None = None
+        self,
+        config: FwConfigNormalized,
+        uid2id_mapper: Uid2IdMapper | None,
+        member_count: int,
+        *,
+        name: str | None = None,
     ) -> dict[str, Any]:
         uid = self.uid_manager.create_uid()
         obj = {
@@ -241,7 +282,7 @@ class FwConfigBuilder:
         config.users[uid] = obj
 
         for _ in range(member_count):
-            member_obj = self.add_user_object(config)
+            member_obj = self.add_user_object(config, uid2id_mapper=uid2id_mapper)
             if obj.get("user_member_names"):
                 obj["user_member_names"] += LIST_DELIMITER
                 obj["user_member_refs"] += LIST_DELIMITER
@@ -346,9 +387,21 @@ class FwConfigBuilder:
             return pool
         return self._rng.sample(pool, count)
 
-    def update_rule_map_and_rulebase_map(self, config: FwConfigNormalized, import_id: int) -> None:
-        service_provider = ServiceProvider()
-        uid2id_mapper = service_provider.get_uid2id_mapper(import_id=import_id)
+    def _next_uid2id_map_id(self, uid2id_map: Uid2IdMap) -> int:
+        existing_ids = (
+            *uid2id_map.local.values(),
+            *uid2id_map.global_map.values(),
+            *uid2id_map.outdated_local.values(),
+            *uid2id_map.outdated_global.values(),
+        )
+        return max(existing_ids, default=0) + 1
+
+    def update_rule_map_and_rulebase_map(
+        self,
+        management_state: ManagementState,
+        config: FwConfigNormalized,
+    ) -> None:
+        uid2id_mapper = management_state.uid2id_mapper
         uid2id_mapper.rulebase_uid2id = Uid2IdMap()
         uid2id_mapper.rule_uid2id = Uid2IdMap()
 
@@ -367,11 +420,10 @@ class FwConfigBuilder:
         self,
         rulebase_links: list[RulebaseLinkUidBased],
         gateway_id: int,
-        fwconfig_import_gateway: FwConfigImportGateway,
         uid2id_mapper: Uid2IdMapper,
+        rb_link_controller: RulebaseLinkController,
     ):
         new_rb_links: list[RulebaseLink] = []
-        rb_link_controller = fwconfig_import_gateway.get_rb_link_controller()
 
         for link_id, link in enumerate(rulebase_links):
             link_type = 0

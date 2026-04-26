@@ -6,42 +6,18 @@ import argparse
 import sys
 import time
 import traceback
-import warnings
 
 import fwo_globals
 import urllib3
 from common import import_management  # type: ignore[import-not-found]
-from fwo_api import FwoApi
-from fwo_api_call import FwoApiCall
-from fwo_base import init_service_provider, register_global_state
-from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
-from fwo_exceptions import (
-    FwLoginFailedError,
-    FwoApiFailedLockImportError,
-    FwoApiLoginFailedError,
-)
+from fwo_const import FWO_CONFIG_FILENAME, IMPORTER_BASE_DIR
+from fwo_exceptions import FwLoginFailedError, FwoApiFailedLockImportError
 from fwo_log import FWOLogger
-from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import (
-    ConnectionInfo,
-    CredentialInfo,
-    DeviceInfo,
-    DomainInfo,
     ManagementController,
-    ManagerInfo,
 )
-from services.service_provider import ServiceProvider
-
-
-def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
-    try:
-        return FwoApi.login(import_user, import_pwd, user_management_api)
-    except FwoApiLoginFailedError as e:
-        FWOLogger.error(e.message)
-    except Exception:
-        FWOLogger.error(
-            "import_main_loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
-        )
+from states.global_state import GlobalState
+from states.import_state import ImportState
 
 
 def wait_with_shutdown_check(sleep_time: int):
@@ -55,43 +31,14 @@ def wait_with_shutdown_check(sleep_time: int):
 
 
 def import_single_management(
+    global_state: GlobalState,
+    import_state: ImportState,
     mgm_id: int,
-    fwo_api_call: FwoApiCall,
-    verify_certificates: bool,
-    api_fetch_limit: int,
-    clear: bool,
-    suppress_certificate_warnings: bool,
-    force: bool,
-    fwo_major_version: int,
-    sleep_timer: int,
-    suppress_consistency_check: bool = False,
 ):
     wait_with_shutdown_check(0)
-    import_state = ImportStateController.initialize_import(
-        mgm_id=mgm_id,
-        api_call=fwo_api_call,
-        suppress_cert_warnings=suppress_certificate_warnings,
-        ssl_verification=verify_certificates,
-        force=force,
-        version=fwo_major_version,
-        is_clearing_import=clear,
-    )
-
-    register_global_state(import_state)
 
     try:
-        mgm_controller = ManagementController(
-            mgm_id,
-            "",
-            [],
-            DeviceInfo(),
-            ConnectionInfo(),
-            "",
-            CredentialInfo(),
-            ManagerInfo(),
-            DomainInfo(),
-        )
-        mgm_details = mgm_controller.get_mgm_details(fwo_api_call.api, mgm_id)
+        mgm_details = ManagementController.get_mgm_details(global_state.fwo_api, mgm_id)
     except Exception:
         FWOLogger.error(
             "import_main_loop - error while getting FW management details for mgm_id="
@@ -99,95 +46,71 @@ def import_single_management(
             + " - skipping: "
             + str(traceback.format_exc())
         )
-        wait_with_shutdown_check(sleep_timer)
+        wait_with_shutdown_check(global_state.fwo_config_controller.fwo_config.sleep_timer)
         return
 
     # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST, Cisco Asa, Asa on FirePower
     if mgm_details["deviceType"]["id"] not in (9, 12, 17, 22, 23, 24, 28, 29):
         return
 
-    FWOLogger.debug(f"import_main_loop: starting import of mgm_id={mgm_id}")
+    if "id" not in mgm_details:
+        FWOLogger.error(
+            f"import_main_loop - mgm_id={mgm_id} has no id in details, skipping import: {traceback.format_exc()!s}"
+        )
+        return
+
+    FWOLogger.debug(f"import_main_loop: starting import of mgm_id={mgm_details['id']}")
 
     try:
         import_management(
-            mgm_id,
-            fwo_api_call,
-            verify_certificates,
-            api_fetch_limit,
-            clear,
-            suppress_certificate_warnings,
-            suppress_consistency_check=suppress_consistency_check,
+            global_state=global_state,
+            import_state=import_state,
         )
     except (FwoApiFailedLockImportError, FwLoginFailedError):
-        FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
+        FWOLogger.info(
+            f"import_main_loop - minor error while importing mgm_id={mgm_details['id']}, {traceback.format_exc()!s}"
+        )
         return  # minor errors for a single mgm, go to next one
     except Exception:  # all other exceptions are logged here
         FWOLogger.error(
-            f"import_main_loop - unspecific error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}"
+            f"import_main_loop - unspecific error while importing mgm_id={mgm_details['id']}, {traceback.format_exc()!s}"
         )
 
 
 def main_loop(
-    importer_pwd_file: str,
-    importer_user_name: str,
-    user_management_api_base_url: str,
-    fwo_api_base_url: str,
-    fwo_major_version: int,
-    api_fetch_limit: int,
-    sleep_timer: int,
-    clear: bool,
-    force: bool,
+    global_state: GlobalState,
 ):
     wait_with_shutdown_check(0)
 
-    try:
-        with open(importer_pwd_file) as f:
-            importer_pwd = f.read().replace("\n", "")
-    except Exception:
-        FWOLogger.error("import_main_loop - error while reading importer pwd file")
-        raise
-
-    jwt = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
+    fwo_config = global_state.fwo_config_controller.fwo_config
     # check if login was successful - if not, wait and retry
-    if jwt is None:
-        wait_with_shutdown_check(sleep_timer)
+
+    try:
+        global_state.login_to_api()
+    except Exception:
+        FWOLogger.error(f"import_main_loop - error while logging in to API: {traceback.format_exc()!s}")
+        wait_with_shutdown_check(fwo_config.sleep_timer)
         return
 
-    fwo_api = FwoApi(fwo_api_base_url, jwt)
-    fwo_api_call = FwoApiCall(fwo_api)
-
-    urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
-    verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
-    suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
-    if not suppress_certificate_warnings:
-        warnings.resetwarnings()
+    urllib3.disable_warnings()  # suppress ssl warnings only
 
     try:
-        mgm_ids = fwo_api_call.get_mgm_ids()
+        mgm_ids = global_state.fwo_api_call.get_mgm_ids()
     except Exception:
         FWOLogger.error(f"import_main_loop - error while getting FW management ids: {traceback.format_exc()!s}")
-        wait_with_shutdown_check(sleep_timer)
+        wait_with_shutdown_check(fwo_config.sleep_timer)
         return
 
-    api_fetch_limit = int(fwo_api_call.get_config_value(key="fwApiElementsPerFetch") or api_fetch_limit)
-    sleep_timer = int(fwo_api_call.get_config_value(key="importSleepTime") or sleep_timer)
+    api_fetch_limit = int(
+        global_state.fwo_api_call.get_config_value(key="fwApiElementsPerFetch") or fwo_config.api_fetch_size
+    )
+    sleep_timer = int(global_state.fwo_api_call.get_config_value(key="importSleepTime") or fwo_config.sleep_timer)
+    global_state.fwo_config_controller.update_settings(sleep_timer=sleep_timer, api_fetch_size=api_fetch_limit)
 
     ## loop through all managements
     for mgm_id in mgm_ids:
-        init_service_provider()
-        import_single_management(
-            mgm_id,
-            fwo_api_call,
-            verify_certificates,
-            api_fetch_limit,
-            clear,
-            suppress_certificate_warnings,
-            force,
-            fwo_major_version,
-            sleep_timer,
-        )
-
-        ServiceProvider().reset()
+        import_state = ImportState(fwo_api=global_state.fwo_api, fwo_api_call=global_state.fwo_api_call, mgm_id=mgm_id)
+        import_single_management(global_state, import_state, mgm_id)
 
     FWOLogger.info(f"import_main_loop: sleeping for {sleep_timer} seconds until next import cycle")
     wait_with_shutdown_check(sleep_timer)
@@ -201,11 +124,7 @@ def main(
     force: bool = False,
 ):
     FWOLogger(debug_level)
-    service_provider = init_service_provider()
-    fwo_config = service_provider.get_fwo_config()
-    fwo_api_base_url = fwo_config["fwo_api_base_url"]
-    fwo_major_version = fwo_config["fwo_major_version"]
-    user_management_api_base_url = fwo_config["user_management_api_base_url"]
+
     fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
     if suppress_certificate_warnings:
         urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
@@ -213,24 +132,17 @@ def main(
     FWOLogger.info("importer_main_loop starting ...")
     if IMPORTER_BASE_DIR not in sys.path:
         sys.path.append(IMPORTER_BASE_DIR)
-    importer_user_name = "importer"  # move to config file?
-    importer_pwd_file = BASE_DIR + "/etc/secrets/importer_pwd"
 
-    # setting defaults (only as fallback if config defaults cannot be fetched via API):
-    api_fetch_limit: int = 150
-    sleep_timer: int = 90
+    global_state = GlobalState(
+        config_filename=FWO_CONFIG_FILENAME,
+        force=force,
+        clear=clear,
+        debug_level=debug_level,
+    )
 
     while True:
         main_loop(
-            importer_pwd_file,
-            importer_user_name,
-            user_management_api_base_url,
-            fwo_api_base_url,
-            fwo_major_version,
-            api_fetch_limit,
-            sleep_timer,
-            clear,
-            force,
+            global_state=global_state,
         )
         if clear:
             break

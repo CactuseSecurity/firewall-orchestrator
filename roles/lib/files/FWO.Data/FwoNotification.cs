@@ -85,6 +85,19 @@ namespace FWO.Data
         [JsonProperty("email_address_cc"), JsonPropertyName("email_address_cc")]
         public string EmailAddressCc { get; set; } = "";
 
+        [JsonProperty("recipient_bcc"), JsonPropertyName("recipient_bcc")]
+        private EmailRecipientOption? RecipientBccValue { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public EmailRecipientOption RecipientBcc
+        {
+            get => RecipientBccValue ?? EmailRecipientOption.None;
+            set => RecipientBccValue = value;
+        }
+
+        [JsonProperty("email_address_bcc"), JsonPropertyName("email_address_bcc")]
+        public string EmailAddressBcc { get; set; } = "";
+
         [JsonProperty("email_subject"), JsonPropertyName("email_subject")]
         public string EmailSubject { get; set; } = "";
 

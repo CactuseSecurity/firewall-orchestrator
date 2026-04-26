@@ -282,8 +282,12 @@ namespace FWO.Services
         /// </summary>
         /// <param name="addresslist"></param>
         /// <returns></returns>
-        public static List<string> SplitAddresses(string addresslist)
+        public static List<string> SplitAddresses(string? addresslist)
         {
+            if (string.IsNullOrWhiteSpace(addresslist))
+            {
+                return [];
+            }
             string[] separatingStrings = [",", ";", "|"];
             return [.. addresslist.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
         }

@@ -1350,6 +1350,8 @@ INSERT INTO txt VALUES ('recipient_to',    		'German',   'Empf&auml;nger (To)');
 INSERT INTO txt VALUES ('recipient_to',    		'English',  'Recipient (To)');
 INSERT INTO txt VALUES ('recipient_cc',    		'German',   'Empf&auml;nger (Cc)');
 INSERT INTO txt VALUES ('recipient_cc',    		'English',  'Recipient (Cc)');
+INSERT INTO txt VALUES ('recipient_bcc',        'German',   'Empf&auml;nger (Bcc)');
+INSERT INTO txt VALUES ('recipient_bcc',        'English',  'Recipient (Bcc)');
 INSERT INTO txt VALUES ('recertification_ok',   'German',   'Rezertifizierung Ok');
 INSERT INTO txt VALUES ('recertification_ok',   'English',  'Recertification Ok');
 INSERT INTO txt VALUES ('recertification_error','German',   'Rezertifizierungsfehler');
@@ -5058,6 +5060,8 @@ INSERT INTO txt VALUES ('H4107', 'German',  'Empf&auml;nger (To): Es werden vers
 INSERT INTO txt VALUES ('H4107', 'English', 'Recipient (To): Different roles are offered as recipients (depending on context), for which the addresses are determined automatically. With "Other Addresses" addreesses can be inserted manually.');
 INSERT INTO txt VALUES ('H4108', 'German',  'Empf&auml;nger (Cc). Wie "Empf&auml;nger (To)" f&uuml;r Empf&auml;nger im CC.');
 INSERT INTO txt VALUES ('H4108', 'English', 'Recipient (Cc). As "Recipient (To)" for recipient in CC.');
+INSERT INTO txt VALUES ('H4108a','German',  'Empf&auml;nger (Bcc). Wie "Empf&auml;nger (To)" f&uuml;r Empf&auml;nger in Blindkopie.');
+INSERT INTO txt VALUES ('H4108a','English', 'Recipient (Bcc). As "Recipient (To)" for blind-copy recipients.');
 INSERT INTO txt VALUES ('H4109', 'German',  'Name: Name der Benachrichtigung, nur f&uuml;r Darstellungszwecke.');
 INSERT INTO txt VALUES ('H4109', 'English', 'Name: Name of notification, only for display purposes.');
 

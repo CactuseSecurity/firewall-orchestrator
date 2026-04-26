@@ -92,6 +92,16 @@ namespace FWO.Test
                 GraphQLResponse<dynamic> response = new() { Data = new ReturnId() { AffectedRows = notifCount } };
                 return response.Data;
             }
+            if (responseType == typeof(List<UiUser>) && query == AuthQueries.getUserEmails)
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<UiUser>() };
+                return response.Data;
+            }
+            if (responseType == typeof(List<OwnerResponsibleType>) && query == OwnerQueries.getOwnerResponsibleTypes)
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<OwnerResponsibleType>() };
+                return response.Data;
+            }
 
             throw new NotImplementedException();
         }
@@ -110,6 +120,8 @@ namespace FWO.Test
                 EmailAddressTo = notification.EmailAddressTo,
                 RecipientCc = notification.RecipientCc,
                 EmailAddressCc = notification.EmailAddressCc,
+                RecipientBcc = notification.RecipientBcc,
+                EmailAddressBcc = notification.EmailAddressBcc,
                 EmailSubject = notification.EmailSubject,
                 EmailBody = notification.EmailBody,
                 ScheduleId = notification.ScheduleId,

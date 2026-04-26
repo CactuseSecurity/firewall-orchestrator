@@ -166,6 +166,63 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendNotification_PrepareEmail_IncludesBccRecipients()
+        {
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.RecipientBcc = EmailRecipientOption.OtherAddresses;
+            notification.EmailAddressBcc = "bcc1@example.com,bcc2@example.com";
+            FwoOwner owner = new();
+
+            MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
+            ClassicAssert.IsNotNull(prepareEmail);
+
+            globalConfig.UseDummyEmailAddress = false;
+            try
+            {
+                Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, ""])
+                    ?? throw new InvalidOperationException("PrepareEmail returned null task."));
+                FWO.Mail.MailData mailData = await task;
+
+                CollectionAssert.AreEqual(new[] { "bcc1@example.com", "bcc2@example.com" }, mailData.Bcc);
+            }
+            finally
+            {
+                globalConfig.UseDummyEmailAddress = true;
+            }
+        }
+
+        [Test]
+        public async Task SendNotification_PrepareEmail_AllowsNullBccFields()
+        {
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.RecipientBcc = EmailRecipientOption.None;
+            notification.EmailAddressBcc = null!;
+            FwoOwner owner = new();
+
+            MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
+            ClassicAssert.IsNotNull(prepareEmail);
+
+            globalConfig.UseDummyEmailAddress = false;
+            try
+            {
+                Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, ""])
+                    ?? throw new InvalidOperationException("PrepareEmail returned null task."));
+                FWO.Mail.MailData mailData = await task;
+
+                ClassicAssert.IsNotNull(mailData.Bcc);
+                ClassicAssert.AreEqual(0, mailData.Bcc.Count);
+            }
+            finally
+            {
+                globalConfig.UseDummyEmailAddress = true;
+            }
+        }
+
+        [Test]
         public async Task SendBundledNotifications_PrepareBundledEmail_AddsAllBundleAttachments()
         {
             List<UserGroup> ownerGroups = [];

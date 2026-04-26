@@ -292,7 +292,12 @@ namespace FWO.Middleware.Server
             {
                 body += report.ExportToHtml();
             }
-            MailData mailData = new(await CollectRecipients(notification, owner), subject) { Body = body, Cc = await CollectRecipients(notification, owner, true) };
+            MailData mailData = new(await CollectRecipients(notification, owner), subject)
+            {
+                Body = body,
+                Bcc = await CollectRecipients(notification, owner, false, true),
+                Cc = await CollectRecipients(notification, owner, true)
+            };
             if (attachment != null)
             {
                 mailData.Attachments = new FormFileCollection() { attachment };
@@ -364,7 +369,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false)
+        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false, bool bcc = false)
         {
             if (GlobalConfig.UseDummyEmailAddress)
             {
@@ -372,8 +377,12 @@ namespace FWO.Middleware.Server
             }
             EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups);
             await emailHelper.Init();
-            return await emailHelper.GetRecipients(cc ? notification.RecipientCc : notification.RecipientTo, null, owner, null,
-                EmailHelper.SplitAddresses(cc ? notification.EmailAddressCc : notification.EmailAddressTo));
+            EmailRecipientOption recipientOption = bcc
+                ? notification.RecipientBcc
+                : cc ? notification.RecipientCc : notification.RecipientTo;
+            List<string> addresses = EmailHelper.SplitAddresses(
+                bcc ? notification.EmailAddressBcc : cc ? notification.EmailAddressCc : notification.EmailAddressTo);
+            return await emailHelper.GetRecipients(recipientOption, null, owner, null, addresses);
         }
     }
 }

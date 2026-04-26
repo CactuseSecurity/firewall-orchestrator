@@ -29,6 +29,7 @@ namespace FWO.Report
             ReportData.WorkflowStateNames = workflowStates.ToDictionary(state => state.Id, state => state.Name);
             ReportData.WorkflowFilter = new(workflowFilter);
             ReportData.Tickets = tickets;
+            ReportData.TicketReferenceDates = BuildTicketReferenceDates(tickets);
             ReportData.ElementsCount = tickets.Count;
             await callback(ReportData);
         }
@@ -78,15 +79,19 @@ namespace FWO.Report
             report.Append($"\"{userConfig.GetText("tasks")}\",");
             report.Append($"\"{userConfig.GetText("requester")}\",");
             report.Append($"\"{userConfig.GetText("state")}\",");
-            report.Append($"\"{userConfig.GetText("created")}\",");
-            report.Append($"\"{userConfig.GetText("closed")}\"");
+            report.Append($"\"{userConfig.GetText("ticket")} {userConfig.GetText("created")}\",");
+            report.Append($"\"{userConfig.GetText("ticket")} {userConfig.GetText("closed")}\"");
+            if (HasReferenceDateColumn())
+            {
+                report.Append($",\"{userConfig.GetText(ReportData.WorkflowFilter.ReferenceDate.ToString())}\"");
+            }
             if (HasLabelColumn())
             {
                 report.Append($",\"{workflowFilter.LabelFilter.Name}\"");
             }
             report.AppendLine("");
 
-            foreach (WfTicket ticket in ReportData.Tickets.OrderBy(ticket => ticket.Id))
+            foreach (WfTicket ticket in GetSortedTickets())
             {
                 report.Append(OutputCsv(ticket.Id.ToString()));
                 report.Append(OutputCsv(ticket.Title));
@@ -95,6 +100,10 @@ namespace FWO.Report
                 report.Append(OutputCsv(ResolveStateName(ticket.StateId)));
                 report.Append(OutputCsv(ticket.CreationDate.ToString()));
                 report.Append(OutputCsv(ticket.CompletionDate.ToString()));
+                if (HasReferenceDateColumn())
+                {
+                    report.Append(OutputCsv(GetTicketReferenceDateValue(ticket)));
+                }
                 if (HasLabelColumn())
                 {
                     report.Append(OutputCsv(GetLabelValue(ticket)));
@@ -119,7 +128,7 @@ namespace FWO.Report
             report.AppendLine("<table>");
             AppendTicketTableHeader(report);
 
-            foreach (WfTicket ticket in ReportData.Tickets.OrderBy(ticket => ticket.Id))
+            foreach (WfTicket ticket in GetSortedTickets())
             {
                 AppendTicketRow(report, ticket);
                 AppendTaskDetailsSection(report, ticket);
@@ -160,6 +169,30 @@ namespace FWO.Report
         /// </summary>
         protected abstract List<WfApproval> GetDisplayedApprovals(WfReqTask task);
 
+        /// <summary>
+        /// Selects the request tasks that match the reference-date filter, independent of nested detail visibility.
+        /// </summary>
+        protected virtual List<WfReqTask> GetReferenceTasks(WfTicket ticket)
+        {
+            return GetDisplayedTasks(ticket);
+        }
+
+        /// <summary>
+        /// Selects implementation tasks that match the reference-date filter, independent of nested detail visibility.
+        /// </summary>
+        protected virtual List<WfImplTask> GetReferenceImplementationTasks(WfReqTask task)
+        {
+            return GetDisplayedImplementationTasks(task);
+        }
+
+        /// <summary>
+        /// Selects approvals that match the reference-date filter, independent of nested detail visibility.
+        /// </summary>
+        protected virtual List<WfApproval> GetReferenceApprovals(WfReqTask task)
+        {
+            return GetDisplayedApprovals(task);
+        }
+
         private string ResolveStateName(int stateId)
         {
             return ReportData.WorkflowStateNames.TryGetValue(stateId, out string? stateName) ? stateName : stateId.ToString();
@@ -173,8 +206,12 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("tasks")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("requester")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("state")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("created")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("closed")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("ticket")} {userConfig.GetText("created")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("ticket")} {userConfig.GetText("closed")}</th>");
+            if (HasReferenceDateColumn())
+            {
+                report.AppendLine($"<th>{userConfig.GetText(ReportData.WorkflowFilter.ReferenceDate.ToString())}</th>");
+            }
             if (HasLabelColumn())
             {
                 report.AppendLine($"<th>{workflowFilter.LabelFilter.Name}</th>");
@@ -192,6 +229,10 @@ namespace FWO.Report
             report.AppendLine($"<td>{ResolveStateName(ticket.StateId)}</td>");
             report.AppendLine($"<td>{ticket.CreationDate}</td>");
             report.AppendLine($"<td>{ticket.CompletionDate}</td>");
+            if (HasReferenceDateColumn())
+            {
+                report.AppendLine($"<td>{GetTicketReferenceDateValue(ticket)}</td>");
+            }
             if (HasLabelColumn())
             {
                 report.AppendLine($"<td>{GetLabelValue(ticket)}</td>");
@@ -328,9 +369,79 @@ namespace FWO.Report
             return !string.IsNullOrWhiteSpace(workflowFilter.LabelFilter.Name);
         }
 
+        private bool HasReferenceDateColumn()
+        {
+            return ReportType == ReportType.TicketChangeReport;
+        }
+
+        private string GetTicketReferenceDateValue(WfTicket ticket)
+        {
+            DateTime? referenceDate = GetStoredTicketReferenceDate(ticket);
+            return referenceDate?.ToString() ?? "";
+        }
+
+        private IEnumerable<WfTicket> GetSortedTickets()
+        {
+            if (!HasReferenceDateColumn())
+            {
+                return ReportData.Tickets.OrderBy(ticket => ticket.Id);
+            }
+
+            return ReportData.Tickets
+                .OrderByDescending(ticket => GetStoredTicketReferenceDate(ticket).HasValue)
+                .ThenByDescending(GetStoredTicketReferenceDate)
+                .ThenByDescending(ticket => ticket.Id);
+        }
+
+        /// <summary>
+        /// Selects activity timestamps that match the reference-date filter for one ticket.
+        /// </summary>
+        protected virtual IEnumerable<DateTime?> GetTicketReferenceActivityDates(WfTicket ticket)
+        {
+            return [];
+        }
+
+        /// <summary>
+        /// Selects activity timestamps that match the reference-date filter for one request task.
+        /// </summary>
+        protected virtual IEnumerable<DateTime?> GetReferenceActivityDates(WfReqTask task)
+        {
+            return [];
+        }
+
+        private Dictionary<long, DateTime?> BuildTicketReferenceDates(IEnumerable<WfTicket> tickets)
+        {
+            if (!HasReferenceDateColumn())
+            {
+                return [];
+            }
+
+            return tickets.ToDictionary(ticket => ticket.Id, ResolveTicketReferenceDate);
+        }
+
+        private DateTime? ResolveTicketReferenceDate(WfTicket ticket)
+        {
+            return WorkflowTicketReferenceHelper.GetTicketReferenceDate(
+                ticket,
+                ReportData.WorkflowFilter.ReferenceDate,
+                GetReferenceTasks,
+                GetReferenceApprovals,
+                GetReferenceImplementationTasks,
+                GetTicketReferenceActivityDates,
+                GetReferenceActivityDates);
+        }
+
+        private DateTime? GetStoredTicketReferenceDate(WfTicket ticket)
+        {
+            return ReportData.TicketReferenceDates.TryGetValue(ticket.Id, out DateTime? referenceDate)
+                ? referenceDate
+                : ResolveTicketReferenceDate(ticket);
+        }
+
         private int GetTicketColumnCount()
         {
-            return HasLabelColumn() ? 8 : 7;
+            int ticketColumnCount = HasLabelColumn() ? 8 : 7;
+            return HasReferenceDateColumn() ? ticketColumnCount + 1 : ticketColumnCount;
         }
 
         private string BuildWorkflowFilterSummary()

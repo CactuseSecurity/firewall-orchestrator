@@ -445,6 +445,8 @@ INSERT INTO txt VALUES ('fworch_long',			'German',	'Firewall&nbsp;Orchestrator')
 INSERT INTO txt VALUES ('fworch_long',			'English',	'Firewall&nbsp;Orchestrator');
 INSERT INTO txt VALUES ('help',					'German',	'Hilfe');
 INSERT INTO txt VALUES ('help', 				'English',	'Help');
+INSERT INTO txt VALUES ('online_help_fworch',	'German',	'Online-Hilfe FWORCH');
+INSERT INTO txt VALUES ('online_help_fworch',	'English',	'Online Help FWORCH');
 INSERT INTO txt VALUES ('logout', 				'German',	'Abmelden');
 INSERT INTO txt VALUES ('logout', 				'English',	'Logout');
 INSERT INTO txt VALUES ('documentation', 		'German',	'Dokumentation');
@@ -2414,6 +2416,10 @@ INSERT INTO txt VALUES ('recCheckNotifications','German',	'Rezert Check - Benach
 INSERT INTO txt VALUES ('recCheckNotifications','English',	'Recert Check - Notifications');
 INSERT INTO txt VALUES ('ruleExpiryNotifications','German', 'Regelablauf - Benachrichtigungen');
 INSERT INTO txt VALUES ('ruleExpiryNotifications','English','Rule Expiry - Notifications');
+INSERT INTO txt VALUES ('notificationLanguage',  'German', 'Sprache f&uuml;r Benachrichtigungen');
+INSERT INTO txt VALUES ('notificationLanguage',  'English','Notification language');
+INSERT INTO txt VALUES ('useGlobalDefault',      'German', 'Globale Standardsprache verwenden');
+INSERT INTO txt VALUES ('useGlobalDefault',      'English','Use global default');
 INSERT INTO txt VALUES ('ruleExpiryEmailBody',   'German',  'Regelablauf - Email-Text');
 INSERT INTO txt VALUES ('ruleExpiryEmailBody',   'English', 'Rule Expiry - Email body');
 INSERT INTO txt VALUES ('ownerActiveRuleNotifications','German', 'Aktive Regeln - Benachrichtigungen');
@@ -4170,6 +4176,10 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
 ');
 INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Auswahl:');
 INSERT INTO txt VALUES ('H1102', 'English', 'Choose from the following report types:');
+INSERT INTO txt VALUES ('H1103', 'German',  'Fehlende Report-Typen m&uuml;ssen m&ouml;glicherweise zuerst in den <a href="/help/settings/reportgeneral">Reporting-Einstellungen</a> unter "Verf&uuml;gbare Reporttypen" aktiviert werden. Zus&auml;tzlich kann die Liste je nach Rolle weiter eingeschr&auml;nkt sein.');
+INSERT INTO txt VALUES ('H1103', 'English', 'Missing report types may first need to be enabled in <a href="/help/settings/reportgeneral">Report Settings</a> under "Available Report Types". In addition, the list can be further restricted depending on the user role.');
+INSERT INTO txt VALUES ('H1104', 'German',  'Zert: Certificate ist ein archivierter Spezial-Report und steht nicht als regul&auml;rer ausw&auml;hlbarer Report-Typ zur Verf&uuml;gung. Er ist nur im <a href="/help/reporting/archive">Archiv</a> verf&uuml;gbar.');
+INSERT INTO txt VALUES ('H1104', 'English', 'Cert: Certificate is a special archived report and is not available as a regular selectable report type. It is only available in the <a href="/help/reporting/archive">Archive</a>.');
 INSERT INTO txt VALUES ('H1112', 'German',  'Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Der Wert 0 bedeutet, dass nur bereits f&auml;llige Eintr&auml;ge ber&uuml;cksichtigt werden; im Eigent&uuml;mer-Report wird dann kein Abschnitt f&uuml;r bald f&auml;llige Eintr&auml;ge angezeigt.');
 INSERT INTO txt VALUES ('H1112', 'English', 'Defines the lookahead period (in days) for the next recertification. A value of 0 means that only already due entries are considered; in the owner report no upcoming section is shown in that case.');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices
@@ -4280,6 +4290,8 @@ INSERT INTO txt VALUES ('H1159', 'German',  'Statistik - Anzeige von Statistikda
 INSERT INTO txt VALUES ('H1159', 'English', 'Statistics - display statistical data about the number of objects and rules. Default report time: now');
 INSERT INTO txt VALUES ('H1160', 'German',  'Compliance - Anzeige von Compliance-bezogenen Regeln. Die Tabelle enth&auml;lt zus&auml;tzlich eine Spalte "ExpirationTime", die die erste verf&uuml;gbare Rule-Time-Ablaufzeit anzeigt.');
 INSERT INTO txt VALUES ('H1160', 'English', 'Compliance - display compliance-related rules. The table additionally contains an "ExpirationTime" column that shows the first available rule-time expiration.');
+INSERT INTO txt VALUES ('H1160a','German',  'Compliance: Differenzen - Darstellung der Unterschiede zwischen zwei Compliance-St&auml;nden in einem gew&auml;hlten Zeitraum.');
+INSERT INTO txt VALUES ('H1160a','English', 'Compliance: Differences - display the differences between two compliance states in a selected time range.');
 INSERT INTO txt VALUES ('H1161', 'German',  'Modell: Verbindungen - Anzeige aller in einer Applikation modellierten Verbindungen, Schnittstellen und eigener Common Services
     mit zus&auml;tzlicher Auflistung aller hierin verwendeten Netzwerk- und Serviceobjekte. Hinzu kommt eine Liste aller globalen Common Services.
 ');
@@ -4316,6 +4328,10 @@ INSERT INTO txt VALUES ('H1167', 'German',  'Workflow: Ticket-&Auml;nderungen - 
 INSERT INTO txt VALUES ('H1167', 'English', 'Workflow: Ticket Changes - display workflow tickets in a selected time range based on a selectable reference date.
     Additional filters are available for task types, ticket states and the amount of detail shown in the output.
 ');
+INSERT INTO txt VALUES ('H1167a', 'German',  'Workflow: Tickets - Darstellung von Workflow-Tickets mit ihrem aktuellen Stand und den zugeh&ouml;rigen Aufgaben.');
+INSERT INTO txt VALUES ('H1167a', 'English', 'Workflow: Tickets - display workflow tickets with their current state and related tasks.');
+INSERT INTO txt VALUES ('H1168', 'German',  'Eigent&uuml;mer - Darstellung aller Eigent&uuml;mer mit Kritikalit&auml;t, Lebenszyklusstatus und zus&auml;tzlichen Informationen.');
+INSERT INTO txt VALUES ('H1168', 'English', 'Owners - display all owners with criticality, lifecycle status and additional information.');
 INSERT INTO txt VALUES ('H1201', 'German',  'Vorlagen k&ouml;nnen genutzt werden, um wiederkehrende Reports zu definieren. Diese werden f&uuml;r das Scheduling ben&ouml;tigt.
     Jeder Nutzer kann seine eigenen Vorlagen definieren und sie mit anderen teilen.<br>
     Beim Anlegen einer neuen Vorlage &uuml;ber die Schaltfl&auml;che "Als Vorlage speichern" wird ein Pop-Up-Fenster ge&ouml;ffnet, in dem Name und ein Kommentar vergeben werden k&ouml;nnen.
@@ -4352,8 +4368,8 @@ INSERT INTO txt VALUES ('H1217', 'German',  'Next Month&apos;s Recertifications:
 INSERT INTO txt VALUES ('H1217', 'English', 'Next Month&apos;s Recertifications: Currently active rules with upcoming recertification next month.');
 INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/reporting/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
 INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/reporting/archive">archive</a> reports can be exported to different output formats:');
-INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (aktuell nur f&uuml;r die aufgel&ouml;sten und technischen Report-Typen unterst&uuml;tzt)</li><li>json</li>');
-INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently only supported for resolved and technical report types)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (f&uuml;r aufgel&ouml;ste, Compliance-, Eigent&uuml;mer- und Workflow-Report-Typen verf&uuml;gbar; bei Workflow-Reports nur ohne Detailansicht)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (available for resolved, compliance, owners, and workflow report types; for workflow reports only without detailed view)</li><li>json</li>');
 INSERT INTO txt VALUES ('H1303', 'German',  'Nach bet&auml;tigen des "Report exportieren"-Auswahlfeldes kann eines oder mehrere dieser Formate ausgew&auml;hlt werden.
     Bei Aktivierung der pdf-Ausgabe wird desweiteren das Seitenformat zur Auswahl angeboten.<br>
     Auch kann der Report mit einem Namen versehen und <a href="/help/reporting/archive">archiviert</a> werden.
@@ -4374,28 +4390,64 @@ INSERT INTO txt VALUES ('H1401', 'English', 'In the lower part of the main page 
     If diplayed the columns can be used for sorting or filtering.<br>
     The available data columns in rule based reports are:
 ');
-INSERT INTO txt VALUES ('H1402', 'German',  '<li>Nummer</li><li>Name</li><li>Quellzone</li><li>Quelle</li><li>Zielzone</li>
-    <li>Ziel</li><li>Dienste</li><li>Aktion</li><li>Logging</li><li>Aktiviert</li><li>UID</li><li>Kommentar</li>
+INSERT INTO txt VALUES ('H1402', 'German',  '<li><b>Nummer</b>: Laufende Regel- oder Eintragsnummer innerhalb des Reports.</li>
+    <li><b>Name</b>: Anzeigename der Regel oder des dargestellten Objekts.</li>
+    <li><b>Quellzone</b>: Firewall-Zone oder Bereich der Quellobjekte.</li>
+    <li><b>Quelle</b>: Quellnetz, Host, Gruppe oder Objektliste.</li>
+    <li><b>Zielzone</b>: Firewall-Zone oder Bereich der Zielobjekte.</li>
+    <li><b>Ziel</b>: Zielnetz, Host, Gruppe oder Objektliste.</li>
+    <li><b>Dienste</b>: Zugeordnete Dienste bzw. Service-Gruppen.</li>
+    <li><b>Aktion</b>: Regelaktion wie erlauben, blockieren oder &auml;hnliche technische Aktionen.</li>
+    <li><b>Logging</b>: Gibt an, ob und wie Zugriffe zu diesem Eintrag protokolliert werden.</li>
+    <li><b>Aktiviert</b>: Kennzeichnet, ob die Regel oder der Eintrag aktuell aktiv ist.</li>
+    <li><b>LastModified</b>: Importdatum der letzten &Auml;nderung des Regeleintrags.</li>
+    <li><b>UID</b>: Technische eindeutige Kennung des Eintrags im importierten Datenbestand.</li>
+    <li><b>Kommentar</b>: Freitext-Kommentar oder technische Zusatzinformation aus der Quelldatenbasis.</li>
 ');
-INSERT INTO txt VALUES ('H1402', 'English', '<li>Number</li><li>Name</li><li>Source Zone</li><li>Source</li><li>Destination Zone</li>
-    <li>Destination</li><li>Services</li><li>Action</li><li>Logging</li><li>Enabled</li><li>UID</li><li>Comment</li>
+INSERT INTO txt VALUES ('H1402', 'English', '<li><b>Number</b>: Sequential rule or entry number within the report.</li>
+    <li><b>Name</b>: Display name of the rule or shown object.</li>
+    <li><b>Source Zone</b>: Firewall zone or area of the source objects.</li>
+    <li><b>Source</b>: Source network, host, group or object list.</li>
+    <li><b>Destination Zone</b>: Firewall zone or area of the destination objects.</li>
+    <li><b>Destination</b>: Destination network, host, group or object list.</li>
+    <li><b>Services</b>: Assigned services or service groups.</li>
+    <li><b>Action</b>: Rule action such as allow, deny or similar technical actions.</li>
+    <li><b>Logging</b>: Indicates whether and how access for this entry is logged.</li>
+    <li><b>Enabled</b>: Marks whether the rule or entry is currently active.</li>
+    <li><b>LastModified</b>: Import date of the last change to the rule entry.</li>
+    <li><b>UID</b>: Technical unique identifier of the entry in the imported data set.</li>
+    <li><b>Comment</b>: Free-text comment or technical additional information from the source data.</li>
 ');
-INSERT INTO txt VALUES ('H1403', 'German',  'Zus&auml;tzlich werden in einzelnen Reporttypen weitere Spalten dargestellt:
+INSERT INTO txt VALUES ('H1403', 'German',  'Zus&auml;tzlich werden in regelbasierten Reporttypen weitere Spalten dargestellt:
     <ul>
-        <li>Changes: &Auml;nderungszeit, &Auml;nderungstyp (Regelnummerierung entf&auml;llt daf&uuml;r)</li>
-        <li>Regeln: Unbenutzt: Letzter Treffer</li>
-        <li>Regeln: NAT: Umgesetzte Quelle, Umgesetztes Ziel, Umgesetzte Dienste</li>
-        <li>Zert: Zert-Regel-Details: Datum n&auml;chste Rezertifizierung, Eigent&uuml;mer, IP-Adress-&Uuml;bereinstimmung, Letzter Treffer</li>
-        <li>Modell: Verbindungen: Hier werden die Spalten Nummer, Name, Fachliche Begr&uuml;ndung, Quelle, Dienst und Ziel angeboten</li>
+        <li><b>Changes</b>: &Auml;nderungszeit, &Auml;nderungstyp (Regelnummerierung entf&auml;llt daf&uuml;r)</li>
+        <li><b>Regeln: Unbenutzt</b>: Letzter Treffer</li>
+        <li><b>Regeln: NAT</b>: Umgesetzte Quelle, Umgesetztes Ziel, Umgesetzte Dienste</li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H1403', 'English', 'Additionally in the different Report Types further columns are displayed:
+INSERT INTO txt VALUES ('H1403', 'English', 'Additionally, rule-based report types can show further columns:
     <ul>
-        <li>Changes: Change Time, Change Type (but no rule numbering)</li>
-        <li>Rules: Unused: Last Hit</li>
-        <li>Rules: NAT: Translated Source, Translated Destination, Translated Services</li>
-        <li>Model: Cert Rule Details: Next Recertification Date, Owner, IP address match, Last Hit</li>
-        <li>Model: Connections: Here the columns Number, Name, Functional Reason, Source, Service and Destination are offered.</li>
+        <li><b>Changes</b>: Change Time, Change Type (but no rule numbering)</li>
+        <li><b>Rules: Unused</b>: Last Hit</li>
+        <li><b>Rules: NAT</b>: Translated Source, Translated Destination, Translated Services</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H1404', 'German',  'Nicht regelbasierte Reports verwenden eigene Ausgabespalten, zum Beispiel:
+    <ul>
+        <li><b>Compliance</b>: zus&auml;tzliche Compliance- und Ablaufinformationen, z.B. <b>ExpirationTime</b></li>
+        <li><b>Eigent&uuml;mer</b>: Kritikalit&auml;t, Lifecycle-Status sowie weitere Eigent&uuml;mer-Informationen</li>
+        <li><b>Workflow</b>: Ticket-, Task-, Status- und Referenzdatumsinformationen je nach Reporttyp und Detailansicht</li>
+        <li><b>Zert: Regel-&Uuml;bersicht</b> und <b>Zert: Zert-Regel-Details</b>: n&auml;chste Rezertifizierung, Eigent&uuml;mer, IP-Adress-&Uuml;bereinstimmung, Letzter Treffer</li>
+        <li><b>Modell: Verbindungen</b>: Nummer, Name, fachliche Begr&uuml;ndung, Quelle, Dienst und Ziel</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H1404', 'English', 'Non-rule-based reports use their own output columns, for example:
+    <ul>
+        <li><b>Compliance</b>: additional compliance and expiration information, e.g. <b>ExpirationTime</b></li>
+        <li><b>Owners</b>: criticality, lifecycle state and further owner information</li>
+        <li><b>Workflow</b>: ticket, task, state and reference-date information depending on report type and detailed view</li>
+        <li><b>Cert: Rule Overview</b> and <b>Cert: Cert Rule Details</b>: next recertification, owner, IP address match, last hit</li>
+        <li><b>Model: Connections</b>: number, name, functional reason, source, service and destination</li>
     </ul>
 ');
 
@@ -4525,6 +4577,8 @@ INSERT INTO txt VALUES ('H2001', 'German',  'Es k&ouml;nnen Reports f&uuml;r ein
 INSERT INTO txt VALUES ('H2001', 'English', 'Reports can be scheduled for a given time or as recurring tasks.
     Every user can administrate his own report schedules.
 ');
+INSERT INTO txt VALUES ('H2001a', 'German', 'Der Inhalt geplanter Reports wird in der Sprache des Schedule-Owners erzeugt.');
+INSERT INTO txt VALUES ('H2001a', 'English','Scheduled report content is generated in the language of the schedule owner.');
 INSERT INTO txt VALUES ('H2011', 'German',  'Name: Der Reportname, der im <a href="/help/reporting/archive">Archiv</a> wiederzufinden ist.');
 INSERT INTO txt VALUES ('H2011', 'English', 'Name: The report name to be found in the <a href="/help/reporting/archive">Archive</a>.');
 INSERT INTO txt VALUES ('H2012', 'German',  'Startdatum und -zeit: Erste Ausf&uuml;hrung des Terminauftrags.
@@ -6393,8 +6447,12 @@ INSERT INTO txt VALUES ('H5704', 'English', 'In the table of search results new 
 ');
 INSERT INTO txt VALUES ('H5720', 'German',  'Diese Seite beschreibt die Einstellungen f&uuml;r Regelablauf-Benachrichtigungen. Konfiguriert werden Versandintervalle, Mail-Textvorlage und die Zuordnung von Initiator-Schl&uuml;sseln zu Anzeigetexten.');
 INSERT INTO txt VALUES ('H5720', 'English', 'This page describes the settings for rule expiry notifications. You can configure sending intervals, email body template and the mapping of initiator keys to display texts.');
+INSERT INTO txt VALUES ('H5720a', 'German', 'Der Inhalt geplanter Reports wird in der Sprache des Schedule-Owners erzeugt. Sprachabh&auml;ngige Benachrichtigungs-Platzhalter wie <code>@@TIME_INTERVAL@@</code> und <code>@@RULE_TABLE@@</code> verwenden die konfigurierte Benachrichtigungssprache; falls keine gesetzt ist, wird die globale Standardsprache verwendet.');
+INSERT INTO txt VALUES ('H5720a', 'English','Scheduled report content is generated in the language of the schedule owner. Language-dependent notification placeholders such as <code>@@TIME_INTERVAL@@</code> and <code>@@RULE_TABLE@@</code> use the configured notification language; if none is set, the global default language is used.');
 INSERT INTO txt VALUES ('H5721', 'German',  'Regelablauf - Benachrichtigungen: Konfiguration der Versandintervalle und Empf&auml;nger f&uuml;r RuleTimer-Benachrichtigungen.');
 INSERT INTO txt VALUES ('H5721', 'English', 'Rule expiry notifications: Configure intervals and recipients for RuleTimer notifications.');
+INSERT INTO txt VALUES ('H5721a', 'German', 'Sprache f&uuml;r Benachrichtigungen: Legt fest, in welcher Sprache sprachabh&auml;ngige Platzhalter wie @@TIME_INTERVAL@@ und @@RULE_TABLE@@ erzeugt werden. Standard ist die globale Standardsprache.');
+INSERT INTO txt VALUES ('H5721a', 'English','Notification language: Defines the language used for language-dependent placeholders like @@TIME_INTERVAL@@ and @@RULE_TABLE@@. The default is the global default language.');
 INSERT INTO txt VALUES ('H5722', 'German',  'Regelablauf - Email-Text: Vorlage f&uuml;r den Mail-Text. Platzhalter wie @@APPNAME@@, @@APPID@@, @@TIME_INTERVAL@@ und @@RULE_TABLE@@ werden ersetzt. @@RULE_TABLE@@ definiert die Einf&uuml;geposition der Regeltabelle.');
 INSERT INTO txt VALUES ('H5722', 'English', 'Rule expiry email body: Template for the mail body. Placeholders like @@APPNAME@@, @@APPID@@, @@TIME_INTERVAL@@ and @@RULE_TABLE@@ are replaced. @@RULE_TABLE@@ defines where the rule table is inserted.');
 INSERT INTO txt VALUES ('H5723', 'German',  'Regelablauf - Initiator-Texte: Zuordnung von Suffix-Schl&uuml;sseln aus dem Time-Objektnamen zu Anzeige-Texten im Report.');

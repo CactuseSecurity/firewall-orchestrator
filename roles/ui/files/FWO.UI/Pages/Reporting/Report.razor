@@ -208,6 +208,7 @@
                                 string ticketTimeStart = currentReport.Query.QueryVariables.ContainsKey("ticket_time_start") ? currentReport.Query.QueryVariables["ticket_time_start"]?.ToString() ?? string.Empty : string.Empty;
                                 string ticketTimeEnd = currentReport.Query.QueryVariables.ContainsKey("ticket_time_end") ? currentReport.Query.QueryVariables["ticket_time_end"]?.ToString() ?? string.Empty : string.Empty;
                                 <ReportedTickets Tickets="currentReport.ReportData.Tickets" StateNames="currentReport.ReportData.WorkflowStateNames"
+                                                 TicketReferenceDates="currentReport.ReportData.TicketReferenceDates"
                                                  SelectedReportType="currentReport.ReportType"
                                                  ReferenceDate="currentReport.ReportData.WorkflowFilter.ReferenceDate"
                                                  LabelName="@currentReport.ReportData.WorkflowFilter.LabelFilter.Name"

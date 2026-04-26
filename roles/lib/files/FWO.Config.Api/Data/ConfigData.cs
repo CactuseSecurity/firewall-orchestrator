@@ -225,6 +225,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("dummyEmailAddress"), JsonPropertyName("dummyEmailAddress")]
         public string DummyEmailAddress { get; set; } = "";
 
+        [JsonProperty("notificationLanguage"), JsonPropertyName("notificationLanguage")]
+        public string NotificationLanguage { get; set; } = "";
+
         [JsonProperty("minCollapseAllDevices"), JsonPropertyName("minCollapseAllDevices"), UserConfigData]
         public int MinCollapseAllDevices { get; set; } = 15;
 

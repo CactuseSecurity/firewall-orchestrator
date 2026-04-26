@@ -21,7 +21,7 @@ class TimeObject(BaseModel):
         try:
             parsed_time = cls._parse_iso_timestamp(value)
             if parsed_time.tzinfo is None:
-                return parsed_time.isoformat(timespec="seconds")
+                parsed_time = parsed_time.replace(tzinfo=timezone.utc)
             return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
         except ValueError:
             raise ValueError(

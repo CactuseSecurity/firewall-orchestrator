@@ -1,5 +1,7 @@
 @using FWO.Basics.Enums
 @using FWO.Ui.Data.Extensions
+@using FWO.Basics.Extensions
+
 @page "/settings/report"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
@@ -62,12 +64,12 @@
         </div>
     </form>
     <hr />
-    <div class="form-group row" data-toggle="tooltip" title="">
-        <label for="creationTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance")):</label>
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5462"))">
+        <label for="creationTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("PreferredCollapseState")):</label>
         <div class="col-sm-2">
-            <Dropdown ElementType="PreferredCollapseState" ElementToString="_ => _.ToString(userConfig)" Elements="Enum.GetValues<PreferredCollapseState>()" SelectedElement="SelectedPreferredCollapseState">
-               
-            </Dropdown>
+            <Dropdown ElementType="PreferredCollapseState" ElementToString="_ => _.ToString(userConfig)"
+                      Elements="Enum.GetValues<PreferredCollapseState>().Except(PreferredCollapseState.Intermediate)"
+                      @bind-SelectedElement="SelectedPreferredCollapseState" />
         </div>
     </div>
     <hr />

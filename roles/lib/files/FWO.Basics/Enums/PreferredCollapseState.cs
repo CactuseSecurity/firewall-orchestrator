@@ -2,8 +2,8 @@ namespace FWO.Basics.Enums
 {
     public enum PreferredCollapseState
     {
-        Collapsed
-        Expanded
+        Collapsed,
+        Expanded,
         Intermediate
     }
 }

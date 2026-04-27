@@ -44,10 +44,6 @@ class TimeObject(BaseModel):
                 "'YYYY-MM-DDTHH:MM:SS', 'YYYY-MM-DDTHH:MM:SSZ', 'YYYY-MM-DDTHH:MM:SS+HH:MM', or 'YYYY-MM-DDTHH:MM:SS+HHMM'."
             ) from None
 
-    @staticmethod
-    def _parse_iso_timestamp(value: str) -> datetime:
-        return _parse_iso_timestamp(value)
-
 
 class TimeObjectForImport(BaseModel):
     """

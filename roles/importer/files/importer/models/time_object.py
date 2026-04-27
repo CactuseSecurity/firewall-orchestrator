@@ -4,6 +4,24 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, field_validator
 
 
+def normalize_iso_timestamp_to_utc(value: str) -> str:
+    parsed_time = _parse_iso_timestamp(value)
+    if parsed_time.tzinfo is None:
+        parsed_time = parsed_time.replace(tzinfo=timezone.utc)
+    return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
+
+
+def _parse_iso_timestamp(value: str) -> datetime:
+    normalized_value = value.strip().replace("Z", "+00:00")
+
+    # Python 3.10 is stricter and does not always parse offsets like +0000.
+    # Convert +HHMM / -HHMM to +HH:MM / -HH:MM before parsing.
+    if re.search(r"[+-]\d{4}$", normalized_value):
+        normalized_value = f"{normalized_value[:-5]}{normalized_value[-5:-2]}:{normalized_value[-2:]}"
+
+    return datetime.fromisoformat(normalized_value)
+
+
 class TimeObject(BaseModel):
     time_obj_uid: str
     time_obj_name: str
@@ -19,10 +37,7 @@ class TimeObject(BaseModel):
         if value is None:
             return value
         try:
-            parsed_time = cls._parse_iso_timestamp(value)
-            if parsed_time.tzinfo is None:
-                parsed_time = parsed_time.replace(tzinfo=timezone.utc)
-            return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
+            return normalize_iso_timestamp_to_utc(value)
         except ValueError:
             raise ValueError(
                 f"Time value '{value}' does not match supported ISO formats "
@@ -31,14 +46,7 @@ class TimeObject(BaseModel):
 
     @staticmethod
     def _parse_iso_timestamp(value: str) -> datetime:
-        normalized_value = value.strip().replace("Z", "+00:00")
-
-        # Python 3.10 is stricter and does not always parse offsets like +0000.
-        # Convert +HHMM / -HHMM to +HH:MM / -HH:MM before parsing.
-        if re.search(r"[+-]\d{4}$", normalized_value):
-            normalized_value = f"{normalized_value[:-5]}{normalized_value[-5:-2]}:{normalized_value[-2:]}"
-
-        return datetime.fromisoformat(normalized_value)
+        return _parse_iso_timestamp(value)
 
 
 class TimeObjectForImport(BaseModel):

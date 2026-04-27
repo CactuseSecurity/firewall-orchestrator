@@ -1,7 +1,5 @@
-import re
-from datetime import datetime, timezone
-
 from models.caseinsensitiveenum import CaseInsensitiveEnum
+from models.time_object import normalize_iso_timestamp_to_utc
 from pydantic import BaseModel, field_validator
 
 
@@ -74,20 +72,12 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
         if value is None:
             return value
         try:
-            normalized_value = value.replace("Z", "+00:00")
-            normalized_value = re.sub(
-                r"([+-]\d{2})(\d{2})$",
-                r"\1:\2",
-                normalized_value,
-            )
-            parsed_time = datetime.fromisoformat(normalized_value)
-            if parsed_time.tzinfo is None:
-                parsed_time = parsed_time.replace(tzinfo=timezone.utc)
-            return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
+            return normalize_iso_timestamp_to_utc(value)
         except ValueError:
             raise ValueError(
                 f"Rule last_hit value '{value}' must be an ISO 8601 timestamp like "
-                "YYYY-MM-DDTHH:MM[:SS][Z|+HH:MM|+HHMM]"
+                "YYYY-MM-DDTHH:MM[:SS][Z|±HH:MM|±HHMM]; timestamps without a timezone "
+                "are treated as UTC"
             ) from None
 
     def __eq__(self, other: object) -> bool:

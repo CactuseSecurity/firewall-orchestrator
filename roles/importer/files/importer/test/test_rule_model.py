@@ -9,6 +9,8 @@ from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
         ("2026-03-11T11:57:00", "2026-03-11T11:57:00+00:00"),
         ("2026-03-11T11:57:00Z", "2026-03-11T11:57:00+00:00"),
         ("2026-04-01T13:19+0200", "2026-04-01T11:19:00+00:00"),
+        ("2026-04-01T13:19-0530", "2026-04-01T18:49:00+00:00"),
+        (" 2026-03-11T11:57:00Z ", "2026-03-11T11:57:00+00:00"),
     ],
 )
 def test_last_hit_normalizes_supported_timestamp_formats(last_hit: str, expected: str):
@@ -38,7 +40,7 @@ def test_last_hit_normalizes_supported_timestamp_formats(last_hit: str, expected
 def test_last_hit_rejects_invalid_timestamp_with_updated_message():
     with pytest.raises(
         ValueError,
-        match=r"must be an ISO 8601 timestamp like YYYY-MM-DDTHH:MM\[:SS\]\[Z\|\+HH:MM\|\+HHMM\]",
+        match=r"must be an ISO 8601 timestamp like YYYY-MM-DDTHH:MM\[:SS\]\[Z\|±HH:MM\|±HHMM\]; timestamps without a timezone are treated as UTC",
     ):
         RuleNormalized(
             rule_num=1,

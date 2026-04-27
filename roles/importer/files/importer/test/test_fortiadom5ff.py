@@ -78,6 +78,17 @@ class TestToTimeObject:
         assert time_obj.start_time == expected_start
         assert time_obj.end_time == expected_end
 
+    def test_time_object_rejects_invalid_timestamp_with_shared_message(self):
+        with pytest.raises(
+            ValueError,
+            match=r"Time value 'not-a-timestamp' must be an ISO 8601 timestamp like YYYY-MM-DDTHH:MM\[:SS\]\[Z\|±HH:MM\|±HHMM\]; timestamps without a timezone are treated as UTC",
+        ):
+            TimeObject(
+                time_obj_uid="broken",
+                time_obj_name="broken",
+                start_time="not-a-timestamp",
+            )
+
     def test_to_time_object_returns_none_for_default_start_time(self):
         time_obj = to_time_object(
             {

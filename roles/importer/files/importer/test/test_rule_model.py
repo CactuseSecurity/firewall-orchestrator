@@ -40,7 +40,7 @@ def test_last_hit_normalizes_supported_timestamp_formats(last_hit: str, expected
 def test_last_hit_rejects_invalid_timestamp_with_updated_message():
     with pytest.raises(
         ValueError,
-        match=r"must be an ISO 8601 timestamp like YYYY-MM-DDTHH:MM\[:SS\]\[Z\|±HH:MM\|±HHMM\]; timestamps without a timezone are treated as UTC",
+        match=r"Rule last_hit value 'not-a-timestamp' must be an ISO 8601 timestamp like YYYY-MM-DDTHH:MM\[:SS\]\[Z\|±HH:MM\|±HHMM\]; timestamps without a timezone are treated as UTC",
     ):
         RuleNormalized(
             rule_num=1,

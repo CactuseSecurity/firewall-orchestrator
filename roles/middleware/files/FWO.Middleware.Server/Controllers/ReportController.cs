@@ -83,6 +83,7 @@ namespace FWO.Middleware.Server.Controllers
                 "connections" => 21,
                 "apprules" => 22,
                 "variance" => 23,
+                "owners" => 51,
                 _ => 1,
             };
         }

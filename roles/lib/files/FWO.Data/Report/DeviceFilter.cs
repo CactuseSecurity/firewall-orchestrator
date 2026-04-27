@@ -173,6 +173,19 @@ namespace FWO.Data.Report
             return string.Join(", ", devs);
         }
 
+        public string ListAllSelectedManagements()
+        {
+            List<string> managements = [];
+            foreach (ManagementSelect mgmt in Managements)
+            {
+                if (IsSelectedManagement(mgmt))
+                {
+                    managements.Add(mgmt.Name ?? "");
+                }
+            }
+            return string.Join(", ", managements);
+        }
+
         public static List<int> ExtractAllDevIds(Management[] managements)
         {
             List<int> devs = [];

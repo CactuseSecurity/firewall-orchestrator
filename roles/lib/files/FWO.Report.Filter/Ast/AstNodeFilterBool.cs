@@ -50,13 +50,23 @@ namespace FWO.Report.Filter.Ast
         private void ExtractRemoveFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<bool>(query, "remove", Operator.Kind, semanticValue);
-            query.RuleWhereStatement += $"rule_metadatum: {{rule_to_be_removed: {{ {ExtractOperator()}: ${queryVarName} }}}}";
+            query.RuleWhereStatement += $"rule_metadatum: {{rule_to_be_removed: {{ {ExtractBooleanOperator()}: ${queryVarName} }}}}";
         }
 
         private void ExtractDisabledQuery(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<bool>(query, "disabled", Operator.Kind, semanticValue);
-            query.RuleWhereStatement += $"rule_disabled: {{ {ExtractOperator()}: ${queryVarName} }}";
+            query.RuleWhereStatement += $"rule_disabled: {{ {ExtractBooleanOperator()}: ${queryVarName} }}";
+        }
+
+        private string ExtractBooleanOperator()
+        {
+            return Operator.Kind switch
+            {
+                TokenKind.EQ or TokenKind.EEQ => "_eq",
+                TokenKind.NEQ => "_neq",
+                _ => throw new SemanticException("Invalid boolean operator.", Operator.Position),
+            };
         }
     }
 }

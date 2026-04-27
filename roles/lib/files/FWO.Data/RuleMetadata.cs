@@ -26,8 +26,16 @@ namespace FWO.Data
         [JsonProperty("rule_first_hit"), JsonPropertyName("rule_first_hit")]
         public DateTime? FirstHit { get; set; }
 
+        private DateTime? lastHit;
+
         [JsonProperty("rule_last_hit"), JsonPropertyName("rule_last_hit")]
-        public DateTime? LastHit { get; set; }
+        public DateTime? LastHit
+        {
+            get => lastHit;
+            set => lastHit = value.HasValue && value.Value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+                : value;
+        }
 
         [JsonProperty("recertification"), JsonPropertyName("recertification")]
         public List<Recertification> RuleRecertification { get; set; } = [];

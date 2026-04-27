@@ -103,6 +103,11 @@
         }
     }
 
+    protected override void OnParametersSet()
+    {
+        SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         foreach (ManagementSelect management in DeviceFilter.Managements)
@@ -138,10 +143,7 @@
 
     private async Task SetSelectAll()
     {
-        if (DeviceFilter.AreAllDevicesSelected())
-            SelectAll = false;
-        if (!DeviceFilter.IsAnyDeviceFilterSet())
-            SelectAll = true;
+        SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
         await SelectAllChanged.InvokeAsync(SelectAll);
     }
 

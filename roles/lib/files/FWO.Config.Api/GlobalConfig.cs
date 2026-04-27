@@ -92,10 +92,43 @@ namespace FWO.Config.Api
         public override string GetText(string key)
         {
             ThrowIfDisposed();
-            if (LangDict.TryGetValue(DefaultLanguage, out Dictionary<string, string>? langDict) && langDict.TryGetValue(key, out string? value))
+            return GetTextInLanguage(key, DefaultLanguage);
+        }
+
+        public string GetNotificationLanguage()
+        {
+            ThrowIfDisposed();
+            return string.IsNullOrWhiteSpace(NotificationLanguage) ? DefaultLanguage : NotificationLanguage;
+        }
+
+        public string GetNotificationText(string key)
+        {
+            ThrowIfDisposed();
+            return GetTextInLanguage(key, GetNotificationLanguage());
+        }
+
+        public string GetTextInLanguage(string key, string? languageName)
+        {
+            ThrowIfDisposed();
+            string resolvedLanguage = string.IsNullOrWhiteSpace(languageName) ? DefaultLanguage : languageName;
+            if (LangDict.TryGetValue(resolvedLanguage, out Dictionary<string, string>? langDict) && langDict.TryGetValue(key, out string? value))
             {
                 return System.Web.HttpUtility.HtmlDecode(value);
             }
+
+            if (resolvedLanguage != DefaultLanguage && LangDict.TryGetValue(DefaultLanguage, out Dictionary<string, string>? defaultLangDict)
+                && defaultLangDict.TryGetValue(key, out string? defaultValue))
+            {
+                return System.Web.HttpUtility.HtmlDecode(defaultValue);
+            }
+
+            if (resolvedLanguage != GlobalConst.kEnglish && DefaultLanguage != GlobalConst.kEnglish
+                && LangDict.TryGetValue(GlobalConst.kEnglish, out Dictionary<string, string>? englishLangDict)
+                && englishLangDict.TryGetValue(key, out string? englishValue))
+            {
+                return System.Web.HttpUtility.HtmlDecode(englishValue);
+            }
+
             return GlobalConst.kUndefinedText;
         }
 

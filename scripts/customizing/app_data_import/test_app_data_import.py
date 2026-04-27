@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import sys
 import tempfile
@@ -677,13 +678,7 @@ class AppDataImportTests(unittest.TestCase):
             config_path: Path = Path(tmpdir) / "customizingConfig.json"
             expected_repo_dir: str = str(Path(tmpdir) / "fworch-custom-repos")
             with open(config_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    f"""
-                    {{
-                      "localRepoBaseDir": "{expected_repo_dir}"
-                    }}
-                    """
-                )
+                json.dump({"localRepoBaseDir": expected_repo_dir}, fh)
 
             resolved: str = resolve_local_repo_base_dir(str(config_path), None, self.logger)
 
@@ -695,13 +690,7 @@ class AppDataImportTests(unittest.TestCase):
             config_repo_dir: str = str(Path(tmpdir) / "fworch-config-repos")
             cli_repo_dir: str = str(Path(tmpdir) / "fworch-cli-repos")
             with open(config_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    f"""
-                    {{
-                      "localRepoBaseDir": "{config_repo_dir}"
-                    }}
-                    """
-                )
+                json.dump({"localRepoBaseDir": config_repo_dir}, fh)
 
             resolved: str = resolve_local_repo_base_dir(str(config_path), cli_repo_dir, self.logger)
 

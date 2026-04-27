@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 
 from pydantic import BaseModel, field_validator
@@ -18,13 +19,26 @@ class TimeObject(BaseModel):
         if value is None:
             return value
         try:
-            normalized_value = value.replace("Z", "+00:00")
-            parsed_time = datetime.fromisoformat(normalized_value)
+            parsed_time = cls._parse_iso_timestamp(value)
             if parsed_time.tzinfo is None:
                 parsed_time = parsed_time.replace(tzinfo=timezone.utc)
             return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
         except ValueError:
-            raise ValueError(f"Time value '{value}' does not match format 'YYYY-MM-DDTHH:MM:SS+HH:MM'") from None
+            raise ValueError(
+                f"Time value '{value}' does not match supported ISO formats "
+                "'YYYY-MM-DDTHH:MM:SS', 'YYYY-MM-DDTHH:MM:SSZ', 'YYYY-MM-DDTHH:MM:SS+HH:MM', or 'YYYY-MM-DDTHH:MM:SS+HHMM'."
+            ) from None
+
+    @staticmethod
+    def _parse_iso_timestamp(value: str) -> datetime:
+        normalized_value = value.strip().replace("Z", "+00:00")
+
+        # Python 3.10 is stricter and does not always parse offsets like +0000.
+        # Convert +HHMM / -HHMM to +HH:MM / -HH:MM before parsing.
+        if re.search(r"[+-]\d{4}$", normalized_value):
+            normalized_value = f"{normalized_value[:-5]}{normalized_value[-5:-2]}:{normalized_value[-2:]}"
+
+        return datetime.fromisoformat(normalized_value)
 
 
 class TimeObjectForImport(BaseModel):

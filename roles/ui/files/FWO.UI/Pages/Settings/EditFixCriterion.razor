@@ -78,13 +78,8 @@
                                 <div class="col-sm-4">
                                     <PortRangeInput @bind-Port="ActForbiddenPortStart" @bind-PortEnd="ActForbiddenPortEnd" />
                                 </div>
-                                <div class="col-sm-6">
-                                    <Dropdown ElementType="IpProtocol" @bind-SelectedElement="SelectedForbiddenProtocol"
-                                              Elements="IpProtocols" Nullable="false" ElementToString="@(protocol => protocol.Name)">
-                                        <ElementTemplate Context="protocol">
-                                            @protocol.Name
-                                        </ElementTemplate>
-                                    </Dropdown>
+                                <div class="col-sm-4">
+                                    <input type="text" class="form-control form-control-sm" placeholder="@userConfig.GetText("protocol")" @bind="ActForbiddenProtocolText" />
                                 </div>
                                 <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddForbiddenElement"
                                     @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
@@ -162,8 +157,7 @@
     private string ActForbiddenElement = "";
     private List<string> ActElements = [];
     private string ActContent = "";
-    private List<IpProtocol> IpProtocols = [];
-    private IpProtocol? SelectedForbiddenProtocol;
+    private string ActForbiddenProtocolText = "";
     private int? ActForbiddenPortStart;
     private int? ActForbiddenPortEnd;
     private ForbiddenServiceInputMode SelectedForbiddenServiceMode = ForbiddenServiceInputMode.Uid;
@@ -172,13 +166,6 @@
     {
         Uid,
         ProtocolPort
-    }
-
-
-    protected override async Task OnInitializedAsync()
-    {
-        IpProtocols = DisplayBase.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols));
-        SelectedForbiddenProtocol = IpProtocols.FirstOrDefault();
     }
 
 
@@ -419,7 +406,8 @@
 
     private string? GetProtocolPortForbiddenElement()
     {
-        if (SelectedForbiddenProtocol == null || ActForbiddenPortStart == null)
+        string protocolToken = GetForbiddenProtocolToken();
+        if (string.IsNullOrWhiteSpace(protocolToken) || ActForbiddenPortStart == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("edit_fix_crit"), userConfig.GetText("criterion_error_forbidden_service_protocol_port"), true);
             return null;
@@ -433,8 +421,8 @@
         }
 
         return ActForbiddenPortStart == rangeEnd
-            ? $"{ActForbiddenPortStart}/{SelectedForbiddenProtocol.Name}"
-            : $"{ActForbiddenPortStart}-{rangeEnd}/{SelectedForbiddenProtocol.Name}";
+            ? $"{ActForbiddenPortStart}/{protocolToken}"
+            : $"{ActForbiddenPortStart}-{rangeEnd}/{protocolToken}";
     }
 
     private string? GetPendingForbiddenElement()
@@ -471,8 +459,13 @@
     private void ResetForbiddenServiceInput()
     {
         ActForbiddenElement = "";
+        ActForbiddenProtocolText = "";
         ActForbiddenPortStart = null;
         ActForbiddenPortEnd = null;
-        SelectedForbiddenProtocol = IpProtocols.FirstOrDefault();
+    }
+
+    private string GetForbiddenProtocolToken()
+    {
+        return ActForbiddenProtocolText.Trim();
     }
 }

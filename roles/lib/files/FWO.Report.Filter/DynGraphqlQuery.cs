@@ -801,11 +801,11 @@ namespace FWO.Report.Filter
                     case ReportType.RecertEventReport:
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");
-                        String removedStatement = $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
+                        string removedStatement = $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.RulebaseLinkWhereStatement +=
                             $"created: {{_lte: $import_id_end }}" +
                             removedStatement +
-                            $"stm_link_type: {{id: {{_neq: 6}}}}"; // Filter out NAT rulebase links
+                            $" stm_link_type: {{id: {{_neq: 6}}}}"; // Filter out NAT rulebase links
                         query.NatRulebaseLinkWhereStatement +=
                             $"created: {{_lte: $import_id_end }}" +
                             $"_or: [{{is_initial: {{_eq: true}}, {removedStatement}}}, {{link_type: {{_eq: 6}}, {removedStatement}}}]";

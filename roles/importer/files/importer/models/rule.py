@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 
 from models.caseinsensitiveenum import CaseInsensitiveEnum
@@ -74,6 +75,11 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
             return value
         try:
             normalized_value = value.replace("Z", "+00:00")
+            normalized_value = re.sub(
+                r"([+-]\d{2})(\d{2})$",
+                r"\1:\2",
+                normalized_value,
+            )
             parsed_time = datetime.fromisoformat(normalized_value)
             if parsed_time.tzinfo is None:
                 parsed_time = parsed_time.replace(tzinfo=timezone.utc)

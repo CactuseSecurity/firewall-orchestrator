@@ -380,21 +380,22 @@ namespace FWO.Test
                 Assert.That(apiConnection.InsertedPairsByImport[1], Is.Empty, "Initial rule import must not map before owners exist.");
                 Assert.That(apiConnection.ActivePairsAfterImport[1], Is.Empty);
                 Assert.That(apiConnection.ActivePairsAfterImport[2], Has.Count.EqualTo(10));
+                Assert.That(apiConnection.InsertedPairsByImport[3], Is.EquivalentTo(new[] { "1->2", "11->3" }));
                 Assert.That(apiConnection.ActivePairsAfterImport[3], Does.Contain("1->2"));
                 Assert.That(apiConnection.ActivePairsAfterImport[3], Does.Contain("11->3"));
                 Assert.That(apiConnection.ActivePairsAfterImport.All(snapshot => snapshot.Value.Count == snapshot.Value.Distinct().Count()), Is.True, "Each active rule-owner snapshot should contain unique pairs only.");
                 Assert.That(apiConnection.ActivePairsAfterImport[3], Is.EquivalentTo(new[]
                 {
                     "1->2",
-                    "3->1",
+                    "3->3",
                     "4->4",
                     "5->5",
                     "6->1",
                     "7->2",
                     "8->3",
+                    "9->4",
                     "10->5",
-                    "11->3",
-                    "2->2"
+                    "11->3"
                 }));
             });
         }

@@ -194,6 +194,48 @@ namespace FWO.Test.Fixtures
             return rule;
         }
 
+        protected virtual Rule CreateRuleWithService(string serviceUid, string serviceName, int protoId, string protocolName, int? port = null, int? portEnd = null)
+        {
+            Rule rule = CreateSimpleRule(1);
+            rule.Services =
+            [
+                new ServiceWrapper
+                {
+                    Content = CreateNetworkService(serviceUid, serviceName, protoId, protocolName, port, portEnd)
+                }
+            ];
+
+            return rule;
+        }
+
+        protected virtual Rule CreateRuleWithServiceGroup(NetworkService serviceGroup)
+        {
+            Rule rule = CreateSimpleRule(1);
+            rule.Services =
+            [
+                new ServiceWrapper
+                {
+                    Content = serviceGroup
+                }
+            ];
+
+            return rule;
+        }
+
+        protected virtual NetworkService CreateNetworkService(string serviceUid, string serviceName, int protoId, string protocolName, int? port = null, int? portEnd = null)
+        {
+            return new NetworkService
+            {
+                Uid = serviceUid,
+                Name = serviceName,
+                ProtoId = protoId,
+                Protocol = new NetworkProtocol { Id = protoId, Name = protocolName },
+                DestinationPort = port,
+                DestinationPortEnd = portEnd ?? port,
+                Type = new NetworkServiceType { Name = ServiceType.SimpleService }
+            };
+        }
+
         protected virtual NetworkObject CreateNetworkObject(int ruleId, string uidPrefix, string objectTypeName, bool? highIpRange = null)
         {
             NetworkObject networkObject = new();

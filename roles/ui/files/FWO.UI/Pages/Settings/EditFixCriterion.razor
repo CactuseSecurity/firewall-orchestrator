@@ -45,7 +45,18 @@
             @if(SelectedCriterion.CriterionType == CriterionType.ForbiddenService.ToString())
             {
                 <div class="form-group row me-auto mt-2">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("content")):</label>
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("content_mode")):</label>
+                    <div class="col-sm-10">
+                        <Dropdown ElementType="ForbiddenServiceInputMode" @bind-SelectedElement="SelectedForbiddenServiceMode"
+                                  Elements="ForbiddenServiceInputModes()" Nullable="false" ElementToString="GetForbiddenServiceModeText">
+                            <ElementTemplate Context="mode">
+                                @GetForbiddenServiceModeText(mode)
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+                <div class="form-group row me-auto mt-2">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("elements")):</label>
                     <div class="col-sm-10">
                         <EditList ElementType="string" Elements="ActElements.ToArray()" ElementsToAdd="ForbiddenElementsToAdd"
                                 ElementsToDelete="ForbiddenElementsToDelete" StdLayout="false">
@@ -56,10 +67,30 @@
                             </Display>
                         </EditList>
                         <div class="row col-sm-12 mt-1">
-                            <input type="text" class="col-sm-10" @bind="ActForbiddenElement" />
-                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddForbiddenElement"
-                                @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                            @if(SelectedForbiddenServiceMode == ForbiddenServiceInputMode.Uid)
+                            {
+                                <input type="text" class="col-sm-10" @bind="ActForbiddenElement" />
+                                <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddForbiddenElement"
+                                    @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                            }
+                            else
+                            {
+                                <div class="col-sm-4">
+                                    <PortRangeInput @bind-Port="ActForbiddenPortStart" @bind-PortEnd="ActForbiddenPortEnd" />
+                                </div>
+                                <div class="col-sm-6">
+                                    <Dropdown ElementType="IpProtocol" @bind-SelectedElement="SelectedForbiddenProtocol"
+                                              Elements="IpProtocols" Nullable="false" ElementToString="@(protocol => protocol.Name)">
+                                        <ElementTemplate Context="protocol">
+                                            @protocol.Name
+                                        </ElementTemplate>
+                                    </Dropdown>
+                                </div>
+                                <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddForbiddenElement"
+                                    @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                            }
                         </div>
+                        <small class="form-text text-muted">@userConfig.GetText(GetForbiddenServiceHintKey())</small>
                     </div>
                 </div>
             }
@@ -131,24 +162,55 @@
     private string ActForbiddenElement = "";
     private List<string> ActElements = [];
     private string ActContent = "";
+    private List<IpProtocol> IpProtocols = [];
+    private IpProtocol? SelectedForbiddenProtocol;
+    private int? ActForbiddenPortStart;
+    private int? ActForbiddenPortEnd;
+    private ForbiddenServiceInputMode SelectedForbiddenServiceMode = ForbiddenServiceInputMode.Uid;
+
+    private enum ForbiddenServiceInputMode
+    {
+        Uid,
+        ProtocolPort
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        IpProtocols = DisplayBase.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols));
+        SelectedForbiddenProtocol = IpProtocols.FirstOrDefault();
+    }
 
 
     protected override void OnParametersSet()
     {
         if(Display)
         {
-            ActContent = SelectedCriterion.Content;
-            ActElements = [.. SelectedCriterion.Content.Split(',').Select(s => s.Trim())
-                    .Where(s => !string.IsNullOrEmpty(s))];
+            ActContent = SelectedCriterion.Content ?? "";
+            ActElements = [.. ActContent.Split(',').Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))];
+            SelectedForbiddenServiceMode = InferForbiddenServiceInputMode(ActElements);
+            ResetForbiddenServiceInput();
         }
     }
 
     private void AddForbiddenElement()
     {
-        if (ActForbiddenElement != "")
+        string? forbiddenElement = SelectedForbiddenServiceMode switch
         {
-            ForbiddenElementsToAdd.Add(ActForbiddenElement);
-            ActForbiddenElement = "";
+            ForbiddenServiceInputMode.Uid => GetUidForbiddenElement(),
+            ForbiddenServiceInputMode.ProtocolPort => GetProtocolPortForbiddenElement(),
+            _ => null
+        };
+
+        if (!string.IsNullOrEmpty(forbiddenElement))
+        {
+            if (!ActElements.Contains(forbiddenElement) && !ForbiddenElementsToAdd.Contains(forbiddenElement))
+            {
+                ForbiddenElementsToAdd.Add(forbiddenElement);
+            }
+
+            ResetForbiddenServiceInput();
         }
     }
 
@@ -164,6 +226,11 @@
             int oldCritId = SelectedCriterion.Id;
             if (SelectedCriterion.CriterionType == nameof(CriterionType.ForbiddenService))
             {
+                if (!string.IsNullOrWhiteSpace(GetPendingForbiddenElement()))
+                {
+                    AddForbiddenElement();
+                }
+
                 if(ForbiddenElementsToAdd.Count > 0 || ForbiddenElementsToDelete.Count > 0)
                 {
                     foreach(var elem in ForbiddenElementsToDelete)
@@ -296,9 +363,116 @@
     {
         ForbiddenElementsToAdd = [];
         ForbiddenElementsToDelete = [];
-        ActForbiddenElement = "";
         ActContent = "";
+        ResetForbiddenServiceInput();
         Display = false;
         DisplayChanged.InvokeAsync(Display);
+    }
+
+    private static IEnumerable<ForbiddenServiceInputMode> ForbiddenServiceInputModes()
+    {
+        return
+        [
+            ForbiddenServiceInputMode.Uid,
+            ForbiddenServiceInputMode.ProtocolPort
+        ];
+    }
+
+    private string GetForbiddenServiceModeText(ForbiddenServiceInputMode mode)
+    {
+        return mode switch
+        {
+            ForbiddenServiceInputMode.Uid => userConfig.GetText("uid"),
+            ForbiddenServiceInputMode.ProtocolPort => userConfig.GetText("port_protocol"),
+            _ => ""
+        };
+    }
+
+    private string GetForbiddenServiceHintKey()
+    {
+        return SelectedForbiddenServiceMode switch
+        {
+            ForbiddenServiceInputMode.Uid => "criterion_hint_forbidden_service_uid",
+            ForbiddenServiceInputMode.ProtocolPort => "criterion_hint_forbidden_service_protocol_port",
+            _ => "criterion_no_content_required"
+        };
+    }
+
+    private static ForbiddenServiceInputMode InferForbiddenServiceInputMode(IEnumerable<string> forbiddenElements)
+    {
+        List<string> elements = [.. forbiddenElements];
+        return elements.Count > 0 && elements.All(IsProtocolPortForbiddenElement)
+            ? ForbiddenServiceInputMode.ProtocolPort
+            : ForbiddenServiceInputMode.Uid;
+    }
+
+    private string? GetUidForbiddenElement()
+    {
+        string forbiddenElement = ActForbiddenElement.Trim();
+        if (string.IsNullOrEmpty(forbiddenElement))
+        {
+            return null;
+        }
+
+        return forbiddenElement;
+    }
+
+    private string? GetProtocolPortForbiddenElement()
+    {
+        if (SelectedForbiddenProtocol == null || ActForbiddenPortStart == null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("edit_fix_crit"), userConfig.GetText("criterion_error_forbidden_service_protocol_port"), true);
+            return null;
+        }
+
+        int rangeEnd = ActForbiddenPortEnd ?? ActForbiddenPortStart.Value;
+        if (ActForbiddenPortStart > rangeEnd)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("edit_fix_crit"), userConfig.GetText("criterion_error_forbidden_service_protocol_port"), true);
+            return null;
+        }
+
+        return ActForbiddenPortStart == rangeEnd
+            ? $"{ActForbiddenPortStart}/{SelectedForbiddenProtocol.Name}"
+            : $"{ActForbiddenPortStart}-{rangeEnd}/{SelectedForbiddenProtocol.Name}";
+    }
+
+    private string? GetPendingForbiddenElement()
+    {
+        return SelectedForbiddenServiceMode switch
+        {
+            ForbiddenServiceInputMode.Uid => string.IsNullOrWhiteSpace(ActForbiddenElement) ? null : ActForbiddenElement.Trim(),
+            ForbiddenServiceInputMode.ProtocolPort => ActForbiddenPortStart == null ? null : GetProtocolPortForbiddenElement(),
+            _ => null
+        };
+    }
+
+    private static bool IsProtocolPortForbiddenElement(string forbiddenElement)
+    {
+        string[] contentParts = forbiddenElement.Split('/', StringSplitOptions.TrimEntries);
+        if (contentParts.Length != 2 || string.IsNullOrWhiteSpace(contentParts[1]))
+        {
+            return false;
+        }
+
+        string[] portParts = contentParts[0].Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        return portParts.Length switch
+        {
+            1 => int.TryParse(portParts[0], out int port) && port is > 0 and <= GlobalConst.kMaxPortNumber,
+            2 => int.TryParse(portParts[0], out int startPort)
+                && int.TryParse(portParts[1], out int endPort)
+                && startPort is > 0 and <= GlobalConst.kMaxPortNumber
+                && endPort is > 0 and <= GlobalConst.kMaxPortNumber
+                && startPort <= endPort,
+            _ => false
+        };
+    }
+
+    private void ResetForbiddenServiceInput()
+    {
+        ActForbiddenElement = "";
+        ActForbiddenPortStart = null;
+        ActForbiddenPortEnd = null;
+        SelectedForbiddenProtocol = IpProtocols.FirstOrDefault();
     }
 }

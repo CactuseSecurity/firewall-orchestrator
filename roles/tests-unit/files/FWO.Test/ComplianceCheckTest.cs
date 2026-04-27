@@ -162,6 +162,89 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CheckRuleCompliance_ForbiddenServiceUidCriterion_RemainsSupported()
+        {
+            Rule rule = CreateRuleWithService("forbidden-service-uid", "Forbidden Legacy Service", 6, "TCP", 443);
+            ComplianceCriterion criterion = new()
+            {
+                Id = 1,
+                CriterionType = nameof(CriterionType.ForbiddenService),
+                Content = "forbidden-service-uid"
+            };
+
+            bool ruleIsCompliant = await ComplianceCheck.CheckRuleCompliance(rule, [criterion]);
+
+            List<ComplianceViolation> violations = GetCurrentViolations();
+            Assert.That(ruleIsCompliant, Is.False);
+            Assert.That(violations.Count, Is.EqualTo(1));
+            Assert.That(violations.Single().Details, Does.Contain("Forbidden Legacy Service"));
+        }
+
+        [Test]
+        public async Task CheckRuleCompliance_ForbiddenServiceProtocolPortCriterion_MatchesExactService()
+        {
+            Rule rule = CreateRuleWithService("svc-https", "HTTPS", 6, "TCP", 443);
+            ComplianceCriterion criterion = new()
+            {
+                Id = 1,
+                CriterionType = nameof(CriterionType.ForbiddenService),
+                Content = "443/TCP"
+            };
+
+            bool ruleIsCompliant = await ComplianceCheck.CheckRuleCompliance(rule, [criterion]);
+
+            List<ComplianceViolation> violations = GetCurrentViolations();
+            Assert.That(ruleIsCompliant, Is.False);
+            Assert.That(violations.Count, Is.EqualTo(1));
+            Assert.That(violations.Single().Details, Does.Contain("443/TCP"));
+        }
+
+        [Test]
+        public async Task CheckRuleCompliance_ForbiddenServiceProtocolPortCriterion_MatchesOverlappingRange()
+        {
+            Rule rule = CreateRuleWithService("svc-range", "Ephemeral TCP", 6, "TCP", 1500, 1600);
+            ComplianceCriterion criterion = new()
+            {
+                Id = 1,
+                CriterionType = nameof(CriterionType.ForbiddenService),
+                Content = "1000-1550/TCP"
+            };
+
+            bool ruleIsCompliant = await ComplianceCheck.CheckRuleCompliance(rule, [criterion]);
+
+            Assert.That(ruleIsCompliant, Is.False);
+            Assert.That(GetCurrentViolations(), Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task CheckRuleCompliance_ForbiddenServiceProtocolPortCriterion_ChecksFlattenedServiceGroups()
+        {
+            NetworkService groupMember = CreateNetworkService("svc-member", "HTTPS", 6, "TCP", 443);
+            NetworkService serviceGroup = new()
+            {
+                Uid = "svc-group",
+                Name = "Service Group",
+                Type = new NetworkServiceType { Name = ServiceType.Group },
+                ServiceGroupFlats =
+                [
+                    new GroupFlat<NetworkService> { Object = groupMember }
+                ]
+            };
+            Rule rule = CreateRuleWithServiceGroup(serviceGroup);
+            ComplianceCriterion criterion = new()
+            {
+                Id = 1,
+                CriterionType = nameof(CriterionType.ForbiddenService),
+                Content = "443/TCP"
+            };
+
+            bool ruleIsCompliant = await ComplianceCheck.CheckRuleCompliance(rule, [criterion]);
+
+            Assert.That(ruleIsCompliant, Is.False);
+            Assert.That(GetCurrentViolations(), Has.Count.EqualTo(1));
+        }
+
+        [Test]
         public async Task AreRulesCompliant_MinimumCIDRLengthPolicyFails_ReturnsFalse()
         {
             await SetUpBasic(setupRelevantManagements: true);
@@ -632,5 +715,15 @@ namespace FWO.Test
         }
 
         #endregion
+
+        private List<ComplianceViolation> GetCurrentViolations()
+        {
+            return
+            [
+                .. (ConcurrentBag<ComplianceViolation>)typeof(ComplianceCheck)
+                    .GetField("_currentViolations", BindingFlags.NonPublic | BindingFlags.Instance)!
+                    .GetValue(ComplianceCheck)!
+            ];
+        }
     }
 }

@@ -104,6 +104,28 @@ namespace FWO.Compliance
         /// </summary>
         private readonly ParallelProcessor _parallelProcessor;
         /// <summary>
+        /// Key used to de-duplicate service candidates during forbidden-service evaluation.
+        /// </summary>
+        private readonly record struct ServiceMatchKey(
+            long Id,
+            string Uid,
+            string Name,
+            int? ProtocolId,
+            int? DestinationPort,
+            int? DestinationPortEnd)
+        {
+            public static ServiceMatchKey FromService(NetworkService service)
+            {
+                return new ServiceMatchKey(
+                    service.Id,
+                    service.Uid,
+                    service.Name,
+                    service.ProtoId ?? service.Protocol?.Id,
+                    service.DestinationPort,
+                    service.DestinationPortEnd);
+            }
+        }
+        /// <summary>
         /// Evaluator for rule-level criteria that are attached to policies.
         /// </summary>
         private readonly RuleTrivialityEvaluator _ruleTrivialityEvaluator = new();
@@ -922,7 +944,8 @@ namespace FWO.Compliance
 
                     if (complianceCheckResult.Service is NetworkService svc)
                     {
-                        violation.Details = $"{_userConfig.GetText("H5840")}: {svc.Name}";
+                        string serviceDisplay = DisplayBase.DisplayService(svc, false).ToString();
+                        violation.Details = $"{_userConfig.GetText("H5840")}: {serviceDisplay}";
                     }
                     else
                     {
@@ -1020,16 +1043,17 @@ namespace FWO.Compliance
             bool ruleIsCompliant = true;
 
             List<string> restrictedServices = [.. criterion.Content.Split(',').Select(s => s.Trim())
-            .Where(s => !string.IsNullOrEmpty(s))];
+                .Where(s => !string.IsNullOrEmpty(s))];
 
             if (restrictedServices.Count > 0)
             {
-                foreach (var service in rule.Services.Where(s => restrictedServices.Contains(s.Content.Uid)))
+                foreach (NetworkService service in GetServicesForForbiddenServiceCheck(rule)
+                    .Where(service => restrictedServices.Any(restrictedService => MatchesRestrictedService(service, restrictedService))))
                 {
                     ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.ServiceViolation)
                     {
                         Criterion = criterion,
-                        Service = service.Content
+                        Service = service
                     };
 
                     CreateViolation(ComplianceViolationType.ServiceViolation, rule, complianceCheckResult);
@@ -1038,6 +1062,142 @@ namespace FWO.Compliance
             }
 
             return ruleIsCompliant;
+        }
+
+        /// <summary>
+        /// Collects direct and flattened services that should be evaluated for forbidden-service checks.
+        /// </summary>
+        /// <param name="rule">Rule whose services should be checked.</param>
+        private static List<NetworkService> GetServicesForForbiddenServiceCheck(Rule rule)
+        {
+            Dictionary<ServiceMatchKey, NetworkService> services = [];
+
+            foreach (NetworkService service in rule.Services.Select(wrapper => wrapper.Content))
+            {
+                AddForbiddenServiceCandidate(services, service);
+
+                foreach (NetworkService flattenedService in service.ServiceGroupFlats
+                    .Where(groupFlat => groupFlat.Object != null)
+                    .Select(groupFlat => groupFlat.Object!))
+                {
+                    AddForbiddenServiceCandidate(services, flattenedService);
+                }
+            }
+
+            return [.. services.Values];
+        }
+
+        /// <summary>
+        /// Adds a service candidate if it has not already been seen.
+        /// </summary>
+        /// <param name="services">Lookup of collected services.</param>
+        /// <param name="service">Service to add.</param>
+        private static void AddForbiddenServiceCandidate(IDictionary<ServiceMatchKey, NetworkService> services, NetworkService service)
+        {
+            ServiceMatchKey serviceKey = ServiceMatchKey.FromService(service);
+
+            if (!services.ContainsKey(serviceKey))
+            {
+                services.Add(serviceKey, service);
+            }
+        }
+
+        /// <summary>
+        /// Checks whether a service matches a restricted service entry.
+        /// </summary>
+        /// <param name="service">Service to evaluate.</param>
+        /// <param name="restrictedService">Restricted entry, either a UID or a port/protocol definition.</param>
+        private static bool MatchesRestrictedService(NetworkService service, string restrictedService)
+        {
+            if (TryParseRestrictedServiceDefinition(restrictedService, out int rangeStart, out int rangeEnd, out string protocolToken))
+            {
+                return MatchesRestrictedServiceDefinition(service, rangeStart, rangeEnd, protocolToken);
+            }
+
+            return string.Equals(service.Uid, restrictedService, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Parses a restricted service definition in the form port/protocol or start-end/protocol.
+        /// </summary>
+        /// <param name="restrictedService">Restricted service entry to parse.</param>
+        /// <param name="rangeStart">Parsed start port.</param>
+        /// <param name="rangeEnd">Parsed end port.</param>
+        /// <param name="protocolToken">Parsed protocol token.</param>
+        private static bool TryParseRestrictedServiceDefinition(string restrictedService, out int rangeStart, out int rangeEnd, out string protocolToken)
+        {
+            rangeStart = 0;
+            rangeEnd = 0;
+            protocolToken = "";
+
+            string[] definitionParts = restrictedService.Split('/', StringSplitOptions.TrimEntries);
+            if (definitionParts.Length != 2 || string.IsNullOrWhiteSpace(definitionParts[0]) || string.IsNullOrWhiteSpace(definitionParts[1]))
+            {
+                return false;
+            }
+
+            protocolToken = definitionParts[1];
+            string[] portParts = definitionParts[0].Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+            if (portParts.Length == 1
+                && int.TryParse(portParts[0], out rangeStart)
+                && rangeStart is > 0 and <= GlobalConst.kMaxPortNumber)
+            {
+                rangeEnd = rangeStart;
+                return true;
+            }
+
+            if (portParts.Length == 2
+                && int.TryParse(portParts[0], out rangeStart)
+                && rangeStart is > 0 and <= GlobalConst.kMaxPortNumber
+                && int.TryParse(portParts[1], out rangeEnd)
+                && rangeEnd is > 0 and <= GlobalConst.kMaxPortNumber
+                && rangeStart <= rangeEnd)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks whether a service matches a parsed restricted service definition.
+        /// </summary>
+        /// <param name="service">Service to evaluate.</param>
+        /// <param name="rangeStart">Restricted start port.</param>
+        /// <param name="rangeEnd">Restricted end port.</param>
+        /// <param name="protocolToken">Restricted protocol token.</param>
+        private static bool MatchesRestrictedServiceDefinition(NetworkService service, int rangeStart, int rangeEnd, string protocolToken)
+        {
+            if (!ServiceProtocolMatches(service, protocolToken) || service.DestinationPort == null)
+            {
+                return false;
+            }
+
+            int serviceRangeStart = service.DestinationPort.Value;
+            int serviceRangeEnd = service.DestinationPortEnd ?? serviceRangeStart;
+
+            return serviceRangeStart <= rangeEnd && serviceRangeEnd >= rangeStart;
+        }
+
+        /// <summary>
+        /// Checks whether the service protocol matches the requested protocol token.
+        /// </summary>
+        /// <param name="service">Service to evaluate.</param>
+        /// <param name="protocolToken">Restricted protocol token.</param>
+        private static bool ServiceProtocolMatches(NetworkService service, string protocolToken)
+        {
+            if (string.IsNullOrWhiteSpace(protocolToken))
+            {
+                return false;
+            }
+
+            if (int.TryParse(protocolToken, out int protocolId))
+            {
+                return service.ProtoId == protocolId || service.Protocol?.Id == protocolId;
+            }
+
+            return string.Equals(service.Protocol?.Name, protocolToken, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

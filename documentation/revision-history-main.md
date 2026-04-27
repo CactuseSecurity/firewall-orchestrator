@@ -607,3 +607,6 @@ A complete 80K lines rework of FWO, including
 # 9.0.21 - 21.04.2026 MAIN
 - bug fixing
 - dependency updates (notably closing mailkit and pytest vulnerabilities)
+
+# 9.0.23 - 27.04.2026 MAIN
+- enhance notifications by bcc

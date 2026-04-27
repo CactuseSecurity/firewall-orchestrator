@@ -377,11 +377,20 @@ namespace FWO.Middleware.Server
             }
             EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups);
             await emailHelper.Init();
-            EmailRecipientOption recipientOption = bcc
-                ? notification.RecipientBcc
-                : cc ? notification.RecipientCc : notification.RecipientTo;
-            List<string> addresses = EmailHelper.SplitAddresses(
-                bcc ? notification.EmailAddressBcc : cc ? notification.EmailAddressCc : notification.EmailAddressTo);
+            EmailRecipientOption recipientOption = notification.RecipientTo;
+            string? addressList = notification.EmailAddressTo;
+            if (bcc)
+            {
+                recipientOption = notification.RecipientBcc;
+                addressList = notification.EmailAddressBcc;
+            }
+            else if (cc)
+            {
+                recipientOption = notification.RecipientCc;
+                addressList = notification.EmailAddressCc;
+            }
+
+            List<string> addresses = EmailHelper.SplitAddresses(addressList);
             return await emailHelper.GetRecipients(recipientOption, null, owner, null, addresses);
         }
     }

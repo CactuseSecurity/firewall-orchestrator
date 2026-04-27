@@ -5,16 +5,26 @@ namespace FWO.Test
 {
     internal class SimulatedGlobalConfig : GlobalConfig
     {
-        public Dictionary<string, string> DummyTranslate = SimulatedUserConfig.DummyTranslate;
+        public Dictionary<string, string> DummyTranslate = new(SimulatedUserConfig.DummyTranslate);
+        public Dictionary<string, string> GermanTranslate = new(SimulatedUserConfig.DummyTranslate);
 
         public override string GetText(string key)
         {
-            return DummyTranslate.TryGetValue(key, out string? value) ? value : key;
+            return GetTextInLanguage(key, DefaultLanguage);
         }
 
         public SimulatedGlobalConfig() : base()
         {
-            LangDict = new() { { "English", DummyTranslate } };
+            LangDict = new()
+            {
+                { "English", DummyTranslate },
+                { "German", GermanTranslate }
+            };
+            OverDict = new()
+            {
+                { "English", [] },
+                { "German", [] }
+            };
         }
     }
 
@@ -28,6 +38,7 @@ namespace FWO.Test
             {"UnusedRules","Unused Rules Report"},
             {"Recertification","Recertification Report"},
             {"OwnerRecertification","Owner Recertification"},
+            {"Owners","Owners"},
             {"NatRules","NAT Rules Report"},
             {"Changes","Changes Report"},
             {"ResolvedChanges","Changes Report (resolved)"},
@@ -204,6 +215,10 @@ namespace FWO.Test
             {"U9018","Ticket rejected." },
             {"U9036","Rejected by Admin" },
             {"state","State" },
+            {"criticality","Criticality" },
+            {"additional_info","Additional Info" },
+            {"active","Active" },
+            {"inactive","Inactive" },
             {"ticket","Ticket" },
             {"tasks","Tasks" },
             {"requester","Requester" },
@@ -358,6 +373,9 @@ namespace FWO.Test
             {"TicketReport","Ticket Report"},
             {"TicketChangeReport","Ticket Change Report"},
             {"workflow_filters","Workflow Filters"},
+            {"variance_filters","Variance Filters"},
+            {"rules_for_deleted_conns","Rules from deleted connections"},
+            {"analyse_remaining_rules","Analyse remaining rules"},
             {"task_type","Task type"},
             {"phase","Phase"},
             {"label","Label"},
@@ -378,6 +396,7 @@ namespace FWO.Test
             {"rule_delete","rule delete"},
             {"new_interface","new interface"},
             {"now","now"},
+            {"today","today"},
             {"last","last"},
             {"day","day"},
             {"week","week"},

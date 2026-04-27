@@ -10,6 +10,7 @@ using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Test.Mocks;
 using FWO.Ui.Pages.Reporting;
+using System.Reflection;
 
 
 
@@ -165,7 +166,7 @@ namespace FWO.Test
         public void ChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter, false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter, false)
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -184,7 +185,7 @@ namespace FWO.Test
         public void ChangesGenerateHtmlIncludeObjects()
         {
             Log.WriteInfo("Test Log", "starting changes report html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter, true, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter, true)
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -203,7 +204,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, timeFilter, false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, timeFilter, false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -222,7 +223,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report tech html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, timeFilter, false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, timeFilter, false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -364,6 +365,60 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OwnersGenerateCsvAndHtml()
+        {
+            ReportOwners report = new(query, userConfig, ReportType.Owners)
+            {
+                ReportData = new ReportData()
+                {
+                    OwnerData =
+                    [
+                        new OwnerConnectionReport()
+                        {
+                            Owner = new FwoOwner()
+                            {
+                                ExtAppId = "APP-1",
+                                Name = "Owner One",
+                                Criticality = "High",
+                                OwnerLifeCycleStateId = 1,
+                                AdditionalInfo = new Dictionary<string, string>() { { "department", "IT" }, { "region", "EU" } },
+                                OwnerResponsibles =
+                                [
+                                    new OwnerResponsible(){ Dn = "cn=user1,ou=users,dc=test", ResponsibleTypeId = 1 },
+                                    new OwnerResponsible(){ Dn = "cn=user2,ou=users,dc=test", ResponsibleTypeId = 2 }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            };
+            SetPrivateField(report, "ownerLifeCycleStates", new Dictionary<int, string> { { 1, "Active" } });
+            SetPrivateField(report, "ownerResponsibleTypes", new List<OwnerResponsibleType>
+            {
+                new OwnerResponsibleType() { Id = 1, Name = "Main", Active = true, SortOrder = 1 },
+                new OwnerResponsibleType() { Id = 2, Name = "Backup", Active = true, SortOrder = 2 }
+            });
+
+            string csv = report.ExportToCsv();
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("\"Id\",\"Name\",\"Criticality\",\"State\",\"Main\",\"Backup\",\"Additional Info\",", csv);
+            StringAssert.Contains("\"APP-1\",\"Owner One\",\"High\",\"Active\",\"user1\",\"user2\",\"department: IT; region: EU\",", csv);
+            StringAssert.Contains("<th>Id</th><th>Name</th><th>Criticality</th><th>State</th><th>Main</th><th>Backup</th><th>Additional Info</th>", html);
+            StringAssert.Contains("<td>APP-1</td><td>Owner One</td><td>High</td><td>Active</td><td>user1</td><td>user2</td><td>department: IT<br>region: EU</td>", html);
+        }
+
+        private static void SetPrivateField<T>(object target, string fieldName, T value)
+        {
+            FieldInfo? field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field == null)
+            {
+                throw new MissingFieldException(target.GetType().FullName, fieldName);
+            }
+            field.SetValue(target, value);
+        }
+
+        [Test]
         public void ConnectionsGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting connection report html generation");
@@ -478,7 +533,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -507,7 +562,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateCsvIncludeObjects()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), true, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), true)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -542,7 +597,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report tech csv generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -691,7 +746,7 @@ namespace FWO.Test
         public void ChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, new TimeFilter(), false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, new TimeFilter(), false)
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -722,7 +777,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -754,7 +809,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -784,7 +839,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateJsonIncludeObjects()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), true, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), true)
             {
                 ReportData = ConstructChangeReport(true)
             };

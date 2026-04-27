@@ -86,7 +86,8 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
             return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
         except ValueError:
             raise ValueError(
-                f"Rule last_hit value '{value}' does not match format 'YYYY-MM-DDTHH:MM:SS+HH:MM'"
+                f"Rule last_hit value '{value}' must be an ISO 8601 timestamp like "
+                "YYYY-MM-DDTHH:MM[:SS][Z|+HH:MM|+HHMM]"
             ) from None
 
     def __eq__(self, other: object) -> bool:

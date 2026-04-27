@@ -1,0 +1,13 @@
+query getOwnersForRuleOwnerNameFieldFilteredByOwner($ownerIds: [Int!]!) {
+  modelling_connection(
+    where: {
+      removed: { _eq: false }
+      app_id: { _in: $ownerIds }
+      owner: { active: { _eq: true } }
+    }
+  ) {
+    id
+    app_id
+    name
+  }
+}

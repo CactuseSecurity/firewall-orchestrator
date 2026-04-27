@@ -43,19 +43,16 @@ namespace FWO.Middleware.Server.Services
         protected override int SleepTime => globalConfig.UpdateRuleOwnerMappingSleepTime;
 
         /// <inheritdoc/>
-        protected override DateTime StartAt => globalConfig.UpdateRuleOwnerMappingStartAt;
+        protected override DateTime StartAt => DateTime.Now;
 
         /// <inheritdoc/>
         protected override TimeSpan Interval => TimeSpan.FromSeconds(globalConfig.UpdateRuleOwnerMappingSleepTime);
-
-        /// <inheritdoc/>
-        protected override bool IsActive => globalConfig.UpdateRuleOwnerMappingActive;
 
         /// <inheritdoc/>
         protected override string IntervalLogSuffix => "s";
 
         /// <inheritdoc/>
         protected override string DisabledLogMessage =>
-            "Job disabled (inactive or sleep time <= 0) - job kept without trigger for manual runs";
+            "Job disabled (sleep time <= 0) - job kept without trigger for manual runs";
     }
 }

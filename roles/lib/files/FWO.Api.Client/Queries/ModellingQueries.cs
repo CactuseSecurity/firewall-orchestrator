@@ -117,6 +117,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getAppZonesByAppId;
 
         public static readonly string getOwnersForRuleOwnerNameField;
+        public static readonly string getOwnersForRuleOwnerNameFieldFilteredByOwner;
 
         static ModellingQueries()
         {
@@ -236,6 +237,7 @@ namespace FWO.Api.Client.Queries
                 getAppZonesByAppId = appServerDetailsFragment + GetQueryText("modelling/getAppZonesByAppId.graphql");
 
                 getOwnersForRuleOwnerNameField = GetQueryText("modelling/getOwnersForRuleOwnerNameField.graphql");
+                getOwnersForRuleOwnerNameFieldFilteredByOwner = GetQueryText("modelling/getOwnersForRuleOwnerNameFieldFilteredByOwner.graphql");
             }
             catch (Exception exception)
             {

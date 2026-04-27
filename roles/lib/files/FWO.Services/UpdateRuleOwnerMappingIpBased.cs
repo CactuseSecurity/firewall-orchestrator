@@ -122,10 +122,6 @@ namespace FWO.Services
             await CompleteImportControl(import.ControlId);
         }
 
-
-
-
-
         public List<RuleOwner> BuildNewRuleOwnersIpBased(List<Rule> rulesToMap, List<FwoOwner> ownersToMap)
         {
             var newRuleOwners = new List<RuleOwner>();
@@ -167,80 +163,32 @@ namespace FWO.Services
             return newRuleOwners;
         }
 
-
-
-
         private async Task<(List<Rule> rulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportIpBased(ImportControl import)
         {
             var changelogRules = await apiConnection.SendQueryAsync<List<RuleChange>>(RuleQueries.getChangedRulesForRuleOwnerMappingIpBased, new { controlId = import.ControlId });
-            if (changelogRules == null || !changelogRules.Any())
+            var rulesToMap = new List<Rule>();
+            var rulesToRemove = new List<Rule>();
+            var owners = new List<FwoOwner>();
+            var ruleOwnersToRemove = new List<RuleOwner>();
+
+            if (!ProcessRuleChanges(changelogRules, rulesToMap, rulesToRemove))
             {
                 Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
                 return (new List<Rule>(), new List<FwoOwner>(), new List<RuleOwner>());
             }
 
-            var relevantChanges = changelogRules
-                .Where(IsIpBasedObjectChanged)
-                .ToList();
+            if (rulesToMap.Any())
+            {
+                owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerIpBased);
+            }
 
-            var rulesToMap = relevantChanges
-                .Select(c => c.NewRule)
-                .Where(r => r != null)
-                .ToList();
-
-            var rulesToRemove = relevantChanges
-                .Select(c => c.OldRule)
-                .Where(r => r != null)
-                .ToList();
-
-            var owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerIpBased);
-
-            var ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
+            if (rulesToRemove.Any())
+            {
+                ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
+            }
 
             return (rulesToMap, owners, ruleOwnersToRemove);
         }
-
-        private static bool IsIpBasedObjectChanged(RuleChange ruleChange)
-        {
-            var oldRule = ruleChange.OldRule;
-            var newRule = ruleChange.NewRule;
-
-            if (IsObjectListChanged(oldRule?.Tos, newRule?.Tos))
-            {
-                return true;
-            }
-
-            if (IsObjectListChanged(oldRule?.Froms, newRule?.Froms))
-            {
-                return true;
-            }
-            return false;
-        }
-
-        private static bool IsObjectListChanged(NetworkLocation[]? oldList, NetworkLocation[]? newList)
-        {
-            oldList ??= Array.Empty<NetworkLocation>();
-            newList ??= Array.Empty<NetworkLocation>();
-
-            if (oldList.Length != newList.Length)
-            {
-                return true;
-            }
-
-            return oldList
-                .Where(o => o.Object != null)
-                .Any(oldEntry => !newList
-                    .Any(n => n.Object != null &&
-                              n.Object.Id == oldEntry.Object.Id &&
-                              n.Object.IP == oldEntry.Object.IP &&
-                              n.Object.IpEnd == oldEntry.Object.IpEnd));
-        }
-
-
-
-
-
-
 
         private async Task<(List<Rule> RulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleOwnerImportIpBased(ImportControl import)
         {
@@ -250,7 +198,7 @@ namespace FWO.Services
             var ruleOwnersToRemove = new List<RuleOwner>();
             var rulesToMap = new List<Rule>();
 
-            if (!ProcessOwnerChanges(changelogOwners, ownersToAdd, ownersToRemove, new List<FwoOwner>(), true))
+            if (!ProcessOwnerChanges(changelogOwners, ownersToAdd, ownersToRemove))
             {
                 return (new List<Rule>(), new List<FwoOwner>(), new List<RuleOwner>());
             }

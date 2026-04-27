@@ -5,7 +5,6 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
 using FWO.Services.EventMediator.Events;
-using System.Text.Json;
 
 namespace FWO.Services
 {
@@ -122,29 +121,26 @@ namespace FWO.Services
         private async Task<(List<Rule> rulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportCustomField(ImportControl import)
         {
             var changelogRules = await apiConnection.SendQueryAsync<List<RuleChange>>(RuleQueries.getChangedRulesForRuleOwnerMappingCustomField, new { controlId = import.ControlId });
-            if (changelogRules == null || !changelogRules.Any())
+            var rulesToMap = new List<Rule>();
+            var rulesToRemove = new List<Rule>();
+            var owners = new List<FwoOwner>();
+            var ruleOwnersToRemove = new List<RuleOwner>();
+
+            if (!ProcessRuleChanges(changelogRules, rulesToMap, rulesToRemove))
             {
                 Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
                 return (new List<Rule>(), new List<FwoOwner>(), new List<RuleOwner>());
             }
 
-            var relevantChanges = changelogRules
-                .Where(IsOwnerSourceFieldChanged)
-                .ToList();
+            if (rulesToMap.Any())
+            {
+                owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerCustomField);
+            }
 
-            var rulesToMap = relevantChanges
-                .Select(c => c.NewRule)
-                .Where(r => r != null)
-                .ToList();
-
-            var rulesToRemove = relevantChanges
-                .Select(c => c.OldRule)
-                .Where(r => r != null)
-                .ToList();
-
-            var owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerCustomField);
-
-            var ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
+            if (rulesToRemove.Any())
+            {
+                ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
+            }
 
             return (rulesToMap, owners, ruleOwnersToRemove);
         }
@@ -152,15 +148,12 @@ namespace FWO.Services
         private async Task<(List<Rule> RulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleOwnerImportCustomField(ImportControl import)
         {
             var changelogOwners = await apiConnection.SendQueryAsync<List<OwnerChange>>(OwnerQueries.getChangedOwnersForRuleOwnerMappingCustomField, new { controlId = import.ControlId });
-
             var ownersToAdd = new List<FwoOwner>();
             var ownersToRemove = new List<FwoOwner>();
-            var ownersToUpdate = new List<FwoOwner>();
-
             var rulesToMap = new List<Rule>();
             var ruleOwnersToRemove = new List<RuleOwner>();
 
-            if (!ProcessOwnerChanges(changelogOwners, ownersToAdd, ownersToRemove, ownersToUpdate))
+            if (!ProcessOwnerChanges(changelogOwners, ownersToAdd, ownersToRemove))
             {
                 return (new List<Rule>(), new List<FwoOwner>(), new List<RuleOwner>());
             }
@@ -169,15 +162,12 @@ namespace FWO.Services
             {
                 rulesToMap = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerCustomField);
             }
-            else if (ownersToUpdate.Any())
-            {
-                rulesToMap = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerByOwnerToUpdateCustomField, new { ownerIds = ownersToUpdate.Select(o => o.Id).ToList() });
-            }
+
             if (ownersToRemove.Any())
             {
                 ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
             }
-            return (rulesToMap, ownersToAdd.Concat(ownersToUpdate).ToList(), ruleOwnersToRemove);
+            return (rulesToMap, ownersToAdd, ruleOwnersToRemove);
         }
 
         public List<RuleOwner> BuildNewRuleOwnersCustomField(List<Rule> rulesToMap, List<FwoOwner> ownersToMap)
@@ -213,40 +203,5 @@ namespace FWO.Services
             return newRuleOwners;
         }
 
-        public bool IsOwnerSourceFieldChanged(RuleChange ruleChange)
-        {
-            var oldFields = DeserializeCustomFields(ruleChange.OldRule?.CustomFields);
-            var newFields = DeserializeCustomFields(ruleChange.NewRule?.CustomFields);
-
-            var ownerKeys = JsonSerializer.Deserialize<string[]>(globalConfig.CustomFieldOwnerKey) ?? Array.Empty<string>();
-
-            foreach (var key in ownerKeys)
-            {
-                oldFields.TryGetValue(key, out var oldValue);
-                newFields.TryGetValue(key, out var newValue);
-
-                if (!string.Equals(oldValue, newValue, StringComparison.Ordinal))
-                    return true;
-            }
-
-            return false;
-        }
-
-        public static Dictionary<string, string> DeserializeCustomFields(string? raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw))
-            {
-                return new();
-            }
-
-            try
-            {
-                return JsonSerializer.Deserialize<Dictionary<string, string>>(raw.Replace("'", "\"")) ?? new();
-            }
-            catch (JsonException)
-            {
-                return new();
-            }
-        }
     }
 }

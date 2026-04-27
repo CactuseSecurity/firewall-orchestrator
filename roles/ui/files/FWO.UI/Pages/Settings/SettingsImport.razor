@@ -97,7 +97,16 @@
                 </div>
             </div>
         </div>
-    }   
+    }
+    @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.NameField)
+    {
+        <div class="form-group row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5648"))">
+            <label class="col-sm-4 col-form-label me-2">@userConfig.GetText("modelledMarker"):</label>
+            <div class="col-sm-5">
+                <input type="text" class="form-control" @bind="actModelledMarker" />
+            </div>
+        </div>
+    }
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
@@ -132,6 +141,7 @@ else
     private List<string> ChangeIdKeys = [];
     private List<string> ChangeIdsToAdd = [];
     private List<string> ChangeIdsToDelete = [];
+    private string actModelledMarker = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -176,6 +186,8 @@ else
                     ChangeIdKeys = new List<string> { json };
                 }
             }
+
+            actModelledMarker = configData.ModModelledMarker ?? "";
         }
         catch (Exception exception)
         {
@@ -206,6 +218,7 @@ else
                 configData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
                 configData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
                 configData.CustomFieldChangeIdKey = JsonSerializer.Serialize(ChangeIdKeys);
+                configData.ModModelledMarker = actModelledMarker;
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

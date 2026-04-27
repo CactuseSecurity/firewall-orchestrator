@@ -38,10 +38,11 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRulesForOwnerMappingNameField;
         public static readonly string getRulesForOwnerMappingIpBased;
         public static readonly string getChangedRulesForRuleOwnerMappingCustomField;
+        public static readonly string getChangedRulesForRuleOwnerMappingNameField;
         public static readonly string getChangedRulesForRuleOwnerMappingIpBased;
         public static readonly string getRulesForRuleOwnerCustomField;
+        public static readonly string getRulesForRuleOwnerNameField;
         public static readonly string getRulesForRuleOwnerIpBased;
-        public static readonly string getRulesForRuleOwnerByOwnerToUpdateCustomField;
         public static readonly string getRuleDetailsById;
         public static readonly string getTimeBasedRulesByOwner;
         public static readonly string getRuleIdsByRuleOwner;
@@ -124,10 +125,11 @@ namespace FWO.Api.Client.Queries
                 getRulesForOwnerMappingNameField = GetQueryText("rule/getRulesForOwnerMappingNameField.graphql");
                 getRulesForOwnerMappingIpBased = GetQueryText("rule/getRulesForOwnerMappingIpBased.graphql");
                 getChangedRulesForRuleOwnerMappingCustomField = GetQueryText("rule/getChangedRulesForRuleOwnerMappingCustomField.graphql");
+                getChangedRulesForRuleOwnerMappingNameField = GetQueryText("rule/getChangedRulesForRuleOwnerMappingNameField.graphql");
                 getChangedRulesForRuleOwnerMappingIpBased = GetQueryText("rule/getChangedRulesForRuleOwnerMappingIpBased.graphql");
                 getRulesForRuleOwnerCustomField = GetQueryText("rule/getRulesForRuleOwnerCustomField.graphql");
+                getRulesForRuleOwnerNameField = GetQueryText("rule/getRulesForRuleOwnerNameField.graphql");
                 getRulesForRuleOwnerIpBased = GetQueryText("rule/getRulesForRuleOwnerIpBased.graphql");
-                getRulesForRuleOwnerByOwnerToUpdateCustomField = GetQueryText("rule/getRulesForRuleOwnerByOwnerToUpdateCustomField.graphql");
                 getRuleDetailsById = GetQueryText("rule/getRuleDetailByID.graphql");
                 getTimeBasedRulesByOwner = GetQueryText("rule/getTimeBasedRulesByOwner.graphql");
                 getRuleIdsByRuleOwner = GetQueryText("rule/getRuleIdsByRuleOwner.graphql");

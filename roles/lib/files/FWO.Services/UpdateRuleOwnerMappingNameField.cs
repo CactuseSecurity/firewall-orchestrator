@@ -91,78 +91,58 @@ namespace FWO.Services
 
         private async Task<(List<Rule> rulesToMap, List<ModellingConnection> owners, List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportNameField(ImportControl import)
         {
-            var changelogRules = await apiConnection.SendQueryAsync<List<RuleChange>>(RuleQueries.getChangedRulesForRuleOwnerMappingCustomField, new { controlId = import.ControlId });//Kann bleiben - nur ein Feld zuviel(customfield)
-            if (changelogRules == null || !changelogRules.Any())
+            var changelogRules = await apiConnection.SendQueryAsync<List<RuleChange>>(RuleQueries.getChangedRulesForRuleOwnerMappingNameField, new { controlId = import.ControlId });
+            var rulesToMap = new List<Rule>();
+            var rulesToRemove = new List<Rule>();
+            var connectionOwners = new List<ModellingConnection>();
+            var ruleOwnersToRemove = new List<RuleOwner>();
+
+            if (!ProcessRuleChanges(changelogRules, rulesToMap, rulesToRemove))
             {
                 Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
                 return (new List<Rule>(), new List<ModellingConnection>(), new List<RuleOwner>());
             }
 
-            var relevantChanges = changelogRules
-                .Where(IsOwnerSourceFieldChanged)
-                .ToList();
+            if (rulesToMap.Any())
+            {
+                connectionOwners = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameField);
+            }
 
-            var rulesToMap = relevantChanges
-                .Select(c => c.NewRule)
-                .Where(r => r != null)
-                .ToList();
-
-            var rulesToRemove = relevantChanges
-                .Select(c => c.OldRule)
-                .Where(r => r != null)
-                .ToList();
-
-            var connectionOwners = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameField);
-
-            var ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
+            if (rulesToRemove.Any())
+            {
+                ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
+            }
 
             return (rulesToMap, connectionOwners, ruleOwnersToRemove);
         }
 
-        public bool IsOwnerSourceFieldChanged(RuleChange ruleChange)
+
+
+        private async Task<(List<Rule> RulesToMap, List<ModellingConnection> connectionOwners, List<RuleOwner> RuleOwnersToRemove)> HandleOwnerImportNameField(ImportControl import)
         {
-            var oldFields = ExtractNameFieldValue(ruleChange.OldRule, globalConfig.ModModelledMarker, out var _);
-            var newFields = ExtractNameFieldValue(ruleChange.NewRule, globalConfig.ModModelledMarker, out var _);
-
-            if (oldFields != newFields)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-
-
-        private async Task<(List<Rule> RulesToMap, List<ModellingConnection> owners, List<RuleOwner> RuleOwnersToRemove)> HandleOwnerImportNameField(ImportControl import)
-        {
-            var changelogOwners = await apiConnection.SendQueryAsync<List<OwnerChange>>(OwnerQueries.getChangedOwnersForRuleOwnerMappingCustomField, new { controlId = import.ControlId });
-
-            var ownersToAdd = new List<ModellingConnection>();
-            var ownersToRemove = new List<ModellingConnection>();
-            var ownersToUpdate = new List<ModellingConnection>();
-
+            var changelogOwners = await apiConnection.SendQueryAsync<List<OwnerChange>>(OwnerQueries.getChangedOwnersForRuleOwnerMappingNameField, new { controlId = import.ControlId });
+            var ownersToAdd = new List<FwoOwner>();
+            var connectionOwnersToAdd = new List<ModellingConnection>();
+            var ownersToRemove = new List<FwoOwner>();
             var rulesToMap = new List<Rule>();
             var ruleOwnersToRemove = new List<RuleOwner>();
 
-            //if (!ProcessOwnerChanges(changelogOwners, ownersToAdd, ownersToRemove, ownersToUpdate))
-            //{
+            if (!ProcessOwnerChanges(changelogOwners, ownersToAdd, ownersToRemove))
+            {
                 return (new List<Rule>(), new List<ModellingConnection>(), new List<RuleOwner>());
-            //}
+            }
 
-            //if (ownersToAdd.Any())
-            //{
-            //    rulesToMap = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerCustomField);
-            //}
-            //else if (ownersToUpdate.Any())
-            //{
-            //    rulesToMap = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerByOwnerToUpdateCustomField, new { ownerIds = ownersToUpdate.Select(o => o.Id).ToList() });
-            //}
-            //if (ownersToRemove.Any())
-            //{
-            //    ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
-            //}
-            //return (rulesToMap, ownersToAdd.Concat(ownersToUpdate).ToList(), ruleOwnersToRemove);
+            if (ownersToAdd.Any())
+            {
+                rulesToMap = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerNameField);
+                connectionOwnersToAdd = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner, new { ownerIds = ownersToAdd.Select(o => o.Id).ToList() });
+            }
+
+            if (ownersToRemove.Any())
+            {
+                ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
+            }
+            return (rulesToMap, connectionOwnersToAdd, ruleOwnersToRemove);
         }
 
         private async Task<bool> RunFullReinitialize()

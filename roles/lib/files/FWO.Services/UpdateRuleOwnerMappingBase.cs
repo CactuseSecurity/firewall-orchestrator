@@ -191,7 +191,8 @@ namespace FWO.Services
             }
         }
 
-        protected static bool ProcessOwnerChanges(List<OwnerChange> changelogOwners, List<FwoOwner> ownersToAdd, List<FwoOwner> ownersToRemove, List<FwoOwner> ownersToUpdate, bool changeMeansAddAndRemove = false)
+
+        protected static bool ProcessOwnerChanges(List<OwnerChange> changelogOwners, List<FwoOwner> ownersToAdd, List<FwoOwner> ownersToRemove)
         {
             if (changelogOwners == null || !changelogOwners.Any())
             {
@@ -213,15 +214,40 @@ namespace FWO.Services
                         break;
 
                     case ChangelogActionType.CHANGE:
-                        if (changeMeansAddAndRemove)
-                        {
-                            ownersToAdd.Add(change.NewOwner);
-                            ownersToRemove.Add(change.NewOwner);
-                        }
-                        else
-                        {
-                            ownersToUpdate.Add(change.NewOwner);
-                        }
+                        ownersToAdd.Add(change.NewOwner);
+                        ownersToRemove.Add(change.OldOwner);
+                        break;
+                }
+            }
+
+            return true;
+        }
+
+        protected static bool ProcessRuleChanges(List<RuleChange> changelogRules, List<Rule> rulesToMap, List<Rule> rulesToRemove)
+        {
+            if (changelogRules == null || !changelogRules.Any())
+            {
+                Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
+                return false;
+            }
+
+            foreach (var change in changelogRules)
+            {
+                switch (change.ChangeAction)
+                {
+                    case ChangelogActionType.INSERT:
+                    case ChangelogActionType.REACTIVATE:
+                        rulesToMap.Add(change.NewRule);
+                        break;
+
+                    case ChangelogActionType.DELETE:
+                    case ChangelogActionType.DEACTIVATE:
+                        rulesToRemove.Add(change.OldRule);
+                        break;
+
+                    case ChangelogActionType.CHANGE:
+                        rulesToRemove.Add(change.OldRule);
+                        rulesToMap.Add(change.NewRule);
                         break;
                 }
             }

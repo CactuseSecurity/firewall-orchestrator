@@ -31,11 +31,11 @@
                 {
                     @if (device.ContainsRules() && _ruleDisplay != null)
                     {
-                        <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true" Class="py-1">
+                        <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false" Class="py-1">
 
                             <div class="sticky-collapse">
-                                <button @onclick="@(() => ToggleAll(management, device, collapse: true))" class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle"><i class="bi bi-arrows-collapse"></i></button>
-                                <button @onclick="@(() => ToggleAll(management, device, collapse: false))" class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle"><i class="bi bi-arrows-expand"></i></button>
+                                <button name="btnCollapseAll" @onclick="@(() => ToggleAll(management, device, collapse: true))" class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle"><i class="bi bi-arrows-collapse"></i></button>
+                                <button name="btnExpandAll" @onclick="@(() => ToggleAll(management, device, collapse: false))" class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle"><i class="bi bi-arrows-expand"></i></button>
                             </div>
 
                             <Table SelectedItems="new List<RuleTreeItem>()"
@@ -362,17 +362,14 @@
 
     private void ToggleAll(ManagementReport management, DeviceReport device, bool collapse)
     {
-        foreach (var item in GetRuleTreeItems(management, device))
-        {
-            RuleTreeItem.SetCollapse(item, collapse);
-        }
+        RuleTreeItem.SetExpandedRecursively(GetRuleTree(management, device), !collapse);
     }
 
     private string GetToggleArrow(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
     {
         // Get corresponding tree item for rule
 
-        RuleTreeItem ruleTree = ruleTreeBuilder.RuleTreeCache[(managementReport.Id, deviceReport.Id)];
+        RuleTreeItem ruleTree = GetRuleTree(managementReport, deviceReport);
         RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;
 
         if (treeItem == null)
@@ -407,7 +404,7 @@
 
         // Get corresponding tree item for rule
 
-        RuleTreeItem ruleTree = ruleTreeBuilder.RuleTreeCache[(managementReport.Id, deviceReport.Id)];
+        RuleTreeItem ruleTree = GetRuleTree(managementReport, deviceReport);
         RuleTreeItem? treeItem = ruleTree.ElementsFlat.FirstOrDefault(element => element.Data == rule) as RuleTreeItem;
 
         if (treeItem != null)
@@ -418,6 +415,16 @@
         }
 
         InvokeAsync(StateHasChanged);
+    }
+
+    private RuleTreeItem GetRuleTree(ManagementReport managementReport, DeviceReport deviceReport)
+    {
+        if (ruleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, deviceReport.Id), out RuleTreeItem? ruleTree))
+        {
+            return ruleTree;
+        }
+
+        throw new InvalidOperationException("No rule tree found for management and device.");
     }
 
     #endregion

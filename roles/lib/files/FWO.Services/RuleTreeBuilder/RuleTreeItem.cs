@@ -125,23 +125,16 @@ namespace FWO.Services.RuleTreeBuilder
             }
         }
 
-        public static void SetCollapse(RuleTreeItem item, bool collapsed)
+        /// <summary>
+        /// Updates the expanded state for all expandable descendants of the provided root item.
+        /// </summary>
+        public static void SetExpandedRecursively(RuleTreeItem item, bool isExpanded)
         {
-            if (item.IsRule)
+            foreach (RuleTreeItem childItem in TraverseDown(item))
             {
-                item.IsVisible = !collapsed;
-            }
-            else
-            {
-                if (item.Children.Count > 0)
+                if (childItem != item && childItem.Children.Count > 0)
                 {
-                    foreach (RuleTreeItem childItem in TraverseDown(item))
-                    {
-                        if (item != childItem)
-                        {
-                            SetCollapse(childItem, collapsed);
-                        }
-                    }
+                    childItem.IsExpanded = isExpanded;
                 }
             }
         }

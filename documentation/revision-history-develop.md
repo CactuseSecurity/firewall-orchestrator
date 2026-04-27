@@ -400,3 +400,6 @@ A complete 80K lines rework of FWO, including
 - fix empty mail being sent for orphaned rule report
 - update dependencies (notably closing mailkit and pytest vuln)
 - fix time zone issues in importer
+
+# 9.0.23 - 27.04.2026 DEVELOP
+- enhance notifications by bcc

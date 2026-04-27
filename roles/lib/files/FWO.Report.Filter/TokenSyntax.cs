@@ -153,6 +153,18 @@ namespace FWO.Report.Filter
                     NoWhiteSpaceRequiered: []
                 ),
 
+                TokenKind.OwnerState => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: ["ownerstate", "owner-state", "owner_state", "owner_lc_state", "owner-lc-state"],
+                    NoWhiteSpaceRequiered: []
+                ),
+
+                TokenKind.Criticality => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: ["criticality"],
+                    NoWhiteSpaceRequiered: []
+                ),
+
                 TokenKind.ReferenceDate => new TokenSyntax
                 (
                     WhiteSpaceRequiered: ["reference_date", "reference-date", "referencedate"],

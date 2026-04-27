@@ -1,5 +1,6 @@
 import ipaddress
 import json
+from datetime import datetime, timezone
 from typing import Any
 
 import fwo_const
@@ -271,6 +272,22 @@ def make_host(ip_in: str) -> str | None:
     return None
 
 
+def convert_timestamp(timestamp: str) -> str:
+    """
+    In CP, time objects' time stamps are interpreted per-gateway for their local time zone. This means, the timestamps
+    we get from api, even though with explicit utc time zone, will not necessarily match the actual point-in-time used
+    after installation on gw. We assume the gw time zone is the same as the importer time zone and convert all timestamps
+    to utc based on that assumption.
+    """
+    try:
+        local_time = datetime.fromisoformat(timestamp)  # interpret timestamp in local timezone
+        utc_time = local_time.astimezone(timezone.utc)
+        return utc_time.isoformat()
+    except ValueError:
+        FWOLogger.warning(f"Failed to parse timestamp '{timestamp}', leaving it unchanged")
+        return timestamp
+
+
 def normalize_time_objects(full_config: dict[str, Any], config2import: dict[str, Any]):
     time_objects: list[dict[str, Any]] = []
 
@@ -282,8 +299,8 @@ def normalize_time_objects(full_config: dict[str, Any], config2import: dict[str,
                 TimeObject(
                     time_obj_uid=obj["uid"],
                     time_obj_name=obj["name"],
-                    start_time=None if obj["start-now"] else obj["start"]["iso-8601"],
-                    end_time=None if obj["end-never"] else obj["end"]["iso-8601"],
+                    start_time=None if obj["start-now"] else convert_timestamp(obj["start"]["iso-8601"]),
+                    end_time=None if obj["end-never"] else convert_timestamp(obj["end"]["iso-8601"]),
                 ).model_dump()  # TODO: rework dicts to models everywhere
                 for obj in chunk.get("objects", [])
             )

@@ -21,6 +21,8 @@ namespace FWO.Report.Filter
         TaskType,
         Phase,
         States,
+        OwnerState,
+        Criticality,
         ReferenceDate,
         Time,
         RecertDisplay,

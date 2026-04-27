@@ -177,14 +177,14 @@ namespace FWO.Services
                             {
                                 if (!nw.IP.TryParseIPStringToRange(out var _))
                                 {
-                                    Log.WriteWarning(LogMessageTitle, ($"Ungueltige IP in Regel {o.Id}: {nw.IP} - {nw.IpEnd}"));
+                                    Log.WriteWarning(LogMessageTitle, $"Invalid owner network format for owner {o.Id}: {nw.IP}-{nw.IpEnd}");
                                 }
 
                                 var (range, version) = GetIpRangeAndVersion(nw.IP, nw.IpEnd);
 
                                 if (range == null || version == null)
                                 {
-                                    Log.WriteWarning(LogMessageTitle, $"Skipping invalid owner network: {nw.IP}-{nw.IpEnd} for Owner {o.Id}");
+                                    Log.WriteWarning(LogMessageTitle, $"Skipping owner network with invalid IP range for owner {o.Id}: {nw.IP}-{nw.IpEnd}");
                                     return null;
                                 }
 

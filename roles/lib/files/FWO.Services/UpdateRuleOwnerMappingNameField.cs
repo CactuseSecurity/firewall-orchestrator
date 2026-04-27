@@ -114,11 +114,24 @@ namespace FWO.Services
         {
             errorMessage = null;
 
-            if (rule == null || string.IsNullOrWhiteSpace(rule.Name) || string.IsNullOrWhiteSpace(modelledMarker))
+            if (rule == null)
             {
-                errorMessage = $"Rule is null or NameFieldValue is empty or rule.Name for {rule?.Id} is empty";
+                errorMessage = "Rule is null";
                 return null;
             }
+
+            if (string.IsNullOrWhiteSpace(rule.Name))
+            {
+                errorMessage = $"rule.Name is null or empty for rule id {rule.Id}";
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(modelledMarker))
+            {
+                errorMessage = $"modelledMarker is null or empty for rule id {rule.Id}";
+                return null;
+            }
+
 
             try
             {

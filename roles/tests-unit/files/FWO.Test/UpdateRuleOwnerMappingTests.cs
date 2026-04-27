@@ -366,9 +366,9 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RunAsyncCustomField_ShouldProcessLongIncrementalSequence_WithMixedRuleAndOwnerImports()
+        public async Task RunAsyncCustomField_ShouldProcessIncrementalImports_WhenPendingImportCountIsWithinThreshold()
         {
-            IncrementalCustomFieldApiConnection apiConnection = new();
+            IncrementalCustomFieldApiConnection apiConnection = new(3);
             UpdateRuleOwnerMappingCustomField service = new(apiConnection, new GlobalConfig { CustomFieldOwnerKey = @"[""owner""]" });
 
             bool result = await service.RunAsync();
@@ -376,19 +376,44 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Is.True);
-                Assert.That(apiConnection.CompletedImports, Is.EquivalentTo(Enumerable.Range(1, 10).Select(id => (long)id)));
+                Assert.That(apiConnection.CompletedImports, Is.EquivalentTo(new long[] { 1, 2, 3 }));
                 Assert.That(apiConnection.InsertedPairsByImport[1], Is.Empty, "Initial rule import must not map before owners exist.");
                 Assert.That(apiConnection.ActivePairsAfterImport[1], Is.Empty);
                 Assert.That(apiConnection.ActivePairsAfterImport[2], Has.Count.EqualTo(10));
-                Assert.That(apiConnection.ActivePairsAfterImport[5], Does.Contain("12->6"));
-                Assert.That(apiConnection.ActivePairsAfterImport[7].Any(pair => pair.EndsWith("->3")), Is.False, "Owner C mappings must be gone after delete.");
-                Assert.That(apiConnection.ActivePairsAfterImport[9], Does.Contain("11->3"));
-                Assert.That(apiConnection.ActivePairsAfterImport[9], Does.Contain("15->3"));
-                Assert.That(
-                    apiConnection.ActivePairsAfterImport.All(snapshot => snapshot.Value.Count == snapshot.Value.Distinct().Count()),
-                    Is.True,
-                    "Each active rule-owner snapshot should contain unique pairs only.");
-                Assert.That(apiConnection.ActivePairsAfterImport[10], Is.EquivalentTo(new[]
+                Assert.That(apiConnection.ActivePairsAfterImport[3], Does.Contain("1->2"));
+                Assert.That(apiConnection.ActivePairsAfterImport[3], Does.Contain("11->3"));
+                Assert.That(apiConnection.ActivePairsAfterImport.All(snapshot => snapshot.Value.Count == snapshot.Value.Distinct().Count()), Is.True, "Each active rule-owner snapshot should contain unique pairs only.");
+                Assert.That(apiConnection.ActivePairsAfterImport[3], Is.EquivalentTo(new[]
+                {
+                    "1->2",
+                    "3->1",
+                    "4->4",
+                    "5->5",
+                    "6->1",
+                    "7->2",
+                    "8->3",
+                    "10->5",
+                    "11->3",
+                    "2->2"
+                }));
+            });
+        }
+
+        [Test]
+        public async Task RunAsyncCustomField_ShouldFallbackToFullReinitialize_WhenPendingImportCountExceedsThreshold()
+        {
+            FallbackToFullReinitializeCustomFieldApiConnection apiConnection = new();
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, new GlobalConfig { CustomFieldOwnerKey = @"[""owner""]" });
+
+            bool result = await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(apiConnection.FullReinitializeTriggered, Is.True);
+                Assert.That(apiConnection.CompletedImports, Is.EquivalentTo(Enumerable.Range(1, 10).Select(id => (long)id)));
+                Assert.That(apiConnection.FullReinitializeImportControlId, Is.EqualTo(100));
+                Assert.That(apiConnection.ActivePairsAfterFullReinitialize, Is.EquivalentTo(new[]
                 {
                     "1->2",
                     "3->1",
@@ -549,9 +574,9 @@ namespace FWO.Test
             public Dictionary<long, List<string>> InsertedPairsByImport { get; } = [];
             public Dictionary<long, List<string>> ActivePairsAfterImport { get; } = [];
 
-            public IncrementalCustomFieldApiConnection()
+            public IncrementalCustomFieldApiConnection(int pendingImportCount = 10)
             {
-                pendingImports =
+                List<ImportControl> allPendingImports =
                 [
                     NewImport(1, FWO.Basics.ImportType.RULE),
                     NewImport(2, FWO.Basics.ImportType.OWNER),
@@ -564,11 +589,20 @@ namespace FWO.Test
                     NewImport(9, FWO.Basics.ImportType.OWNER),
                     NewImport(10, FWO.Basics.ImportType.RULE)
                 ];
+                pendingImports = [.. allPendingImports.Take(pendingImportCount)];
 
                 Dictionary<int, string> rules1 = new()
                 {
-                    [1] = "A", [2] = "B", [3] = "C", [4] = "D", [5] = "E",
-                    [6] = "A", [7] = "B", [8] = "C", [9] = "D", [10] = "E"
+                    [1] = "A",
+                    [2] = "B",
+                    [3] = "C",
+                    [4] = "D",
+                    [5] = "E",
+                    [6] = "A",
+                    [7] = "B",
+                    [8] = "C",
+                    [9] = "D",
+                    [10] = "E"
                 };
                 Dictionary<int, string> rules3 = new(rules1) { [1] = "B", [2] = "Unknown", [11] = "C", [12] = "F" };
                 Dictionary<int, string> rules4 = new(rules3) { [3] = "A", [4] = "E", [13] = "B" };
@@ -896,6 +930,172 @@ namespace FWO.Test
             }
         }
 
+        private sealed class FallbackToFullReinitializeCustomFieldApiConnection : SimulatedApiConnection
+        {
+            private readonly List<ImportControl> pendingImports =
+            [
+                CreateImport(1, FWO.Basics.ImportType.RULE),
+                CreateImport(2, FWO.Basics.ImportType.OWNER),
+                CreateImport(3, FWO.Basics.ImportType.RULE),
+                CreateImport(4, FWO.Basics.ImportType.RULE),
+                CreateImport(5, FWO.Basics.ImportType.OWNER),
+                CreateImport(6, FWO.Basics.ImportType.RULE),
+                CreateImport(7, FWO.Basics.ImportType.OWNER),
+                CreateImport(8, FWO.Basics.ImportType.RULE),
+                CreateImport(9, FWO.Basics.ImportType.OWNER),
+                CreateImport(10, FWO.Basics.ImportType.RULE)
+            ];
+            private readonly List<RuleOwner> activeRuleOwners = [];
+            private readonly List<Rule> rules;
+            private readonly List<FwoOwner> owners;
+
+            public List<long> CompletedImports { get; } = [];
+            public bool FullReinitializeTriggered { get; private set; }
+            public long FullReinitializeImportControlId { get; private set; }
+            public List<string> ActivePairsAfterFullReinitialize { get; private set; } = [];
+
+            public FallbackToFullReinitializeCustomFieldApiConnection()
+            {
+                Dictionary<int, string> rules10 = new()
+                {
+                    [1] = "B",
+                    [2] = "Unknown",
+                    [3] = "A",
+                    [4] = "E",
+                    [5] = "C",
+                    [6] = "F",
+                    [7] = "D",
+                    [8] = "E",
+                    [9] = "Unknown",
+                    [10] = "B",
+                    [11] = "C",
+                    [12] = "A",
+                    [13] = "B",
+                    [14] = "A",
+                    [15] = "C",
+                    [16] = "F"
+                };
+                Dictionary<int, string> owners9 = new()
+                {
+                    [1] = "A",
+                    [2] = "B",
+                    [3] = "C",
+                    [4] = "D",
+                    [5] = "E",
+                    [6] = "F"
+                };
+
+                rules = CreateRules(rules10);
+                owners = CreateOwners(owners9);
+            }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            {
+                if (query == FWO.Api.Client.Queries.ImportQueries.getPendingRuleOwnerImports)
+                {
+                    return Task.FromResult((QueryResponseType)(object)pendingImports.Where(import => !CompletedImports.Contains(import.ControlId)).ToList());
+                }
+
+                if (query == FWO.Api.Client.Queries.ImportQueries.addImportForRuleOwner)
+                {
+                    FullReinitializeTriggered = true;
+                    return Task.FromResult((QueryResponseType)(object)new InsertImportControl
+                    {
+                        Returning = [new ImportControl { ControlId = 100 }]
+                    });
+                }
+
+                if (query == FWO.Api.Client.Queries.RuleQueries.getRulesForOwnerMappingCustomField)
+                {
+                    return Task.FromResult((QueryResponseType)(object)rules);
+                }
+
+                if (query == FWO.Api.Client.Queries.OwnerQueries.getOwnersForRuleOwnerCustomField)
+                {
+                    return Task.FromResult((QueryResponseType)(object)owners);
+                }
+
+                if (query == FWO.Api.Client.Queries.OwnerQueries.setAllActiveRuleOwnersRemoved)
+                {
+                    activeRuleOwners.Clear();
+                    FullReinitializeImportControlId = ReadLong(variables, "controlId");
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
+                if (query == FWO.Api.Client.Queries.OwnerQueries.insertRuleOwners)
+                {
+                    foreach (RuleOwner ruleOwner in ReadObjects(variables, "objects"))
+                    {
+                        activeRuleOwners.Add(Clone(ruleOwner));
+                    }
+                    ActivePairsAfterFullReinitialize = activeRuleOwners.Select(ruleOwner => $"{ruleOwner.RuleId}->{ruleOwner.OwnerId}").OrderBy(pair => pair).ToList();
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
+                if (query == FWO.Api.Client.Queries.ImportQueries.updateImportControlForRuleOwnerFull)
+                {
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
+                if (query == FWO.Api.Client.Queries.ImportQueries.updateImportControlForRuleOwnerInc)
+                {
+                    CompletedImports.Add(ReadLong(variables, "controlId"));
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
+                throw new InvalidOperationException($"Unexpected query: {query}");
+            }
+
+            private static ImportControl CreateImport(long id, int importTypeId)
+            {
+                return new ImportControl { ControlId = id, ImportTypeId = importTypeId };
+            }
+
+            private static List<Rule> CreateRules(Dictionary<int, string> mapping)
+            {
+                return mapping.Select(entry => new Rule
+                {
+                    Id = entry.Key,
+                    CustomFields = "{'owner':'" + entry.Value + "'}",
+                    Metadata = new RuleMetadata { Id = 1000 + entry.Key }
+                }).ToList();
+            }
+
+            private static List<FwoOwner> CreateOwners(Dictionary<int, string> mapping)
+            {
+                return mapping.Select(entry => new FwoOwner { Id = entry.Key, ExtAppId = entry.Value }).ToList();
+            }
+
+            private static RuleOwner Clone(RuleOwner source)
+            {
+                return new RuleOwner
+                {
+                    RuleId = source.RuleId,
+                    OwnerId = source.OwnerId,
+                    Created = source.Created,
+                    RuleMetadataId = source.RuleMetadataId,
+                    OwnerMappingSourceId = source.OwnerMappingSourceId
+                };
+            }
+
+            private static long ReadLong(object? variables, string propertyName)
+            {
+                object? value = variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
+                return value switch
+                {
+                    long longValue => longValue,
+                    int intValue => intValue,
+                    _ => throw new InvalidOperationException($"Missing long property '{propertyName}'.")
+                };
+            }
+
+            private static List<RuleOwner> ReadObjects(object? variables, string propertyName)
+            {
+                object? value = variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
+                return value as List<RuleOwner> ?? [];
+            }
+        }
+
         private sealed class InitialOrderCustomFieldApiConnection : SimulatedApiConnection
         {
             private readonly List<ImportControl> pendingImports;
@@ -913,12 +1113,22 @@ namespace FWO.Test
             {
                 Dictionary<int, string> rules = new()
                 {
-                    [1] = "A", [2] = "B", [3] = "C", [4] = "A", [5] = "B",
-                    [6] = "C", [7] = "A", [8] = "B", [9] = "C", [10] = "A"
+                    [1] = "A",
+                    [2] = "B",
+                    [3] = "C",
+                    [4] = "A",
+                    [5] = "B",
+                    [6] = "C",
+                    [7] = "A",
+                    [8] = "B",
+                    [9] = "C",
+                    [10] = "A"
                 };
                 Dictionary<int, string> owners = new()
                 {
-                    [1] = "A", [2] = "B", [3] = "C"
+                    [1] = "A",
+                    [2] = "B",
+                    [3] = "C"
                 };
 
                 pendingImports = ruleImportFirst

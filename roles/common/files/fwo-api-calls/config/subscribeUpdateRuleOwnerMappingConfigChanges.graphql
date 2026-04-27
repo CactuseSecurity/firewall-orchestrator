@@ -1,6 +1,6 @@
 subscription subscribeUpdateRuleOwnerMappingConfigChanges {
   config(where: {_or: [
-        {config_key: {_eq: "UpdateRuleOwnerMappingSleepTime"}}
+        {config_key: {_eq: "updateRuleOwnerMappingSleepTime"}}
     ]}
     ){
     config_key

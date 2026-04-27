@@ -6,12 +6,15 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Logging;
 using FWO.Services.EventMediator.Events;
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
 namespace FWO.Services
 {
     public class UpdateRuleOwnerMappingNameField : UpdateRuleOwnerMappingBase
     {
+        private static readonly ConcurrentDictionary<string, Regex> NameFieldRegexCache = new();
+
         public override OwnerMappingSourceStm Source => OwnerMappingSourceStm.NameField;
 
         public UpdateRuleOwnerMappingNameField(ApiConnection apiConnection, GlobalConfig globalConfig)
@@ -25,96 +28,22 @@ namespace FWO.Services
             return await UpdateRuleOwners(RunFullReinitialize, RunIncremental, isFullReInitialize);
         }
 
-        private async Task<bool> RunIncremental()
-        {
-            var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
+        /// <summary>
+        /// Delegates incremental processing of pending imports to the shared base implementation for NameField mapping.
+        /// </summary>
+        private async Task<bool> RunIncremental() => await RunIncremental(ProcessIncrementalImportNameField, RunFullReinitialize);
 
-            if (pendingImports == null || !pendingImports.Any())
-            {
-                return false;
-            }
+        /// <summary>
+        /// Delegates one incremental import to the shared base implementation using NameField-specific loaders and mapper.
+        /// </summary>
+        private async Task ProcessIncrementalImportNameField(ImportControl import) =>
+            await ProcessIncrementalImport(import, HandleRuleImportNameField, HandleOwnerImportNameField, BuildNewRuleOwnersNameField);
 
-            foreach (var import in pendingImports.OrderBy(i => i.ControlId))
-            {
-                try
-                {
-                    await ProcessIncrementalImportNameField(import);
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteError(LogMessageTitle, $"Error while processing import_control {import.ControlId}. ", ex);
-                    break;
-                }
-            }
-
-            return true;
-        }
-
-        private async Task ProcessIncrementalImportNameField(ImportControl import)
-        {
-            List<Rule> rulesToMap = new List<Rule>();
-            List<ModellingConnection> connectionOwners = new List<ModellingConnection>();
-            List<RuleOwner> ruleOwnersToRemove = new List<RuleOwner>();
-
-            switch (import.ImportTypeId)
-            {
-                case ImportType.RULE:
-                    {
-                        (rulesToMap, connectionOwners, ruleOwnersToRemove) = await HandleRuleImportNameField(import);
-                        break;
-                    }
-                case ImportType.OWNER:
-                    {
-                        (rulesToMap, connectionOwners, ruleOwnersToRemove) = await HandleOwnerImportNameField(import);
-                        break;
-                    }
-
-                default:
-                    {
-                        throw new NotSupportedException($"ImportType '{import.ImportTypeId}' is not supported in LoadRulesAndOwnersAsync.");
-                    }
-            }
-
-            var newRuleOwners = BuildNewRuleOwnersNameField(rulesToMap, connectionOwners);
-
-            foreach (RuleOwner ruleOwner in newRuleOwners)
-            {
-                ruleOwner.Created = import.ControlId;
-            }
-
-            await SetAffectedRuleOwnersRemoved(ruleOwnersToRemove, import.ControlId);
-
-            await InsertNewRuleOwners(newRuleOwners);
-
-            await CompleteImportControl(import.ControlId);
-        }
-
-        private async Task<(List<Rule> rulesToMap, List<ModellingConnection> owners, List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportNameField(ImportControl import)
-        {
-            var changelogRules = await apiConnection.SendQueryAsync<List<RuleChange>>(RuleQueries.getChangedRulesForRuleOwnerMappingNameField, new { controlId = import.ControlId });
-            var rulesToMap = new List<Rule>();
-            var rulesToRemove = new List<Rule>();
-            var connectionOwners = new List<ModellingConnection>();
-            var ruleOwnersToRemove = new List<RuleOwner>();
-
-            if (!ProcessRuleChanges(changelogRules, rulesToMap, rulesToRemove))
-            {
-                Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
-                return (new List<Rule>(), new List<ModellingConnection>(), new List<RuleOwner>());
-            }
-
-            if (rulesToMap.Any())
-            {
-                connectionOwners = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameField);
-            }
-
-            if (rulesToRemove.Any())
-            {
-                ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
-            }
-
-            return (rulesToMap, connectionOwners, ruleOwnersToRemove);
-        }
+        /// <summary>
+        /// Delegates loading of changed rules, modelling connections, and removable mappings for a NameField rule import.
+        /// </summary>
+        private async Task<(List<Rule> rulesToMap, List<ModellingConnection> owners, List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportNameField(ImportControl import) =>
+            await HandleRuleImport(import, RuleQueries.getChangedRulesForRuleOwnerMappingNameField, () => apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameField));
 
 
 
@@ -145,36 +74,11 @@ namespace FWO.Services
             return (rulesToMap, connectionOwnersToAdd, ruleOwnersToRemove);
         }
 
-        private async Task<bool> RunFullReinitialize()
-        {
-            var rulesTask = apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForOwnerMappingNameField);
-            var connectionOwnersTask = apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameField);
-            await Task.WhenAll(rulesTask, connectionOwnersTask);
-            var rules = rulesTask.Result;
-            var owners = connectionOwnersTask.Result;
-
-            var newRuleOwners = BuildNewRuleOwnersNameField(rules, owners);
-
-            if (!newRuleOwners.Any())
-            {
-                Log.WriteInfo(LogMessageTitle, "No new rule owners to insert. Aborting import.");
-                return false;
-            }
-
-            long importControlId = await CreateImportControl();
-
-            foreach (RuleOwner ruleOwner in newRuleOwners)
-            {
-                ruleOwner.Created = importControlId;
-            }
-
-            await SetAllActiveRuleOwnersRemoved(importControlId);
-            await InsertNewRuleOwners(newRuleOwners);
-            await CompleteImportControlFullReInit(importControlId);
-
-            Log.WriteInfo(LogMessageTitle, "FULL rule_owner reinitialize completed.");
-            return true;
-        }
+        /// <summary>
+        /// Delegates the full reinitialize flow to the shared base implementation using NameField rules and modelling connections.
+        /// </summary>
+        private async Task<bool> RunFullReinitialize() =>
+            await RunFullReinitialize(RuleQueries.getRulesForOwnerMappingNameField, () => apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameField), BuildNewRuleOwnersNameField);
 
         private List<RuleOwner> BuildNewRuleOwnersNameField(List<Rule> rulesToMap, List<ModellingConnection> connectionOwnersToMap)
         {
@@ -206,11 +110,11 @@ namespace FWO.Services
             return newRuleOwners;
         }
 
-        public static int? ExtractNameFieldValue(Rule rule, string nameFieldValue, out string? errorMessage)
+        public static int? ExtractNameFieldValue(Rule rule, string modelledMarker, out string? errorMessage)
         {
             errorMessage = null;
 
-            if (rule == null || string.IsNullOrWhiteSpace(rule.Name) || string.IsNullOrWhiteSpace(nameFieldValue))
+            if (rule == null || string.IsNullOrWhiteSpace(rule.Name) || string.IsNullOrWhiteSpace(modelledMarker))
             {
                 errorMessage = $"Rule is null or NameFieldValue is empty or rule.Name for {rule?.Id} is empty";
                 return null;
@@ -218,12 +122,12 @@ namespace FWO.Services
 
             try
             {
-                var pattern = $@"{Regex.Escape(nameFieldValue)}(\d+)";
-                var match = Regex.Match(rule.Name, pattern, RegexOptions.IgnoreCase | RegexOptions.Compiled);
+                var regex = GetNameFieldRegex(modelledMarker);
+                var match = regex.Match(rule.Name);
 
                 if (!match.Success)
                 {
-                    errorMessage = $"No match for marker '{nameFieldValue}' in '{rule.Name}'";
+                    errorMessage = $"No match for marker '{modelledMarker}' in '{rule.Name}'";
                     return null;
                 }
 
@@ -239,6 +143,14 @@ namespace FWO.Services
                 errorMessage = ex.Message;
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Returns a compiled regex for the configured marker and reuses it across rule evaluations.
+        /// </summary>
+        private static Regex GetNameFieldRegex(string modelledMarker)
+        {
+            return NameFieldRegexCache.GetOrAdd(modelledMarker, static value => new Regex($@"{Regex.Escape(value)}(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled, TimeSpan.FromMilliseconds(50)));
         }
     }
 }

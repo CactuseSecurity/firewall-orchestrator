@@ -43,7 +43,7 @@ namespace FWO.Middleware.Server.Services
         protected override int SleepTime => globalConfig.UpdateRuleOwnerMappingSleepTime;
 
         /// <inheritdoc/>
-        protected override DateTime StartAt => DateTime.Now;
+        protected override DateTime StartAt => DateTime.Now.AddSeconds(1);
 
         /// <inheritdoc/>
         protected override TimeSpan Interval => TimeSpan.FromSeconds(globalConfig.UpdateRuleOwnerMappingSleepTime);

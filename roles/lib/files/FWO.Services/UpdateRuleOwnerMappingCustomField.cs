@@ -23,127 +23,29 @@ namespace FWO.Services
             return await UpdateRuleOwners(RunFullReinitialize, RunIncremental, isFullReInitialize);
         }
 
-        private async Task<bool> RunFullReinitialize()
-        {
-            var rulesTask = apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForOwnerMappingCustomField);
-            var ownersTask = apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerCustomField);
-            await Task.WhenAll(rulesTask, ownersTask);
-            var rules = rulesTask.Result;
-            var owners = ownersTask.Result;
+        /// <summary>
+        /// Delegates the full reinitialize flow to the shared base implementation using CustomField rule and owner sources.
+        /// </summary>
+        private async Task<bool> RunFullReinitialize() =>
+            await RunFullReinitialize(RuleQueries.getRulesForOwnerMappingCustomField, () => apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerCustomField),
+                BuildNewRuleOwnersCustomField);
 
-            var newRuleOwners = BuildNewRuleOwnersCustomField(rules, owners);
+        /// <summary>
+        /// Delegates incremental processing of pending imports to the shared base implementation for CustomField mapping.
+        /// </summary>
+        private async Task<bool> RunIncremental() => await RunIncremental(ProcessIncrementalImportCustomField, RunFullReinitialize);
 
-            if (!newRuleOwners.Any())
-            {
-                Log.WriteInfo(LogMessageTitle, "No new rule owners to insert. Aborting import.");
-                return false;
-            }
+        /// <summary>
+        /// Delegates one incremental import to the shared base implementation using CustomField-specific loaders and mapper.
+        /// </summary>
+        private async Task ProcessIncrementalImportCustomField(ImportControl import) =>
+            await ProcessIncrementalImport(import, HandleRuleImportCustomField, HandleOwnerImportCustomField, BuildNewRuleOwnersCustomField);
 
-            long importControlId = await CreateImportControl();
-
-            foreach (RuleOwner ruleOwner in newRuleOwners)
-            {
-                ruleOwner.Created = importControlId;
-            }
-
-            await SetAllActiveRuleOwnersRemoved(importControlId);
-            await InsertNewRuleOwners(newRuleOwners);
-            await CompleteImportControlFullReInit(importControlId);
-
-            Log.WriteInfo(LogMessageTitle, "FULL rule_owner reinitialize completed.");
-            return true;
-        }
-
-        private async Task<bool> RunIncremental()
-        {
-            var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
-
-            if (pendingImports == null || !pendingImports.Any())
-            {
-                return false;
-            }
-
-            foreach (var import in pendingImports.OrderBy(i => i.ControlId))
-            {
-                try
-                {
-                    await ProcessIncrementalImportCustomField(import);
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteError(LogMessageTitle, $"Error while processing import_control {import.ControlId}. ", ex);
-                    break;
-                }
-            }
-
-            return true;
-        }
-
-        private async Task ProcessIncrementalImportCustomField(ImportControl import)
-        {
-            List<Rule> rulesToMap = new List<Rule>();
-            List<FwoOwner> owners = new List<FwoOwner>();
-            List<RuleOwner> ruleOwnersToRemove = new List<RuleOwner>();
-
-            switch (import.ImportTypeId)
-            {
-                case ImportType.RULE:
-                    {
-                        (rulesToMap, owners, ruleOwnersToRemove) = await HandleRuleImportCustomField(import);
-                        break;
-                    }
-                case ImportType.OWNER:
-                    {
-                        (rulesToMap, owners, ruleOwnersToRemove) = await HandleOwnerImportCustomField(import);
-                        break;
-                    }
-
-                default:
-                    {
-                        throw new NotSupportedException($"ImportType '{import.ImportTypeId}' is not supported in LoadRulesAndOwnersAsync.");
-                    }
-            }
-
-            var newRuleOwners = BuildNewRuleOwnersCustomField(rulesToMap, owners);
-
-            foreach (RuleOwner ruleOwner in newRuleOwners)
-            {
-                ruleOwner.Created = import.ControlId;
-            }
-
-            await SetAffectedRuleOwnersRemoved(ruleOwnersToRemove, import.ControlId);
-
-            await InsertNewRuleOwners(newRuleOwners);
-
-            await CompleteImportControl(import.ControlId);
-        }
-
-        private async Task<(List<Rule> rulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportCustomField(ImportControl import)
-        {
-            var changelogRules = await apiConnection.SendQueryAsync<List<RuleChange>>(RuleQueries.getChangedRulesForRuleOwnerMappingCustomField, new { controlId = import.ControlId });
-            var rulesToMap = new List<Rule>();
-            var rulesToRemove = new List<Rule>();
-            var owners = new List<FwoOwner>();
-            var ruleOwnersToRemove = new List<RuleOwner>();
-
-            if (!ProcessRuleChanges(changelogRules, rulesToMap, rulesToRemove))
-            {
-                Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
-                return (new List<Rule>(), new List<FwoOwner>(), new List<RuleOwner>());
-            }
-
-            if (rulesToMap.Any())
-            {
-                owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerCustomField);
-            }
-
-            if (rulesToRemove.Any())
-            {
-                ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
-            }
-
-            return (rulesToMap, owners, ruleOwnersToRemove);
-        }
+        /// <summary>
+        /// Delegates loading of changed rules, mapping owners, and removable mappings for a CustomField rule import.
+        /// </summary>
+        private async Task<(List<Rule> rulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportCustomField(ImportControl import) =>
+            await HandleRuleImport(import, RuleQueries.getChangedRulesForRuleOwnerMappingCustomField, () => apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerCustomField));
 
         private async Task<(List<Rule> RulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleOwnerImportCustomField(ImportControl import)
         {

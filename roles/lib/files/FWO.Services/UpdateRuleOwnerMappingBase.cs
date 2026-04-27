@@ -11,6 +11,7 @@ namespace FWO.Services
 {
     public abstract class UpdateRuleOwnerMappingBase : IUpdateRuleOwnerMapping
     {
+        protected const int MaxPendingImportsBeforeFullReinit = 3;
         protected const string LogMessageTitle = "Update rule_owner Notifier";
         protected readonly ApiConnection apiConnection;
         protected readonly GlobalConfig globalConfig;
@@ -25,9 +26,157 @@ namespace FWO.Services
 
         public abstract Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null);
 
+        /// <summary>
+        /// Chooses between full reinitialize and incremental processing based on the event arguments.
+        /// </summary>
         protected static async Task<bool> UpdateRuleOwners(Func<Task<bool>> fullReinitFunc, Func<Task<bool>> incrementalFunc, bool isFullReInitialize)
         {
             return isFullReInitialize ? await fullReinitFunc() : await incrementalFunc();
+        }
+
+        /// <summary>
+        /// Loads all rules and mapping owners for a full reinitialize and delegates persistence of the rebuilt mapping set.
+        /// </summary>
+        protected async Task<bool> RunFullReinitialize<TMappingOwner>(string rulesQuery, Func<Task<List<TMappingOwner>>> loadOwnersFunc, Func<List<Rule>, List<TMappingOwner>, List<RuleOwner>> buildNewRuleOwnersFunc)
+        {
+            var rulesTask = apiConnection.SendQueryAsync<List<Rule>>(rulesQuery);
+            var ownersTask = loadOwnersFunc();
+            await Task.WhenAll(rulesTask, ownersTask);
+
+            var newRuleOwners = buildNewRuleOwnersFunc(rulesTask.Result, ownersTask.Result);
+            return await FinalizeFullReinitialize(newRuleOwners);
+        }
+
+        /// <summary>
+        /// Persists a full reinitialize by replacing all active rule-owner mappings with the provided set.
+        /// </summary>
+        protected async Task<bool> FinalizeFullReinitialize(List<RuleOwner> newRuleOwners)
+        {
+            if (!newRuleOwners.Any())
+            {
+                Log.WriteInfo(LogMessageTitle, "No new rule owners to insert. Aborting import.");
+                return false;
+            }
+
+            long importControlId = await CreateImportControl();
+
+            foreach (RuleOwner ruleOwner in newRuleOwners)
+            {
+                ruleOwner.Created = importControlId;
+            }
+
+            await SetAllActiveRuleOwnersRemoved(importControlId);
+            await InsertNewRuleOwners(newRuleOwners);
+            await CompleteImportControlFullReInit(importControlId);
+
+            Log.WriteInfo(LogMessageTitle, "FULL rule_owner reinitialize completed.");
+            return true;
+        }
+
+        /// <summary>
+        /// Processes all pending incremental imports in control-id order and falls back to full reinitialize when too many imports are queued.
+        /// </summary>
+        protected async Task<bool> RunIncremental(Func<ImportControl, Task> processIncrementalImportFunc, Func<Task<bool>> fullReinitFunc)
+        {
+            var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
+
+            if (pendingImports == null || !pendingImports.Any())
+            {
+                return false;
+            }
+
+            if (pendingImports.Count > MaxPendingImportsBeforeFullReinit)
+            {
+                Log.WriteWarning(LogMessageTitle, $"Found {pendingImports.Count} pending imports. Falling back to full rule_owner reinitialize.");
+                return await fullReinitFunc();
+            }
+
+            foreach (var import in pendingImports.OrderBy(i => i.ControlId))
+            {
+                try
+                {
+                    await processIncrementalImportFunc(import);
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteError(LogMessageTitle, $"Error while processing import_control {import.ControlId}. ", ex);
+                    break;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Loads rule-owner mapping input for one incremental import, builds new mappings, and persists the delta.
+        /// </summary>
+        protected async Task ProcessIncrementalImport<TMappingOwner>(ImportControl import, Func<ImportControl, Task<(List<Rule> rulesToMap, List<TMappingOwner> owners, List<RuleOwner> ruleOwnersToRemove)>> handleRuleImportFunc,
+            Func<ImportControl, Task<(List<Rule> rulesToMap, List<TMappingOwner> owners, List<RuleOwner> ruleOwnersToRemove)>> handleOwnerImportFunc, Func<List<Rule>, List<TMappingOwner>, List<RuleOwner>> buildNewRuleOwnersFunc)
+        {
+            List<Rule> rulesToMap;
+            List<TMappingOwner> owners;
+            List<RuleOwner> ruleOwnersToRemove;
+
+            switch (import.ImportTypeId)
+            {
+                case ImportType.RULE:
+                    (rulesToMap, owners, ruleOwnersToRemove) = await handleRuleImportFunc(import);
+                    break;
+
+                case ImportType.OWNER:
+                    (rulesToMap, owners, ruleOwnersToRemove) = await handleOwnerImportFunc(import);
+                    break;
+
+                default:
+                    throw new NotSupportedException($"ImportType '{import.ImportTypeId}' is not supported in LoadRulesAndOwnersAsync.");
+            }
+
+            var newRuleOwners = buildNewRuleOwnersFunc(rulesToMap, owners);
+            await FinalizeIncrementalImport(newRuleOwners, ruleOwnersToRemove, import.ControlId);
+        }
+
+        /// <summary>
+        /// Persists one incremental import by marking obsolete mappings removed and inserting rebuilt mappings for the same control id.
+        /// </summary>
+        protected async Task FinalizeIncrementalImport(List<RuleOwner> newRuleOwners, List<RuleOwner> ruleOwnersToRemove, long importControlId)
+        {
+            foreach (RuleOwner ruleOwner in newRuleOwners)
+            {
+                ruleOwner.Created = importControlId;
+            }
+
+            await SetAffectedRuleOwnersRemoved(ruleOwnersToRemove, importControlId);
+            await InsertNewRuleOwners(newRuleOwners);
+            await CompleteImportControl(importControlId);
+        }
+
+        /// <summary>
+        /// Loads changed rules for one incremental rule import and fetches affected owners plus removable mappings.
+        /// </summary>
+        protected async Task<(List<Rule> rulesToMap, List<TMappingOwner> owners, List<RuleOwner> ruleOwnersToRemove)> HandleRuleImport<TMappingOwner>(ImportControl import, string changedRulesQuery, Func<Task<List<TMappingOwner>>> loadOwnersFunc)
+        {
+            var changelogRules = await apiConnection.SendQueryAsync<List<RuleChange>>(changedRulesQuery, new { controlId = import.ControlId });
+            var rulesToMap = new List<Rule>();
+            var rulesToRemove = new List<Rule>();
+            var owners = new List<TMappingOwner>();
+            var ruleOwnersToRemove = new List<RuleOwner>();
+
+            if (!ProcessRuleChanges(changelogRules, rulesToMap, rulesToRemove))
+            {
+                return (new List<Rule>(), new List<TMappingOwner>(), new List<RuleOwner>());
+            }
+
+            if (rulesToMap.Any())
+            {
+                owners = await loadOwnersFunc();
+            }
+
+            if (rulesToRemove.Any())
+            {
+                ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
+            }
+
+            return (rulesToMap, owners, ruleOwnersToRemove);
         }
 
         protected async Task<long> CreateImportControl()
@@ -196,7 +345,7 @@ namespace FWO.Services
         {
             if (changelogOwners == null || !changelogOwners.Any())
             {
-                Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
+                Log.WriteInfo(LogMessageTitle, "No changed owners found for rule-owner mapping. Aborting incremental import.");
                 return false;
             }
             foreach (var change in changelogOwners)

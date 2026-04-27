@@ -27,100 +27,21 @@ namespace FWO.Services
             return await UpdateRuleOwners(RunFullReinitialize, RunIncremental, isFullReInitialize);
         }
 
-        private async Task<bool> RunFullReinitialize()
-        {
-            var rulesTask = apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForOwnerMappingIpBased);
-            var ownersTask = apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerIpBased);
-            await Task.WhenAll(rulesTask, ownersTask);
-            var rules = rulesTask.Result;
-            var owners = ownersTask.Result;
+        /// <summary>
+        /// Delegates the full reinitialize flow to the shared base implementation using IP-based rule and owner sources.
+        /// </summary>
+        private async Task<bool> RunFullReinitialize() => await RunFullReinitialize(RuleQueries.getRulesForOwnerMappingIpBased, () => apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerIpBased), BuildNewRuleOwnersIpBased);
 
-            var newRuleOwners = BuildNewRuleOwnersIpBased(rules, owners);
+        /// <summary>
+        /// Delegates incremental processing of pending imports to the shared base implementation for IP-based mapping.
+        /// </summary>
+        private async Task<bool> RunIncremental() => await RunIncremental(ProcessIncrementalImportIpBased, RunFullReinitialize);
 
-            if (!newRuleOwners.Any())
-            {
-                Log.WriteInfo(LogMessageTitle, "No new rule owners to insert. Aborting import.");
-                return false;
-            }
-
-            long importControlId = await CreateImportControl();
-
-            foreach (RuleOwner ruleOwner in newRuleOwners)
-            {
-                ruleOwner.Created = importControlId;
-            }
-
-            await SetAllActiveRuleOwnersRemoved(importControlId);
-            await InsertNewRuleOwners(newRuleOwners);
-            await CompleteImportControlFullReInit(importControlId);
-
-            Log.WriteInfo(LogMessageTitle, "FULL rule_owner reinitialize completed.");
-            return true;
-        }
-
-        private async Task<bool> RunIncremental()
-        {
-            var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
-
-            if (pendingImports == null || !pendingImports.Any())
-            {
-                return false;
-            }
-
-            foreach (var import in pendingImports.OrderBy(i => i.ControlId))
-            {
-                try
-                {
-                    await ProcessIncrementalImportIpBased(import);
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteError(LogMessageTitle, $"Error while processing import_control {import.ControlId}. ", ex);
-                    break;
-                }
-            }
-
-            return true;
-        }
-
-        private async Task ProcessIncrementalImportIpBased(ImportControl import)
-        {
-            List<Rule> rulesToMap = new List<Rule>();
-            List<FwoOwner> owners = new List<FwoOwner>();
-            List<RuleOwner> ruleOwnersToRemove = new List<RuleOwner>();
-
-            switch (import.ImportTypeId)
-            {
-                case ImportType.RULE:
-                    {
-                        (rulesToMap, owners, ruleOwnersToRemove) = await HandleRuleImportIpBased(import);
-                        break;
-                    }
-                case ImportType.OWNER:
-                    {
-                        (rulesToMap, owners, ruleOwnersToRemove) = await HandleOwnerImportIpBased(import);
-                        break;
-                    }
-
-                default:
-                    {
-                        throw new NotSupportedException($"ImportType '{import.ImportTypeId}' is not supported in LoadRulesAndOwnersAsync.");
-                    }
-            }
-
-            var newRuleOwners = BuildNewRuleOwnersIpBased(rulesToMap, owners);
-
-            foreach (RuleOwner ruleOwner in newRuleOwners)
-            {
-                ruleOwner.Created = import.ControlId;
-            }
-
-            await SetAffectedRuleOwnersRemoved(ruleOwnersToRemove, import.ControlId);
-
-            await InsertNewRuleOwners(newRuleOwners);
-
-            await CompleteImportControl(import.ControlId);
-        }
+        /// <summary>
+        /// Delegates one incremental import to the shared base implementation using IP-based loaders and mapper.
+        /// </summary>
+        private async Task ProcessIncrementalImportIpBased(ImportControl import) =>
+            await ProcessIncrementalImport(import, HandleRuleImportIpBased, HandleOwnerImportIpBased, BuildNewRuleOwnersIpBased);
 
         public List<RuleOwner> BuildNewRuleOwnersIpBased(List<Rule> rulesToMap, List<FwoOwner> ownersToMap)
         {
@@ -163,32 +84,11 @@ namespace FWO.Services
             return newRuleOwners;
         }
 
-        private async Task<(List<Rule> rulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportIpBased(ImportControl import)
-        {
-            var changelogRules = await apiConnection.SendQueryAsync<List<RuleChange>>(RuleQueries.getChangedRulesForRuleOwnerMappingIpBased, new { controlId = import.ControlId });
-            var rulesToMap = new List<Rule>();
-            var rulesToRemove = new List<Rule>();
-            var owners = new List<FwoOwner>();
-            var ruleOwnersToRemove = new List<RuleOwner>();
-
-            if (!ProcessRuleChanges(changelogRules, rulesToMap, rulesToRemove))
-            {
-                Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
-                return (new List<Rule>(), new List<FwoOwner>(), new List<RuleOwner>());
-            }
-
-            if (rulesToMap.Any())
-            {
-                owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerIpBased);
-            }
-
-            if (rulesToRemove.Any())
-            {
-                ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
-            }
-
-            return (rulesToMap, owners, ruleOwnersToRemove);
-        }
+        /// <summary>
+        /// Delegates loading of changed rules, mapping owners, and removable mappings for an IP-based rule import.
+        /// </summary>
+        private async Task<(List<Rule> rulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportIpBased(ImportControl import) =>
+            await HandleRuleImport(import, RuleQueries.getChangedRulesForRuleOwnerMappingIpBased, () => apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForRuleOwnerIpBased));
 
         private async Task<(List<Rule> RulesToMap, List<FwoOwner> owners, List<RuleOwner> RuleOwnersToRemove)> HandleOwnerImportIpBased(ImportControl import)
         {
@@ -214,10 +114,6 @@ namespace FWO.Services
             }
             return (rulesToMap, ownersToAdd, ruleOwnersToRemove);
         }
-
-
-
-
 
         public static (IPAddressRange? range, AddressFamily? ipVersion) GetIpRangeAndVersion(string ipStart, string ipEnd)
         {
@@ -281,7 +177,7 @@ namespace FWO.Services
                             {
                                 if (!nw.IP.TryParseIPStringToRange(out var _))
                                 {
-                                    Console.WriteLine($"Ungueltige IP in Regel {o.Id}: {nw.IP} - {nw.IpEnd}");
+                                    Log.WriteWarning(LogMessageTitle, ($"Ungueltige IP in Regel {o.Id}: {nw.IP} - {nw.IpEnd}"));
                                 }
 
                                 var (range, version) = GetIpRangeAndVersion(nw.IP, nw.IpEnd);

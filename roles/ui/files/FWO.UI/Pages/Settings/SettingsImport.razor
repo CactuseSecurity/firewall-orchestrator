@@ -221,10 +221,10 @@ else
         {
             if (configData != null)
             {
-                string originalOwnerMappingSourceId = configData.OwnerSoruceMappingID.ToString();
-                string originalCustomFieldOwnerKey = configData.CustomFieldOwnerKey ?? "";
-                string originalCustomFieldChangeIdKey = configData.CustomFieldChangeIdKey ?? "";
-                string originalModelledMarker = configData.ModModelledMarker ?? "";
+                int oldSource = configData.OwnerSoruceMappingID;
+                string oldOwnerKey = configData.CustomFieldOwnerKey ?? "";
+                string oldChangeIdKey = configData.CustomFieldChangeIdKey ?? "";
+                string oldModelledMarker = configData.ModModelledMarker ?? "";
 
                 if (SelectedOwnerMappingSource == null)
                 {
@@ -246,7 +246,7 @@ else
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
 
-                if (ShouldTriggerRuleOwnerReinitialize(int.Parse(originalOwnerMappingSourceId), originalCustomFieldOwnerKey, originalCustomFieldChangeIdKey, originalModelledMarker, configData.OwnerSoruceMappingID, configData.CustomFieldOwnerKey, configData.CustomFieldChangeIdKey, configData.ModModelledMarker))
+                if (ShouldTriggerRuleOwnerReinitialize(oldSource, oldOwnerKey, oldChangeIdKey, oldModelledMarker, configData))
                 {
                     bool rebuildSuccess = await TriggerFullRuleOwnerReinitialize();
                     if (!rebuildSuccess)
@@ -269,23 +269,23 @@ else
         }
     }
 
-    private static bool ShouldTriggerRuleOwnerReinitialize(int oldSource, string oldOwnerKey, string oldChangeIdKey, string oldModelledMarker, int newSource, string newOwnerKey, string newChangeIdKey, string newModelledMarker)
+    private static bool ShouldTriggerRuleOwnerReinitialize(int oldSource, string oldOwnerKey, string oldChangeIdKey, string oldModelledMarker, ConfigData configData)
     {
-        bool sourceChanged = oldSource != newSource;
-        bool customFieldConfigChanged = oldOwnerKey != newOwnerKey || oldChangeIdKey != newChangeIdKey;
-        bool nameFieldConfigChanged = oldModelledMarker != newModelledMarker;
+        bool sourceChanged = oldSource != configData.OwnerSoruceMappingID;
+        bool customFieldConfigChanged = oldOwnerKey != configData.CustomFieldOwnerKey || oldChangeIdKey != configData.CustomFieldChangeIdKey;
+        bool nameFieldConfigChanged = oldModelledMarker != configData.ModModelledMarker;
 
         if (sourceChanged)
         {
             return true;
         }
 
-        if (newSource == (int)OwnerMappingSourceStm.CustomField && customFieldConfigChanged)
+        if (configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.CustomField && customFieldConfigChanged)
         {
             return true;
         }
 
-        return newSource == (int)OwnerMappingSourceStm.NameField && nameFieldConfigChanged;
+        return configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.NameField && nameFieldConfigChanged;
     }
 
     private void AddOwnerKey()

@@ -329,6 +329,14 @@ INSERT INTO txt VALUES ('RuleExpiryCheck',      'German', 	'Ablaufdatum-Check');
 INSERT INTO txt VALUES ('RuleExpiryCheck',      'English', 	'Rule expiry check');
 INSERT INTO txt VALUES ('OwnerActiveRules',     'German', 	'Aktive Regeln von deaktivierten Eigent&uuml;mern');
 INSERT INTO txt VALUES ('OwnerActiveRules',     'English', 	'Active rules of decommissioned owners');
+INSERT INTO txt VALUES ('PreferredCollapseState','German',  'Standardzustand der Klappelemente');
+INSERT INTO txt VALUES ('PreferredCollapseState','English', 'Default state of the collapsible elements');
+INSERT INTO txt VALUES ('PreferredCollapseState_Collapsed', 'German', 'Eingeklappt');
+INSERT INTO txt VALUES ('PreferredCollapseState_Collapsed', 'English', 'Collapsed');
+INSERT INTO txt VALUES ('PreferredCollapseState_Expanded',  'German', 'Aufgeklappt');
+INSERT INTO txt VALUES ('PreferredCollapseState_Expanded',  'English', 'Expanded');
+INSERT INTO txt VALUES ('PreferredCollapseState_Intermediate','German', 'Unbestimmt');
+INSERT INTO txt VALUES ('PreferredCollapseState_Intermediate','English', 'Intermediate');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -5763,6 +5771,8 @@ INSERT INTO txt VALUES ('H5461', 'English', 'Every user can set his own preferre
     The default language at first login can be defined by the admin for all users in the <a href="/help/settings/defaults">Default Settings</a>.<br><br>
     Currently available:
 ');
+INSERT INTO txt VALUES ('H5462', 'German',  'Regelt den Standardzustand der Klappelemente für die Regelwerkanzeige im Rules Report.');
+INSERT INTO txt VALUES ('H5462', 'English', 'Sets the default state of the collapsible elements for the rule display in the Rules Report.');
 INSERT INTO txt VALUES ('H5466', 'German',  'Nachricht die auf der Anmeldeseite angezeigt werden soll.');
 INSERT INTO txt VALUES ('H5466', 'English', 'Message that is displayed on Login Page.');
 INSERT INTO txt VALUES ('H5471', 'German',  'Jeder Nutzer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r die Reporteinstellungen &uuml;berschreiben.

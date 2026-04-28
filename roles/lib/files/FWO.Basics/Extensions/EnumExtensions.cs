@@ -5,16 +5,6 @@ namespace FWO.Basics.Extensions
         extension<TEnum>(IEnumerable<TEnum> values) where TEnum : struct, Enum
         {
             /// <summary>
-            /// Returns the sequence without the excluded enum value.
-            /// </summary>
-            public IEnumerable<TEnum> Except(TEnum excludedValue)
-            {
-                ArgumentNullException.ThrowIfNull(values);
-
-                return ExceptSingle(values, excludedValue);
-            }
-
-            /// <summary>
             /// Returns the sequence without the excluded enum values.
             /// </summary>
             public IEnumerable<TEnum> Except(params TEnum[] excludedValues)

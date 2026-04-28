@@ -1188,6 +1188,8 @@ INSERT INTO txt VALUES ('existing',             'German',   'Vorhanden');
 INSERT INTO txt VALUES ('existing',             'English',  'Existing');
 INSERT INTO txt VALUES ('value',                'German',   'Wert');
 INSERT INTO txt VALUES ('value',                'English',  'Value');
+INSERT INTO txt VALUES ('display_only',         'German',   'Nur anzeigen');
+INSERT INTO txt VALUES ('display_only',         'English',  'Display only');
 INSERT INTO txt VALUES ('action_type', 		    'German', 	'Aktionstyp');
 INSERT INTO txt VALUES ('action_type', 		    'English', 	'Action type');
 INSERT INTO txt VALUES ('external_params', 		'German', 	'Externe Parameter');
@@ -4037,6 +4039,8 @@ INSERT INTO txt VALUES ('T0108', 'German',  'Alle nicht gel&ouml;sten Compliance
 INSERT INTO txt VALUES ('T0108', 'English', 'All unresolved compliance violations');
 INSERT INTO txt VALUES ('T0109', 'German',  'Ver&auml;nderungen der Compliance-Verletzungen in Zeitraum x');
 INSERT INTO txt VALUES ('T0109', 'English', 'Changes in compliance violations in period x');
+INSERT INTO txt VALUES ('T0110', 'German',  'Alle in der letzten Woche genehmigten Workflow-Tickets');
+INSERT INTO txt VALUES ('T0110', 'English', 'All workflow tickets approved last week');
 
 -- Contextual Info (Tooltips)
 INSERT INTO txt VALUES ('C1000', 'German',  'Zeige alle Eigent&uuml;mer mit aktiver Rezertifizierung, unabh&auml;ngig vom n&auml;chsten Rezertifizierungsdatum.');
@@ -4541,8 +4545,8 @@ INSERT INTO txt VALUES ('H1520', 'German',  'Vollst&auml;ndiges Ticket anzeigen:
 INSERT INTO txt VALUES ('H1520', 'English', 'Show full ticket: If this option is enabled, every matching ticket shows all contained request tasks, implementation tasks and approvals. If it is disabled, the details only show objects whose reference date lies within the selected time range.');
 INSERT INTO txt VALUES ('H1521', 'German',  'Phase: Beschr&auml;nkt die Ticketauswahl auf den Statusbereich der gew&auml;hlten aktiven Workflow-Phase. In der Statusauswahl werden dann nur Status angeboten, die in dieser Phase verwendet werden. Derselbe Filter kann auch in der Filterleiste mit phase=... gesetzt werden.');
 INSERT INTO txt VALUES ('H1521', 'English', 'Phase: Restricts the ticket selection to the status range of the selected active workflow phase. The state dropdown then only offers states that are used in this phase. The same filter can also be set in the filter line with phase=....');
-INSERT INTO txt VALUES ('H1522', 'German',  'Label: Filtert Workflow-Tickets &uuml;ber ein zus&auml;tzliches Info-Feld in den Request Tasks. Der Dialog erlaubt Name und erwarteten Zustand oder Wert des Labels zu definieren.');
-INSERT INTO txt VALUES ('H1522', 'English', 'Label: Filters workflow tickets by an additional info field on the request tasks. The dialog allows defining the label name and the expected label state or value.');
+INSERT INTO txt VALUES ('H1522', 'German',  'Label: Filtert Workflow-Tickets &uuml;ber ein zus&auml;tzliches Info-Feld in den Request Tasks oder zeigt das gew&auml;hlte Label als zus&auml;tzliche Berichtsspalte an. Der Dialog erlaubt Name und erwarteten Zustand oder Wert des Labels zu definieren. Mit "Nur anzeigen" wird die Spalte angezeigt, ohne Tickets nach Existenz oder Wert des Labels zu filtern.');
+INSERT INTO txt VALUES ('H1522', 'English', 'Label: Filters workflow tickets by an additional info field on the request tasks or displays the selected label as an extra report column. The dialog allows defining the label name and the expected label state or value. Select "Display only" to show the column without filtering tickets by the label existence or value.');
 INSERT INTO txt VALUES ('H1523', 'German',  'Name: Referenziert einen Schl&uuml;ssel im AdditionalInfo-Feld des Request Tasks, z.B. ein Label, das zuvor durch eine Action gesetzt wurde.');
 INSERT INTO txt VALUES ('H1523', 'English', 'Name: References a key in the request task additional info field, for example a label that was set earlier by an action.');
 INSERT INTO txt VALUES ('H1524', 'German',  'Detaillierte Ansicht: Ist diese Option aktiviert, werden Request Tasks und deren Details im Bericht angezeigt. Der CSV-Export steht nur zur Verf&uuml;gung, wenn diese Option deaktiviert ist.');
@@ -5895,9 +5899,13 @@ INSERT INTO txt VALUES ('H5521', 'German',  'Spezifische Parameter je nach ausge
 INSERT INTO txt VALUES ('H5521', 'English', 'Specific parameters depending on selected action type: Here can be defined, what should happen in the action.');
 INSERT INTO txt VALUES ('H5522', 'German',  'Autom. Weiterleitung: Hier ist der Zielstatus festzulegen, der dem ausgew&auml;hlten Objekt durch die Aktion zugewiesen werden soll (der Ausgangsstatus ergibt sich dann durch die Zuordnung in der Statustabelle).
     Wird der Wert "Automatisch" ausgew&auml;hlt, so wird der Status aus der Status-Matrix ermittelt.
+    Wird der Wert "Bedingt" ausgew&auml;hlt, wird kein fester Zielstatus verwendet. Stattdessen wird ein Pr&uuml;faufruf konfiguriert, z.B. eine Policy-Pr&uuml;fung. Abh&auml;ngig vom Ergebnis leitet die Aktion in den Status "Falls konform" oder "Falls nicht konform" weiter.
+    Ein optionales Pr&uuml;fergebnis-Label speichert das Ergebnis als "true" oder "false" in den AdditionalInfo der gepr&uuml;ften Request Tasks und kann anschliessend in Ticket-Reports angezeigt oder gefiltert werden.
 ');
 INSERT INTO txt VALUES ('H5522', 'English', 'Auto-forward: Here the target state is to be set, which should be assigned to the selected object in the action (the source state is the defined by the assignment of the action in the state table).
     If the value "Automatic" is selected, the state is computed by the state matrix.
+    If "Conditional" is selected, no fixed target state is used. Instead a check call is configured, for example a policy check. Depending on the result, the action forwards to the "If compliant state" or "If not compliant state" target.
+    An optional check result label stores the result as "true" or "false" in the AdditionalInfo of the checked request tasks and can later be displayed or filtered in ticket reports.
 ');
 INSERT INTO txt VALUES ('H5523', 'German',  'Genehmigung hinzuf&uuml;gen: Hier muss der Status angegeben werden, mit dem die neue Genehmigung angelegt werden soll. Des weiteren kann hier bereits eine Gruppenzuordnung und eine Deadline gesetzt werden.');
 INSERT INTO txt VALUES ('H5523', 'English', 'Add approval: Here the desired state of the approval to be created has to be filled. Additionally a group assignment and a deadline can be set.');
@@ -7242,10 +7250,12 @@ INSERT INTO txt VALUES ('H8501', 'English', 'Actions of different types provide 
 INSERT INTO txt VALUES ('H8511', 'German',  'Autom. Weiterleitung: Obwohl die Statusweiterleitung mit dem Mechanismus der Status-Matrix weitgehend abgebildet werden kann, erweitert diese Aktion die M&ouml;glichkeiten.
     So kann die Weiterleitung st&auml;rker auf bestimmte Objekttypen eingeschr&auml;nkt werden (die Status-Matrix gilt f&uuml;r alle Objekte eines Tasktyps).
     Auch ein Aufblenden einer speziellen Weiterleitung als "Shortcut" kann erw&uuml;nscht sein.
+    Neben einem festen Zielstatus und der automatischen Ermittlung &uuml;ber die Status-Matrix kann die Weiterleitung auch bedingt erfolgen. Im bedingten Fall wird zun&auml;chst ein Pr&uuml;faufruf, z.B. eine Policy-Pr&uuml;fung, ausgef&uuml;hrt. Je nach Ergebnis wird einer von zwei Zielstatus gesetzt, und ein optionales Pr&uuml;fergebnis-Label kann f&uuml;r sp&auml;tere Berichte am Request Task gespeichert werden.
 ');
 INSERT INTO txt VALUES ('H8511', 'English', 'Auto-forward: Although state forwarding can widely be realized by the state matrix mechanism, this action enlarges the options.
     The forwarding can be more restricted to dedicated object types (the state matrix is valid for all object types within a task type).
     Additionally the display of a special state transition as "Shortcut" may be desired.
+    Besides a fixed target state and automatic state selection through the state matrix, forwarding can also be conditional. In the conditional case a check call, for example a policy check, is executed first. Depending on the result, one of two target states is set, and an optional check result label can be stored on the request task for later reports.
 ');
 INSERT INTO txt VALUES ('H8512', 'German',  'Genehmigung hinzuf&uuml;gen: Wenn im Verlauf des Workflows (z.B. vom Planer) festgestellt wird, dass weitere Genehmigungen eingeholt werden m&uuml;ssen,
     kann man mit dieser Aktion weitere Genehmigungsobjekte erzeugen und zuweisen.

@@ -382,6 +382,7 @@ namespace FWO.Test
             {"existing","existing"},
             {"not_existing","not existing"},
             {"value","value"},
+            {"display_only","Display only"},
             {"TicketCreation","Ticket creation"},
             {"TicketClosure","Ticket closure"},
             {"ApprovalOpened","Approval opened"},

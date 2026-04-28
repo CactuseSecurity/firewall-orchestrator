@@ -403,3 +403,5 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.23 - 27.04.2026 DEVELOP
 - enhance notifications by bcc
+- add display-only workflow label report column option
+- add default template for workflow tickets approved last week

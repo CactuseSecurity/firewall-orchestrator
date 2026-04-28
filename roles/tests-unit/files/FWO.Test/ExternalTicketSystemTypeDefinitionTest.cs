@@ -1,4 +1,5 @@
 using FWO.Data;
+using NUnit.Framework;
 using System.Text.Json;
 
 namespace FWO.Test
@@ -10,7 +11,7 @@ namespace FWO.Test
         [Test]
         public void BuiltInDefinitionsContainReservedIds()
         {
-            Assert.That(BuiltInExternalTicketSystemTypes.All.Select(type => type.Id),
+            Assert.That(BuiltInExternalTicketSystemTypes.AllBuildInTicketTypes.Select(type => type.Id),
                 Is.EqualTo(new[]
                 {
                     BuiltInExternalTicketSystemTypes.GenericId,

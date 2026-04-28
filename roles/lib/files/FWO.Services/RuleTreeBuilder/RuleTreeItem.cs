@@ -125,7 +125,22 @@ namespace FWO.Services.RuleTreeBuilder
             }
         }
 
-        private IEnumerable<RuleTreeItem> TraverseDown(RuleTreeItem item, Action<RuleTreeItem>? action = null)
+        /// <summary>
+        /// Updates the expanded state for all expandable descendants of the provided root item.
+        /// </summary>
+        public static void SetExpandedRecursively(RuleTreeItem item, bool isExpanded)
+        {
+            foreach (RuleTreeItem childItem in TraverseDown(item))
+            {
+                if (childItem != item && childItem.Children.Count > 0)
+                {
+                    childItem.IsExpanded = isExpanded;
+                }
+            }
+        }
+
+
+        private static IEnumerable<RuleTreeItem> TraverseDown(RuleTreeItem item, Action<RuleTreeItem>? action = null)
         {
             if (action != null)
             {

@@ -188,11 +188,29 @@
         }
     }
 
+    /// <summary>
+    /// Triggers a full rule-owner mapping rebuild after mapping configuration changes were saved.
+    /// </summary>
+    private async Task<bool> TriggerFullRuleOwnerReinitialize()
+    {
+        OwnerMappingCalcInProgress = true;
+        try
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            var args = new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true, Completion = tcs };
+            EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
+            return await tcs.Task;
+        }
+        finally
+        {
+            OwnerMappingCalcInProgress = false;
+        }
+    }
+
     private async Task SaveOwnerMappingSourceConfig()
     {
         try
         {
-            
             if (ConfigData == null)
             {
                 throw new ArgumentException("Data saved before loaded. This should be impossible.");
@@ -210,10 +228,24 @@
                 return;
             }
 
+            int oldSource = ConfigData.OwnerSoruceMappingID;
+            string oldOwnerKey = ConfigData.CustomFieldOwnerKey ?? "";
+            string oldModelledMarker = ConfigData.ModModelledMarker ?? "";
+
             ConfigData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
             ConfigData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
             ConfigData.ModModelledMarker = actModelledMarker;
             await globalConfig.WriteToDatabase(ConfigData, apiConnection);
+
+            if (ShouldTriggerRuleOwnerReinitialize(oldSource, oldOwnerKey, "", oldModelledMarker, ConfigData.OwnerSoruceMappingID, ConfigData.CustomFieldOwnerKey, "", ConfigData.ModModelledMarker))
+            {
+                bool rebuildSuccess = await TriggerFullRuleOwnerReinitialize();
+                if (!rebuildSuccess)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("owner_mapping"), userConfig.GetText("E5502"), true);
+                    return;
+                }
+            }
 
             DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
         }
@@ -221,6 +253,25 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
         }
+    }
+
+    private static bool ShouldTriggerRuleOwnerReinitialize(int oldSource, string oldOwnerKey, string oldChangeIdKey, string oldModelledMarker, int newSource, string newOwnerKey, string newChangeIdKey, string newModelledMarker)
+    {
+        bool sourceChanged = oldSource != newSource;
+        bool customFieldConfigChanged = oldOwnerKey != newOwnerKey || oldChangeIdKey != newChangeIdKey;
+        bool nameFieldConfigChanged = oldModelledMarker != newModelledMarker;
+
+        if (sourceChanged)
+        {
+            return true;
+        }
+
+        if (newSource == (int)OwnerMappingSourceStm.CustomField && customFieldConfigChanged)
+        {
+            return true;
+        }
+
+        return newSource == (int)OwnerMappingSourceStm.NameField && nameFieldConfigChanged;
     }
 
     private void AddOwnerKey()

@@ -298,13 +298,13 @@
                         {
                             <span class="@Icons.Check text-success ms-2 fs-3"></span>
                         }
+                        @if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Failed)
+                        {
+                            <div class="@GetStatusCssClasses(complianceCheckStatus.Status) mt-2" role="alert">
+                                <div>@complianceCheckStatus.Message</div>
+                            </div>
+                        }
                     </div>
-                    @if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Failed)
-                    {
-                        <div class="@GetStatusCssClasses(complianceCheckStatus.Status) mt-2" role="alert">
-                            <div>@complianceCheckStatus.Message</div>
-                        </div>
-                    }
                 </div>
             </div>
         </Authorized>

@@ -256,15 +256,11 @@
                     @if (violationsDeleteStatus != null && violationsDeleteStatus.Status == ComplianceCheckExecutionStatus.Succeeded)
                     {
                         <span class="@Icons.Check text-success ms-2 fs-3"></span>
-                    }
-                    @if (violationsDeleteStatus != null && violationsDeleteStatus.Status == ComplianceCheckExecutionStatus.Failed)
+                    }else if (violationsDeleteStatus != null && violationsDeleteStatus.Status == ComplianceCheckExecutionStatus.Failed)
                     {
-                        @if (!string.IsNullOrWhiteSpace(violationsDeleteStatus.Message))
-                        {
-                            <div class="@GetStatusCssClasses(violationsDeleteStatus.Status) mt-2" role="alert">
-                                <div>@violationsDeleteStatus.Message</div>
-                            </div>
-                        }
+                        <div class="@GetStatusCssClasses(violationsDeleteStatus.Status) mt-2" role="alert">
+                            <div>@violationsDeleteStatus.Message</div>
+                        </div>                        
                     }
                 </div>
             </div>
@@ -297,8 +293,7 @@
                         @if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Succeeded)
                         {
                             <span class="@Icons.Check text-success ms-2 fs-3"></span>
-                        }
-                        @if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Failed)
+                        }else if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Failed)
                         {
                             <div class="@GetStatusCssClasses(complianceCheckStatus.Status) mt-2" role="alert">
                                 <div>@complianceCheckStatus.Message</div>
@@ -531,7 +526,7 @@ else
 
     private async Task StartComplianceStatusPolling()
     {
-        compliancePollingCts?.Cancel();
+        compliancePollingCts?.CancelAsync();
         compliancePollingTimer?.Dispose();
 
         compliancePollingCts = new CancellationTokenSource();
@@ -561,9 +556,9 @@ else
                 });
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-
+            DisplayMessageInUi(ex, userConfig.GetText("H5849"), ex.Message, true);
         }
 
     }

@@ -244,6 +244,10 @@
 
     private string DisplayDevices(WfReqTask task)
     {
+        if (task.HasAllDevicesSelected())
+        {
+            return userConfig.GetText("all");
+        }
         List<string> DevNames = [];
         foreach (var devId in task.GetDeviceList())
         {

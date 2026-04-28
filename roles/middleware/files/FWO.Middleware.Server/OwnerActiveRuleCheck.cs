@@ -60,11 +60,13 @@ namespace FWO.Middleware.Server
             NotificationService notificationService = await NotificationService.CreateAsync(
                 NotificationClient.AppDecomm, GlobalConfig, apiConnection, ownerGroups);
 
-            string body = BuildRuleBody(owner, GlobalConfig.OwnerActiveRuleEmailBody, "",
-                activeRules.OrderBy(rule => rule.Uid, StringComparer.OrdinalIgnoreCase));
+            IOrderedEnumerable<Rule> orderedRules = activeRules.OrderBy(rule => rule.Uid, StringComparer.OrdinalIgnoreCase);
+            string textBody = BuildRuleTextBody(owner, GlobalConfig.OwnerActiveRuleEmailBody, "", orderedRules);
+            string htmlBody = BuildRuleHtmlBody(owner, GlobalConfig.OwnerActiveRuleEmailBody, "", orderedRules);
             int emailsSent = 0;
             foreach (FwoNotification notification in notificationService.Notifications.Where(n => (n.OwnerId == null || n.OwnerId == owner.Id) && n.Deadline == deadline))
             {
+                string body = notification.Layout == NotificationLayout.HtmlInBody ? htmlBody : textBody;
                 emailsSent += deadline == NotificationDeadline.None
                     ? await notificationService.SendNotification(notification, owner, body)
                     : await notificationService.SendNotificationIfDue(notification, owner, null, body);

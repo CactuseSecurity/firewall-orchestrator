@@ -26,7 +26,7 @@
                             }
                             @if(IsEditable(context))
                             {
-                                @if (WfHandler.EditTicketMode && context.StateId < WfHandler.StateMatrix(context.TaskType).LowestStartedState)
+                                @if (CanEditReqTaskInPhase(context))
                                 {
                                     <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">
                                         @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
@@ -76,7 +76,7 @@
                 </Column>
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                     <Template>
-                        @(States.Name[context.StateId])
+                        @(States.GetName(context.StateId))
                     </Template>
                 </Column>
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler)" Sortable="true" Filterable="true">
@@ -188,5 +188,17 @@
             return WfHandler.ActTicket.Editable;
         }
         return true;
+    }
+
+    private bool CanEditReqTaskInPhase(WfReqTask reqTask)
+    {
+        if (!WfHandler.EditTicketMode)
+        {
+            return false;
+        }
+
+        StateMatrix taskStateMatrix = WfHandler.StateMatrix(reqTask.TaskType);
+        int editLimit = Phase == WorkflowPhases.request ? taskStateMatrix.LowestEndState : taskStateMatrix.LowestStartedState;
+        return reqTask.StateId < editLimit;
     }
 }

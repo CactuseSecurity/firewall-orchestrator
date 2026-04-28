@@ -275,57 +275,96 @@ namespace FWO.Services.Workflow
 
         private async Task AutoCreateImplTasks(WfReqTask reqTask)
         {
-            WfImplTask newImplTask;
             if (reqTask.TaskType == WfTaskType.access.ToString())
             {
-                switch (userConfig.ReqAutoCreateImplTasks)
-                {
-                    case AutoCreateImplTaskOptions.never:
-                        break;
-                    case AutoCreateImplTaskOptions.onlyForOneDevice:
-                        if (Devices.Count > 0)
-                        {
-                            await CreateAccessImplTask(reqTask, Devices[0].Id, false);
-                        }
-                        break;
-                    case AutoCreateImplTaskOptions.forEachDevice:
-                        foreach (var device in Devices)
-                        {
-                            await CreateAccessImplTask(reqTask, device.Id);
-                        }
-                        break;
-                    case AutoCreateImplTaskOptions.enterInReqTask:
-                        foreach (var deviceId in reqTask.GetDeviceList())
-                        {
-                            await CreateAccessImplTask(reqTask, deviceId);
-                        }
-                        break;
-                    case AutoCreateImplTaskOptions.afterPathAnalysis:
-                        await CreateAccessImplTasksFromPathAnalysis(reqTask);
-                        break;
-                    default:
-                        break;
-                }
+                await AutoCreateAccessImplTasks(reqTask);
+                return;
             }
-            else
+
+            await CreateGenericImplTask(reqTask);
+        }
+
+        private async Task AutoCreateAccessImplTasks(WfReqTask reqTask)
+        {
+            switch (userConfig.ReqAutoCreateImplTasks)
             {
-                newImplTask = new WfImplTask(reqTask) { TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };
-                if (dbAcc != null)
-                {
-                    newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
-                }
-                reqTask.ImplementationTasks.Add(newImplTask);
+                case AutoCreateImplTaskOptions.never:
+                    return;
+                case AutoCreateImplTaskOptions.onlyForOneDevice:
+                    await CreateImplTaskForFirstDevice(reqTask);
+                    return;
+                case AutoCreateImplTaskOptions.forEachDevice:
+                    await CreateImplTasksForDevices(reqTask, [.. Devices.Select(device => device.Id)]);
+                    return;
+                case AutoCreateImplTaskOptions.enterInReqTask:
+                    await CreateImplTasksForDevices(reqTask, reqTask.GetResolvedDeviceList(Devices));
+                    return;
+                case AutoCreateImplTaskOptions.oneTaskForAllDevices:
+                    await CreateImplTasksForCombinedOrSelectedDevices(reqTask);
+                    return;
+                case AutoCreateImplTaskOptions.afterPathAnalysis:
+                    await CreateAccessImplTasksFromPathAnalysis(reqTask);
+                    return;
+                default:
+                    return;
             }
         }
 
-        private async Task CreateAccessImplTask(WfReqTask reqTask, int deviceId, bool adaptTitle = true)
+        private async Task CreateImplTaskForFirstDevice(WfReqTask reqTask)
+        {
+            if (Devices.Count > 0)
+            {
+                await CreateAccessImplTask(reqTask, Devices[0].Id, false);
+            }
+        }
+
+        private async Task CreateImplTasksForCombinedOrSelectedDevices(WfReqTask reqTask)
+        {
+            List<int> deviceIds = reqTask.GetDeviceList();
+            if (deviceIds.Count == 0)
+            {
+                return;
+            }
+
+            if (reqTask.HasAllDevicesSelected())
+            {
+                await CreateAccessImplTask(reqTask, null, false);
+                return;
+            }
+
+            await CreateImplTasksForDevices(reqTask, deviceIds);
+        }
+
+        private async Task CreateImplTasksForDevices(WfReqTask reqTask, List<int> deviceIds)
+        {
+            foreach (int deviceId in deviceIds)
+            {
+                await CreateAccessImplTask(reqTask, deviceId);
+            }
+        }
+
+        private async Task CreateGenericImplTask(WfReqTask reqTask)
+        {
+            WfImplTask newImplTask = new(reqTask) { TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };
+            if (dbAcc != null)
+            {
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+            }
+            reqTask.ImplementationTasks.Add(newImplTask);
+        }
+
+        private async Task CreateAccessImplTask(WfReqTask reqTask, int? deviceId, bool adaptTitle = true)
         {
             WfImplTask newImplTask;
             newImplTask = new WfImplTask(reqTask)
             { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = deviceId, StateId = reqTask.StateId };
-            if (adaptTitle)
+            if (adaptTitle && deviceId != null)
             {
-                newImplTask.Title += ": " + Devices[Devices.FindIndex(x => x.Id == deviceId)].Name;
+                Device? device = Devices.FirstOrDefault(x => x.Id == deviceId);
+                if (device != null)
+                {
+                    newImplTask.Title += ": " + device.Name;
+                }
             }
             if (dbAcc != null)
             {

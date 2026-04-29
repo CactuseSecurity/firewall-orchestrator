@@ -1,6 +1,6 @@
 import copy
 import ipaddress
-from time import localtime, strftime
+from datetime import datetime, timezone
 from typing import Any
 
 from fw_modules.fortiadom5ff import fmgr_getter
@@ -465,7 +465,8 @@ def rule_parse_installon(native_rule: dict[str, Any]) -> str | None:
 def rule_parse_last_hit(native_rule: dict[str, Any]) -> str | None:
     last_hit = native_rule.get("_last_hit")
     if last_hit is not None:
-        last_hit = strftime("%Y-%m-%d %H:%M:%S", localtime(last_hit))
+        # FortiManager reports epoch seconds; preserve the local offset in the serialized value.
+        last_hit = datetime.fromtimestamp(float(last_hit), tz=timezone.utc).astimezone().isoformat(timespec="seconds")
     return last_hit
 
 

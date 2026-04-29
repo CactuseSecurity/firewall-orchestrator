@@ -27,6 +27,7 @@ namespace FWO.Report.Filter.FilterTypes
         public int UnusedDays = 0;
 
         public ModellingFilter ModellingFilter { get; set; } = new();
+        public OwnerFilter OwnerFilter { get; set; } = new();
 
         public ComplianceFilter ComplianceFilter { get; set; } = new();
 
@@ -36,9 +37,7 @@ namespace FWO.Report.Filter.FilterTypes
 
         private UserConfig? userConfig;
 
-        public bool IncludeObjectsInReportChanges { get; set; } = false;
-
-        public bool IncludeObjectsInReportChangesUiPresesed { get; set; } = false;
+        public bool IncludeObjects { get; set; } = false;
 
         public void Init(UserConfig userConfigIn, bool showRuleRelatedReports)
         {
@@ -46,6 +45,7 @@ namespace FWO.Report.Filter.FilterTypes
             ReportType = showRuleRelatedReports ? ReportType.Rules : ReportType.Connections;
             DisplayedTimeSelection = userConfig.GetText("now");
             UnusedDays = userConfig.UnusedTolerance;
+            IncludeObjects = userConfig.GlobalConfig?.ImpChangeIncludeObjectChanges ?? false;
 
             if (DeviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
             {
@@ -56,6 +56,7 @@ namespace FWO.Report.Filter.FilterTypes
         public void SyncFiltersFromTemplate(ReportTemplate template)
         {
             ReportType = (ReportType)template.ReportParams.ReportType;
+            IncludeObjects = template.ReportParams.IncludeObjects;
             if (template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
             {
                 DeviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
@@ -70,6 +71,7 @@ namespace FWO.Report.Filter.FilterTypes
             RecertFilter = new(template.ReportParams.RecertFilter);
             UnusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
             ModellingFilter = template.ReportParams.ModellingFilter;
+            OwnerFilter = new(template.ReportParams.OwnerFilter);
             ComplianceFilter = new(template.ReportParams.ComplianceFilter);
             WorkflowFilter = new(template.ReportParams.WorkflowFilter);
         }
@@ -78,6 +80,7 @@ namespace FWO.Report.Filter.FilterTypes
         {
             ReportParams reportParams = new((int)ReportType, ReportType == ReportType.UnusedRules ? ReducedDeviceFilter : DeviceFilter)
             {
+                IncludeObjects = IncludeObjects,
                 TimeFilter = SavedTimeFilter,
                 RecertFilter = new RecertFilter(RecertFilter),
                 UnusedFilter = new UnusedFilter()
@@ -86,6 +89,7 @@ namespace FWO.Report.Filter.FilterTypes
                     CreationTolerance = userConfig?.CreationTolerance ?? 0
                 },
                 ModellingFilter = new ModellingFilter(ModellingFilter),
+                OwnerFilter = new OwnerFilter(OwnerFilter),
                 ComplianceFilter = new ComplianceFilter(ComplianceFilter),
                 WorkflowFilter = new WorkflowFilter(WorkflowFilter)
             };

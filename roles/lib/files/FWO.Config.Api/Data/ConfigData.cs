@@ -5,6 +5,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Mail;
+using FWO.Basics.Enums;
 
 namespace FWO.Config.Api.Data
 {
@@ -224,6 +225,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("dummyEmailAddress"), JsonPropertyName("dummyEmailAddress")]
         public string DummyEmailAddress { get; set; } = "";
+
+        [JsonProperty("notificationLanguage"), JsonPropertyName("notificationLanguage")]
+        public string NotificationLanguage { get; set; } = "";
 
         [JsonProperty("minCollapseAllDevices"), JsonPropertyName("minCollapseAllDevices"), UserConfigData]
         public int MinCollapseAllDevices { get; set; } = 15;
@@ -582,6 +586,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceFilterOutInitialViolations"), JsonPropertyName("complianceFilterOutInitialViolations")]
         public bool ComplianceFilterOutInitialViolations { get; set; } = false;
 
+        [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
+        public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
 
         public ConfigData(bool editable = false)
         {

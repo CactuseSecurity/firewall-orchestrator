@@ -394,3 +394,9 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.20 - 11.04.2026 DEVELOP
 - extend notification handling
+
+# 9.0.21 - 21.04.2026 DEVELOP
+- fix ldap users with special chars not being processed correctly in role handling
+- fix empty mail being sent for orphaned rule report
+- update dependencies (notably closing mailkit and pytest vuln)
+- fix time zone issues in importer

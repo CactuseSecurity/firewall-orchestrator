@@ -1,3 +1,4 @@
+import json
 import logging
 import tempfile
 import unittest
@@ -25,13 +26,7 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
             config_path: Path = Path(tmpdir) / "customizingConfig.json"
             expected_repo_dir: str = str(Path(tmpdir) / "fworch-iiq-config-repos")
             with open(config_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    f"""
-                    {{
-                      "iiqLocalRepoBaseDir": "{expected_repo_dir}"
-                    }}
-                    """
-                )
+                json.dump({"iiqLocalRepoBaseDir": expected_repo_dir}, fh)
 
             resolved: str = resolve_local_repo_base_dir(str(config_path), None, self.logger)
 
@@ -41,15 +36,9 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path: Path = Path(tmpdir) / "customizingConfig.json"
             expected_repo_dir: str = str(Path(tmpdir) / "fworch-shared-config-repos")
+            iiq_repo_dir: str = str(Path(tmpdir) / "fworch-iiq-config-repos")
             with open(config_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    f"""
-                    {{
-                      "localRepoBaseDir": "{expected_repo_dir}",
-                      "iiqLocalRepoBaseDir": "{Path(tmpdir) / "fworch-iiq-config-repos"}"
-                    }}
-                    """
-                )
+                json.dump({"localRepoBaseDir": expected_repo_dir, "iiqLocalRepoBaseDir": iiq_repo_dir}, fh)
 
             resolved: str = resolve_local_repo_base_dir(str(config_path), None, self.logger)
 
@@ -61,13 +50,7 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
             config_repo_dir: str = str(Path(tmpdir) / "fworch-iiq-config-repos")
             cli_repo_dir: str = str(Path(tmpdir) / "fworch-iiq-cli-repos")
             with open(config_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    f"""
-                    {{
-                      "iiqLocalRepoBaseDir": "{config_repo_dir}"
-                    }}
-                    """
-                )
+                json.dump({"iiqLocalRepoBaseDir": config_repo_dir}, fh)
 
             resolved: str = resolve_local_repo_base_dir(str(config_path), cli_repo_dir, self.logger)
 
@@ -89,13 +72,7 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
             config_import_dir: str = str(Path(tmpdir) / "config-import")
             cli_import_dir: str = str(Path(tmpdir) / "cli-import")
             with open(config_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    f"""
-                    {{
-                      "importFromFolder": "{config_import_dir}"
-                    }}
-                    """
-                )
+                json.dump({"importFromFolder": config_import_dir}, fh)
 
             resolved: str | None = resolve_import_from_folder(str(config_path), cli_import_dir, self.logger)
 
@@ -106,13 +83,7 @@ class IiqRequestMissingRolesTests(unittest.TestCase):
             config_path: Path = Path(tmpdir) / "customizingConfig.json"
             expected_import_dir: str = str(Path(tmpdir) / "config-import")
             with open(config_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    f"""
-                    {{
-                      "importFromFolder": "{expected_import_dir}"
-                    }}
-                    """
-                )
+                json.dump({"importFromFolder": expected_import_dir}, fh)
 
             resolved: str | None = resolve_import_from_folder(str(config_path), None, self.logger)
 

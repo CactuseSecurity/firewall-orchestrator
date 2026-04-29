@@ -13,6 +13,7 @@ namespace FWO.Data.Report
         /// Gets or sets the workflow tickets contained in a workflow report.
         /// </summary>
         public List<WfTicket> Tickets { get; set; } = [];
+        public Dictionary<long, DateTime?> TicketReferenceDates { get; set; } = [];
         public Dictionary<int, string> WorkflowStateNames { get; set; } = [];
         public WorkflowFilter WorkflowFilter { get; set; } = new();
         public List<Rule> RulesFlat = [];
@@ -30,6 +31,7 @@ namespace FWO.Data.Report
             GlobalComSvc = reportData.GlobalComSvc;
             GlobalStats = reportData.GlobalStats;
             Tickets = reportData.Tickets;
+            TicketReferenceDates = reportData.TicketReferenceDates;
             WorkflowStateNames = reportData.WorkflowStateNames;
             WorkflowFilter = reportData.WorkflowFilter;
             RecertificationDisplayPeriod = reportData.RecertificationDisplayPeriod;

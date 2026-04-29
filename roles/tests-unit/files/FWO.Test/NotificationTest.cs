@@ -157,7 +157,7 @@ namespace FWO.Test
             MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(prepareEmail);
 
-            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, ""]) 
+            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, ""])
                 ?? throw new InvalidOperationException("PrepareEmail returned null task."));
             FWO.Mail.MailData mailData = await task;
 
@@ -221,6 +221,20 @@ namespace FWO.Test
             ClassicAssert.IsFalse(NotificationDeadline.None.IsAlwaysInPast());
             ClassicAssert.IsFalse(NotificationDeadline.RecertDate.IsAlwaysInPast());
             ClassicAssert.IsFalse(NotificationDeadline.RuleExpiry.IsAlwaysInPast());
+        }
+
+        [Test]
+        public void GetNotificationText_UsesConfiguredNotificationLanguage_AndFallsBackToDefaultLanguage()
+        {
+            globalConfig.DefaultLanguage = "English";
+            globalConfig.NotificationLanguage = "German";
+            globalConfig.GermanTranslate["generated_on"] = "Erstellt am";
+            globalConfig.DummyTranslate["generated_on"] = "Generated on";
+
+            ClassicAssert.AreEqual("Erstellt am", globalConfig.GetNotificationText("generated_on"));
+
+            globalConfig.NotificationLanguage = "";
+            ClassicAssert.AreEqual("Generated on", globalConfig.GetNotificationText("generated_on"));
         }
 
         private class TestReport() : ReportBase(new DynGraphqlQuery(""), new SimulatedUserConfig(), Basics.ReportType.TicketReport)

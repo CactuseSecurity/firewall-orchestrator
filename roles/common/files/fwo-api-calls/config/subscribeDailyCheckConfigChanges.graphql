@@ -20,10 +20,12 @@
     {config_key: {_eq: "emailServerAddress"}},
     {config_key: {_eq: "emailSenderAddress"}},
     {config_key: {_eq: "emailPassword"}},
+    {config_key: {_eq: "notificationLanguage"}},
     {config_key: {_eq: "maxImportDuration"}},
     {config_key: {_eq: "maxImportInterval"}},
     {config_key: {_eq: "modUnansweredReqEmailBody"}},
     {config_key: {_eq: "ruleExpiryEmailBody"}},
+    {config_key: {_eq: "ownerActiveRuleEmailBody"}},
     {config_key: {_eq: "ruleExpiryInitiatorKeys"}}
   ]}){
     config_key

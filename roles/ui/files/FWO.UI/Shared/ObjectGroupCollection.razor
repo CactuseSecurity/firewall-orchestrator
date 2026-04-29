@@ -5,11 +5,11 @@
 
 @if (Data != null && NameExtractor != null)
 {
-    @foreach (InputDataType content in Data)
+    @foreach (var contentEntry in Data.Select((content, index) => new { content, index }))
     {
         <ObjectGroup PageSize="PageSize" FetchObjects="FetchObjects" Recert="Recert" Tab="Tab" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed"
-            InputDataType="InputDataType" Content="content" NameExtractor="NameExtractor" NetworkObjectExtractor="NetworkObjectExtractor"
-            NetworkServiceExtractor="NetworkServiceExtractor" NetworkUserExtractor="NetworkUserExtractor" @key="GetContentKey(content)" />
+            InputDataType="InputDataType" Content="contentEntry.content" NameExtractor="NameExtractor" NetworkObjectExtractor="NetworkObjectExtractor"
+            NetworkServiceExtractor="NetworkServiceExtractor" NetworkUserExtractor="NetworkUserExtractor" @key="GetContentKey(contentEntry.content, contentEntry.index)" />
         <div class="mb-1"></div>
     }
 }
@@ -50,21 +50,21 @@
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>>? NetworkUserExtractor { get; set; }
 
-    private object GetContentKey(InputDataType? content)
+    private object GetContentKey(InputDataType? content, int index)
     {
         if (content == null)
         {
-            return string.Empty;
+            return $"null-{index}";
         }
 
         return content switch
         {
-            ManagementReport managementReport => $"m-{managementReport.Id}",
-            Rule rule => $"r-{rule.Id}",
-            OwnerConnectionReport ownerReport => $"owner-{ownerReport.Owner.Id}",
-            GlobalCommonSvcReport globalReport => $"global-{globalReport.Name}",
-            ConnectionReport connectionReport => $"conn-{connectionReport.Name}",
-            _ => content
+            ManagementReport managementReport => $"m-{managementReport.Id}-{index}",
+            Rule rule => $"r-{rule.Id}-{index}",
+            OwnerConnectionReport ownerReport => $"owner-{ownerReport.Owner.Id}-{index}",
+            GlobalCommonSvcReport globalReport => $"global-{globalReport.Name}-{index}",
+            ConnectionReport connectionReport => $"conn-{connectionReport.Name}-{index}",
+            _ => $"{typeof(InputDataType).Name}-{index}"
         };
     }
 }

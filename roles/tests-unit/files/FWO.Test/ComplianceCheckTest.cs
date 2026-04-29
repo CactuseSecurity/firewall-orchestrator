@@ -162,6 +162,71 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AreRulesCompliant_MultipleMatrixCriteria_AllMatricesAreEvaluated()
+        {
+            await SetUpBasic(setupRelevantManagements: true);
+
+            CompliancePolicy policy = new()
+            {
+                Id = 1,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 101,
+                            Name = "Matrix A",
+                            CriterionType = nameof(CriterionType.Matrix)
+                        }
+                    },
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 102,
+                            Name = "Matrix B",
+                            CriterionType = nameof(CriterionType.Matrix)
+                        }
+                    }
+                ]
+            };
+
+            List<ComplianceNetworkZone> matrixAZones = CreateNetworkZones(true, true, 101);
+            matrixAZones[0].Name = "Matrix A Destination";
+            matrixAZones[1].Name = "Matrix A Source";
+
+            List<ComplianceNetworkZone> matrixBZones = CreateNetworkZones(true, true, 102);
+            matrixBZones[0].Name = "Matrix B Destination";
+            matrixBZones[1].Name = "Matrix B Source";
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix,
+                    Arg.Is<object>(vars => HasCriterionId(vars, 101)))
+                .Returns(matrixAZones);
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix,
+                    Arg.Is<object>(vars => HasCriterionId(vars, 102)))
+                .Returns(matrixBZones);
+
+            Rule violatingRule = CreateSimpleRule(56, sourceHigh: true);
+            violatingRule.Uid = "rule-56";
+
+            bool compliant = await ComplianceCheck.AreRulesCompliant([1], [violatingRule]);
+
+            Assert.That(compliant, Is.False);
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(2));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck.Select(v => v.CriterionId), Is.EquivalentTo(new[] { 101, 102 }));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(v => v.Details.Contains("Matrix A Source")), Is.True);
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(v => v.Details.Contains("Matrix B Source")), Is.True);
+        }
+
+        [Test]
         public async Task CheckRuleCompliance_ForbiddenServiceUidCriterion_RemainsSupported()
         {
             Rule rule = CreateRuleWithService("forbidden-service-uid", "Forbidden Legacy Service", 6, "TCP", 443);
@@ -466,6 +531,12 @@ namespace FWO.Test
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Count == 4, "There should be four violations for this test.");
             Assert.That(Logger.Logmessages.Values.Any(m => m.Contains(BasicSetup)), "Unexpected violations.");
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(violation => violation.Details == ExpectedViolationDetailsAutoCalcFalse));
+        }
+
+        private static bool HasCriterionId(object variables, int expectedCriterionId)
+        {
+            object? criterionId = variables.GetType().GetProperty("criterionId")?.GetValue(variables);
+            return criterionId is int matrixId && matrixId == expectedCriterionId;
         }
 
         #endregion

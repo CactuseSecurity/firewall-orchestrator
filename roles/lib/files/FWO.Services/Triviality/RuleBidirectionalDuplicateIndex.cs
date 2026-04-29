@@ -120,7 +120,7 @@ namespace FWO.Services.Triviality
             return $"ref:{RuntimeHelpers.GetHashCode(rule)}";
         }
     }
-    
+
     internal readonly record struct NetworkObjectSignature(string StartIp, string EndIp);
 
     internal readonly record struct ServiceSignature(int? ProtocolId, int SourcePortStart, int SourcePortEnd, int DestinationPortStart, int DestinationPortEnd);

@@ -37,6 +37,10 @@ namespace FWO.Compliance
         /// Network zones to use for matrix compliance check.
         /// </summary>
         public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];
+        /// <summary>
+        /// Network zones grouped by matrix criterion id for policies containing multiple matrices.
+        /// </summary>
+        private readonly Dictionary<int, List<ComplianceNetworkZone>> _networkZonesByCriterion = [];
 
         /// <summary>
         /// Wraps the static class FWO.Logging.Log to make it accessible for unit tests.
@@ -731,6 +735,7 @@ namespace FWO.Compliance
                 RulesInCheck = [];
                 CurrentViolationsInCheck.Clear();
                 _currentViolations.Clear();
+                _networkZonesByCriterion.Clear();
 
                 // Load data for evaluation.
 
@@ -778,6 +783,8 @@ namespace FWO.Compliance
         /// <param name="resolvedDestinations">Resolved destination objects.</param>
         private async Task<bool> CheckMatrixCompliance(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
         {
+            List<ComplianceNetworkZone> networkZones = GetNetworkZonesForCriterion(criterion);
+
             Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges(resolvedSources);
             Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> tosTask = GetNetworkObjectsWithIpRanges(resolvedDestinations);
 
@@ -785,8 +792,8 @@ namespace FWO.Compliance
 
             bool ruleIsCompliant = true;
 
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(fromsTask.Result);
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tosTask.Result);
+            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(fromsTask.Result, networkZones);
+            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tosTask.Result, networkZones);
 
             Dictionary<ComplianceNetworkZone, List<NetworkObject>> sourceObjectsByZone = MapObjectsByZone(sourceZones);
             Dictionary<ComplianceNetworkZone, List<NetworkObject>> destinationObjectsByZone = MapObjectsByZone(destinationZones);
@@ -1222,16 +1229,26 @@ namespace FWO.Compliance
         /// </summary>
         private async Task LoadNetworkZones()
         {
+            _networkZonesByCriterion.Clear();
+
             if (Policy != null)
             {
-                // ToDo later: work with several matrices?
-                int? matrixId = Policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
-                if (matrixId != null)
+                List<int> matrixIds = [.. Policy.Criteria
+                    .Where(c => c.Content.CriterionType == CriterionType.Matrix.ToString() && c.Content.Id > 0)
+                    .Select(c => c.Content.Id)
+                    .Distinct()];
+
+                foreach (int matrixId in matrixIds)
                 {
                     Logger.TryWriteInfo("Compliance Check", $"Loading network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
-                    NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
-                    Logger.TryWriteInfo("Compliance Check", $"Loaded {NetworkZones.Count} network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
+                    List<ComplianceNetworkZone> networkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                    _networkZonesByCriterion[matrixId] = networkZones;
+                    Logger.TryWriteInfo("Compliance Check", $"Loaded {networkZones.Count} network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
                 }
+
+                NetworkZones = matrixIds.Count > 0 && _networkZonesByCriterion.TryGetValue(matrixIds[0], out List<ComplianceNetworkZone>? firstMatrixZones)
+                    ? firstMatrixZones
+                    : [];
             }
         }
 
@@ -1315,7 +1332,7 @@ namespace FWO.Compliance
         /// Maps previously resolved IP ranges to their matching compliance zones.
         /// </summary>
         /// <param name="inputData">Pairs of network objects and IP ranges.</param>
-        private List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> MapZonesToNetworkObjects(List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> inputData)
+        private List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> MapZonesToNetworkObjects(List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> inputData, List<ComplianceNetworkZone> networkZonesForCriterion)
         {
             List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> map = [];
 
@@ -1325,7 +1342,7 @@ namespace FWO.Compliance
 
                 if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
                 {
-                    List<ComplianceNetworkZone> complianceNetworkZones = NetworkZones.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
+                    List<ComplianceNetworkZone> complianceNetworkZones = networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
 
                     foreach (ComplianceNetworkZone zone in complianceNetworkZones)
                     {
@@ -1339,7 +1356,7 @@ namespace FWO.Compliance
                         continue;
                     }
 
-                    networkZones = DetermineZones(dataItem.ipRanges);
+                    networkZones = DetermineZones(dataItem.ipRanges, networkZonesForCriterion);
                 }
 
                 map.Add((dataItem.networkObject, networkZones));
@@ -1382,8 +1399,9 @@ namespace FWO.Compliance
         /// Finds every compliance zone overlapped by the provided IP ranges (plus implicit internet zone when necessary).
         /// </summary>
         /// <param name="ranges">Ranges to look up.</param>
-        private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges)
+        private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges, List<ComplianceNetworkZone>? networkZonesOverride = null)
         {
+            List<ComplianceNetworkZone> activeNetworkZones = networkZonesOverride ?? NetworkZones;
             List<ComplianceNetworkZone> result = [];
             List<List<IPAddressRange>> unseenIpAddressRanges = [];
 
@@ -1395,7 +1413,7 @@ namespace FWO.Compliance
                 ]);
             }
 
-            foreach (ComplianceNetworkZone zone in NetworkZones.Where(z => z.OverlapExists(ranges, unseenIpAddressRanges)))
+            foreach (ComplianceNetworkZone zone in activeNetworkZones.Where(z => z.OverlapExists(ranges, unseenIpAddressRanges)))
             {
                 result.Add(zone);
             }
@@ -1423,6 +1441,20 @@ namespace FWO.Compliance
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Resolves the matrix zones that belong to the provided criterion.
+        /// </summary>
+        /// <param name="criterion">Matrix criterion whose zones are needed.</param>
+        private List<ComplianceNetworkZone> GetNetworkZonesForCriterion(ComplianceCriterion criterion)
+        {
+            if (criterion.Id > 0 && _networkZonesByCriterion.TryGetValue(criterion.Id, out List<ComplianceNetworkZone>? networkZones))
+            {
+                return networkZones;
+            }
+
+            return NetworkZones;
         }
 
         /// <summary>

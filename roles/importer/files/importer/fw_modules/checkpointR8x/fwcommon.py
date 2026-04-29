@@ -659,17 +659,19 @@ def get_ordered_layer_uids(policy: dict[str, Any], device_config: dict[str, Any]
     """
     Get UIDs of ordered layers for policy of device
     """
-    ordered_layer_uids: list[str] = [policy["uid"]]
-    for target in policy["targets"]:
-        if target["uid"] == device_config["uid"] or target["uid"] == "all":
-            ordered_layer_uids.extend(
-                [
-                    access_layer["uid"]
-                    for access_layer in policy["access-layers"]
-                    if access_layer["domain"] == domain or domain == ""
-                ]
-            )
-    return ordered_layer_uids
+    ordered_layer_uids: list[str] = [policy["uid"]] if "uid" in policy else []
+
+    is_targeted = any(target["uid"] == device_config["uid"] or target["uid"] == "all" for target in policy["targets"])
+    if is_targeted:
+        ordered_layer_uids.extend(
+            [
+                access_layer["uid"]
+                for access_layer in policy["access-layers"]
+                if access_layer["domain"] == domain or domain == ""
+            ]
+        )
+
+    return list(dict.fromkeys(ordered_layer_uids))
 
 
 def get_objects(native_config_dict: dict[str, Any], import_state: ImportState) -> int:

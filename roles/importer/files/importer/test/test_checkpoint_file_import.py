@@ -35,3 +35,18 @@ class TestCheckpointNativeFileImport:
         _, result = fwcommon.get_config(config_in, import_state)
 
         assert result is config_in
+
+    def test_get_ordered_layer_uids_adds_access_layers_once_for_multiple_matching_targets(self):
+        policy = {
+            "uid": "policy-uid",
+            "targets": [{"uid": "device-uid"}, {"uid": "all"}],
+            "access-layers": [
+                {"uid": "layer-1", "domain": "domain-a"},
+                {"uid": "layer-2", "domain": "domain-a"},
+            ],
+        }
+        device_config = {"uid": "device-uid"}
+
+        ordered_layer_uids = fwcommon.get_ordered_layer_uids(policy, device_config, "domain-a")
+
+        assert ordered_layer_uids == ["policy-uid", "layer-1", "layer-2"]

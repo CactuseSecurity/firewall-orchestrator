@@ -30,7 +30,13 @@ fragment ruleDetails on rule {
   rule_installon
   rule_custom_fields
   rule_time
-  rule_times{
+  rule_times(where: {
+    created: { _lte: $import_id_end }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_start } }
+    ]
+  }, order_by:{ time_object: { time_obj_name: asc } }) {
     rule_time_id
     rule_id
     time_obj_id

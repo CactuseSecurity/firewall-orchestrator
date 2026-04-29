@@ -1,5 +1,6 @@
 @using FWO.Data
 @using FWO.Basics
+@using FWO.Config.Api.Data
 @using System.Text.Json
 
 @page "/settings/notifications"
@@ -19,6 +20,19 @@
 @if(configData != null)
 {
     <form onsubmit="return false">
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5721a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("notificationLanguage")):</label>
+            <div class="col-sm-2">
+                <Dropdown ElementType="Language"
+                          ElementToString="@(l => string.IsNullOrWhiteSpace(l.Name) ? userConfig.GetText("useGlobalDefault") : userConfig.GetText(l.Name))"
+                          @bind-SelectedElement="selectedNotificationLanguage"
+                          Elements="NotificationLanguageOptions">
+                    <ElementTemplate Context="language">
+                        @(string.IsNullOrWhiteSpace(language.Name) ? userConfig.GetText("useGlobalDefault") : userConfig.GetText(language.Name))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5721"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleExpiryNotifications")):</label>
             <div class="col-sm-8">
@@ -88,12 +102,18 @@ else
     private List<RuleExpiryInitiatorText> initiatorKeysToAdd = [];
     private List<RuleExpiryInitiatorText> initiatorKeysToDelete = [];
     private RuleExpiryInitiatorText actInitiatorKey = new();
+    private Language selectedNotificationLanguage = new();
+    private IEnumerable<Language> NotificationLanguageOptions => globalConfig.UiLanguages.Prepend(new Language { Name = "" });
+    private bool hasUnknownNotificationLanguageSelection;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
+            hasUnknownNotificationLanguageSelection = !string.IsNullOrWhiteSpace(configData.NotificationLanguage)
+                && globalConfig.UiLanguages.All(language => language.Name != configData.NotificationLanguage);
+            selectedNotificationLanguage = ResolveSelectedNotificationLanguage(configData);
             initiatorKeys = ParseInitiatorKeys(configData.RuleExpiryInitiatorKeys);
         }
         catch (Exception exception)
@@ -150,6 +170,14 @@ else
 
     private void PrepareConfigData()
     {
+        if (!hasUnknownNotificationLanguageSelection && string.IsNullOrWhiteSpace(selectedNotificationLanguage.Name))
+        {
+            configData!.NotificationLanguage = "";
+        }
+        else if (globalConfig.UiLanguages.Any(language => language.Name == selectedNotificationLanguage.Name))
+        {
+            configData!.NotificationLanguage = selectedNotificationLanguage.Name;
+        }
         foreach (RuleExpiryInitiatorText entryToDelete in initiatorKeysToDelete)
         {
             initiatorKeys.Remove(entryToDelete);
@@ -165,6 +193,15 @@ else
             keyTexts[entry.Key.Trim()] = entry.Text.Trim();
         }
         configData!.RuleExpiryInitiatorKeys = JsonSerializer.Serialize(keyTexts);
+    }
+
+    private Language ResolveSelectedNotificationLanguage(ConfigData configData)
+    {
+        if (string.IsNullOrWhiteSpace(configData.NotificationLanguage))
+        {
+            return new Language();
+        }
+        return globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.NotificationLanguage) ?? new Language();
     }
 
     private static List<RuleExpiryInitiatorText> ParseInitiatorKeys(string? serializedKeys)

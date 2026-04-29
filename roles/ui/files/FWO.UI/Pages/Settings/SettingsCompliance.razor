@@ -7,6 +7,7 @@
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
 @using RestSharp
+@using FWO.Logging;
 
 @implements IDisposable
 @inject MiddlewareClient MiddlewareClient
@@ -256,11 +257,13 @@
                     @if (violationsDeleteStatus != null && violationsDeleteStatus.Status == ComplianceCheckExecutionStatus.Succeeded)
                     {
                         <span class="@Icons.Check text-success ms-2 fs-3"></span>
-                    }else if (violationsDeleteStatus != null && violationsDeleteStatus.Status == ComplianceCheckExecutionStatus.Failed)
+                    }
+                    else if (violationsDeleteStatus != null && violationsDeleteStatus.Status == ComplianceCheckExecutionStatus.Failed)
                     {
+                        <span class="@Icons.CrossLarge text-danger ms-2 fs-3"></span>
                         <div class="@GetStatusCssClasses(violationsDeleteStatus.Status) mt-2" role="alert">
                             <div>@violationsDeleteStatus.Message</div>
-                        </div>                        
+                        </div>
                     }
                 </div>
             </div>
@@ -293,8 +296,10 @@
                         @if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Succeeded)
                         {
                             <span class="@Icons.Check text-success ms-2 fs-3"></span>
-                        }else if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Failed)
+                        }
+                        else if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Failed)
                         {
+                            <span class="@Icons.CrossLarge text-danger ms-2 fs-3"></span>
                             <div class="@GetStatusCssClasses(complianceCheckStatus.Status) mt-2" role="alert">
                                 <div>@complianceCheckStatus.Message</div>
                             </div>
@@ -556,8 +561,13 @@ else
                 });
             }
         }
-        catch (OperationCanceledException ex)
+        catch (OperationCanceledException opCancelEx)
         {
+            Log.WriteDebug(userConfig.GetText("H5849"), "Compliance Polling stopped.", opCancelEx.Message);
+        }
+        catch (Exception ex)
+        {
+            Log.WriteError(userConfig.GetText("H5849"), ex.Message, ex);
             DisplayMessageInUi(ex, userConfig.GetText("H5849"), ex.Message, true);
         }
 

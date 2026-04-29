@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 
 @using System.Text.Json.Serialization
 @using FWO.Api.Client.Queries
@@ -88,7 +88,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5455"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("availableReportTypes")):</label>
             <div class="form-group row col-sm-9">
-                @foreach (ReportType type in ReportTypeGroups.AllReportTypes())
+                @foreach (ReportType type in ReportTypeGroups.AllReportTypes().OrderBy(_ => userConfig.GetText(_.ToString())))
                 {
                     <div class="form-group col-sm-3">
                         <input id="cbx_@type.ToString()" type="checkbox" @bind="reportTypesActiveDict[type]" />

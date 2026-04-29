@@ -19,12 +19,7 @@ SELECT '',
             "open_end": false},
         "workflow_filter": {
             "reference_date": "Approved"}}'
-WHERE NOT EXISTS
-(
-    SELECT 1
-    FROM report_template
-    WHERE report_template_name = 'Last Week Approved Tickets'
-);
+ON CONFLICT (report_template_name) DO NOTHING;
 
 
 -- migrate import change notifier to notification service
@@ -38,6 +33,12 @@ WITH imp_change_config AS
     FROM config
     WHERE config_user = 0
       AND config_key IN ('impChangeNotifyRecipients', 'impChangeNotifySubject', 'impChangeNotifyBody', 'impChangeNotifyType')
+),
+import_change_notifications AS
+(
+    SELECT COUNT(*) AS notification_count
+    FROM notification
+    WHERE notification_client = 'ImportChange'
 )
 INSERT INTO notification
 (
@@ -65,8 +66,8 @@ SELECT
     '',
     'None',
     '',
-    CASE WHEN subject = '' THEN 'Import Change Notification' ELSE subject END,
-    CASE WHEN body = '' THEN '@@CONTENT@@' ELSE body || '@@CONTENT@@' END,
+    CASE WHEN LENGTH(subject) = 0 THEN 'Import Change Notification' ELSE subject END,
+    CASE WHEN LENGTH(body) = 0 THEN '@@CONTENT@@' ELSE body || '@@CONTENT@@' END,
     CASE layout_id
         WHEN '1' THEN 'HtmlInBody'
         WHEN '10' THEN 'PdfAsAttachment'
@@ -77,10 +78,7 @@ SELECT
     END,
     'None'
 FROM imp_change_config
-WHERE recipients <> ''
-  AND NOT EXISTS
-  (
-      SELECT 1
-      FROM notification
-      WHERE notification_client = 'ImportChange'
-  );
+CROSS JOIN import_change_notifications
+WHERE recipients IS NOT NULL
+  AND recipients <> ''
+  AND notification_count = 0;

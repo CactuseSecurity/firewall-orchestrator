@@ -211,58 +211,81 @@
         try
         {
             int oldCritId = SelectedCriterion.Id;
-            if (SelectedCriterion.CriterionType == nameof(CriterionType.ForbiddenService))
+            if (!TryPrepareCriterionContent())
             {
-                if (!string.IsNullOrWhiteSpace(GetPendingForbiddenElement()))
-                {
-                    AddForbiddenElement();
-                }
-
-                if(ForbiddenElementsToAdd.Count > 0 || ForbiddenElementsToDelete.Count > 0)
-                {
-                    foreach(var elem in ForbiddenElementsToDelete)
-                    {
-                        ActElements.Remove(elem);
-                    }
-                    ActElements.AddRange(ForbiddenElementsToAdd);
-                }
-                SelectedCriterion.Content = string.Join(",", ActElements);
-            }
-            else if (RequiresTextContent())
-            {
-                if (!TryValidateTextContent(out string content))
-                {
-                    return;
-                }
-
-                SelectedCriterion.Content = content;
-            }
-            else
-            {
-                SelectedCriterion.Content = SupportedCriterionTypes().Contains(SelectedCriterion.CriterionType)
-                    ? ""
-                    : ActContent;
+                return;
             }
 
-            if(!AddMode)
-            {
-                await RemoveCriterion(SelectedCriterion);
-            }
-            await AddCriterion();
-            if(AddMode)
-            {
-                CriteriaList.Add(SelectedCriterion);
-            }
-            else
-            {
-                await UpdateUsingPolicies(oldCritId);
-            }
+            await PersistCriterionAsync(oldCritId);
             Close();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("edit_fix_crit"), "", true);
         }
+    }
+
+    private bool TryPrepareCriterionContent()
+    {
+        if (SelectedCriterion.CriterionType == nameof(CriterionType.ForbiddenService))
+        {
+            PrepareForbiddenServiceContent();
+            return true;
+        }
+
+        if (RequiresTextContent())
+        {
+            if (!TryValidateTextContent(out string content))
+            {
+                return false;
+            }
+
+            SelectedCriterion.Content = content;
+            return true;
+        }
+
+        SelectedCriterion.Content = SupportedCriterionTypes().Contains(SelectedCriterion.CriterionType)
+            ? ""
+            : ActContent;
+        return true;
+    }
+
+    private void PrepareForbiddenServiceContent()
+    {
+        if (!string.IsNullOrWhiteSpace(GetPendingForbiddenElement()))
+        {
+            AddForbiddenElement();
+        }
+
+        if (ForbiddenElementsToAdd.Count > 0 || ForbiddenElementsToDelete.Count > 0)
+        {
+            foreach (string elem in ForbiddenElementsToDelete)
+            {
+                ActElements.Remove(elem);
+            }
+
+            ActElements.AddRange(ForbiddenElementsToAdd);
+        }
+
+        SelectedCriterion.Content = string.Join(",", ActElements);
+    }
+
+    private async Task PersistCriterionAsync(int oldCritId)
+    {
+        if (!AddMode)
+        {
+            await RemoveCriterion(SelectedCriterion);
+        }
+
+        await AddCriterion();
+
+        if (AddMode)
+        {
+            CriteriaList.Add(SelectedCriterion);
+            return;
+        }
+
+        await UpdateUsingPolicies(oldCritId);
     }
 
     private async Task AddCriterion()
@@ -346,13 +369,10 @@
 
             content = minPrefixLength.ToString();
         }
-        else if (SelectedCriterion.CriterionType is nameof(CriterionType.ForbidZonesAsSource) or nameof(CriterionType.ForbidZonesAsDestination))
+        else if (SelectedCriterion.CriterionType is nameof(CriterionType.ForbidZonesAsSource) or nameof(CriterionType.ForbidZonesAsDestination) && string.IsNullOrWhiteSpace(content))
         {
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                DisplayMessageInUi(null, userConfig.GetText("edit_fix_crit"), userConfig.GetText("criterion_error_non_empty_content"), true);
-                return false;
-            }
+            DisplayMessageInUi(null, userConfig.GetText("edit_fix_crit"), userConfig.GetText("criterion_error_non_empty_content"), true); 
+            return false;
         }
 
         return true;

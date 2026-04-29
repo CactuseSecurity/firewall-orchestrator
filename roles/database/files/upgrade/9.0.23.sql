@@ -80,5 +80,5 @@ SELECT
 FROM imp_change_config
 CROSS JOIN import_change_notifications
 WHERE recipients IS NOT NULL
-  AND recipients <> ''
+  AND LENGTH(recipients) > 0
   AND notification_count = 0;

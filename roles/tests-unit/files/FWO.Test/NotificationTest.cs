@@ -166,6 +166,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendNotification_PrepareEmail_UsesContentPlaceholder_WhenPresent()
+        {
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.ImportChange, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = notificationService.Notifications[0];
+            FwoOwner owner = new();
+
+            MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
+            ClassicAssert.IsNotNull(prepareEmail);
+
+            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, "\r\n\r\nMgmt A: 5 changes", owner, null, ""])
+                ?? throw new InvalidOperationException("PrepareEmail returned null task."));
+            FWO.Mail.MailData mailData = await task;
+
+            ClassicAssert.AreEqual("configured import body<br><br>Mgmt A: 5 changes", mailData.Body);
+        }
+
+        [Test]
         public async Task SendNotification_PrepareEmail_IncludesBccRecipients()
         {
             List<UserGroup> ownerGroups = [];
@@ -194,6 +212,35 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendNotification_PrepareEmail_IncludesCcRecipients()
+        {
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.RecipientCc = EmailRecipientOption.OtherAddresses;
+            notification.EmailAddressCc = "cc1@example.com,cc2@example.com";
+            FwoOwner owner = new();
+
+            MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
+            ClassicAssert.IsNotNull(prepareEmail);
+
+            globalConfig.UseDummyEmailAddress = false;
+            try
+            {
+                Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, ""])
+                    ?? throw new InvalidOperationException("PrepareEmail returned null task."));
+                FWO.Mail.MailData mailData = await task;
+
+                CollectionAssert.AreEqual(new[] { "a@b.de" }, mailData.To);
+                CollectionAssert.AreEqual(new[] { "cc1@example.com", "cc2@example.com" }, mailData.Cc);
+            }
+            finally
+            {
+                globalConfig.UseDummyEmailAddress = true;
+            }
+        }
+
+        [Test]
         public async Task SendNotification_PrepareEmail_AllowsNullBccFields()
         {
             List<UserGroup> ownerGroups = [];
@@ -214,6 +261,38 @@ namespace FWO.Test
                 FWO.Mail.MailData mailData = await task;
 
                 ClassicAssert.IsNotNull(mailData.Bcc);
+                ClassicAssert.AreEqual(0, mailData.Bcc.Count);
+            }
+            finally
+            {
+                globalConfig.UseDummyEmailAddress = true;
+            }
+        }
+
+        [Test]
+        public async Task SendNotification_PrepareEmail_UsesToAddresses_WhenCcAndBccAreNotConfigured()
+        {
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.RecipientCc = EmailRecipientOption.None;
+            notification.EmailAddressCc = "cc@example.com";
+            notification.RecipientBcc = EmailRecipientOption.None;
+            notification.EmailAddressBcc = "bcc@example.com";
+            FwoOwner owner = new();
+
+            MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
+            ClassicAssert.IsNotNull(prepareEmail);
+
+            globalConfig.UseDummyEmailAddress = false;
+            try
+            {
+                Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, ""])
+                    ?? throw new InvalidOperationException("PrepareEmail returned null task."));
+                FWO.Mail.MailData mailData = await task;
+
+                CollectionAssert.AreEqual(new[] { "a@b.de" }, mailData.To);
+                ClassicAssert.AreEqual(0, mailData.Cc.Count);
                 ClassicAssert.AreEqual(0, mailData.Bcc.Count);
             }
             finally
@@ -278,6 +357,12 @@ namespace FWO.Test
             ClassicAssert.IsFalse(NotificationDeadline.None.IsAlwaysInPast());
             ClassicAssert.IsFalse(NotificationDeadline.RecertDate.IsAlwaysInPast());
             ClassicAssert.IsFalse(NotificationDeadline.RuleExpiry.IsAlwaysInPast());
+        }
+
+        [Test]
+        public void OfferedDeadlineOptions_ReturnsOnlyNone_ForImportChange()
+        {
+            CollectionAssert.AreEqual(new[] { NotificationDeadline.None }, FwoNotification.OfferedDeadlineOptions(NotificationClient.ImportChange));
         }
 
         [Test]

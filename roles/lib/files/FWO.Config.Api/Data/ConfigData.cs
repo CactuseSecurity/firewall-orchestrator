@@ -82,12 +82,15 @@ namespace FWO.Config.Api.Data
         [JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
         public int FwApiElementsPerFetch { get; set; } = 150;
 
+        [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifyRecipients"), JsonPropertyName("impChangeNotifyRecipients")]
         public string ImpChangeNotifyRecipients { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifySubject"), JsonPropertyName("impChangeNotifySubject")]
         public string ImpChangeNotifySubject { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifyBody"), JsonPropertyName("impChangeNotifyBody")]
         public string ImpChangeNotifyBody { get; set; } = "";
 
@@ -97,6 +100,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("impChangeIncludeObjectChanges"), JsonPropertyName("impChangeIncludeObjectChanges")]
         public bool ImpChangeIncludeObjectChanges { get; set; } = false;
 
+        [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifyType"), JsonPropertyName("impChangeNotifyType")]
         public int ImpChangeNotifyType { get; set; }
 
@@ -505,6 +509,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckRelevantManagements"), JsonPropertyName("complianceCheckRelevantManagements")]
         public string ComplianceCheckRelevantManagements { get; set; } = "";
 
+        [Obsolete("Legacy report scheduler migration data. Use report schedule notifications instead.")]
         [JsonProperty("reportSchedulerConfig"), JsonPropertyName("reportSchedulerConfig")]
         public string ReportSchedulerConfig { get; set; } = "";
 

@@ -393,10 +393,34 @@
 
     public string DisplayNotification(FwoNotification notification)
     {
-        string DisplayedInterval = notification.OffsetBeforeDeadline > 0
-            ? $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline?.ToString() ?? "")}"
-            : $"{notification.RepeatOffsetAfterDeadline} {userConfig.GetText(notification.RepeatIntervalAfterDeadline?.ToString() ?? "")}";
-        return $"{notification.Name}: {DisplayedInterval}: {notification.RecipientTo.ToString()}";
+        List<string> displayParts = [notification.Name];
+        string displayedInterval = DisplayedInterval(notification);
+        if (!string.IsNullOrWhiteSpace(displayedInterval))
+        {
+            displayParts.Add(displayedInterval);
+        }
+        displayParts.Add(userConfig.GetText(notification.RecipientTo.ToString()));
+        return string.Join(": ", displayParts);
+    }
+
+    private string DisplayedInterval(FwoNotification notification)
+    {
+        if (notification.Deadline == NotificationDeadline.None)
+        {
+            return "";
+        }
+
+        if (notification.OffsetBeforeDeadline > 0 && notification.IntervalBeforeDeadline != null)
+        {
+            return $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline.ToString()!)}";
+        }
+
+        if (notification.RepeatOffsetAfterDeadline > 0 && notification.RepeatIntervalAfterDeadline != null)
+        {
+            return $"{notification.RepeatOffsetAfterDeadline} {userConfig.GetText(notification.RepeatIntervalAfterDeadline.ToString()!)}";
+        }
+
+        return "";
     }
 
     private string GetDeleteMessage()

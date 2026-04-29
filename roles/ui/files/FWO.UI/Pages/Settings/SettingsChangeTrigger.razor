@@ -1,5 +1,6 @@
 ﻿@page "/settings/changetrigger"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+@using FWO.Data
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -20,34 +21,8 @@
             <h5>
                 @(userConfig.GetText("change_notification_sub"))
             </h5>
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyType")):</label>
-            <div class="col-sm-2">
-                <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="selectedImpChgNotType" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                Elements="NotificationLayoutGroups.ListWithoutCsv()">
-                    <ElementTemplate Context="type">
-                        @(userConfig.GetText(type.ToString()))
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5487"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyRecipients")):</label>
-            <div class="col-sm-7" data-toggle="tooltip" title="@(userConfig.GetText("U5320"))">
-                <input type="text" @bind="configData!.ImpChangeNotifyRecipients" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5488"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySubject")):</label>
-            <div class="col-sm-7">
-                <input type="text" @bind="configData!.ImpChangeNotifySubject" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5489"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyBody")):</label>
-            <div class="col-sm-7">
-                <textarea rows="6" cols="60" name="text" placeholder=@(userConfig.GetText("impChangeNotifyBody")) @bind="configData!.ImpChangeNotifyBody"></textarea>
-            </div>
-        </div>
+        <EditNotifications Client="NotificationClient.ImportChange" />
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5483"))">
             <label for="cbx_change_notify_active" class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
@@ -122,7 +97,6 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private NotificationLayout selectedImpChgNotType;
     private DateTime impChangeNotifyStartDate = DateTime.Today;
     private DateTime impChangeNotifyStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private DateTime updateRuleOwnerMappingStartDate = DateTime.Today;
@@ -133,7 +107,6 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            selectedImpChgNotType = (NotificationLayout)configData.ImpChangeNotifyType;
             impChangeNotifyStartDate = impChangeNotifyStartTime = configData.ImpChangeNotifyStartAt;
             updateRuleOwnerMappingStartDate = updateRuleOwnerMappingStartTime = configData.UpdateRuleOwnerMappingStartAt;
         }
@@ -149,7 +122,6 @@ else
         {
             if (configData != null)
             {
-                configData.ImpChangeNotifyType = (int)selectedImpChgNotType;
                 configData.ImpChangeNotifyStartAt = impChangeNotifyStartDate.Date.Add(impChangeNotifyStartTime.TimeOfDay);
                 configData.UpdateRuleOwnerMappingStartAt = updateRuleOwnerMappingStartDate.Date.Add(updateRuleOwnerMappingStartTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);

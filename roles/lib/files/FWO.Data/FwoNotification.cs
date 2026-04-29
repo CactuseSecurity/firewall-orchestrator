@@ -146,6 +146,7 @@ namespace FWO.Data
             return client switch
             {
                 NotificationClient.Recertification => [NotificationDeadline.RecertDate],
+                NotificationClient.ImportChange => [NotificationDeadline.None],
                 NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
                 NotificationClient.InterfaceRequest => [NotificationDeadline.RequestDate],
                 NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],

@@ -285,7 +285,7 @@ namespace FWO.Middleware.Server
                 .Replace(Placeholder.APPNAME, owner?.Name ?? "")
                 .Replace(Placeholder.APPID, owner?.ExtAppId ?? "")
                 .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
-            string body = string.IsNullOrEmpty(content) ? notification.EmailBody ?? "" : content;
+            string body = BuildBody(notification, content);
             body = body.Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             if (report != null && notification.Layout == NotificationLayout.HtmlInBody)
@@ -337,6 +337,30 @@ namespace FWO.Middleware.Server
             }
 
             return mailData;
+        }
+
+        private static string BuildBody(FwoNotification notification, string? content)
+        {
+            string notificationBody = notification.EmailBody ?? "";
+            string resolvedContent = ResolveContent(notification, content);
+            if (notificationBody.Contains(Placeholder.CONTENT))
+            {
+                return notificationBody.Replace(Placeholder.CONTENT, resolvedContent);
+            }
+
+            return string.IsNullOrEmpty(resolvedContent) ? notificationBody : resolvedContent;
+        }
+
+        private static string ResolveContent(FwoNotification notification, string? content)
+        {
+            if (string.IsNullOrEmpty(content))
+            {
+                return "";
+            }
+
+            return notification.Layout == NotificationLayout.HtmlInBody
+                ? content.Replace("\r\n", "<br>").Replace("\n", "<br>")
+                : content;
         }
 
         private static string GetBundleGroupKey(FwoNotification notification)

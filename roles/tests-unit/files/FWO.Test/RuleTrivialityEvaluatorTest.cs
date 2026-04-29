@@ -129,7 +129,7 @@ namespace FWO.Test
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("DMZ_ZONE", "10.1.2.3/32", "10.1.2.3/32"))],
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Destination", "10.9.8.7/32", "10.9.8.7/32"))]);
 
-            TrivialityCheckResult result = _evaluator.EvaluateForbidZonesAsSourceCriterion(rule);
+            TrivialityCheckResult result = _evaluator.EvaluateForbidNamesAsSourceCriterion(rule, "zone");
 
             ClassicAssert.IsFalse(result.IsTrivial);
             ClassicAssert.AreEqual(RuleTrivialityEvaluator.ForbidZonesAsSourceReason, result.Reason);
@@ -142,7 +142,7 @@ namespace FWO.Test
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Source", "10.1.2.3/32", "10.1.2.3/32"))],
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("INTERN_ZONE", "10.9.8.7/32", "10.9.8.7/32"))]);
 
-            TrivialityCheckResult result = _evaluator.EvaluateForbidZonesAsDestinationCriterion(rule);
+            TrivialityCheckResult result = _evaluator.EvaluateForbidNamesAsDestinationCriterion(rule, "zone");
 
             ClassicAssert.IsFalse(result.IsTrivial);
             ClassicAssert.AreEqual(RuleTrivialityEvaluator.ForbidZonesAsDestinationReason, result.Reason);
@@ -156,7 +156,7 @@ namespace FWO.Test
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateGroup("Group", zoneMember))],
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Destination", "10.1.2.3/32", "10.1.2.3/32"))]);
 
-            TrivialityCheckResult result = _evaluator.EvaluateForbidZonesAsSourceCriterion(rule);
+            TrivialityCheckResult result = _evaluator.EvaluateForbidNamesAsSourceCriterion(rule, "zone");
 
             ClassicAssert.IsFalse(result.IsTrivial);
             ClassicAssert.AreEqual(RuleTrivialityEvaluator.ForbidZonesAsSourceReason, result.Reason);
@@ -170,7 +170,7 @@ namespace FWO.Test
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Source", "10.1.2.3/32", "10.1.2.3/32"))],
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateGroup("Group", zoneMember))]);
 
-            TrivialityCheckResult result = _evaluator.EvaluateForbidZonesAsDestinationCriterion(rule);
+            TrivialityCheckResult result = _evaluator.EvaluateForbidNamesAsDestinationCriterion(rule, "zone");
 
             ClassicAssert.IsFalse(result.IsTrivial);
             ClassicAssert.AreEqual(RuleTrivialityEvaluator.ForbidZonesAsDestinationReason, result.Reason);
@@ -183,7 +183,7 @@ namespace FWO.Test
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Source", "10.1.2.3/32", "10.1.2.3/32"))],
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Destination", "10.9.8.7/32", "10.9.8.7/32"))]);
 
-            TrivialityCheckResult result = _evaluator.EvaluateForbidZonesAsSourceCriterion(rule);
+            TrivialityCheckResult result = _evaluator.EvaluateForbidNamesAsSourceCriterion(rule, "zone");
 
             ClassicAssert.IsTrue(result.IsTrivial);
             ClassicAssert.AreEqual(string.Empty, result.Reason);
@@ -196,7 +196,7 @@ namespace FWO.Test
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Source", "10.1.2.3/32", "10.1.2.3/32"))],
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Destination", "10.9.8.7/32", "10.9.8.7/32"))]);
 
-            TrivialityCheckResult result = _evaluator.EvaluateForbidZonesAsDestinationCriterion(rule);
+            TrivialityCheckResult result = _evaluator.EvaluateForbidNamesAsDestinationCriterion(rule, "zone");
 
             ClassicAssert.IsTrue(result.IsTrivial);
             ClassicAssert.AreEqual(string.Empty, result.Reason);

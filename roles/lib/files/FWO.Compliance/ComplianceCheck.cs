@@ -850,12 +850,22 @@ namespace FWO.Compliance
                     break;
 
                 case nameof(CriterionType.ForbidZonesAsSource):
-                    result = _ruleTrivialityEvaluator.EvaluateForbidZonesAsSourceCriterion(rule);
+                    if (!TryGetNonEmptyCriterionContent(criterion, out string sourceObjectToken))
+                    {
+                        return true;
+                    }
+
+                    result = _ruleTrivialityEvaluator.EvaluateForbidNamesAsSourceCriterion(rule, sourceObjectToken);
                     violationType = ComplianceViolationType.ZoneObjectSourceViolation;
                     break;
 
                 case nameof(CriterionType.ForbidZonesAsDestination):
-                    result = _ruleTrivialityEvaluator.EvaluateForbidZonesAsDestinationCriterion(rule);
+                    if (!TryGetNonEmptyCriterionContent(criterion, out string destinationObjectToken))
+                    {
+                        return true;
+                    }
+
+                    result = _ruleTrivialityEvaluator.EvaluateForbidNamesAsDestinationCriterion(rule, destinationObjectToken);
                     violationType = ComplianceViolationType.ZoneObjectDestinationViolation;
                     break;
 
@@ -901,9 +911,9 @@ namespace FWO.Compliance
                 RuleTrivialityEvaluator.MinimumCIDRLengthReason =>
                     $"{_userConfig.GetText("minimum_cidr_length_violation")}: {_userConfig.GetText("criterion_value")} {criterion.Content}",
                 RuleTrivialityEvaluator.ForbidZonesAsSourceReason =>
-                    $"{_userConfig.GetText("zone_object_source_violation")}: {rule.Uid}",
+                    $"{_userConfig.GetText("zone_object_source_violation")}: {rule.Uid}; {_userConfig.GetText("criterion_value")} {criterion.Content}",
                 RuleTrivialityEvaluator.ForbidZonesAsDestinationReason =>
-                    $"{_userConfig.GetText("zone_object_destination_violation")}: {rule.Uid}",
+                    $"{_userConfig.GetText("zone_object_destination_violation")}: {rule.Uid}; {_userConfig.GetText("criterion_value")} {criterion.Content}",
                 RuleTrivialityEvaluator.ForbidBidirectionalDuplicateReason =>
                     $"{_userConfig.GetText("bidirectional_duplicate_violation")}: {rule.Uid}",
                 RuleTrivialityEvaluator.Ipv6NotSupportedReason =>
@@ -1455,6 +1465,24 @@ namespace FWO.Compliance
             }
 
             return NetworkZones;
+        }
+
+        /// <summary>
+        /// Returns the trimmed string content for criteria that require a non-empty content field.
+        /// </summary>
+        /// <param name="criterion">Criterion whose content should be validated.</param>
+        /// <param name="content">Validated content.</param>
+        private bool TryGetNonEmptyCriterionContent(ComplianceCriterion criterion, out string content)
+        {
+            content = criterion.Content?.Trim() ?? "";
+
+            if (!string.IsNullOrWhiteSpace(content))
+            {
+                return true;
+            }
+
+            Logger.TryWriteError("Compliance Check", $"Criterion {criterion.Id} ({criterion.Name}) has empty content for {criterion.CriterionType}.", true);
+            return false;
         }
 
         /// <summary>

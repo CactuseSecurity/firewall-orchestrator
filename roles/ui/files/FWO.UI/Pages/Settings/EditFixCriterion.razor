@@ -316,7 +316,9 @@
 
     private bool RequiresTextContent()
     {
-        return SelectedCriterion.CriterionType == nameof(CriterionType.MinimumCIDRLength);
+        return SelectedCriterion.CriterionType is nameof(CriterionType.MinimumCIDRLength)
+            or nameof(CriterionType.ForbidZonesAsSource)
+            or nameof(CriterionType.ForbidZonesAsDestination);
     }
 
     private string GetContentHintKey()
@@ -324,6 +326,8 @@
         return SelectedCriterion.CriterionType switch
         {
             nameof(CriterionType.MinimumCIDRLength) => "criterion_hint_minimum_cidr_length",
+            nameof(CriterionType.ForbidZonesAsSource) => "criterion_hint_forbid_source_name",
+            nameof(CriterionType.ForbidZonesAsDestination) => "criterion_hint_forbid_destination_name",
             _ => "criterion_no_content_required"
         };
     }
@@ -341,6 +345,14 @@
             }
 
             content = minPrefixLength.ToString();
+        }
+        else if (SelectedCriterion.CriterionType is nameof(CriterionType.ForbidZonesAsSource) or nameof(CriterionType.ForbidZonesAsDestination))
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_fix_crit"), userConfig.GetText("criterion_error_non_empty_content"), true);
+                return false;
+            }
         }
 
         return true;

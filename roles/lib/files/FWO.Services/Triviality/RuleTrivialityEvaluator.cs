@@ -83,13 +83,14 @@ namespace FWO.Services.Triviality
         }
 
         /// <summary>
-        /// Evaluates whether the rule directly uses a zone object in source.
+        /// Evaluates whether the rule directly uses a source object whose name contains the configured token.
         /// </summary>
-        public TrivialityCheckResult EvaluateForbidZonesAsSourceCriterion(Rule rule)
+        public TrivialityCheckResult EvaluateForbidNamesAsSourceCriterion(Rule rule, string objectNameToken)
         {
-            bool containsZoneObject = RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object)).Any(IsZoneObject);
+            bool containsMatchingObject = RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object))
+                .Any(networkObject => HasNameMatch(networkObject, objectNameToken));
 
-            return containsZoneObject
+            return containsMatchingObject
                 ? new()
                 {
                     IsTrivial = false,
@@ -102,13 +103,14 @@ namespace FWO.Services.Triviality
         }
 
         /// <summary>
-        /// Evaluates whether the rule directly uses a zone object in destination.
+        /// Evaluates whether the rule directly uses a destination object whose name contains the configured token.
         /// </summary>
-        public TrivialityCheckResult EvaluateForbidZonesAsDestinationCriterion(Rule rule)
+        public TrivialityCheckResult EvaluateForbidNamesAsDestinationCriterion(Rule rule, string objectNameToken)
         {
-            bool containsZoneObject = RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object)).Any(IsZoneObject);
+            bool containsMatchingObject = RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object))
+                .Any(networkObject => HasNameMatch(networkObject, objectNameToken));
 
-            return containsZoneObject
+            return containsMatchingObject
                 ? new()
                 {
                     IsTrivial = false,
@@ -120,10 +122,11 @@ namespace FWO.Services.Triviality
                 };
         }
 
-        private static bool IsZoneObject(NetworkObject networkObject)
+        private static bool HasNameMatch(NetworkObject networkObject, string objectNameToken)
         {
-            return !string.IsNullOrWhiteSpace(networkObject.Name)
-                && networkObject.Name.EndsWith("_ZONE", StringComparison.OrdinalIgnoreCase);
+            return !string.IsNullOrWhiteSpace(objectNameToken)
+                && !string.IsNullOrWhiteSpace(networkObject.Name)
+                && networkObject.Name.Contains(objectNameToken, StringComparison.OrdinalIgnoreCase);
         }
     }
 

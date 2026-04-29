@@ -31,7 +31,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void HasReverseDuplicate_ShouldIgnoreManagementDifferences()
+        public void HasReverseDuplicate_ShouldNotMatchAcrossManagements()
         {
             var rule = TrivialityTestHelper.CreateRule(
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Source", "10.1.2.3/32", "10.1.2.3/32"))],
@@ -49,7 +49,7 @@ namespace FWO.Test
 
             RuleBidirectionalDuplicateIndex duplicateIndex = new([rule, reverseRule]);
 
-            ClassicAssert.IsTrue(duplicateIndex.HasReverseDuplicate(rule));
+            ClassicAssert.IsFalse(duplicateIndex.HasReverseDuplicate(rule));
         }
 
         [Test]

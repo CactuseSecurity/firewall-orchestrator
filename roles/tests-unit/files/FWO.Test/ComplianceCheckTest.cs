@@ -364,7 +364,8 @@ namespace FWO.Test
                         {
                             Id = 12,
                             Name = "ForbidZonesAsSource",
-                            CriterionType = nameof(CriterionType.ForbidZonesAsSource)
+                            CriterionType = nameof(CriterionType.ForbidZonesAsSource),
+                            Content = "ZONE"
                         }
                     }
                 ]
@@ -383,6 +384,7 @@ namespace FWO.Test
             Assert.That(compliant, Is.False);
             Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(1));
             Assert.That(ComplianceCheck.CurrentViolationsInCheck[0].Details, Does.Contain("rule-52"));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck[0].Details, Does.Contain("ZONE"));
         }
 
         [Test]
@@ -401,7 +403,8 @@ namespace FWO.Test
                         {
                             Id = 13,
                             Name = "ForbidZonesAsDestination",
-                            CriterionType = nameof(CriterionType.ForbidZonesAsDestination)
+                            CriterionType = nameof(CriterionType.ForbidZonesAsDestination),
+                            Content = "partner"
                         }
                     }
                 ]
@@ -420,6 +423,7 @@ namespace FWO.Test
             Assert.That(compliant, Is.False);
             Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(1));
             Assert.That(ComplianceCheck.CurrentViolationsInCheck[0].Details, Does.Contain("rule-53"));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck[0].Details, Does.Contain("partner"));
         }
 
         [Test]
@@ -473,6 +477,60 @@ namespace FWO.Test
             Assert.That(compliant, Is.False);
             Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(2));
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(v => v.Details.Contains("rule-54")), Is.True);
+        }
+
+        [Test]
+        public async Task AreRulesCompliant_ForbidBidirectionalDuplicateIgnoresOtherManagements_ReturnsTrue()
+        {
+            await SetUpBasic(setupRelevantManagements: true);
+
+            CompliancePolicy policy = new()
+            {
+                Id = 1,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 14,
+                            Name = "ForbidBidirectionalDuplicate",
+                            CriterionType = nameof(CriterionType.ForbidBidirectionalDuplicate)
+                        }
+                    }
+                ]
+            };
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+
+            Rule forwardRule = CreateSimpleRule(154);
+            forwardRule.Uid = "rule-154";
+            forwardRule.MgmtId = 1;
+            forwardRule.Services[0].Content.ProtoId = 6;
+            forwardRule.Services[0].Content.DestinationPort = 443;
+            forwardRule.Services[0].Content.DestinationPortEnd = 443;
+            forwardRule.Services[0].Content.SourcePort = 0;
+            forwardRule.Services[0].Content.SourcePortEnd = 0;
+
+            Rule reverseRuleOtherManagement = CreateSimpleRule(155);
+            reverseRuleOtherManagement.Uid = "rule-155";
+            reverseRuleOtherManagement.MgmtId = 2;
+            reverseRuleOtherManagement.Froms[0].Object.IP = forwardRule.Tos[0].Object.IP;
+            reverseRuleOtherManagement.Froms[0].Object.IpEnd = forwardRule.Tos[0].Object.IpEnd;
+            reverseRuleOtherManagement.Tos[0].Object.IP = forwardRule.Froms[0].Object.IP;
+            reverseRuleOtherManagement.Tos[0].Object.IpEnd = forwardRule.Froms[0].Object.IpEnd;
+            reverseRuleOtherManagement.Services[0].Content.ProtoId = 6;
+            reverseRuleOtherManagement.Services[0].Content.SourcePort = 443;
+            reverseRuleOtherManagement.Services[0].Content.SourcePortEnd = 443;
+            reverseRuleOtherManagement.Services[0].Content.DestinationPort = 0;
+            reverseRuleOtherManagement.Services[0].Content.DestinationPortEnd = 0;
+
+            bool compliant = await ComplianceCheck.AreRulesCompliant([1], [forwardRule, reverseRuleOtherManagement]);
+
+            Assert.That(compliant, Is.True);
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck, Is.Empty);
         }
 
         [Test]

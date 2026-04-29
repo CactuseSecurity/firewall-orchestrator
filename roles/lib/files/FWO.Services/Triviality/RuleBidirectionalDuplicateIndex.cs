@@ -18,6 +18,7 @@ namespace FWO.Services.Triviality
             foreach (Rule rule in rules.Where(IsRelevantRule))
             {
                 RuleDirectionSignature signature = CreateSignature(
+                    rule.MgmtId,
                     rule.Froms.Select(source => source.Object),
                     rule.Tos.Select(destination => destination.Object),
                     rule.Services.Select(service => service.Content),
@@ -40,6 +41,7 @@ namespace FWO.Services.Triviality
             }
 
             RuleDirectionSignature reverseSignature = CreateSignature(
+                rule.MgmtId,
                 rule.Tos.Select(destination => destination.Object),
                 rule.Froms.Select(source => source.Object),
                 rule.Services.Select(service => service.Content),
@@ -59,9 +61,10 @@ namespace FWO.Services.Triviality
             return rule is { Disabled: false, Action: RuleActions.Accept };
         }
 
-        private static RuleDirectionSignature CreateSignature(IEnumerable<NetworkObject> from, IEnumerable<NetworkObject> to, IEnumerable<NetworkService> services, bool reverseServices)
+        private static RuleDirectionSignature CreateSignature(int managementId, IEnumerable<NetworkObject> from, IEnumerable<NetworkObject> to, IEnumerable<NetworkService> services, bool reverseServices)
         {
             return new(
+                managementId,
                 CreateNetworkObjectSetSignature(from),
                 CreateNetworkObjectSetSignature(to),
                 CreateServiceSetSignature(services, reverseServices));
@@ -127,12 +130,14 @@ namespace FWO.Services.Triviality
 
     internal sealed class RuleDirectionSignature : IEquatable<RuleDirectionSignature>
     {
+        public int ManagementId { get; }
         public ImmutableArray<NetworkObjectSignature> Sources { get; }
         public ImmutableArray<NetworkObjectSignature> Destinations { get; }
         public ImmutableArray<ServiceSignature> Services { get; }
 
-        public RuleDirectionSignature(ImmutableArray<NetworkObjectSignature> sources, ImmutableArray<NetworkObjectSignature> destinations, ImmutableArray<ServiceSignature> services)
+        public RuleDirectionSignature(int managementId, ImmutableArray<NetworkObjectSignature> sources, ImmutableArray<NetworkObjectSignature> destinations, ImmutableArray<ServiceSignature> services)
         {
+            ManagementId = managementId;
             Sources = sources;
             Destinations = destinations;
             Services = services;
@@ -141,6 +146,7 @@ namespace FWO.Services.Triviality
         public bool Equals(RuleDirectionSignature? other)
         {
             return other != null
+                   && ManagementId == other.ManagementId
                    && Sources.SequenceEqual(other.Sources)
                    && Destinations.SequenceEqual(other.Destinations)
                    && Services.SequenceEqual(other.Services);
@@ -154,6 +160,8 @@ namespace FWO.Services.Triviality
         public override int GetHashCode()
         {
             HashCode hash = new();
+            hash.Add(ManagementId);
+            hash.Add(0);
 
             foreach (NetworkObjectSignature source in Sources)
             {

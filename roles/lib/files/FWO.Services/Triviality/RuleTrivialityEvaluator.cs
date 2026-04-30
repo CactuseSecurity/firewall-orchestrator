@@ -24,8 +24,8 @@ namespace FWO.Services.Triviality
         {
             List<NetworkObject> ruleObjects =
             [
-                .. RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object)),
-                .. RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object))
+                .. NetworkObject.FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object)),
+                .. NetworkObject.FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object))
             ];
 
             List<NetworkObjectRangeAnalysis> analyses = _rangeAnalyzer.AnalyzeMany(ruleObjects);
@@ -87,7 +87,7 @@ namespace FWO.Services.Triviality
         /// </summary>
         public TrivialityCheckResult EvaluateForbidNamesAsSourceCriterion(Rule rule, string objectNameToken)
         {
-            bool containsMatchingObject = RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object))
+            bool containsMatchingObject = NetworkObject.FlattenRuleNetworkObjects(rule.Froms.Select(source => source.Object))
                 .Any(networkObject => HasNameMatch(networkObject, objectNameToken));
 
             return containsMatchingObject
@@ -107,7 +107,7 @@ namespace FWO.Services.Triviality
         /// </summary>
         public TrivialityCheckResult EvaluateForbidNamesAsDestinationCriterion(Rule rule, string objectNameToken)
         {
-            bool containsMatchingObject = RuleTrivialityNormalization.FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object))
+            bool containsMatchingObject = NetworkObject.FlattenRuleNetworkObjects(rule.Tos.Select(destination => destination.Object))
                 .Any(networkObject => HasNameMatch(networkObject, objectNameToken));
 
             return containsMatchingObject

@@ -73,7 +73,7 @@ namespace FWO.Services.Triviality
         private static ImmutableArray<NetworkObjectSignature> CreateNetworkObjectSetSignature(IEnumerable<NetworkObject> objects)
         {
             return [..
-                RuleTrivialityNormalization.FlattenRuleNetworkObjects(objects)
+                NetworkObject.FlattenRuleNetworkObjects(objects)
                     .Select(obj => new NetworkObjectSignature(obj.IP ?? "", obj.IpEnd ?? ""))
                     .Distinct()
                     .OrderBy(signature => signature.StartIp, StringComparer.Ordinal)
@@ -83,7 +83,7 @@ namespace FWO.Services.Triviality
         private static ImmutableArray<ServiceSignature> CreateServiceSetSignature(IEnumerable<NetworkService> services, bool reverseServices)
         {
             return [..
-                RuleTrivialityNormalization.FlattenRuleServices(services)
+                NetworkService.FlattenRuleServices(services)
                     .Select(service => CreateServiceSignature(service, reverseServices))
                     .Distinct()
                     .OrderBy(signature => signature.ProtocolId ?? -1)

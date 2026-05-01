@@ -5,7 +5,7 @@
 <div class="d-flex flex-column gap-1">
     @if (ShowOwnerResponsibleTypes)
     {
-        @foreach (OwnerResponsibleType ownerResponsibleType in OrderedOwnerResponsibleTypes)
+        @foreach (OwnerResponsibleType ownerResponsibleType in GetOrderedOwnerResponsibleTypes())
         {
             <div class="form-check">
                 <input id="@($"{CheckboxIdPrefix}_ort_{ownerResponsibleType.Id}")" class="form-check-input" type="checkbox"
@@ -72,11 +72,14 @@
 
     private bool ShowOwnerResponsibleTypes => Client == NotificationClient.None || Client.IsModellingRecipientClient();
     private bool ShowEnsureAtLeastOneNotification => ShowOwnerResponsibleTypes;
-    private List<OwnerResponsibleType> OrderedOwnerResponsibleTypes => OwnerResponsibleTypes
+    private List<OwnerResponsibleType> GetOrderedOwnerResponsibleTypes()
+    {
+        return OwnerResponsibleTypes
         .Where(type => type.Active)
         .OrderBy(type => type.SortOrder)
         .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
         .ToList();
+    }
     private string actOtherAddress = "";
 
     private void ToggleOtherAddressSelection(ChangeEventArgs args)

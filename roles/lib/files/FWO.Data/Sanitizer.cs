@@ -5,6 +5,8 @@ namespace FWO.Data
 {
     public class Sanitizer
     {
+        private static readonly TimeSpan kRegexTimeout = TimeSpan.FromSeconds(1);
+
         // Standard input fields
         public static string SanitizeMand(string input, ref bool shortened)
         {
@@ -158,7 +160,7 @@ namespace FWO.Data
 
         public static string SanitizeEmailAddressMand(string input, ref bool shortened)
         {
-            string output = Regex.Replace(input, @"[^\w\.\%\+\-@]", "").Trim();
+            string output = Regex.Replace(input, @"[^\w\.\%\+\-@]", "", RegexOptions.None, kRegexTimeout).Trim();
             if (output.Length < input.Length)
             {
                 shortened = true;

@@ -4,6 +4,8 @@ namespace FWO.Basics
 {
     public static partial class StringExtensions
     {
+        private const int kRegexTimeoutMilliseconds = 1000;
+
         public static string SanitizeMand(this string text)
         {
             bool shortened = false;
@@ -212,7 +214,7 @@ namespace FWO.Basics
         [GeneratedRegex(@"[^a-fA-F0-9\.\:/]")]
         private static partial Regex CidrRegex();
 
-        [GeneratedRegex(@"[^\w\.\%\+\-@]")]
+        [GeneratedRegex(@"[^\w\.\%\+\-@]", RegexOptions.None, kRegexTimeoutMilliseconds)]
         private static partial Regex EmailAddressRegex();
 
         [GeneratedRegex(@"[^\S ]")]

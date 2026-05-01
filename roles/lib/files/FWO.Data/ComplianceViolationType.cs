@@ -6,6 +6,10 @@ namespace FWO.Data
         NotAssessable, // compliance cant be evaluated (e.g. zone internet)
         MatrixViolation,
         ServiceViolation,
+        MinimumCIDRLengthViolation,
+        ZoneObjectSourceViolation,
+        ZoneObjectDestinationViolation,
+        BidirectionalDuplicateViolation,
         MultipleViolations
 
     }

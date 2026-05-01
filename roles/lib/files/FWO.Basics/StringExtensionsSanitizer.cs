@@ -145,6 +145,25 @@ namespace FWO.Basics
             else return null;
         }
 
+        public static string SanitizeEmailAddressMand(this string input, ref bool shortened)
+        {
+            string output = EmailAddressRegex().Replace(input, "").Trim();
+            if (output.Length < input.Length)
+            {
+                shortened = true;
+            }
+            return output;
+        }
+
+        public static string? SanitizeEmailAddressOpt(this string? input, ref bool shortened)
+        {
+            if (input != null)
+            {
+                return input.SanitizeEmailAddressMand(ref shortened);
+            }
+            else return null;
+        }
+
         public static string SanitizeJsonMand(this string input, ref bool shortened)
         {
             string output = JsonRegex().Replace(input, "").Trim();
@@ -192,6 +211,9 @@ namespace FWO.Basics
 
         [GeneratedRegex(@"[^a-fA-F0-9\.\:/]")]
         private static partial Regex CidrRegex();
+
+        [GeneratedRegex(@"[^\w\.\%\+\-@]")]
+        private static partial Regex EmailAddressRegex();
 
         [GeneratedRegex(@"[^\S ]")]
         private static partial Regex JsonRegex();

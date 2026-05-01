@@ -156,6 +156,25 @@ namespace FWO.Data
             else return null;
         }
 
+        public static string SanitizeEmailAddressMand(string input, ref bool shortened)
+        {
+            string output = Regex.Replace(input, @"[^\w\.\%\+\-@]", "").Trim();
+            if (output.Length < input.Length)
+            {
+                shortened = true;
+            }
+            return output;
+        }
+
+        public static string? SanitizeEmailAddressOpt(string? input, ref bool shortened)
+        {
+            if (input != null)
+            {
+                return input.SanitizeEmailAddressMand(ref shortened);
+            }
+            else return null;
+        }
+
         public static string SanitizeJsonMand(string input, ref bool shortened)
         {
             string output = Regex.Replace(input, @"[^\S ]", "").Trim();

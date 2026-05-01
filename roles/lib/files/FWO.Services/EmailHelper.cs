@@ -84,7 +84,7 @@ namespace FWO.Services
         public virtual async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, string recipientConfig, bool reqInCc = false, List<string>? otherAddresses = null)
         {
             List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
-            List<string> recipients = await GetRecipients(ModellingEmailRecipientSelection.Parse(recipientConfig, GetActiveOwnerResponsibleTypeIds()), owner, otherAddresses);
+            List<string> recipients = await GetRecipients(recipientConfig, owner, otherAddresses);
             return await SendEmail(recipients, subject, body, requester);
         }
 
@@ -138,6 +138,7 @@ namespace FWO.Services
                 { EmailRecipientOption.OwnerMainResponsible, () => CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeMain) },
                 { EmailRecipientOption.AllOwnerResponsibles, () => CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles()) },
                 { EmailRecipientOption.OwnerGroupOnly, () => CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting) },
+                { EmailRecipientOption.ConfiguredResponsibles, () => Task.FromResult(new List<string>()) },
                 { EmailRecipientOption.Requester, scopedUserHandler },
                 { EmailRecipientOption.Approver, scopedUserHandler },
                 { EmailRecipientOption.LastCommenter, scopedUserHandler },
@@ -179,7 +180,7 @@ namespace FWO.Services
             return mainResponsibleAddresses;
         }
 
-        private async Task<List<string>> GetRecipients(ModellingEmailRecipientSelection selection, FwoOwner owner, List<string>? otherAddresses)
+        public async Task<List<string>> GetRecipients(EmailRecipientSelection selection, FwoOwner? owner, List<string>? otherAddresses)
         {
             if (!selection.HasAnyRecipientOption())
             {
@@ -188,16 +189,26 @@ namespace FWO.Services
 
             HashSet<string> recipients = new(StringComparer.OrdinalIgnoreCase);
             AddOtherAddresses(selection, otherAddresses, recipients);
-            await AddOwnerTypeRecipients(owner, selection.OwnerResponsibleTypeIds.Distinct(), recipients);
-            await AddFallbackRecipients(selection, owner, recipients);
+            if (owner != null)
+            {
+                await AddOwnerTypeRecipients(owner, selection.OwnerResponsibleTypeIds.Distinct(), recipients);
+                await AddFallbackRecipients(selection, owner, recipients);
+            }
 
             return recipients.ToList();
         }
 
-        private static void AddOtherAddresses(ModellingEmailRecipientSelection selection, List<string>? otherAddresses, HashSet<string> recipients)
+        public async Task<List<string>> GetRecipients(string recipientConfig, FwoOwner? owner, List<string>? otherAddresses)
         {
-            if (selection.OtherAddresses && otherAddresses != null)
+            EmailRecipientSelection selection = EmailRecipientSelection.Parse(recipientConfig, GetActiveOwnerResponsibleTypeIds());
+            return await GetRecipients(selection, owner, otherAddresses);
+        }
+
+        private static void AddOtherAddresses(EmailRecipientSelection selection, List<string>? otherAddresses, HashSet<string> recipients)
+        {
+            if (selection.OtherAddresses)
             {
+                AddAddresses(recipients, selection.OtherAddressList);
                 AddAddresses(recipients, otherAddresses);
             }
         }
@@ -211,7 +222,7 @@ namespace FWO.Services
             }
         }
 
-        private async Task AddFallbackRecipients(ModellingEmailRecipientSelection selection, FwoOwner owner, HashSet<string> recipients)
+        private async Task AddFallbackRecipients(EmailRecipientSelection selection, FwoOwner owner, HashSet<string> recipients)
         {
             if (!selection.EnsureAtLeastOneNotification || recipients.Count > 0)
             {

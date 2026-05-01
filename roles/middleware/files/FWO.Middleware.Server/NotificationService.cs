@@ -415,7 +415,20 @@ namespace FWO.Middleware.Server
             }
 
             List<string> addresses = EmailHelper.SplitAddresses(addressList);
+            if (recipientOption == EmailRecipientOption.ConfiguredResponsibles)
+            {
+                return await emailHelper.GetRecipients(addressList ?? "", owner, null);
+            }
+            if (recipientOption == EmailRecipientOption.OtherAddresses && LooksLikeRecipientSelectionJson(addressList))
+            {
+                return await emailHelper.GetRecipients(addressList ?? "", null, null);
+            }
             return await emailHelper.GetRecipients(recipientOption, null, owner, null, addresses);
+        }
+
+        private static bool LooksLikeRecipientSelectionJson(string? recipientValue)
+        {
+            return recipientValue?.TrimStart().StartsWith('{') == true;
         }
     }
 }

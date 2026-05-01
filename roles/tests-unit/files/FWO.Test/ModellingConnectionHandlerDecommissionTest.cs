@@ -27,6 +27,7 @@ namespace FWO.Test
             DecommissionTestApiConn apiConnection = new();
             SimulatedUserConfig userConfig = new();
             userConfig.ModDecommEmailReceiver = nameof(EmailRecipientOption.OwnerMainResponsible);
+            userConfig.ModDecommEmailOtherAddresses = "extra1@example.test;extra2@example.test";
             userConfig.ModDecommEmailSubject = $"Subject {Placeholder.INTERFACE_NAME}";
             userConfig.ModDecommEmailBody = $"Body {Placeholder.INTERFACE_NAME} {Placeholder.NEW_INTERFACE_NAME} {Placeholder.NEW_INTERFACE_LINK} {Placeholder.REASON} {Placeholder.USER_NAME}";
             userConfig.UiHostName = "https://ui.example.test";
@@ -80,6 +81,8 @@ namespace FWO.Test
             ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains($"<b>{userConfig.User.Name}</b>")));
             ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains($"<b>Planned</b>")));
             ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains($"{userConfig.UiHostName}/{PageName.Modelling}/{proposedInterface.App.ExtAppId}/{proposedInterface.Id}")));
+            ClassicAssert.IsTrue(emailHelper.OtherAddressCalls.All(addresses =>
+                addresses.SequenceEqual(new[] { "extra1@example.test", "extra2@example.test" })));
 
             CollectionAssert.AreEquivalent(new[] { 2, 3 }, apiConnection.AddedPermittedOwnerAppIds);
             CollectionAssert.AreEquivalent(new[] { 2, 3 }, apiConnection.AddedSelectedConnectionAppIds);
@@ -108,6 +111,7 @@ namespace FWO.Test
         {
             public bool InitCalled { get; private set; }
             public List<(FwoOwner Owner, string Subject, string Body, EmailRecipientOption Recipient)> SentEmails { get; } = [];
+            public List<List<string>> OtherAddressCalls { get; } = [];
 
             public TestEmailHelper(UserConfig userConfig)
                 : base(new SimulatedApiConnection(), null, userConfig, DefaultInit.DoNothing)
@@ -128,9 +132,10 @@ namespace FWO.Test
 
             public override Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, string recipientConfig, bool reqInCc = false, List<string>? otherAddresses = null)
             {
-                ModellingEmailRecipientSelection parsedSelection = ModellingEmailRecipientSelection.Parse(recipientConfig);
+                EmailRecipientSelection parsedSelection = EmailRecipientSelection.Parse(recipientConfig);
                 EmailRecipientOption recipient = parsedSelection.None ? EmailRecipientOption.None : EmailRecipientOption.OwnerMainResponsible;
                 SentEmails.Add((owner, subject, body, recipient));
+                OtherAddressCalls.Add(otherAddresses ?? []);
                 return Task.FromResult(true);
             }
         }

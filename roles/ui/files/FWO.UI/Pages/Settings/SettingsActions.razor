@@ -310,7 +310,7 @@
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actEmailActionParams.RecipientTo" 
                                                 ElementToString="@(o => userConfig.GetText(o.ToString()))"
-                                                Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>()">
+                                                Elements="OfferedWorkflowEmailRecipientOptions()">
                                             <ElementTemplate Context="opt">
                                                 @(userConfig.GetText(opt.ToString()))
                                             </ElementTemplate>
@@ -324,7 +324,7 @@
                                     <div class="col-sm-8">
                                         <Dropdown ElementType="EmailRecipientOption?" @bind-SelectedElement="actEmailActionParams.RecipientCC" 
                                                 ElementToString="@(o => userConfig.GetText(o?.ToString() ?? " "))" Nullable="true"
-                                                Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption?>()">
+                                                Elements="OfferedWorkflowEmailRecipientOptions().Select(option => (EmailRecipientOption?)option)">
                                             <ElementTemplate Context="opt">
                                                 @(userConfig.GetText(opt?.ToString() ?? " "))
                                             </ElementTemplate>
@@ -396,6 +396,14 @@ else
     private PathAnalysisActionParams actPathAnalysisParams = new ();
     private EmailActionParams actEmailActionParams = new ();
     private ConditionalAutoPromoteParams actConditionalAutoPromoteParams = new ();
+
+    private static IEnumerable<EmailRecipientOption> OfferedWorkflowEmailRecipientOptions()
+    {
+        return Enum.GetValues(typeof(EmailRecipientOption))
+            .Cast<EmailRecipientOption>()
+            .Where(option => option != EmailRecipientOption.ConfiguredResponsibles);
+    }
+
     private string? selectedPhase;
     private WfTaskType? selectedTaskType;
     private WfState selectedState = new ();

@@ -15,6 +15,32 @@ namespace FWO.Data
         Report = 7
     }
 
+    public static class NotificationClientGroups
+    {
+        /// <summary>
+        /// Returns whether notifications for this client can resolve owner/modelling recipients.
+        /// </summary>
+        /// <param name="client">Notification client to classify.</param>
+        /// <returns>True if modelling recipient options are supported.</returns>
+        public static bool IsModellingRecipientClient(this NotificationClient client)
+        {
+            return client is NotificationClient.Recertification
+                or NotificationClient.InterfaceRequest
+                or NotificationClient.RuleTimer
+                or NotificationClient.AppDecomm;
+        }
+
+        /// <summary>
+        /// Returns whether notifications for this client can resolve workflow ticket recipients.
+        /// </summary>
+        /// <param name="client">Notification client to classify.</param>
+        /// <returns>True if workflow recipient options are supported.</returns>
+        public static bool IsWorkflowRecipientClient(this NotificationClient client)
+        {
+            return false;
+        }
+    }
+
     public enum NotificationChannel
     {
         Email = 1
@@ -55,6 +81,40 @@ namespace FWO.Data
 
     public class FwoNotification
     {
+        public FwoNotification()
+        {
+        }
+
+        public FwoNotification(FwoNotification notification)
+        {
+            Id = notification.Id;
+            NotificationClient = notification.NotificationClient;
+            UserId = notification.UserId;
+            OwnerId = notification.OwnerId;
+            Channel = notification.Channel;
+            Name = notification.Name;
+            RecipientTo = notification.RecipientTo;
+            EmailAddressTo = notification.EmailAddressTo;
+            RecipientCc = notification.RecipientCc;
+            EmailAddressCc = notification.EmailAddressCc;
+            RecipientBcc = notification.RecipientBcc;
+            EmailAddressBcc = notification.EmailAddressBcc;
+            EmailSubject = notification.EmailSubject;
+            EmailBody = notification.EmailBody;
+            ScheduleId = notification.ScheduleId;
+            BundleType = notification.BundleType;
+            BundleId = notification.BundleId;
+            Layout = notification.Layout;
+            Deadline = notification.Deadline;
+            IntervalBeforeDeadline = notification.IntervalBeforeDeadline;
+            OffsetBeforeDeadline = notification.OffsetBeforeDeadline;
+            RepeatIntervalAfterDeadline = notification.RepeatIntervalAfterDeadline;
+            InitialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline;
+            RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline;
+            RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline;
+            LastSent = notification.LastSent;
+        }
+
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 

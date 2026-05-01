@@ -90,5 +90,15 @@ namespace FWO.Data
             return IP == "0.0.0.0/32" && IpEnd == "255.255.255.255/32" ||
                 IP == "::/128" && IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128";
         }
+        
+        public static List<NetworkObject> FlattenRuleNetworkObjects(IEnumerable<NetworkObject> objects)
+        {
+            return objects
+                .SelectMany(obj =>
+                    new[] { obj }
+                        .Concat(obj.ObjectGroupFlats.Select(groupFlat => groupFlat.Object)))
+                .OfType<NetworkObject>()
+                .ToList();
+        }
     }
 }

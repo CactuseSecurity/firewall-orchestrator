@@ -121,6 +121,7 @@ namespace FWO.Test
         public void SyncAddresses_WritesOtherAddressSelections()
         {
             EditNotifications component = new();
+            SetClient(component, NotificationClient.RuleTimer);
             FwoNotification notification = new();
 
             SetPrivateField(component, "actNotification", notification);
@@ -151,6 +152,7 @@ namespace FWO.Test
         public void SyncAddresses_WritesOtherAddressSelectionJson()
         {
             EditNotifications component = new();
+            SetClient(component, NotificationClient.RuleTimer);
             FwoNotification notification = new()
             {
                 RecipientTo = EmailRecipientOption.OtherAddresses
@@ -174,6 +176,7 @@ namespace FWO.Test
         public void SyncAddresses_IgnoresRetainedAddressesWhenOtherAddressesIsUnchecked()
         {
             EditNotifications component = new();
+            SetClient(component, NotificationClient.RuleTimer);
             FwoNotification notification = new();
 
             SetPrivateField(component, "actNotification", notification);
@@ -191,10 +194,65 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SyncAddresses_ForDirectAddressClient_InfersRecipientOptionsFromAddressFields()
+        {
+            EditNotifications component = new();
+            SetClient(component, NotificationClient.ImportChange);
+            FwoNotification notification = new()
+            {
+                EmailAddressTo = "to@example.org",
+                EmailAddressCc = "",
+                EmailAddressBcc = "bcc@example.org"
+            };
+
+            SetPrivateField(component, "actNotification", notification);
+
+            GetPrivateMethod("SyncAddresses").Invoke(component, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(notification.RecipientTo, Is.EqualTo(EmailRecipientOption.OtherAddresses));
+                Assert.That(notification.RecipientCc, Is.EqualTo(EmailRecipientOption.None));
+                Assert.That(notification.RecipientBcc, Is.EqualTo(EmailRecipientOption.OtherAddresses));
+            });
+        }
+
+        [Test]
+        public void SyncAddresses_ForWorkflowClient_KeepsWorkflowRecipientFields()
+        {
+            EditNotifications component = new();
+            SetClient(component, NotificationClient.WfAction);
+            FwoNotification notification = new()
+            {
+                RecipientTo = EmailRecipientOption.CurrentHandler,
+                RecipientCc = EmailRecipientOption.Requester,
+                EmailAddressTo = ""
+            };
+
+            SetPrivateField(component, "actNotification", notification);
+            SetPrivateField(component, "ToRecipientSelection", new EmailRecipientSelection
+            {
+                None = false,
+                OtherAddresses = true,
+                OtherAddressList = ["ignored@example.org"]
+            });
+
+            GetPrivateMethod("SyncAddresses").Invoke(component, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(notification.RecipientTo, Is.EqualTo(EmailRecipientOption.CurrentHandler));
+                Assert.That(notification.RecipientCc, Is.EqualTo(EmailRecipientOption.Requester));
+                Assert.That(notification.EmailAddressTo, Is.Empty);
+            });
+        }
+
+        [Test]
         public void CheckConsistency_ReturnsFalse_WhenEmailSubjectIsMissing()
         {
             EnsureNotificationTranslations();
             EditNotifications component = new();
+            SetClient(component, NotificationClient.RuleTimer);
             SetInjectedUserConfig(component, new SimulatedUserConfig());
             SetPrivateField(component, "actNotification", new FwoNotification
             {
@@ -215,6 +273,7 @@ namespace FWO.Test
         {
             EnsureNotificationTranslations();
             EditNotifications component = new();
+            SetClient(component, NotificationClient.RuleTimer);
             SetInjectedUserConfig(component, new SimulatedUserConfig());
             SetPrivateField(component, "actNotification", new FwoNotification
             {
@@ -241,6 +300,7 @@ namespace FWO.Test
         {
             EnsureNotificationTranslations();
             EditNotifications component = new();
+            SetClient(component, NotificationClient.RuleTimer);
             SetInjectedUserConfig(component, new SimulatedUserConfig());
             SetPrivateField(component, "actNotification", new FwoNotification
             {
@@ -252,6 +312,49 @@ namespace FWO.Test
             {
                 None = false,
                 OtherAddresses = true
+            });
+
+            bool isConsistent = (bool)GetPrivateMethod("CheckConsistency").Invoke(component, null)!;
+
+            Assert.That(isConsistent, Is.False);
+        }
+
+        [Test]
+        public void CheckConsistency_ReturnsTrue_ForValidWorkflowRecipientNotification()
+        {
+            EnsureNotificationTranslations();
+            EditNotifications component = new();
+            SetClient(component, NotificationClient.WfAction);
+            SetInjectedUserConfig(component, new SimulatedUserConfig());
+            SetPrivateField(component, "actNotification", new FwoNotification
+            {
+                Channel = NotificationChannel.Email,
+                EmailSubject = "Subject",
+                RecipientTo = EmailRecipientOption.Requester,
+                RecipientCc = EmailRecipientOption.None,
+                Deadline = NotificationDeadline.None
+            });
+
+            bool isConsistent = (bool)GetPrivateMethod("CheckConsistency").Invoke(component, null)!;
+
+            Assert.That(isConsistent, Is.True);
+        }
+
+        [Test]
+        public void CheckConsistency_ReturnsFalse_ForWorkflowOtherAddressesWithoutAddress()
+        {
+            EnsureNotificationTranslations();
+            EditNotifications component = new();
+            SetClient(component, NotificationClient.WfAction);
+            SetInjectedUserConfig(component, new SimulatedUserConfig());
+            SetPrivateField(component, "actNotification", new FwoNotification
+            {
+                Channel = NotificationChannel.Email,
+                EmailSubject = "Subject",
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "",
+                RecipientCc = EmailRecipientOption.None,
+                Deadline = NotificationDeadline.None
             });
 
             bool isConsistent = (bool)GetPrivateMethod("CheckConsistency").Invoke(component, null)!;
@@ -332,6 +435,7 @@ namespace FWO.Test
         {
             EnsureNotificationTranslations();
             EditNotifications component = new();
+            SetClient(component, NotificationClient.RuleTimer);
             SetInjectedUserConfig(component, new SimulatedUserConfig());
             SetPrivateField(component, "actNotification", new FwoNotification
             {

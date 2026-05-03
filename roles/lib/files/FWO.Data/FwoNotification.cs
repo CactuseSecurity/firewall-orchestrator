@@ -12,7 +12,8 @@ namespace FWO.Data
         InterfaceRequest = 4,
         RuleTimer = 5,
         AppDecomm = 6,
-        Report = 7
+        Report = 7,
+        WfAction = 8
     }
 
     public static class NotificationClientGroups
@@ -37,7 +38,7 @@ namespace FWO.Data
         /// <returns>True if workflow recipient options are supported.</returns>
         public static bool IsWorkflowRecipientClient(this NotificationClient client)
         {
-            return false;
+            return client is NotificationClient.WfAction;
         }
     }
 
@@ -210,6 +211,7 @@ namespace FWO.Data
                 NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
                 NotificationClient.InterfaceRequest => [NotificationDeadline.RequestDate],
                 NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],
+                NotificationClient.WfAction => [NotificationDeadline.None],
                 _ => Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>().ToList()
             };
         }

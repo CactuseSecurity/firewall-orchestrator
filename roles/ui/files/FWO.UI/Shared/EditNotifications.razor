@@ -17,7 +17,7 @@
 <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddNotification" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
 
 <div class="m-2 vheight75">
-    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoNotification" Items="Notifications" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoNotification" Items="DisplayedNotifications" PageSize="0" ColumnReorder="true">
         <Column TableItem="FwoNotification" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -159,29 +159,72 @@
                 </div>
             </div>
 
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4107"))">
-                <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_to")):</label>
-                <div class="col-sm-9">
-                    <EmailRecipientSelectionEditor Selection="@ToRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                        CheckboxIdPrefix="notif_to_resp"
-                        Client="@Client" />
+            @if(Client.IsWorkflowRecipientClient())
+            {
+                <WorkflowEmailRecipientEditor LabelText="@(userConfig.GetText("recipient_to"))"
+                                              @bind-Recipient="actNotification.RecipientTo"
+                                              @bind-AddressValue="actNotification.EmailAddressTo"
+                                              TooltipText="@(userConfig.PureLine("H4107"))" />
+                <WorkflowEmailRecipientEditor LabelText="@(userConfig.GetText("recipient_cc"))"
+                                              @bind-Recipient="actNotification.RecipientCc"
+                                              @bind-AddressValue="actNotification.EmailAddressCc"
+                                              TooltipText="@(userConfig.PureLine("H4108"))"
+                                              RowClass="form-group row mt-2" />
+                <WorkflowEmailRecipientEditor LabelText="@(userConfig.GetText("recipient_bcc"))"
+                                              @bind-Recipient="actNotification.RecipientBcc"
+                                              @bind-AddressValue="actNotification.EmailAddressBcc"
+                                              TooltipText="@(userConfig.PureLine("H4108a"))"
+                                              RowClass="form-group row mt-2" />
+            }
+            else if(Client.IsModellingRecipientClient())
+            {
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4107"))">
+                    <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_to")):</label>
+                    <div class="col-sm-9">
+                        <EmailRecipientSelectionEditor Selection="@ToRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                            CheckboxIdPrefix="notif_to_resp"
+                            Client="@Client" />
+                    </div>
                 </div>
-            </div>
 
-            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4108"))">
-                <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_cc")):</label>
-                <div class="col-sm-9">
-                    <EmailRecipientSelectionEditor Selection="@CcRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                        CheckboxIdPrefix="notif_cc_resp"
-                        Client="@Client" />
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4108"))">
+                    <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_cc")):</label>
+                    <div class="col-sm-9">
+                        <EmailRecipientSelectionEditor Selection="@CcRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                            CheckboxIdPrefix="notif_cc_resp"
+                            Client="@Client" />
+                    </div>
                 </div>
-            </div>
-            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4108a"))">
-                <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_bcc")):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4108a"))">
+                    <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_bcc")):</label>
+                    <div class="col-sm-9">
+                        <EmailRecipientSelectionEditor Selection="@BccRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                            CheckboxIdPrefix="notif_bcc_resp"
+                            Client="@Client" />
+                    </div>
+                </div>
+            }
+            else
+            {
+                <OtherEmailAddressesEditor AddressValue="@actNotification.EmailAddressTo"
+                                           AddressValueChanged="@SetDirectAddressTo"
+                                           TooltipText="@(userConfig.PureLine("H4107"))"
+                                           LabelText="@(userConfig.GetText("recipient_to"))"
+                                           RowClass="form-group row" />
+                <OtherEmailAddressesEditor AddressValue="@actNotification.EmailAddressCc"
+                                           AddressValueChanged="@SetDirectAddressCc"
+                                           TooltipText="@(userConfig.PureLine("H4108"))"
+                                           LabelText="@(userConfig.GetText("recipient_cc"))" />
+                <OtherEmailAddressesEditor AddressValue="@actNotification.EmailAddressBcc"
+                                           AddressValueChanged="@SetDirectAddressBcc"
+                                           TooltipText="@(userConfig.PureLine("H4108a"))"
+                                           LabelText="@(userConfig.GetText("recipient_bcc"))" />
+            }
+
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4107"))">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("email_body")):</label>
                 <div class="col-sm-9">
-                    <EmailRecipientSelectionEditor Selection="@BccRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                        CheckboxIdPrefix="notif_bcc_resp"
-                        Client="@Client" />
+                    <textarea rows="4" class="form-control form-control-sm w-100" @bind="actNotification.EmailBody" />
                 </div>
             </div>
         }
@@ -212,8 +255,17 @@
     [Parameter]
     public NotificationClient Client { get; set; }
 
+    [Parameter]
+    public List<int>? NotificationIds { get; set; }
+
+    [Parameter]
+    public EventCallback<List<int>> NotificationIdsChanged { get; set; }
 
     private List<FwoNotification> Notifications = [];
+    private List<FwoNotification> DisplayedNotifications =>
+        NotificationIds == null
+            ? Notifications
+            : [.. Notifications.Where(notification => NotificationIds.Contains(notification.Id))];
     private FwoNotification actNotification = new();
 
     private List<string> ToAddresses = [];
@@ -324,6 +376,11 @@
 
     private string DisplayRecipient(EmailRecipientOption recipientOption, string? recipientValue)
     {
+        if (recipientOption == EmailRecipientOption.OtherAddresses)
+        {
+            return DisplayOtherAddresses(recipientValue);
+        }
+
         if (recipientOption != EmailRecipientOption.ConfiguredResponsibles)
         {
             return userConfig.GetText(recipientOption.ToString());
@@ -343,6 +400,23 @@
         return selectedTypeNames.Count == 0
             ? userConfig.GetText(recipientOption.ToString())
             : $"{userConfig.GetText(recipientOption.ToString())} ({string.Join(", ", selectedTypeNames)})";
+    }
+
+    private string DisplayOtherAddresses(string? recipientValue)
+    {
+        if (LooksLikeRecipientSelectionJson(recipientValue))
+        {
+            EmailRecipientSelection selection = ParseRecipientSelection(EmailRecipientOption.OtherAddresses, recipientValue, []);
+            if (selection.OtherAddressList.Count > 0)
+            {
+                return string.Join(", ", selection.OtherAddressList);
+            }
+        }
+
+        List<string> addresses = EmailHelper.SplitAddresses(recipientValue ?? "");
+        return addresses.Count == 0
+            ? userConfig.GetText(nameof(EmailRecipientOption.OtherAddresses))
+            : string.Join(", ", addresses);
     }
 
     private string DisplayedInterval(FwoNotification notification)
@@ -544,6 +618,7 @@
                 {
                     actNotification = await NotificationMutationHelper.AddAsync(apiConnection, Client, actNotification);
                     Notifications.Add(actNotification);
+                    await AddNotificationId(actNotification.Id);
                 }
                 else
                 {
@@ -561,6 +636,17 @@
 
     private void SyncAddresses()
     {
+        if (Client.IsWorkflowRecipientClient())
+        {
+            return;
+        }
+        if (!Client.IsModellingRecipientClient())
+        {
+            actNotification.RecipientTo = string.IsNullOrWhiteSpace(actNotification.EmailAddressTo) ? EmailRecipientOption.None : EmailRecipientOption.OtherAddresses;
+            actNotification.RecipientCc = string.IsNullOrWhiteSpace(actNotification.EmailAddressCc) ? EmailRecipientOption.None : EmailRecipientOption.OtherAddresses;
+            actNotification.RecipientBcc = string.IsNullOrWhiteSpace(actNotification.EmailAddressBcc) ? EmailRecipientOption.None : EmailRecipientOption.OtherAddresses;
+            return;
+        }
         (actNotification.RecipientTo, actNotification.EmailAddressTo) = RecipientFieldsFromSelection(ToRecipientSelection, ToAddresses);
         (actNotification.RecipientCc, actNotification.EmailAddressCc) = RecipientFieldsFromSelection(CcRecipientSelection, CcAddresses);
         (actNotification.RecipientBcc, actNotification.EmailAddressBcc) = RecipientFieldsFromSelection(BccRecipientSelection, BccAddresses);
@@ -616,7 +702,9 @@
             DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4010"), true);
             return false;
         }
-        if(IsRecipientEmpty(ToRecipientSelection, ToAddresses))
+        if(Client.IsWorkflowRecipientClient() && IsWorkflowRecipientEmpty(actNotification.RecipientTo, actNotification.EmailAddressTo)
+            || Client.IsModellingRecipientClient() && IsRecipientEmpty(ToRecipientSelection, ToAddresses)
+            || !Client.IsWorkflowRecipientClient() && !Client.IsModellingRecipientClient() && EmailHelper.SplitAddresses(actNotification.EmailAddressTo).Count == 0)
         {
             DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4011"), true);
             return false;
@@ -649,17 +737,49 @@
         return !HasEffectiveRecipient(selection, legacyAddresses);
     }
 
+    private static bool IsWorkflowRecipientEmpty(EmailRecipientOption recipientOption, string addresses)
+    {
+        return recipientOption == EmailRecipientOption.None
+            || recipientOption == EmailRecipientOption.OtherAddresses && EmailHelper.SplitAddresses(addresses).Count == 0;
+    }
+
+    private Task SetDirectAddressTo(string addresses)
+    {
+        actNotification.EmailAddressTo = addresses;
+        return Task.CompletedTask;
+    }
+
+    private Task SetDirectAddressCc(string addresses)
+    {
+        actNotification.EmailAddressCc = addresses;
+        return Task.CompletedTask;
+    }
+
+    private Task SetDirectAddressBcc(string addresses)
+    {
+        actNotification.EmailAddressBcc = addresses;
+        return Task.CompletedTask;
+    }
+
     private async Task Delete()
     {
+        int notificationId = actNotification.Id;
+        bool removedReference = false;
         try
         {
-            await NotificationMutationHelper.DeleteAsync(apiConnection, actNotification.Id);
+            await RemoveNotificationId(notificationId);
+            removedReference = true;
+            await NotificationMutationHelper.DeleteAsync(apiConnection, notificationId);
             Notifications.Remove(actNotification);
             DeleteNotifMode = false;
             StateHasChanged();
         }
         catch (Exception exception)
         {
+            if (removedReference)
+            {
+                await AddNotificationId(notificationId);
+            }
             DisplayMessageInUi(exception, userConfig.GetText("delete_notification"), "", true);
         }
     }
@@ -697,5 +817,25 @@
         EditNotifMode = false;
         DeleteNotifMode = false;
         ResetNotifMode = false;
+    }
+
+    private async Task AddNotificationId(int notificationId)
+    {
+        if (NotificationIds == null || NotificationIds.Contains(notificationId))
+        {
+            return;
+        }
+        NotificationIds.Add(notificationId);
+        await NotificationIdsChanged.InvokeAsync(NotificationIds);
+    }
+
+    private async Task RemoveNotificationId(int notificationId)
+    {
+        if (NotificationIds == null)
+        {
+            return;
+        }
+        NotificationIds.Remove(notificationId);
+        await NotificationIdsChanged.InvokeAsync(NotificationIds);
     }
 }

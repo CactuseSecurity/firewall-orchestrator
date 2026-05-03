@@ -366,6 +366,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OfferedDeadlineOptions_ReturnsOnlyNone_ForWfAction()
+        {
+            CollectionAssert.AreEqual(new[] { NotificationDeadline.None }, FwoNotification.OfferedDeadlineOptions(NotificationClient.WfAction));
+        }
+
+        [Test]
+        public void NotificationClientGroups_ClassifiesWfActionAsWorkflowRecipientClient()
+        {
+            ClassicAssert.IsTrue(NotificationClient.WfAction.IsWorkflowRecipientClient());
+            ClassicAssert.IsFalse(NotificationClient.WfAction.IsModellingRecipientClient());
+        }
+
+        [Test]
         public void GetNotificationText_UsesConfiguredNotificationLanguage_AndFallsBackToDefaultLanguage()
         {
             globalConfig.DefaultLanguage = "English";

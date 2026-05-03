@@ -63,7 +63,7 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" Size=PopupSize.Large OnClose="() => EditActionMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" Size=PopupSize.Large OnClose="CancelActionPopup">
         <Body>
             @if (EditActionMode)
             {
@@ -304,34 +304,6 @@
                             </div>
                             break;
                         case nameof(StateActionTypes.SendEmail):
-                            <div class="col-sm-4">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("email_to"))*:</label>
-                                    <div class="col-sm-8">
-                                        <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actEmailActionParams.RecipientTo" 
-                                                ElementToString="@(o => userConfig.GetText(o.ToString()))"
-                                                Elements="OfferedWorkflowEmailRecipientOptions()">
-                                            <ElementTemplate Context="opt">
-                                                @(userConfig.GetText(opt.ToString()))
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-4">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("email_cc")):</label>
-                                    <div class="col-sm-8">
-                                        <Dropdown ElementType="EmailRecipientOption?" @bind-SelectedElement="actEmailActionParams.RecipientCC" 
-                                                ElementToString="@(o => userConfig.GetText(o?.ToString() ?? " "))" Nullable="true"
-                                                Elements="OfferedWorkflowEmailRecipientOptions().Select(option => (EmailRecipientOption?)option)">
-                                            <ElementTemplate Context="opt">
-                                                @(userConfig.GetText(opt?.ToString() ?? " "))
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    </div>
-                                </div>
-                            </div>
                             break;
                         default:
                             break;
@@ -339,18 +311,7 @@
                 </div>
                 @if(actAction.ActionType == nameof(StateActionTypes.SendEmail))
                 {
-                    <div class="form-group row col-sm-12 mt-2">
-                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email_subject")):</label>
-                            <input type="text" class="col-sm-10" @bind="actEmailActionParams.Subject" />
-                        </div>
-                    </div>
-                    <div class="form-group row col-sm-12 mt-2">
-                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email_body")):</label>
-                            <textarea rows="4" name="text" class="col-sm-10" @bind="actEmailActionParams.Body" />
-                        </div>
-                    </div>
+                    <EditNotifications Client="NotificationClient.WfAction" NotificationIds="@actActionNotificationIds" NotificationIdsChanged="@SetActionNotificationIds" />
                 }
             }
         </Body>
@@ -394,15 +355,10 @@ else
     private int toState = -1;
     private string message = "";
     private PathAnalysisActionParams actPathAnalysisParams = new ();
-    private EmailActionParams actEmailActionParams = new ();
+    private List<int> actActionNotificationIds = [];
+    private FwoNotification? legacyActionNotification;
+    private WfStateAction persistedActionSnapshot = new ();
     private ConditionalAutoPromoteParams actConditionalAutoPromoteParams = new ();
-
-    private static IEnumerable<EmailRecipientOption> OfferedWorkflowEmailRecipientOptions()
-    {
-        return Enum.GetValues(typeof(EmailRecipientOption))
-            .Cast<EmailRecipientOption>()
-            .Where(option => option != EmailRecipientOption.ConfiguredResponsibles);
-    }
 
     private string? selectedPhase;
     private WfTaskType? selectedTaskType;
@@ -457,9 +413,11 @@ else
     private void EditAction(WfStateAction action)
     {
         actAction = action;
+        persistedActionSnapshot = new WfStateAction(action);
         actApprovalParams = new();
         actPathAnalysisParams = new();
-        actEmailActionParams = new();
+        actActionNotificationIds = [];
+        legacyActionNotification = null;
         actConditionalAutoPromoteParams = new();
         toState = -1;
         message = "";
@@ -509,7 +467,8 @@ else
                     actPathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
                     break;
                 case nameof(StateActionTypes.SendEmail):
-                    actEmailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
+                    EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
+                    SelectActionNotification(emailActionParams);
                     break;
                 default:
                     break;
@@ -561,7 +520,11 @@ else
                     actAction.ExternalParams = JsonSerializer.Serialize(actPathAnalysisParams);
                     break;
                 case nameof(StateActionTypes.SendEmail):
-                    actAction.ExternalParams = JsonSerializer.Serialize(actEmailActionParams);
+                    if (!await TryEnsureSelectedActionNotification())
+                    {
+                        return;
+                    }
+                    actAction.ExternalParams = JsonSerializer.Serialize(new { notification_ids = actActionNotificationIds });
                     break;
                 default:
                     break;
@@ -595,19 +558,7 @@ else
             }
             else
             {
-                var Variables = new
-                {
-                    id = actAction.Id,
-                    name = actAction.Name,
-                    actionType = actAction.ActionType,
-                    scope = actAction.Scope,
-                    taskType = actAction.TaskType,
-                    phase = actAction.Phase,
-                    eventt = actAction.Event,
-                    buttonText = actAction.ButtonText,
-                    externalParameters = actAction.ExternalParams
-                };
-                int udId = (await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateAction, Variables)).UpdatedId;
+                int udId = await UpdateAction(actAction, actAction.ExternalParams);
                 if(udId != actAction.Id)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
@@ -625,8 +576,24 @@ else
         }
     }
 
-    private void Cancel()
+    private void CancelActionPopup()
     {
+        _ = Cancel();
+    }
+
+    private async Task Cancel()
+    {
+        try
+        {
+            if (AddActionMode)
+            {
+                await DeleteActionNotifications(actActionNotificationIds);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_notification"), "", true);
+        }
         EditActionMode = false;
         AddActionMode = false;
         DeleteActionMode = false;
@@ -642,8 +609,10 @@ else
     {
         try
         {
+            List<int> notificationIds = ActionNotificationIds(actAction);
             await apiConnection.SendQueryAsync<object>(RequestQueries.deleteAction, new { id = actAction.Id });
             actions.Remove(actAction);
+            await DeleteActionNotifications(notificationIds);
             DeleteActionMode = false;
         }
         catch (Exception exception)
@@ -651,6 +620,112 @@ else
             DisplayMessageInUi(exception, userConfig.GetText("delete_action"), "", true);
         }
         StateHasChanged();
+    }
+
+    private void SelectActionNotification(EmailActionParams actionParams)
+    {
+        actActionNotificationIds = [.. actionParams.NotificationIds.Where(id => id > 0).Distinct()];
+        if (actActionNotificationIds.Count > 0)
+        {
+            return;
+        }
+
+        legacyActionNotification = actionParams.ToNotification();
+    }
+
+    private async Task<bool> TryEnsureSelectedActionNotification()
+    {
+        if (actActionNotificationIds.Count > 0)
+        {
+            return true;
+        }
+
+        if (legacyActionNotification != null && !string.IsNullOrWhiteSpace(legacyActionNotification.EmailSubject))
+        {
+            legacyActionNotification.NotificationClient = NotificationClient.WfAction;
+            legacyActionNotification.Channel = NotificationChannel.Email;
+            legacyActionNotification.Deadline = NotificationDeadline.None;
+            if (string.IsNullOrWhiteSpace(legacyActionNotification.Name))
+            {
+                legacyActionNotification.Name = actAction.Name;
+            }
+
+            FwoNotification savedNotification = await NotificationMutationHelper.AddAsync(apiConnection, NotificationClient.WfAction, legacyActionNotification);
+            actActionNotificationIds = [savedNotification.Id];
+            return true;
+        }
+
+        DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E4011"), true);
+        return false;
+    }
+
+    private Task SetActionNotificationIds(List<int> notificationIds)
+    {
+        actActionNotificationIds = [.. notificationIds.Distinct()];
+        return PersistActionNotificationIds();
+    }
+
+    private async Task PersistActionNotificationIds()
+    {
+        if (AddActionMode || actAction.Id <= 0 || actAction.ActionType != nameof(StateActionTypes.SendEmail))
+        {
+            return;
+        }
+
+        string externalParams = JsonSerializer.Serialize(new { notification_ids = actActionNotificationIds });
+        int updatedId = await UpdateAction(persistedActionSnapshot, externalParams);
+        if (updatedId != actAction.Id)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+            return;
+        }
+        persistedActionSnapshot.ExternalParams = externalParams;
+        actAction.ExternalParams = externalParams;
+    }
+
+    private async Task<int> UpdateAction(WfStateAction action, string externalParams)
+    {
+        var Variables = new
+        {
+            id = action.Id,
+            name = action.Name,
+            actionType = action.ActionType,
+            scope = action.Scope,
+            taskType = action.TaskType,
+            phase = action.Phase,
+            eventt = action.Event,
+            buttonText = action.ButtonText,
+            externalParameters = externalParams
+        };
+        return (await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateAction, Variables)).UpdatedId;
+    }
+
+    private static List<int> ActionNotificationIds(WfStateAction action)
+    {
+        if (action.ActionType != nameof(StateActionTypes.SendEmail) || string.IsNullOrWhiteSpace(action.ExternalParams))
+        {
+            return [];
+        }
+
+        try
+        {
+            EmailActionParams? actionParams = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams);
+            return actionParams == null
+                ? []
+                : [.. actionParams.NotificationIds.Where(id => id > 0).Distinct()];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private async Task DeleteActionNotifications(IEnumerable<int> notificationIds)
+    {
+        foreach (int notificationId in notificationIds.Where(id => id > 0).Distinct())
+        {
+            await NotificationMutationHelper.DeleteAsync(apiConnection, notificationId);
+        }
     }
 
     private string DisplaySelectableState(WfState state)

@@ -6,9 +6,7 @@ using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Mail;
 using FWO.Middleware.Client;
-using Newtonsoft.Json;
 using System;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using System.Text.RegularExpressions;
 using System.Linq;
@@ -17,21 +15,6 @@ using FWO.Logging;
 
 namespace FWO.Services
 {
-    public class EmailActionParams
-    {
-        [JsonProperty("to"), JsonPropertyName("to")]
-        public EmailRecipientOption RecipientTo { get; set; } = EmailRecipientOption.None;
-
-        [JsonProperty("cc"), JsonPropertyName("cc")]
-        public EmailRecipientOption? RecipientCC { get; set; }
-
-        [JsonProperty("subject"), JsonPropertyName("subject")]
-        public string Subject { get; set; } = "";
-
-        [JsonProperty("body"), JsonPropertyName("body")]
-        public string Body { get; set; } = "";
-    }
-
     public class EmailHelper
     {
         private readonly ApiConnection apiConnection;
@@ -44,6 +27,7 @@ namespace FWO.Services
         private List<UiUser> uiUsers = [];
         private string? ScopedUserTo;
         private string? ScopedUserCc;
+        private string? ScopedUserBcc;
 
 
         public EmailHelper(ApiConnection apiConnection, MiddlewareClient? middlewareClient, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, List<UserGroup>? ownerGroups = null, bool useInMwServer = false)
@@ -56,7 +40,7 @@ namespace FWO.Services
             this.ownerGroups = ownerGroups ?? [];
         }
 
-        public virtual async Task Init(string? scopedUserTo = null, string? scopedUserCc = null)
+        public virtual async Task Init(string? scopedUserTo = null, string? scopedUserCc = null, string? scopedUserBcc = null)
         {
             if (!useInMwServer && middlewareClient != null)
             {
@@ -73,6 +57,7 @@ namespace FWO.Services
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUserEmails);
             ScopedUserTo = scopedUserTo;
             ScopedUserCc = scopedUserCc;
+            ScopedUserBcc = scopedUserBcc;
         }
 
         public virtual async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
@@ -88,19 +73,34 @@ namespace FWO.Services
             return await SendEmail(recipients, subject, body, requester);
         }
 
-        public async Task<bool> SendOwnerEmailFromAction(EmailActionParams emailActionParams, WfStatefulObject statefulObject, FwoOwner? owner)
+        /// <summary>
+        /// Sends an immediate workflow action email using notification recipient fields.
+        /// </summary>
+        public async Task<bool> SendWorkflowActionEmail(FwoNotification notification, WfStatefulObject statefulObject, FwoOwner? owner, string? userGrpDn = null)
         {
-            List<string> tos = await GetRecipients(emailActionParams.RecipientTo, statefulObject, owner, ScopedUserTo, null);
-            List<string>? ccs = emailActionParams.RecipientCC != null ? await GetRecipients((EmailRecipientOption)emailActionParams.RecipientCC, statefulObject, owner, ScopedUserCc, null) : null;
-            return await SendEmail(tos, emailActionParams.Subject, emailActionParams.Body, ccs);
+            List<string> tos = userGrpDn != null
+                ? await CollectEmailAddressesFromUserOrGroup(userGrpDn)
+                : await GetWorkflowActionRecipients(notification.RecipientTo, notification.EmailAddressTo, statefulObject, owner, ScopedUserTo);
+            List<string>? ccs = notification.RecipientCc == EmailRecipientOption.None
+                ? null
+                : await GetWorkflowActionRecipients(notification.RecipientCc, notification.EmailAddressCc, statefulObject, owner, ScopedUserCc);
+            List<string>? bccs = notification.RecipientBcc == EmailRecipientOption.None
+                ? null
+                : await GetWorkflowActionRecipients(notification.RecipientBcc, notification.EmailAddressBcc, statefulObject, owner, ScopedUserBcc);
+            return await SendEmail(tos, notification.EmailSubject, notification.EmailBody, ccs, bccs);
         }
 
-        public async Task<bool> SendUserEmailFromAction(EmailActionParams emailActionParams, WfStatefulObject statefulObject, string userGrpDn)
+        private async Task<List<string>> GetWorkflowActionRecipients(
+            EmailRecipientOption recipientOption,
+            string addressList,
+            WfStatefulObject statefulObject,
+            FwoOwner? owner,
+            string? scopedUser)
         {
-            return await SendEmail(await CollectEmailAddressesFromUserOrGroup(userGrpDn), emailActionParams.Subject, emailActionParams.Body);
+            return await GetRecipients(recipientOption, statefulObject, owner, scopedUser, SplitAddresses(addressList));
         }
 
-        private async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null)
+        private async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null)
         {
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
@@ -110,7 +110,8 @@ namespace FWO.Services
                 return false;
             }
             ccs = ccs?.Where(c => c != "").ToList();
-            return await MailKitMailer.SendAsync(new MailData(tos, subject) { Body = body, Cc = ccs ?? [] }, emailConnection, true, new CancellationToken());
+            bccs = bccs?.Where(bcc => bcc != "").ToList();
+            return await MailKitMailer.SendAsync(new MailData(tos, subject) { Body = body, Cc = ccs ?? [], Bcc = bccs ?? [] }, emailConnection, true, new CancellationToken());
         }
 
         public async Task<List<string>> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser, List<string>? otherAddresses)

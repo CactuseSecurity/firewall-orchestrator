@@ -20,6 +20,7 @@ namespace FWO.Services.Workflow
         private readonly IRequestedRulePolicyChecker? requestedRulePolicyChecker;
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
+        private string? ScopedUserBcc { get; set; } = "";
         public bool DisplayConnectionMode = false;
         public ModellingConnectionHandler? ConnHandler { get; set; }
         private readonly List<UserGroup>? UserGroups = [];
@@ -154,22 +155,45 @@ namespace FWO.Services.Workflow
             try
             {
                 EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
-                await SetScope(statefulObject, scope, emailActionParams);
-                EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, DefaultInit.DoNothing, UserGroups, useInMwServer);
-                await emailHelper.Init(ScopedUserTo, ScopedUserCc);
-                if (owner != null)
+                List<FwoNotification> actionNotifications = await ResolveActionNotifications(emailActionParams);
+                foreach (FwoNotification actionNotification in actionNotifications)
                 {
-                    await emailHelper.SendOwnerEmailFromAction(emailActionParams, statefulObject, owner);
-                }
-                else if (userGrpDn != null)
-                {
-                    await emailHelper.SendUserEmailFromAction(emailActionParams, statefulObject, userGrpDn);
+                    await SetScope(statefulObject, scope, actionNotification);
+                    EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, DefaultInit.DoNothing, UserGroups, useInMwServer);
+                    await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc);
+                    if (owner != null)
+                    {
+                        await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner);
+                    }
+                    else if (userGrpDn != null)
+                    {
+                        await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, null, userGrpDn);
+                    }
                 }
             }
             catch (Exception exc)
             {
                 Log.WriteError("Send Email", $"Could not send email: ", exc);
             }
+        }
+
+        private async Task<List<FwoNotification>> ResolveActionNotifications(EmailActionParams emailActionParams)
+        {
+            List<int> notificationIds = [.. emailActionParams.NotificationIds.Where(id => id > 0).Distinct()];
+            if (notificationIds.Count > 0)
+            {
+                List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications,
+                    new { client = NotificationClient.WfAction.ToString() });
+                List<FwoNotification> actionNotifications = [.. notifications.Where(n => notificationIds.Contains(n.Id))];
+                List<int> missingNotificationIds = [.. notificationIds.Except(actionNotifications.Select(n => n.Id))];
+                if (missingNotificationIds.Count > 0)
+                {
+                    throw new JsonException($"Referenced notification(s) '{string.Join(", ", missingNotificationIds)}' were not found.");
+                }
+                return actionNotifications;
+            }
+
+            return [emailActionParams.ToNotification()];
         }
 
         public async Task UpdateConnectionOwner(FwoOwner? owner, long? ticketId)
@@ -492,42 +516,53 @@ namespace FWO.Services.Workflow
             return stateActions;
         }
 
-        private async Task SetScope(WfStatefulObject statefulObject, WfObjectScopes scope, EmailActionParams? emailActionParams = null)
+        private async Task SetScope(WfStatefulObject statefulObject, WfObjectScopes scope, FwoNotification? notification = null)
         {
+            ScopedUserTo = null;
+            ScopedUserCc = null;
+            ScopedUserBcc = null;
             switch (scope)
             {
                 case WfObjectScopes.Ticket:
                     wfHandler.SetTicketEnv((WfTicket)statefulObject);
-                    SetCommenter(emailActionParams, wfHandler.ActTicket.Comments);
-                    if (emailActionParams?.RecipientTo == EmailRecipientOption.Requester)
+                    SetCommenter(notification, wfHandler.ActTicket.Comments);
+                    if (notification?.RecipientTo == EmailRecipientOption.Requester)
                     {
                         ScopedUserTo = wfHandler.ActTicket.Requester?.Dn;
                     }
-                    if (emailActionParams?.RecipientCC == EmailRecipientOption.Requester)
+                    if (notification?.RecipientCc == EmailRecipientOption.Requester)
                     {
                         ScopedUserCc = wfHandler.ActTicket.Requester?.Dn;
+                    }
+                    if (notification?.RecipientBcc == EmailRecipientOption.Requester)
+                    {
+                        ScopedUserBcc = wfHandler.ActTicket.Requester?.Dn;
                     }
                     break;
                 case WfObjectScopes.RequestTask:
                     wfHandler.SetReqTaskEnv((WfReqTask)statefulObject);
-                    SetCommenter(emailActionParams, wfHandler.ActReqTask.Comments);
+                    SetCommenter(notification, wfHandler.ActReqTask.Comments);
                     break;
                 case WfObjectScopes.ImplementationTask:
                     wfHandler.SetImplTaskEnv((WfImplTask)statefulObject);
-                    SetCommenter(emailActionParams, wfHandler.ActImplTask.Comments);
+                    SetCommenter(notification, wfHandler.ActImplTask.Comments);
                     break;
                 case WfObjectScopes.Approval:
                     if (wfHandler.SetReqTaskEnv(((WfApproval)statefulObject).TaskId))
                     {
                         await wfHandler.SetApprovalEnv(null, false);
-                        SetCommenter(emailActionParams, wfHandler.ActApproval.Comments);
-                        if (emailActionParams?.RecipientTo == EmailRecipientOption.Approver)
+                        SetCommenter(notification, wfHandler.ActApproval.Comments);
+                        if (notification?.RecipientTo == EmailRecipientOption.Approver)
                         {
                             ScopedUserTo = wfHandler.ActApproval.ApproverDn;
                         }
-                        if (emailActionParams?.RecipientCC == EmailRecipientOption.Approver)
+                        if (notification?.RecipientCc == EmailRecipientOption.Approver)
                         {
                             ScopedUserCc = wfHandler.ActApproval.ApproverDn;
+                        }
+                        if (notification?.RecipientBcc == EmailRecipientOption.Approver)
+                        {
+                            ScopedUserBcc = wfHandler.ActApproval.ApproverDn;
                         }
                     }
                     break;
@@ -536,10 +571,11 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private void SetCommenter(EmailActionParams? emailActionParams, List<WfCommentDataHelper> comments)
+        private void SetCommenter(FwoNotification? notification, List<WfCommentDataHelper> comments)
         {
-            ScopedUserTo = emailActionParams?.RecipientTo == EmailRecipientOption.LastCommenter ? comments.Last().Comment.Creator.Dn : null;
-            ScopedUserCc = emailActionParams?.RecipientCC == EmailRecipientOption.LastCommenter ? comments.Last().Comment.Creator.Dn : null;
+            ScopedUserTo = notification?.RecipientTo == EmailRecipientOption.LastCommenter ? comments.Last().Comment.Creator.Dn : null;
+            ScopedUserCc = notification?.RecipientCc == EmailRecipientOption.LastCommenter ? comments.Last().Comment.Creator.Dn : null;
+            ScopedUserBcc = notification?.RecipientBcc == EmailRecipientOption.LastCommenter ? comments.Last().Comment.Creator.Dn : null;
         }
     }
 }

@@ -102,5 +102,28 @@ namespace FWO.Test
             Assert.That(recipients, Has.Count.EqualTo(1));
             Assert.That(recipients[0], Is.EqualTo("dummy@example.test"));
         }
+
+        [Test]
+        public void EmailActionParamsCreatesActionNotificationWithoutDeadline()
+        {
+            EmailActionParams actionParams = new()
+            {
+                NotificationIds = [7, 9],
+                RecipientTo = EmailRecipientOption.CurrentHandler,
+                RecipientCC = EmailRecipientOption.Requester,
+                Subject = "subject",
+                Body = "body"
+            };
+
+            FwoNotification notification = actionParams.ToNotification();
+
+            Assert.That(notification.NotificationClient, Is.EqualTo(NotificationClient.WfAction));
+            Assert.That(notification.Deadline, Is.EqualTo(NotificationDeadline.None));
+            Assert.That(notification.RecipientTo, Is.EqualTo(EmailRecipientOption.CurrentHandler));
+            Assert.That(notification.RecipientCc, Is.EqualTo(EmailRecipientOption.Requester));
+            Assert.That(notification.EmailSubject, Is.EqualTo("subject"));
+            Assert.That(notification.EmailBody, Is.EqualTo("body"));
+            Assert.That(actionParams.NotificationIds, Is.EqualTo(new[] { 7, 9 }));
+        }
     }
 }

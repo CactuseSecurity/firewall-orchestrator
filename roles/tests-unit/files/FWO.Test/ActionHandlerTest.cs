@@ -4,9 +4,11 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
+using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 using System.Reflection;
+using System.Text.Json;
 
 namespace FWO.Test
 {
@@ -16,6 +18,7 @@ namespace FWO.Test
         private sealed class ActionHandlerTestApiConn : SimulatedApiConnection
         {
             public List<WfState> States { get; set; } = [];
+            public List<FwoNotification> Notifications { get; set; } = [];
             public List<string> Queries { get; } = [];
             private readonly List<Management> managements = [new() { Id = 1, Name = "Mgmt1" }];
             private readonly List<Rule> rules =
@@ -63,6 +66,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new ReturnIdWrapper());
                 }
+                if (query == NotificationQueries.getNotifications)
+                {
+                    return Task.FromResult((T)(object)Notifications);
+                }
                 if (query == DeviceQueries.getManagementNames)
                 {
                     return Task.FromResult((T)(object)managements);
@@ -92,6 +99,18 @@ namespace FWO.Test
                 PropertyInfo? property = variables?.GetType().GetProperty(propertyName);
                 return property != null ? (TValue)property.GetValue(variables)! : default!;
             }
+        }
+
+        private static MethodInfo GetPrivateMethod(string name)
+        {
+            return typeof(ActionHandler).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ActionHandler).FullName, name);
+        }
+
+        private static string? GetScopedUser(ActionHandler handler, string propertyName)
+        {
+            PropertyInfo? property = typeof(ActionHandler).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance);
+            return property != null ? (string?)property.GetValue(handler) : throw new MissingMemberException(typeof(ActionHandler).FullName, propertyName);
         }
 
         private sealed class ActionHandlerTestPolicyChecker : IRequestedRulePolicyChecker
@@ -146,6 +165,104 @@ namespace FWO.Test
                     new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = $"rule-{id}" }
                 ]
             };
+        }
+
+        [Test]
+        public async Task ResolveActionNotifications_ReturnsInlineNotification_WhenNoNotificationIdsAreConfigured()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            ActionHandler handler = new(apiConn, new WfHandler());
+            EmailActionParams actionParams = new()
+            {
+                RecipientTo = EmailRecipientOption.Requester,
+                RecipientCC = EmailRecipientOption.CurrentHandler,
+                Subject = "subject",
+                Body = "body"
+            };
+
+            Task<List<FwoNotification>> task = (Task<List<FwoNotification>>)GetPrivateMethod("ResolveActionNotifications").Invoke(handler, [actionParams])!;
+            List<FwoNotification> notifications = await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(notifications, Has.Count.EqualTo(1));
+                Assert.That(notifications[0].NotificationClient, Is.EqualTo(NotificationClient.WfAction));
+                Assert.That(notifications[0].RecipientTo, Is.EqualTo(EmailRecipientOption.Requester));
+                Assert.That(apiConn.Queries, Has.No.Member(NotificationQueries.getNotifications));
+            });
+        }
+
+        [Test]
+        public async Task ResolveActionNotifications_LoadsDistinctReferencedWorkflowNotifications()
+        {
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                Notifications =
+                [
+                    new() { Id = 3, NotificationClient = NotificationClient.WfAction, EmailSubject = "third" },
+                    new() { Id = 5, NotificationClient = NotificationClient.WfAction, EmailSubject = "fifth" },
+                    new() { Id = 8, NotificationClient = NotificationClient.WfAction, EmailSubject = "ignored" }
+                ]
+            };
+            ActionHandler handler = new(apiConn, new WfHandler());
+            EmailActionParams actionParams = new()
+            {
+                NotificationIds = [5, 3, 5, 0, -1]
+            };
+
+            Task<List<FwoNotification>> task = (Task<List<FwoNotification>>)GetPrivateMethod("ResolveActionNotifications").Invoke(handler, [actionParams])!;
+            List<FwoNotification> notifications = await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(notifications.Select(notification => notification.Id), Is.EqualTo(new[] { 3, 5 }));
+                Assert.That(apiConn.Queries, Has.Member(NotificationQueries.getNotifications));
+            });
+        }
+
+        [Test]
+        public void ResolveActionNotifications_Throws_WhenReferencedNotificationIsMissing()
+        {
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                Notifications = [new() { Id = 3, NotificationClient = NotificationClient.WfAction }]
+            };
+            ActionHandler handler = new(apiConn, new WfHandler());
+            EmailActionParams actionParams = new()
+            {
+                NotificationIds = [3, 7]
+            };
+
+            Task<List<FwoNotification>> task = (Task<List<FwoNotification>>)GetPrivateMethod("ResolveActionNotifications").Invoke(handler, [actionParams])!;
+
+            JsonException? exception = Assert.ThrowsAsync<JsonException>(async () => await task);
+            Assert.That(exception?.Message, Does.Contain("7"));
+        }
+
+        [Test]
+        public async Task SetScope_SetsRequesterForToCcAndBcc()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
+            WfTicket ticket = new()
+            {
+                Requester = new UiUser { Dn = "uid=requester,ou=users,dc=example,dc=com" }
+            };
+            FwoNotification notification = new()
+            {
+                RecipientTo = EmailRecipientOption.Requester,
+                RecipientCc = EmailRecipientOption.Requester,
+                RecipientBcc = EmailRecipientOption.Requester
+            };
+
+            Task task = (Task)GetPrivateMethod("SetScope").Invoke(handler, [ticket, WfObjectScopes.Ticket, notification])!;
+            await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetScopedUser(handler, "ScopedUserTo"), Is.EqualTo("uid=requester,ou=users,dc=example,dc=com"));
+                Assert.That(GetScopedUser(handler, "ScopedUserCc"), Is.EqualTo("uid=requester,ou=users,dc=example,dc=com"));
+                Assert.That(GetScopedUser(handler, "ScopedUserBcc"), Is.EqualTo("uid=requester,ou=users,dc=example,dc=com"));
+            });
         }
 
         [Test]

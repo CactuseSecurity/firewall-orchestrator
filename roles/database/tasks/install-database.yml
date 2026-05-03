@@ -94,6 +94,7 @@
       - fworch-create-tables-report.sql
       - fworch-create-tables-modelling.sql
       - fworch-create-tables-request.sql
+      - fworch-create-tables-flow.sql
       - fworch-create-tables-compliance.sql
       - fworch-create-constraints.sql
       - fworch-create-foreign-keys.sql

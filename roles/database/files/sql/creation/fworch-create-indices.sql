@@ -118,3 +118,24 @@ Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_c
 
 -- rule_owner
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;
+
+-- flow
+CREATE INDEX IF NOT EXISTS idx_flow_access_hashes ON flow.access (src_hash, dst_hash, svc_hash);
+CREATE INDEX IF NOT EXISTS idx_flow_access_active ON flow.access (src_hash, dst_hash, svc_hash) WHERE state IN ('requested', 'implemented');
+CREATE INDEX IF NOT EXISTS idx_flow_source_nwobj ON flow.source (nwobj_id);
+CREATE INDEX IF NOT EXISTS idx_flow_destination_nwobj ON flow.destination (nwobj_id);
+CREATE INDEX IF NOT EXISTS idx_flow_service_svcobj ON flow.service (svcobj_id);
+CREATE INDEX IF NOT EXISTS idx_flow_timeobj_timeobj ON flow.timeobj (timeobj_id);
+CREATE INDEX IF NOT EXISTS idx_flow_rule_flow_access ON flow.rule_flow_mapping (access_id);
+
+CREATE INDEX IF NOT EXISTS idx_flow_nwobject_mapping_obj ON flow.nwobject_mapping (obj_id);
+CREATE INDEX IF NOT EXISTS idx_flow_nwobject_mapping_mgm ON flow.nwobject_mapping (mgm_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_nwobject_mapping_active_unique ON flow.nwobject_mapping (flow_nwobj_id, mgm_id) WHERE active_on_mgm = true;
+
+CREATE INDEX IF NOT EXISTS idx_flow_svcobject_mapping_svc ON flow.svcobject_mapping (svc_id);
+CREATE INDEX IF NOT EXISTS idx_flow_svcobject_mapping_mgm ON flow.svcobject_mapping (mgm_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_svcobject_mapping_active_unique ON flow.svcobject_mapping (flow_svcobj_id, mgm_id) WHERE active_on_mgm = true;
+
+CREATE INDEX IF NOT EXISTS idx_flow_timeobject_mapping_time_obj ON flow.timeobject_mapping (time_obj_id);
+CREATE INDEX IF NOT EXISTS idx_flow_timeobject_mapping_mgm ON flow.timeobject_mapping (mgm_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_timeobject_mapping_active_unique ON flow.timeobject_mapping (flow_timeobj_id, mgm_id) WHERE active_on_mgm = true;

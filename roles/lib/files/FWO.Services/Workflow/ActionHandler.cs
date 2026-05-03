@@ -526,18 +526,7 @@ namespace FWO.Services.Workflow
                 case WfObjectScopes.Ticket:
                     wfHandler.SetTicketEnv((WfTicket)statefulObject);
                     SetCommenter(notification, wfHandler.ActTicket.Comments);
-                    if (notification?.RecipientTo == EmailRecipientOption.Requester)
-                    {
-                        ScopedUserTo = wfHandler.ActTicket.Requester?.Dn;
-                    }
-                    if (notification?.RecipientCc == EmailRecipientOption.Requester)
-                    {
-                        ScopedUserCc = wfHandler.ActTicket.Requester?.Dn;
-                    }
-                    if (notification?.RecipientBcc == EmailRecipientOption.Requester)
-                    {
-                        ScopedUserBcc = wfHandler.ActTicket.Requester?.Dn;
-                    }
+                    SetScopedRecipients(notification, EmailRecipientOption.Requester, wfHandler.ActTicket.Requester?.Dn);
                     break;
                 case WfObjectScopes.RequestTask:
                     wfHandler.SetReqTaskEnv((WfReqTask)statefulObject);
@@ -552,22 +541,27 @@ namespace FWO.Services.Workflow
                     {
                         await wfHandler.SetApprovalEnv(null, false);
                         SetCommenter(notification, wfHandler.ActApproval.Comments);
-                        if (notification?.RecipientTo == EmailRecipientOption.Approver)
-                        {
-                            ScopedUserTo = wfHandler.ActApproval.ApproverDn;
-                        }
-                        if (notification?.RecipientCc == EmailRecipientOption.Approver)
-                        {
-                            ScopedUserCc = wfHandler.ActApproval.ApproverDn;
-                        }
-                        if (notification?.RecipientBcc == EmailRecipientOption.Approver)
-                        {
-                            ScopedUserBcc = wfHandler.ActApproval.ApproverDn;
-                        }
+                        SetScopedRecipients(notification, EmailRecipientOption.Approver, wfHandler.ActApproval.ApproverDn);
                     }
                     break;
                 default:
                     break;
+            }
+        }
+
+        private void SetScopedRecipients(FwoNotification? notification, EmailRecipientOption recipientOption, string? userDn)
+        {
+            if (notification?.RecipientTo == recipientOption)
+            {
+                ScopedUserTo = userDn;
+            }
+            if (notification?.RecipientCc == recipientOption)
+            {
+                ScopedUserCc = userDn;
+            }
+            if (notification?.RecipientBcc == recipientOption)
+            {
+                ScopedUserBcc = userDn;
             }
         }
 

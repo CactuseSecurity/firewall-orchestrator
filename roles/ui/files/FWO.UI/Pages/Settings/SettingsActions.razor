@@ -489,91 +489,121 @@ else
     {
         try
         {
-            actAction.Phase = selectedPhase != null ? selectedPhase : "";
-            actAction.TaskType = selectedTaskType?.ToString() ?? "";
-            actApprovalParams.StateId = selectedState.Id;
-            actApprovalParams.ApproverGroup = selectedUserGroup != null ? selectedUserGroup.Dn : "";
-            switch(actAction.ActionType)
+            UpdateActionSelections();
+            if (!await TryUpdateExternalParams())
             {
-                case nameof(StateActionTypes.AutoPromote):
-                    if (selectedToState.Id == ConditionalState.Id)
-                    {
-                        actConditionalAutoPromoteParams.ToBeCalled = selectedToBeCalled;
-                        actConditionalAutoPromoteParams.PolicyIds = selectedPolicies.Select(p => p.Id).ToList();
-                        actConditionalAutoPromoteParams.CheckResultLabel = actConditionalAutoPromoteParams.CheckResultLabel?.Trim() ?? "";
-                        actConditionalAutoPromoteParams.IfCompliantState = selectedStateOk.Id;
-                        actConditionalAutoPromoteParams.IfNotCompliantState = selectedStateNotOk.Id;
-                        actAction.ExternalParams = JsonSerializer.Serialize(actConditionalAutoPromoteParams);
-                    }
-                    else
-                    {
-                        actAction.ExternalParams = selectedToState.Id.ToString();
-                    }
-                    break;
-                case nameof(StateActionTypes.AddApproval):
-                    actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
-                    break;
-                case nameof(StateActionTypes.SetAlert):
-                    actAction.ExternalParams = message;
-                    break;
-                case nameof(StateActionTypes.TrafficPathAnalysis):
-                    actAction.ExternalParams = JsonSerializer.Serialize(actPathAnalysisParams);
-                    break;
-                case nameof(StateActionTypes.SendEmail):
-                    if (!await TryEnsureSelectedActionNotification())
-                    {
-                        return;
-                    }
-                    actAction.ExternalParams = JsonSerializer.Serialize(new { notification_ids = actActionNotificationIds });
-                    break;
-                default:
-                    break;
+                return;
             }
 
             if(AddActionMode)
             {
-                var Variables = new
-                {
-                    name = actAction.Name,
-                    actionType = actAction.ActionType,
-                    scope = actAction.Scope,
-                    taskType = actAction.TaskType,
-                    phase = actAction.Phase,
-                    eventt = actAction.Event,
-                    buttonText = actAction.ButtonText,
-                    externalParameters = actAction.ExternalParams
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newAction, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
-                }
-                else
-                {
-                    actAction.Id = returnIds[0].NewId;
-                    actions.Add(actAction);
-                    EditActionMode = false;
-                    AddActionMode = false;
-                }
+                await SaveNewAction();
             }
             else
             {
-                int udId = await UpdateAction(actAction, actAction.ExternalParams);
-                if(udId != actAction.Id)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
-                }
-                else
-                {
-                    actions[actions.FindIndex(x => x.Id == actAction.Id)] = actAction;
-                    EditActionMode = false;
-                }
+                await SaveExistingAction();
             }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_action"), "", true);
         }
+    }
+
+    private void UpdateActionSelections()
+    {
+        actAction.Phase = selectedPhase ?? "";
+        actAction.TaskType = selectedTaskType?.ToString() ?? "";
+        actApprovalParams.StateId = selectedState.Id;
+        actApprovalParams.ApproverGroup = selectedUserGroup?.Dn ?? "";
+    }
+
+    private async Task<bool> TryUpdateExternalParams()
+    {
+        switch(actAction.ActionType)
+        {
+            case nameof(StateActionTypes.AutoPromote):
+                actAction.ExternalParams = AutoPromoteExternalParams();
+                return true;
+            case nameof(StateActionTypes.AddApproval):
+                actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
+                return true;
+            case nameof(StateActionTypes.SetAlert):
+                actAction.ExternalParams = message;
+                return true;
+            case nameof(StateActionTypes.TrafficPathAnalysis):
+                actAction.ExternalParams = JsonSerializer.Serialize(actPathAnalysisParams);
+                return true;
+            case nameof(StateActionTypes.SendEmail):
+                return await TryUpdateEmailExternalParams();
+            default:
+                return true;
+        }
+    }
+
+    private string AutoPromoteExternalParams()
+    {
+        if (selectedToState.Id != ConditionalState.Id)
+        {
+            return selectedToState.Id.ToString();
+        }
+
+        actConditionalAutoPromoteParams.ToBeCalled = selectedToBeCalled;
+        actConditionalAutoPromoteParams.PolicyIds = selectedPolicies.Select(p => p.Id).ToList();
+        actConditionalAutoPromoteParams.CheckResultLabel = actConditionalAutoPromoteParams.CheckResultLabel?.Trim() ?? "";
+        actConditionalAutoPromoteParams.IfCompliantState = selectedStateOk.Id;
+        actConditionalAutoPromoteParams.IfNotCompliantState = selectedStateNotOk.Id;
+        return JsonSerializer.Serialize(actConditionalAutoPromoteParams);
+    }
+
+    private async Task<bool> TryUpdateEmailExternalParams()
+    {
+        if (!await TryEnsureSelectedActionNotification())
+        {
+            return false;
+        }
+
+        actAction.ExternalParams = JsonSerializer.Serialize(new { notification_ids = actActionNotificationIds });
+        return true;
+    }
+
+    private async Task SaveNewAction()
+    {
+        var Variables = new
+        {
+            name = actAction.Name,
+            actionType = actAction.ActionType,
+            scope = actAction.Scope,
+            taskType = actAction.TaskType,
+            phase = actAction.Phase,
+            eventt = actAction.Event,
+            buttonText = actAction.ButtonText,
+            externalParameters = actAction.ExternalParams
+        };
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newAction, Variables)).ReturnIds;
+        if (returnIds == null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+            return;
+        }
+
+        actAction.Id = returnIds[0].NewId;
+        actions.Add(actAction);
+        EditActionMode = false;
+        AddActionMode = false;
+    }
+
+    private async Task SaveExistingAction()
+    {
+        int updatedId = await UpdateAction(actAction, actAction.ExternalParams);
+        if(updatedId != actAction.Id)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
+            return;
+        }
+
+        actions[actions.FindIndex(x => x.Id == actAction.Id)] = actAction;
+        EditActionMode = false;
     }
 
     private void CancelActionPopup()

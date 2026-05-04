@@ -61,6 +61,7 @@ builder.Services.AddQuartzHostedService(options =>
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
 builder.Services.AddSingleton<JobExecutionTracker>();
+builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
 builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();

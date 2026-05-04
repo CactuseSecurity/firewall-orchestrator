@@ -11,7 +11,12 @@ namespace FWO.Data
         ForbiddenService = 10,
         ForbiddenSource = 11,
         ForbiddenDestination = 12,
-        ForbiddenTrack = 13
+        ForbiddenTrack = 13,
+
+        MinimumCIDRLength = 20,
+        ForbidZonesAsSource = 21,
+        ForbidZonesAsDestination = 22,
+        ForbidBidirectionalDuplicate = 23
     }
 
     public class ComplianceCriterion

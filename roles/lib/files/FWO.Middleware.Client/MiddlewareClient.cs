@@ -286,6 +286,18 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
+        public async Task<RestResponse<ComplianceCheckStartResult>> StartComplianceCheck()
+        {
+            RestRequest request = new("Compliance/ComplianceCheck/Start", Method.Post);
+            return await restClient.ExecuteAsync<ComplianceCheckStartResult>(request);
+        }
+
+        public async Task<RestResponse<ComplianceCheckJobStatus>> GetComplianceCheckStatus(string jobId)
+        {
+            RestRequest request = new($"Compliance/ComplianceCheck/Status/{jobId}", Method.Get);
+            return await restClient.ExecuteAsync<ComplianceCheckJobStatus>(request);
+        }
+
         /// <summary>
         /// Get a new token pair
         /// </summary>

@@ -10,36 +10,50 @@ CREATE TABLE IF NOT EXISTS flow.nwobject
     ip_start inet, -- null for e.g. FQDN-based objects
     ip_end inet,
     nwobj_hash varchar(64) NOT NULL UNIQUE,
+    state varchar(32) NOT NULL DEFAULT 'requested',
+    removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
-    CHECK (ip_start <= ip_end)
+    CHECK (ip_start <= ip_end),
+    CHECK (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 
 CREATE TABLE IF NOT EXISTS flow.nwgroup
 (
     nwgroup_id BIGSERIAL PRIMARY KEY,
     name varchar NOT NULL,
-    show_in_request_module boolean NOT NULL DEFAULT FALSE
+    nwgrp_hash varchar(64) NOT NULL UNIQUE,
+    state varchar(32) NOT NULL DEFAULT 'requested',
+    removed_date Timestamp with time zone,
+    show_in_request_module boolean NOT NULL DEFAULT FALSE,
+    CHECK (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 
 CREATE TABLE IF NOT EXISTS flow.svcobject
 (
     svcobj_id BIGSERIAL PRIMARY KEY,
     name varchar NOT NULL,
-    port_start integer,
+    port_start integer, -- null for e.g. icmp-based objects
     port_end integer,
     ip_proto_id integer NOT NULL,
     svcobj_hash varchar(64) NOT NULL UNIQUE,
+    state varchar(32) NOT NULL DEFAULT 'requested',
+    removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
     CHECK (port_start <= port_end),
     CHECK (port_start BETWEEN 0 AND 65535),
-    CHECK (port_end BETWEEN 0 AND 65535)
+    CHECK (port_end BETWEEN 0 AND 65535),
+    CHECK (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 
 CREATE TABLE IF NOT EXISTS flow.svcgroup
 (
     svcgroup_id BIGSERIAL PRIMARY KEY,
     name varchar NOT NULL,
-    show_in_request_module boolean NOT NULL DEFAULT FALSE
+    svcgrp_hash varchar(64) NOT NULL UNIQUE,
+    state varchar(32) NOT NULL DEFAULT 'requested',
+    removed_date Timestamp with time zone,
+    show_in_request_module boolean NOT NULL DEFAULT FALSE,
+    CHECK (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 
 CREATE TABLE IF NOT EXISTS flow.timeobject
@@ -49,8 +63,11 @@ CREATE TABLE IF NOT EXISTS flow.timeobject
     start_time Timestamp with time zone,
     end_time Timestamp with time zone,
     timeobj_hash varchar(64) NOT NULL UNIQUE,
+    state varchar(32) NOT NULL DEFAULT 'requested',
+    removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
-    CHECK (start_time <= end_time)
+    CHECK (start_time <= end_time),
+    CHECK (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 
 CREATE TABLE IF NOT EXISTS flow.access

@@ -12,36 +12,50 @@ create table flow.nwobject
     ip_start inet, -- null for e.g. FQDN-based objects
     ip_end inet,
     nwobj_hash varchar(64) NOT NULL UNIQUE,
+    state varchar(32) NOT NULL DEFAULT 'requested',
+    removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
-    check (ip_start <= ip_end)
+    check (ip_start <= ip_end),
+    check (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 
 create table flow.nwgroup
 (
     nwgroup_id BIGSERIAL PRIMARY KEY,
     name varchar NOT NULL,
-    show_in_request_module boolean NOT NULL DEFAULT FALSE
+    nwgrp_hash varchar(64) NOT NULL UNIQUE,
+    state varchar(32) NOT NULL DEFAULT 'requested',
+    removed_date Timestamp with time zone,
+    show_in_request_module boolean NOT NULL DEFAULT FALSE,
+    check (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 
 create table flow.svcobject
 (
     svcobj_id BIGSERIAL PRIMARY KEY,
     name varchar NOT NULL,
-    port_start integer,
+    port_start integer, -- null for e.g. icmp-based objects
     port_end integer,
     ip_proto_id integer NOT NULL,
     svcobj_hash varchar(64) NOT NULL UNIQUE,
+    state varchar(32) NOT NULL DEFAULT 'requested',
+    removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
     check (port_start <= port_end),
     check (port_start between 0 and 65535),
-    check (port_end between 0 and 65535)
+    check (port_end between 0 and 65535),
+    check (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 
 create table flow.svcgroup
 (
     svcgroup_id BIGSERIAL PRIMARY KEY,
     name varchar NOT NULL,
-    show_in_request_module boolean NOT NULL DEFAULT FALSE
+    svcgrp_hash varchar(64) NOT NULL UNIQUE,
+    state varchar(32) NOT NULL DEFAULT 'requested',
+    removed_date Timestamp with time zone,
+    show_in_request_module boolean NOT NULL DEFAULT FALSE,
+    check (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 
 create table flow.timeobject
@@ -51,8 +65,11 @@ create table flow.timeobject
     start_time Timestamp with time zone,
     end_time Timestamp with time zone,
     timeobj_hash varchar(64) NOT NULL UNIQUE,
+    state varchar(32) NOT NULL DEFAULT 'requested',
+    removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
-    check (start_time <= end_time)
+    check (start_time <= end_time),
+    check (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 
 create table flow.access

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -127,6 +128,18 @@ namespace FWO.Data
         public override int GetHashCode()
         {
             return Id.GetHashCode();
+        }
+        
+        public static List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
+        {
+            return services
+                .SelectMany(service =>
+                    service.Type.Name == ServiceType.Group
+                        ? service.ServiceGroupFlats.Select(groupFlat => groupFlat.Object)
+                        : new[] { service })
+                .OfType<NetworkService>()
+                .Where(service => service.Type.Name != ServiceType.Group)
+                .ToList();
         }
     }
 }

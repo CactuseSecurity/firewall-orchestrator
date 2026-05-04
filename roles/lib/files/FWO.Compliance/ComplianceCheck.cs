@@ -12,6 +12,7 @@ using FWO.Data.Extensions;
 using System.Net;
 using System.Collections.Concurrent;
 using FWO.Services;
+using FWO.Services.Triviality;
 
 namespace FWO.Compliance
 {
@@ -36,6 +37,10 @@ namespace FWO.Compliance
         /// Network zones to use for matrix compliance check.
         /// </summary>
         public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];
+        /// <summary>
+        /// Network zones grouped by matrix criterion id for policies containing multiple matrices.
+        /// </summary>
+        private readonly Dictionary<int, List<ComplianceNetworkZone>> _networkZonesByCriterion = [];
 
         /// <summary>
         /// Wraps the static class FWO.Logging.Log to make it accessible for unit tests.
@@ -102,6 +107,32 @@ namespace FWO.Compliance
         /// Multi-threading helper.
         /// </summary>
         private readonly ParallelProcessor _parallelProcessor;
+        /// <summary>
+        /// Key used to de-duplicate service candidates during forbidden-service evaluation.
+        /// </summary>
+        private readonly record struct ServiceMatchKey(
+            long Id,
+            string Uid,
+            string Name,
+            int? ProtocolId,
+            int? DestinationPort,
+            int? DestinationPortEnd)
+        {
+            public static ServiceMatchKey FromService(NetworkService service)
+            {
+                return new ServiceMatchKey(
+                    service.Id,
+                    service.Uid,
+                    service.Name,
+                    service.ProtoId ?? service.Protocol?.Id,
+                    service.DestinationPort,
+                    service.DestinationPortEnd);
+            }
+        }
+        /// <summary>
+        /// Evaluator for rule-level criteria that are attached to policies.
+        /// </summary>
+        private readonly RuleTrivialityEvaluator _ruleTrivialityEvaluator = new();
 
         #endregion
 
@@ -253,7 +284,10 @@ namespace FWO.Compliance
 
             _parallelProcessor.SetUp(activeRulesCount, _maxDegreeOfParallelism, _elementsPerFetch);
 
-            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds, maxImportId);
+            bool requiresGlobalDuplicateIndex = Policy?.Criteria.Any(c => c.Content.CriterionType == nameof(CriterionType.ForbidBidirectionalDuplicate)) == true;
+            Func<List<Rule>, Task<List<Rule>>>? postProcessAsync = requiresGlobalDuplicateIndex ? null : CalculateCompliance;
+
+            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(RuleQueries.getRulesForSelectedManagements, postProcessAsync, managementIds, maxImportId);
 
             if (chunks == null)
             {
@@ -266,6 +300,11 @@ namespace FWO.Compliance
             List<Rule>? rules = chunks
                 .SelectMany(rule => rule)
                 .ToList();
+
+            if (requiresGlobalDuplicateIndex)
+            {
+                await CalculateCompliance(rules);
+            }
 
             Logger.TryWriteInfo("Compliance Check", $"Loaded {rules.Count} rules.", LocalSettings.ComplianceCheckVerbose);
 
@@ -474,7 +513,7 @@ namespace FWO.Compliance
         /// <param name="rule">Rule whose compliance should be checked.</param>
         /// <param name="criteria">Set of criteria derived from the policy.</param>
         /// <returns>True if the rule is compliant with every criterion.</returns>
-        public async Task<bool> CheckRuleCompliance(Rule rule, IEnumerable<ComplianceCriterion> criteria)
+        public async Task<bool> CheckRuleCompliance(Rule rule, IEnumerable<ComplianceCriterion> criteria, RuleBidirectionalDuplicateIndex? duplicateIndex = null)
         {
             bool ruleIsCompliant = true;
 
@@ -509,6 +548,12 @@ namespace FWO.Compliance
                                 break;
                             case nameof(CriterionType.ForbiddenService):
                                 ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
+                                break;
+                            case nameof(CriterionType.MinimumCIDRLength):
+                            case nameof(CriterionType.ForbidZonesAsSource):
+                            case nameof(CriterionType.ForbidZonesAsDestination):
+                            case nameof(CriterionType.ForbidBidirectionalDuplicate):
+                                ruleIsCompliant &= CheckTrivialityCriterion(rule, criterion, duplicateIndex);
                                 break;
                             default:
                                 break;
@@ -690,6 +735,7 @@ namespace FWO.Compliance
                 RulesInCheck = [];
                 CurrentViolationsInCheck.Clear();
                 _currentViolations.Clear();
+                _networkZonesByCriterion.Clear();
 
                 // Load data for evaluation.
 
@@ -737,6 +783,8 @@ namespace FWO.Compliance
         /// <param name="resolvedDestinations">Resolved destination objects.</param>
         private async Task<bool> CheckMatrixCompliance(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
         {
+            List<ComplianceNetworkZone> networkZones = GetNetworkZonesForCriterion(criterion);
+
             Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges(resolvedSources);
             Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> tosTask = GetNetworkObjectsWithIpRanges(resolvedDestinations);
 
@@ -744,8 +792,8 @@ namespace FWO.Compliance
 
             bool ruleIsCompliant = true;
 
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(fromsTask.Result);
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tosTask.Result);
+            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(fromsTask.Result, networkZones);
+            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tosTask.Result, networkZones);
 
             Dictionary<ComplianceNetworkZone, List<NetworkObject>> sourceObjectsByZone = MapObjectsByZone(sourceZones);
             Dictionary<ComplianceNetworkZone, List<NetworkObject>> destinationObjectsByZone = MapObjectsByZone(destinationZones);
@@ -775,6 +823,103 @@ namespace FWO.Compliance
             }
 
             return ruleIsCompliant;
+        }
+
+        /// <summary>
+        /// Executes rule-level criteria that are modeled as triviality checks.
+        /// </summary>
+        /// <param name="rule">Rule under test.</param>
+        /// <param name="criterion">Criterion to execute.</param>
+        /// <param name="duplicateIndex">Optional index for reverse-direction duplicate checks.</param>
+        private bool CheckTrivialityCriterion(Rule rule, ComplianceCriterion criterion, RuleBidirectionalDuplicateIndex? duplicateIndex)
+        {
+            TrivialityCheckResult result;
+            ComplianceViolationType violationType;
+
+            switch (criterion.CriterionType)
+            {
+                case nameof(CriterionType.MinimumCIDRLength):
+                    if (!int.TryParse(criterion.Content, out int minPrefixLength) || minPrefixLength < 0 || minPrefixLength > 32)
+                    {
+                        Logger.TryWriteError("Compliance Check", $"Criterion {criterion.Id} ({criterion.Name}) has invalid content '{criterion.Content}' for {criterion.CriterionType}.", true);
+                        return true;
+                    }
+
+                    result = _ruleTrivialityEvaluator.EvaluateMinimumCIDRLengthCriterion(rule, minPrefixLength);
+                    violationType = ComplianceViolationType.MinimumCIDRLengthViolation;
+                    break;
+
+                case nameof(CriterionType.ForbidZonesAsSource):
+                    if (!TryGetNonEmptyCriterionContent(criterion, out string sourceObjectToken))
+                    {
+                        return true;
+                    }
+
+                    result = _ruleTrivialityEvaluator.EvaluateForbidNamesAsSourceCriterion(rule, sourceObjectToken);
+                    violationType = ComplianceViolationType.ZoneObjectSourceViolation;
+                    break;
+
+                case nameof(CriterionType.ForbidZonesAsDestination):
+                    if (!TryGetNonEmptyCriterionContent(criterion, out string destinationObjectToken))
+                    {
+                        return true;
+                    }
+
+                    result = _ruleTrivialityEvaluator.EvaluateForbidNamesAsDestinationCriterion(rule, destinationObjectToken);
+                    violationType = ComplianceViolationType.ZoneObjectDestinationViolation;
+                    break;
+
+                case nameof(CriterionType.ForbidBidirectionalDuplicate):
+                    if (duplicateIndex == null)
+                    {
+                        Logger.TryWriteError("Compliance Check", $"Criterion {criterion.Id} ({criterion.Name}) requires a duplicate index, but none was provided.", true);
+                        return true;
+                    }
+
+                    result = _ruleTrivialityEvaluator.EvaluateForbidBidirectionalDuplicateCriterion(rule, duplicateIndex);
+                    violationType = ComplianceViolationType.BidirectionalDuplicateViolation;
+                    break;
+
+                default:
+                    return true;
+            }
+
+            if (result.IsTrivial)
+            {
+                return true;
+            }
+
+            ComplianceCheckResult complianceCheckResult = new(rule, violationType)
+            {
+                Criterion = criterion
+            };
+
+            CreateViolation(violationType, rule, complianceCheckResult, GetTrivialityViolationDetails(rule, criterion, result));
+            return false;
+        }
+
+        /// <summary>
+        /// Builds localized detail strings for triviality-backed criteria.
+        /// </summary>
+        /// <param name="rule">Rule that triggered the violation.</param>
+        /// <param name="criterion">Triggered criterion.</param>
+        /// <param name="result">Triviality evaluator result.</param>
+        private string GetTrivialityViolationDetails(Rule rule, ComplianceCriterion criterion, TrivialityCheckResult result)
+        {
+            return result.Reason switch
+            {
+                RuleTrivialityEvaluator.MinimumCIDRLengthReason =>
+                    $"{_userConfig.GetText("minimum_cidr_length_violation")}: {_userConfig.GetText("criterion_value")} {criterion.Content}",
+                RuleTrivialityEvaluator.ForbidZonesAsSourceReason =>
+                    $"{_userConfig.GetText("zone_object_source_violation")}: {rule.Uid}; {_userConfig.GetText("criterion_value")} {criterion.Content}",
+                RuleTrivialityEvaluator.ForbidZonesAsDestinationReason =>
+                    $"{_userConfig.GetText("zone_object_destination_violation")}: {rule.Uid}; {_userConfig.GetText("criterion_value")} {criterion.Content}",
+                RuleTrivialityEvaluator.ForbidBidirectionalDuplicateReason =>
+                    $"{_userConfig.GetText("bidirectional_duplicate_violation")}: {rule.Uid}",
+                RuleTrivialityEvaluator.Ipv6NotSupportedReason =>
+                    $"{_userConfig.GetText("criterion_ipv6_not_supported")}: {criterion.Name}",
+                _ => result.Reason
+            };
         }
 
         /// <summary>
@@ -816,7 +961,8 @@ namespace FWO.Compliance
 
                     if (complianceCheckResult.Service is NetworkService svc)
                     {
-                        violation.Details = $"{_userConfig.GetText("H5840")}: {svc.Name}";
+                        string serviceDisplay = DisplayBase.DisplayService(svc, false).ToString();
+                        violation.Details = $"{_userConfig.GetText("H5840")}: {serviceDisplay}";
                     }
                     else
                     {
@@ -845,6 +991,14 @@ namespace FWO.Compliance
                         violation.Details = $"{_userConfig.GetText("H5841")}: {_userConfig.GetText(assessabilityIssueType)}({networkObject})";
                     }
 
+                    break;
+
+                case ComplianceViolationType.MinimumCIDRLengthViolation:
+                case ComplianceViolationType.ZoneObjectSourceViolation:
+                case ComplianceViolationType.ZoneObjectDestinationViolation:
+                case ComplianceViolationType.BidirectionalDuplicateViolation:
+
+                    violation.Details = detailsOverride ?? complianceCheckResult.Criterion?.Name ?? "";
                     break;
 
                 default:
@@ -906,16 +1060,17 @@ namespace FWO.Compliance
             bool ruleIsCompliant = true;
 
             List<string> restrictedServices = [.. criterion.Content.Split(',').Select(s => s.Trim())
-            .Where(s => !string.IsNullOrEmpty(s))];
+                .Where(s => !string.IsNullOrEmpty(s))];
 
             if (restrictedServices.Count > 0)
             {
-                foreach (var service in rule.Services.Where(s => restrictedServices.Contains(s.Content.Uid)))
+                foreach (NetworkService service in GetServicesForForbiddenServiceCheck(rule)
+                    .Where(service => restrictedServices.Any(restrictedService => MatchesRestrictedService(service, restrictedService))))
                 {
                     ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.ServiceViolation)
                     {
                         Criterion = criterion,
-                        Service = service.Content
+                        Service = service
                     };
 
                     CreateViolation(ComplianceViolationType.ServiceViolation, rule, complianceCheckResult);
@@ -924,6 +1079,142 @@ namespace FWO.Compliance
             }
 
             return ruleIsCompliant;
+        }
+
+        /// <summary>
+        /// Collects direct and flattened services that should be evaluated for forbidden-service checks.
+        /// </summary>
+        /// <param name="rule">Rule whose services should be checked.</param>
+        private static List<NetworkService> GetServicesForForbiddenServiceCheck(Rule rule)
+        {
+            Dictionary<ServiceMatchKey, NetworkService> services = [];
+
+            foreach (NetworkService service in rule.Services.Select(wrapper => wrapper.Content))
+            {
+                AddForbiddenServiceCandidate(services, service);
+
+                foreach (NetworkService flattenedService in service.ServiceGroupFlats
+                    .Where(groupFlat => groupFlat.Object != null)
+                    .Select(groupFlat => groupFlat.Object!))
+                {
+                    AddForbiddenServiceCandidate(services, flattenedService);
+                }
+            }
+
+            return [.. services.Values];
+        }
+
+        /// <summary>
+        /// Adds a service candidate if it has not already been seen.
+        /// </summary>
+        /// <param name="services">Lookup of collected services.</param>
+        /// <param name="service">Service to add.</param>
+        private static void AddForbiddenServiceCandidate(IDictionary<ServiceMatchKey, NetworkService> services, NetworkService service)
+        {
+            ServiceMatchKey serviceKey = ServiceMatchKey.FromService(service);
+
+            if (!services.ContainsKey(serviceKey))
+            {
+                services.Add(serviceKey, service);
+            }
+        }
+
+        /// <summary>
+        /// Checks whether a service matches a restricted service entry.
+        /// </summary>
+        /// <param name="service">Service to evaluate.</param>
+        /// <param name="restrictedService">Restricted entry, either a UID or a port/protocol definition.</param>
+        private static bool MatchesRestrictedService(NetworkService service, string restrictedService)
+        {
+            if (TryParseRestrictedServiceDefinition(restrictedService, out int rangeStart, out int rangeEnd, out string protocolToken))
+            {
+                return MatchesRestrictedServiceDefinition(service, rangeStart, rangeEnd, protocolToken);
+            }
+
+            return string.Equals(service.Uid, restrictedService, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Parses a restricted service definition in the form port/protocol or start-end/protocol.
+        /// </summary>
+        /// <param name="restrictedService">Restricted service entry to parse.</param>
+        /// <param name="rangeStart">Parsed start port.</param>
+        /// <param name="rangeEnd">Parsed end port.</param>
+        /// <param name="protocolToken">Parsed protocol token.</param>
+        private static bool TryParseRestrictedServiceDefinition(string restrictedService, out int rangeStart, out int rangeEnd, out string protocolToken)
+        {
+            rangeStart = 0;
+            rangeEnd = 0;
+            protocolToken = "";
+
+            string[] definitionParts = restrictedService.Split('/', StringSplitOptions.TrimEntries);
+            if (definitionParts.Length != 2 || string.IsNullOrWhiteSpace(definitionParts[0]) || string.IsNullOrWhiteSpace(definitionParts[1]))
+            {
+                return false;
+            }
+
+            protocolToken = definitionParts[1];
+            string[] portParts = definitionParts[0].Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+            if (portParts.Length == 1
+                && int.TryParse(portParts[0], out rangeStart)
+                && rangeStart is > 0 and <= GlobalConst.kMaxPortNumber)
+            {
+                rangeEnd = rangeStart;
+                return true;
+            }
+
+            if (portParts.Length == 2
+                && int.TryParse(portParts[0], out rangeStart)
+                && rangeStart is > 0 and <= GlobalConst.kMaxPortNumber
+                && int.TryParse(portParts[1], out rangeEnd)
+                && rangeEnd is > 0 and <= GlobalConst.kMaxPortNumber
+                && rangeStart <= rangeEnd)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks whether a service matches a parsed restricted service definition.
+        /// </summary>
+        /// <param name="service">Service to evaluate.</param>
+        /// <param name="rangeStart">Restricted start port.</param>
+        /// <param name="rangeEnd">Restricted end port.</param>
+        /// <param name="protocolToken">Restricted protocol token.</param>
+        private static bool MatchesRestrictedServiceDefinition(NetworkService service, int rangeStart, int rangeEnd, string protocolToken)
+        {
+            if (!ServiceProtocolMatches(service, protocolToken) || service.DestinationPort == null)
+            {
+                return false;
+            }
+
+            int serviceRangeStart = service.DestinationPort.Value;
+            int serviceRangeEnd = service.DestinationPortEnd ?? serviceRangeStart;
+
+            return serviceRangeStart <= rangeEnd && serviceRangeEnd >= rangeStart;
+        }
+
+        /// <summary>
+        /// Checks whether the service protocol matches the requested protocol token.
+        /// </summary>
+        /// <param name="service">Service to evaluate.</param>
+        /// <param name="protocolToken">Restricted protocol token.</param>
+        private static bool ServiceProtocolMatches(NetworkService service, string protocolToken)
+        {
+            if (string.IsNullOrWhiteSpace(protocolToken))
+            {
+                return false;
+            }
+
+            if (int.TryParse(protocolToken, out int protocolId))
+            {
+                return service.ProtoId == protocolId || service.Protocol?.Id == protocolId;
+            }
+
+            return string.Equals(service.Protocol?.Name, protocolToken, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -948,16 +1239,26 @@ namespace FWO.Compliance
         /// </summary>
         private async Task LoadNetworkZones()
         {
+            _networkZonesByCriterion.Clear();
+
             if (Policy != null)
             {
-                // ToDo later: work with several matrices?
-                int? matrixId = Policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
-                if (matrixId != null)
+                List<int> matrixIds = [.. Policy.Criteria
+                    .Where(c => c.Content.CriterionType == CriterionType.Matrix.ToString() && c.Content.Id > 0)
+                    .Select(c => c.Content.Id)
+                    .Distinct()];
+
+                foreach (int matrixId in matrixIds)
                 {
                     Logger.TryWriteInfo("Compliance Check", $"Loading network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
-                    NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
-                    Logger.TryWriteInfo("Compliance Check", $"Loaded {NetworkZones.Count} network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
+                    List<ComplianceNetworkZone> networkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                    _networkZonesByCriterion[matrixId] = networkZones;
+                    Logger.TryWriteInfo("Compliance Check", $"Loaded {networkZones.Count} network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
                 }
+
+                NetworkZones = matrixIds.Count > 0 && _networkZonesByCriterion.TryGetValue(matrixIds[0], out List<ComplianceNetworkZone>? firstMatrixZones)
+                    ? firstMatrixZones
+                    : [];
             }
         }
 
@@ -1017,9 +1318,13 @@ namespace FWO.Compliance
 
             Logger.TryWriteInfo("Compliance Check", $"Checking compliance for {Policy.Criteria.Count} criteria.", LocalSettings.ComplianceCheckVerbose);
 
+            RuleBidirectionalDuplicateIndex? duplicateIndex = criteria.Any(c => c.CriterionType == nameof(CriterionType.ForbidBidirectionalDuplicate))
+                ? new RuleBidirectionalDuplicateIndex(rules)
+                : null;
+
             foreach (Rule rule in rules)
             {
-                bool ruleIsCompliant = await CheckRuleCompliance(rule, criteria);
+                bool ruleIsCompliant = await CheckRuleCompliance(rule, criteria, duplicateIndex);
 
                 if (!ruleIsCompliant)
                 {
@@ -1037,7 +1342,7 @@ namespace FWO.Compliance
         /// Maps previously resolved IP ranges to their matching compliance zones.
         /// </summary>
         /// <param name="inputData">Pairs of network objects and IP ranges.</param>
-        private List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> MapZonesToNetworkObjects(List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> inputData)
+        private List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> MapZonesToNetworkObjects(List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> inputData, List<ComplianceNetworkZone> networkZonesForCriterion)
         {
             List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> map = [];
 
@@ -1047,7 +1352,7 @@ namespace FWO.Compliance
 
                 if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
                 {
-                    List<ComplianceNetworkZone> complianceNetworkZones = NetworkZones.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
+                    List<ComplianceNetworkZone> complianceNetworkZones = networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
 
                     foreach (ComplianceNetworkZone zone in complianceNetworkZones)
                     {
@@ -1061,7 +1366,7 @@ namespace FWO.Compliance
                         continue;
                     }
 
-                    networkZones = DetermineZones(dataItem.ipRanges);
+                    networkZones = DetermineZones(dataItem.ipRanges, networkZonesForCriterion);
                 }
 
                 map.Add((dataItem.networkObject, networkZones));
@@ -1104,8 +1409,9 @@ namespace FWO.Compliance
         /// Finds every compliance zone overlapped by the provided IP ranges (plus implicit internet zone when necessary).
         /// </summary>
         /// <param name="ranges">Ranges to look up.</param>
-        private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges)
+        private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges, List<ComplianceNetworkZone>? networkZonesOverride = null)
         {
+            List<ComplianceNetworkZone> activeNetworkZones = networkZonesOverride ?? NetworkZones;
             List<ComplianceNetworkZone> result = [];
             List<List<IPAddressRange>> unseenIpAddressRanges = [];
 
@@ -1117,7 +1423,7 @@ namespace FWO.Compliance
                 ]);
             }
 
-            foreach (ComplianceNetworkZone zone in NetworkZones.Where(z => z.OverlapExists(ranges, unseenIpAddressRanges)))
+            foreach (ComplianceNetworkZone zone in activeNetworkZones.Where(z => z.OverlapExists(ranges, unseenIpAddressRanges)))
             {
                 result.Add(zone);
             }
@@ -1145,6 +1451,38 @@ namespace FWO.Compliance
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Resolves the matrix zones that belong to the provided criterion.
+        /// </summary>
+        /// <param name="criterion">Matrix criterion whose zones are needed.</param>
+        private List<ComplianceNetworkZone> GetNetworkZonesForCriterion(ComplianceCriterion criterion)
+        {
+            if (criterion.Id > 0 && _networkZonesByCriterion.TryGetValue(criterion.Id, out List<ComplianceNetworkZone>? networkZones))
+            {
+                return networkZones;
+            }
+
+            return NetworkZones;
+        }
+
+        /// <summary>
+        /// Returns the trimmed string content for criteria that require a non-empty content field.
+        /// </summary>
+        /// <param name="criterion">Criterion whose content should be validated.</param>
+        /// <param name="content">Validated content.</param>
+        private bool TryGetNonEmptyCriterionContent(ComplianceCriterion criterion, out string content)
+        {
+            content = criterion.Content?.Trim() ?? "";
+
+            if (!string.IsNullOrWhiteSpace(content))
+            {
+                return true;
+            }
+
+            Logger.TryWriteError("Compliance Check", $"Criterion {criterion.Id} ({criterion.Name}) has empty content for {criterion.CriterionType}.", true);
+            return false;
         }
 
         /// <summary>

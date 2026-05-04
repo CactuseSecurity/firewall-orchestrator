@@ -406,11 +406,7 @@ class FwoApiCall:
         )
         import_result += ", ERRORS: " + exception_message if exception_message is not None else ""
 
-        if (
-            import_state.statistics_controller.get_change_details() != {}
-            and FWOLogger.is_debug_level(4)
-            and exception is None
-        ):
+        if import_state.statistics_controller.get_change_details() != {} and exception is None:
             import_result += ", change details: " + str(import_state.statistics_controller.get_change_details())
 
         if exception is not None:

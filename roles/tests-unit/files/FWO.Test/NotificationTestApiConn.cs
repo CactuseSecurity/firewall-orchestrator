@@ -70,10 +70,10 @@ namespace FWO.Test
             {
                 string? Vars = variables?.ToString();
                 List<FwoNotification>? notifs = Vars != null && Vars.Contains($"{NotificationClient.InterfaceRequest}")
-                    ? [NotifReq1, NotifReq2]
+                    ? [CloneNotification(NotifReq1), CloneNotification(NotifReq2)]
                     : Vars != null && Vars.Contains($"{NotificationClient.RuleTimer}")
-                        ? [NotifRuleTimer]
-                        : [NotifRec];
+                        ? [CloneNotification(NotifRuleTimer)]
+                        : [CloneNotification(NotifRec)];
                 GraphQLResponse<dynamic> response = new() { Data = notifs };
                 return response.Data;
             }
@@ -94,6 +94,37 @@ namespace FWO.Test
             }
 
             throw new NotImplementedException();
+        }
+
+        private static FwoNotification CloneNotification(FwoNotification notification)
+        {
+            return new FwoNotification
+            {
+                Id = notification.Id,
+                NotificationClient = notification.NotificationClient,
+                UserId = notification.UserId,
+                OwnerId = notification.OwnerId,
+                Channel = notification.Channel,
+                Name = notification.Name,
+                RecipientTo = notification.RecipientTo,
+                EmailAddressTo = notification.EmailAddressTo,
+                RecipientCc = notification.RecipientCc,
+                EmailAddressCc = notification.EmailAddressCc,
+                EmailSubject = notification.EmailSubject,
+                EmailBody = notification.EmailBody,
+                ScheduleId = notification.ScheduleId,
+                BundleType = notification.BundleType,
+                BundleId = notification.BundleId,
+                Layout = notification.Layout,
+                Deadline = notification.Deadline,
+                IntervalBeforeDeadline = notification.IntervalBeforeDeadline,
+                OffsetBeforeDeadline = notification.OffsetBeforeDeadline,
+                RepeatIntervalAfterDeadline = notification.RepeatIntervalAfterDeadline,
+                InitialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline,
+                RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
+                RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
+                LastSent = notification.LastSent
+            };
         }
     }
 }

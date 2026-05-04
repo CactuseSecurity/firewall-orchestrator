@@ -159,9 +159,9 @@ namespace FWO.Report
                 ReportType.Rules => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.ResolvedRules => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.ResolvedRulesTech => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
-                ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
-                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
-                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.IncludeObjectsInReportChanges, reportFilter.IncludeObjectsInReportChangesUiPresesed),
+                ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.ReportParams.IncludeObjects),
+                ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.ReportParams.IncludeObjects),
+                ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.ReportParams.IncludeObjects),
                 ReportType.NatRules => new ReportNatRules(query, userConfig, repType),
                 ReportType.Recertification => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
@@ -175,6 +175,7 @@ namespace FWO.Report
                 ReportType.RecertEventReport => new ReportRecertEvent(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.TicketReport => new ReportTickets(query, userConfig, repType, workflowFilter),
                 ReportType.TicketChangeReport => new ReportTicketChanges(query, userConfig, repType, workflowFilter),
+                ReportType.Owners => new ReportOwners(query, userConfig, repType),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }
@@ -244,7 +245,6 @@ namespace FWO.Report
                 ReplaceOtherFilter(otherFilter);
 
                 string htmlToC = BuildHTMLToC(htmlReport.ToString());
-
                 HtmlTemplate = HtmlTemplate.Replace("##ToC##", htmlToC);
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 htmlExport = HtmlTemplate.ToString();
@@ -469,6 +469,10 @@ namespace FWO.Report
             }
 
             List<ToCHeader>? tocHeaders = CreateTOCContent(html);
+            if (tocHeaders.Count == 0)
+            {
+                return "";
+            }
 
             TocHTMLTemplate = TocHTMLTemplate.Replace("##ToCHeader##", userConfig.GetText("tableofcontent"));
 

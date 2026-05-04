@@ -110,7 +110,7 @@ namespace FWO.Test
             FwoOwner owner = new() { Id = 0, Name = "Owner A", Criticality = "high" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: true);
 
-            Assert.That(editOwner.Markup, Does.Contain("criticality"));
+            Assert.That(editOwner.Markup, Does.Contain("Criticality"));
             Assert.That(editOwner.Markup, Does.Contain("high"));
         }
 

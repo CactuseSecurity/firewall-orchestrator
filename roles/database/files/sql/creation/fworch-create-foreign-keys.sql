@@ -377,17 +377,26 @@ ALTER TABLE flow.svcobject ADD CONSTRAINT flow_svcobject_proto_foreign_key FOREI
 ALTER TABLE flow.access ADD CONSTRAINT flow_access_requester_foreign_key FOREIGN KEY (requester_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE flow.access ADD CONSTRAINT flow_access_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE flow.source ADD CONSTRAINT flow_source_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE flow.source ADD CONSTRAINT flow_source_nwobject_foreign_key FOREIGN KEY (nwobj_id) REFERENCES flow.nwobject(nwobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_source ADD CONSTRAINT flow_access_source_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_source ADD CONSTRAINT flow_access_source_nwobject_foreign_key FOREIGN KEY (nwobj_id) REFERENCES flow.nwobject(nwobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE flow.destination ADD CONSTRAINT flow_destination_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE flow.destination ADD CONSTRAINT flow_destination_nwobject_foreign_key FOREIGN KEY (nwobj_id) REFERENCES flow.nwobject(nwobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_destination ADD CONSTRAINT flow_access_destination_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_destination ADD CONSTRAINT flow_access_destination_nwobject_foreign_key FOREIGN KEY (nwobj_id) REFERENCES flow.nwobject(nwobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE flow.service ADD CONSTRAINT flow_service_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE flow.service ADD CONSTRAINT flow_service_svcobject_foreign_key FOREIGN KEY (svcobj_id) REFERENCES flow.svcobject(svcobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_service ADD CONSTRAINT flow_access_service_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_service ADD CONSTRAINT flow_access_service_svcobject_foreign_key FOREIGN KEY (svcobj_id) REFERENCES flow.svcobject(svcobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE flow.timeobj ADD CONSTRAINT flow_timeobj_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE flow.timeobj ADD CONSTRAINT flow_timeobj_timeobject_foreign_key FOREIGN KEY (timeobj_id) REFERENCES flow.timeobject(timeobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_timeobject ADD CONSTRAINT flow_access_timeobject_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_timeobject ADD CONSTRAINT flow_access_timeobject_timeobject_foreign_key FOREIGN KEY (timeobj_id) REFERENCES flow.timeobject(timeobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE flow.access_source_grp ADD CONSTRAINT flow_access_source_grp_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_source_grp ADD CONSTRAINT flow_access_source_grp_nwgroup_foreign_key FOREIGN KEY (nwgroup_id) REFERENCES flow.nwgroup(nwgroup_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE flow.access_destination_grp ADD CONSTRAINT flow_access_destination_grp_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_destination_grp ADD CONSTRAINT flow_access_destination_grp_nwgroup_foreign_key FOREIGN KEY (nwgroup_id) REFERENCES flow.nwgroup(nwgroup_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE flow.access_service_grp ADD CONSTRAINT flow_access_service_grp_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access_service_grp ADD CONSTRAINT flow_access_service_grp_svcgroup_foreign_key FOREIGN KEY (svcgroup_id) REFERENCES flow.svcgroup(svcgroup_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 ALTER TABLE flow.rule_flow_mapping ADD CONSTRAINT flow_rule_flow_rule_foreign_key FOREIGN KEY (rule_id) REFERENCES rule(rule_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE flow.rule_flow_mapping ADD CONSTRAINT flow_rule_flow_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -403,3 +412,11 @@ ALTER TABLE flow.svcobject_mapping ADD CONSTRAINT flow_svcobject_mapping_managem
 ALTER TABLE flow.timeobject_mapping ADD CONSTRAINT flow_timeobject_mapping_flow_timeobject_foreign_key FOREIGN KEY (flow_timeobj_id) REFERENCES flow.timeobject(timeobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE flow.timeobject_mapping ADD CONSTRAINT flow_timeobject_mapping_time_object_foreign_key FOREIGN KEY (time_obj_id) REFERENCES time_object(time_obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE flow.timeobject_mapping ADD CONSTRAINT flow_timeobject_mapping_management_foreign_key FOREIGN KEY (mgm_id) REFERENCES management(mgm_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE flow.nwgroup_mapping ADD CONSTRAINT flow_nwgroup_mapping_flow_nwgroup_foreign_key FOREIGN KEY (flow_nwgroup_id) REFERENCES flow.nwgroup(nwgroup_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.nwgroup_mapping ADD CONSTRAINT flow_nwgroup_mapping_objgrp_foreign_key FOREIGN KEY (objgrp_id) REFERENCES object(obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.nwgroup_mapping ADD CONSTRAINT flow_nwgroup_mapping_management_foreign_key FOREIGN KEY (mgm_id) REFERENCES management(mgm_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE flow.svcgroup_mapping ADD CONSTRAINT flow_svcgroup_mapping_flow_svcgroup_foreign_key FOREIGN KEY (flow_svcgroup_id) REFERENCES flow.svcgroup(svcgroup_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.svcgroup_mapping ADD CONSTRAINT flow_svcgroup_mapping_svcgrp_foreign_key FOREIGN KEY (svcgrp_id) REFERENCES service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.svcgroup_mapping ADD CONSTRAINT flow_svcgroup_mapping_management_foreign_key FOREIGN KEY (mgm_id) REFERENCES management(mgm_id) ON UPDATE RESTRICT ON DELETE CASCADE;

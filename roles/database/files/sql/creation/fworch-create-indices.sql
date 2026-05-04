@@ -120,8 +120,8 @@ Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_c
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;
 
 -- flow
-CREATE INDEX IF NOT EXISTS idx_flow_access_hashes ON flow.access (src_hash, dst_hash, svc_hash);
-CREATE INDEX IF NOT EXISTS idx_flow_access_active ON flow.access (src_hash, dst_hash, svc_hash) WHERE state IN ('requested', 'implemented');
+CREATE INDEX IF NOT EXISTS idx_flow_access_hashes ON flow.access (access_hash);
+CREATE INDEX IF NOT EXISTS idx_flow_access_active ON flow.access (access_hash) WHERE state IN ('requested', 'implemented');
 CREATE INDEX IF NOT EXISTS idx_flow_source_nwobj ON flow.source (nwobj_id);
 CREATE INDEX IF NOT EXISTS idx_flow_destination_nwobj ON flow.destination (nwobj_id);
 CREATE INDEX IF NOT EXISTS idx_flow_service_svcobj ON flow.service (svcobj_id);

@@ -242,8 +242,8 @@ ALTER TABLE flow.svcgroup_mapping ADD CONSTRAINT flow_svcgroup_mapping_svcgrp_fo
 ALTER TABLE flow.svcgroup_mapping DROP CONSTRAINT IF EXISTS flow_svcgroup_mapping_management_foreign_key;
 ALTER TABLE flow.svcgroup_mapping ADD CONSTRAINT flow_svcgroup_mapping_management_foreign_key FOREIGN KEY (mgm_id) REFERENCES management(mgm_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
-CREATE INDEX IF NOT EXISTS idx_flow_access_hashes ON flow.access (src_hash, dst_hash, svc_hash);
-CREATE INDEX IF NOT EXISTS idx_flow_access_active ON flow.access (src_hash, dst_hash, svc_hash) WHERE state IN ('requested', 'implemented');
+CREATE INDEX IF NOT EXISTS idx_flow_access_hash ON flow.access (access_hash);
+CREATE INDEX IF NOT EXISTS idx_flow_access_active ON flow.access (access_hash) WHERE state IN ('requested', 'implemented');
 CREATE INDEX IF NOT EXISTS idx_flow_access_source_nwobj ON flow.access_source (nwobj_id);
 CREATE INDEX IF NOT EXISTS idx_flow_access_source_grp_nwgrp ON flow.access_source_grp (nwgroup_id);
 CREATE INDEX IF NOT EXISTS idx_flow_access_destination_nwobj ON flow.access_destination (nwobj_id);

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS flow.nwobject
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
+    CHECK ((ip_start IS NULL) = (ip_end IS NULL)),
     CHECK (ip_start <= ip_end),
     CHECK (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
@@ -39,6 +40,7 @@ CREATE TABLE IF NOT EXISTS flow.svcobject
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
+    CHECK ((port_start IS NULL) = (port_end IS NULL)),
     CHECK (port_start <= port_end),
     CHECK (port_start BETWEEN 0 AND 65535),
     CHECK (port_end BETWEEN 0 AND 65535),

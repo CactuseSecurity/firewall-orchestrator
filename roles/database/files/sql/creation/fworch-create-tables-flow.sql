@@ -15,6 +15,7 @@ create table flow.nwobject
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
+    check ((ip_start IS NULL) = (ip_end IS NULL)),
     check (ip_start <= ip_end),
     check (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
@@ -41,6 +42,7 @@ create table flow.svcobject
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
+    check ((port_start IS NULL) = (port_end IS NULL)),
     check (port_start <= port_end),
     check (port_start between 0 and 65535),
     check (port_end between 0 and 65535),

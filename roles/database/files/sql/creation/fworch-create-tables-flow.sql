@@ -132,6 +132,20 @@ create table flow.access_timeobject
     primary key (access_id, timeobj_id)
 );
 
+create table flow.nwgroup_member
+(
+    nwgroup_id bigint NOT NULL,
+    nwobj_id bigint NOT NULL,
+    primary key (nwgroup_id, nwobj_id)
+);
+
+create table flow.svcgroup_member
+(
+    svcgroup_id bigint NOT NULL,
+    svcobj_id bigint NOT NULL,
+    primary key (svcgroup_id, svcobj_id)
+);
+
 create table flow.rule_flow_mapping
 (
     rule_id bigint PRIMARY KEY,

@@ -132,6 +132,10 @@ Create index idx_flow_access_destination_grp_nwgrp on flow.access_destination_gr
 Create index idx_flow_access_service_grp_svcgrp on flow.access_service_grp (svcgroup_id);
 Create index idx_flow_rule_flow_access on flow.rule_flow_mapping (access_id);
 
+Create index idx_flow_nwgroup_member_nwobj on flow.nwgroup_member (nwobj_id);
+
+Create index idx_flow_svcgroup_member_svcobj on flow.svcgroup_member (svcobj_id);
+
 Create index idx_flow_nwobject_mapping_obj on flow.nwobject_mapping (obj_id);
 Create index idx_flow_nwobject_mapping_mgm on flow.nwobject_mapping (mgm_id);
 Create UNIQUE index idx_flow_nwobject_mapping_active_unique on flow.nwobject_mapping (flow_nwobj_id, mgm_id) WHERE active_on_mgm = TRUE;

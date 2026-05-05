@@ -1355,6 +1355,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "nwgroup_members",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwgroup_id",
+                      "table": {
+                        "name": "nwgroup_member",
+                        "schema": "flow"
+                      }
+                    }
+                  }
                 }
               ]
             },
@@ -1380,6 +1392,26 @@
                   "name": "object",
                   "using": {
                     "foreign_key_constraint_on": "objgrp_id"
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "nwgroup_member",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "nwgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "nwgroup_id"
+                  }
+                },
+                {
+                  "name": "nwobject",
+                  "using": {
+                    "foreign_key_constraint_on": "nwobj_id"
                   }
                 }
               ]
@@ -1503,6 +1535,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "svcgroup_members",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "svcgroup_id",
+                      "table": {
+                        "name": "svcgroup_member",
+                        "schema": "flow"
+                      }
+                    }
+                  }
                 }
               ]
             },
@@ -1528,6 +1572,26 @@
                   "name": "service",
                   "using": {
                     "foreign_key_constraint_on": "svcgrp_id"
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "svcgroup_member",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "svcgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "svcgroup_id"
+                  }
+                },
+                {
+                  "name": "svcobject",
+                  "using": {
+                    "foreign_key_constraint_on": "svcobj_id"
                   }
                 }
               ]

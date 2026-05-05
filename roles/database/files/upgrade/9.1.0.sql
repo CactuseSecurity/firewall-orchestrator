@@ -130,6 +130,20 @@ CREATE TABLE IF NOT EXISTS flow.access_timeobject
     PRIMARY KEY (access_id, timeobj_id)
 );
 
+CREATE TABLE IF NOT EXISTS flow.nwgroup_member
+(
+    nwgroup_id bigint NOT NULL,
+    nwobj_id bigint NOT NULL,
+    PRIMARY KEY (nwgroup_id, nwobj_id)
+);
+
+CREATE TABLE IF NOT EXISTS flow.svcgroup_member
+(
+    svcgroup_id bigint NOT NULL,
+    svcobj_id bigint NOT NULL,
+    PRIMARY KEY (svcgroup_id, svcobj_id)
+);
+
 CREATE TABLE IF NOT EXISTS flow.rule_flow_mapping
 (
     rule_id bigint PRIMARY KEY,
@@ -224,6 +238,16 @@ ALTER TABLE flow.rule_flow_mapping ADD CONSTRAINT flow_rule_flow_rule_foreign_ke
 ALTER TABLE flow.rule_flow_mapping DROP CONSTRAINT IF EXISTS flow_rule_flow_access_foreign_key;
 ALTER TABLE flow.rule_flow_mapping ADD CONSTRAINT flow_rule_flow_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
+ALTER TABLE flow.nwgroup_member DROP CONSTRAINT IF EXISTS flow_nwgroup_member_nwgroup_foreign_key;
+ALTER TABLE flow.nwgroup_member ADD CONSTRAINT flow_nwgroup_member_nwgroup_foreign_key FOREIGN KEY (nwgroup_id) REFERENCES flow.nwgroup(nwgroup_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.nwgroup_member DROP CONSTRAINT IF EXISTS flow_nwgroup_member_nwobject_foreign_key;
+ALTER TABLE flow.nwgroup_member ADD CONSTRAINT flow_nwgroup_member_nwobject_foreign_key FOREIGN KEY (nwobj_id) REFERENCES flow.nwobject(nwobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE flow.svcgroup_member DROP CONSTRAINT IF EXISTS flow_svcgroup_member_svcgroup_foreign_key;
+ALTER TABLE flow.svcgroup_member ADD CONSTRAINT flow_svcgroup_member_svcgroup_foreign_key FOREIGN KEY (svcgroup_id) REFERENCES flow.svcgroup(svcgroup_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.svcgroup_member DROP CONSTRAINT IF EXISTS flow_svcgroup_member_svcobject_foreign_key;
+ALTER TABLE flow.svcgroup_member ADD CONSTRAINT flow_svcgroup_member_svcobject_foreign_key FOREIGN KEY (svcobj_id) REFERENCES flow.svcobject(svcobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
 ALTER TABLE flow.nwobject_mapping DROP CONSTRAINT IF EXISTS flow_nwobject_mapping_flow_nwobject_foreign_key;
 ALTER TABLE flow.nwobject_mapping ADD CONSTRAINT flow_nwobject_mapping_flow_nwobject_foreign_key FOREIGN KEY (flow_nwobj_id) REFERENCES flow.nwobject(nwobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE flow.nwobject_mapping DROP CONSTRAINT IF EXISTS flow_nwobject_mapping_object_foreign_key;
@@ -270,6 +294,10 @@ CREATE INDEX IF NOT EXISTS idx_flow_access_service_grp_svcgrp ON flow.access_ser
 CREATE INDEX IF NOT EXISTS idx_flow_access_timeobject ON flow.access_timeobject (timeobj_id);
 CREATE INDEX IF NOT EXISTS idx_flow_rule_flow_access ON flow.rule_flow_mapping (access_id);
 
+CREATE INDEX IF NOT EXISTS idx_flow_nwgroup_member_nwobj ON flow.nwgroup_member (nwobj_id);
+
+CREATE INDEX IF NOT EXISTS idx_flow_svcgroup_member_svcobj ON flow.svcgroup_member (svcobj_id);
+
 CREATE INDEX IF NOT EXISTS idx_flow_nwobject_mapping_obj ON flow.nwobject_mapping (obj_id);
 CREATE INDEX IF NOT EXISTS idx_flow_nwobject_mapping_mgm ON flow.nwobject_mapping (mgm_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_nwobject_mapping_active_unique ON flow.nwobject_mapping (flow_nwobj_id, mgm_id) WHERE active_on_mgm = TRUE;
@@ -281,6 +309,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_svcobject_mapping_active_unique ON fl
 CREATE INDEX IF NOT EXISTS idx_flow_timeobject_mapping_time_obj ON flow.timeobject_mapping (time_obj_id);
 CREATE INDEX IF NOT EXISTS idx_flow_timeobject_mapping_mgm ON flow.timeobject_mapping (mgm_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_timeobject_mapping_active_unique ON flow.timeobject_mapping (flow_timeobj_id, mgm_id) WHERE active_on_mgm = TRUE;
+
 CREATE INDEX IF NOT EXISTS idx_flow_nwgroup_mapping_objgrp ON flow.nwgroup_mapping (objgrp_id);
 CREATE INDEX IF NOT EXISTS idx_flow_nwgroup_mapping_mgm ON flow.nwgroup_mapping (mgm_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_nwgroup_mapping_active_unique ON flow.nwgroup_mapping (flow_nwgroup_id, mgm_id) WHERE active_on_mgm = TRUE;

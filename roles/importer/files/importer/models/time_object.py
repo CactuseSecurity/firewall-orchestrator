@@ -4,6 +4,28 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, field_validator
 
 
+def validate_iso_timestamp_value(field_name: str, value: str | None) -> str | None:
+    if value is None:
+        return value
+    try:
+        normalized_value = value.strip().replace("Z", "+00:00")
+
+        # Python 3.10 is stricter and does not always parse offsets like +0000.
+        # Convert +HHMM / -HHMM to +HH:MM / -HH:MM before parsing.
+        if re.search(r"[+-]\d{4}$", normalized_value):
+            normalized_value = f"{normalized_value[:-5]}{normalized_value[-5:-2]}:{normalized_value[-2:]}"
+
+        parsed_time = datetime.fromisoformat(normalized_value)
+
+        if parsed_time.tzinfo is None:
+            parsed_time = parsed_time.replace(tzinfo=timezone.utc)
+        return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
+    except ValueError:
+        raise ValueError(
+            f"{field_name} value '{value}' must be an ISO 8601 timestamp like YYYY-MM-DDTHH:MM[:SS][Z|±HH:MM|±HHMM]; timestamps without a timezone are treated as UTC"
+        )
+
+
 class TimeObject(BaseModel):
     time_obj_uid: str
     time_obj_name: str
@@ -16,29 +38,7 @@ class TimeObject(BaseModel):
     @field_validator("start_time", "end_time")
     @classmethod
     def validate_time_format(cls, value: str | None) -> str | None:
-        if value is None:
-            return value
-        try:
-            parsed_time = cls._parse_iso_timestamp(value)
-            if parsed_time.tzinfo is None:
-                parsed_time = parsed_time.replace(tzinfo=timezone.utc)
-            return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
-        except ValueError:
-            raise ValueError(
-                f"Time value '{value}' does not match supported ISO formats "
-                "'YYYY-MM-DDTHH:MM:SS', 'YYYY-MM-DDTHH:MM:SSZ', 'YYYY-MM-DDTHH:MM:SS+HH:MM', or 'YYYY-MM-DDTHH:MM:SS+HHMM'."
-            ) from None
-
-    @staticmethod
-    def _parse_iso_timestamp(value: str) -> datetime:
-        normalized_value = value.strip().replace("Z", "+00:00")
-
-        # Python 3.10 is stricter and does not always parse offsets like +0000.
-        # Convert +HHMM / -HHMM to +HH:MM / -HH:MM before parsing.
-        if re.search(r"[+-]\d{4}$", normalized_value):
-            normalized_value = f"{normalized_value[:-5]}{normalized_value[-5:-2]}:{normalized_value[-2:]}"
-
-        return datetime.fromisoformat(normalized_value)
+        return validate_iso_timestamp_value("Time", value)
 
 
 class TimeObjectForImport(BaseModel):

@@ -1,6 +1,5 @@
-from datetime import datetime, timezone
-
 from models.caseinsensitiveenum import CaseInsensitiveEnum
+from models.time_object import validate_iso_timestamp_value
 from pydantic import BaseModel, field_validator
 
 
@@ -73,18 +72,7 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
     @field_validator("last_hit")
     @classmethod
     def validate_last_hit_format(cls, value: str | None) -> str | None:
-        if value is None:
-            return value
-        try:
-            normalized_value = value.replace("Z", "+00:00")
-            parsed_time = datetime.fromisoformat(normalized_value)
-            if parsed_time.tzinfo is None:
-                parsed_time = parsed_time.replace(tzinfo=timezone.utc)
-            return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
-        except ValueError:
-            raise ValueError(
-                f"Rule last_hit value '{value}' does not match format 'YYYY-MM-DDTHH:MM:SS+HH:MM'"
-            ) from None
+        return validate_iso_timestamp_value("Rule last_hit", value)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RuleNormalized):

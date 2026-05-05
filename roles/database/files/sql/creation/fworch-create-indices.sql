@@ -120,34 +120,34 @@ Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_c
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;
 
 -- flow
-Create index IF NOT EXISTS idx_flow_access_hash on flow.access (access_hash);
-Create index IF NOT EXISTS idx_flow_access_active on flow.access (access_hash) WHERE state IN ('requested', 'implemented');
-Create index IF NOT EXISTS idx_flow_access_source_nwobj on flow.access_source (nwobj_id);
-Create index IF NOT EXISTS idx_flow_access_destination_nwobj on flow.access_destination (nwobj_id);
-Create index IF NOT EXISTS idx_flow_access_service_svcobj on flow.access_service (svcobj_id);
-Create index IF NOT EXISTS idx_flow_access_timeobject on flow.access_timeobject (timeobj_id);
+Create index idx_flow_access_hash on flow.access (access_hash);
+Create index idx_flow_access_active on flow.access (access_hash) WHERE state IN ('requested', 'implemented');
+Create index idx_flow_access_source_nwobj on flow.access_source (nwobj_id);
+Create index idx_flow_access_destination_nwobj on flow.access_destination (nwobj_id);
+Create index idx_flow_access_service_svcobj on flow.access_service (svcobj_id);
+Create index idx_flow_access_timeobject on flow.access_timeobject (timeobj_id);
 
-Create index IF NOT EXISTS idx_flow_access_source_grp_nwgrp on flow.access_source_grp (nwgroup_id);
-Create index IF NOT EXISTS idx_flow_access_destination_grp_nwgrp on flow.access_destination_grp (nwgroup_id);
-Create index IF NOT EXISTS idx_flow_access_service_grp_svcgrp on flow.access_service_grp (svcgroup_id);
-Create index IF NOT EXISTS idx_flow_rule_flow_access on flow.rule_flow_mapping (access_id);
+Create index idx_flow_access_source_grp_nwgrp on flow.access_source_grp (nwgroup_id);
+Create index idx_flow_access_destination_grp_nwgrp on flow.access_destination_grp (nwgroup_id);
+Create index idx_flow_access_service_grp_svcgrp on flow.access_service_grp (svcgroup_id);
+Create index idx_flow_rule_flow_access on flow.rule_flow_mapping (access_id);
 
-Create index IF NOT EXISTS idx_flow_nwobject_mapping_obj on flow.nwobject_mapping (obj_id);
-Create index IF NOT EXISTS idx_flow_nwobject_mapping_mgm on flow.nwobject_mapping (mgm_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_nwobject_mapping_active_unique on flow.nwobject_mapping (flow_nwobj_id, mgm_id) WHERE active_on_mgm = TRUE;
+Create index idx_flow_nwobject_mapping_obj on flow.nwobject_mapping (obj_id);
+Create index idx_flow_nwobject_mapping_mgm on flow.nwobject_mapping (mgm_id);
+Create UNIQUE index idx_flow_nwobject_mapping_active_unique on flow.nwobject_mapping (flow_nwobj_id, mgm_id) WHERE active_on_mgm = TRUE;
 
-Create index IF NOT EXISTS idx_flow_svcobject_mapping_svc on flow.svcobject_mapping (svc_id);
-Create index IF NOT EXISTS idx_flow_svcobject_mapping_mgm on flow.svcobject_mapping (mgm_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_svcobject_mapping_active_unique on flow.svcobject_mapping (flow_svcobj_id, mgm_id) WHERE active_on_mgm = TRUE;
+Create index idx_flow_svcobject_mapping_svc on flow.svcobject_mapping (svc_id);
+Create index idx_flow_svcobject_mapping_mgm on flow.svcobject_mapping (mgm_id);
+Create UNIQUE index idx_flow_svcobject_mapping_active_unique on flow.svcobject_mapping (flow_svcobj_id, mgm_id) WHERE active_on_mgm = TRUE;
 
-Create index IF NOT EXISTS idx_flow_timeobject_mapping_time_obj on flow.timeobject_mapping (time_obj_id);
-Create index IF NOT EXISTS idx_flow_timeobject_mapping_mgm on flow.timeobject_mapping (mgm_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_timeobject_mapping_active_unique on flow.timeobject_mapping (flow_timeobj_id, mgm_id) WHERE active_on_mgm = TRUE;
+Create index idx_flow_timeobject_mapping_time_obj on flow.timeobject_mapping (time_obj_id);
+Create index idx_flow_timeobject_mapping_mgm on flow.timeobject_mapping (mgm_id);
+Create UNIQUE index idx_flow_timeobject_mapping_active_unique on flow.timeobject_mapping (flow_timeobj_id, mgm_id) WHERE active_on_mgm = TRUE;
 
-Create index IF NOT EXISTS idx_flow_nwgroup_mapping_objgrp on flow.nwgroup_mapping (objgrp_id);
-Create index IF NOT EXISTS idx_flow_nwgroup_mapping_mgm on flow.nwgroup_mapping (mgm_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_nwgroup_mapping_active_unique on flow.nwgroup_mapping (flow_nwgroup_id, mgm_id) WHERE active_on_mgm = TRUE;
+Create index idx_flow_nwgroup_mapping_objgrp on flow.nwgroup_mapping (objgrp_id);
+Create index idx_flow_nwgroup_mapping_mgm on flow.nwgroup_mapping (mgm_id);
+Create UNIQUE index idx_flow_nwgroup_mapping_active_unique on flow.nwgroup_mapping (flow_nwgroup_id, mgm_id) WHERE active_on_mgm = TRUE;
 
-Create index IF NOT EXISTS idx_flow_svcgroup_mapping_svcgrp on flow.svcgroup_mapping (svcgrp_id);
-Create index IF NOT EXISTS idx_flow_svcgroup_mapping_mgm on flow.svcgroup_mapping (mgm_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_svcgroup_mapping_active_unique on flow.svcgroup_mapping (flow_svcgroup_id, mgm_id) WHERE active_on_mgm = TRUE;
+Create index idx_flow_svcgroup_mapping_svcgrp on flow.svcgroup_mapping (svcgrp_id);
+Create index idx_flow_svcgroup_mapping_mgm on flow.svcgroup_mapping (mgm_id);
+Create UNIQUE index idx_flow_svcgroup_mapping_active_unique on flow.svcgroup_mapping (flow_svcgroup_id, mgm_id) WHERE active_on_mgm = TRUE;

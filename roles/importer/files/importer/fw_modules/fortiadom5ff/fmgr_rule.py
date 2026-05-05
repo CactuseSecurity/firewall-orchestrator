@@ -246,6 +246,8 @@ def parse_single_rule(
     if "status" in native_rule and (native_rule["status"] == 1 or native_rule["status"] == "enable"):
         rule_disabled = False
 
+    is_nat_rule = any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
+
     rule_action = rule_parse_action(native_rule)
 
     rule_track = rule_parse_tracking_info(native_rule)
@@ -255,14 +257,14 @@ def parse_single_rule(
         "src",
         normalized_config_adom,
         normalized_config_global,
-        is_nat=False,
+        is_nat=is_nat_rule,
     )
     rule_dst_list, rule_dst_refs_list = rule_parse_addresses(
         native_rule,
         "dst",
         normalized_config_adom,
         normalized_config_global,
-        is_nat=False,
+        is_nat=is_nat_rule,
     )
 
     rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
@@ -303,7 +305,7 @@ def parse_single_rule(
         rule_uid=native_rule.get("uuid"),
         rule_custom_fields=str(native_rule.get("meta fields", {})),
         rule_implied=False,
-        rule_type=RuleType.ACCESS,
+        rule_type=RuleType.NAT if is_nat_rule else RuleType.ACCESS,
         last_change_admin=None,  # native_rule.get('_last-modified-by', ''), not handled yet -> leave out to prevent mismatches
         parent_rule_uid=None,
         last_hit=last_hit,
@@ -311,12 +313,29 @@ def parse_single_rule(
         rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
         rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
         rule_head_text=None,
+        access_rule=not is_nat_rule,
+        nat_rule=is_nat_rule,
     )
     if rule_normalized.rule_uid is None:
         raise FwoImporterErrorInconsistenciesError("rule_normalized.rule_uid is None when parsing single rule")
 
     # Add the rule to the rulebase
     rulebase.rules[rule_normalized.rule_uid] = rule_normalized
+
+    if is_nat_rule:
+
+        # NAT Rules can have different types.
+        # 1. IP Pool Configuration: use outgoing interface address, use dynamic IP pool
+        # 2. Source Port Translation: Always, When Port Conflicts, Never
+
+        # Fix Port option gibt's auch noch?
+
+        # "poolname" (list of string), if "ippool" == 1
+        # "srcintf" (list of string) (zone objects), -> rule_src_zone
+        # "dstintf" (list of string) (zone objects), -> rule_dst_zone
+        # "fixedport" (int), preserve source port or not
+        pass
+
 
     # TODO: handle combined NAT, see handle_combined_nat_rule
 
@@ -444,7 +463,7 @@ def build_nat_addr_list(
 ) -> None:
     # so far only ip v4 expected
     if target == "src":
-        for addr in sorted(native_rule.get("orig-addr", [])):
+        for addr in sorted(native_rule.get("srcaddr", [])):
             addr_list.append(addr)
             addr_ref_list.append(
                 find_addr_ref(
@@ -455,7 +474,7 @@ def build_nat_addr_list(
                 )
             )
     if target == "dst":
-        for addr in sorted(native_rule.get("dst-addr", [])):
+        for addr in sorted(native_rule.get("dstaddr", [])):
             addr_list.append(addr)
             addr_ref_list.append(
                 find_addr_ref(

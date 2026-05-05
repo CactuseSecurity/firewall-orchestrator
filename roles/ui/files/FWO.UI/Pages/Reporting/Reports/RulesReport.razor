@@ -38,9 +38,9 @@
                                 <button name="btnExpandAll" @onclick="@(() => ToggleAll(management, device, collapse: false))" class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle"><i class="bi bi-arrows-expand"></i></button>
                             </div>
 
-                            <Table SelectedItems="new List<RuleTreeItem>()"
+                            <Table id="reportTable" SelectedItems="new List<RuleTreeItem>()"
                                    RowClickAction="@(async ruleTreeItem =>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               {
                                                                        ruleTreeItem.Data?.DeviceName = device.Name ?? "";
 
                                                                        if (!SelectedRules.Remove(ruleTreeItem.Data!))
@@ -51,7 +51,7 @@
                                                                        await SelectedRulesChanged.InvokeAsync(SelectedRules);
                                                                    })"
                                    style="font-size:small"
-                                   TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
+                                   TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header report-table"
                                    TableItem="RuleTreeItem"
                                    Items="@GetRuleTreeItems(management, device)"
                                    ShowSearchBar="false"
@@ -199,7 +199,7 @@
 
                                 @if (_emptyColumns[11] == false)
                                 {
-                                    <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("uid"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Uid)" Sortable="true" Filterable="false" Hideable="true" />
+                                    <Column Class="minw-200" TableItem="RuleTreeItem" Title="@(userConfig.GetText("uid"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Uid)" Sortable="true" Filterable="false" Hideable="true" />
                                 }
 
                                 @if (_emptyColumns[12] == false)
@@ -217,6 +217,15 @@
                                             </Template>
                                         </Column>
                                     }
+                                }
+
+                                @if (_emptyColumns[14] == false && ShowLastHitColumn)
+                                {
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("last_hit"))" Field="@(r => r.Data.Metadata.LastHit)" Sortable="true" Hideable="true" Class="minw-80">
+                                        <Template>
+                                            @((MarkupString)RuleDisplayHtml.DisplayLastHit(ruleTreeItem.Data.Metadata))
+                                        </Template>
+                                    </Column>
                                 }
 
                                 <DetailTemplate TableItem="RuleTreeItem">
@@ -283,7 +292,7 @@
 
     #region Consts - Private
 
-    private const int ColumnsCount = 14;
+    private const int ColumnsCount = 15;
 
     #endregion
 
@@ -294,6 +303,7 @@
 
     private NatRuleDisplayHtml? _ruleDisplay;
     private bool _showLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
+    private bool ShowLastHitColumn => ReportTypeGroups.IsRuleReport(SelectedReportType);
 
     private Rule? _lastClickedRule = null;
 
@@ -428,4 +438,5 @@
     }
 
     #endregion
+
 }

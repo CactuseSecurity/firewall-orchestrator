@@ -560,3 +560,13 @@ div.modal-body > * > div.table-responsive > table.sticky-header thead {
     letter-spacing: 0.2px;
 }
 
+
+.report-table th.minw-80,
+.report-table td.minw-80 {
+    min-width: 80px;
+}
+
+.report-table th.minw-200,
+.report-table td.minw-200 {
+    min-width: 200px;
+}

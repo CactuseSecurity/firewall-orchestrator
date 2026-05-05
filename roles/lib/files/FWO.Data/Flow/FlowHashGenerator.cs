@@ -30,7 +30,7 @@ namespace FWO.Data.Flow
         /// <summary>
         /// Generates hash for service objects from protocol and port range.
         /// SHA256 of "proto_id-port_start-port_end" if ports present,
-        /// SHA256 of "proto_id" if ports are null.
+        /// UUID v4 if either port is null (protocol-only objects like ICMP).
         /// </summary>
         public static string GenerateSvcObjectHash(int protoId, int? portStart, int? portEnd)
         {
@@ -71,6 +71,11 @@ namespace FWO.Data.Flow
             IEnumerable<string> destinationHashes,
             IEnumerable<string> serviceHashes)
         {
+            if (!sourceHashes.Any() || !destinationHashes.Any() || !serviceHashes.Any())
+            {
+                throw new ArgumentException("Access must have at least one source, destination, and service hash");
+            }
+
             // Sort hashes to ensure same access (even if in different order) produces same hash
             var sortedSources = sourceHashes.OrderBy(h => h).ToList();
             var sortedDestinations = destinationHashes.OrderBy(h => h).ToList();

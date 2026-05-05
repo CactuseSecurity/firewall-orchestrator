@@ -3,14 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data.Flow
 {
-    public enum FlowAccessState
-    {
-        Requested,
-        Denied,
-        Implemented,
-        Removed
-    }
-
     public class FlowAccess
     {
         [JsonProperty("access_id"), JsonPropertyName("access_id")]
@@ -26,7 +18,7 @@ namespace FWO.Data.Flow
         public int? OwnerId { get; set; }
 
         [JsonProperty("state"), JsonPropertyName("state")]
-        public string State { get; set; } = "requested";
+        public string State { get; set; } = "requested"; // requested / denied / implemented / removed
 
         [JsonProperty("removed_date"), JsonPropertyName("removed_date")]
         public DateTime? RemovedDate { get; set; }
@@ -40,13 +32,13 @@ namespace FWO.Data.Flow
         [JsonProperty("access_services"), JsonPropertyName("access_services")]
         public List<FlowAccessService>? Services { get; set; }
 
-        [JsonProperty("access_source_groups"), JsonPropertyName("access_source_groups")]
+        [JsonProperty("access_source_grps"), JsonPropertyName("access_source_grps")]
         public List<FlowAccessSourceGroup>? SourceGroups { get; set; }
 
-        [JsonProperty("access_destination_groups"), JsonPropertyName("access_destination_groups")]
+        [JsonProperty("access_destination_grps"), JsonPropertyName("access_destination_grps")]
         public List<FlowAccessDestinationGroup>? DestinationGroups { get; set; }
 
-        [JsonProperty("access_service_groups"), JsonPropertyName("access_service_groups")]
+        [JsonProperty("access_service_grps"), JsonPropertyName("access_service_grps")]
         public List<FlowAccessServiceGroup>? ServiceGroups { get; set; }
 
         [JsonProperty("access_timeobjects"), JsonPropertyName("access_timeobjects")]

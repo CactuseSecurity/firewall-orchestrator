@@ -342,6 +342,24 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
             "compliance_filter": {
                 "diff_reference_in_days": 7,
                 "show_non_impact_rules": false}}');
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters")
+    VALUES ('',
+        'Last Week Approved Tickets','T0110', 0,
+        '{"report_type":42,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "last week",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false},
+            "workflow_filter": {
+                "reference_date": "Approved"}}');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply

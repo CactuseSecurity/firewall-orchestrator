@@ -709,6 +709,7 @@ namespace FWO.Report.Filter
                 WorkflowLabelFilterMode.not_existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: true),
                 WorkflowLabelFilterMode.existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: false),
                 WorkflowLabelFilterMode.value => BuildTicketLabelValueFilter(query, labelFilter.Name, labelFilter.Value),
+                WorkflowLabelFilterMode.display_only => null,
                 _ => null
             };
         }

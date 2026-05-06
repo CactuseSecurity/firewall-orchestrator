@@ -453,92 +453,7 @@
             }
             if (CheckValues(actManagement, userConfig.GetText("save_management")))
             {
-                if (AddMode)
-                {
-                    // insert new management
-                    var Variables = new
-                    {
-                        name = actManagement.Name,
-                        uid = actManagement.Uid,
-                        devTypeId = actManagement.DeviceType.Id,
-                        hostname = actManagement.Hostname,
-                        importCredentialId = actManagement.ImportCredential.Id,
-                        port = actManagement.Port,
-                        importDisabled = actManagement.ImportDisabled,
-                        forceInitialImport = actManagement.ForceInitialImport,
-                        hideInUi = actManagement.HideInUi,
-                        configPath = actManagement.ConfigPath,
-                        domainUid = actManagement.DomainUid,
-                        cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
-                        cloudTenantId = actManagement.CloudTenantId,                        
-                        superManager = actManagement.SuperManagerId,
-                        importerHostname = actManagement.ImporterHostname,
-                        debugLevel = actManagement.DebugLevel,
-                        comment = actManagement.Comment,
-                        extMgtData = actManagement.ExtMgtData,
-                        isSuperManager = actManagement.DeviceType.CanBeSupermanager()
-                    };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newManagement, Variables)).ReturnIds;
-                    if (returnIds != null)
-                    {
-                        actManagement.Id = returnIds[0].NewId;
-                        await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
-                        {
-                            Family = ChangeLogFamily.Manual,
-                            Operation = ChangeLogOperation.Create,
-                            ManagementId = actManagement.Id,
-                            ManagementName = actManagement.Name,
-                            UserId = userConfig.User.DbId.ToString(),
-                            Origin = ChangeLogOrigin.UiSettings
-                        });
-                    }
-                    managements.Add(actManagement);
-                    AddMode = false;
-                    EditMode = false;
-                }
-                else
-                {
-                    // Update existing management
-                    var Variables = new
-                    {
-                        id = actManagement.Id,
-                        name = actManagement.Name,
-                        uid = actManagement.Uid,
-                        devTypeId = actManagement.DeviceType.Id,
-                        hostname = actManagement.Hostname,
-                        importCredentialId = actManagement.ImportCredential.Id,
-                        port = actManagement.Port,
-                        importDisabled = actManagement.ImportDisabled,
-                        forceInitialImport = actManagement.ForceInitialImport,
-                        hideInUi = actManagement.HideInUi,
-                        configPath = actManagement.ConfigPath,
-                        domainUid = actManagement.DomainUid,
-                        cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
-                        cloudTenantId = actManagement.CloudTenantId,                        
-                        superManager = actManagement.SuperManagerId,
-                        importerHostname = actManagement.ImporterHostname,
-                        debugLevel = actManagement.DebugLevel,
-                        comment = actManagement.Comment,
-                        extMgtData = actManagement.ExtMgtData,
-                        isSuperManager = actManagement.DeviceType.CanBeSupermanager()
-                    };
-                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagement, Variables)).UpdatedId;
-                    if (udId == actManagement.Id)
-                    {
-                        await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
-                        {
-                            Family = ChangeLogFamily.Manual,
-                            Operation = ChangeLogOperation.Update,
-                            ManagementId = actManagement.Id,
-                            ManagementName = actManagement.Name,
-                            UserId = userConfig.User.DbId.ToString(),
-                            Origin = ChangeLogOrigin.UiSettings
-                        });
-                    }
-                    EditMode = (udId == actManagement.Id ? false : true);
-                    managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
-                }
-                AnalyseSampleManagements();
+                await PersistManagmentChanges();
             }
             StateHasChanged();
         }
@@ -546,6 +461,96 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
         }
+    }
+
+    private async Task PersistManagmentChanges()
+    {
+        if (AddMode)
+        {
+            // insert new management
+            var Variables = new
+            {
+                name = actManagement.Name,
+                uid = actManagement.Uid,
+                devTypeId = actManagement.DeviceType.Id,
+                hostname = actManagement.Hostname,
+                importCredentialId = actManagement.ImportCredential.Id,
+                port = actManagement.Port,
+                importDisabled = actManagement.ImportDisabled,
+                forceInitialImport = actManagement.ForceInitialImport,
+                hideInUi = actManagement.HideInUi,
+                configPath = actManagement.ConfigPath,
+                domainUid = actManagement.DomainUid,
+                cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
+                cloudTenantId = actManagement.CloudTenantId,                        
+                superManager = actManagement.SuperManagerId,
+                importerHostname = actManagement.ImporterHostname,
+                debugLevel = actManagement.DebugLevel,
+                comment = actManagement.Comment,
+                extMgtData = actManagement.ExtMgtData,
+                isSuperManager = actManagement.DeviceType.CanBeSupermanager()
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newManagement, Variables)).ReturnIds;
+            if (returnIds != null)
+            {
+                actManagement.Id = returnIds[0].NewId;
+                await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Manual,
+                    Operation = ChangeLogOperation.Create,
+                    ManagementId = actManagement.Id,
+                    ManagementName = actManagement.Name,
+                    UserId = userConfig.User.DbId.ToString(),
+                    Origin = ChangeLogOrigin.UiSettings
+                });
+            }
+            managements.Add(actManagement);
+            AddMode = false;
+            EditMode = false;
+        }
+        else
+        {
+            // Update existing management
+            var Variables = new
+            {
+                id = actManagement.Id,
+                name = actManagement.Name,
+                uid = actManagement.Uid,
+                devTypeId = actManagement.DeviceType.Id,
+                hostname = actManagement.Hostname,
+                importCredentialId = actManagement.ImportCredential.Id,
+                port = actManagement.Port,
+                importDisabled = actManagement.ImportDisabled,
+                forceInitialImport = actManagement.ForceInitialImport,
+                hideInUi = actManagement.HideInUi,
+                configPath = actManagement.ConfigPath,
+                domainUid = actManagement.DomainUid,
+                cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
+                cloudTenantId = actManagement.CloudTenantId,                        
+                superManager = actManagement.SuperManagerId,
+                importerHostname = actManagement.ImporterHostname,
+                debugLevel = actManagement.DebugLevel,
+                comment = actManagement.Comment,
+                extMgtData = actManagement.ExtMgtData,
+                isSuperManager = actManagement.DeviceType.CanBeSupermanager()
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagement, Variables)).UpdatedId;
+            if (udId == actManagement.Id)
+            {
+                await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Manual,
+                    Operation = ChangeLogOperation.Update,
+                    ManagementId = actManagement.Id,
+                    ManagementName = actManagement.Name,
+                    UserId = userConfig.User.DbId.ToString(),
+                    Origin = ChangeLogOrigin.UiSettings
+                });
+            }
+            EditMode = (udId == actManagement.Id ? false : true);
+            managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
+        }
+        AnalyseSampleManagements();
     }
 
     private bool CheckValues(Management mgm, string checkCause)

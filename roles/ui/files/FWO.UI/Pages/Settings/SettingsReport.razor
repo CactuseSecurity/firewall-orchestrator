@@ -68,7 +68,7 @@
         <label for="creationTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("PreferredCollapseState")):</label>
         <div class="col-sm-2">
             <Dropdown ElementType="PreferredCollapseState" ElementToString="_ => _.ToString(userConfig)"
-                      Elements="Enum.GetValues<PreferredCollapseState>().Except(PreferredCollapseState.Intermediate)"
+                      Elements="Enum.GetValues<PreferredCollapseState>().Where(state => state != PreferredCollapseState.Intermediate)"
                       @bind-SelectedElement="configData!.ReportingPersonalPreferredCollapseState" />
         </div>
     </div>

@@ -69,6 +69,19 @@ namespace FWO.Data.Workflow
         public WfStateAction()
         { }
 
+        public WfStateAction(WfStateAction action)
+        {
+            Id = action.Id;
+            Name = action.Name;
+            ActionType = action.ActionType;
+            Scope = action.Scope;
+            TaskType = action.TaskType;
+            Phase = action.Phase;
+            Event = action.Event;
+            ButtonText = action.ButtonText;
+            ExternalParams = action.ExternalParams;
+        }
+
         public static bool IsReadonlyType(string actionTypeString)
         {
             if (Enum.TryParse<StateActionTypes>(actionTypeString, out StateActionTypes actionType))

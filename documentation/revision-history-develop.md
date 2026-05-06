@@ -400,3 +400,12 @@ A complete 80K lines rework of FWO, including
 - fix empty mail being sent for orphaned rule report
 - update dependencies (notably closing mailkit and pytest vuln)
 - fix time zone issues in importer
+
+# 9.0.23 - 27.04.2026 DEVELOP
+- enhance notifications by bcc
+- add display-only workflow label report column option
+- add default template for workflow tickets approved last week
+Removed deprecated configuration keys:
+- updateRuleOwnerMappingActive
+- updateRuleOwnerMappingStartAt
+These settings are no longer used due to the full automation of UpdateRuleOwner.

@@ -51,5 +51,79 @@ namespace FWO.Test
 
             Assert.That(recipients, Is.EquivalentTo(new[] { "a@test", "b@test" }));
         }
+
+        [Test]
+        public async Task GetRecipientsReturnsJsonOtherAddressList()
+        {
+            EmailHelper helper = CreateEmailHelper();
+            EmailRecipientSelection selection = new()
+            {
+                None = false,
+                OtherAddresses = true,
+                OtherAddressList = ["json-a@test", "json-b@test"]
+            };
+
+            List<string> recipients = await helper.GetRecipients(selection, null, ["legacy@test"]);
+
+            Assert.That(recipients, Is.EquivalentTo(new[] { "json-a@test", "json-b@test", "legacy@test" }));
+        }
+
+        [Test]
+        public async Task GetRecipientsReturnsJsonOtherAddressListFromConfigStringWithoutLegacyAddresses()
+        {
+            EmailHelper helper = CreateEmailHelper();
+            EmailRecipientSelection selection = new()
+            {
+                None = false,
+                OtherAddresses = true,
+                OtherAddressList = ["json-a@test", "json-b@test"]
+            };
+
+            List<string> recipients = await helper.GetRecipients(selection.ToConfigValue(), null, []);
+
+            Assert.That(recipients, Is.EquivalentTo(new[] { "json-a@test", "json-b@test" }));
+        }
+
+        [Test]
+        public async Task GetRecipientsReturnsConfiguredResponsibleTypes()
+        {
+            EmailHelper helper = CreateEmailHelper();
+            FwoOwner owner = new();
+            owner.AddOwnerResponsible(3, "cn=escalation,dc=test");
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
+            EmailRecipientSelection selection = new()
+            {
+                None = false,
+                OwnerResponsibleTypeIds = [3]
+            };
+
+            List<string> recipients = await helper.GetRecipients(selection, owner, null);
+
+            Assert.That(recipients, Has.Count.EqualTo(1));
+            Assert.That(recipients[0], Is.EqualTo("dummy@example.test"));
+        }
+
+        [Test]
+        public void EmailActionParamsCreatesActionNotificationWithoutDeadline()
+        {
+            EmailActionParams actionParams = new()
+            {
+                NotificationIds = [7, 9],
+                RecipientTo = EmailRecipientOption.CurrentHandler,
+                RecipientCC = EmailRecipientOption.Requester,
+                Subject = "subject",
+                Body = "body"
+            };
+
+            FwoNotification notification = actionParams.ToNotification();
+
+            Assert.That(notification.NotificationClient, Is.EqualTo(NotificationClient.WfAction));
+            Assert.That(notification.Deadline, Is.EqualTo(NotificationDeadline.None));
+            Assert.That(notification.RecipientTo, Is.EqualTo(EmailRecipientOption.CurrentHandler));
+            Assert.That(notification.RecipientCc, Is.EqualTo(EmailRecipientOption.Requester));
+            Assert.That(notification.EmailSubject, Is.EqualTo("subject"));
+            Assert.That(notification.EmailBody, Is.EqualTo("body"));
+            Assert.That(actionParams.NotificationIds, Is.EqualTo(new[] { 7, 9 }));
+        }
     }
 }

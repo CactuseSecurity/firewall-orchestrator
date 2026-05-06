@@ -711,23 +711,29 @@
         }
         if(actNotification.Deadline != NotificationDeadline.None)
         {
-            if(actNotification.OffsetBeforeDeadline == null && actNotification.RepeatOffsetAfterDeadline == null)
-            {
-                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), true);
-                return false;
-            }
-            if (actNotification.OffsetBeforeDeadline != null && actNotification.IntervalBeforeDeadline == null
-                || actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepeatIntervalAfterDeadline == null)
-            {
-                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), true);
-                return false;
-            }
-            if(actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepetitionsAfterDeadline == null ||
-                (actNotification.RepeatOffsetAfterDeadline == null && actNotification.RepetitionsAfterDeadline != null))
-            {
-                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4013"), true);
-                return false;
-            }
+            return CheckConsistencyWithDeadline();
+        }
+        return true;
+    }
+
+    private bool CheckConsistencyWithDeadline()
+    {
+        if(actNotification.OffsetBeforeDeadline == null && actNotification.RepeatOffsetAfterDeadline == null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), true);
+            return false;
+        }
+        if (actNotification.OffsetBeforeDeadline != null && actNotification.IntervalBeforeDeadline == null
+            || actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepeatIntervalAfterDeadline == null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), true);
+            return false;
+        }
+        if(actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepetitionsAfterDeadline == null ||
+           (actNotification.RepeatOffsetAfterDeadline == null && actNotification.RepetitionsAfterDeadline != null))
+        {
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4013"), true);
+            return false;
         }
         return true;
     }

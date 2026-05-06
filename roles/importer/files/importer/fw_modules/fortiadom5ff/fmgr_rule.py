@@ -238,22 +238,21 @@ def insert_nat_rulebase_link(
 def extract_nat_config_fields(native_rule: dict[str, Any]) -> str:
     """
     Extracts NAT-specific configuration fields from a native rule.
-    Returns a JSON string with poolname, fixedport, ippool, and nat_type fields.
+    Returns a JSON string with NAT translation metadata.
     """
-    nat_config = {}
+    nat_config: dict[str, Any] = {}
 
-    # IP Pool Configuration
-    if "ippool" in native_rule:
-        nat_config["ippool"] = native_rule.get("ippool")
+    if native_rule.get("ippool") == 1:
+        nat_config["ippool"] = 1
+        poolname = native_rule.get("poolname")
+        if isinstance(poolname, list) and poolname:
+            nat_config["poolname"] = poolname
+        elif isinstance(poolname, str) and poolname:
+            nat_config["poolname"] = [poolname]
 
-    if nat_config.get("ippool") == 1 and "poolname" in native_rule:
-        nat_config["poolname"] = native_rule.get("poolname")
-
-    # Port Translation
     if "fixedport" in native_rule:
         nat_config["fixedport"] = native_rule.get("fixedport")
 
-    # Determine NAT type
     if "nat" in native_rule and native_rule["nat"] == 1:
         nat_config["nat_type"] = "nat"
     elif "nat46" in native_rule and native_rule["nat46"] == 1:
@@ -261,7 +260,29 @@ def extract_nat_config_fields(native_rule: dict[str, Any]) -> str:
     elif "nat64" in native_rule and native_rule["nat64"] == 1:
         nat_config["nat_type"] = "nat64"
 
-    return json.dumps(nat_config) if nat_config else "{}"
+    return json.dumps(nat_config, sort_keys=True) if nat_config else "{}"
+
+
+def get_nat_translated_source(
+    native_rule: dict[str, Any],
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+) -> tuple[list[str], list[str]]:
+    if native_rule.get("ippool") == 1:
+        poolname = native_rule.get("poolname", [])
+        if isinstance(poolname, str):
+            poolname = [poolname]
+        translated_src_list = sorted(poolname)
+        translated_src_refs_list = [
+            find_addr_ref(pool, is_v4=True, normalized_config_adom=normalized_config_adom, normalized_config_global=normalized_config_global)
+            for pool in translated_src_list
+        ]
+        return translated_src_list, translated_src_refs_list
+
+    rule_src_list, rule_src_refs_list = rule_parse_addresses(
+        native_rule, "src", normalized_config_adom, normalized_config_global, is_nat=True
+    )
+    return rule_src_list, rule_src_refs_list
 
 
 def parse_nat_rules_in_rulebase(
@@ -291,6 +312,9 @@ def parse_nat_rules_in_rulebase(
         )
         rule_dst_list, rule_dst_refs_list = rule_parse_addresses(
             native_rule, "dst", normalized_config_adom, normalized_config_global, is_nat=True
+        )
+        translated_src_list, translated_src_refs_list = get_nat_translated_source(
+            native_rule, normalized_config_adom, normalized_config_global
         )
 
         rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
@@ -333,7 +357,7 @@ def parse_nat_rules_in_rulebase(
             rule_time=rule_parse_time(native_rule),
             rule_name=native_rule.get("name", ""),
             rule_uid=rule_original_uid,
-            rule_custom_fields=nat_config_fields,
+            rule_custom_fields=None,
             rule_implied=False,
             rule_type=RuleType.NAT,
             last_change_admin=None,
@@ -349,17 +373,16 @@ def parse_nat_rules_in_rulebase(
         )
 
         # Create translated rule (translation phase)
-        # Use "Original" as placeholder for translated destination (following CheckPoint pattern)
+        # Keep the original destination and service; translate the source to the NAT pool.
         rule_translated = RuleNormalized(
             rule_num=rule_num,
             rule_num_numeric=0,
             rule_disabled=rule_disabled,
             rule_src_neg=False,
-            rule_src=LIST_DELIMITER.join(rule_src_list),
-            rule_src_refs=LIST_DELIMITER.join(rule_src_refs_list),
+            rule_src=LIST_DELIMITER.join(translated_src_list),
+            rule_src_refs=LIST_DELIMITER.join(translated_src_refs_list),
             rule_dst_neg=False,
-            rule_dst="Original",  # Placeholder for translated destination
-            # Keep refs non-empty to avoid generating an unresolvable '' reference.
+            rule_dst=LIST_DELIMITER.join(rule_dst_list),
             rule_dst_refs=LIST_DELIMITER.join(rule_dst_refs_list),
             rule_svc_neg=False,
             rule_svc=LIST_DELIMITER.join(rule_svc_list),

@@ -1,0 +1,17 @@
+query getFlowObjectCatalog {
+  nwobjects: flow_nwobject(order_by: [{ name: asc }, { nwobj_id: asc }]) {
+    ...flowNwObjectDetails
+  }
+  nwgroups: flow_nwgroup(order_by: [{ name: asc }, { nwgroup_id: asc }]) {
+    ...flowNwGroupDetails
+  }
+  svcobjects: flow_svcobject(order_by: [{ name: asc }, { svcobj_id: asc }]) {
+    ...flowSvcObjectDetails
+  }
+  svcgroups: flow_svcgroup(order_by: [{ name: asc }, { svcgroup_id: asc }]) {
+    ...flowSvcGroupDetails
+  }
+  timeobjects: flow_timeobject(order_by: [{ name: asc }, { timeobj_id: asc }]) {
+    ...flowTimeObjectDetails
+  }
+}

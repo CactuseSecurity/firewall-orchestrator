@@ -1,0 +1,30 @@
+mutation upsertFlowNwObjectMapping(
+  $flowNwobjId: bigint!
+  $objId: bigint!
+  $mgmId: Int!
+  $activeOnMgm: Boolean!
+) {
+  insert_flow_nwobject_mapping(
+    objects: {
+      flow_nwobj_id: $flowNwobjId
+      obj_id: $objId
+      mgm_id: $mgmId
+      active_on_mgm: $activeOnMgm
+    }
+    on_conflict: {
+      constraint: nwobject_mapping_pkey
+      update_columns: [
+        flow_nwobj_id
+        mgm_id
+        active_on_mgm
+      ]
+    }
+  ) {
+    returning {
+      flow_nwobj_id
+      obj_id
+      mgm_id
+      active_on_mgm
+    }
+  }
+}

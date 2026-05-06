@@ -1,0 +1,30 @@
+fragment flowSvcObjectDetails on flow_svcobject {
+  svcobj_id
+  name
+  port_start
+  port_end
+  ip_proto_id
+  svcobj_hash
+  state
+  removed_date
+  show_in_request_module
+  svcobject_mappings(order_by: { mgm_id: asc }) {
+    flow_svcobj_id
+    svc_id
+    mgm_id
+    active_on_mgm
+    management {
+      mgm_id
+      mgm_name
+    }
+    service {
+      svc_id
+      svc_name
+      svc_port
+      svc_port_end
+      svc_uid
+      active
+      removed
+    }
+  }
+}

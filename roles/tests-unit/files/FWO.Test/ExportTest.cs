@@ -840,6 +840,8 @@ namespace FWO.Test
                 ReportData = ConstructChangeReport(true)
             };
 
+            string expectedMemberNamesJson = $"[\\\"Member-{StaticUid}\\\"]";
+            string expectedObjectComment = $"Comment-{StaticUid}";
             string expectedJsonResult =
             "{\"report type\": \"Changes Report (technical)\",\"report generation date\": \"Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\",\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
             "\"managements\": [{\"TestMgt\": {\"rule changes\": [" +
@@ -860,13 +862,13 @@ namespace FWO.Test
             "\"destination zones\": [],\"destination negated\": true,\"destination\": [\"TestUser2@1.2.3.4-1.2.3.5\"]," +
             "\"service negated\": true,\"service\": [\"6666-7777/UDP\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"Enforcing Gateway\": [],\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]," +
             "\"Network Object changes\": [{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"network_object_added\",\"name\": \"TestIp1\",\"ObjectType\": \"network\",\"Object Type\": \" (1.2.3.4)\"," +
-            "\"Member Names\": \"[]\",\"rule uid\": \"\",\"comment\": \"\"},{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"network_object_modified\",\"name\": \"deleted: TestIp1, added: TestIp1Changed\"," +
-            "\"ObjectType\": \"deleted: network, added: host\",\"Object Type\": \"deleted:  (1.2.3.4), added:  (2.3.4.5)\",\"Member Names\": \"[]\",\"rule uid\": \"\",\"comment\": \"\"},{\"change time\": \"05.04.2023 12:00:00\"," +
-            "\"change action\": \"network_object_deleted\",\"name\": \"TestIp2\",\"ObjectType\": \"network\",\"Object Type\": \" (127.0.0.1)\",\"Member Names\": \"[]\",\"rule uid\": \"\",\"comment\": \"\"}]," +
-            "\"Service Object changes\": [{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"service_added\",\"name\": \"TestService1\",\"ObjectType\": \"\",\"Protocol\": \"TCP\",\"Port\": \" (443)\",\"Member Names\": \"[]\"," +
-            "\"rule uid\": \"\",\"comment\": \"\"},{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"service_modified\",\"name\": \"deleted: TestService1, added: TestService2\",\"ObjectType\": \"\"," +
-            "\"Protocol\": \"deleted: TCP, added: UDP\",\"Port\": \"deleted:  (443), added:  (6666-7777)\",\"Member Names\": \"[]\",\"rule uid\": \"\",\"comment\": \"\"},{\"change time\": \"05.04.2023 12:00:00\"," +
-            "\"change action\": \"service_deleted\",\"name\": \"TestService1\",\"ObjectType\": \"\",\"Protocol\": \"TCP\",\"Port\": \" (443)\",\"Member Names\": \"[]\",\"rule uid\": \"\",\"comment\": \"\"}]}}]}";
+            "\"Member Names\": \"" + expectedMemberNamesJson + "\",\"rule uid\": \"" + StaticUid + "\",\"comment\": \"" + expectedObjectComment + "\"},{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"network_object_modified\",\"name\": \"deleted: TestIp1, added: TestIp1Changed\"," +
+            "\"ObjectType\": \"deleted: network, added: host\",\"Object Type\": \"deleted:  (1.2.3.4), added:  (2.3.4.5)\",\"Member Names\": \"" + expectedMemberNamesJson + "\",\"rule uid\": \"" + StaticUid + "\",\"comment\": \"" + expectedObjectComment + "\"},{\"change time\": \"05.04.2023 12:00:00\"," +
+            "\"change action\": \"network_object_deleted\",\"name\": \"TestIp2\",\"ObjectType\": \"network\",\"Object Type\": \" (127.0.0.1)\",\"Member Names\": \"" + expectedMemberNamesJson + "\",\"rule uid\": \"" + StaticUid + "\",\"comment\": \"" + expectedObjectComment + "\"}]," +
+            "\"Service Object changes\": [{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"service_added\",\"name\": \"TestService1\",\"ObjectType\": \"\",\"Protocol\": \"TCP\",\"Port\": \" (443)\",\"Member Names\": \"" + expectedMemberNamesJson + "\"," +
+            "\"rule uid\": \"" + StaticUid + "\",\"comment\": \"" + expectedObjectComment + "\"},{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"service_modified\",\"name\": \"deleted: TestService1, added: TestService2\",\"ObjectType\": \"\"," +
+            "\"Protocol\": \"deleted: TCP, added: UDP\",\"Port\": \"deleted:  (443), added:  (6666-7777)\",\"Member Names\": \"" + expectedMemberNamesJson + "\",\"rule uid\": \"" + StaticUid + "\",\"comment\": \"" + expectedObjectComment + "\"},{\"change time\": \"05.04.2023 12:00:00\"," +
+            "\"change action\": \"service_deleted\",\"name\": \"TestService1\",\"ObjectType\": \"\",\"Protocol\": \"TCP\",\"Port\": \" (443)\",\"Member Names\": \"" + expectedMemberNamesJson + "\",\"rule uid\": \"" + StaticUid + "\",\"comment\": \"" + expectedObjectComment + "\"}]}}]}";
             ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToJson(), false, true)));
         }
 

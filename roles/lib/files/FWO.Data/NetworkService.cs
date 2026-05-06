@@ -129,7 +129,7 @@ namespace FWO.Data
         {
             return Id.GetHashCode();
         }
-        
+
         public static List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
         {
             return services

@@ -1,0 +1,406 @@
+@page "/settings/flows"
+
+@using FWO.Api.Client.Queries
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using FWO.Data
+@using FWO.Data.Flow
+@using FWO.Middleware.Client
+@using Microsoft.AspNetCore.Components.Authorization
+
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("flow_objects"))</h3>
+    <HelpLink Page="settings/flows"/>
+</div>
+<div class="form-group row align-items-center mb-2">
+    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("flow_naming")):</label>
+    <div class="col-sm-5">
+        <Dropdown ElementType="Management" ElementToString="@(management => management.Name)" @bind-SelectedElement="selectedNamingManagement" Elements="selectableManagements" Nullable="true">
+            <ElementTemplate Context="management">
+                @management.Name
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+    <div class="col-sm-3">
+        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveNamingSource">@(userConfig.GetText("save"))</button>
+    </div>
+</div>
+<div class="text-muted small mb-2">
+    @($"{userConfig.GetText("current")}: {selectedNamingManagement?.Name ?? "-"}")
+</div>
+<hr />
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <div class="input-group input-group-sm cwidth-400">
+        <span class="input-group-text">@(userConfig.GetText("search"))</span>
+        <input type="text" class="form-control" @bind="searchText" @bind:event="oninput" />
+        @if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearSearch">
+                @(userConfig.GetText("cancel"))
+            </button>
+        }
+    </div>
+    <div class="btn-group">
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Refresh">
+            @(userConfig.GetText("refresh"))
+        </button>
+    </div>
+</div>
+
+<div class="text-muted small mb-2">
+    @($"{FilteredFlowAccesses.Count} / {flowAccesses.Count}")
+</div>
+
+<Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+       TableItem="FlowAccess"
+       Items="FilteredFlowAccesses"
+       PageSize="25"
+       ColumnReorder="true">
+    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("id"))" Field="@(access => access.Id)" Sortable="true" Filterable="true" />
+    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("hash"))" Field="@(access => access.AccessHash)" Sortable="true" Filterable="true" />
+    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("state"))" Field="@(access => access.State)" Sortable="true" Filterable="true" />
+    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("source"))" Context="access">
+        <Template>
+            <div class="text-break">
+                @(BuildList(access.Sources, source => source.NwObject?.Name))
+            </div>
+        </Template>
+    </Column>
+    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("destination"))" Context="access">
+        <Template>
+            <div class="text-break">
+                @(BuildList(access.Destinations, destination => destination.NwObject?.Name))
+            </div>
+        </Template>
+    </Column>
+    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("services"))" Context="access">
+        <Template>
+            <div class="text-break">
+                @(BuildList(access.Services, service => service.SvcObject?.Name))
+            </div>
+        </Template>
+    </Column>
+    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("time"))" Context="access">
+        <Template>
+            <div class="text-break">
+                @(BuildList(access.TimeObjects, timeObject => timeObject.TimeObject?.Name))
+            </div>
+        </Template>
+    </Column>
+    <DetailTemplate TableItem="FlowAccess" Context="access">
+        <div class="row g-2 small">
+            <div class="col-12 col-lg-6">
+                <div class="fw-bold">@(userConfig.GetText("source"))</div>
+                <div class="d-flex flex-wrap gap-1">
+                    @foreach (FlowAccessSource? source in access.Sources ?? [])
+                    {
+                        if (source?.NwObject != null)
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => EditNwObject(source.NwObject)">
+                                @GetNwObjectLabel(source.NwObject)
+                            </button>
+                        }
+                    }
+                </div>
+                <div class="fw-bold mt-2">@(userConfig.GetText("source_groups"))</div>
+                <div class="text-break">@(BuildList(access.SourceGroups, sourceGroup => sourceGroup.NwGroup?.Name))</div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="fw-bold">@(userConfig.GetText("destination"))</div>
+                <div class="d-flex flex-wrap gap-1">
+                    @foreach (FlowAccessDestination? destination in access.Destinations ?? [])
+                    {
+                        if (destination?.NwObject != null)
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => EditNwObject(destination.NwObject)">
+                                @GetNwObjectLabel(destination.NwObject)
+                            </button>
+                        }
+                    }
+                </div>
+                <div class="fw-bold mt-2">@(userConfig.GetText("destination_groups"))</div>
+                <div class="text-break">@(BuildList(access.DestinationGroups, destinationGroup => destinationGroup.NwGroup?.Name))</div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="fw-bold">@(userConfig.GetText("services"))</div>
+                <div class="text-break">@(BuildList(access.Services, service => service.SvcObject?.Name))</div>
+                <div class="fw-bold mt-2">@(userConfig.GetText("service_groups"))</div>
+                <div class="text-break">@(BuildList(access.ServiceGroups, serviceGroup => serviceGroup.SvcGroup?.Name))</div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="fw-bold">@(userConfig.GetText("time"))</div>
+                <div class="text-break">@(BuildList(access.TimeObjects, timeObject => timeObject.TimeObject?.Name))</div>
+                <div class="fw-bold mt-2">@userConfig.GetText("rules")</div>
+                <div class="text-break">@(BuildList(access.RuleFlowMappings, mapping => mapping.RuleId.ToString()))</div>
+            </div>
+        </div>
+    </DetailTemplate>
+    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+</Table>
+
+<hr class="my-4" />
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <div class="input-group input-group-sm cwidth-400">
+        <span class="input-group-text">@(userConfig.GetText("network_objects"))</span>
+        <input type="text" class="form-control" @bind="objectSearchText" @bind:event="oninput" />
+        @if (!string.IsNullOrWhiteSpace(objectSearchText))
+        {
+            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearObjectSearch">
+                @(userConfig.GetText("cancel"))
+            </button>
+        }
+    </div>
+</div>
+
+<div class="text-muted small mb-2">
+    @($"{FilteredFlowNwObjects.Count} / {FlowNwObjects.Count}")
+</div>
+
+<Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+       TableItem="FlowNwObject"
+       Items="FilteredFlowNwObjects"
+       PageSize="25"
+       ColumnReorder="true">
+    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
+        <Template>
+            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditNwObject(nwObject)">
+                @(userConfig.GetText("edit"))
+            </button>
+        </Template>
+    </Column>
+    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("id"))" Field="@(nwObject => nwObject.Id)" Sortable="true" Filterable="true" />
+    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("name"))" Field="@(nwObject => nwObject.Name)" Sortable="true" Filterable="true" />
+    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("hash"))" Field="@(nwObject => nwObject.Hash)" Sortable="true" Filterable="true" />
+    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("state"))" Field="@(nwObject => nwObject.State)" Sortable="true" Filterable="true" />
+    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("show_in_request_module"))" Field="@(nwObject => nwObject.ShowInRequestModule)" Sortable="true" Context="nwObject">
+        <Template>
+            @nwObject.ShowInRequestModule.ShowAsHtml()
+        </Template>
+    </Column>
+    <Column TableItem="FlowNwObject" Title="IP" Field="@(nwObject => nwObject.IpStart)" Sortable="true" Filterable="true" Context="nwObject">
+        <Template>
+            @($"{nwObject.IpStart ?? "-"}{(string.IsNullOrWhiteSpace(nwObject.IpEnd) ? "" : $" - {nwObject.IpEnd}")}")
+        </Template>
+    </Column>
+    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+</Table>
+
+<PopUp Title="@(userConfig.GetText("edit_flow_object"))" Show="@EditNwObjectMode" Size=PopupSize.Small OnClose="CloseNwObjectEditor">
+    <Body>
+        @if (EditNwObjectMode)
+        {
+            <form onsubmit="return false">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8 col-form-label col-form-label-sm">@EditFlowNwObject.Id</label>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="EditFlowNwObject.Name" />
+                    </div>
+                </div>
+                <div class="form-check form-check-inline mt-3">
+                    <input class="form-check-input" id="flowNwObjectShowInRequestModule" type="checkbox" @bind="EditFlowNwObject.ShowInRequestModule">
+                    <label class="form-check-label" for="flowNwObjectShowInRequestModule"><small>@(userConfig.GetText("show_in_request_module"))</small></label>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveNwObject">@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseNwObjectEditor">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<InProgress Display="workInProgress"/>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private List<FlowAccess> flowAccesses = [];
+    private List<Management> selectableManagements = [];
+    private ConfigData? configData;
+    private Management? selectedNamingManagement;
+    private bool workInProgress = false;
+    private string searchText = "";
+    private string objectSearchText = "";
+    private bool EditNwObjectMode = false;
+    private FlowNwObject EditFlowNwObject = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            workInProgress = true;
+            StateHasChanged();
+
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin]);
+            configData = await globalConfig.GetEditableConfig();
+            selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
+            selectedNamingManagement = selectableManagements.FirstOrDefault(management => management.Id == configData.FlowNamingSourceManagementId);
+            flowAccesses = await apiConnection.SendQueryAsync<List<FlowAccess>>(FlowQueries.getFlowAccessCatalog);
+
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("flow_objects"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SaveNamingSource()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                return;
+            }
+
+            configData.FlowNamingSourceManagementId = selectedNamingManagement?.Id;
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("flow_naming"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("flow_naming"), "", true);
+        }
+    }
+
+    private List<FlowAccess> FilteredFlowAccesses =>
+        string.IsNullOrWhiteSpace(searchText)
+            ? flowAccesses
+            : [.. flowAccesses.Where(access =>
+                FlowAccessPresentationHelper.BuildSearchText(access)
+                    .Contains(searchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
+
+    private List<FlowNwObject> FlowNwObjects => FlowAccessCatalogHelper.BuildNwObjectCatalog(flowAccesses);
+
+    private List<FlowNwObject> FilteredFlowNwObjects =>
+        string.IsNullOrWhiteSpace(objectSearchText)
+            ? FlowNwObjects
+            : [.. FlowNwObjects.Where(nwObject =>
+                BuildFlowNwObjectSearchText(nwObject)
+                    .Contains(objectSearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
+
+    private void ClearSearch()
+    {
+        searchText = "";
+    }
+
+    private void ClearObjectSearch()
+    {
+        objectSearchText = "";
+    }
+
+    private void EditNwObject(FlowNwObject nwObject)
+    {
+        EditFlowNwObject = new FlowNwObject
+        {
+            Id = nwObject.Id,
+            Name = nwObject.Name,
+            IpStart = nwObject.IpStart,
+            IpEnd = nwObject.IpEnd,
+            Hash = nwObject.Hash,
+            State = nwObject.State,
+            RemovedDate = nwObject.RemovedDate,
+            ShowInRequestModule = nwObject.ShowInRequestModule
+        };
+        EditNwObjectMode = true;
+    }
+
+    private void CloseNwObjectEditor()
+    {
+        EditNwObjectMode = false;
+    }
+
+    private async Task SaveNwObject()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(EditFlowNwObject.Name))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_flow_object"), userConfig.GetText("E5102"), true);
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            FlowNwObject updatedObject = await apiConnection.SendQueryAsync<FlowNwObject>(FlowMutations.updateFlowNwObject, new
+            {
+                nwobjId = EditFlowNwObject.Id,
+                name = EditFlowNwObject.Name.Trim(),
+                showInRequestModule = EditFlowNwObject.ShowInRequestModule
+            });
+
+            FlowAccessCatalogHelper.ApplyNwObjectUpdate(flowAccesses, null, updatedObject);
+            EditNwObjectMode = false;
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("edit_flow_object"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private static string BuildFlowNwObjectSearchText(FlowNwObject nwObject)
+    {
+        return string.Join(' ', [
+            nwObject.Id.ToString(),
+            nwObject.Name ?? "",
+            nwObject.Hash,
+            nwObject.State,
+            nwObject.IpStart ?? "",
+            nwObject.IpEnd ?? "",
+            nwObject.ShowInRequestModule.ToString()
+        ]).ToLowerInvariant();
+    }
+
+    private static string GetNwObjectLabel(FlowNwObject nwObject)
+    {
+        return string.IsNullOrWhiteSpace(nwObject.Name) ? $"#{nwObject.Id}" : nwObject.Name!;
+    }
+
+    private static string BuildList<T>(IEnumerable<T>? items, Func<T, string?> selector)
+    {
+        if (items == null)
+        {
+            return "-";
+        }
+
+        List<string> names = [.. items
+            .Select(selector)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!.Trim())];
+
+        return names.Count > 0 ? string.Join(", ", names) : "-";
+    }
+}

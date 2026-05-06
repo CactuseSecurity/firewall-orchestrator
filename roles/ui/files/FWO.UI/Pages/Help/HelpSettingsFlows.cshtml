@@ -1,0 +1,19 @@
+@page "/help/settings/flows"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("flow_objects")</h3>
+    <p>This table lists the access-flow objects in one place.</p>
+    <p>Use it as a sanity check when you want to confirm that a flow is present before moving on to edits or mappings.</p>
+    <p>The network object catalog on the same page lets admins rename flow network objects and toggle the request-module flag.</p>
+</div>

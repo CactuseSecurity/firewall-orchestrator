@@ -82,3 +82,6 @@ CROSS JOIN import_change_notifications
 WHERE recipients IS NOT NULL
   AND LENGTH(recipients) > 0
   AND notification_count = 0;
+
+DELETE FROM config
+WHERE config_key IN ('updateRuleOwnerMappingActive', 'updateRuleOwnerMappingStartAt');

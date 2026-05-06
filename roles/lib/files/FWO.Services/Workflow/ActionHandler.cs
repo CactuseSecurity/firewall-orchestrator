@@ -567,9 +567,10 @@ namespace FWO.Services.Workflow
 
         private void SetCommenter(FwoNotification? notification, List<WfCommentDataHelper> comments)
         {
-            ScopedUserTo = notification?.RecipientTo == EmailRecipientOption.LastCommenter ? comments.Last().Comment.Creator.Dn : null;
-            ScopedUserCc = notification?.RecipientCc == EmailRecipientOption.LastCommenter ? comments.Last().Comment.Creator.Dn : null;
-            ScopedUserBcc = notification?.RecipientBcc == EmailRecipientOption.LastCommenter ? comments.Last().Comment.Creator.Dn : null;
+            string? lastCommenterDn = comments.Count > 0 ? comments.Last().Comment.Creator.Dn : null;
+            ScopedUserTo = notification?.RecipientTo == EmailRecipientOption.LastCommenter ? lastCommenterDn : null;
+            ScopedUserCc = notification?.RecipientCc == EmailRecipientOption.LastCommenter ? lastCommenterDn : null;
+            ScopedUserBcc = notification?.RecipientBcc == EmailRecipientOption.LastCommenter ? lastCommenterDn : null;
         }
     }
 }

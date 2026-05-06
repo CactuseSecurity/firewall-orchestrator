@@ -203,31 +203,13 @@
                         await ReportToExport.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
                     }
 
-                    if (ExportHtml && HtmlAvailable())
-                    {
-                        reportExportFile.Html = ReportToExport.ExportToHtml();
-                    }
+                    ConvertToHtml();
 
-                    if (ExportPdf && PdfAvailable())
-                    {
-                        ReportToExport.CustomHeight = PaperSizeHeight;
-                        ReportToExport.CustomWidth = PaperSizeWidth;
+                    await ConvertToPdf();
 
-                        string html = ReportToExport.ExportToHtml();
-                        reportExportFile.Pdf = await ReportToExport.ToPdf(html, SelectedPaperFormat);
-                        
-                    }
-
-                    if (ExportCsv && csvAvailable())
-                    {
-                        reportExportFile.Csv = ReportToExport.ExportToCsv();
-                    }
-
-                    // if archiving, json report has to be generated
-                    if (ExportJson || ExportArchive)
-                    {
-                        reportExportFile.Json = ReportToExport.ExportToJson();
-                    }
+                    ConvertToCsv();
+                    
+                    ExportToJson();
 
                     if (ExportArchive)
                     {
@@ -258,6 +240,42 @@
         else
         {
             DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
+        }
+    }
+
+    private async Task ConvertToPdf()
+    {
+        if (ReportToExport != null && ExportPdf && PdfAvailable())
+        {
+            ReportToExport.CustomHeight = PaperSizeHeight;
+            ReportToExport.CustomWidth = PaperSizeWidth;
+
+            string html = ReportToExport.ExportToHtml();
+            reportExportFile.Pdf = await ReportToExport.ToPdf(html, SelectedPaperFormat);
+        }
+    }
+
+    private void ConvertToHtml()
+    {
+        if (ReportToExport != null && ExportHtml && HtmlAvailable())
+        {
+            reportExportFile.Html = ReportToExport.ExportToHtml();
+        }
+    }
+
+    private void ConvertToCsv()
+    {
+        if (ReportToExport != null &&ExportCsv && csvAvailable())
+        {
+            reportExportFile.Csv = ReportToExport.ExportToCsv();
+        }
+    }
+
+    private void ExportToJson()
+    {
+        if (ReportToExport != null && (ExportJson || ExportArchive))
+        {
+            reportExportFile.Json = ReportToExport.ExportToJson();
         }
     }
 }

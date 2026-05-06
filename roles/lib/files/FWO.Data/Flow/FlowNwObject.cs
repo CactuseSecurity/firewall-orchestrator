@@ -29,6 +29,9 @@ namespace FWO.Data.Flow
         [JsonProperty("show_in_request_module"), JsonPropertyName("show_in_request_module")]
         public bool ShowInRequestModule { get; set; }
 
+        [JsonProperty("nwobject_mappings"), JsonPropertyName("nwobject_mappings")]
+        public List<FlowNwObjectMapping>? NwObjectMappings { get; set; }
+
         public void GenerateHash()
         {
             Hash = FlowHashGenerator.GenerateNwObjectHash(IpStart, IpEnd);

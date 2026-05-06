@@ -34,6 +34,9 @@
 <div class="text-muted small mb-2">
     @($"{userConfig.GetText("current")}: {selectedNamingManagement?.Name ?? "-"}")
 </div>
+<div class="btn-group mb-2">
+    <button type="button" class="btn btn-sm btn-warning" @onclick="OpenRecalculateConfirm">@(userConfig.GetText("recalculate_flow_names"))</button>
+</div>
 <hr />
 
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
@@ -161,7 +164,7 @@
 </div>
 
 <div class="text-muted small mb-2">
-    @($"{FilteredFlowNwObjects.Count} / {FlowNwObjects.Count}")
+    @($"{FilteredFlowNwObjects.Count} / {flowNwObjects.Count}")
 </div>
 
 <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
@@ -223,6 +226,18 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="@(userConfig.GetText("recalculate_flow_names"))" Show="@RecalculateConfirmMode" Size=PopupSize.Small OnClose="CloseRecalculateConfirm">
+    <Body>
+        <p>@(userConfig.GetText("recalculate_flow_names_confirm"))</p>
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-warning" @onclick="RecalculateFlowNames">@(userConfig.GetText("recalculate_flow_names"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseRecalculateConfirm">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
 <InProgress Display="workInProgress"/>
 
 @code
@@ -234,6 +249,7 @@
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private List<FlowAccess> flowAccesses = [];
+    private List<FlowNwObject> flowNwObjects = [];
     private List<Management> selectableManagements = [];
     private ConfigData? configData;
     private Management? selectedNamingManagement;
@@ -241,6 +257,7 @@
     private string searchText = "";
     private string objectSearchText = "";
     private bool EditNwObjectMode = false;
+    private bool RecalculateConfirmMode = false;
     private FlowNwObject EditFlowNwObject = new();
 
     protected override async Task OnInitializedAsync()
@@ -260,6 +277,7 @@
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
             selectedNamingManagement = selectableManagements.FirstOrDefault(management => management.Id == configData.FlowNamingSourceManagementId);
             flowAccesses = await apiConnection.SendQueryAsync<List<FlowAccess>>(FlowQueries.getFlowAccessCatalog);
+            flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowNwObjectCatalog);
 
             workInProgress = false;
         }
@@ -291,6 +309,59 @@
         }
     }
 
+    private void OpenRecalculateConfirm()
+    {
+        RecalculateConfirmMode = true;
+    }
+
+    private void CloseRecalculateConfirm()
+    {
+        RecalculateConfirmMode = false;
+    }
+
+    private async Task RecalculateFlowNames()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                return;
+            }
+
+            RecalculateConfirmMode = false;
+            workInProgress = true;
+            StateHasChanged();
+
+            int? preferredManagementId = configData.FlowNamingSourceManagementId;
+            foreach (FlowNwObject nwObject in flowNwObjects)
+            {
+                string resolvedName = FlowNamingHelper.ResolveNwObjectName(nwObject, preferredManagementId, nwObject.Name ?? "");
+                if (string.Equals(resolvedName, nwObject.Name, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                FlowNwObject updatedObject = await apiConnection.SendQueryAsync<FlowNwObject>(FlowMutations.updateFlowNwObject, new
+                {
+                    nwobjId = nwObject.Id,
+                    name = resolvedName,
+                    showInRequestModule = nwObject.ShowInRequestModule
+                });
+                FlowAccessCatalogHelper.ApplyNwObjectUpdate(flowAccesses, flowNwObjects, updatedObject);
+            }
+
+            workInProgress = false;
+            await Refresh();
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("recalculate_flow_names"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
     private List<FlowAccess> FilteredFlowAccesses =>
         string.IsNullOrWhiteSpace(searchText)
             ? flowAccesses
@@ -298,12 +369,10 @@
                 FlowAccessPresentationHelper.BuildSearchText(access)
                     .Contains(searchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
 
-    private List<FlowNwObject> FlowNwObjects => FlowAccessCatalogHelper.BuildNwObjectCatalog(flowAccesses);
-
     private List<FlowNwObject> FilteredFlowNwObjects =>
         string.IsNullOrWhiteSpace(objectSearchText)
-            ? FlowNwObjects
-            : [.. FlowNwObjects.Where(nwObject =>
+            ? flowNwObjects
+            : [.. flowNwObjects.Where(nwObject =>
                 BuildFlowNwObjectSearchText(nwObject)
                     .Contains(objectSearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
 

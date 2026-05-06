@@ -1,4 +1,5 @@
 using FWO.Data.Flow;
+using FWO.Data;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -78,6 +79,56 @@ namespace FWO.Test
                 fallbackName: "unnamed-flow");
 
             Assert.That(result, Is.EqualTo("unnamed-flow"));
+        }
+
+        [Test]
+        public void ResolveNwObjectName_UsesPreferredActiveMapping()
+        {
+            FlowNwObject nwObject = new()
+            {
+                Name = "old-name",
+                NwObjectMappings =
+                [
+                    new FlowNwObjectMapping
+                    {
+                        MgmId = 1,
+                        ActiveOnMgm = true,
+                        Object = new NetworkObject { Name = "forti-name" }
+                    },
+                    new FlowNwObjectMapping
+                    {
+                        MgmId = 2,
+                        ActiveOnMgm = true,
+                        Object = new NetworkObject { Name = "checkpoint-name" }
+                    }
+                ]
+            };
+
+            string result = FlowNamingHelper.ResolveNwObjectName(nwObject, preferredManagementId: 2, fallbackName: nwObject.Name!);
+
+            Assert.That(result, Is.EqualTo("checkpoint-name"));
+        }
+
+        [Test]
+        public void ResolveNwObjectName_FallsBackToInactiveMappingWhenNoActiveOneExists()
+        {
+            FlowNwObject nwObject = new()
+            {
+                Name = "old-name",
+                NwObjectMappings =
+                [
+                    new FlowNwObjectMapping
+                    {
+                        MgmId = 1,
+                        ActiveOnMgm = false,
+                        Object = new NetworkObject { Name = "fallback-name" }
+                    }
+                ]
+            };
+
+            string result = FlowNamingHelper.ResolveNwObjectName(nwObject, preferredManagementId: 1, fallbackName: nwObject.Name!);
+
+            Assert.That(result, Is.EqualTo("fallback-name"));
         }
     }
 }

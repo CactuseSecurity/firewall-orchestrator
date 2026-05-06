@@ -1,10 +1,12 @@
 using FWO.Basics;
+using FWO.Basics.Enums;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Report;
 using FWO.Report.Filter;
 using FWO.Services.RuleTreeBuilder;
 using FWO.Test.Mocks;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System.Reflection;
@@ -426,6 +428,38 @@ namespace FWO.Test
             reportRules.TryBuildMockRuleTree();
 
             Assert.That(reportRules.ReportData.ElementsCount, Is.EqualTo(6));
+        }
+
+        [TestCase(PreferredCollapseState.Collapsed, false)]
+        [TestCase(PreferredCollapseState.Expanded, true)]
+        [TestCase(PreferredCollapseState.Intermediate, true)]
+        public void Test_TryBuildRuleTree_AppliesPreferredCollapseState(PreferredCollapseState preferredCollapseState, bool expectedExpandedState)
+        {
+            IServiceProvider? originalServices = FWO.Services.ServiceProvider.Services;
+            ServiceCollection services = new();
+            services.AddSingleton<IRuleTreeBuilder>(_ruleTreeBuilder);
+            FWO.Services.ServiceProvider.Services = services.BuildServiceProvider();
+
+            SimulatedUserConfig userConfig = new()
+            {
+                ReportingPersonalPreferredCollapseState = preferredCollapseState
+            };
+            try
+            {
+                MockReportRules reportRules = new(new DynGraphqlQuery(""), userConfig, ReportType.ResolvedRules, () => _managementReports);
+
+                reportRules.TryBuildMockRuleTree();
+
+                RuleTreeItem ruleTree = _ruleTreeBuilder.RuleTreeCache[(_managementReport!.Id, _deviceReport!.Id)];
+                Assert.That(ruleTree.Children, Is.Not.Empty);
+                RuleTreeItem expandableRule = ruleTree.Children.First();
+
+                Assert.That(expandableRule.IsExpanded, Is.EqualTo(expectedExpandedState));
+            }
+            finally
+            {
+                FWO.Services.ServiceProvider.Services = originalServices;
+            }
         }
     }
 }

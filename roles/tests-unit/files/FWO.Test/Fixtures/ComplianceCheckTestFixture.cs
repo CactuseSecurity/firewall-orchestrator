@@ -194,6 +194,48 @@ namespace FWO.Test.Fixtures
             return rule;
         }
 
+        protected virtual Rule CreateRuleWithService(string serviceUid, string serviceName, int protoId, string protocolName, int? port = null, int? portEnd = null)
+        {
+            Rule rule = CreateSimpleRule(1);
+            rule.Services =
+            [
+                new ServiceWrapper
+                {
+                    Content = CreateNetworkService(serviceUid, serviceName, protoId, protocolName, port, portEnd)
+                }
+            ];
+
+            return rule;
+        }
+
+        protected virtual Rule CreateRuleWithServiceGroup(NetworkService serviceGroup)
+        {
+            Rule rule = CreateSimpleRule(1);
+            rule.Services =
+            [
+                new ServiceWrapper
+                {
+                    Content = serviceGroup
+                }
+            ];
+
+            return rule;
+        }
+
+        protected virtual NetworkService CreateNetworkService(string serviceUid, string serviceName, int protoId, string protocolName, int? port = null, int? portEnd = null)
+        {
+            return new NetworkService
+            {
+                Uid = serviceUid,
+                Name = serviceName,
+                ProtoId = protoId,
+                Protocol = new NetworkProtocol { Id = protoId, Name = protocolName },
+                DestinationPort = port,
+                DestinationPortEnd = portEnd ?? port,
+                Type = new NetworkServiceType { Name = ServiceType.SimpleService }
+            };
+        }
+
         protected virtual NetworkObject CreateNetworkObject(int ruleId, string uidPrefix, string objectTypeName, bool? highIpRange = null)
         {
             NetworkObject networkObject = new();
@@ -230,6 +272,7 @@ namespace FWO.Test.Fixtures
             serviceCriterion.Content.CriterionType = nameof(CriterionType.ForbiddenService);
             serviceCriterion.Content.Content = forbiddenServiceUid;
             ComplianceCriterionWrapper matrixCriterion = new();
+            matrixCriterion.Content.Id = 1;
             matrixCriterion.Content.CriterionType = nameof(CriterionType.Matrix);
             ComplianceCriterionWrapper assessabilityCriterion = new();
             assessabilityCriterion.Content.CriterionType = nameof(CriterionType.Assessability);
@@ -237,14 +280,14 @@ namespace FWO.Test.Fixtures
             return policy;
         }
 
-        protected virtual List<ComplianceNetworkZone> CreateNetworkZones(bool createInternetZone, bool createUndefinedInternalZone)
+        protected virtual List<ComplianceNetworkZone> CreateNetworkZones(bool createInternetZone, bool createUndefinedInternalZone, int criterionId = 1)
         {
             List<ComplianceNetworkZone> networkZones = new()
             {
                 new()
                 {
                     Id = 1,
-                    CriterionId = 1,
+                    CriterionId = criterionId,
                     Name = "128-168 Zone",
                     IdString = "zone_1",
                     IPRanges =
@@ -258,7 +301,7 @@ namespace FWO.Test.Fixtures
                 new()
                 {
                     Id = 2,
-                    CriterionId = 1,
+                    CriterionId = criterionId,
                     Name = "193-198 Zone",
                     IdString = "zone_2",
                     IPRanges =
@@ -277,7 +320,7 @@ namespace FWO.Test.Fixtures
                     new()
                     {
                         Id = 3,
-                        CriterionId = 1,
+                        CriterionId = criterionId,
                         Name = "Auto-calculated Internet Zone",
                         IdString = "AUTO_CALCULATED_ZONE_INTERNET",
                         IsAutoCalculatedInternetZone = true,
@@ -310,7 +353,7 @@ namespace FWO.Test.Fixtures
                     new()
                     {
                         Id = 4,
-                        CriterionId = 1,
+                        CriterionId = criterionId,
                         Name = "Auto-calculated Undefined-Interal Zone",
                         IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",
                         IsAutoCalculatedUndefinedInternalZone = true,

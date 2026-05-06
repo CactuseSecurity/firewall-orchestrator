@@ -351,17 +351,25 @@ namespace FWO.Test
                 ?? throw new InvalidOperationException("BuildNewRuleOwnersNameField helper not found.");
             var newRuleOwners = (List<RuleOwner>)buildMethod.Invoke(service, [result.RulesToMap, result.connectionOwners])!;
 
+            var rules = result.RulesToMap.ToList();
+            var connections = result.connectionOwners.ToList();
+            var ruleOwners = newRuleOwners.ToList();
+
+            foreach (var r in rules)
+                Console.WriteLine($"{r.Id} - {r.Id.GetType()}");
+            var ids = rules.Select(r => r.Id).ToList();
+            Console.WriteLine(ids[0].GetType());
             Assert.Multiple(() =>
             {
                 Assert.That(apiConnection.NameFieldRuleQueryCalls, Is.EqualTo(1));
                 Assert.That(apiConnection.FilteredConnectionQueryCalls, Is.EqualTo(1));
                 Assert.That(apiConnection.FilteredOwnerIds, Is.EquivalentTo(new[] { 20 }));
                 Assert.That(apiConnection.RemovedOwnerIds, Is.EquivalentTo(new[] { 20 }));
-                Assert.That(result.RulesToMap.Select(rule => rule.Id), Is.EquivalentTo(new[] { 101 }));
-                Assert.That(result.connectionOwners.Select(connection => connection.Id), Is.EquivalentTo(new[] { 501 }));
-                Assert.That(result.RuleOwnersToRemove.Select(ruleOwner => ruleOwner.OwnerId), Is.EquivalentTo(new[] { 20 }));
-                Assert.That(newRuleOwners.Select(ruleOwner => ruleOwner.OwnerId), Is.EquivalentTo(new[] { 20 }));
-                Assert.That(newRuleOwners.Select(ruleOwner => ruleOwner.RuleId), Is.EquivalentTo(new[] { 101 }));
+                Assert.That(rules.Select(r => Convert.ToInt32(r.Id)), Is.EquivalentTo(new[] { 101 }));
+                Assert.That(connections.Select(c => Convert.ToInt32(c.Id)), Is.EquivalentTo(new[] { 501 }));
+                Assert.That(result.RuleOwnersToRemove.Select(ruleOwner => Convert.ToInt32(ruleOwner.OwnerId)), Is.EquivalentTo(new[] { 20 }));
+                Assert.That(newRuleOwners.Select(ruleOwner => Convert.ToInt32(ruleOwner.OwnerId)), Is.EquivalentTo(new[] { 20 }));
+                Assert.That(newRuleOwners.Select(ruleOwner => Convert.ToInt32(ruleOwner.RuleId)), Is.EquivalentTo(new[] { 101 }));
             });
         }
 
@@ -535,7 +543,7 @@ namespace FWO.Test
                 if (query == FWO.Api.Client.Queries.RuleQueries.getRulesForRuleOwnerNameField)
                 {
                     ++NameFieldRuleQueryCalls;
-                    return Task.FromResult((QueryResponseType)(object)RulesToMap);
+                    return Task.FromResult((QueryResponseType)(object)RulesToMap.ToList());
                 }
 
                 if (query == FWO.Api.Client.Queries.ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner)

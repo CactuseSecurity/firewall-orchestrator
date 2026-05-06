@@ -12,6 +12,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string flowTimeObjectDetailsFragment;
         public static readonly string getFlowAccessCatalog;
         public static readonly string getFlowObjectCatalog;
+        public static readonly string getFlowSelectableManagements;
 
         static FlowQueries()
         {
@@ -35,6 +36,9 @@ namespace FWO.Api.Client.Queries
                     flowSvcGroupDetailsFragment +
                     flowTimeObjectDetailsFragment +
                     GetQueryText("flow/getFlowObjectCatalog.graphql");
+
+                getFlowSelectableManagements =
+                    GetQueryText("flow/getFlowSelectableManagements.graphql");
             }
             catch (Exception exception)
             {

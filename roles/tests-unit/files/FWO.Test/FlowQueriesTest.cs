@@ -19,5 +19,12 @@ namespace FWO.Test
             Assert.That(FlowQueries.getFlowAccessCatalog, Does.Contain("query getFlowAccessCatalog"));
             Assert.That(FlowQueries.getFlowAccessCatalog, Does.Contain("fragment flowAccessDetails"));
         }
+
+        [Test]
+        public void FlowQueries_LoadSelectableManagementsQuery()
+        {
+            Assert.That(FlowQueries.getFlowSelectableManagements, Does.Contain("query getFlowSelectableManagements"));
+            Assert.That(FlowQueries.getFlowSelectableManagements, Does.Contain("management(order_by: { mgm_name: asc })"));
+        }
     }
 }

@@ -421,7 +421,7 @@ namespace FWO.Report
 
         private DateTime? ResolveTicketReferenceDate(WfTicket ticket)
         {
-            return WorkflowTicketReferenceHelper.GetTicketReferenceDate(
+            return WorkflowTicketSelectionHelper.GetTicketReferenceDate(
                 ticket,
                 ReportData.WorkflowFilter.ReferenceDate,
                 GetReferenceTasks,
@@ -515,15 +515,7 @@ namespace FWO.Report
                 return "";
             }
 
-            List<string> labelValues =
-            [
-                .. ticket.Tasks
-                    .Select(task => task.GetAddInfoValue(workflowFilter.LabelFilter.Name))
-                    .Where(value => !string.IsNullOrWhiteSpace(value))
-                    .Distinct()
-            ];
-
-            return string.Join(", ", labelValues);
+            return WorkflowTicketSelectionHelper.GetLabelValue(ticket, workflowFilter.LabelFilter.Name);
         }
 
         /// <summary>

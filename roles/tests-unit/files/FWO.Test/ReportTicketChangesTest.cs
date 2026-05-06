@@ -561,6 +561,7 @@ namespace FWO.Test
             template.ReportParams.WorkflowFilter.DetailedView = true;
             template.ReportParams.WorkflowFilter.ShowFullTicket = true;
             template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.ImplementationStart;
+            template.ReportParams.WorkflowFilter.TaskTypes = [WfTaskType.access];
             template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
             template.ReportParams.TimeFilter.StartTime = new DateTime(2026, 1, 1, 0, 0, 0);
             template.ReportParams.TimeFilter.EndTime = new DateTime(2026, 1, 31, 23, 59, 59);
@@ -592,6 +593,14 @@ namespace FWO.Test
                                     Start = new DateTime(2026, 2, 5, 10, 0, 0)
                                 }
                             ]
+                        },
+                        new WfReqTask
+                        {
+                            Id = 432,
+                            TaskNumber = 2,
+                            Title = "Rule modify task shown despite task type filter",
+                            StateId = 9,
+                            TaskType = WfTaskType.rule_modify.ToString()
                         }
                     ],
                     Requester = new UiUser { Name = "creator" }
@@ -604,6 +613,7 @@ namespace FWO.Test
 
             Assert.That(html, Does.Contain(">Task outside range but still shown<"));
             Assert.That(html, Does.Contain(">Implementation outside range but shown<"));
+            Assert.That(html, Does.Contain(">Rule modify task shown despite task type filter<"));
         }
 
         [Test]
@@ -700,7 +710,7 @@ namespace FWO.Test
         {
             ReportTemplate template = new();
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.existing };
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.display_only };
             ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
             List<WfTicket> tickets =
             [

@@ -31,6 +31,8 @@
       email_address_to
       recipient_cc
       email_address_cc
+      recipient_bcc
+      email_address_bcc
       email_subject
       email_body
       layout

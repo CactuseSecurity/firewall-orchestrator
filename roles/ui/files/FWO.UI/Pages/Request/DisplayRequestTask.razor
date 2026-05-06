@@ -907,7 +907,7 @@
         return true;
     }
 
-    private async Task<bool> CheckTaskValues()
+    private bool RejectInvalidTaskFormat()
     {
         if (WfHandler.ActReqTask.Title == null || WfHandler.ActReqTask.Title == "" ||
             (actTaskType == WfTaskType.new_interface && actOwner == null))
@@ -915,51 +915,76 @@
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (actTaskType == WfTaskType.access)
+
+        return true;
+    }
+
+    private bool RejectInvalidAccessTask()
+    {
+        if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
+            (NeedsManualDeviceSelection() && selectedDevices.Count<Device>() == 0))
         {
-            if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
-                (NeedsManualDeviceSelection() && selectedDevices.Count<Device>() == 0))
-            {
-                DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
-                return false;
-            }
-            foreach (var reqElem in WfHandler.ActReqTask.Elements)
-            {
-                if (reqElem.NetworkId == null && reqElem.ServiceId == null)
-                {
-                    if (reqElem.Field == ElemFieldType.service.ToString() && reqElem.Port < 1 || reqElem.Port > GlobalConst.kMaxPortNumber)
-                    {
-                        DisplayMessageInUi(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
-                        return false;
-                    }
-                }
-            }
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+            return false;
         }
-        else if (actTaskType == WfTaskType.rule_delete)
+        foreach (var reqElem in WfHandler.ActReqTask.Elements)
         {
-            if (actRuleDevice == null || actRules.Count == 0)
+            if (reqElem.NetworkId == null && reqElem.ServiceId == null)
             {
-                DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
-                return false;
-            }
-            foreach(var elem in WfHandler.ActReqTask.Elements.Where(x => x.Field == ElemFieldType.rule.ToString()))
-            {
-                if(!(await WfHandler.CheckRuleUid(actRuleDevice?.Id, elem.RuleUid)))
+                if (reqElem.Field == ElemFieldType.service.ToString() && reqElem.Port < 1 || reqElem.Port > GlobalConst.kMaxPortNumber)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E8013") + elem.RuleUid, true);
+                    DisplayMessageInUi(null, userConfig.GetText("save_element"), userConfig.GetText("E5103"), true);
                     return false;
                 }
             }
         }
-        else if (actTaskType == WfTaskType.group_create)
+        return true;
+    }
+
+    private async Task<bool> RejectInvalidRuleDeleteTask()
+    {
+        if (actRuleDevice == null || actRules.Count == 0)
         {
-            if (actGrpName == null || actGrpName == "" || (actSources.Count == 0 && actServices.Count == 0))
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        foreach(var elem in WfHandler.ActReqTask.Elements.Where(x => x.Field == ElemFieldType.rule.ToString()))
+        {
+            if(!(await WfHandler.CheckRuleUid(actRuleDevice?.Id, elem.RuleUid)))
             {
-                DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E8013") + elem.RuleUid, true);
                 return false;
             }
         }
         return true;
+    }
+
+    private bool RejectInvalidGroupCreateTask()
+    {
+        if (string.IsNullOrEmpty(actGrpName) || (actSources.Count == 0 && actServices.Count == 0))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+
+        return true;
+    }
+    
+    private async Task<bool> CheckTaskValues()
+    {
+        if (!RejectInvalidTaskFormat())
+        {
+            return false;
+        }
+        switch (actTaskType)
+        {
+            case WfTaskType.access when !RejectInvalidAccessTask():
+            case WfTaskType.rule_delete when !(await RejectInvalidRuleDeleteTask()):
+            case WfTaskType.group_create when !RejectInvalidGroupCreateTask():
+                return false;
+            default:
+                return true;
+        }
     }
 
     private bool CanEditReqTaskField(string fieldKey)

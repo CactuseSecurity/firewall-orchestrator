@@ -311,6 +311,9 @@ def parse_nat_rules_in_rulebase(
             continue
 
         # Create original rule (match phase)
+        rule_original_uid = f"{rule_uid}-original"
+        rule_translated_uid = f"{rule_uid}-translated"
+
         rule_original = RuleNormalized(
             rule_num=rule_num,
             rule_num_numeric=0,
@@ -329,7 +332,7 @@ def parse_nat_rules_in_rulebase(
             rule_installon=rule_parse_installon(native_rule),
             rule_time=rule_parse_time(native_rule),
             rule_name=native_rule.get("name", ""),
-            rule_uid=rule_uid,
+            rule_uid=rule_original_uid,
             rule_custom_fields=nat_config_fields,
             rule_implied=False,
             rule_type=RuleType.NAT,
@@ -342,7 +345,7 @@ def parse_nat_rules_in_rulebase(
             rule_head_text=None,
             access_rule=False,
             nat_rule=True,
-            xlate_rule_uid=f"{rule_uid}_translated",
+            xlate_rule_uid=rule_translated_uid,
         )
 
         # Create translated rule (translation phase)
@@ -366,7 +369,7 @@ def parse_nat_rules_in_rulebase(
             rule_installon=rule_parse_installon(native_rule),
             rule_time=rule_parse_time(native_rule),
             rule_name=native_rule.get("name", ""),
-            rule_uid=f"{rule_uid}_translated",
+            rule_uid=rule_translated_uid,
             rule_custom_fields=nat_config_fields,
             rule_implied=False,
             rule_type=RuleType.NAT,
@@ -491,10 +494,7 @@ def parse_single_rule(
     rulebase: Rulebase,
 ):
     """Parses a single native Fortinet rule into a normalized rule and adds it to the given rulebase."""
-    # Detect NAT rules and skip them - they will be processed separately into a NAT rulebase
     is_nat_rule = any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
-    if is_nat_rule:
-        return  # Skip NAT rules here; they are processed separately
 
     # Extract basic rule information
     rule_disabled = True  # Default to disabled
@@ -558,7 +558,7 @@ def parse_single_rule(
         rule_uid=native_rule.get("uuid"),
         rule_custom_fields=str(native_rule.get("meta fields", {})),
         rule_implied=False,
-        rule_type=RuleType.NAT if is_nat_rule else RuleType.ACCESS,
+        rule_type=RuleType.ACCESS,
         last_change_admin=None,  # native_rule.get('_last-modified-by', ''), not handled yet -> leave out to prevent mismatches
         parent_rule_uid=None,
         last_hit=last_hit,
@@ -566,8 +566,8 @@ def parse_single_rule(
         rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
         rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
         rule_head_text=None,
-        access_rule=not is_nat_rule,
-        nat_rule=is_nat_rule,
+        access_rule=True,
+        nat_rule=False,
     )
 
     if rule_normalized.rule_uid is None:

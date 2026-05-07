@@ -263,7 +263,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [false, false]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(4));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(4));
@@ -301,7 +301,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [false, false]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(6));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(6));

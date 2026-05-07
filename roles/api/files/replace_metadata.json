@@ -10309,6 +10309,45 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -10392,6 +10431,45 @@
                   "comment": ""
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -10470,6 +10548,45 @@
                           }
                         }
                       ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
                     }
                   },
                   "comment": ""
@@ -10614,6 +10731,84 @@
                           }
                         }
                       ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
                     }
                   },
                   "comment": ""

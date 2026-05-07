@@ -75,6 +75,10 @@ INSERT INTO txt VALUES ('AnyActivity',          'German',   'Beliebige Aktivit&a
 INSERT INTO txt VALUES ('AnyActivity',          'English',  'Any Activity');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('RequestedConnections', 'German',   'Beantragte Verbindungen');
+INSERT INTO txt VALUES ('RequestedConnections', 'English',  'Requested Connections');
+INSERT INTO txt VALUES ('requested_connections','German',   'Beantragte Verbindungen');
+INSERT INTO txt VALUES ('requested_connections','English',  'Requested Connections');
 INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
 INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
 INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
@@ -107,6 +111,8 @@ INSERT INTO txt VALUES ('UpdateConnectionRelease','German', 'Verbindung ver&ouml
 INSERT INTO txt VALUES ('UpdateConnectionRelease','English','Publish Connection');
 INSERT INTO txt VALUES ('UpdateConnectionReject','German',  'Schnittstelle ablehnen');
 INSERT INTO txt VALUES ('UpdateConnectionReject','English', 'Reject Interface');
+INSERT INTO txt VALUES ('UpdateModelling',       'German',  'Modellierung aktualisieren');
+INSERT INTO txt VALUES ('UpdateModelling',       'English', 'Update Modelling');
 INSERT INTO txt VALUES ('DisplayConnection',    'German',   'Verbindung darstellen');
 INSERT INTO txt VALUES ('DisplayConnection',    'English',  'Display Connection');
 INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
@@ -2816,6 +2822,18 @@ INSERT INTO txt VALUES ('modDecommEmailBody',   'German',   'Text der Stilllegun
 INSERT INTO txt VALUES ('modDecommEmailBody',   'English',  'Body of decommission emails');
 INSERT INTO txt VALUES ('modRolloutActive',     'German',   'Automatische Firewallbeantragung aktivieren');
 INSERT INTO txt VALUES ('modRolloutActive',     'English',  'Activate automatic Firewall request');
+INSERT INTO txt VALUES ('modIntegrationMode',   'German',   'Integrationsmodus');
+INSERT INTO txt VALUES ('modIntegrationMode',   'English',  'Integration Mode');
+INSERT INTO txt VALUES ('modIntegrationStates', 'German',   'Integrationsstatus');
+INSERT INTO txt VALUES ('modIntegrationStates', 'English',  'Integration States');
+INSERT INTO txt VALUES ('modIntegrationStateMarker', 'German',   'Statusmarker');
+INSERT INTO txt VALUES ('modIntegrationStateMarker', 'English',  'State Marker');
+INSERT INTO txt VALUES ('include_into_request', 'German',   'In Request aufnehmen');
+INSERT INTO txt VALUES ('include_into_request', 'English',  'Include into request');
+INSERT INTO txt VALUES ('FullyIntegrated',      'German',   'Voll integriert');
+INSERT INTO txt VALUES ('FullyIntegrated',      'English',  'Fully integrated');
+INSERT INTO txt VALUES ('WorkflowNotifications','German',   'Workflow-Benachrichtigungen');
+INSERT INTO txt VALUES ('WorkflowNotifications','English',  'Workflow notifications');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','German','Servicegruppen aufl&ouml;sen');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','English','Resolve service groups');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','German',   'Tasks zusammenfassen');
@@ -2894,6 +2912,8 @@ INSERT INTO txt VALUES ('email_to',				'German', 	'An');
 INSERT INTO txt VALUES ('email_to',				'English', 	'To');
 INSERT INTO txt VALUES ('email_cc',				'German', 	'CC');
 INSERT INTO txt VALUES ('email_cc',				'English', 	'CC');
+INSERT INTO txt VALUES ('attached_content',     'German',   'Angeh&auml;ngter Inhalt');
+INSERT INTO txt VALUES ('attached_content',     'English',  'Attached Content');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
 INSERT INTO txt VALUES ('app_zone_pattern',		'English', 	'App Zone Pattern');
 INSERT INTO txt VALUES ('app_zone_creation',	'German', 	'App Zonen Objekte erstellen');
@@ -5964,10 +5984,10 @@ INSERT INTO txt VALUES ('H5526', 'English', 'Path analysis: Here the options "Wr
     In the first case the list of devices in the request task is replaced by the devices found in the path analysis, in the second the result of the path analysis is only displayed in a separate window.
 ');
 INSERT INTO txt VALUES ('H5527', 'German',  'Email verschicken: Es kann zwischen verschieden Optionen f&uuml;r den/die direkten Empf&auml;nger und Optional f&uuml;r die weiteren Empf&auml;nger im CC gew&auml;hlt werden.
-    Ausserdem m&uuml;ssen Betreff und Text der Email-Benachrichtigung hier festgelegt werden.
+    Ausserdem m&uuml;ssen Betreff und Text der Email-Benachrichtigung hier festgelegt werden. Angeh&auml;ngter Inhalt legt fest, welche Workflow-Inhalte in die Email aufgenommen werden: bei Layouts mit Anhang als Datei, bei Layouts ohne Anhang anstelle des Platzhalters CONTENT.
 ');
 INSERT INTO txt VALUES ('H5527', 'English', 'Send Email: There are different options for the direct recipients and optionally for the recipients in Cc to be chosen.
-    Furtheron subject and body of the email message have to be defined here.
+    Furtheron subject and body of the email message have to be defined here. Attached Content defines which workflow content is included in the email: as a file for layouts with attachments, or in place of the CONTENT placeholder for layouts without attachments.
 ');
 INSERT INTO txt VALUES ('H5528', 'German',  'Bedingt: W&auml;hlt einen Pr&uuml;faufruf aus. Fuer "Policy-Pr&uuml;fung" wird eine Mehrfachauswahl der verfuegbaren Policies angeboten.
     Optional kann ein Label gesetzt werden; dann wird dieses mit dem Pr&uuml;fergebnis "true" oder "false" in den AdditionalInfo der gepr&uuml;ften Request Tasks gespeichert.
@@ -5979,6 +5999,8 @@ INSERT INTO txt VALUES ('H5528', 'English', 'Conditional: Select a check to exec
     Only the rules requested in the request tasks of the calling ticket are checked. The "If compliant state" target is used only if all selected policies pass without violations.
     Otherwise, the "If not compliant state" target is used.
 ');
+INSERT INTO txt VALUES ('H5529', 'German',  'Modellierung aktualisieren: Hier kann einer der unter Modellierungseinstellungen definierten Integrationsstatus ausgew&auml;hlt werden. Der Wert "Keine(r/s)" bedeutet, dass kein Modellierungsstatus gesetzt wird.');
+INSERT INTO txt VALUES ('H5529', 'English', 'Update Modelling: Select one of the integration states defined in the modelling settings. The value "None" means that no modelling state is set.');
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nnen beliebig viele neue Status angelegt bzw. vorhandene Status umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Status sind weitgehend frei w&auml;hlbar.
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.
     Da intern ausschliesslich die Nummern verarbeitet werden, sind auch doppelt vergebene Status-Namen (technisch) m&ouml;glich.
@@ -6469,14 +6491,13 @@ INSERT INTO txt VALUES ('H5675', 'German',  'Nur Administratoren k&ouml;nnen &Au
 INSERT INTO txt VALUES ('H5675', 'English', 'Only administrators can save changes.');
 INSERT INTO txt VALUES ('H5676', 'German',  'Wenn aktiviert, werden Benutzer aus Eigent&uuml;mergruppen entfernt, die nicht im Import enthalten sind. Andernfalls werden nur neue Benutzer hinzugef&uuml;gt.');
 INSERT INTO txt VALUES ('H5676', 'English', 'If enabled, users not listed in the import are removed from owner groups. Otherwise only new users are added.');
-INSERT INTO txt VALUES ('H5677', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für den Owner repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.
-');
-INSERT INTO txt VALUES ('H5677', 'English', 'Enter the keys that represent the Owner field. You can add multiple keys by clicking the + button.
-');
-INSERT INTO txt VALUES ('H5678', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für die &Auml;nderungsId repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.
-');
-INSERT INTO txt VALUES ('H5678', 'English', 'Enter the keys that represent the ChangeId field. You can add multiple keys by clicking the + button.
-');
+INSERT INTO txt VALUES ('H5677', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für den Owner repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.');
+INSERT INTO txt VALUES ('H5677', 'English', 'Enter the keys that represent the Owner field. You can add multiple keys by clicking the + button.');
+INSERT INTO txt VALUES ('H5678', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für die &Auml;nderungsId repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.');
+INSERT INTO txt VALUES ('H5678', 'English', 'Enter the keys that represent the ChangeId field. You can add multiple keys by clicking the + button.');
+INSERT INTO txt VALUES ('H5679', 'German',  'Integrationsmodus: Legt fest, ob Modelling voll integriert arbeitet oder Workflow-Benachrichtigungen erzeugt. Im Workflow-Benachrichtigungsmodus werden Verbindungen beantragt, solange "requested_on_fw" nicht gesetzt ist. "Implemented" und "Rejected" k&ouml;nnen sp&auml;ter f&uuml;r erneute Beantragung nach &Auml;nderungen genutzt werden.');
+INSERT INTO txt VALUES ('H5679', 'English', 'Integration Mode: Defines whether Modelling works fully integrated or creates workflow notifications. In workflow notification mode, connections are requested while "requested_on_fw" is not set. "Implemented" and "Rejected" can later be used for re-requesting after changes.');
+
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
     Die hier gemachten &Auml;nderungen werden in der UI beim n&auml;chsten Login sichtbar, bei Hilfetexten erst nach dem n&auml;chsten Restart.

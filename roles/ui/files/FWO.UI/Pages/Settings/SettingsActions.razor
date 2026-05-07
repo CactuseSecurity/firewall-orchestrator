@@ -1,4 +1,6 @@
 ﻿@using System.Text.Json
+@using FWO.Config.Api.Data
+@using FWO.Data.Modelling
 @using FWO.Ui.Services
 @using FWO.Middleware.Client
 
@@ -304,6 +306,37 @@
                             </div>
                             break;
                         case nameof(StateActionTypes.SendEmail):
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("attached_content")):</label>
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="EmailAttachedContent" @bind-SelectedElement="actAttachedContent"
+                                                  ElementToString="@(c => userConfig.GetText(c.ToString()))"
+                                                  Elements="Enum.GetValues(typeof(EmailAttachedContent)).Cast<EmailAttachedContent>()">
+                                            <ElementTemplate Context="content">
+                                                @(userConfig.GetText(content.ToString()))
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
+                                </div>
+                            </div>
+                            break;
+                        case nameof(StateActionTypes.UpdateModelling):
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5529"))">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("modIntegrationStates")):</label>
+                                    <div class="col-sm-8">
+                                        <Dropdown ElementType="string" @bind-SelectedElement="selectedModIntegrationState"
+                                                  ElementToString="@(state => state)"
+                                                  Elements="availableModIntegrationStateNames"
+                                                  Nullable="true" NoneSelectedText="@(userConfig.GetText("none"))">
+                                            <ElementTemplate Context="state">
+                                                @state
+                                            </ElementTemplate>
+                                        </Dropdown>
+                                    </div>
+                                </div>
+                            </div>
                             break;
                         default:
                             break;
@@ -356,6 +389,9 @@ else
     private string message = "";
     private PathAnalysisActionParams actPathAnalysisParams = new ();
     private List<int> actActionNotificationIds = [];
+    private EmailAttachedContent actAttachedContent = EmailAttachedContent.None;
+    private string? selectedModIntegrationState;
+    private List<string> availableModIntegrationStateNames = [];
     private FwoNotification? legacyActionNotification;
     private WfStateAction persistedActionSnapshot = new ();
     private ConditionalAutoPromoteParams actConditionalAutoPromoteParams = new ();
@@ -389,6 +425,7 @@ else
             actions = await apiConnection.SendQueryAsync<List<WfStateAction>>(RequestQueries.getActions);
             states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
             statesPlus =
             [
                 AutomaticState,
@@ -396,6 +433,7 @@ else
                 .. states
             ];
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
+            availableModIntegrationStateNames = ModIntegrationStateConfig.Parse(editableConfig.ModIntegrationStates).Select(state => state.Name).ToList();
             userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, Roles.Approver);
         }
         catch (Exception exception)
@@ -414,9 +452,19 @@ else
     {
         actAction = action;
         persistedActionSnapshot = new WfStateAction(action);
+        ResetActionEditState();
+        SelectActionTaskType();
+        LoadActionExternalParams(action);
+        ResolveActionSelections();
+        EditActionMode = true;
+    }
+
+    private void ResetActionEditState()
+    {
         actApprovalParams = new();
         actPathAnalysisParams = new();
         actActionNotificationIds = [];
+        actAttachedContent = EmailAttachedContent.None;
         legacyActionNotification = null;
         actConditionalAutoPromoteParams = new();
         toState = -1;
@@ -426,54 +474,83 @@ else
         selectedStateNotOk = AutomaticState;
         selectedPolicies = [];
         selectedToBeCalled = ToBeCalled.PolicyCheck;
+        selectedModIntegrationState = null;
         selectedPhase = actAction.Phase != "" ? actAction.Phase : null;
-        if(actAction.TaskType != "")
+    }
+
+    private void SelectActionTaskType()
+    {
+        if (actAction.TaskType != "")
         {
-            WfTaskType tmpTaskType;
-            Enum.TryParse<WfTaskType>(actAction.TaskType, out tmpTaskType);
-            selectedTaskType = tmpTaskType;
+            selectedTaskType = Enum.TryParse(actAction.TaskType, out WfTaskType tmpTaskType)
+                ? tmpTaskType
+                : null;
+            return;
         }
-        else
+
+        selectedTaskType = null;
+    }
+
+    private void LoadActionExternalParams(WfStateAction action)
+    {
+        if (action.ExternalParams == "" || action.ExternalParams == "{}")
         {
-            selectedTaskType = null;
+            return;
         }
-        if(action.ExternalParams != "" && action.ExternalParams != "{}")
+
+        switch(action.ActionType)
         {
-            switch(action.ActionType)
-            {
-                case nameof(StateActionTypes.AutoPromote):
-                    if (WfStateAction.TryParseAutoPromoteParams(action.ExternalParams, out int? parsedToState, out ConditionalAutoPromoteParams? conditionalParams))
-                    {
-                        if (conditionalParams != null)
-                        {
-                            actConditionalAutoPromoteParams = conditionalParams;
-                            selectedToBeCalled = conditionalParams.ToBeCalled;
-                            selectedPolicies = policies.Where(p => conditionalParams.PolicyIds.Contains(p.Id)).ToList();
-                            selectedToState = ConditionalState;
-                        }
-                        else
-                        {
-                            toState = parsedToState ?? -1;
-                        }
-                    }
-                    break;
-                case nameof(StateActionTypes.AddApproval):
-                    actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
-                    break;
-                case nameof(StateActionTypes.SetAlert):
-                    message = actAction.ExternalParams;
-                    break;
-                case nameof(StateActionTypes.TrafficPathAnalysis):
-                    actPathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
-                    break;
-                case nameof(StateActionTypes.SendEmail):
-                    EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
-                    SelectActionNotification(emailActionParams);
-                    break;
-                default:
-                    break;
-            }
+            case nameof(StateActionTypes.AutoPromote):
+                LoadAutoPromoteParams(action.ExternalParams);
+                break;
+            case nameof(StateActionTypes.AddApproval):
+                actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
+                break;
+            case nameof(StateActionTypes.SetAlert):
+                message = actAction.ExternalParams;
+                break;
+            case nameof(StateActionTypes.TrafficPathAnalysis):
+                actPathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
+                break;
+            case nameof(StateActionTypes.SendEmail):
+                LoadEmailParams(action.ExternalParams);
+                break;
+            case nameof(StateActionTypes.UpdateModelling):
+                selectedModIntegrationState = availableModIntegrationStateNames.Contains(action.ExternalParams) ? action.ExternalParams : null;
+                break;
+            default:
+                break;
         }
+    }
+
+    private void LoadAutoPromoteParams(string externalParams)
+    {
+        if (!WfStateAction.TryParseAutoPromoteParams(externalParams, out int? parsedToState, out ConditionalAutoPromoteParams? conditionalParams))
+        {
+            return;
+        }
+
+        if (conditionalParams != null)
+        {
+            actConditionalAutoPromoteParams = conditionalParams;
+            selectedToBeCalled = conditionalParams.ToBeCalled;
+            selectedPolicies = policies.Where(p => conditionalParams.PolicyIds.Contains(p.Id)).ToList();
+            selectedToState = ConditionalState;
+            return;
+        }
+
+        toState = parsedToState ?? -1;
+    }
+
+    private void LoadEmailParams(string externalParams)
+    {
+        EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(externalParams) ?? throw new JsonException("Extparams could not be parsed.");
+        actAttachedContent = emailActionParams.AttachedContent;
+        SelectActionNotification(emailActionParams);
+    }
+
+    private void ResolveActionSelections()
+    {
         selectedState = states.FirstOrDefault(x => x.Id == actApprovalParams.StateId) ?? new WfState();
         if (selectedToState.Id != ConditionalState.Id)
         {
@@ -482,7 +559,6 @@ else
         selectedStateOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == actConditionalAutoPromoteParams.IfCompliantState) ?? AutomaticState;
         selectedStateNotOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == actConditionalAutoPromoteParams.IfNotCompliantState) ?? AutomaticState;
         selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == actApprovalParams.ApproverGroup);
-        EditActionMode = true;
     }
 
     private async Task SaveAction()
@@ -536,6 +612,9 @@ else
                 return true;
             case nameof(StateActionTypes.SendEmail):
                 return await TryUpdateEmailExternalParams();
+            case nameof(StateActionTypes.UpdateModelling):
+                actAction.ExternalParams = selectedModIntegrationState ?? "";
+                return true;
             default:
                 return true;
         }
@@ -563,7 +642,7 @@ else
             return false;
         }
 
-        actAction.ExternalParams = JsonSerializer.Serialize(new { notification_ids = actActionNotificationIds });
+        actAction.ExternalParams = EmailExternalParams();
         return true;
     }
 
@@ -702,7 +781,7 @@ else
             return;
         }
 
-        string externalParams = JsonSerializer.Serialize(new { notification_ids = actActionNotificationIds });
+        string externalParams = EmailExternalParams();
         int updatedId = await UpdateAction(persistedActionSnapshot, externalParams);
         if (updatedId != actAction.Id)
         {
@@ -711,6 +790,15 @@ else
         }
         persistedActionSnapshot.ExternalParams = externalParams;
         actAction.ExternalParams = externalParams;
+    }
+
+    private string EmailExternalParams()
+    {
+        return JsonSerializer.Serialize(new
+        {
+            notification_ids = actActionNotificationIds,
+            attached_content = actAttachedContent
+        });
     }
 
     private async Task<int> UpdateAction(WfStateAction action, string externalParams)

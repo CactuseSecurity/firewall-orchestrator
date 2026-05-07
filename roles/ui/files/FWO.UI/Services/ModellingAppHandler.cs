@@ -1,4 +1,5 @@
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
@@ -181,6 +182,15 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetConnectionsToRequest()
         {
+            if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+            {
+                string stateMarker = ModIntegrationStateConfig.EffectiveMarker(userConfig.ModIntegrationStateMarker);
+                HashSet<string> includedRequestStateNames = ModIntegrationStateConfig.IncludedRequestStateNames(userConfig.ModIntegrationStates);
+                return [.. Connections.Where(x => x.IsRelevantForNotificationRequest(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers))
+                    .Where(x => x.IsIntegrationStateIncludedForRequest(stateMarker, includedRequestStateNames))
+                    .OrderByDescending(y => y.IsCommonService)];
+            }
+
             return [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(dummyAppRoleId,
                 userConfig.ModRolloutRemovedAppServers, userConfig.ModRequestOnlyOwnObjects))
                 .OrderByDescending(y => y.IsCommonService)];

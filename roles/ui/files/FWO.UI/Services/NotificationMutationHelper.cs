@@ -81,6 +81,8 @@ namespace FWO.Ui.Services
                 EmailAddressTo = notification.EmailAddressTo,
                 RecipientCc = notification.RecipientCc,
                 EmailAddressCc = notification.EmailAddressCc,
+                RecipientBcc = notification.RecipientBcc,
+                EmailAddressBcc = notification.EmailAddressBcc,
                 EmailSubject = notification.EmailSubject,
                 EmailBody = notification.EmailBody,
                 ScheduleId = notification.ScheduleId,
@@ -116,6 +118,10 @@ namespace FWO.Ui.Services
             public string? recipientCc { get; init; }
 
             public string? emailAddressCc { get; init; }
+
+            public string? recipientBcc { get; init; }
+
+            public string? emailAddressBcc { get; init; }
 
             public string? subject { get; init; }
 
@@ -156,6 +162,8 @@ namespace FWO.Ui.Services
                 emailAddressTo = variables.emailAddressTo;
                 recipientCc = variables.recipientCc;
                 emailAddressCc = variables.emailAddressCc;
+                recipientBcc = variables.recipientBcc;
+                emailAddressBcc = variables.emailAddressBcc;
                 subject = variables.subject;
                 emailBody = variables.emailBody;
                 scheduleId = variables.scheduleId;
@@ -182,6 +190,8 @@ namespace FWO.Ui.Services
                     emailAddressTo = notification.EmailAddressTo,
                     recipientCc = notification.RecipientCc.ToString(),
                     emailAddressCc = notification.EmailAddressCc,
+                    recipientBcc = notification.RecipientBcc.ToString(),
+                    emailAddressBcc = notification.EmailAddressBcc,
                     subject = notification.EmailSubject,
                     emailBody = notification.EmailBody,
                     scheduleId = notification.ScheduleId,

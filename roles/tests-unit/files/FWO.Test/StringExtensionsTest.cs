@@ -256,6 +256,18 @@ namespace FWO.Test
             Assert.That(shortened, Is.EqualTo(expectedShortened));
         }
 
+        // --- SanitizeEmailAddressMand & Opt ---
+        [TestCase("user.name+tag@example.test", "user.name+tag@example.test", false)]
+        [TestCase(" user name@example.test ", "username@example.test", true)]
+        [TestCase("bad;addr@example.test\r\n", "badaddr@example.test", true)]
+        public void SanitizeEmailAddressMand_Works(string input, string expected, bool expectedShortened)
+        {
+            bool shortened = false;
+            string result = input.SanitizeEmailAddressMand(ref shortened);
+            Assert.That(result, Is.EqualTo(expected));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+        }
+
         [Test]
         public void SanitizeCidrOpt_Null_ReturnsNull()
         {

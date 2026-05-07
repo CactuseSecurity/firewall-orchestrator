@@ -12,7 +12,34 @@ namespace FWO.Data
         InterfaceRequest = 4,
         RuleTimer = 5,
         AppDecomm = 6,
-        Report = 7
+        Report = 7,
+        WfAction = 8
+    }
+
+    public static class NotificationClientGroups
+    {
+        /// <summary>
+        /// Returns whether notifications for this client can resolve owner/modelling recipients.
+        /// </summary>
+        /// <param name="client">Notification client to classify.</param>
+        /// <returns>True if modelling recipient options are supported.</returns>
+        public static bool IsModellingRecipientClient(this NotificationClient client)
+        {
+            return client is NotificationClient.Recertification
+                or NotificationClient.InterfaceRequest
+                or NotificationClient.RuleTimer
+                or NotificationClient.AppDecomm;
+        }
+
+        /// <summary>
+        /// Returns whether notifications for this client can resolve workflow ticket recipients.
+        /// </summary>
+        /// <param name="client">Notification client to classify.</param>
+        /// <returns>True if workflow recipient options are supported.</returns>
+        public static bool IsWorkflowRecipientClient(this NotificationClient client)
+        {
+            return client is NotificationClient.WfAction;
+        }
     }
 
     public enum NotificationChannel
@@ -55,6 +82,40 @@ namespace FWO.Data
 
     public class FwoNotification
     {
+        public FwoNotification()
+        {
+        }
+
+        public FwoNotification(FwoNotification notification)
+        {
+            Id = notification.Id;
+            NotificationClient = notification.NotificationClient;
+            UserId = notification.UserId;
+            OwnerId = notification.OwnerId;
+            Channel = notification.Channel;
+            Name = notification.Name;
+            RecipientTo = notification.RecipientTo;
+            EmailAddressTo = notification.EmailAddressTo;
+            RecipientCc = notification.RecipientCc;
+            EmailAddressCc = notification.EmailAddressCc;
+            RecipientBcc = notification.RecipientBcc;
+            EmailAddressBcc = notification.EmailAddressBcc;
+            EmailSubject = notification.EmailSubject;
+            EmailBody = notification.EmailBody;
+            ScheduleId = notification.ScheduleId;
+            BundleType = notification.BundleType;
+            BundleId = notification.BundleId;
+            Layout = notification.Layout;
+            Deadline = notification.Deadline;
+            IntervalBeforeDeadline = notification.IntervalBeforeDeadline;
+            OffsetBeforeDeadline = notification.OffsetBeforeDeadline;
+            RepeatIntervalAfterDeadline = notification.RepeatIntervalAfterDeadline;
+            InitialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline;
+            RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline;
+            RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline;
+            LastSent = notification.LastSent;
+        }
+
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
@@ -84,6 +145,19 @@ namespace FWO.Data
 
         [JsonProperty("email_address_cc"), JsonPropertyName("email_address_cc")]
         public string EmailAddressCc { get; set; } = "";
+
+        [JsonProperty("recipient_bcc"), JsonPropertyName("recipient_bcc")]
+        private EmailRecipientOption? RecipientBccValue { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public EmailRecipientOption RecipientBcc
+        {
+            get => RecipientBccValue ?? EmailRecipientOption.None;
+            set => RecipientBccValue = value;
+        }
+
+        [JsonProperty("email_address_bcc"), JsonPropertyName("email_address_bcc")]
+        public string EmailAddressBcc { get; set; } = "";
 
         [JsonProperty("email_subject"), JsonPropertyName("email_subject")]
         public string EmailSubject { get; set; } = "";
@@ -133,9 +207,11 @@ namespace FWO.Data
             return client switch
             {
                 NotificationClient.Recertification => [NotificationDeadline.RecertDate],
+                NotificationClient.ImportChange => [NotificationDeadline.None],
                 NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
                 NotificationClient.InterfaceRequest => [NotificationDeadline.RequestDate],
                 NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],
+                NotificationClient.WfAction => [NotificationDeadline.None],
                 _ => Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>().ToList()
             };
         }

@@ -16,8 +16,19 @@ namespace FWO.Services
         /// </summary>
         public static WorkflowEmailContent FromRequestTasks(IEnumerable<WfReqTask> tasks, UserConfig userConfig)
         {
-            List<WorkflowConnectionRow> rows = [.. tasks.Select(BuildRequestRow).Where(row => row.HasContent())];
-            return FromRows(rows, userConfig);
+            List<WfReqTask> taskList = [.. tasks];
+            List<WorkflowEmailSection> sections = [];
+            List<WorkflowConnectionRow> accessRows = [.. taskList.Where(task => !IsGroupTask(task)).Select(BuildRequestRow).Where(row => row.HasContent())];
+            if (accessRows.Count > 0)
+            {
+                sections.Add(BuildAccessSection(accessRows, userConfig));
+            }
+            List<WorkflowGroupRow> groupRows = [.. taskList.Where(IsGroupTask).Select(task => BuildGroupRequestRow(task, userConfig)).Where(row => row.HasContent())];
+            if (groupRows.Count > 0)
+            {
+                sections.Add(BuildGroupSection(groupRows, userConfig));
+            }
+            return FromSections(sections);
         }
 
         /// <summary>
@@ -26,38 +37,57 @@ namespace FWO.Services
         public static WorkflowEmailContent FromImplementationTasks(IEnumerable<WfImplTask> tasks, UserConfig userConfig)
         {
             List<WorkflowConnectionRow> rows = [.. tasks.Select(BuildImplementationRow).Where(row => row.HasContent())];
-            return FromRows(rows, userConfig);
+            WorkflowEmailSection section = BuildAccessSection(rows, userConfig);
+            return FromSections(section.Rows.Count > 0 ? [section] : []);
         }
 
-        private static WorkflowEmailContent FromRows(List<WorkflowConnectionRow> rows, UserConfig userConfig)
+        private static WorkflowEmailContent FromSections(List<WorkflowEmailSection> sections)
         {
-            string title = userConfig.GetText("requested_connections");
-            List<string> headers = BuildHeaders(userConfig);
-            List<NotificationTableRow> tableRows = [.. rows.Select(row => row.ToTableRow())];
-            string tableText = NotificationTableBodyBuilder.BuildTextTable(headers, tableRows);
-            string tableHtml = NotificationTableBodyBuilder.BuildHtmlTable(headers, tableRows);
-            string bodyHtml = $"<h2>{WebUtility.HtmlEncode(title)}</h2>{tableHtml}";
+            string plainText = string.Join("\n\n", sections.Select(section => $"{section.Title}\n{NotificationTableBodyBuilder.BuildTextTable(section.Headers, section.TableRows())}"));
+            string bodyHtml = string.Join("", sections.Select(section => $"<h2>{WebUtility.HtmlEncode(section.Title)}</h2>{NotificationTableBodyBuilder.BuildHtmlTable(section.Headers, section.TableRows())}"));
 
             return new()
             {
-                PlainText = NotificationTableBodyBuilder.BuildTextBody($"{title}\n@@CONTENT@@", tableText, "@@CONTENT@@"),
+                PlainText = plainText.Trim(),
                 Html = NotificationTableBodyBuilder.BuildHtmlDocument(bodyHtml),
-                Csv = BuildCsv(headers, rows),
-                Json = JsonSerializer.Serialize(rows)
+                Csv = BuildCsv(sections),
+                Json = BuildJson(sections)
             };
         }
 
-        private static List<string> BuildHeaders(UserConfig userConfig)
+        private static WorkflowEmailSection BuildAccessSection(List<WorkflowConnectionRow> rows, UserConfig userConfig)
         {
-            return
-            [
-                userConfig.GetText("task"),
-                userConfig.GetText("title"),
-                userConfig.GetText("action"),
-                userConfig.GetText("source"),
-                userConfig.GetText("destination"),
-                userConfig.GetText("services")
-            ];
+            return new()
+            {
+                Title = userConfig.GetText("requested_connections"),
+                Headers =
+                [
+                    userConfig.GetText("task"),
+                    userConfig.GetText("title"),
+                    userConfig.GetText("action"),
+                    userConfig.GetText("source"),
+                    userConfig.GetText("destination"),
+                    userConfig.GetText("services")
+                ],
+                Rows = [.. rows]
+            };
+        }
+
+        private static WorkflowEmailSection BuildGroupSection(List<WorkflowGroupRow> rows, UserConfig userConfig)
+        {
+            return new()
+            {
+                Title = userConfig.GetText("group_requests"),
+                Headers =
+                [
+                    userConfig.GetText("task"),
+                    userConfig.GetText("type"),
+                    userConfig.GetText("title"),
+                    userConfig.GetText("action"),
+                    userConfig.GetText("members")
+                ],
+                Rows = [.. rows]
+            };
         }
 
         private static WorkflowConnectionRow BuildRequestRow(WfReqTask task)
@@ -86,6 +116,25 @@ namespace FWO.Services
             };
         }
 
+        private static WorkflowGroupRow BuildGroupRequestRow(WfReqTask task, UserConfig userConfig)
+        {
+            return new()
+            {
+                Task = BuildTaskReference(task.TaskNumber, task.Id),
+                Type = userConfig.GetText(task.TaskType),
+                Title = task.Title,
+                Action = task.RequestAction,
+                Members = BuildGroupMemberList(task)
+            };
+        }
+
+        private static bool IsGroupTask(WfTaskBase task)
+        {
+            return task.TaskType == WfTaskType.group_create.ToString()
+                || task.TaskType == WfTaskType.group_modify.ToString()
+                || task.TaskType == WfTaskType.group_delete.ToString();
+        }
+
         private static string BuildTaskReference(int taskNumber, long id)
         {
             return taskNumber > 0 ? taskNumber.ToString() : id.ToString();
@@ -98,6 +147,66 @@ namespace FWO.Services
                 .Select(BuildElementText)
                 .Where(text => !string.IsNullOrWhiteSpace(text))
                 .Distinct());
+        }
+
+        private static string BuildElementList(IEnumerable<WfElementBase> elements)
+        {
+            return string.Join(", ", elements
+                .Select(BuildElementText)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .Distinct());
+        }
+
+        private static string BuildGroupMemberList(WfReqTask task)
+        {
+            List<WfElementBase> elements = [.. task.Elements, .. task.RemovedElements];
+            return string.Join(", ", elements
+                .Select(BuildGroupMemberText)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .Distinct());
+        }
+
+        private static string BuildGroupMemberText(WfElementBase element)
+        {
+            string memberText = element.Field == ElemFieldType.service.ToString()
+                ? BuildGroupServiceMemberText(element)
+                : BuildGroupObjectMemberText(element);
+            string elementAction = GetElementAction(element);
+            if (string.IsNullOrWhiteSpace(elementAction) || elementAction == RequestAction.create.ToString())
+            {
+                return memberText;
+            }
+            return string.IsNullOrWhiteSpace(memberText) ? elementAction : $"{elementAction}: {memberText}";
+        }
+
+        private static string GetElementAction(WfElementBase element)
+        {
+            return element switch
+            {
+                WfReqElement reqElement => reqElement.RequestAction,
+                WfImplElement implElement => implElement.ImplAction,
+                _ => ""
+            };
+        }
+
+        private static string BuildGroupObjectMemberText(WfElementBase element)
+        {
+            string displayName = FirstNonEmpty(element.Name, element.RuleUid, BuildIpRange(element), element.GroupName);
+            if (!string.IsNullOrWhiteSpace(element.RuleUid) && element.RuleUid != displayName)
+            {
+                return $"{displayName} ({element.RuleUid})";
+            }
+            return displayName;
+        }
+
+        private static string BuildGroupServiceMemberText(WfElementBase element)
+        {
+            string displayName = FirstNonEmpty(element.Name, BuildPortRange(element), element.GroupName);
+            if (element.ProtoId != null && string.IsNullOrWhiteSpace(element.Name))
+            {
+                return $"{displayName}/{element.ProtoId}";
+            }
+            return displayName;
         }
 
         private static string BuildElementText(WfElementBase element)
@@ -119,7 +228,7 @@ namespace FWO.Services
 
         private static string BuildServiceText(WfElementBase element)
         {
-            string displayName = FirstNonEmpty(element.Name, BuildPortRange(element));
+            string displayName = FirstNonEmpty(element.Name, element.GroupName, BuildPortRange(element));
             if (element.ProtoId != null && string.IsNullOrWhiteSpace(element.Name))
             {
                 return $"{displayName}/{element.ProtoId}";
@@ -161,15 +270,33 @@ namespace FWO.Services
             return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";
         }
 
-        private static string BuildCsv(List<string> headers, List<WorkflowConnectionRow> rows)
+        private static string BuildCsv(List<WorkflowEmailSection> sections)
         {
             StringBuilder csv = new();
-            csv.AppendLine(string.Join(",", headers.Select(CsvCell)));
-            foreach (WorkflowConnectionRow row in rows)
+            foreach (WorkflowEmailSection section in sections)
             {
-                csv.AppendLine(string.Join(",", row.ToCells().Select(CsvCell)));
+                if (csv.Length > 0)
+                {
+                    csv.AppendLine();
+                }
+                csv.AppendLine(CsvCell(section.Title));
+                csv.AppendLine(string.Join(",", section.Headers.Select(CsvCell)));
+                foreach (IWorkflowEmailRow row in section.Rows)
+                {
+                    csv.AppendLine(string.Join(",", row.ToCells().Select(CsvCell)));
+                }
             }
             return csv.ToString();
+        }
+
+        private static string BuildJson(List<WorkflowEmailSection> sections)
+        {
+            return JsonSerializer.Serialize(sections.Select(section => new
+            {
+                section.Title,
+                section.Headers,
+                Rows = section.Rows.Select(row => row.ToJsonObject()).ToList()
+            }));
         }
 
         private static string CsvCell(string value)
@@ -178,7 +305,27 @@ namespace FWO.Services
         }
     }
 
-    internal class WorkflowConnectionRow
+    internal class WorkflowEmailSection
+    {
+        public string Title { get; set; } = "";
+        public List<string> Headers { get; set; } = [];
+        public List<IWorkflowEmailRow> Rows { get; set; } = [];
+
+        public List<NotificationTableRow> TableRows()
+        {
+            return [.. Rows.Select(row => row.ToTableRow())];
+        }
+    }
+
+    internal interface IWorkflowEmailRow
+    {
+        bool HasContent();
+        List<string> ToCells();
+        NotificationTableRow ToTableRow();
+        object ToJsonObject();
+    }
+
+    internal class WorkflowConnectionRow : IWorkflowEmailRow
     {
         public string Task { get; set; } = "";
         public string Title { get; set; } = "";
@@ -207,6 +354,46 @@ namespace FWO.Services
         public List<string> ToCells()
         {
             return [Task, Title, Action, Source, Destination, Services];
+        }
+
+        public object ToJsonObject()
+        {
+            return this;
+        }
+    }
+
+    internal class WorkflowGroupRow : IWorkflowEmailRow
+    {
+        public string Task { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string Members { get; set; } = "";
+
+        public bool HasContent()
+        {
+            return !string.IsNullOrWhiteSpace(Title)
+                || !string.IsNullOrWhiteSpace(Members);
+        }
+
+        public NotificationTableRow ToTableRow()
+        {
+            List<string> cells = ToCells();
+            return new()
+            {
+                HtmlCells = [.. cells],
+                TextCells = cells
+            };
+        }
+
+        public List<string> ToCells()
+        {
+            return [Task, Type, Title, Action, Members];
+        }
+
+        public object ToJsonObject()
+        {
+            return this;
         }
     }
 }

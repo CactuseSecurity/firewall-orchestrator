@@ -20,8 +20,11 @@ namespace FWO.Test
         {
             public List<WfState> States { get; set; } = [];
             public List<FwoNotification> Notifications { get; set; } = [];
+            public WfTicket FullTicket { get; set; } = new();
             public List<ModellingConnection> ConnectionsByTicket { get; set; } = [];
             public Dictionary<int, ModellingConnection> ConnectionsById { get; set; } = [];
+            public Dictionary<long, ModellingAppRole> AppRolesById { get; set; } = [];
+            public Dictionary<int, ModellingServiceGroup> ServiceGroupsById { get; set; } = [];
             public List<string> Queries { get; } = [];
             public List<object?> Variables { get; } = [];
             private readonly List<Management> managements = [new() { Id = 1, Name = "Mgmt1" }];
@@ -75,6 +78,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)Notifications);
                 }
+                if (query == RequestQueries.getTicketById)
+                {
+                    return Task.FromResult((T)(object)FullTicket);
+                }
                 if (query == ModellingQueries.getConnectionsByTicketId)
                 {
                     return Task.FromResult((T)(object)ConnectionsByTicket);
@@ -85,6 +92,16 @@ namespace FWO.Test
                     return Task.FromResult((T)(object)(ConnectionsById.TryGetValue(id, out ModellingConnection? connection)
                         ? new List<ModellingConnection> { connection }
                         : new List<ModellingConnection>()));
+                }
+                if (query == ModellingQueries.getAppRoleById)
+                {
+                    long id = GetVariable<long>(variables, "id");
+                    return Task.FromResult((T)(object)(AppRolesById.TryGetValue(id, out ModellingAppRole? appRole) ? appRole : new ModellingAppRole()));
+                }
+                if (query == ModellingQueries.getServiceGroupById)
+                {
+                    int id = GetVariable<int>(variables, "id");
+                    return Task.FromResult((T)(object)(ServiceGroupsById.TryGetValue(id, out ModellingServiceGroup? serviceGroup) ? serviceGroup : new ModellingServiceGroup()));
                 }
                 if (query == ModellingQueries.updateConnectionProperties
                     || query == ModellingQueries.updateProposedConnectionOwner
@@ -186,6 +203,7 @@ namespace FWO.Test
         {
             return new WfTicket
             {
+                Id = 1,
                 StateId = 1,
                 Tasks = [.. tasks]
             };
@@ -206,6 +224,44 @@ namespace FWO.Test
                     new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = $"rule-{id}" }
                 ]
             };
+        }
+
+        [Test]
+        public async Task CreateWorkflowEmailContent_ReloadsFullTicketForTicketScope()
+        {
+            WfReqTask overviewTask = new()
+            {
+                Id = 12,
+                TaskNumber = 2,
+                Title = "Open web",
+                RequestAction = RequestAction.create.ToString()
+            };
+            WfReqTask fullTask = CreateEligibleRequestTask(12, title: "Open web");
+            fullTask.TaskNumber = overviewTask.TaskNumber;
+            WfTicket overviewTicket = CreateTicket(overviewTask);
+            overviewTicket.Id = 42;
+            WfTicket fullTicket = CreateTicket(fullTask);
+            fullTicket.Id = overviewTicket.Id;
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                FullTicket = fullTicket
+            };
+            WfHandler wfHandler = new()
+            {
+                userConfig = new SimulatedUserConfig()
+            };
+            ActionHandler handler = new(apiConn, wfHandler);
+
+            Task<WorkflowEmailContent?> task = (Task<WorkflowEmailContent?>)GetPrivateMethod("CreateWorkflowEmailContent")
+                .Invoke(handler, [EmailAttachedContent.RequestedConnections, overviewTicket, WfObjectScopes.Ticket])!;
+            WorkflowEmailContent? content = await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Has.Member(RequestQueries.getTicketById));
+                Assert.That(content?.PlainText, Does.Contain("Requested Connections"));
+                Assert.That(content?.PlainText, Does.Contain("2 | Open web | create | src | dst | https"));
+            });
         }
 
         [Test]
@@ -587,7 +643,15 @@ namespace FWO.Test
                 [
                     new() { Id = 41, Properties = "{\"existing\":\"\"}" },
                     new() { Id = 42 }
-                ]
+                ],
+                AppRolesById = new()
+                {
+                    [501] = new ModellingAppRole { Id = 501, Comment = "Manual app role note\r\nImplementationState: Old | 2024-01-01T00:00:00.0000000Z\r\nKeep app role note" }
+                },
+                ServiceGroupsById = new()
+                {
+                    [601] = new ModellingServiceGroup { Id = 601, Comment = "Manual service group note" }
+                }
             };
             WfHandler wfHandler = new() { AuthUser = new System.Security.Claims.ClaimsPrincipal() };
             SetMatrix(wfHandler, WfTaskType.access.ToString());
@@ -613,6 +677,8 @@ namespace FWO.Test
 
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getConnectionsByTicketId), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateConnectionProperties), Is.EqualTo(1));
+            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getAppRoleById), Is.EqualTo(1));
+            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getServiceGroupById), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateNwGroupComment), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateServiceGroupComment), Is.EqualTo(1));
             object? firstConnectionVars = apiConn.Variables[apiConn.Queries.IndexOf(ModellingQueries.updateConnectionProperties)];
@@ -620,10 +686,16 @@ namespace FWO.Test
             Assert.That(GetVariable<string>(firstConnectionVars, "connProp"), Does.Contain("\"ImplementationState\":\"Implemented | "));
             object? appRoleVars = apiConn.Variables[apiConn.Queries.IndexOf(ModellingQueries.updateNwGroupComment)];
             Assert.That(GetVariable<long>(appRoleVars, "id"), Is.EqualTo(501));
-            Assert.That(GetVariable<string>(appRoleVars, "comment"), Does.StartWith("ImplementationState: Implemented | "));
+            string appRoleComment = GetVariable<string>(appRoleVars, "comment");
+            Assert.That(appRoleComment, Does.Contain("Manual app role note"));
+            Assert.That(appRoleComment, Does.Contain("Keep app role note"));
+            Assert.That(appRoleComment, Does.Contain("ImplementationState: Implemented | "));
+            Assert.That(appRoleComment, Does.Not.Contain("ImplementationState: Old | "));
             object? serviceGroupVars = apiConn.Variables[apiConn.Queries.IndexOf(ModellingQueries.updateServiceGroupComment)];
             Assert.That(GetVariable<int>(serviceGroupVars, "id"), Is.EqualTo(601));
-            Assert.That(GetVariable<string>(serviceGroupVars, "comment"), Does.StartWith("ImplementationState: Implemented | "));
+            string serviceGroupComment = GetVariable<string>(serviceGroupVars, "comment");
+            Assert.That(serviceGroupComment, Does.Contain("Manual service group note"));
+            Assert.That(serviceGroupComment, Does.Contain("ImplementationState: Implemented | "));
         }
 
         [Test]

@@ -162,25 +162,27 @@ namespace FWO.Services.Workflow
                 foreach (FwoNotification actionNotification in actionNotifications)
                 {
                     await SetScope(statefulObject, scope, actionNotification);
-                    WorkflowEmailContent? workflowContent = CreateWorkflowEmailContent(emailActionParams.AttachedContent, statefulObject, scope);
+                    WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams.AttachedContent, statefulObject, scope);
                     EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, DefaultInit.DoNothing, UserGroups, useInMwServer);
                     await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc);
-                    if (owner != null)
+                    WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
+                    if (userGrpDn != null)
                     {
-                        if (await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, workflowContent: workflowContent))
+                        if (await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, null, userGrpDn, workflowContent, placeholderObject))
                         {
                             ++sentEmailCount;
                         }
                     }
-                    else if (userGrpDn != null)
+                    else if (await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, workflowContent: workflowContent, placeholderObject: placeholderObject))
                     {
-                        if (await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, null, userGrpDn, workflowContent))
-                        {
-                            ++sentEmailCount;
-                        }
+                        ++sentEmailCount;
                     }
                 }
                 Log.WriteInfo("SendEmail", $"Sent {sentEmailCount} workflow action email(s).");
+                if (emailActionParams.ConfirmSentMail && sentEmailCount > 0)
+                {
+                    wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("send_email"), $"{sentEmailCount}{wfHandler.userConfig.GetText("emails_sent")}", false);
+                }
             }
             catch (Exception exc)
             {
@@ -207,7 +209,7 @@ namespace FWO.Services.Workflow
             return [emailActionParams.ToNotification()];
         }
 
-        private WorkflowEmailContent? CreateWorkflowEmailContent(EmailAttachedContent attachedContent, WfStatefulObject statefulObject, WfObjectScopes scope)
+        private async Task<WorkflowEmailContent?> CreateWorkflowEmailContent(EmailAttachedContent attachedContent, WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             if (attachedContent != EmailAttachedContent.RequestedConnections)
             {
@@ -216,12 +218,37 @@ namespace FWO.Services.Workflow
 
             return scope switch
             {
-                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => WorkflowEmailContent.FromRequestTasks(ticket.Tasks, wfHandler.userConfig),
+                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => WorkflowEmailContent.FromRequestTasks((await GetTicketForEmailContent(ticket)).Tasks, wfHandler.userConfig),
                 WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => WorkflowEmailContent.FromRequestTasks([reqTask], wfHandler.userConfig),
                 WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => WorkflowEmailContent.FromImplementationTasks([implTask], wfHandler.userConfig),
                 WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => WorkflowEmailContent.FromRequestTasks([wfHandler.ActReqTask], wfHandler.userConfig),
                 _ => null
             };
+        }
+
+        private async Task<WfTicket> GetTicketForEmailContent(WfTicket ticket)
+        {
+            if (ticket.Id <= 0)
+            {
+                return ticket;
+            }
+
+            try
+            {
+                WfTicket fullTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticket.Id });
+                fullTicket.UpdateCidrsInTaskElements();
+                return fullTicket.Id > 0 ? fullTicket : ticket;
+            }
+            catch (Exception exc)
+            {
+                Log.WriteWarning("SendEmail", $"Could not load full ticket {ticket.Id} for workflow email content. Falling back to current ticket data. {exc.Message}");
+                return ticket;
+            }
+        }
+
+        private WfStatefulObject WorkflowPlaceholderObject(WfStatefulObject statefulObject)
+        {
+            return wfHandler.ActTicket.Id > 0 ? wfHandler.ActTicket : statefulObject;
         }
 
         public async Task SetAlert(string? description)
@@ -386,10 +413,12 @@ namespace FWO.Services.Workflow
                 case WfObjectScopes.RequestTask:
                     wfHandler.SetReqTaskEnv((WfReqTask)statefulObject);
                     SetCommenter(notification, wfHandler.ActReqTask.Comments);
+                    SetScopedRecipients(notification, EmailRecipientOption.Requester, wfHandler.ActTicket.Requester?.Dn);
                     break;
                 case WfObjectScopes.ImplementationTask:
                     wfHandler.SetImplTaskEnv((WfImplTask)statefulObject);
                     SetCommenter(notification, wfHandler.ActImplTask.Comments);
+                    SetScopedRecipients(notification, EmailRecipientOption.Requester, wfHandler.ActTicket.Requester?.Dn);
                     break;
                 case WfObjectScopes.Approval:
                     if (wfHandler.SetReqTaskEnv(((WfApproval)statefulObject).TaskId))
@@ -397,6 +426,7 @@ namespace FWO.Services.Workflow
                         await wfHandler.SetApprovalEnv(null, false);
                         SetCommenter(notification, wfHandler.ActApproval.Comments);
                         SetScopedRecipients(notification, EmailRecipientOption.Approver, wfHandler.ActApproval.ApproverDn);
+                        SetScopedRecipients(notification, EmailRecipientOption.Requester, wfHandler.ActTicket.Requester?.Dn);
                     }
                     break;
                 default:

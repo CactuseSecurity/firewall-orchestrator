@@ -85,6 +85,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getAppRoles;
         public static readonly string getNewestAppRoles;
         public static readonly string getDummyAppRole;
+        public static readonly string getAppRoleById;
         public static readonly string newAppRole;
         public static readonly string updateAppRole;
         public static readonly string updateNwGroupComment;
@@ -208,6 +209,7 @@ namespace FWO.Api.Client.Queries
                 getAppRoles = appServerDetailsFragment + appRoleDetailsFragment + GetQueryText("modelling/getAppRoles.graphql");
                 getNewestAppRoles = GetQueryText("modelling/getNewestAppRoles.graphql");
                 getDummyAppRole = appServerDetailsFragment + appRoleDetailsFragment + GetQueryText("modelling/getDummyAppRole.graphql");
+                getAppRoleById = appServerDetailsFragment + appRoleDetailsFragment + GetQueryText("modelling/getAppRoleById.graphql");
                 newAppRole = GetQueryText("modelling/newAppRole.graphql");
                 updateAppRole = GetQueryText("modelling/updateAppRole.graphql");
                 updateNwGroupComment = GetQueryText("modelling/updateNwGroupComment.graphql");

@@ -119,6 +119,85 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildRequestTasks_RequestsConnectionWhenReferencedSourceObjectChangedAfterMarker()
+        {
+            DateTime baseline = new(2026, 5, 6, 10, 0, 0, DateTimeKind.Utc);
+            SimulatedUserConfig userConfig = ConfigWithRetryIncluded();
+            ModellingConnection connection = CreateConnection(24);
+            MarkState(connection, "Retry", baseline);
+            connection.SourceAppRoles =
+            [
+                new()
+                {
+                    Content = new()
+                    {
+                        Id = 101,
+                        IdString = "ARChanged",
+                        Comment = MarkedComment("Retry", baseline),
+                        AppServers = [new() { Content = new() { Id = 301, Name = "NewSource", Ip = "10.0.2.1/32" } }]
+                    }
+                }
+            ];
+            List<ModellingHistoryEntry> history =
+            [
+                new()
+                {
+                    ObjectType = (int)ModellingTypes.ModObjectType.AppServer,
+                    ObjectId = 301,
+                    ChangeTime = baseline.AddMinutes(1)
+                }
+            ];
+            ModellingNotificationRequestBuilder builder = new(userConfig, history);
+
+            List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, stateId: 23);
+
+            WfReqTask accessTask = tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
+            Assert.Multiple(() =>
+            {
+                Assert.That(tasks.Count(task => task.TaskType == WfTaskType.group_create.ToString()), Is.EqualTo(1));
+                Assert.That(accessTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId), Is.EqualTo(24));
+                Assert.That(accessTask.Elements.Any(element => element.Field == ElemFieldType.source.ToString() && element.GroupName == "ARChanged"), Is.True);
+            });
+        }
+
+        [Test]
+        public void BuildRequestTasks_RequestsAlreadyRequestedConnectionWhenConnectionChangedAfterMarker()
+        {
+            DateTime baseline = new(2026, 5, 6, 10, 0, 0, DateTimeKind.Utc);
+            SimulatedUserConfig userConfig = ConfigWithRetryIncluded();
+            ModellingConnection connection = CreateConnection(25);
+            connection.RequestedOnFw = true;
+            MarkState(connection, "Retry", baseline);
+            List<ModellingHistoryEntry> history =
+            [
+                new()
+                {
+                    ObjectType = (int)ModellingTypes.ModObjectType.Connection,
+                    ObjectId = 25,
+                    ChangeTime = baseline.AddMinutes(1)
+                }
+            ];
+            ModellingNotificationRequestBuilder builder = new(userConfig, history);
+
+            List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, stateId: 23);
+
+            WfReqTask accessTask = tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
+            Assert.That(accessTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId), Is.EqualTo(25));
+        }
+
+        [Test]
+        public void BuildRequestTasks_DoesNotRequestAlreadyRequestedConnectionWithoutIncludedMarkerState()
+        {
+            ModellingConnection connection = CreateConnection(26);
+            connection.RequestedOnFw = true;
+            ModellingNotificationRequestBuilder builder = new(new SimulatedUserConfig());
+
+            List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, stateId: 23);
+
+            Assert.That(tasks, Is.Empty);
+        }
+
+        [Test]
         public void BuildRequestTasks_UsesLastRequestStartAsChangeBaselineWhenAvailable()
         {
             DateTime stateSetAt = new(2026, 5, 6, 10, 0, 0, DateTimeKind.Utc);
@@ -193,6 +272,57 @@ namespace FWO.Test
                 Assert.That(accessTask.Elements.Any(element => element.GroupName == "ARUnchanged"), Is.False);
                 Assert.That(accessTask.Elements.Any(element => element.GroupName == "SGChanged"), Is.True);
                 Assert.That(accessTask.Elements.Any(element => element.GroupName == "SGUnchanged"), Is.False);
+            });
+        }
+
+        [Test]
+        public void BuildRequestTasks_RequestsGroupsFromConnectionsNotSelectedForAccess()
+        {
+            DateTime baseline = new(2026, 5, 6, 10, 0, 0, DateTimeKind.Utc);
+            SimulatedUserConfig userConfig = ConfigWithRetryIncluded();
+            ModellingConnection connection = CreateConnection(31);
+            MarkState(connection, "Done", baseline);
+            connection.SourceAppRoles =
+            [
+                new() { Content = new() { Id = 121, IdString = "ARUnmarked" } },
+                new() { Content = new() { Id = 122, IdString = "ARChanged", Comment = MarkedComment("Retry", baseline) } },
+                new() { Content = new() { Id = 123, IdString = "ARUnchanged", Comment = MarkedComment("Retry", baseline) } }
+            ];
+            connection.ServiceGroups =
+            [
+                new() { Content = new() { Id = 221, Name = "SGUnmarked" } },
+                new() { Content = new() { Id = 222, Name = "SGChanged", Comment = MarkedComment("Retry", baseline) } },
+                new() { Content = new() { Id = 223, Name = "SGUnchanged", Comment = MarkedComment("Retry", baseline) } }
+            ];
+            List<ModellingHistoryEntry> history =
+            [
+                new()
+                {
+                    ObjectType = (int)ModellingTypes.ModObjectType.AppRole,
+                    ObjectId = 122,
+                    ChangeTime = baseline.AddMinutes(1)
+                },
+                new()
+                {
+                    ObjectType = (int)ModellingTypes.ModObjectType.ServiceGroup,
+                    ObjectId = 222,
+                    ChangeTime = baseline.AddMinutes(1)
+                }
+            ];
+            ModellingNotificationRequestBuilder builder = new(userConfig, history);
+
+            List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, stateId: 23);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(tasks.Any(task => task.TaskType == WfTaskType.access.ToString()), Is.False);
+                Assert.That(tasks.Count(task => task.TaskType == WfTaskType.group_create.ToString()), Is.EqualTo(4));
+                Assert.That(tasks.Select(task => task.GetAddInfoValue(AdditionalInfoKeys.GrpName)), Does.Contain("ARUnmarked"));
+                Assert.That(tasks.Select(task => task.GetAddInfoValue(AdditionalInfoKeys.GrpName)), Does.Contain("ARChanged"));
+                Assert.That(tasks.Select(task => task.GetAddInfoValue(AdditionalInfoKeys.GrpName)), Does.Contain("SGUnmarked"));
+                Assert.That(tasks.Select(task => task.GetAddInfoValue(AdditionalInfoKeys.GrpName)), Does.Contain("SGChanged"));
+                Assert.That(tasks.Select(task => task.GetAddInfoValue(AdditionalInfoKeys.GrpName)), Does.Not.Contain("ARUnchanged"));
+                Assert.That(tasks.Select(task => task.GetAddInfoValue(AdditionalInfoKeys.GrpName)), Does.Not.Contain("SGUnchanged"));
             });
         }
 

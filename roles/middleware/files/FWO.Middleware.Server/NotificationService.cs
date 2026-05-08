@@ -281,12 +281,8 @@ namespace FWO.Middleware.Server
 
         private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
-            string subject = (notification.EmailSubject ?? "")
-                .Replace(Placeholder.APPNAME, owner?.Name ?? "")
-                .Replace(Placeholder.APPID, owner?.ExtAppId ?? "")
-                .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
-            string body = NotificationEmailLayoutHelper.BuildBody(notification, content);
-            body = body.Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
+            string subject = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(notification.EmailSubject ?? "", owner, timeIntervalText);
+            string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner, timeIntervalText);
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             if (report != null && notification.Layout == NotificationLayout.HtmlInBody)
             {

@@ -106,7 +106,9 @@ namespace FWO.Services.Workflow
                 .Distinct()];
             foreach (long appRoleId in appRoleIds)
             {
-                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateNwGroupComment, new { id = appRoleId, comment = markedState });
+                ModellingAppRole appRole = await apiConnection.SendQueryAsync<ModellingAppRole>(ModellingQueries.getAppRoleById, new { id = appRoleId });
+                string comment = UpdateMarkedComment(appRole?.Comment, stateMarker, markedState);
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateNwGroupComment, new { id = appRoleId, comment });
             }
 
             List<int> serviceGroupIds = [.. groupTasks
@@ -116,8 +118,44 @@ namespace FWO.Services.Workflow
                 .Distinct()];
             foreach (int serviceGroupId in serviceGroupIds)
             {
-                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateServiceGroupComment, new { id = serviceGroupId, comment = markedState });
+                ModellingServiceGroup serviceGroup = await apiConnection.SendQueryAsync<ModellingServiceGroup>(ModellingQueries.getServiceGroupById, new { id = serviceGroupId });
+                string comment = UpdateMarkedComment(serviceGroup?.Comment, stateMarker, markedState);
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateServiceGroupComment, new { id = serviceGroupId, comment });
             }
+        }
+
+        private static string UpdateMarkedComment(string? existingComment, string stateMarker, string markedState)
+        {
+            if (string.IsNullOrWhiteSpace(existingComment))
+            {
+                return markedState;
+            }
+
+            string markerPrefix = $"{ModIntegrationStateConfig.EffectiveMarker(stateMarker)}:";
+            List<string> lines = [.. existingComment.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')];
+            List<string> updatedLines = [];
+            bool markerReplaced = false;
+
+            foreach (string line in lines)
+            {
+                string trimmedLine = line.TrimStart();
+                if (trimmedLine.StartsWith(markerPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!markerReplaced)
+                    {
+                        updatedLines.Add(markedState);
+                        markerReplaced = true;
+                    }
+                    continue;
+                }
+                updatedLines.Add(line);
+            }
+
+            if (!markerReplaced)
+            {
+                updatedLines.Add(markedState);
+            }
+            return string.Join(Environment.NewLine, updatedLines);
         }
 
         public async Task UpdateConnectionOwner(FwoOwner? owner, long? ticketId)

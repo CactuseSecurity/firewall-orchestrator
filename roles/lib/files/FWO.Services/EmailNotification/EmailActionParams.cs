@@ -18,6 +18,9 @@ namespace FWO.Services
         [JsonProperty("attached_content"), JsonPropertyName("attached_content")]
         public EmailAttachedContent AttachedContent { get; set; } = EmailAttachedContent.None;
 
+        [JsonProperty("confirm_sent_mail"), JsonPropertyName("confirm_sent_mail")]
+        public bool ConfirmSentMail { get; set; }
+
         [JsonProperty("to"), JsonPropertyName("to")]
         public EmailRecipientOption RecipientTo { get; set; } = EmailRecipientOption.None;
 

@@ -79,6 +79,8 @@ namespace FWO.Test
             {"type","Type"},
             {"ip_address","IP Address"},
             {"members","Members"},
+            {"requested_connections","Requested Connections"},
+            {"group_requests","Group Requests"},
             {"network_objects","Network Objects"},
             {"network_services","Network Services"},
             {"protocol","Protocol"},
@@ -105,6 +107,7 @@ namespace FWO.Test
             {"is_in_use","Is in use"},
             {"devices","Devices"},
             {"owners","Owners"},
+            {"requests","Requests"},
             {"filter","Filter"},
             {"statistics","Statistics"},
             {"id","Id"},
@@ -217,6 +220,8 @@ namespace FWO.Test
             {"display_ticket","Display Ticket" },
             {"ext_ticket_number","External ticket number" },
             {"group_create","Create Group" },
+            {"group_modify","Modify Group" },
+            {"group_delete","Delete Group" },
             {"creation_date","Creation Date" },
             {"reason","Reason" },
             {"all_open","All Open" },
@@ -262,6 +267,8 @@ namespace FWO.Test
             {"E9021","Interface permission required" },
             {"decomm_interface","Decommission Interface" },
             {"send_email","Send Email"},
+            {"confirm_sent_mail","Confirm sent email via UI message"},
+            {"emails_sent"," emails sent"},
             {"U9033","Emails sent to @@OK_NUMBER@@ owners."},
             {"E9019","Email could not be sent to @@FAIL_NUMBER@@ owners."},
             {"notification","Notification" },
@@ -422,7 +429,8 @@ namespace FWO.Test
             {"H1520","Show full ticket tooltip"},
             {"H1521","Phase tooltip"},
             {"H1524","Detailed view tooltip"},
-            {"detailed_view","Detailed View"}
+            {"detailed_view","Detailed View"},
+            {"task","Task"}
         };
 
         public override string GetText(string key)

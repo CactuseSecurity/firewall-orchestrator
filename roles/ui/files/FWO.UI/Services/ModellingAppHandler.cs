@@ -186,7 +186,7 @@ namespace FWO.Ui.Services
             {
                 string stateMarker = ModIntegrationStateConfig.EffectiveMarker(userConfig.ModIntegrationStateMarker);
                 HashSet<string> includedRequestStateNames = ModIntegrationStateConfig.IncludedRequestStateNames(userConfig.ModIntegrationStates);
-                return [.. Connections.Where(x => x.IsRelevantForNotificationRequest(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers))
+                return [.. Connections.Where(x => !x.IsDocumentationOnly() && x.IsRelevantForVarianceAnalysis(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers))
                     .Where(x => x.IsIntegrationStateIncludedForRequest(stateMarker, includedRequestStateNames))
                     .OrderByDescending(y => y.IsCommonService)];
             }

@@ -221,14 +221,17 @@ namespace FWO.Test
             EmailActionParams actionParams = new()
             {
                 NotificationIds = [7],
-                AttachedContent = EmailAttachedContent.RequestedConnections
+                AttachedContent = EmailAttachedContent.RequestedConnections,
+                ConfirmSentMail = true
             };
 
             string json = System.Text.Json.JsonSerializer.Serialize(actionParams);
             EmailActionParams? parsedParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(json);
 
             Assert.That(json, Does.Contain("\"attached_content\":1"));
+            Assert.That(json, Does.Contain("\"confirm_sent_mail\":true"));
             Assert.That(parsedParams?.AttachedContent, Is.EqualTo(EmailAttachedContent.RequestedConnections));
+            Assert.That(parsedParams?.ConfirmSentMail, Is.True);
         }
 
         private static async Task<string> ReadFormFile(FormFile formFile)

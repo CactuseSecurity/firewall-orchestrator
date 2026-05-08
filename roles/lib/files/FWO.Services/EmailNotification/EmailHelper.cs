@@ -77,7 +77,7 @@ namespace FWO.Services
         /// Sends an immediate workflow action email using notification recipient fields.
         /// </summary>
         public async Task<bool> SendWorkflowActionEmail(FwoNotification notification, WfStatefulObject statefulObject, FwoOwner? owner, string? userGrpDn = null,
-            WorkflowEmailContent? workflowContent = null)
+            WorkflowEmailContent? workflowContent = null, WfStatefulObject? placeholderObject = null)
         {
             List<string> tos = userGrpDn != null
                 ? await CollectEmailAddressesFromUserOrGroup(userGrpDn)
@@ -88,8 +88,11 @@ namespace FWO.Services
             List<string>? bccs = notification.RecipientBcc == EmailRecipientOption.None
                 ? null
                 : await GetWorkflowActionRecipients(notification.RecipientBcc, notification.EmailAddressBcc, statefulObject, owner, ScopedUserBcc);
-            FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, notification.EmailSubject);
-            return await SendEmail(tos, notification.EmailSubject, NotificationEmailLayoutHelper.BuildBody(notification, workflowContent), ccs, bccs,
+            WfStatefulObject placeholderContext = placeholderObject ?? statefulObject;
+            string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(notification.EmailSubject, placeholderContext, owner);
+            string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, workflowContent), placeholderContext, owner);
+            FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
+            return await SendEmail(tos, subject, body, ccs, bccs,
                 notification.Layout == NotificationLayout.HtmlInBody, attachment);
         }
 

@@ -21,7 +21,7 @@ namespace FWO.Services.Modelling
                 .ThenBy(connection => connection.Id)];
             return
             [
-                .. BuildGroupTasks(includedConnections, owner, stateId, ref taskNumber),
+                .. BuildGroupTasks(connections, owner, stateId, ref taskNumber),
                 .. includedConnections.Select(connection => BuildAccessTask(connection, owner, stateId, taskNumber++))
             ];
         }
@@ -71,7 +71,7 @@ namespace FWO.Services.Modelling
             return connections
                 .SelectMany(connection => connection.SourceAppRoles.Concat(connection.DestinationAppRoles).Select(wrapper => wrapper.Content))
                 .Where(group => group.Id > 0)
-                .Where(group => IsGroupIncluded(group.Comment, GroupObjectType(group), group.Id))
+                .Where(IsAppRoleIncluded)
                 .GroupBy(group => group.Id > 0 ? group.Id.ToString() : group.IdString)
                 .Select(group => group.First())
                 .OrderBy(group => group.IdString);
@@ -82,7 +82,7 @@ namespace FWO.Services.Modelling
             return connections
                 .SelectMany(connection => connection.ServiceGroups.Select(wrapper => wrapper.Content))
                 .Where(group => group.Id > 0)
-                .Where(group => IsGroupIncluded(group.Comment, ModellingTypes.ModObjectType.ServiceGroup, group.Id))
+                .Where(IsServiceGroupIncluded)
                 .GroupBy(group => group.Id > 0 ? group.Id.ToString() : group.Name ?? "")
                 .Select(group => group.First())
                 .OrderBy(group => group.Name);
@@ -149,21 +149,30 @@ namespace FWO.Services.Modelling
 
         private bool IsConnectionIncludedForRequest(ModellingConnection connection)
         {
-            if (!connection.NotAlreadyRequested())
-            {
-                return false;
-            }
-
             string stateName = ModIntegrationStateConfig.GetStateName(connection.GetStringProperty(stateMarker));
             if (!ModIntegrationStateConfig.IsIncludedForRequest(stateName, includedRequestStateNames))
             {
                 return false;
             }
-            return !ModIntegrationStateConfig.RequiresChangeSinceMarker(stateName, includedRequestStateNames) ||
-                HasChangedSince(ModellingTypes.ModObjectType.Connection, connection.Id, connection.GetIntegrationStateSetAt(stateMarker));
+            bool requiresChangeSinceMarker = ModIntegrationStateConfig.RequiresChangeSinceMarker(stateName, includedRequestStateNames);
+            if (connection.NotAlreadyRequested() && !requiresChangeSinceMarker)
+            {
+                return true;
+            }
+            return requiresChangeSinceMarker && HasConnectionChangedSince(connection, connection.GetIntegrationStateSetAt(stateMarker));
         }
 
-        private bool IsGroupIncluded(string? comment, ModellingTypes.ModObjectType objectType, long objectId)
+        private bool IsAppRoleIncluded(ModellingAppRole appRole)
+        {
+            return IsMarkedObjectIncluded(appRole.Comment, GroupObjectType(appRole), appRole.Id, AppRoleMemberKeys(appRole));
+        }
+
+        private bool IsServiceGroupIncluded(ModellingServiceGroup serviceGroup)
+        {
+            return IsMarkedObjectIncluded(serviceGroup.Comment, ModellingTypes.ModObjectType.ServiceGroup, serviceGroup.Id, ServiceGroupMemberKeys(serviceGroup));
+        }
+
+        private bool IsMarkedObjectIncluded(string? comment, ModellingTypes.ModObjectType objectType, long objectId, IEnumerable<(int ObjectType, long ObjectId)> referencedObjectKeys)
         {
             string stateName = ModIntegrationStateConfig.GetMarkedCommentValue(comment, stateMarker);
             if (!ModIntegrationStateConfig.IsIncludedForRequest(stateName, includedRequestStateNames))
@@ -171,22 +180,88 @@ namespace FWO.Services.Modelling
                 return false;
             }
             return !ModIntegrationStateConfig.RequiresChangeSinceMarker(stateName, includedRequestStateNames) ||
-                HasChangedSince(objectType, objectId, ModIntegrationStateConfig.GetMarkedCommentTimestamp(comment, stateMarker));
+                HasAnyChangedSince([((int)objectType, objectId), .. referencedObjectKeys], ModIntegrationStateConfig.GetMarkedCommentTimestamp(comment, stateMarker));
         }
 
-        private bool HasChangedSince(ModellingTypes.ModObjectType objectType, long objectId, DateTime? stateSetAt)
+        private bool HasConnectionChangedSince(ModellingConnection connection, DateTime? stateSetAt)
+        {
+            return HasAnyChangedSince([((int)ModellingTypes.ModObjectType.Connection, connection.Id), .. ReferencedObjectKeys(connection)], stateSetAt);
+        }
+
+        private bool HasAnyChangedSince(IEnumerable<(int ObjectType, long ObjectId)> objectKeys, DateTime? stateSetAt)
         {
             DateTime? baseline = lastRequestStartedAt ?? stateSetAt;
-            return baseline == null || history.Any(entry =>
-                entry.ObjectType == (int)objectType &&
-                entry.ObjectId == objectId &&
-                entry.ChangeTime != null &&
-                entry.ChangeTime.Value.ToUniversalTime() > baseline.Value.ToUniversalTime());
+            if (baseline == null)
+            {
+                return true;
+            }
+
+            HashSet<(int ObjectType, long ObjectId)> changedObjects = [.. history
+                .Where(entry => entry.ChangeTime != null && entry.ChangeTime.Value.ToUniversalTime() > baseline.Value.ToUniversalTime())
+                .Select(entry => (entry.ObjectType, entry.ObjectId))];
+            return objectKeys.Where(key => key.ObjectId > 0).Any(changedObjects.Contains);
+        }
+
+        private static IEnumerable<(int ObjectType, long ObjectId)> ReferencedObjectKeys(ModellingConnection connection)
+        {
+            foreach (ModellingAppServer appServer in connection.SourceAppServers.Concat(connection.DestinationAppServers).Select(wrapper => wrapper.Content))
+            {
+                yield return ((int)ModellingTypes.ModObjectType.AppServer, appServer.Id);
+            }
+            foreach (ModellingAppRole appRole in connection.SourceAppRoles.Concat(connection.DestinationAppRoles).Select(wrapper => wrapper.Content))
+            {
+                yield return ((int)GroupObjectType(appRole), appRole.Id);
+                foreach ((int ObjectType, long ObjectId) appRoleMemberKey in AppRoleMemberKeys(appRole))
+                {
+                    yield return appRoleMemberKey;
+                }
+            }
+            foreach (ModellingNetworkArea area in connection.SourceAreas.Concat(connection.DestinationAreas).Select(wrapper => wrapper.Content))
+            {
+                yield return ((int)ModellingTypes.ModObjectType.NetworkArea, area.Id);
+                foreach (NetworkSubnet subnet in area.IpData.Select(wrapper => wrapper.Content))
+                {
+                    yield return ((int)ModellingTypes.ModObjectType.Network, subnet.Id);
+                }
+            }
+            foreach (ModellingNwGroup group in connection.SourceOtherGroups.Concat(connection.DestinationOtherGroups).Select(wrapper => wrapper.Content))
+            {
+                yield return ((int)ObjectTypeFromGroup(group), group.Id);
+            }
+            foreach (ModellingService service in connection.Services.Select(wrapper => wrapper.Content))
+            {
+                yield return ((int)ModellingTypes.ModObjectType.Service, service.Id);
+            }
+            foreach (ModellingServiceGroup serviceGroup in connection.ServiceGroups.Select(wrapper => wrapper.Content))
+            {
+                yield return ((int)ModellingTypes.ModObjectType.ServiceGroup, serviceGroup.Id);
+                foreach ((int ObjectType, long ObjectId) serviceGroupMemberKey in ServiceGroupMemberKeys(serviceGroup))
+                {
+                    yield return serviceGroupMemberKey;
+                }
+            }
+        }
+
+        private static IEnumerable<(int ObjectType, long ObjectId)> AppRoleMemberKeys(ModellingAppRole appRole)
+        {
+            return appRole.AppServers.Select(wrapper => ((int)ModellingTypes.ModObjectType.AppServer, wrapper.Content.Id));
+        }
+
+        private static IEnumerable<(int ObjectType, long ObjectId)> ServiceGroupMemberKeys(ModellingServiceGroup serviceGroup)
+        {
+            return serviceGroup.Services.Select(wrapper => ((int)ModellingTypes.ModObjectType.Service, (long)wrapper.Content.Id));
         }
 
         private static ModellingTypes.ModObjectType GroupObjectType(ModellingAppRole appRole)
         {
             return appRole is ModellingAppZone ? ModellingTypes.ModObjectType.AppZone : ModellingTypes.ModObjectType.AppRole;
+        }
+
+        private static ModellingTypes.ModObjectType ObjectTypeFromGroup(ModellingNwGroup group)
+        {
+            return Enum.IsDefined(typeof(ModellingTypes.ModObjectType), group.GroupType)
+                ? (ModellingTypes.ModObjectType)group.GroupType
+                : ModellingTypes.ModObjectType.AppRole;
         }
 
         private List<WfReqElement> BuildElements(ModellingConnection connection)
@@ -221,7 +296,7 @@ namespace FWO.Services.Modelling
         private IEnumerable<WfReqElement> BuildNetworkGroupElements(IEnumerable<ModellingAppRole> groups, ElemFieldType field)
         {
             return groups
-                .Where(group => IsGroupIncluded(group.Comment, GroupObjectType(group), group.Id))
+                .Where(IsAppRoleIncluded)
                 .Select(group => group.IdString)
                 .Where(groupName => !string.IsNullOrWhiteSpace(groupName))
                 .Select(groupName => new WfReqElement
@@ -259,7 +334,7 @@ namespace FWO.Services.Modelling
         private IEnumerable<WfReqElement> BuildServiceGroupElements(IEnumerable<ModellingServiceGroup> serviceGroups)
         {
             return serviceGroups
-                .Where(group => IsGroupIncluded(group.Comment, ModellingTypes.ModObjectType.ServiceGroup, group.Id))
+                .Where(IsServiceGroupIncluded)
                 .Select(group => group.Name ?? "")
                 .Where(groupName => !string.IsNullOrWhiteSpace(groupName))
                 .Select(groupName => new WfReqElement

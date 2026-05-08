@@ -320,6 +320,14 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm" for="confirmSentMail">@(userConfig.GetText("confirm_sent_mail")):</label>
+                                    <div class="col-sm-8">
+                                        <input id="confirmSentMail" class="form-check-input mt-2" type="checkbox" @bind="actConfirmSentMail" />
+                                    </div>
+                                </div>
+                            </div>
                             break;
                         case nameof(StateActionTypes.UpdateModelling):
                             <div class="col-sm-4">
@@ -390,6 +398,7 @@ else
     private PathAnalysisActionParams actPathAnalysisParams = new ();
     private List<int> actActionNotificationIds = [];
     private EmailAttachedContent actAttachedContent = EmailAttachedContent.None;
+    private bool actConfirmSentMail;
     private string? selectedModIntegrationState;
     private List<string> availableModIntegrationStateNames = [];
     private FwoNotification? legacyActionNotification;
@@ -465,6 +474,7 @@ else
         actPathAnalysisParams = new();
         actActionNotificationIds = [];
         actAttachedContent = EmailAttachedContent.None;
+        actConfirmSentMail = false;
         legacyActionNotification = null;
         actConditionalAutoPromoteParams = new();
         toState = -1;
@@ -546,6 +556,7 @@ else
     {
         EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(externalParams) ?? throw new JsonException("Extparams could not be parsed.");
         actAttachedContent = emailActionParams.AttachedContent;
+        actConfirmSentMail = emailActionParams.ConfirmSentMail;
         SelectActionNotification(emailActionParams);
     }
 
@@ -797,7 +808,8 @@ else
         return JsonSerializer.Serialize(new
         {
             notification_ids = actActionNotificationIds,
-            attached_content = actAttachedContent
+            attached_content = actAttachedContent,
+            confirm_sent_mail = actConfirmSentMail
         });
     }
 

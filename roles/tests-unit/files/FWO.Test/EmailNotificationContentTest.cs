@@ -104,6 +104,64 @@ namespace FWO.Test
             Assert.That(content.Json, Does.Contain("\"Source\":\"src-a\""));
         }
 
+        [Test]
+        public void FromRequestTasksBuildsSeparateGroupSectionWithMembers()
+        {
+            WfReqTask accessTask = new()
+            {
+                Id = 7,
+                TaskNumber = 101,
+                Title = "Open web",
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "src-a" },
+                    new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.0.1" },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), GroupName = "WebServices" }
+                }
+            };
+            WfReqTask groupTask = new()
+            {
+                Id = 8,
+                TaskNumber = 102,
+                TaskType = WfTaskType.group_create.ToString(),
+                Title = "New App Role",
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), GroupName = "AR1", IpString = "10.0.0.2" }
+                }
+            };
+            WfReqTask modifyGroupTask = new()
+            {
+                Id = 9,
+                TaskNumber = 103,
+                TaskType = WfTaskType.group_modify.ToString(),
+                Title = "Update App Role",
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.addAfterCreation.ToString(), GroupName = "AR1", Name = "Server2" }
+                },
+                RemovedElements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.delete.ToString(), GroupName = "AR1", IpString = "10.0.0.3" }
+                }
+            };
+
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks([groupTask, accessTask, modifyGroupTask], new EmailNotificationUserConfig());
+
+            Assert.That(content.PlainText, Does.Contain("Requested Connections"));
+            Assert.That(content.PlainText, Does.Contain("101 | Open web | create | src-a | 10.0.0.1 | WebServices"));
+            Assert.That(content.PlainText, Does.Contain("Group Requests"));
+            Assert.That(content.PlainText, Does.Contain("Task | Type | Title | Action | Members"));
+            Assert.That(content.PlainText, Does.Contain("102 | Create Group | New App Role | create | 10.0.0.2"));
+            Assert.That(content.PlainText, Does.Contain("103 | Modify Group | Update App Role | modify | addAfterCreation: Server2, delete: 10.0.0.3"));
+            Assert.That(content.Html, Does.Contain("<h2>Group Requests</h2>"));
+            Assert.That(content.Csv, Does.Contain("\"102\",\"Create Group\",\"New App Role\",\"create\",\"10.0.0.2\""));
+            Assert.That(content.Json, Does.Contain("\"Members\":\"10.0.0.2\""));
+        }
+
         private static async Task<string> ReadFormFile(FormFile formFile)
         {
             using Stream stream = formFile.OpenReadStream();

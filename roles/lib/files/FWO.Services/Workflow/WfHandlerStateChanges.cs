@@ -30,7 +30,10 @@ namespace FWO.Services.Workflow
             {
                 if (await PromoteTicket(ticket))
                 {
-                    await UpdateRequestTasksFromTicket(false);
+                    if (await UpdateRequestTasksFromTicket(false))
+                    {
+                        await UpdateActTicketStateFromReqTasks();
+                    }
                 }
                 return true;
             }
@@ -195,11 +198,6 @@ namespace FWO.Services.Workflow
                 }
                 int derivedState = MasterStateMatrix.getDerivedStateFromSubStates(taskStates);
                 Log.WriteDebug("UpdateActTicketStateFromReqTasks", $"Ticket {ActTicket.Id}: derived state {derivedState} from request task states {string.Join(", ", taskStates)}.");
-                if (derivedState < ActTicket.StateId)
-                {
-                    Log.WriteDebug("UpdateActTicketStateFromReqTasks", $"Skipped ticket {ActTicket.Id} downgrade from state {ActTicket.StateId} to derived state {derivedState}.");
-                    return;
-                }
                 ActTicket.StateId = derivedState;
             }
             await UpdateActTicketState();
@@ -224,8 +222,9 @@ namespace FWO.Services.Workflow
             SyncActTicketFromReqTask(ActReqTask);
         }
 
-        private async Task UpdateRequestTasksFromTicket(bool createImplTasks = true)
+        private async Task<bool> UpdateRequestTasksFromTicket(bool createImplTasks = true)
         {
+            bool requestTaskActionsChangedState = false;
             List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
             foreach (WfReqTask reqtask in requestTasks)
             {
@@ -233,12 +232,18 @@ namespace FWO.Services.Workflow
                 int newReqTaskState = reqTaskMatrix.getDerivedStateFromSubStates([ActTicket.StateId]);
                 Log.WriteDebug("UpdateRequestTasksFromTicket", $"Ticket {ActTicket.Id} state {ActTicket.StateId}: request task {reqtask.Id} ({reqtask.TaskType}) state {reqtask.StateId} -> {newReqTaskState}.");
                 await UpdateReqTaskAndApprovalStatesFromTicket(reqtask, reqTaskMatrix, newReqTaskState);
+                if (reqtask.StateId != newReqTaskState)
+                {
+                    requestTaskActionsChangedState = true;
+                    Log.WriteDebug("UpdateRequestTasksFromTicket", $"Request task {reqtask.Id} changed by actions from synced state {newReqTaskState} to {reqtask.StateId}.");
+                }
                 if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
                     && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
                 {
                     await AutoCreateImplTasks(reqtask);
                 }
             }
+            return requestTaskActionsChangedState;
         }
 
         private async Task UpdateReqTaskAndApprovalStatesFromTicket(WfReqTask reqTask, StateMatrix reqTaskMatrix, int newReqTaskState)

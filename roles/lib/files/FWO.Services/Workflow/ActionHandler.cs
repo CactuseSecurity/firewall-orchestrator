@@ -159,16 +159,17 @@ namespace FWO.Services.Workflow
         public async Task SendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
         {
             Log.WriteDebug("SendEmail", "Perform Action");
+            EmailActionParams? emailActionParams = null;
             try
             {
-                EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
+                emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
                 List<FwoNotification> actionNotifications = await ResolveActionNotifications(emailActionParams);
                 int sentEmailCount = 0;
                 foreach (FwoNotification actionNotification in actionNotifications)
                 {
                     await SetScope(statefulObject, scope, actionNotification);
                     WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams.AttachedContent, statefulObject, scope);
-                    EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, DefaultInit.DoNothing, UserGroups, useInMwServer);
+                    EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, wfHandler.DisplayMessage, UserGroups, useInMwServer);
                     await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc);
                     WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
                     if (userGrpDn != null)
@@ -184,14 +185,18 @@ namespace FWO.Services.Workflow
                     }
                 }
                 Log.WriteInfo("SendEmail", $"Sent {sentEmailCount} workflow action email(s).");
-                if (emailActionParams.ConfirmSentMail && sentEmailCount > 0)
+                if (emailActionParams.ConfirmSentMail)
                 {
-                    wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("send_email"), $"{sentEmailCount}{wfHandler.userConfig.GetText("emails_sent")}", false);
+                    wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("send_email"), $"{sentEmailCount}{wfHandler.userConfig.GetText("emails_sent")}", sentEmailCount == 0);
                 }
             }
             catch (Exception exc)
             {
                 Log.WriteError("Send Email", $"Could not send email: ", exc);
+                if (emailActionParams?.ConfirmSentMail ?? false)
+                {
+                    wfHandler.DisplayMessage(exc, wfHandler.userConfig.GetText("send_email"), "", true);
+                }
             }
         }
 

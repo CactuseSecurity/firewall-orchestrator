@@ -18,6 +18,7 @@ namespace FWO.Data.Modelling
     {
         public const string DefaultMarker = "ImplementationState";
         public const string StateTimestampSeparator = "|";
+        private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(100);
 
         public static string TimestampMarker(string marker)
         {
@@ -142,7 +143,7 @@ namespace FWO.Data.Modelling
         {
             string markerPrefix = marker.EndsWith(':') ? marker : $"{EffectiveMarker(marker)}:";
             string pattern = $@"{Regex.Escape(markerPrefix)}\s*(?<value>[^|\r\n]*?\s*{Regex.Escape(StateTimestampSeparator)}\s*\S+)";
-            markerMatch = Regex.Match(line, pattern, RegexOptions.IgnoreCase);
+            markerMatch = Regex.Match(line, pattern, RegexOptions.IgnoreCase, RegexTimeout);
             if (markerMatch.Success)
             {
                 return true;
@@ -154,7 +155,7 @@ namespace FWO.Data.Modelling
                 return false;
             }
 
-            markerMatch = Regex.Match(line, $@"{Regex.Escape(markerPrefix)}\s*(?<value>[^\r\n]*)", RegexOptions.IgnoreCase);
+            markerMatch = Regex.Match(line, $@"{Regex.Escape(markerPrefix)}\s*(?<value>[^\r\n]*)", RegexOptions.IgnoreCase, RegexTimeout);
             return markerMatch.Success;
         }
 

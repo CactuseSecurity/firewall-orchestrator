@@ -28,12 +28,9 @@ namespace FWO.Services.Workflow
         {
             try
             {
-                if (await PromoteTicket(ticket))
+                if (await PromoteTicket(ticket) && await UpdateRequestTasksFromTicket(false))
                 {
-                    if (await UpdateRequestTasksFromTicket(false))
-                    {
-                        await UpdateActTicketStateFromReqTasks();
-                    }
+                    await UpdateActTicketStateFromReqTasks();
                 }
                 return true;
             }

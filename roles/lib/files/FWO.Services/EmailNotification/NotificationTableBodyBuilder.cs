@@ -11,6 +11,7 @@ namespace FWO.Services
     public static class NotificationTableBodyBuilder
     {
         private const string kTextColumnSeparator = " | ";
+        private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(100);
 
         /// <summary>
         /// Builds a plain-text table from headers and rows.
@@ -184,10 +185,10 @@ namespace FWO.Services
                 return "";
             }
 
-            string normalized = Regex.Replace(value, @"<br\s*/?>", ", ", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-            normalized = Regex.Replace(normalized, "<.*?>", string.Empty, RegexOptions.CultureInvariant);
+            string normalized = Regex.Replace(value, @"<br\s*/?>", ", ", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, RegexTimeout);
+            normalized = Regex.Replace(normalized, "<.*?>", string.Empty, RegexOptions.CultureInvariant, RegexTimeout);
             normalized = WebUtility.HtmlDecode(normalized);
-            normalized = Regex.Replace(normalized, @"\s+", " ", RegexOptions.CultureInvariant);
+            normalized = Regex.Replace(normalized, @"\s+", " ", RegexOptions.CultureInvariant, RegexTimeout);
             return normalized.Trim();
         }
 

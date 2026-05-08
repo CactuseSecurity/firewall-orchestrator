@@ -14,7 +14,7 @@ namespace FWO.Services.Workflow
         public bool DisplayConnectionMode = false;
         public ModellingConnectionHandler? ConnHandler { get; set; }
 
-        public async Task UpdateModelling(string modellingState, WfStatefulObject statefulObject, WfObjectScopes scope, long? ticketId)
+        public async Task<int> UpdateModelling(string modellingState, WfStatefulObject statefulObject, WfObjectScopes scope, long? ticketId)
         {
             string state = modellingState.Trim();
             string stateMarker = string.IsNullOrWhiteSpace(wfHandler.userConfig.ModIntegrationStateMarker)
@@ -24,23 +24,25 @@ namespace FWO.Services.Workflow
             if (string.IsNullOrWhiteSpace(state))
             {
                 Log.WriteWarning("UpdateModelling", "No modelling state configured. Skipping modelling update action.");
-                return;
+                return 0;
             }
             string stateSetAt = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+            int updatedObjects = 0;
 
             try
             {
                 List<WfReqTask> scopedTasks = GetScopedRequestTasks(statefulObject, scope);
                 await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
                 {
-                    await UpdateModellingConnections(stateMarker, state, stateSetAt, ticketId, scopedTasks);
-                    await UpdateModellingGroups(stateMarker, state, stateSetAt, scopedTasks);
+                    updatedObjects += await UpdateModellingConnections(stateMarker, state, stateSetAt, ticketId, scopedTasks);
+                    updatedObjects += await UpdateModellingGroups(stateMarker, state, stateSetAt, scopedTasks);
                 });
             }
             catch (Exception exc)
             {
                 Log.WriteError("Update Modelling", "Could not update requested modelling objects: ", exc);
             }
+            return updatedObjects;
         }
 
         private List<WfReqTask> GetScopedRequestTasks(WfStatefulObject statefulObject, WfObjectScopes scope)
@@ -56,7 +58,7 @@ namespace FWO.Services.Workflow
             };
         }
 
-        private async Task UpdateModellingConnections(string stateMarker, string state, string stateSetAt, long? ticketId, List<WfReqTask> scopedTasks)
+        private async Task<int> UpdateModellingConnections(string stateMarker, string state, string stateSetAt, long? ticketId, List<WfReqTask> scopedTasks)
         {
             HashSet<int> connectionIds = [.. scopedTasks
                 .Where(task => task.TaskType == WfTaskType.access.ToString())
@@ -65,7 +67,7 @@ namespace FWO.Services.Workflow
                 .Select(id => id ?? 0)];
             if (connectionIds.Count == 0)
             {
-                return;
+                return 0;
             }
 
             List<ModellingConnection> connections = [];
@@ -93,11 +95,13 @@ namespace FWO.Services.Workflow
                 connection.AddProperty(stateMarker, ModIntegrationStateConfig.BuildStateValue(state, stateSetAt));
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, new { id = connection.Id, connProp = connection.Properties });
             }
+            return connections.Count(connection => connection.Id > 0);
         }
 
-        private async Task UpdateModellingGroups(string stateMarker, string state, string stateSetAt, List<WfReqTask> scopedTasks)
+        private async Task<int> UpdateModellingGroups(string stateMarker, string state, string stateSetAt, List<WfReqTask> scopedTasks)
         {
             string markedState = $"{stateMarker}: {ModIntegrationStateConfig.BuildStateValue(state, stateSetAt)}";
+            int updatedGroups = 0;
             List<WfReqTask> groupTasks = [.. scopedTasks.Where(task => task.TaskType.StartsWith("group_", StringComparison.OrdinalIgnoreCase))];
             List<long> appRoleIds = [.. groupTasks
                 .Select(task => task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId))
@@ -107,8 +111,9 @@ namespace FWO.Services.Workflow
             foreach (long appRoleId in appRoleIds)
             {
                 ModellingAppRole appRole = await apiConnection.SendQueryAsync<ModellingAppRole>(ModellingQueries.getAppRoleById, new { id = appRoleId });
-                string comment = UpdateMarkedComment(appRole?.Comment, stateMarker, markedState);
+                string comment = ModIntegrationStateConfig.ReplaceMarkedComment(appRole?.Comment, stateMarker, markedState);
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateNwGroupComment, new { id = appRoleId, comment });
+                ++updatedGroups;
             }
 
             List<int> serviceGroupIds = [.. groupTasks
@@ -119,43 +124,11 @@ namespace FWO.Services.Workflow
             foreach (int serviceGroupId in serviceGroupIds)
             {
                 ModellingServiceGroup serviceGroup = await apiConnection.SendQueryAsync<ModellingServiceGroup>(ModellingQueries.getServiceGroupById, new { id = serviceGroupId });
-                string comment = UpdateMarkedComment(serviceGroup?.Comment, stateMarker, markedState);
+                string comment = ModIntegrationStateConfig.ReplaceMarkedComment(serviceGroup?.Comment, stateMarker, markedState);
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateServiceGroupComment, new { id = serviceGroupId, comment });
+                ++updatedGroups;
             }
-        }
-
-        private static string UpdateMarkedComment(string? existingComment, string stateMarker, string markedState)
-        {
-            if (string.IsNullOrWhiteSpace(existingComment))
-            {
-                return markedState;
-            }
-
-            string markerPrefix = $"{ModIntegrationStateConfig.EffectiveMarker(stateMarker)}:";
-            List<string> lines = [.. existingComment.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')];
-            List<string> updatedLines = [];
-            bool markerReplaced = false;
-
-            foreach (string line in lines)
-            {
-                string trimmedLine = line.TrimStart();
-                if (trimmedLine.StartsWith(markerPrefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!markerReplaced)
-                    {
-                        updatedLines.Add(markedState);
-                        markerReplaced = true;
-                    }
-                    continue;
-                }
-                updatedLines.Add(line);
-            }
-
-            if (!markerReplaced)
-            {
-                updatedLines.Add(markedState);
-            }
-            return string.Join(Environment.NewLine, updatedLines);
+            return updatedGroups;
         }
 
         public async Task UpdateConnectionOwner(FwoOwner? owner, long? ticketId)

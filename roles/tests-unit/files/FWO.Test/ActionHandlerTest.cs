@@ -653,7 +653,9 @@ namespace FWO.Test
                     [601] = new ModellingServiceGroup { Id = 601, Comment = "Manual service group note" }
                 }
             };
-            WfHandler wfHandler = new() { AuthUser = new System.Security.Claims.ClaimsPrincipal() };
+            List<(string Title, string Message, bool Error)> uiMessages = [];
+            WfHandler wfHandler = new((_, title, message, error) => uiMessages.Add((title, message, error)), new SimulatedUserConfig(),
+                new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
             SetMatrix(wfHandler, WfTaskType.access.ToString());
             ActionHandler handler = new(apiConn, wfHandler);
             WfReqTask accessTask = new() { Id = 1, TaskType = WfTaskType.access.ToString() };
@@ -670,7 +672,7 @@ namespace FWO.Test
             WfStateAction action = new()
             {
                 ActionType = StateActionTypes.UpdateModelling.ToString(),
-                ExternalParams = "Implemented"
+                ExternalParams = JsonSerializer.Serialize(new UpdateModellingActionParams { ModellingState = "Implemented", ConfirmUiMessage = true })
             };
 
             await handler.PerformAction(action, ticket, WfObjectScopes.Ticket, ticketId: 77);
@@ -696,6 +698,10 @@ namespace FWO.Test
             string serviceGroupComment = GetVariable<string>(serviceGroupVars, "comment");
             Assert.That(serviceGroupComment, Does.Contain("Manual service group note"));
             Assert.That(serviceGroupComment, Does.Contain("ImplementationState: Implemented | "));
+            Assert.That(uiMessages, Has.Count.EqualTo(1));
+            Assert.That(uiMessages[0].Title, Is.EqualTo("Update Modelling"));
+            Assert.That(uiMessages[0].Message, Is.EqualTo("3 modelling objects updated"));
+            Assert.That(uiMessages[0].Error, Is.False);
         }
 
         [Test]
@@ -720,7 +726,7 @@ namespace FWO.Test
             WfStateAction action = new()
             {
                 ActionType = StateActionTypes.UpdateModelling.ToString(),
-                ExternalParams = "Implemented"
+                ExternalParams = JsonSerializer.Serialize(new UpdateModellingActionParams { ModellingState = "Implemented" })
             };
 
             await handler.PerformAction(action, selectedTask, WfObjectScopes.RequestTask);
@@ -743,7 +749,7 @@ namespace FWO.Test
             WfStateAction action = new()
             {
                 ActionType = StateActionTypes.UpdateModelling.ToString(),
-                ExternalParams = ""
+                ExternalParams = JsonSerializer.Serialize(new UpdateModellingActionParams())
             };
 
             await handler.PerformAction(action, ticket, WfObjectScopes.Ticket);

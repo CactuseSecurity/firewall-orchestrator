@@ -263,7 +263,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, false]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [false]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(4));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(4));
@@ -301,11 +301,44 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, false]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [false]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(6));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(6));
             Assert.That(reqTask.Approvals[1].StateId, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task UpdateActTicketStateFromReqTasks_DoesNotDowngradeTicket()
+        {
+            WfHandler handler = new();
+            handler.MasterStateMatrix = new StateMatrix
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            };
+            handler.ActTicket = new WfTicket
+            {
+                Id = 1,
+                StateId = 4,
+                Tasks =
+                {
+                    new WfReqTask
+                    {
+                        Id = 7,
+                        TaskType = WfTaskType.access.ToString(),
+                        StateId = 1
+                    }
+                }
+            };
+
+            MethodInfo? method = typeof(WfHandler).GetMethod("UpdateActTicketStateFromReqTasks", BindingFlags.NonPublic | BindingFlags.Instance);
+            await (Task)(method?.Invoke(handler, []) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(4));
         }
     }
 }

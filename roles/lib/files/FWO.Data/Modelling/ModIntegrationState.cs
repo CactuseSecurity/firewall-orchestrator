@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Text.Json.Serialization;
 
 namespace FWO.Data.Modelling
@@ -71,6 +72,38 @@ namespace FWO.Data.Modelling
             return $"{stateName.Trim()} {StateTimestampSeparator} {stateSetAt}";
         }
 
+        public static string ReplaceMarkedComment(string? existingComment, string marker, string markedState)
+        {
+            if (string.IsNullOrWhiteSpace(existingComment))
+            {
+                return markedState;
+            }
+
+            List<string> lines = [.. existingComment.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')];
+            List<string> updatedLines = [];
+            bool markerReplaced = false;
+
+            foreach (string line in lines)
+            {
+                if (TryFindMarkedCommentSegment(line, marker, out Match markerMatch))
+                {
+                    if (!markerReplaced)
+                    {
+                        updatedLines.Add(line.Remove(markerMatch.Index, markerMatch.Length).Insert(markerMatch.Index, markedState));
+                        markerReplaced = true;
+                    }
+                    continue;
+                }
+                updatedLines.Add(line);
+            }
+
+            if (!markerReplaced)
+            {
+                updatedLines.Add(markedState);
+            }
+            return string.Join(Environment.NewLine, updatedLines);
+        }
+
         public static string GetStateName(string? markedValue)
         {
             return SplitStateValue(markedValue).StateName;
@@ -97,13 +130,32 @@ namespace FWO.Data.Modelling
 
             foreach (string line in comment.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
             {
-                string trimmedLine = line.Trim();
-                if (trimmedLine.StartsWith(markerPrefix, StringComparison.OrdinalIgnoreCase))
+                if (TryFindMarkedCommentSegment(line, markerPrefix, out Match markerMatch))
                 {
-                    return trimmedLine[markerPrefix.Length..].Trim();
+                    return markerMatch.Groups["value"].Value.Trim();
                 }
             }
             return "";
+        }
+
+        private static bool TryFindMarkedCommentSegment(string line, string marker, out Match markerMatch)
+        {
+            string markerPrefix = marker.EndsWith(':') ? marker : $"{EffectiveMarker(marker)}:";
+            string pattern = $@"{Regex.Escape(markerPrefix)}\s*(?<value>[^|\r\n]*?\s*{Regex.Escape(StateTimestampSeparator)}\s*\S+)";
+            markerMatch = Regex.Match(line, pattern, RegexOptions.IgnoreCase);
+            if (markerMatch.Success)
+            {
+                return true;
+            }
+
+            int markerIndex = line.IndexOf(markerPrefix, StringComparison.OrdinalIgnoreCase);
+            if (markerIndex < 0)
+            {
+                return false;
+            }
+
+            markerMatch = Regex.Match(line, $@"{Regex.Escape(markerPrefix)}\s*(?<value>[^\r\n]*)", RegexOptions.IgnoreCase);
+            return markerMatch.Success;
         }
 
         private static (string StateName, string Timestamp) SplitStateValue(string? markedValue)

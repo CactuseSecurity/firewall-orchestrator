@@ -6,8 +6,6 @@ namespace FWO.Services.Workflow
 {
     public partial class WfHandler
     {
-        private bool syncingRequestTasksFromTicket = false;
-
         // promote the different objects
 
         public async Task<bool> PromoteTicket(WfStatefulObject ticket)
@@ -30,17 +28,9 @@ namespace FWO.Services.Workflow
         {
             try
             {
-                syncingRequestTasksFromTicket = true;
-                try
+                if (await PromoteTicket(ticket))
                 {
-                    if (await PromoteTicket(ticket))
-                    {
-                        await UpdateRequestTasksFromTicket(false, true);
-                    }
-                }
-                finally
-                {
-                    syncingRequestTasksFromTicket = false;
+                    await UpdateRequestTasksFromTicket(false);
                 }
                 return true;
             }
@@ -196,17 +186,6 @@ namespace FWO.Services.Workflow
 
         private async Task UpdateActTicketStateFromReqTasks()
         {
-            if (syncingRequestTasksFromTicket)
-            {
-                Log.WriteDebug("UpdateActTicketStateFromReqTasks", $"Skipped ticket {ActTicket.Id} update while syncing request tasks from ticket state {ActTicket.StateId}.");
-                return;
-            }
-            if (Phase == WorkflowPhases.request)
-            {
-                Log.WriteDebug("UpdateActTicketStateFromReqTasks", $"Skipped ticket {ActTicket.Id} update from request tasks in request phase.");
-                return;
-            }
-
             if (ActTicket.Tasks.Count > 0)
             {
                 List<int> taskStates = [];
@@ -216,6 +195,11 @@ namespace FWO.Services.Workflow
                 }
                 int derivedState = MasterStateMatrix.getDerivedStateFromSubStates(taskStates);
                 Log.WriteDebug("UpdateActTicketStateFromReqTasks", $"Ticket {ActTicket.Id}: derived state {derivedState} from request task states {string.Join(", ", taskStates)}.");
+                if (derivedState < ActTicket.StateId)
+                {
+                    Log.WriteDebug("UpdateActTicketStateFromReqTasks", $"Skipped ticket {ActTicket.Id} downgrade from state {ActTicket.StateId} to derived state {derivedState}.");
+                    return;
+                }
                 ActTicket.StateId = derivedState;
             }
             await UpdateActTicketState();
@@ -240,18 +224,15 @@ namespace FWO.Services.Workflow
             SyncActTicketFromReqTask(ActReqTask);
         }
 
-        private async Task UpdateRequestTasksFromTicket(bool createImplTasks = true, bool forceStateSync = false)
+        private async Task UpdateRequestTasksFromTicket(bool createImplTasks = true)
         {
             List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
             foreach (WfReqTask reqtask in requestTasks)
             {
                 StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[reqtask.TaskType];
                 int newReqTaskState = reqTaskMatrix.getDerivedStateFromSubStates([ActTicket.StateId]);
-                Log.WriteDebug("UpdateRequestTasksFromTicket", $"Ticket {ActTicket.Id} state {ActTicket.StateId}: request task {reqtask.Id} ({reqtask.TaskType}) state {reqtask.StateId} -> {newReqTaskState}, force={forceStateSync}.");
-                if (forceStateSync || reqtask.StateId <= ActTicket.StateId)
-                {
-                    await UpdateReqTaskAndApprovalStatesFromTicket(reqtask, reqTaskMatrix, newReqTaskState, forceStateSync);
-                }
+                Log.WriteDebug("UpdateRequestTasksFromTicket", $"Ticket {ActTicket.Id} state {ActTicket.StateId}: request task {reqtask.Id} ({reqtask.TaskType}) state {reqtask.StateId} -> {newReqTaskState}.");
+                await UpdateReqTaskAndApprovalStatesFromTicket(reqtask, reqTaskMatrix, newReqTaskState);
                 if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
                     && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
                 {
@@ -260,12 +241,11 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private async Task UpdateReqTaskAndApprovalStatesFromTicket(WfReqTask reqTask, StateMatrix reqTaskMatrix, int newReqTaskState, bool forceStateSync)
+        private async Task UpdateReqTaskAndApprovalStatesFromTicket(WfReqTask reqTask, StateMatrix reqTaskMatrix, int newReqTaskState)
         {
             reqTask.StateId = newReqTaskState;
             List<WfApproval> approvalsToUpdate = reqTask.Approvals
-                .Where(x => x.StateId < reqTaskMatrix.ApprovalLowestEndState)
-                .Where(x => forceStateSync || x.StateId <= reqTask.StateId).ToList();
+                .Where(x => x.StateId < reqTaskMatrix.ApprovalLowestEndState).ToList();
             foreach (WfApproval approval in approvalsToUpdate)
             {
                 approval.StateId = reqTask.StateId;

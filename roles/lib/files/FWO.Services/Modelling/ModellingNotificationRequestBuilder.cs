@@ -19,9 +19,11 @@ namespace FWO.Services.Modelling
                 .Where(IsConnectionIncludedForRequest)
                 .OrderByDescending(connection => connection.IsCommonService)
                 .ThenBy(connection => connection.Id)];
+            List<ModellingConnection> groupConnections = [.. connections
+                .Where(connection => connection.NotAlreadyRequested() || includedConnections.Contains(connection))];
             return
             [
-                .. BuildGroupTasks(connections, owner, stateId, ref taskNumber),
+                .. BuildGroupTasks(groupConnections, owner, stateId, ref taskNumber),
                 .. includedConnections.Select(connection => BuildAccessTask(connection, owner, stateId, taskNumber++))
             ];
         }

@@ -198,6 +198,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildRequestTasks_DoesNotRequestUnmarkedGroupsFromAlreadyRequestedConnection()
+        {
+            ModellingConnection connection = CreateConnection(27);
+            connection.RequestedOnFw = true;
+            connection.SourceAppRoles =
+            [
+                new() { Content = new() { Id = 127, IdString = "ARAlreadyRequested" } }
+            ];
+            connection.ServiceGroups =
+            [
+                new() { Content = new() { Id = 227, Name = "SGAlreadyRequested" } }
+            ];
+            ModellingNotificationRequestBuilder builder = new(new SimulatedUserConfig());
+
+            List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, stateId: 23);
+
+            Assert.That(tasks, Is.Empty);
+        }
+
+        [Test]
         public void BuildRequestTasks_UsesLastRequestStartAsChangeBaselineWhenAvailable()
         {
             DateTime stateSetAt = new(2026, 5, 6, 10, 0, 0, DateTimeKind.Utc);

@@ -321,7 +321,7 @@
                                 </div>
                             </div>
                             <div class="col-sm-4">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5530"))">
                                     <label class="col-sm-4 col-form-label col-form-label-sm" for="confirmSentMail">@(userConfig.GetText("confirm_sent_mail")):</label>
                                     <div class="col-sm-8">
                                         <input id="confirmSentMail" class="form-check-input mt-2" type="checkbox" @bind="actConfirmSentMail" />
@@ -342,6 +342,14 @@
                                                 @state
                                             </ElementTemplate>
                                         </Dropdown>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5534"))">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm" for="confirmUpdateModelling">@(userConfig.GetText("confirm_modelling_update")):</label>
+                                    <div class="col-sm-8">
+                                        <input id="confirmUpdateModelling" class="form-check-input mt-2" type="checkbox" @bind="actConfirmSentMail" />
                                     </div>
                                 </div>
                             </div>
@@ -526,7 +534,7 @@ else
                 LoadEmailParams(action.ExternalParams);
                 break;
             case nameof(StateActionTypes.UpdateModelling):
-                selectedModIntegrationState = availableModIntegrationStateNames.Contains(action.ExternalParams) ? action.ExternalParams : null;
+                LoadUpdateModellingParams(action.ExternalParams);
                 break;
             default:
                 break;
@@ -558,6 +566,13 @@ else
         actAttachedContent = emailActionParams.AttachedContent;
         actConfirmSentMail = emailActionParams.ConfirmSentMail;
         SelectActionNotification(emailActionParams);
+    }
+
+    private void LoadUpdateModellingParams(string externalParams)
+    {
+        UpdateModellingActionParams updateModellingParams = UpdateModellingActionParams.FromExternalParams(externalParams);
+        selectedModIntegrationState = availableModIntegrationStateNames.Contains(updateModellingParams.ModellingState) ? updateModellingParams.ModellingState : null;
+        actConfirmSentMail = updateModellingParams.ConfirmUiMessage;
     }
 
     private void ResolveActionSelections()
@@ -624,7 +639,7 @@ else
             case nameof(StateActionTypes.SendEmail):
                 return await TryUpdateEmailExternalParams();
             case nameof(StateActionTypes.UpdateModelling):
-                actAction.ExternalParams = selectedModIntegrationState ?? "";
+                actAction.ExternalParams = UpdateModellingExternalParams();
                 return true;
             default:
                 return true;
@@ -810,6 +825,15 @@ else
             notification_ids = actActionNotificationIds,
             attached_content = actAttachedContent,
             confirm_sent_mail = actConfirmSentMail
+        });
+    }
+
+    private string UpdateModellingExternalParams()
+    {
+        return JsonSerializer.Serialize(new
+        {
+            modelling_state = selectedModIntegrationState ?? "",
+            confirm_ui_message = actConfirmSentMail
         });
     }
 

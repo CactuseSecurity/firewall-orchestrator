@@ -139,7 +139,12 @@ namespace FWO.Services.Workflow
                     break;
                 case nameof(StateActionTypes.UpdateModelling):
                     await SetScope(statefulObject, scope);
-                    await UpdateModelling(action.ExternalParams, statefulObject, scope, ticketId);
+                    UpdateModellingActionParams updateModellingParams = UpdateModellingActionParams.FromExternalParams(action.ExternalParams);
+                    int updatedModellingObjects = await UpdateModelling(updateModellingParams.ModellingState, statefulObject, scope, ticketId);
+                    if (updateModellingParams.ConfirmUiMessage && updatedModellingObjects > 0)
+                    {
+                        wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("UpdateModelling"), $"{updatedModellingObjects}{wfHandler.userConfig.GetText("modelling_objects_updated")}", false);
+                    }
                     break;
                 default:
                     break;

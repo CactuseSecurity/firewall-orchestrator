@@ -146,6 +146,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ModIntegrationStateConfig_ReadsMarkerFromSameLineComment()
+        {
+            string comment = "manual note ImplementationState: Retry | 2026-05-08T10:00:00.0000000Z still manual";
+
+            Assert.That(ModIntegrationStateConfig.GetMarkedCommentValue(comment, "ImplementationState"), Is.EqualTo("Retry"));
+            Assert.That(ModIntegrationStateConfig.GetMarkedCommentTimestamp(comment, "ImplementationState"), Is.EqualTo(DateTime.Parse("2026-05-08T10:00:00.0000000Z").ToUniversalTime()));
+        }
+
+        [Test]
+        public void ModIntegrationStateConfig_ReplacesOnlyMarkerSegmentInSameLineComment()
+        {
+            string comment = "manual before ImplementationState: Old | 2026-05-08T10:00:00.0000000Z manual after";
+
+            string updatedComment = ModIntegrationStateConfig.ReplaceMarkedComment(comment, "ImplementationState",
+                "ImplementationState: Implemented | 2026-05-08T11:00:00.0000000Z");
+
+            Assert.That(updatedComment, Is.EqualTo("manual before ImplementationState: Implemented | 2026-05-08T11:00:00.0000000Z manual after"));
+        }
+
+        [Test]
         public void Update_ParsesModIntegrationMode()
         {
             SimulatedUserConfig userConfig = new();

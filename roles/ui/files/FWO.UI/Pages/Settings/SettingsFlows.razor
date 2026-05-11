@@ -37,119 +37,8 @@
 <div class="btn-group mb-2">
     <button type="button" class="btn btn-sm btn-warning" @onclick="OpenRecalculateConfirm">@(userConfig.GetText("recalculate_flow_names"))</button>
 </div>
-<hr />
-
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-    <div class="input-group input-group-sm cwidth-400">
-        <span class="input-group-text">@(userConfig.GetText("search"))</span>
-        <input type="text" class="form-control" @bind="searchText" @bind:event="oninput" />
-        @if (!string.IsNullOrWhiteSpace(searchText))
-        {
-            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearSearch">
-                @(userConfig.GetText("cancel"))
-            </button>
-        }
-    </div>
-    <div class="btn-group">
-        <button type="button" class="btn btn-sm btn-primary" @onclick="Refresh">
-            @(userConfig.GetText("refresh"))
-        </button>
-    </div>
-</div>
-
-<div class="text-muted small mb-2">
-    @($"{FilteredFlowAccesses.Count} / {flowAccesses.Count}")
-</div>
-
-<Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
-       TableItem="FlowAccess"
-       Items="FilteredFlowAccesses"
-       PageSize="25"
-       ColumnReorder="true">
-    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("id"))" Field="@(access => access.Id)" Sortable="true" Filterable="true" />
-    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("hash"))" Field="@(access => access.AccessHash)" Sortable="true" Filterable="true" />
-    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("state"))" Field="@(access => access.State)" Sortable="true" Filterable="true" />
-    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("source"))" Context="access">
-        <Template>
-            <div class="text-break">
-                @(BuildList(access.Sources, source => source.NwObject?.Name))
-            </div>
-        </Template>
-    </Column>
-    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("destination"))" Context="access">
-        <Template>
-            <div class="text-break">
-                @(BuildList(access.Destinations, destination => destination.NwObject?.Name))
-            </div>
-        </Template>
-    </Column>
-    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("services"))" Context="access">
-        <Template>
-            <div class="text-break">
-                @(BuildList(access.Services, service => service.SvcObject?.Name))
-            </div>
-        </Template>
-    </Column>
-    <Column TableItem="FlowAccess" Title="@(userConfig.GetText("time"))" Context="access">
-        <Template>
-            <div class="text-break">
-                @(BuildList(access.TimeObjects, timeObject => timeObject.TimeObject?.Name))
-            </div>
-        </Template>
-    </Column>
-    <DetailTemplate TableItem="FlowAccess" Context="access">
-        <div class="row g-2 small">
-            <div class="col-12 col-lg-6">
-                <div class="fw-bold">@(userConfig.GetText("source"))</div>
-                <div class="d-flex flex-wrap gap-1">
-                    @foreach (FlowAccessSource? source in access.Sources ?? [])
-                    {
-                        if (source?.NwObject != null)
-                        {
-                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => EditNwObject(source.NwObject)">
-                                @GetNwObjectLabel(source.NwObject)
-                            </button>
-                        }
-                    }
-                </div>
-                <div class="fw-bold mt-2">@(userConfig.GetText("source_groups"))</div>
-                <div class="text-break">@(BuildList(access.SourceGroups, sourceGroup => sourceGroup.NwGroup?.Name))</div>
-            </div>
-            <div class="col-12 col-lg-6">
-                <div class="fw-bold">@(userConfig.GetText("destination"))</div>
-                <div class="d-flex flex-wrap gap-1">
-                    @foreach (FlowAccessDestination? destination in access.Destinations ?? [])
-                    {
-                        if (destination?.NwObject != null)
-                        {
-                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => EditNwObject(destination.NwObject)">
-                                @GetNwObjectLabel(destination.NwObject)
-                            </button>
-                        }
-                    }
-                </div>
-                <div class="fw-bold mt-2">@(userConfig.GetText("destination_groups"))</div>
-                <div class="text-break">@(BuildList(access.DestinationGroups, destinationGroup => destinationGroup.NwGroup?.Name))</div>
-            </div>
-            <div class="col-12 col-lg-6">
-                <div class="fw-bold">@(userConfig.GetText("services"))</div>
-                <div class="text-break">@(BuildList(access.Services, service => service.SvcObject?.Name))</div>
-                <div class="fw-bold mt-2">@(userConfig.GetText("service_groups"))</div>
-                <div class="text-break">@(BuildList(access.ServiceGroups, serviceGroup => serviceGroup.SvcGroup?.Name))</div>
-            </div>
-            <div class="col-12 col-lg-6">
-                <div class="fw-bold">@(userConfig.GetText("time"))</div>
-                <div class="text-break">@(BuildList(access.TimeObjects, timeObject => timeObject.TimeObject?.Name))</div>
-                <div class="fw-bold mt-2">@userConfig.GetText("rules")</div>
-                <div class="text-break">@(BuildList(access.RuleFlowMappings, mapping => mapping.RuleId.ToString()))</div>
-            </div>
-        </div>
-    </DetailTemplate>
-    <Pager ShowPageNumber="true" ShowTotalCount="true" />
-</Table>
 
 <hr class="my-4" />
-
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
     <h4 class="mb-0">@(userConfig.GetText("duplicate_objects"))</h4>
 </div>
@@ -169,7 +58,6 @@
                 @($"{group.FlowNwObjectName} (#{group.FlowNwObjectId})")
             </Template>
         </Column>
-        <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("management"))" Field="@(group => group.ManagementName)" Sortable="true" Filterable="true" />
         <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.Mappings.Count)" Sortable="true" Filterable="false" Context="group">
             <Template>
                 @BuildDuplicateMappingSummary(group)
@@ -199,7 +87,7 @@ else
 
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
     <div class="input-group input-group-sm cwidth-400">
-        <span class="input-group-text">@(userConfig.GetText("network_objects"))</span>
+        <span class="input-group-text">@(userConfig.GetText("search_name"))</span>
         <input type="text" class="form-control" @bind="objectSearchText" @bind:event="oninput" />
         @if (!string.IsNullOrWhiteSpace(objectSearchText))
         {
@@ -228,14 +116,13 @@ else
     </Column>
     <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("id"))" Field="@(nwObject => nwObject.Id)" Sortable="true" Filterable="true" />
     <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("name"))" Field="@(nwObject => nwObject.Name)" Sortable="true" Filterable="true" />
-    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("hash"))" Field="@(nwObject => nwObject.Hash)" Sortable="true" Filterable="true" />
     <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("state"))" Field="@(nwObject => nwObject.State)" Sortable="true" Filterable="true" />
     <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("show_in_request_module"))" Field="@(nwObject => nwObject.ShowInRequestModule)" Sortable="true" Context="nwObject">
         <Template>
             @nwObject.ShowInRequestModule.ShowAsHtml()
         </Template>
     </Column>
-    <Column TableItem="FlowNwObject" Title="IP" Field="@(nwObject => nwObject.IpStart)" Sortable="true" Filterable="true" Context="nwObject">
+    <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("ip"))" Field="@(nwObject => nwObject.IpStart)" Sortable="true" Filterable="true" Context="nwObject">
         <Template>
             @($"{nwObject.IpStart ?? "-"}{(string.IsNullOrWhiteSpace(nwObject.IpEnd) ? "" : $" - {nwObject.IpEnd}")}")
         </Template>
@@ -287,7 +174,13 @@ else
                    PageSize="10"
                    ColumnReorder="true">
                 <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("id"))" Field="@(mapping => mapping.ObjId)" Sortable="true" Filterable="true" />
-                <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("name"))" Field="@(mapping => mapping.Object.Name)" Sortable="true" Filterable="true" />
+                <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("name"))" Field="@(mapping => mapping.Object.Name)" Sortable="true" Filterable="true" Context="mapping">
+                    <Template>
+                        <span class="d-inline-block rounded px-2 py-1 @(mapping == SelectedDuplicateMapping ? "bg-warning-subtle fw-bold" : "")">
+                            @mapping.Object.Name
+                        </span>
+                    </Template>
+                </Column>
                 <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("state"))" Field="@(mapping => mapping.ActiveOnMgm)" Sortable="true" Filterable="true" Context="mapping">
                     <Template>
                         @mapping.ActiveOnMgm.ShowAsHtml()
@@ -295,7 +188,7 @@ else
                 </Column>
                 <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("actions"))" Field="@(mapping => mapping.ObjId)" Sortable="false" Filterable="false" Context="mapping">
                     <Template>
-                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => SelectDuplicateMapping(mapping)">
+                        <button type="button" class="btn btn-sm @(mapping == SelectedDuplicateMapping ? "btn-success" : "btn-outline-primary")" @onclick="() => SelectDuplicateMapping(mapping)">
                             @(userConfig.GetText("select"))
                         </button>
                     </Template>
@@ -334,15 +227,55 @@ else
                     <div class="fw-bold mb-2">@(userConfig.GetText("management"))</div>
                     @foreach (CustomObjectManagementSelection selection in customObjectSelections)
                     {
-                        <div class="form-group row mb-2">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@selection.Management.Name:</label>
-                            <div class="col-sm-8">
-                                <Dropdown ElementType="NetworkObject" ElementToString="@(nwObject => DisplayBase.DisplayIpWithName(nwObject))" @bind-SelectedElement="selection.SelectedObject" Elements="selection.Candidates" Nullable="true">
-                                    <ElementTemplate Context="nwObject">
-                                        @DisplayBase.DisplayIpWithName(nwObject)
-                                    </ElementTemplate>
-                                </Dropdown>
+                        <div class="border rounded p-2 mb-3">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                <div class="fw-bold">@selection.Management.Name</div>
+                                <div class="text-muted small">
+                                    @($"{userConfig.GetText("current")}: {GetCustomObjectSelectionLabel(selection)}")
+                                </div>
                             </div>
+                            <div class="input-group input-group-sm mb-2">
+                                <span class="input-group-text">@(userConfig.GetText("search_name"))</span>
+                                <input type="text" class="form-control" @bind="selection.SearchText" @bind:event="oninput" />
+                                @if (!string.IsNullOrWhiteSpace(selection.SearchText))
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => ClearCustomObjectSearch(selection)">
+                                        @(userConfig.GetText("cancel"))
+                                    </button>
+                                }
+                            </div>
+                            <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+                                   TableItem="NetworkObject"
+                                   Items="selection.FilteredCandidates"
+                                   PageSize="5"
+                                   ColumnReorder="false"
+                                   ShowSearchBar="false"
+                                   TableRowClass="@(nwObject => GetCustomObjectRowClass(selection, nwObject))">
+                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("id"))" Field="@(nwObject => nwObject.Id)" Sortable="true" Filterable="true" />
+                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(nwObject => nwObject.Name)" Sortable="true" Filterable="true" Context="nwObject">
+                                    <Template>
+                                        @DisplayBase.DisplayIpWithName(nwObject)
+                                    </Template>
+                                </Column>
+                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("type"))" Field="@(nwObject => nwObject.Type.Name)" Sortable="true" Filterable="true" />
+                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("ip"))" Field="@(nwObject => nwObject.IP)" Sortable="true" Filterable="true" Context="nwObject">
+                                    <Template>
+                                        @DisplayBase.DisplayIp(nwObject.IP, nwObject.IpEnd)
+                                    </Template>
+                                </Column>
+                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("active"))" Field="@(nwObject => nwObject.Active)" Sortable="true" Filterable="true" Context="nwObject">
+                                    <Template>
+                                        @nwObject.Active.ShowAsHtml()
+                                    </Template>
+                                </Column>
+                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
+                                    <Template>
+                                        <button type="button" class="btn btn-sm @(selection.SelectedObject?.Id == nwObject.Id ? "btn-success" : "btn-outline-primary")" @onclick="() => SelectCustomObject(selection, nwObject)">
+                                            @(userConfig.GetText("select"))
+                                        </button>
+                                    </Template>
+                                </Column>
+                            </Table>
                         </div>
                     }
                 </div>
@@ -383,7 +316,6 @@ else
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private List<FlowAccess> flowAccesses = [];
     private List<FlowNwObject> flowNwObjects = [];
     private List<Management> selectableManagements = [];
     private List<Management> customObjectManagements = [];
@@ -394,7 +326,6 @@ else
     private FlowNwObjectMapping? SelectedDuplicateMapping;
     private FlowNwObject NewCustomFlowNwObject = new();
     private bool workInProgress = false;
-    private string searchText = "";
     private string objectSearchText = "";
     private bool EditNwObjectMode = false;
     private bool RecalculateConfirmMode = false;
@@ -418,7 +349,6 @@ else
             configData = await globalConfig.GetEditableConfig();
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
             selectedNamingManagement = selectableManagements.FirstOrDefault(management => management.Id == configData.FlowNamingSourceManagementId);
-            flowAccesses = await apiConnection.SendQueryAsync<List<FlowAccess>>(FlowQueries.getFlowAccessCatalog);
             flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowNwObjectCatalog);
             customObjectManagements = [];
             customObjectSelections = [];
@@ -477,7 +407,8 @@ else
             StateHasChanged();
 
             int? preferredManagementId = configData.FlowNamingSourceManagementId;
-            foreach (FlowNwObject nwObject in flowNwObjects)
+            List<FlowNwObject> objectsToRecalculate = [.. flowNwObjects];
+            foreach (FlowNwObject nwObject in objectsToRecalculate)
             {
                 string resolvedName = FlowNamingHelper.ResolveNwObjectName(nwObject, preferredManagementId, nwObject.Name ?? "");
                 if (string.Equals(resolvedName, nwObject.Name, StringComparison.Ordinal))
@@ -491,7 +422,6 @@ else
                     name = resolvedName,
                     showInRequestModule = nwObject.ShowInRequestModule
                 });
-                FlowAccessCatalogHelper.ApplyNwObjectUpdate(flowAccesses, flowNwObjects, updatedObject);
             }
 
             workInProgress = false;
@@ -509,24 +439,12 @@ else
     private List<FlowNwObjectDuplicateGroup> DuplicateGroups =>
         FlowAdminHelper.BuildDuplicateGroups(flowNwObjects);
 
-    private List<FlowAccess> FilteredFlowAccesses =>
-        string.IsNullOrWhiteSpace(searchText)
-            ? flowAccesses
-            : [.. flowAccesses.Where(access =>
-                FlowAccessPresentationHelper.BuildSearchText(access)
-                    .Contains(searchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
-
     private List<FlowNwObject> FilteredFlowNwObjects =>
         string.IsNullOrWhiteSpace(objectSearchText)
             ? flowNwObjects
             : [.. flowNwObjects.Where(nwObject =>
                 BuildFlowNwObjectSearchText(nwObject)
                     .Contains(objectSearchText.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))];
-
-    private void ClearSearch()
-    {
-        searchText = "";
-    }
 
     private void ClearObjectSearch()
     {
@@ -724,7 +642,7 @@ else
                 showInRequestModule = EditFlowNwObject.ShowInRequestModule
             });
 
-            FlowAccessCatalogHelper.ApplyNwObjectUpdate(flowAccesses, null, updatedObject);
+            FlowAccessCatalogHelper.ApplyNwObjectUpdate(null, flowNwObjects, updatedObject);
             EditNwObjectMode = false;
             workInProgress = false;
         }
@@ -742,32 +660,11 @@ else
         return string.Join(' ', [
             nwObject.Id.ToString(),
             nwObject.Name ?? "",
-            nwObject.Hash,
             nwObject.State,
             nwObject.IpStart ?? "",
             nwObject.IpEnd ?? "",
             nwObject.ShowInRequestModule.ToString()
         ]).ToLowerInvariant();
-    }
-
-    private static string GetNwObjectLabel(FlowNwObject nwObject)
-    {
-        return string.IsNullOrWhiteSpace(nwObject.Name) ? $"#{nwObject.Id}" : nwObject.Name!;
-    }
-
-    private static string BuildList<T>(IEnumerable<T>? items, Func<T, string?> selector)
-    {
-        if (items == null)
-        {
-            return "-";
-        }
-
-        List<string> names = [.. items
-            .Select(selector)
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Select(name => name!.Trim())];
-
-        return names.Count > 0 ? string.Join(", ", names) : "-";
     }
 
     private static string BuildDuplicateMappingSummary(FlowNwObjectDuplicateGroup group)
@@ -776,10 +673,37 @@ else
             $"{mapping.Object?.Name ?? $"#{mapping.ObjId}"}"));
     }
 
+    private static string GetCustomObjectSelectionLabel(CustomObjectManagementSelection selection)
+    {
+        return selection.SelectedObject != null
+            ? DisplayBase.DisplayIpWithName(selection.SelectedObject)
+            : "-";
+    }
+
+    private static string GetCustomObjectRowClass(CustomObjectManagementSelection selection, NetworkObject nwObject)
+    {
+        return selection.SelectedObject?.Id == nwObject.Id ? "table-warning" : "";
+    }
+
+    private void ClearCustomObjectSearch(CustomObjectManagementSelection selection)
+    {
+        selection.SearchText = "";
+    }
+
+    private void SelectCustomObject(CustomObjectManagementSelection selection, NetworkObject nwObject)
+    {
+        selection.SelectedObject = nwObject;
+    }
+
     private sealed class CustomObjectManagementSelection
     {
         public Management Management { get; set; } = new();
         public List<NetworkObject> Candidates { get; set; } = [];
         public NetworkObject? SelectedObject { get; set; }
+        public string SearchText { get; set; } = "";
+        public List<NetworkObject> FilteredCandidates =>
+            string.IsNullOrWhiteSpace(SearchText)
+                ? Candidates
+                : FlowAdminHelper.FilterCustomObjectCandidates(Candidates, SearchText);
     }
 }

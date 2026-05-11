@@ -1,3 +1,5 @@
+using FWO.Data;
+
 namespace FWO.Data.Flow
 {
     public static class FlowAdminHelper
@@ -46,6 +48,42 @@ namespace FWO.Data.Flow
                 .ThenBy(group => group.ManagementName, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(group => group.FlowNwObjectId)
                 .ThenBy(group => group.ManagementId)];
+        }
+
+        /// <summary>
+        /// Builds a searchable text blob for a custom flow object candidate.
+        /// </summary>
+        public static string BuildCustomObjectSearchText(NetworkObject candidate)
+        {
+            return string.Join(' ', [
+                candidate.Id.ToString(),
+                candidate.Name ?? "",
+                candidate.IP ?? "",
+                candidate.IpEnd ?? "",
+                candidate.Uid ?? "",
+                candidate.Active ? "active" : "inactive",
+                candidate.Type?.Id.ToString() ?? "",
+                candidate.Type?.Name ?? ""
+            ]).ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// Filters custom flow object candidates by a case-insensitive search string.
+        /// </summary>
+        public static List<NetworkObject> FilterCustomObjectCandidates(IEnumerable<NetworkObject>? candidates, string? searchText)
+        {
+            IEnumerable<NetworkObject> filteredCandidates = candidates ?? [];
+
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                string normalizedSearchText = searchText.Trim();
+                filteredCandidates = filteredCandidates.Where(candidate =>
+                    BuildCustomObjectSearchText(candidate).Contains(normalizedSearchText, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return [.. filteredCandidates
+                .OrderBy(candidate => candidate.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                .ThenBy(candidate => candidate.Id)];
         }
     }
 

@@ -1758,6 +1758,8 @@ INSERT INTO txt VALUES ('reactivate',           'German', 	'Reaktivieren');
 INSERT INTO txt VALUES ('reactivate',           'English', 	'Reactivate');
 INSERT INTO txt VALUES ('search_nw_object',     'German', 	'Netzwerkobjekt suchen');
 INSERT INTO txt VALUES ('search_nw_object',     'English', 	'Search Network Object');
+INSERT INTO txt VALUES ('search_name',          'German', 	'Name suchen');
+INSERT INTO txt VALUES ('search_name',          'English', 	'Search Name');
 INSERT INTO txt VALUES ('remove_nw_object', 	'German',	'Netzwerkobjekt entfernen');
 INSERT INTO txt VALUES ('remove_nw_object', 	'English',	'Remove Network Object');
 INSERT INTO txt VALUES ('is_in_use', 	        'German',	'Wird benutzt');

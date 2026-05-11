@@ -88,7 +88,7 @@
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action_type"))*:</label>
                             <div class="col-sm-8">
-                                <Dropdown ElementType="string" @bind-SelectedElement="actAction.ActionType" ElementToString="@(a => userConfig.GetText(a))" Elements="Enum.GetNames(typeof(StateActionTypes))" >
+                                <Dropdown ElementType="string" SelectedElement="actAction.ActionType" SelectedElementChanged="ActionTypeChanged" ElementToString="@(a => userConfig.GetText(a))" Elements="Enum.GetNames(typeof(StateActionTypes))" >
                                     <ElementTemplate Context="action">
                                         @(userConfig.GetText(action))
                                     </ElementTemplate>
@@ -322,8 +322,8 @@
                             </div>
                             <div class="col-sm-4">
                                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5530"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm" for="confirmSentMail">@(userConfig.GetText("confirm_sent_mail")):</label>
-                                    <div class="col-sm-8">
+                                    <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmSentMail">@(userConfig.GetText("confirm_sent_mail")):</label>
+                                    <div class="col-sm-2">
                                         <input id="confirmSentMail" class="form-check-input mt-2" type="checkbox" @bind="actConfirmSentMail" />
                                     </div>
                                 </div>
@@ -347,9 +347,9 @@
                             </div>
                             <div class="col-sm-4">
                                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5534"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm" for="confirmUpdateModelling">@(userConfig.GetText("confirm_modelling_update")):</label>
-                                    <div class="col-sm-8">
-                                        <input id="confirmUpdateModelling" class="form-check-input mt-2" type="checkbox" @bind="actConfirmSentMail" />
+                                    <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmUpdateModelling">@(userConfig.GetText("confirm_modelling_update")):</label>
+                                    <div class="col-sm-2">
+                                        <input id="confirmUpdateModelling" class="form-check-input mt-2" type="checkbox" @bind="actConfirmUpdateModelling" />
                                     </div>
                                 </div>
                             </div>
@@ -407,6 +407,7 @@ else
     private List<int> actActionNotificationIds = [];
     private EmailAttachedContent actAttachedContent = EmailAttachedContent.None;
     private bool actConfirmSentMail;
+    private bool actConfirmUpdateModelling;
     private string? selectedModIntegrationState;
     private List<string> availableModIntegrationStateNames = [];
     private FwoNotification? legacyActionNotification;
@@ -450,7 +451,11 @@ else
                 .. states
             ];
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
-            availableModIntegrationStateNames = ModIntegrationStateConfig.Parse(editableConfig.ModIntegrationStates).Select(state => state.Name).ToList();
+            availableModIntegrationStateNames = ModIntegrationStateConfig.Parse(editableConfig.ModIntegrationStates)
+                .Select(state => state.Name)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct()
+                .ToList();
             userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, Roles.Approver);
         }
         catch (Exception exception)
@@ -478,11 +483,19 @@ else
 
     private void ResetActionEditState()
     {
+        ResetActionSpecificEditState();
+        selectedTaskType = null;
+        selectedPhase = actAction.Phase != "" ? actAction.Phase : null;
+    }
+
+    private void ResetActionSpecificEditState()
+    {
         actApprovalParams = new();
         actPathAnalysisParams = new();
         actActionNotificationIds = [];
         actAttachedContent = EmailAttachedContent.None;
         actConfirmSentMail = false;
+        actConfirmUpdateModelling = false;
         legacyActionNotification = null;
         actConditionalAutoPromoteParams = new();
         toState = -1;
@@ -493,7 +506,20 @@ else
         selectedPolicies = [];
         selectedToBeCalled = ToBeCalled.PolicyCheck;
         selectedModIntegrationState = null;
-        selectedPhase = actAction.Phase != "" ? actAction.Phase : null;
+        selectedState = new();
+        selectedUserGroup = null;
+    }
+
+    private void ActionTypeChanged(string? actionType)
+    {
+        if (actAction.ActionType == actionType)
+        {
+            return;
+        }
+
+        actAction.ActionType = actionType ?? "";
+        actAction.ExternalParams = "";
+        ResetActionSpecificEditState();
     }
 
     private void SelectActionTaskType()
@@ -572,7 +598,7 @@ else
     {
         UpdateModellingActionParams updateModellingParams = UpdateModellingActionParams.FromExternalParams(externalParams);
         selectedModIntegrationState = availableModIntegrationStateNames.Contains(updateModellingParams.ModellingState) ? updateModellingParams.ModellingState : null;
-        actConfirmSentMail = updateModellingParams.ConfirmUiMessage;
+        actConfirmUpdateModelling = updateModellingParams.ConfirmUiMessage;
     }
 
     private void ResolveActionSelections()
@@ -833,7 +859,7 @@ else
         return JsonSerializer.Serialize(new
         {
             modelling_state = selectedModIntegrationState ?? "",
-            confirm_ui_message = actConfirmSentMail
+            confirm_ui_message = actConfirmUpdateModelling
         });
     }
 

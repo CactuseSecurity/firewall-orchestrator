@@ -1,0 +1,41 @@
+using FWO.Data;
+using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+
+namespace FWO.Services
+{
+    public class EmailActionParams
+    {
+        [JsonProperty("notification_ids"), JsonPropertyName("notification_ids")]
+        public List<int> NotificationIds { get; set; } = [];
+
+        [JsonProperty("to"), JsonPropertyName("to")]
+        public EmailRecipientOption RecipientTo { get; set; } = EmailRecipientOption.None;
+
+        [JsonProperty("cc"), JsonPropertyName("cc")]
+        public EmailRecipientOption? RecipientCC { get; set; }
+
+        [JsonProperty("subject"), JsonPropertyName("subject")]
+        public string Subject { get; set; } = "";
+
+        [JsonProperty("body"), JsonPropertyName("body")]
+        public string Body { get; set; } = "";
+
+        /// <summary>
+        /// Converts workflow action email parameters into the shared notification model.
+        /// </summary>
+        public FwoNotification ToNotification()
+        {
+            return new FwoNotification
+            {
+                NotificationClient = NotificationClient.WfAction,
+                Channel = NotificationChannel.Email,
+                RecipientTo = RecipientTo,
+                RecipientCc = RecipientCC ?? EmailRecipientOption.None,
+                EmailSubject = Subject,
+                EmailBody = Body,
+                Deadline = NotificationDeadline.None
+            };
+        }
+    }
+}

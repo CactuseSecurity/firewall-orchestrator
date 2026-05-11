@@ -26,18 +26,18 @@ namespace FWO.Data
             {
                 return default;
             }
-
+            Rule nonNullableRule = rule;
             Dictionary<string, JsonElement> customFields;
             List<string> keysList;
 
             try
             {
-                customFields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(rule.CustomFields.Replace("'", "\"")) ?? new Dictionary<string, JsonElement>();
+                customFields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(nonNullableRule.CustomFields.Replace("'", "\"")) ?? new Dictionary<string, JsonElement>();
                 keysList = JsonSerializer.Deserialize<List<string>>(keysJson) ?? new List<string>();
             }
             catch (JsonException e)
             {
-                errorMessage = $"Error while resolving custom fields. Raw Data: {rule.CustomFields}";
+                errorMessage = $"Error while resolving custom fields. Raw Data: {nonNullableRule.CustomFields}";
                 new Logger().TryWriteError("CustomFieldResolver", $"Error while resolving rule '{rule.Uid}': {e.Message}", true);
                 return default;
             }
@@ -68,9 +68,8 @@ namespace FWO.Data
                 }
                 catch (Exception e)
                 {
-                    errorMessage = $"Error while resolving custom fields. Invalid value for key '{key}'. Raw Data: {rule?.CustomFields}";
-                    new Logger().TryWriteWarning("CustomFieldResolver", $"Failed to deserialize key '{key}' for rule '{rule?.Uid}' to type {typeof(T).Name}: {e.Message}", true);
-                    continue;
+                    errorMessage = $"Error while resolving custom fields. Invalid value for key '{key}'. Raw Data: {nonNullableRule.CustomFields}";
+                    new Logger().TryWriteWarning("CustomFieldResolver", $"Failed to deserialize key '{key}' for rule '{nonNullableRule.Uid}' to type {typeof(T).Name}: {e.Message}", true);
                 }
             }
             return default;

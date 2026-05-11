@@ -44,7 +44,8 @@ namespace FWO.Data.Report
     {
         not_existing,
         existing,
-        value
+        value,
+        display_only
     }
 
     public class WorkflowLabelFilter

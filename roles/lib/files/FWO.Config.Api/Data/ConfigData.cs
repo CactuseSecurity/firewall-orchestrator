@@ -82,12 +82,15 @@ namespace FWO.Config.Api.Data
         [JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
         public int FwApiElementsPerFetch { get; set; } = 150;
 
+        [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifyRecipients"), JsonPropertyName("impChangeNotifyRecipients")]
         public string ImpChangeNotifyRecipients { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifySubject"), JsonPropertyName("impChangeNotifySubject")]
         public string ImpChangeNotifySubject { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifyBody"), JsonPropertyName("impChangeNotifyBody")]
         public string ImpChangeNotifyBody { get; set; } = "";
 
@@ -97,6 +100,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("impChangeIncludeObjectChanges"), JsonPropertyName("impChangeIncludeObjectChanges")]
         public bool ImpChangeIncludeObjectChanges { get; set; } = false;
 
+        [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifyType"), JsonPropertyName("impChangeNotifyType")]
         public int ImpChangeNotifyType { get; set; }
 
@@ -106,14 +110,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("impChangeNotifyStartAt"), JsonPropertyName("impChangeNotifyStartAt")]
         public DateTime ImpChangeNotifyStartAt { get; set; } = DateTime.Now;
 
-        [JsonProperty("updateRuleOwnerMappingActive"), JsonPropertyName("updateRuleOwnerMappingActive")]
-        public bool UpdateRuleOwnerMappingActive { get; set; } = false;
-
         [JsonProperty("updateRuleOwnerMappingSleepTime"), JsonPropertyName("updateRuleOwnerMappingSleepTime")]
         public int UpdateRuleOwnerMappingSleepTime { get; set; } = 60;
-
-        [JsonProperty("updateRuleOwnerMappingStartAt"), JsonPropertyName("updateRuleOwnerMappingStartAt")]
-        public DateTime UpdateRuleOwnerMappingStartAt { get; set; } = DateTime.Now;
 
         [JsonProperty("externalRequestSleepTime"), JsonPropertyName("externalRequestSleepTime")]
         public int ExternalRequestSleepTime { get; set; } = 60;
@@ -508,6 +506,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckRelevantManagements"), JsonPropertyName("complianceCheckRelevantManagements")]
         public string ComplianceCheckRelevantManagements { get; set; } = "";
 
+        [Obsolete("Legacy report scheduler migration data. Use report schedule notifications instead.")]
         [JsonProperty("reportSchedulerConfig"), JsonPropertyName("reportSchedulerConfig")]
         public string ReportSchedulerConfig { get; set; } = "";
 

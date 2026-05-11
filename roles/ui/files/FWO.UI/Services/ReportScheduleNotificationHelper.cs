@@ -114,6 +114,8 @@ namespace FWO.Ui.Services
                 EmailAddressTo = notificationSettings.EmailRecipients,
                 RecipientCc = EmailRecipientOption.None,
                 EmailAddressCc = "",
+                RecipientBcc = EmailRecipientOption.None,
+                EmailAddressBcc = "",
                 EmailSubject = notificationSettings.EmailSubject,
                 EmailBody = notificationSettings.EmailBody,
                 UserId = reportSchedule.ScheduleOwningUser.DbId,

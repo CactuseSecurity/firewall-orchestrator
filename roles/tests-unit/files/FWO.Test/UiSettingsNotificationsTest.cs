@@ -44,6 +44,16 @@ namespace FWO.Test
             return (T)field.GetValue(component)!;
         }
 
+        private static T GetPrivateProperty<T>(SettingsNotifications component, string propertyName)
+        {
+            PropertyInfo? property = typeof(SettingsNotifications).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(SettingsNotifications).FullName, propertyName);
+            }
+            return (T)property.GetValue(component)!;
+        }
+
         private static void SetInjectedGlobalConfig(SettingsNotifications component, GlobalConfig globalConfig)
         {
             PropertyInfo? prop = typeof(SettingsNotifications).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
@@ -148,8 +158,12 @@ namespace FWO.Test
             Task initTask = (Task)GetPrivateMethod("OnInitializedAsync").Invoke(component, null)!;
             await initTask;
 
+            Language defaultOption = GetPrivateField<Language>(component, "defaultNotificationLanguage");
             Language selected = GetPrivateField<Language>(component, "selectedNotificationLanguage");
-            Assert.That(selected.Name, Is.EqualTo(""));
+            List<Language> options = GetPrivateProperty<IEnumerable<Language>>(component, "NotificationLanguageOptions").ToList();
+            Assert.That(selected, Is.SameAs(defaultOption));
+            Assert.That(options[0], Is.SameAs(defaultOption));
+            Assert.That(options.Count(option => ReferenceEquals(option, defaultOption)), Is.EqualTo(1));
         }
 
         [Test]
@@ -194,9 +208,10 @@ namespace FWO.Test
             Task initTask = (Task)GetPrivateMethod("OnInitializedAsync").Invoke(component, null)!;
             await initTask;
 
+            Language defaultOption = GetPrivateField<Language>(component, "defaultNotificationLanguage");
             Language selected = GetPrivateField<Language>(component, "selectedNotificationLanguage");
             bool hasUnknownSelection = GetPrivateField<bool>(component, "hasUnknownNotificationLanguageSelection");
-            Assert.That(selected.Name, Is.EqualTo(""));
+            Assert.That(selected, Is.SameAs(defaultOption));
             Assert.That(hasUnknownSelection, Is.True);
         }
 

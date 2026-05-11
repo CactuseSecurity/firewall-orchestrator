@@ -21,6 +21,13 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FlowQueries_LoadCustomObjectCandidatesQuery()
+        {
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("query getFlowCustomObjectCandidates"));
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("networkObjects: objects"));
+        }
+
+        [Test]
         public void FlowQueries_LoadNwObjectCatalogQuery()
         {
             Assert.That(FlowQueries.getFlowNwObjectCatalog, Does.Contain("query getFlowNwObjectCatalog"));

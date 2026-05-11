@@ -37,4 +37,16 @@ namespace FWO.Data.Flow
             Hash = FlowHashGenerator.GenerateNwObjectHash(IpStart, IpEnd);
         }
     }
+
+    public class FlowNwObjectInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowNwObject> Returning { get; set; } = [];
+    }
+
+    public class FlowNwObjectMappingResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowNwObjectMapping> Returning { get; set; } = [];
+    }
 }

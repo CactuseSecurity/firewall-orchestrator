@@ -151,6 +151,53 @@
 <hr class="my-4" />
 
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <h4 class="mb-0">@(userConfig.GetText("duplicate_objects"))</h4>
+</div>
+<div class="text-muted small mb-2">
+    @($"{DuplicateGroups.Count}")
+</div>
+
+@if (DuplicateGroups.Count > 0)
+{
+    <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+           TableItem="FlowNwObjectDuplicateGroup"
+           Items="DuplicateGroups"
+           PageSize="10"
+           ColumnReorder="true">
+        <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("flow_object"))" Field="@(group => group.FlowNwObjectName)" Sortable="true" Filterable="true" Context="group">
+            <Template>
+                @($"{group.FlowNwObjectName} (#{group.FlowNwObjectId})")
+            </Template>
+        </Column>
+        <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("management"))" Field="@(group => group.ManagementName)" Sortable="true" Filterable="true" />
+        <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.Mappings.Count)" Sortable="true" Filterable="false" Context="group">
+            <Template>
+                @BuildDuplicateMappingSummary(group)
+            </Template>
+        </Column>
+        <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("actions"))" Field="@(group => group.ManagementId)" Sortable="false" Filterable="false" Context="group">
+            <Template>
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => OpenDuplicateResolver(group)">
+                    @(userConfig.GetText("select"))
+                </button>
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </Table>
+}
+else
+{
+    <div class="text-muted small mb-3">@(userConfig.GetText("no_duplicate_conflicts"))</div>
+}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
+    <h4 class="mb-0">@(userConfig.GetText("custom_objects"))</h4>
+    <button type="button" class="btn btn-sm btn-primary" @onclick="OpenCreateCustomObject">
+        @(userConfig.GetText("create_custom_flow_object"))
+    </button>
+</div>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
     <div class="input-group input-group-sm cwidth-400">
         <span class="input-group-text">@(userConfig.GetText("network_objects"))</span>
         <input type="text" class="form-control" @bind="objectSearchText" @bind:event="oninput" />
@@ -226,6 +273,94 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="@(userConfig.GetText("duplicate_objects"))" Show="@ResolveDuplicateMode" Size=PopupSize.Medium OnClose="CloseDuplicateResolver">
+    <Body>
+        @if (SelectedDuplicateGroup != null)
+        {
+            <div class="mb-2">
+                <div><span class="fw-bold">@(userConfig.GetText("flow_object")):</span> @SelectedDuplicateGroup.FlowNwObjectName (#@SelectedDuplicateGroup.FlowNwObjectId)</div>
+                <div><span class="fw-bold">@(userConfig.GetText("management")):</span> @SelectedDuplicateGroup.ManagementName</div>
+            </div>
+            <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+                   TableItem="FlowNwObjectMapping"
+                   Items="SelectedDuplicateGroup.Mappings"
+                   PageSize="10"
+                   ColumnReorder="true">
+                <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("id"))" Field="@(mapping => mapping.ObjId)" Sortable="true" Filterable="true" />
+                <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("name"))" Field="@(mapping => mapping.Object.Name)" Sortable="true" Filterable="true" />
+                <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("state"))" Field="@(mapping => mapping.ActiveOnMgm)" Sortable="true" Filterable="true" Context="mapping">
+                    <Template>
+                        @mapping.ActiveOnMgm.ShowAsHtml()
+                    </Template>
+                </Column>
+                <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("actions"))" Field="@(mapping => mapping.ObjId)" Sortable="false" Filterable="false" Context="mapping">
+                    <Template>
+                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => SelectDuplicateMapping(mapping)">
+                            @(userConfig.GetText("select"))
+                        </button>
+                    </Template>
+                </Column>
+            </Table>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-warning" disabled="@(SelectedDuplicateMapping == null)" @onclick="ResolveDuplicateMapping">
+                @(userConfig.GetText("save"))
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseDuplicateResolver">
+                @(userConfig.GetText("cancel"))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("create_custom_flow_object"))" Show="@CreateCustomObjectMode" Size=PopupSize.Large OnClose="CloseCreateCustomObject">
+    <Body>
+        @if (CreateCustomObjectMode)
+        {
+            <form onsubmit="return false">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="NewCustomFlowNwObject.Name" />
+                    </div>
+                </div>
+                <div class="form-check form-check-inline mt-3">
+                    <input class="form-check-input" id="customFlowNwObjectShowInRequestModule" type="checkbox" @bind="NewCustomFlowNwObject.ShowInRequestModule">
+                    <label class="form-check-label" for="customFlowNwObjectShowInRequestModule"><small>@(userConfig.GetText("show_in_request_module"))</small></label>
+                </div>
+                <div class="mt-3">
+                    <div class="fw-bold mb-2">@(userConfig.GetText("management"))</div>
+                    @foreach (CustomObjectManagementSelection selection in customObjectSelections)
+                    {
+                        <div class="form-group row mb-2">
+                            <label class="col-sm-4 col-form-label col-form-label-sm">@selection.Management.Name:</label>
+                            <div class="col-sm-8">
+                                <Dropdown ElementType="NetworkObject" ElementToString="@(nwObject => DisplayBase.DisplayIpWithName(nwObject))" @bind-SelectedElement="selection.SelectedObject" Elements="selection.Candidates" Nullable="true">
+                                    <ElementTemplate Context="nwObject">
+                                        @DisplayBase.DisplayIpWithName(nwObject)
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveCustomObject">
+                @(userConfig.GetText("save"))
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseCreateCustomObject">
+                @(userConfig.GetText("cancel"))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
 <PopUp Title="@(userConfig.GetText("recalculate_flow_names"))" Show="@RecalculateConfirmMode" Size=PopupSize.Small OnClose="CloseRecalculateConfirm">
     <Body>
         <p>@(userConfig.GetText("recalculate_flow_names_confirm"))</p>
@@ -251,13 +386,20 @@
     private List<FlowAccess> flowAccesses = [];
     private List<FlowNwObject> flowNwObjects = [];
     private List<Management> selectableManagements = [];
+    private List<Management> customObjectManagements = [];
+    private List<CustomObjectManagementSelection> customObjectSelections = [];
     private ConfigData? configData;
     private Management? selectedNamingManagement;
+    private FlowNwObjectDuplicateGroup? SelectedDuplicateGroup;
+    private FlowNwObjectMapping? SelectedDuplicateMapping;
+    private FlowNwObject NewCustomFlowNwObject = new();
     private bool workInProgress = false;
     private string searchText = "";
     private string objectSearchText = "";
     private bool EditNwObjectMode = false;
     private bool RecalculateConfirmMode = false;
+    private bool ResolveDuplicateMode = false;
+    private bool CreateCustomObjectMode = false;
     private FlowNwObject EditFlowNwObject = new();
 
     protected override async Task OnInitializedAsync()
@@ -278,6 +420,8 @@
             selectedNamingManagement = selectableManagements.FirstOrDefault(management => management.Id == configData.FlowNamingSourceManagementId);
             flowAccesses = await apiConnection.SendQueryAsync<List<FlowAccess>>(FlowQueries.getFlowAccessCatalog);
             flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowNwObjectCatalog);
+            customObjectManagements = [];
+            customObjectSelections = [];
 
             workInProgress = false;
         }
@@ -362,6 +506,9 @@
         StateHasChanged();
     }
 
+    private List<FlowNwObjectDuplicateGroup> DuplicateGroups =>
+        FlowAdminHelper.BuildDuplicateGroups(flowNwObjects);
+
     private List<FlowAccess> FilteredFlowAccesses =>
         string.IsNullOrWhiteSpace(searchText)
             ? flowAccesses
@@ -405,6 +552,156 @@
     private void CloseNwObjectEditor()
     {
         EditNwObjectMode = false;
+    }
+
+    private void OpenDuplicateResolver(FlowNwObjectDuplicateGroup group)
+    {
+        SelectedDuplicateGroup = group;
+        SelectedDuplicateMapping = group.Mappings.FirstOrDefault();
+        ResolveDuplicateMode = true;
+    }
+
+    private void CloseDuplicateResolver()
+    {
+        ResolveDuplicateMode = false;
+        SelectedDuplicateGroup = null;
+        SelectedDuplicateMapping = null;
+    }
+
+    private void SelectDuplicateMapping(FlowNwObjectMapping mapping)
+    {
+        SelectedDuplicateMapping = mapping;
+    }
+
+    private async Task ResolveDuplicateMapping()
+    {
+        try
+        {
+            if (SelectedDuplicateGroup == null || SelectedDuplicateMapping == null)
+            {
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            await apiConnection.SendQueryAsync<FlowNwObjectMappingResult>(FlowMutations.upsertFlowNwObjectMapping, new
+            {
+                flowNwobjId = SelectedDuplicateGroup.FlowNwObjectId,
+                objId = SelectedDuplicateMapping.ObjId,
+                mgmId = SelectedDuplicateGroup.ManagementId,
+                activeOnMgm = true
+            });
+
+            CloseDuplicateResolver();
+            await Refresh();
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("duplicate_objects"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OpenCreateCustomObject()
+    {
+        try
+        {
+            await LoadCustomObjectManagements();
+            NewCustomFlowNwObject = new FlowNwObject
+            {
+                ShowInRequestModule = false
+            };
+            customObjectSelections =
+            [
+                .. selectableManagements.Select(management => new CustomObjectManagementSelection
+                {
+                    Management = management,
+                    Candidates = customObjectManagements.FirstOrDefault(candidateManagement => candidateManagement.Id == management.Id)?.Objects?.ToList() ?? [],
+                    SelectedObject = null
+                })
+            ];
+            CreateCustomObjectMode = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("create_custom_flow_object"), "", true);
+        }
+    }
+
+    private void CloseCreateCustomObject()
+    {
+        CreateCustomObjectMode = false;
+    }
+
+    private async Task LoadCustomObjectManagements()
+    {
+        if (customObjectManagements.Count > 0)
+        {
+            return;
+        }
+
+        List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
+        if (managementIds.Count == 0)
+        {
+            customObjectManagements = [];
+            return;
+        }
+
+        customObjectManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowCustomObjectCandidates, new
+        {
+            management_id = managementIds
+        });
+    }
+
+    private async Task SaveCustomObject()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(NewCustomFlowNwObject.Name))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5102"), true);
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            FlowNwObjectInsertResult createdObjects = await apiConnection.SendQueryAsync<FlowNwObjectInsertResult>(FlowMutations.insertFlowNwObject, new
+            {
+                name = NewCustomFlowNwObject.Name.Trim(),
+                ipStart = (string?)null,
+                ipEnd = (string?)null,
+                nwobjHash = FlowHashGenerator.GenerateNwObjectHash(null, null),
+                showInRequestModule = NewCustomFlowNwObject.ShowInRequestModule
+            });
+            FlowNwObject createdObject = createdObjects.Returning.FirstOrDefault() ?? throw new InvalidOperationException("Created flow object not returned by API.");
+
+            foreach (CustomObjectManagementSelection selection in customObjectSelections.Where(selection => selection.SelectedObject != null))
+            {
+                await apiConnection.SendQueryAsync<FlowNwObjectMappingResult>(FlowMutations.upsertFlowNwObjectMapping, new
+                {
+                    flowNwobjId = createdObject.Id,
+                    objId = selection.SelectedObject!.Id,
+                    mgmId = selection.Management.Id,
+                    activeOnMgm = true
+                });
+            }
+
+            CreateCustomObjectMode = false;
+            await Refresh();
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("create_custom_flow_object"), "", true);
+        }
+
+        StateHasChanged();
     }
 
     private async Task SaveNwObject()
@@ -471,5 +768,18 @@
             .Select(name => name!.Trim())];
 
         return names.Count > 0 ? string.Join(", ", names) : "-";
+    }
+
+    private static string BuildDuplicateMappingSummary(FlowNwObjectDuplicateGroup group)
+    {
+        return string.Join(", ", group.Mappings.Select(mapping =>
+            $"{mapping.Object?.Name ?? $"#{mapping.ObjId}"}"));
+    }
+
+    private sealed class CustomObjectManagementSelection
+    {
+        public Management Management { get; set; } = new();
+        public List<NetworkObject> Candidates { get; set; } = [];
+        public NetworkObject? SelectedObject { get; set; }
     }
 }

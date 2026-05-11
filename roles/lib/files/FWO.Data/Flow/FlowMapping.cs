@@ -35,6 +35,9 @@ namespace FWO.Data.Flow
         [JsonProperty("object"), JsonPropertyName("object")]
         public NetworkObject Object { get; set; } = new NetworkObject();
 
+        [JsonProperty("management"), JsonPropertyName("management")]
+        public Management Management { get; set; } = new Management();
+
         [JsonProperty("flow_nwobject"), JsonPropertyName("flow_nwobject")]
         public FlowNwObject FlowNwObject { get; set; } = new FlowNwObject();
     }

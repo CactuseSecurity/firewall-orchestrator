@@ -61,6 +61,7 @@ builder.Services.AddQuartzHostedService(options =>
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
 builder.Services.AddSingleton<JobExecutionTracker>();
+builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
 
 // Register config listeners as singletons (activated at startup)
 builder.Services.AddSingleton<ExternalRequestSchedulerService>();

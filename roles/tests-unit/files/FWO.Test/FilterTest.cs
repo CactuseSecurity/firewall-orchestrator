@@ -1387,6 +1387,29 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void TicketReport_LabelDisplayOnlyDoesNotFilterTickets()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.display_only };
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(query.FullQuery, Does.Not.Contain("labelKeyPattern"));
+                Assert.That(query.FullQuery, Does.Not.Contain("labelValuePattern"));
+                Assert.That(query.FullQuery, Does.Not.Contain("additional_info: { _ilike"));
+                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("labelKeyPattern0"));
+                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("labelValuePattern0"));
+            });
+        }
+
+        [Test]
+        [Parallelizable]
         public void TicketReport_FilterLineSupportsSingularStateAlias()
         {
             ReportTemplate template = new()

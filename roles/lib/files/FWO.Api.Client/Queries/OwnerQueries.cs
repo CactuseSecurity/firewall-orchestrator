@@ -54,6 +54,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteOwnerResponsibleType;
         public static readonly string updateChangelogOwner;
         public static readonly string getChangedOwnersForRuleOwnerMappingCustomField;
+        public static readonly string getChangedOwnersForRuleOwnerMappingNameField;
         public static readonly string getChangedOwnersForRuleOwnerMappingIpBased;
 
 
@@ -109,6 +110,7 @@ namespace FWO.Api.Client.Queries
                 deleteOwnerResponsibleType = GetQueryText("owner/deleteOwnerResponsibleType.graphql");
                 updateChangelogOwner = GetQueryText("owner/updateChangelogOwner.graphql");
                 getChangedOwnersForRuleOwnerMappingCustomField = GetQueryText("owner/getChangedOwnersForRuleOwnerMappingCustomField.graphql");
+                getChangedOwnersForRuleOwnerMappingNameField = GetQueryText("owner/getChangedOwnersForRuleOwnerMappingNameField.graphql");
                 getChangedOwnersForRuleOwnerMappingIpBased = GetQueryText("owner/getChangedOwnersForRuleOwnerMappingIpBased.graphql");
                 getRuleOwnerToRemoveByOwner = GetQueryText("owner/getRuleOwnerToRemoveByOwner.graphql");
             }

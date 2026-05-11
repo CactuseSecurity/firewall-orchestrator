@@ -252,12 +252,9 @@
 
     private string GetOwnerName(WfImplTask implTask)
     {
-        if (implTask.ReqTaskId != 0 && reqTasksById.TryGetValue(implTask.ReqTaskId, out WfReqTask? reqTask))
+        if (implTask.ReqTaskId != 0 && reqTasksById.TryGetValue(implTask.ReqTaskId, out WfReqTask? reqTask) && reqTask.Owners.Count > 0)
         {
-            if(reqTask.Owners != null && reqTask.Owners.Count > 0)
-            {
-                return reqTask.Owners?.FirstOrDefault()?.Owner.Name ?? "";
-            }
+            return reqTask.Owners.FirstOrDefault()?.Owner.Name ?? "";
         }
         return "";
     }

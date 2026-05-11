@@ -4,6 +4,7 @@
 @using FWO.Data
 @using FWO.Data.Middleware
 @using FWO.Middleware.Client
+@using FWO.Services
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.NetworkModelling
 
@@ -203,18 +204,16 @@
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
-            <div class="col-sm-4">
-                <ModellingEmailRecipientSelectionEditor Selection="@modReqEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                    CheckboxIdPrefix="cbx_mod_req_mail" />
-            </div>
-            <label for="cbx_email_requester_in_cc" class="col-form-label col-sm-2">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_email_requester_in_cc" type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
+            <div class="col-sm-6">
+                <EmailRecipientSelectionEditor Selection="@modReqEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                    CheckboxIdPrefix="cbx_mod_req_mail" Client="NotificationClient.InterfaceRequest" />
             </div>
         </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailOtherAddresses")):</label>
-            <input type="text" class="col-sm-6" disabled="@(!modReqEmailRecipients.OtherAddresses || modReqEmailRecipients.None)" @bind="configData!.ModReqEmailOtherAddresses" />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
+            <label for="cbx_email_requester_in_cc" class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
+            <div class="col-sm-6">
+                <input id="cbx_email_requester_in_cc" type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
+            </div>
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailSubject")):</label>
@@ -246,13 +245,9 @@
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5660"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailReceiver")):</label>
             <div class="col-sm-4">
-                <ModellingEmailRecipientSelectionEditor Selection="@modDecommEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                    CheckboxIdPrefix="cbx_mod_decomm_mail" />
+                <EmailRecipientSelectionEditor Selection="@modDecommEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                    CheckboxIdPrefix="cbx_mod_decomm_mail" Client="NotificationClient.AppDecomm" />
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailOtherAddresses")):</label>
-            <input type="text" class="col-sm-6" disabled="@(!modDecommEmailRecipients.OtherAddresses || modDecommEmailRecipients.None)" @bind="configData!.ModDecommEmailOtherAddresses" />
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailSubject")):</label>
@@ -407,8 +402,8 @@ else
 
     private List<ModellingNwGroup> allAreas = [];
     private List<OwnerResponsibleType> activeOwnerResponsibleTypes = [];
-    private ModellingEmailRecipientSelection modReqEmailRecipients = new();
-    private ModellingEmailRecipientSelection modDecommEmailRecipients = new();
+    private EmailRecipientSelection modReqEmailRecipients = new();
+    private EmailRecipientSelection modDecommEmailRecipients = new();
     private List<CommonArea> CommonAreas = [];
     private List<CommonArea> CommAreasToDelete = [];
     private List<CommonArea> SpecUserAreas = [];
@@ -435,12 +430,12 @@ else
             activeOwnerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
             activeOwnerResponsibleTypes = activeOwnerResponsibleTypes
                 .Where(type => type.Active)
-                .OrderByDescending(type => type.SortOrder)
-                .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
-            modReqEmailRecipients = ModellingEmailRecipientSelection.Parse(configData.ModReqEmailReceiver, activeTypeIds);
-            modDecommEmailRecipients = ModellingEmailRecipientSelection.Parse(configData.ModDecommEmailReceiver, activeTypeIds);
+            modReqEmailRecipients = EmailRecipientSelection.Parse(configData.ModReqEmailReceiver, activeTypeIds);
+            modDecommEmailRecipients = EmailRecipientSelection.Parse(configData.ModDecommEmailReceiver, activeTypeIds);
+            MergeLegacyOtherAddresses(modReqEmailRecipients, configData.ModReqEmailOtherAddresses);
+            MergeLegacyOtherAddresses(modDecommEmailRecipients, configData.ModDecommEmailOtherAddresses);
             ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? [];
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
             if (configData.ModAppServerTypes != "")
@@ -602,6 +597,26 @@ else
         List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
         configData!.ModReqEmailReceiver = modReqEmailRecipients.ToConfigValue(activeTypeIds);
         configData!.ModDecommEmailReceiver = modDecommEmailRecipients.ToConfigValue(activeTypeIds);
+        configData!.ModReqEmailOtherAddresses = "";
+        configData!.ModDecommEmailOtherAddresses = "";
+    }
+
+    private static void MergeLegacyOtherAddresses(EmailRecipientSelection selection, string legacyOtherAddresses)
+    {
+        List<string> addresses = EmailHelper.SplitAddresses(legacyOtherAddresses);
+        if (addresses.Count == 0)
+        {
+            return;
+        }
+        selection.OtherAddresses = true;
+        selection.None = false;
+        foreach (string address in addresses)
+        {
+            if (!selection.OtherAddressList.Contains(address, StringComparer.OrdinalIgnoreCase))
+            {
+                selection.OtherAddressList.Add(address);
+            }
+        }
     }
 
     private string PrepareAreas(List<CommonArea> areas, List<CommonArea> areasToDelete)

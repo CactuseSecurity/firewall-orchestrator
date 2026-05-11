@@ -714,20 +714,30 @@
             }
             foreach (string roleName in filteredRoles)
             {
-                if (!RoleDnByName.TryGetValue(roleName, out string? roleDn))
+                if (CheckRoleExistence(roleName, responsible, out string roleDn))
                 {
-                    continue;
+                    await AddRoleToLdap(responsible.Dn, roleDn, roleName);
                 }
-                string normalizedDn = NormalizeDnForRoleComparison(responsible.Dn);
-                if (RoleUsersByName.TryGetValue(roleName, out HashSet<string>? users) && users.Contains(normalizedDn))
-                {
-                    continue;
-                }
-                await AddRoleToLdap(responsible.Dn, roleDn, roleName);
             }
         }
     }
 
+    private bool CheckRoleExistence(string roleName, OwnerResponsible responsible, out string roleDn)
+    {
+        if (!RoleDnByName.TryGetValue(roleName, out string? roleDnTemp))
+        {
+            roleDn = string.Empty;
+            return false;
+        }
+        roleDn = roleDnTemp;
+        string normalizedDn = NormalizeDnForRoleComparison(responsible.Dn);
+        if (RoleUsersByName.TryGetValue(roleName, out HashSet<string>? users) && users.Contains(normalizedDn))
+        {
+            return false;
+        }
+        return true;
+    }
+    
     private async Task AddRoleToLdap(string dn, string roleDn, string roleName)
     {
         RoleAddDeleteUserParameters parameters = new() { Role = roleDn, UserDn = dn };

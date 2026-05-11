@@ -73,6 +73,11 @@ namespace FWO.Test
                 ReportParams =
                 {
                     ReportType = (int)ReportType.TicketChangeReport,
+                    TimeFilter = new()
+                    {
+                        TimeRangeType = TimeRangeType.Shortcut,
+                        TimeRangeShortcut = "last week"
+                    },
                     WorkflowFilter = new()
                     {
                         ReferenceDate = WorkflowReferenceDate.Approved,
@@ -99,6 +104,9 @@ namespace FWO.Test
             Assert.That(filters.WorkflowFilter.LabelFilter.Value, Is.EqualTo(string.Empty));
             Assert.That(filters.WorkflowFilter.DetailedView, Is.True);
             Assert.That(filters.WorkflowFilter.ShowFullTicket, Is.False);
+            Assert.That(filters.TimeFilter.TimeRangeShortcut, Is.EqualTo("last week"));
+            Assert.That(filters.SavedTimeFilter.TimeRangeShortcut, Is.EqualTo("last week"));
+            Assert.That(filters.ToReportParams().TimeFilter.TimeRangeShortcut, Is.EqualTo("last week"));
             Assert.That(filters.IncludeObjects, Is.True);
         }
 

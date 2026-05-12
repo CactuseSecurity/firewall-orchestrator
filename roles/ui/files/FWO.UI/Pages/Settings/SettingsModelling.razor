@@ -28,7 +28,7 @@
     <form onsubmit="return false">
         <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
         @onclick="PredefServices">
-            @(userConfig.GetText("predef_services"))
+            @(DisplayService.DisplayButton(userConfig, "predef_services", Icons.ServiceGroup))
         </button>
         <hr />
         <div class="form-group row mt-2">
@@ -258,6 +258,26 @@
             <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModDecommEmailBody"></textarea>
         </div>
         <hr />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5679"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modIntegrationMode")):</label>
+            <div class="col-sm-3">
+                <Dropdown ElementType="ModIntegrationMode" @bind-SelectedElement="configData!.ModIntegrationMode"
+                        ElementToString="@(mode => userConfig.GetText(mode.ToString()))"
+                        Elements="Enum.GetValues(typeof(ModIntegrationMode)).Cast<ModIntegrationMode>()">
+                    <ElementTemplate Context="mode">
+                        @(userConfig.GetText(mode.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+            @if (configData.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+            {
+                <div class="col-sm-3">
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="ModIntegrationStates" @onclick:preventDefault>
+                        @(DisplayService.DisplayButton(userConfig, "modIntegrationStates", Icons.Edit))
+                    </button>
+                </div>
+            }
+        </div>
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5634"))">
                 <label for="cbx_rollout_active" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutActive")):</label>
@@ -314,7 +334,7 @@
             </div>
             <div class="row col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5650"))">
                  <button type="button" class="col-sm-6 btn btn-sm btn-primary" @onclick="VarianceOptions" 
-                    @onclick:preventDefault>@(userConfig.GetText("rule_recognition_options"))</button>
+                    @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "rule_recognition_options", Icons.Edit))</button>
             </div>
         </div>
         <div class="form-group row mt-2">
@@ -363,10 +383,10 @@
     </form>
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </Authorized>
         <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </NotAuthorized>
     </AuthorizeView>
     <br>
@@ -374,6 +394,7 @@
     <p>@(userConfig.GetText("U5303"))</p>
 
     <VarianceOptionsSelection @bind-Display="varOptMode" @bind-ConfigValue="ruleRecognitionOption"/>
+    <ModIntegrationStatesEditor @bind-Display="modIntegrationStatesMode" @bind-ConfigValue="configData.ModIntegrationStates" @bind-ConfigMarker="configData.ModIntegrationStateMarker"/>
 }
 else
 {
@@ -421,6 +442,7 @@ else
 
     private bool initComplete = false;
     private bool varOptMode = false;
+    private bool modIntegrationStatesMode = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -547,6 +569,11 @@ else
     private void VarianceOptions()
     {
         varOptMode = true;
+    }
+
+    private void ModIntegrationStates()
+    {
+        modIntegrationStatesMode = true;
     }
 
     private async Task Save()

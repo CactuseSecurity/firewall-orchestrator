@@ -16,7 +16,8 @@ namespace FWO.Data.Workflow
         UpdateConnectionOwner = 21,
         UpdateConnectionRelease = 22,
         DisplayConnection = 23,
-        UpdateConnectionReject = 24
+        UpdateConnectionReject = 24,
+        UpdateModelling = 25
         // CreateReport = 30
     }
 

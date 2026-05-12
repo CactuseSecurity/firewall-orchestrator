@@ -2,6 +2,7 @@ using FWO.Basics;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using SystemTextJsonIgnore = System.Text.Json.Serialization.JsonIgnoreAttribute;
+using FWO.Data.Flow;
 
 namespace FWO.Data
 {
@@ -150,6 +151,15 @@ namespace FWO.Data
 
         [JsonProperty("rule_owners"), JsonPropertyName("rule_owners")]
         public RuleOwner?[] RuleOwner { get; set; } = [];
+
+        [JsonProperty("flow_access_id"), JsonPropertyName("flow_access_id")]
+        public long? FlowAccessId { get; set; }
+
+        [JsonProperty("flow_access"), JsonPropertyName("flow_access")]
+        public FlowAccess? FlowAccess { get; set; }
+
+        [JsonProperty("flow_active"), JsonPropertyName("flow_active")]
+        public bool FlowActive { get; set; }
 
         public string ChangeID { get; set; } = "";
         public string AdoITID { get; set; } = "";

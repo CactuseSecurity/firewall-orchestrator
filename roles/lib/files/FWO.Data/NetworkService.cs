@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using FWO.Basics;
+using FWO.Data.Flow;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -81,6 +82,15 @@ namespace FWO.Data
         [JsonProperty("svc_rpcnr"), JsonPropertyName("svc_rpcnr")]
         public long? RpcNumber { get; set; }
 
+        [JsonProperty("flow_svcobj_id"), JsonPropertyName("flow_svcobj_id")]
+        public long? FlowServiceObjectId { get; set; }
+
+        [JsonProperty("flow_svcobject"), JsonPropertyName("flow_svcobject")]
+        public FlowSvcObject? FlowSvcObject { get; set; }
+
+        [JsonProperty("flow_active"), JsonPropertyName("flow_active")]
+        public bool FlowActive { get; set; }
+
         public long Number;
         public bool IsSurplus = false;
 
@@ -129,7 +139,7 @@ namespace FWO.Data
         {
             return Id.GetHashCode();
         }
-        
+
         public static List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
         {
             return services

@@ -131,6 +131,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetConnectionsToRequest_InNotificationModeKeepsAlreadyRequestedIncludedStateCandidates()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                ModIntegrationMode = ModIntegrationMode.WorkflowNotifications,
+                ModIntegrationStateMarker = "ImplementationState",
+                ModIntegrationStates = ModIntegrationStateConfig.ToConfigValue([new() { Name = "Retry", IncludeIntoRequest = true }])
+            };
+            ModellingConnection requestedRetry = new() { Id = 1, RequestedOnFw = true };
+            requestedRetry.AddProperty("ImplementationState", "Retry");
+            ModellingConnection requestedNoMarker = new() { Id = 2, RequestedOnFw = true };
+            ModellingConnection iface = new() { Id = 3, IsInterface = true };
+            ModellingAppHandler handler = CreateHandler([requestedRetry, requestedNoMarker, iface], userConfig);
+
+            List<ModellingConnection> result = handler.GetConnectionsToRequest();
+
+            Assert.That(result, Is.EqualTo([requestedRetry, requestedNoMarker]));
+        }
+
+        [Test]
         public void HasModellingIssues_ReturnsTrue_ForInterface()
         {
             ModellingConnection iface = new() { Id = 1, IsInterface = true };

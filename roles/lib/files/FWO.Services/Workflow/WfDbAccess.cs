@@ -29,6 +29,14 @@ namespace FWO.Services.Workflow
                     foreach (var ticket in tickets)
                     {
                         ticket.UpdateCidrsInTaskElements();
+                        ticket.ResetStateChangeTracking();
+                    }
+                }
+                else
+                {
+                    foreach (var ticket in tickets)
+                    {
+                        ticket.ResetStateChangeTracking();
                     }
                 }
             }
@@ -79,6 +87,7 @@ namespace FWO.Services.Workflow
                 var Variables = new { id };
                 ticket = await ApiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, Variables);
                 ticket.UpdateCidrsInTaskElements();
+                ticket.ResetStateChangeTracking();
             }
             catch (Exception exception)
             {

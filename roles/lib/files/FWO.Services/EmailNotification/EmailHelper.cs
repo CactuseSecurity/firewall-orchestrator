@@ -76,7 +76,8 @@ namespace FWO.Services
         /// <summary>
         /// Sends an immediate workflow action email using notification recipient fields.
         /// </summary>
-        public async Task<bool> SendWorkflowActionEmail(FwoNotification notification, WfStatefulObject statefulObject, FwoOwner? owner, string? userGrpDn = null)
+        public async Task<bool> SendWorkflowActionEmail(FwoNotification notification, WfStatefulObject statefulObject, FwoOwner? owner, string? userGrpDn = null,
+            WorkflowEmailContent? workflowContent = null, WfStatefulObject? placeholderObject = null)
         {
             List<string> tos = userGrpDn != null
                 ? await CollectEmailAddressesFromUserOrGroup(userGrpDn)
@@ -87,7 +88,12 @@ namespace FWO.Services
             List<string>? bccs = notification.RecipientBcc == EmailRecipientOption.None
                 ? null
                 : await GetWorkflowActionRecipients(notification.RecipientBcc, notification.EmailAddressBcc, statefulObject, owner, ScopedUserBcc);
-            return await SendEmail(tos, notification.EmailSubject, notification.EmailBody, ccs, bccs);
+            WfStatefulObject placeholderContext = placeholderObject ?? statefulObject;
+            string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(notification.EmailSubject, placeholderContext, owner);
+            string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, workflowContent), placeholderContext, owner);
+            FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
+            return await SendEmail(tos, subject, body, ccs, bccs,
+                notification.Layout == NotificationLayout.HtmlInBody, attachment);
         }
 
         private async Task<List<string>> GetWorkflowActionRecipients(
@@ -100,7 +106,8 @@ namespace FWO.Services
             return await GetRecipients(recipientOption, statefulObject, owner, scopedUser, SplitAddresses(addressList));
         }
 
-        private async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null)
+        private async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
+            bool mailFormatHtml = true, FormFile? attachment = null)
         {
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
@@ -111,7 +118,12 @@ namespace FWO.Services
             }
             ccs = ccs?.Where(c => c != "").ToList();
             bccs = bccs?.Where(bcc => bcc != "").ToList();
-            return await MailKitMailer.SendAsync(new MailData(tos, subject) { Body = body, Cc = ccs ?? [], Bcc = bccs ?? [] }, emailConnection, true, new CancellationToken());
+            MailData mailData = new(tos, subject) { Body = body, Cc = ccs ?? [], Bcc = bccs ?? [] };
+            if (attachment != null)
+            {
+                mailData.Attachments = new FormFileCollection() { attachment };
+            }
+            return await MailKitMailer.SendAsync(mailData, emailConnection, mailFormatHtml, new CancellationToken());
         }
 
         public async Task<List<string>> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser, List<string>? otherAddresses)

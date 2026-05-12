@@ -409,3 +409,6 @@ Removed deprecated configuration keys:
 - updateRuleOwnerMappingActive
 - updateRuleOwnerMappingStartAt
 These settings are no longer used due to the full automation of UpdateRuleOwner.
+
+# 9.0.24 - 27.04.2026 DEVELOP
+- introduce new modelling integration mode WorkflowNotifications

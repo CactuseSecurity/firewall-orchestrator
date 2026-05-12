@@ -127,31 +127,17 @@ Create index idx_flow_access_destination_nwobj on flow.access_destination (nwobj
 Create index idx_flow_access_service_svcobj on flow.access_service (svcobj_id);
 Create index idx_flow_access_timeobject on flow.access_timeobject (timeobj_id);
 
-Create index idx_flow_access_source_grp_nwgrp on flow.access_source_grp (nwgroup_id);
-Create index idx_flow_access_destination_grp_nwgrp on flow.access_destination_grp (nwgroup_id);
-Create index idx_flow_access_service_grp_svcgrp on flow.access_service_grp (svcgroup_id);
-Create index idx_flow_rule_flow_access on flow.rule_flow_mapping (access_id);
+Create index idx_flow_access_source_grp_nwgrp on flow.access_source_grp (nwgrp_id);
+Create index idx_flow_access_destination_grp_nwgrp on flow.access_destination_grp (nwgrp_id);
+Create index idx_flow_access_service_grp_svcgrp on flow.access_service_grp (svcgrp_id);
 
 Create index idx_flow_nwgroup_member_nwobj on flow.nwgroup_member (nwobj_id);
 
 Create index idx_flow_svcgroup_member_svcobj on flow.svcgroup_member (svcobj_id);
 
-Create index idx_flow_nwobject_mapping_obj on flow.nwobject_mapping (obj_id);
-Create index idx_flow_nwobject_mapping_mgm on flow.nwobject_mapping (mgm_id);
-Create UNIQUE index idx_flow_nwobject_mapping_active_unique on flow.nwobject_mapping (flow_nwobj_id, mgm_id) WHERE active_on_mgm = TRUE;
-
-Create index idx_flow_svcobject_mapping_svc on flow.svcobject_mapping (svc_id);
-Create index idx_flow_svcobject_mapping_mgm on flow.svcobject_mapping (mgm_id);
-Create UNIQUE index idx_flow_svcobject_mapping_active_unique on flow.svcobject_mapping (flow_svcobj_id, mgm_id) WHERE active_on_mgm = TRUE;
-
-Create index idx_flow_timeobject_mapping_time_obj on flow.timeobject_mapping (time_obj_id);
-Create index idx_flow_timeobject_mapping_mgm on flow.timeobject_mapping (mgm_id);
-Create UNIQUE index idx_flow_timeobject_mapping_active_unique on flow.timeobject_mapping (flow_timeobj_id, mgm_id) WHERE active_on_mgm = TRUE;
-
-Create index idx_flow_nwgroup_mapping_objgrp on flow.nwgroup_mapping (objgrp_id);
-Create index idx_flow_nwgroup_mapping_mgm on flow.nwgroup_mapping (mgm_id);
-Create UNIQUE index idx_flow_nwgroup_mapping_active_unique on flow.nwgroup_mapping (flow_nwgroup_id, mgm_id) WHERE active_on_mgm = TRUE;
-
-Create index idx_flow_svcgroup_mapping_svcgrp on flow.svcgroup_mapping (svcgrp_id);
-Create index idx_flow_svcgroup_mapping_mgm on flow.svcgroup_mapping (mgm_id);
-Create UNIQUE index idx_flow_svcgroup_mapping_active_unique on flow.svcgroup_mapping (flow_svcgroup_id, mgm_id) WHERE active_on_mgm = TRUE;
+Create unique index if not exists rule_flow_access_id_active_only_one_per_mgm on rule (mgm_id, flow_access_id) where flow_active = true;
+Create unique index if not exists service_flow_svcobj_id_active_only_one_per_mgm on service (mgm_id, flow_svcobj_id) where flow_active = true;
+Create unique index if not exists service_flow_svcgrp_id_active_only_one_per_mgm on service (mgm_id, flow_svcgrp_id) where flow_active = true;
+Create unique index if not exists time_object_flow_timeobj_id_active_only_one_per_mgm on time_object (mgm_id, flow_timeobj_id) where flow_active = true;
+Create unique index if not exists object_flow_nwobj_id_active_only_one_per_mgm on object (mgm_id, flow_nwobj_id) where flow_active = true;
+Create unique index if not exists object_flow_nwgrp_id_active_only_one_per_mgm on object (mgm_id, flow_nwgrp_id) where flow_active = true;

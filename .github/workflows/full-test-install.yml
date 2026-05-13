@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - bugfix/pyright
 
 jobs:
   test-install:

@@ -7,23 +7,15 @@ fragment flowNwObjectDetails on flow_nwobject {
   state
   removed_date
   show_in_request_module
-  nwobject_mappings(order_by: { mgm_id: asc }) {
-    flow_nwobj_id
+  objects(order_by: { obj_name: asc }) {
     obj_id
-    mgm_id
-    active_on_mgm
-    management {
-      mgm_id
-      mgm_name
-    }
-    object {
-      obj_id
-      obj_name
-      obj_ip
-      obj_ip_end
-      obj_uid
-      active
-      removed
-    }
+    obj_name
+    obj_ip
+    obj_ip_end
+    obj_uid
+    active
+    removed
+    flow_nwobj_id
+    flow_active
   }
 }

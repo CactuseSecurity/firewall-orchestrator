@@ -10,25 +10,17 @@ namespace FWO.Test
         [Test]
         public void ResolvePreferredName_UsesPreferredManagementName()
         {
-            List<FlowNwObjectMapping> mappings =
+            List<(int? MgmId, string? Name)> mappings =
             [
-                new()
-                {
-                    MgmId = 1,
-                    FlowNwObject = new FlowNwObject { Name = "forti-name" }
-                },
-                new()
-                {
-                    MgmId = 2,
-                    FlowNwObject = new FlowNwObject { Name = "checkpoint-name" }
-                }
+                (1, "forti-name"),
+                (2, "checkpoint-name")
             ];
 
             string result = FlowNamingHelper.ResolvePreferredName(
                 mappings,
                 preferredManagementId: 2,
                 managementIdSelector: mapping => mapping.MgmId,
-                nameSelector: mapping => mapping.FlowNwObject.Name);
+                nameSelector: mapping => mapping.Name);
 
             Assert.That(result, Is.EqualTo("checkpoint-name"));
         }
@@ -36,25 +28,17 @@ namespace FWO.Test
         [Test]
         public void ResolvePreferredName_FallsBackToFirstUsableName()
         {
-            List<FlowNwObjectMapping> mappings =
+            List<(int? MgmId, string? Name)> mappings =
             [
-                new()
-                {
-                    MgmId = 1,
-                    FlowNwObject = new FlowNwObject { Name = "" }
-                },
-                new()
-                {
-                    MgmId = 2,
-                    FlowNwObject = new FlowNwObject { Name = "fallback-name" }
-                }
+                (1, ""),
+                (2, "fallback-name")
             ];
 
             string result = FlowNamingHelper.ResolvePreferredName(
                 mappings,
                 preferredManagementId: 99,
                 managementIdSelector: mapping => mapping.MgmId,
-                nameSelector: mapping => mapping.FlowNwObject.Name);
+                nameSelector: mapping => mapping.Name);
 
             Assert.That(result, Is.EqualTo("fallback-name"));
         }
@@ -62,51 +46,47 @@ namespace FWO.Test
         [Test]
         public void ResolvePreferredName_ReturnsFallbackWhenNoNamesExist()
         {
-            List<FlowNwObjectMapping> mappings =
+            List<(int? MgmId, string? Name)> mappings =
             [
-                new()
-                {
-                    MgmId = 1,
-                    FlowNwObject = new FlowNwObject { Name = "" }
-                }
+                (1, "")
             ];
 
             string result = FlowNamingHelper.ResolvePreferredName(
                 mappings,
                 preferredManagementId: 1,
                 managementIdSelector: mapping => mapping.MgmId,
-                nameSelector: mapping => mapping.FlowNwObject.Name,
+                nameSelector: mapping => mapping.Name,
                 fallbackName: "unnamed-flow");
 
             Assert.That(result, Is.EqualTo("unnamed-flow"));
         }
 
         [Test]
-        public void ResolveNwObjectName_UsesPreferredActiveMapping()
+        public void ResolveNwObjectName_UsesFirstActiveLink()
         {
             FlowNwObject nwObject = new()
             {
                 Name = "old-name",
-                NwObjectMappings =
+                Objects =
                 [
-                    new FlowNwObjectMapping
+                    new NetworkObject
                     {
-                        MgmId = 1,
-                        ActiveOnMgm = true,
-                        Object = new NetworkObject { Name = "forti-name" }
+                        Id = 1,
+                        Name = "forti-name",
+                        FlowActive = true
                     },
-                    new FlowNwObjectMapping
+                    new NetworkObject
                     {
-                        MgmId = 2,
-                        ActiveOnMgm = true,
-                        Object = new NetworkObject { Name = "checkpoint-name" }
+                        Id = 2,
+                        Name = "checkpoint-name",
+                        FlowActive = true
                     }
                 ]
             };
 
             string result = FlowNamingHelper.ResolveNwObjectName(nwObject, preferredManagementId: 2, fallbackName: nwObject.Name!);
 
-            Assert.That(result, Is.EqualTo("checkpoint-name"));
+            Assert.That(result, Is.EqualTo("forti-name"));
         }
 
         [Test]
@@ -115,13 +95,13 @@ namespace FWO.Test
             FlowNwObject nwObject = new()
             {
                 Name = "old-name",
-                NwObjectMappings =
+                Objects =
                 [
-                    new FlowNwObjectMapping
+                    new NetworkObject
                     {
-                        MgmId = 1,
-                        ActiveOnMgm = false,
-                        Object = new NetworkObject { Name = "fallback-name" }
+                        Id = 1,
+                        Name = "fallback-name",
+                        FlowActive = false
                     }
                 ]
             };
@@ -137,13 +117,13 @@ namespace FWO.Test
             FlowNwObject nwObject = new()
             {
                 Name = "already-named",
-                NwObjectMappings =
+                Objects =
                 [
-                    new FlowNwObjectMapping
+                    new NetworkObject
                     {
-                        MgmId = 1,
-                        ActiveOnMgm = true,
-                        Object = new NetworkObject { Name = "replacement-name" }
+                        Id = 1,
+                        Name = "replacement-name",
+                        FlowActive = true
                     }
                 ]
             };
@@ -159,13 +139,13 @@ namespace FWO.Test
             FlowNwObject nwObject = new()
             {
                 Name = "",
-                NwObjectMappings =
+                Objects =
                 [
-                    new FlowNwObjectMapping
+                    new NetworkObject
                     {
-                        MgmId = 1,
-                        ActiveOnMgm = true,
-                        Object = new NetworkObject { Name = "replacement-name" }
+                        Id = 1,
+                        Name = "replacement-name",
+                        FlowActive = true
                     }
                 ]
             };

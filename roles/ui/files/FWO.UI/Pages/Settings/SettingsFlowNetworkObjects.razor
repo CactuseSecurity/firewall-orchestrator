@@ -58,9 +58,9 @@
                 @($"{group.FlowNwObjectName} (#{group.FlowNwObjectId})")
             </Template>
         </Column>
-        <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.Mappings.Count)" Sortable="true" Filterable="false" Context="group">
+        <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.Objects.Count)" Sortable="true" Filterable="false" Context="group">
             <Template>
-                @BuildDuplicateMappingSummary(group)
+                @BuildDuplicateObjectSummary(group)
             </Template>
         </Column>
         <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("actions"))" Field="@(group => group.ManagementId)" Sortable="false" Filterable="false" Context="group">
@@ -169,26 +169,26 @@ else
                 <div><span class="fw-bold">@(userConfig.GetText("management")):</span> @SelectedDuplicateGroup.ManagementName</div>
             </div>
             <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
-                   TableItem="FlowNwObjectMapping"
-                   Items="SelectedDuplicateGroup.Mappings"
+                   TableItem="NetworkObject"
+                   Items="SelectedDuplicateGroup.Objects"
                    PageSize="10"
                    ColumnReorder="true">
-                <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("id"))" Field="@(mapping => mapping.ObjId)" Sortable="true" Filterable="true" />
-                <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("name"))" Field="@(mapping => mapping.Object.Name)" Sortable="true" Filterable="true" Context="mapping">
+                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("id"))" Field="@(nwObject => nwObject.Id)" Sortable="true" Filterable="true" />
+                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(nwObject => nwObject.Name)" Sortable="true" Filterable="true" Context="nwObject">
                     <Template>
-                        <span class="d-inline-block rounded px-2 py-1 @(mapping == SelectedDuplicateMapping ? "bg-warning-subtle fw-bold" : "")">
-                            @mapping.Object.Name
+                        <span class="d-inline-block rounded px-2 py-1 @(nwObject == SelectedDuplicateObject ? "bg-warning-subtle fw-bold" : "")">
+                            @nwObject.Name
                         </span>
                     </Template>
                 </Column>
-                <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("state"))" Field="@(mapping => mapping.ActiveOnMgm)" Sortable="true" Filterable="true" Context="mapping">
+                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("state"))" Field="@(nwObject => nwObject.FlowActive)" Sortable="true" Filterable="true" Context="nwObject">
                     <Template>
-                        @mapping.ActiveOnMgm.ShowAsHtml()
+                        @nwObject.FlowActive.ShowAsHtml()
                     </Template>
                 </Column>
-                <Column TableItem="FlowNwObjectMapping" Title="@(userConfig.GetText("actions"))" Field="@(mapping => mapping.ObjId)" Sortable="false" Filterable="false" Context="mapping">
+                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
                     <Template>
-                        <button type="button" class="btn btn-sm @(mapping == SelectedDuplicateMapping ? "btn-success" : "btn-outline-primary")" @onclick="() => SelectDuplicateMapping(mapping)">
+                        <button type="button" class="btn btn-sm @(nwObject == SelectedDuplicateObject ? "btn-success" : "btn-outline-primary")" @onclick="() => SelectDuplicateObject(nwObject)">
                             @(userConfig.GetText("select"))
                         </button>
                     </Template>
@@ -199,7 +199,7 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-warning" disabled="@(SelectedDuplicateMapping == null)" @onclick="ResolveDuplicateMapping">
+            <button type="button" class="btn btn-sm btn-warning" disabled="@(SelectedDuplicateObject == null)" @onclick="ResolveDuplicateMapping">
                 @(userConfig.GetText("save"))
             </button>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseDuplicateResolver">
@@ -325,7 +325,7 @@ else
     private ConfigData? configData;
     private Management? selectedNamingManagement;
     private FlowNwObjectDuplicateGroup? SelectedDuplicateGroup;
-    private FlowNwObjectMapping? SelectedDuplicateMapping;
+    private NetworkObject? SelectedDuplicateObject;
     private FlowNwObject NewCustomFlowNwObject = new();
     private bool workInProgress = false;
     private string objectSearchText = "";
@@ -352,7 +352,7 @@ else
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
             selectedNamingManagement = selectableManagements.FirstOrDefault(management => management.Id == configData.FlowNamingSourceManagementId);
             flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowNwObjectCatalog);
-            customObjectManagements = [];
+            await LoadCustomObjectManagements();
             customObjectSelections = [];
 
             workInProgress = false;
@@ -382,7 +382,7 @@ else
             List<FlowNwObject> objectsToBackfill = [.. flowNwObjects.Where(nwObject => string.IsNullOrWhiteSpace(nwObject.Name))];
             foreach (FlowNwObject nwObject in objectsToBackfill)
             {
-                string resolvedName = FlowNamingHelper.ResolveMissingNwObjectName(nwObject, preferredManagementId, "");
+                string resolvedName = ResolveMissingFlowObjectName(nwObject, preferredManagementId, "");
                 if (string.IsNullOrWhiteSpace(resolvedName))
                 {
                     continue;
@@ -394,7 +394,7 @@ else
                     name = resolvedName,
                     showInRequestModule = nwObject.ShowInRequestModule
                 });
-                FlowAccessCatalogHelper.ApplyNwObjectUpdate(null, flowNwObjects, updatedObject);
+                ReplaceFlowObjectInCatalog(updatedObject);
             }
 
             DisplayMessageInUi(null, userConfig.GetText("flow_naming"), userConfig.GetText("U5301"), false);
@@ -432,7 +432,7 @@ else
             List<FlowNwObject> objectsToRecalculate = [.. flowNwObjects];
             foreach (FlowNwObject nwObject in objectsToRecalculate)
             {
-                string resolvedName = FlowNamingHelper.ResolveNwObjectName(nwObject, preferredManagementId, nwObject.Name ?? "");
+                string resolvedName = ResolveFlowObjectName(nwObject, preferredManagementId, nwObject.Name ?? "");
                 if (string.Equals(resolvedName, nwObject.Name, StringComparison.Ordinal))
                 {
                     continue;
@@ -444,6 +444,7 @@ else
                     name = resolvedName,
                     showInRequestModule = nwObject.ShowInRequestModule
                 });
+                ReplaceFlowObjectInCatalog(updatedObject);
             }
 
             workInProgress = false;
@@ -459,7 +460,7 @@ else
     }
 
     private List<FlowNwObjectDuplicateGroup> DuplicateGroups =>
-        FlowAdminHelper.BuildDuplicateGroups(flowNwObjects);
+        BuildDuplicateGroups();
 
     private List<FlowNwObject> FilteredFlowNwObjects =>
         string.IsNullOrWhiteSpace(objectSearchText)
@@ -497,7 +498,7 @@ else
     private void OpenDuplicateResolver(FlowNwObjectDuplicateGroup group)
     {
         SelectedDuplicateGroup = group;
-        SelectedDuplicateMapping = group.Mappings.FirstOrDefault();
+        SelectedDuplicateObject = group.Objects.FirstOrDefault();
         ResolveDuplicateMode = true;
     }
 
@@ -505,19 +506,19 @@ else
     {
         ResolveDuplicateMode = false;
         SelectedDuplicateGroup = null;
-        SelectedDuplicateMapping = null;
+        SelectedDuplicateObject = null;
     }
 
-    private void SelectDuplicateMapping(FlowNwObjectMapping mapping)
+    private void SelectDuplicateObject(NetworkObject nwObject)
     {
-        SelectedDuplicateMapping = mapping;
+        SelectedDuplicateObject = nwObject;
     }
 
     private async Task ResolveDuplicateMapping()
     {
         try
         {
-            if (SelectedDuplicateGroup == null || SelectedDuplicateMapping == null)
+            if (SelectedDuplicateGroup == null || SelectedDuplicateObject == null)
             {
                 return;
             }
@@ -525,13 +526,16 @@ else
             workInProgress = true;
             StateHasChanged();
 
-            await apiConnection.SendQueryAsync<FlowNwObjectMappingResult>(FlowMutations.upsertFlowNwObjectMapping, new
+            foreach (NetworkObject candidate in SelectedDuplicateGroup.Objects)
             {
-                flowNwobjId = SelectedDuplicateGroup.FlowNwObjectId,
-                objId = SelectedDuplicateMapping.ObjId,
-                mgmId = SelectedDuplicateGroup.ManagementId,
-                activeOnMgm = true
-            });
+                NetworkObject updatedObject = await apiConnection.SendQueryAsync<NetworkObject>(FlowMutations.upsertFlowNwObjectMapping, new
+                {
+                    objId = candidate.Id,
+                    flowNwobjId = SelectedDuplicateGroup.FlowNwObjectId,
+                    activeOnMgm = candidate.Id == SelectedDuplicateObject.Id
+                });
+                UpdateCustomObjectInCatalog(updatedObject);
+            }
 
             CloseDuplicateResolver();
             await Refresh();
@@ -597,6 +601,135 @@ else
         });
     }
 
+    private void ReplaceFlowObjectInCatalog(FlowNwObject updatedObject)
+    {
+        int objectIndex = flowNwObjects.FindIndex(flowObject => flowObject.Id == updatedObject.Id);
+        if (objectIndex >= 0)
+        {
+            flowNwObjects[objectIndex] = updatedObject;
+        }
+    }
+
+    private void UpdateCustomObjectInCatalog(NetworkObject updatedObject)
+    {
+        foreach (Management management in customObjectManagements)
+        {
+            int objectIndex = Array.FindIndex(management.Objects, nwObject => nwObject.Id == updatedObject.Id);
+            if (objectIndex >= 0)
+            {
+                management.Objects[objectIndex] = updatedObject;
+                return;
+            }
+        }
+    }
+
+    private List<NetworkObject> GetLinkedCustomObjects(long flowNwObjectId)
+    {
+        return [.. customObjectManagements.SelectMany(management => management.Objects)
+            .Where(nwObject => nwObject.FlowNetworkObjectId == flowNwObjectId)];
+    }
+
+    private List<NetworkObject> GetLinkedCustomObjects(long flowNwObjectId, int managementId)
+    {
+        return [.. customObjectManagements
+            .Where(management => management.Id == managementId)
+            .SelectMany(management => management.Objects)
+            .Where(nwObject => nwObject.FlowNetworkObjectId == flowNwObjectId)];
+    }
+
+    private List<FlowNwObjectDuplicateGroup> BuildDuplicateGroups()
+    {
+        List<FlowNwObjectDuplicateGroup> duplicateGroups = [];
+
+        foreach (FlowNwObject flowObject in flowNwObjects)
+        {
+            foreach (Management management in customObjectManagements)
+            {
+                List<NetworkObject> linkedObjects = GetLinkedCustomObjects(flowObject.Id, management.Id);
+                if (linkedObjects.Count <= 1 || linkedObjects.Any(nwObject => nwObject.FlowActive))
+                {
+                    continue;
+                }
+
+                duplicateGroups.Add(new FlowNwObjectDuplicateGroup
+                {
+                    FlowNwObjectId = flowObject.Id,
+                    FlowNwObjectName = flowObject.Name ?? "",
+                    ManagementId = management.Id,
+                    ManagementName = management.Name,
+                    Objects = [.. linkedObjects
+                        .OrderBy(nwObject => nwObject.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(nwObject => nwObject.Id)]
+                });
+            }
+        }
+
+        return [.. duplicateGroups
+            .OrderBy(group => group.FlowNwObjectName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(group => group.ManagementName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(group => group.FlowNwObjectId)
+            .ThenBy(group => group.ManagementId)];
+    }
+
+    private string ResolveFlowObjectName(FlowNwObject nwObject, int? preferredManagementId, string fallbackName)
+    {
+        List<NetworkObject> linkedObjects = GetLinkedCustomObjects(nwObject.Id);
+        if (linkedObjects.Count == 0)
+        {
+            return fallbackName;
+        }
+
+        if (preferredManagementId.HasValue)
+        {
+            string? preferredName = GetBestNameForManagement(linkedObjects, preferredManagementId.Value);
+            if (!string.IsNullOrWhiteSpace(preferredName))
+            {
+                return preferredName;
+            }
+        }
+
+        string? activeName = GetBestName(linkedObjects.Where(nwObject => nwObject.FlowActive));
+        if (!string.IsNullOrWhiteSpace(activeName))
+        {
+            return activeName;
+        }
+
+        string? firstName = GetBestName(linkedObjects);
+        return string.IsNullOrWhiteSpace(firstName) ? fallbackName : firstName;
+    }
+
+    private string ResolveMissingFlowObjectName(FlowNwObject nwObject, int? preferredManagementId, string fallbackName)
+    {
+        return string.IsNullOrWhiteSpace(nwObject.Name)
+            ? ResolveFlowObjectName(nwObject, preferredManagementId, fallbackName)
+            : nwObject.Name!;
+    }
+
+    private string? GetBestNameForManagement(IEnumerable<NetworkObject> linkedObjects, int managementId)
+    {
+        Management? management = customObjectManagements.FirstOrDefault(item => item.Id == managementId);
+        if (management == null)
+        {
+            return null;
+        }
+
+        List<NetworkObject> managementObjects = [.. linkedObjects.Where(nwObject => management.Objects.Any(obj => obj.Id == nwObject.Id))];
+        if (managementObjects.Count == 0)
+        {
+            return null;
+        }
+
+        string? activeName = GetBestName(managementObjects.Where(nwObject => nwObject.FlowActive));
+        return !string.IsNullOrWhiteSpace(activeName) ? activeName : GetBestName(managementObjects);
+    }
+
+    private static string? GetBestName(IEnumerable<NetworkObject> linkedObjects)
+    {
+        return linkedObjects
+            .Select(nwObject => nwObject.Name)
+            .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
+    }
+
     private async Task SaveCustomObject()
     {
         try
@@ -622,13 +755,13 @@ else
 
             foreach (CustomObjectManagementSelection selection in customObjectSelections.Where(selection => selection.SelectedObject != null))
             {
-                await apiConnection.SendQueryAsync<FlowNwObjectMappingResult>(FlowMutations.upsertFlowNwObjectMapping, new
+                NetworkObject updatedObject = await apiConnection.SendQueryAsync<NetworkObject>(FlowMutations.upsertFlowNwObjectMapping, new
                 {
-                    flowNwobjId = createdObject.Id,
                     objId = selection.SelectedObject!.Id,
-                    mgmId = selection.Management.Id,
+                    flowNwobjId = createdObject.Id,
                     activeOnMgm = true
                 });
+                UpdateCustomObjectInCatalog(updatedObject);
             }
 
             CreateCustomObjectMode = false;
@@ -664,7 +797,7 @@ else
                 showInRequestModule = EditFlowNwObject.ShowInRequestModule
             });
 
-            FlowAccessCatalogHelper.ApplyNwObjectUpdate(null, flowNwObjects, updatedObject);
+            ReplaceFlowObjectInCatalog(updatedObject);
             EditNwObjectMode = false;
             workInProgress = false;
         }
@@ -689,10 +822,10 @@ else
         ]).ToLowerInvariant();
     }
 
-    private static string BuildDuplicateMappingSummary(FlowNwObjectDuplicateGroup group)
+    private static string BuildDuplicateObjectSummary(FlowNwObjectDuplicateGroup group)
     {
-        return string.Join(", ", group.Mappings.Select(mapping =>
-            $"{mapping.Object?.Name ?? $"#{mapping.ObjId}"}"));
+        return string.Join(", ", group.Objects.Select(nwObject =>
+            $"{nwObject.Name ?? $"#{nwObject.Id}"}"));
     }
 
     private static string GetCustomObjectSelectionLabel(CustomObjectManagementSelection selection)

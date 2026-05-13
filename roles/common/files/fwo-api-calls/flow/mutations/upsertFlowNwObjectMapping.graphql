@@ -1,30 +1,23 @@
 mutation upsertFlowNwObjectMapping(
-  $flowNwobjId: bigint!
   $objId: bigint!
-  $mgmId: Int!
+  $flowNwobjId: bigint!
   $activeOnMgm: Boolean!
 ) {
-  insert_flow_nwobject_mapping(
-    objects: {
+  update_object_by_pk(
+    pk_columns: { obj_id: $objId }
+    _set: {
       flow_nwobj_id: $flowNwobjId
-      obj_id: $objId
-      mgm_id: $mgmId
-      active_on_mgm: $activeOnMgm
-    }
-    on_conflict: {
-      constraint: nwobject_mapping_pkey
-      update_columns: [
-        flow_nwobj_id
-        mgm_id
-        active_on_mgm
-      ]
+      flow_active: $activeOnMgm
     }
   ) {
-    returning {
-      flow_nwobj_id
-      obj_id
-      mgm_id
-      active_on_mgm
-    }
+    obj_id
+    obj_name
+    obj_ip
+    obj_ip_end
+    obj_uid
+    active
+    removed
+    flow_nwobj_id
+    flow_active
   }
 }

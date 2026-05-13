@@ -44,8 +44,8 @@ namespace FWO.Data.Flow
         [JsonProperty("access_timeobjects"), JsonPropertyName("access_timeobjects")]
         public List<FlowAccessTimeObject>? TimeObjects { get; set; }
 
-        [JsonProperty("rule_flow_mappings"), JsonPropertyName("rule_flow_mappings")]
-        public List<RuleFlowMapping>? RuleFlowMappings { get; set; }
+        [JsonProperty("rules"), JsonPropertyName("rules")]
+        public List<Rule>? Rules { get; set; }
 
         public void GenerateAccessHash()
         {

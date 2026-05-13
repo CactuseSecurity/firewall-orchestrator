@@ -21,9 +21,9 @@ fragment flowAccessDetails on flow_access {
   }
   access_source_grps(order_by: { nwgroup_id: asc }) {
     access_id
-    nwgroup_id
+    nwgrp_id
     nwgroup {
-      nwgroup_id
+      nwgrp_id
       name
       nwgrp_hash
       state
@@ -47,9 +47,9 @@ fragment flowAccessDetails on flow_access {
   }
   access_destination_grps(order_by: { nwgroup_id: asc }) {
     access_id
-    nwgroup_id
+    nwgrp_id
     nwgroup {
-      nwgroup_id
+      nwgrp_id
       name
       nwgrp_hash
       state
@@ -74,9 +74,9 @@ fragment flowAccessDetails on flow_access {
   }
   access_service_grps(order_by: { svcgroup_id: asc }) {
     access_id
-    svcgroup_id
+    svcgrp_id
     svcgroup {
-      svcgroup_id
+      svcgrp_id
       name
       svcgrp_hash
       state
@@ -98,8 +98,9 @@ fragment flowAccessDetails on flow_access {
       show_in_request_module
     }
   }
-  rule_flow_mappings(order_by: { rule_id: asc }) {
+  rules(order_by: { rule_id: asc }) {
     rule_id
-    access_id
+    flow_access_id
+    flow_active
   }
 }

@@ -29,8 +29,8 @@ namespace FWO.Data.Flow
         [JsonProperty("show_in_request_module"), JsonPropertyName("show_in_request_module")]
         public bool ShowInRequestModule { get; set; }
 
-        [JsonProperty("nwobject_mappings"), JsonPropertyName("nwobject_mappings")]
-        public List<FlowNwObjectMapping>? NwObjectMappings { get; set; }
+        [JsonProperty("objects"), JsonPropertyName("objects")]
+        public List<NetworkObject>? Objects { get; set; }
 
         public void GenerateHash()
         {
@@ -42,11 +42,5 @@ namespace FWO.Data.Flow
     {
         [JsonProperty("returning"), JsonPropertyName("returning")]
         public List<FlowNwObject> Returning { get; set; } = [];
-    }
-
-    public class FlowNwObjectMappingResult
-    {
-        [JsonProperty("returning"), JsonPropertyName("returning")]
-        public List<FlowNwObjectMapping> Returning { get; set; } = [];
     }
 }

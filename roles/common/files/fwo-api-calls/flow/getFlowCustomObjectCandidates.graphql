@@ -25,6 +25,8 @@ query getFlowCustomObjectCandidates($management_id: [Int!]) {
       obj_ip_end
       obj_uid
       active
+      flow_nwobj_id
+      flow_active
       type: stm_obj_typ {
         id: obj_typ_id
         name: obj_typ_name

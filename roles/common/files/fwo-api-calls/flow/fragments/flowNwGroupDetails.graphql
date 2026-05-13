@@ -19,23 +19,15 @@ fragment flowNwGroupDetails on flow_nwgroup {
       show_in_request_module
     }
   }
-  nwgroup_mappings(order_by: { mgm_id: asc }) {
-    flow_nwgroup_id
-    objgrp_id
-    mgm_id
-    active_on_mgm
-    management {
-      mgm_id
-      mgm_name
-    }
-    object {
-      obj_id
-      obj_name
-      obj_ip
-      obj_ip_end
-      obj_uid
-      active
-      removed
-    }
+  objects(order_by: { obj_name: asc }) {
+    obj_id
+    obj_name
+    obj_ip
+    obj_ip_end
+    obj_uid
+    active
+    removed
+    flow_nwgrp_id
+    flow_active
   }
 }

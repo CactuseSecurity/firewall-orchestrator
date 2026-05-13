@@ -41,16 +41,16 @@ namespace FWO.Data.Flow
 
         /// <summary>
         /// Resolves the preferred display name for a flow network object.
-        /// Active mappings are preferred for the rewrite pass; if none are usable, any usable mapping is considered.
+        /// Active linked objects are preferred for the rewrite pass; if none are usable, any usable link is considered.
         /// </summary>
         public static string ResolveNwObjectName(FlowNwObject nwObject, int? preferredManagementId, string fallbackName = "")
         {
-            List<FlowNwObjectMapping> activeMappings = [.. (nwObject.NwObjectMappings ?? []).Where(mapping => mapping.ActiveOnMgm)];
+            List<NetworkObject> activeObjects = [.. (nwObject.Objects ?? []).Where(nwObject => nwObject.FlowActive)];
             string resolvedName = ResolvePreferredName(
-                activeMappings,
+                activeObjects,
                 preferredManagementId,
-                mapping => mapping.MgmId,
-                mapping => mapping.Object?.Name,
+                _ => null,
+                nwObject => nwObject.Name,
                 fallbackName: "");
 
             if (!string.IsNullOrWhiteSpace(resolvedName))
@@ -59,10 +59,10 @@ namespace FWO.Data.Flow
             }
 
             resolvedName = ResolvePreferredName(
-                nwObject.NwObjectMappings,
+                nwObject.Objects,
                 preferredManagementId,
-                mapping => mapping.MgmId,
-                mapping => mapping.Object?.Name,
+                _ => null,
+                nwObject => nwObject.Name,
                 fallbackName: "");
 
             return string.IsNullOrWhiteSpace(resolvedName) ? fallbackName : resolvedName;

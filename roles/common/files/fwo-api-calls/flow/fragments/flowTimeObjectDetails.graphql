@@ -7,22 +7,14 @@ fragment flowTimeObjectDetails on flow_timeobject {
   state
   removed_date
   show_in_request_module
-  timeobject_mappings(order_by: { mgm_id: asc }) {
-    flow_timeobj_id
+  time_objects(order_by: { time_obj_name: asc }) {
     time_obj_id
-    mgm_id
-    active_on_mgm
-    management {
-      mgm_id
-      mgm_name
-    }
-    time_object {
-      time_obj_id
-      time_obj_name
-      time_obj_uid
-      start_time
-      end_time
-      removed
-    }
+    time_obj_name
+    time_obj_uid
+    start_time
+    end_time
+    removed
+    flow_timeobj_id
+    flow_active
   }
 }

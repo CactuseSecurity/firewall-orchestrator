@@ -8,23 +8,15 @@ fragment flowSvcObjectDetails on flow_svcobject {
   state
   removed_date
   show_in_request_module
-  svcobject_mappings(order_by: { mgm_id: asc }) {
-    flow_svcobj_id
+  services(order_by: { svc_name: asc }) {
     svc_id
-    mgm_id
-    active_on_mgm
-    management {
-      mgm_id
-      mgm_name
-    }
-    service {
-      svc_id
-      svc_name
-      svc_port
-      svc_port_end
-      svc_uid
-      active
-      removed
-    }
+    svc_name
+    svc_port
+    svc_port_end
+    svc_uid
+    active
+    removed
+    flow_svcobj_id
+    flow_active
   }
 }

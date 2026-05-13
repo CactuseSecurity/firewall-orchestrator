@@ -16,25 +16,21 @@ namespace FWO.Test
                 {
                     Id = 1,
                     Name = "duplicate-flow",
-                    NwObjectMappings =
+                    Objects =
                     [
-                        new FlowNwObjectMapping
+                        new NetworkObject
                         {
-                            FlowNwObjectId = 1,
-                            MgmId = 10,
-                            ObjId = 100,
-                            ActiveOnMgm = false,
-                            Management = new Management { Id = 10, Name = "Mgmt A" },
-                            Object = new NetworkObject { Id = 100, Name = "obj-a" }
+                            Id = 100,
+                            Name = "obj-a",
+                            FlowNetworkObjectId = 1,
+                            FlowActive = false
                         },
-                        new FlowNwObjectMapping
+                        new NetworkObject
                         {
-                            FlowNwObjectId = 1,
-                            MgmId = 10,
-                            ObjId = 200,
-                            ActiveOnMgm = false,
-                            Management = new Management { Id = 10, Name = "Mgmt A" },
-                            Object = new NetworkObject { Id = 200, Name = "obj-b" }
+                            Id = 200,
+                            Name = "obj-b",
+                            FlowNetworkObjectId = 1,
+                            FlowActive = false
                         }
                     ]
                 }
@@ -44,8 +40,7 @@ namespace FWO.Test
 
             Assert.That(groups, Has.Count.EqualTo(1));
             Assert.That(groups[0].FlowNwObjectId, Is.EqualTo(1));
-            Assert.That(groups[0].ManagementId, Is.EqualTo(10));
-            Assert.That(groups[0].Mappings, Has.Count.EqualTo(2));
+            Assert.That(groups[0].Objects, Has.Count.EqualTo(2));
         }
 
         [Test]
@@ -57,25 +52,21 @@ namespace FWO.Test
                 {
                     Id = 1,
                     Name = "non-duplicate-flow",
-                    NwObjectMappings =
+                    Objects =
                     [
-                        new FlowNwObjectMapping
+                        new NetworkObject
                         {
-                            FlowNwObjectId = 1,
-                            MgmId = 10,
-                            ObjId = 100,
-                            ActiveOnMgm = true,
-                            Management = new Management { Id = 10, Name = "Mgmt A" },
-                            Object = new NetworkObject { Id = 100, Name = "obj-a" }
+                            Id = 100,
+                            Name = "obj-a",
+                            FlowNetworkObjectId = 1,
+                            FlowActive = true
                         },
-                        new FlowNwObjectMapping
+                        new NetworkObject
                         {
-                            FlowNwObjectId = 1,
-                            MgmId = 10,
-                            ObjId = 200,
-                            ActiveOnMgm = false,
-                            Management = new Management { Id = 10, Name = "Mgmt A" },
-                            Object = new NetworkObject { Id = 200, Name = "obj-b" }
+                            Id = 200,
+                            Name = "obj-b",
+                            FlowNetworkObjectId = 1,
+                            FlowActive = false
                         }
                     ]
                 }

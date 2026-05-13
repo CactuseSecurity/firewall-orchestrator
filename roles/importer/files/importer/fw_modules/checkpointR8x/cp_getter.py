@@ -8,10 +8,11 @@ import fwo_const
 import fwo_globals
 import requests
 from fw_modules.checkpointR8x import cp_const, cp_network
+from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.management_controller import ManagementController
-from services.service_provider import ServiceProvider
+from states.global_state import GlobalState
 
 # Constants for status values
 STATUS_IN_PROGRESS = "in progress"
@@ -336,6 +337,7 @@ def get_global_assignments(api_v_url: str, sid: str, show_params_policy_structur
 
 
 def get_rulebases(
+    global_state: GlobalState,
     api_v_url: str,
     sid: str | None,
     show_params_rules: dict[str, Any],
@@ -382,6 +384,7 @@ def get_rulebases(
     # get rulebase in chunks
     if rulebase_uid not in fetched_rulebase_list:
         current_rulebase = get_rulebases_in_chunks(
+            global_state,  # type: ignore  # noqa: PGH003
             rulebase_uid,  # type: ignore  # noqa: PGH003
             show_params_rules,
             api_v_url,
@@ -393,6 +396,7 @@ def get_rulebases(
 
     # use recursion to get inline layers
     return get_inline_layers_recursively(
+        global_state,
         current_rulebase,
         device_config,
         native_config_domain,
@@ -425,6 +429,7 @@ def get_uid_of_rulebase(
 
 
 def get_rulebases_in_chunks(
+    global_state: GlobalState,
     rulebase_uid: str,
     show_params_rules: dict[str, Any],
     api_v_url: str,
@@ -447,10 +452,8 @@ def get_rulebases_in_chunks(
         except Exception:
             FWOLogger.error("could not find rulebase uid=" + rulebase_uid)
 
-            service_provider = ServiceProvider()
-            global_state = service_provider.get_global_state()
             description = f"failed to get show-access-rulebase  {rulebase_uid}"
-            global_state.import_state.api_call.create_data_issue(severity=2, description=description)
+            global_state.fwo_api_call.create_data_issue(severity=2, description=description)
             raise FwApiError("")
 
         resolve_checkpoint_uids_via_object_dict(
@@ -516,6 +519,7 @@ def control_while_loop_in_get_rulebases_in_chunks(
 
 
 def get_inline_layers_recursively(
+    global_state: GlobalState,
     current_rulebase: dict[str, Any],
     device_config: dict[str, Any],
     native_config_domain: dict[str, Any],
@@ -554,6 +558,7 @@ def get_inline_layers_recursively(
 
                         # get inline layer
                         policy_rulebases_uid_list = get_rulebases(
+                            global_state,
                             api_v_url,
                             sid,
                             show_params_rules,
@@ -836,7 +841,7 @@ def handle_cpmi_any_object(obj: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def handle_gateway_objects(obj: dict[str, Any]) -> dict[str, Any]:
+def handle_gateway_objects(fwo_api_call: FwoApiCall, obj: dict[str, Any]) -> dict[str, Any]:
     """Handle various gateway and network member objects."""
     color = obj.get("color", "black")
     return {
@@ -850,7 +855,7 @@ def handle_gateway_objects(obj: dict[str, Any]) -> dict[str, Any]:
                         "color": color,
                         "comments": obj["comments"],
                         "type": "host",
-                        "ipv4-address": cp_network.get_ip_of_obj(obj),
+                        "ipv4-address": cp_network.get_ip_of_obj(fwo_api_call, obj),
                         "domain": obj["domain"],
                     }
                 ]
@@ -927,7 +932,9 @@ def handle_network_zone_objects(obj: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str = "") -> dict[str, Any]:
+def get_object_details_from_api(
+    fwo_api_call: FwoApiCall, uid_missing_obj: str, sid: str = "", apiurl: str = ""
+) -> dict[str, Any]:
     FWOLogger.debug(f"getting {uid_missing_obj} from API", 6)
 
     show_params_host = {"details-level": "full", "uid": uid_missing_obj}  # need to get the full object here
@@ -961,7 +968,7 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str
         "CpmiVsxClusterMember",
         "CpmiVsxNetobj",
     ]:
-        return handle_gateway_objects(obj)
+        return handle_gateway_objects(fwo_api_call, obj)
     if obj_type == "Global":
         return handle_global_object(obj)
     if obj_type in ["updatable-object", "CpmiVoipSipDomain", "CpmiVoipMgcpDomain", "gsn_handover_group"]:

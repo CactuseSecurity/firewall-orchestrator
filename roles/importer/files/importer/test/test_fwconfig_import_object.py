@@ -7,13 +7,15 @@ from fwo_const import LIST_DELIMITER
 from fwo_exceptions import FwoDuplicateKeyViolationError, FwoImporterError
 from fwo_log import ChangeLogger, FWOLogger
 from model_controllers.fwconfig_import_object import FwConfigImportObject, Type
-from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
 from pytest_mock import MockerFixture
 from services.uid2id_mapper import Uid2IdMapper
+from states.global_state import GlobalState
+from states.import_state import ImportState
+from states.management_state import ManagementState
 from test.data.mock_objects import MockObjectsFactory
 from test.utils.config_builder import FwConfigBuilder
 from test.utils.test_utils import mock_get_graphql_code
@@ -21,7 +23,12 @@ from test.utils.test_utils import mock_get_graphql_code
 
 class TestFwConfigImportObjectAddChangelogObjs:
     def test_add_changelog_objects(
-        self, fwconfig_import_object: FwConfigImportObject, api_call: FwoApiCall, mocker: MockerFixture
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        api_call: FwoApiCall,
+        mocker: MockerFixture,
+        global_state: GlobalState,
+        import_state: ImportState,
     ):
         # Arrange
         api_call.call = mocker.Mock(
@@ -30,6 +37,8 @@ class TestFwConfigImportObjectAddChangelogObjs:
 
         # Act
         fwconfig_import_object.add_changelog_objs(
+            global_state=global_state,
+            import_state=import_state,
             nwobj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -37,17 +46,25 @@ class TestFwConfigImportObjectAddChangelogObjs:
         )
 
         # Assert
+        expected_change_type_id = (
+            2 if import_state.is_initial_import or global_state.fwo_config_controller.fwo_config.clear else 3
+        )
         api_call.call.assert_any_call(
             mocker.ANY,
             query_variables={
-                "nwObjChanges": MockObjectsFactory.get_changelog_object_insert_delete(),
-                "svcObjChanges": MockObjectsFactory.get_changelog_svc_objects_insert_delete(),
+                "nwObjChanges": MockObjectsFactory.get_changelog_object_insert_delete(expected_change_type_id),
+                "svcObjChanges": MockObjectsFactory.get_changelog_svc_objects_insert_delete(expected_change_type_id),
             },
             analyze_payload=True,
         )
 
     def test_add_changelog_objects_with_errors(
-        self, fwconfig_import_object: FwConfigImportObject, api_call: FwoApiCall, mocker: MockerFixture
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        api_call: FwoApiCall,
+        mocker: MockerFixture,
+        global_state: GlobalState,
+        import_state: ImportState,
     ):
         # Arrange
         mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
@@ -55,6 +72,8 @@ class TestFwConfigImportObjectAddChangelogObjs:
 
         # Act
         fwconfig_import_object.add_changelog_objs(
+            global_state=global_state,
+            import_state=import_state,
             nwobj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -67,7 +86,12 @@ class TestFwConfigImportObjectAddChangelogObjs:
         )
 
     def test_add_changelog_objects_with_exception(
-        self, fwconfig_import_object: FwConfigImportObject, api_call: FwoApiCall, mocker: MockerFixture
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        api_call: FwoApiCall,
+        mocker: MockerFixture,
+        global_state: GlobalState,
+        import_state: ImportState,
     ):
         # Arrange
         mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
@@ -75,6 +99,8 @@ class TestFwConfigImportObjectAddChangelogObjs:
 
         # Act
         fwconfig_import_object.add_changelog_objs(
+            global_state=global_state,
+            import_state=import_state,
             nwobj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -92,9 +118,18 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
     def test_prepare_changelog_objects(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        global_state: GlobalState,
+        import_state: ImportState,
     ):
+        # Arrange
+        expected_change_type_id = (
+            2 if import_state.is_initial_import or global_state.fwo_config_controller.fwo_config.clear else 3
+        )
+
         # Act
         nwobjs_changed, svcobjs_changed = fwconfig_import_object.prepare_changelog_objects(
+            global_state=global_state,
+            import_state=import_state,
             nw_obj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -102,17 +137,19 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         )
 
         # Assert
-        assert nwobjs_changed == MockObjectsFactory.get_changelog_object_insert_delete()
-        assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete()
+        assert nwobjs_changed == MockObjectsFactory.get_changelog_object_insert_delete(expected_change_type_id)
+        assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete(expected_change_type_id)
 
     def test_prepare_changelog_objects_initial_import(
-        self, fwconfig_import_object: FwConfigImportObject, import_state_controller: ImportStateController
+        self, fwconfig_import_object: FwConfigImportObject, global_state: GlobalState, import_state: ImportState
     ):
         # Arrange
-        import_state_controller.state.is_initial_import = True
+        import_state.is_initial_import = True
 
         # Act
         nwobjs_changed, svcobjs_changed = fwconfig_import_object.prepare_changelog_objects(
+            global_state=global_state,
+            import_state=import_state,
             nw_obj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -125,13 +162,15 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         assert nwobjs_changed == MockObjectsFactory.get_changelog_object_insert_delete(2)
 
     def test_prepare_changelog_objects_clearing_import(
-        self, fwconfig_import_object: FwConfigImportObject, import_state_controller: ImportStateController
+        self, fwconfig_import_object: FwConfigImportObject, global_state: GlobalState, import_state: ImportState
     ):
         # Arrange
-        import_state_controller.state.is_clearing_import = True
+        global_state.fwo_config_controller.fwo_config.clear = True
 
         # Act
         nwobjs_changed, svcobjs_changed = fwconfig_import_object.prepare_changelog_objects(
+            global_state=global_state,
+            import_state=import_state,
             nw_obj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -143,16 +182,20 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete(2)
 
     def test_prepare_changelog_objects_with_logged_changes(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
+        self, fwconfig_import_object: FwConfigImportObject, global_state: GlobalState, import_state: ImportState
     ):
         # Arrange
         change_logger = ChangeLogger()
         change_logger.changed_object_id_map = {1: 10}
         change_logger.changed_service_id_map = {3: 30}
+        expected_change_type_id = (
+            2 if import_state.is_initial_import or global_state.fwo_config_controller.fwo_config.clear else 3
+        )
 
         # Act
         nwobjs_changed, svcobjs_changed = fwconfig_import_object.prepare_changelog_objects(
+            global_state=global_state,
+            import_state=import_state,
             nw_obj_ids_added=[{"obj_id": 1}],
             nw_obj_ids_removed=[{"obj_id": 2}],
             svc_obj_ids_added=[{"svc_id": 3}],
@@ -160,37 +203,39 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         )
 
         # Assert
-        assert nwobjs_changed == MockObjectsFactory.get_changelog_object_insert_delete_change()
-        assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete_change()
+        assert nwobjs_changed == MockObjectsFactory.get_changelog_object_insert_delete_change(expected_change_type_id)
+        assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete_change(
+            expected_change_type_id
+        )
 
 
 class TestFwConfigImportObjectLookupProtoNameToId:
     def test_lookup_proto_name_to_id_unknown_name(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
     ):
         # Arrange
-        proto_name = "tcp"
+        proto_name = "tcp_not_exists"
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state_controller.state.lookup_protocol_id(proto_name)
+            global_state.stm_mapper.lookup_protocol_id(proto_name)
 
     def test_lookup_proto_name_to_id_known_name(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
     ):
         # Arrange
         proto_name = "icmp"
         expected_proto_id = 1
-        import_state_controller.state.protocol_map = {
+        global_state.stm_mapper.protocol_map = {
             "icmp": 1,
             "tcp": 6,
             "udp": 17,
         }
 
         # Act
-        proto_id = import_state_controller.state.lookup_protocol_id(proto_name)
+        proto_id = global_state.stm_mapper.lookup_protocol_id(proto_name)
         # Assert
         assert proto_id == expected_proto_id
 
@@ -198,30 +243,30 @@ class TestFwConfigImportObjectLookupProtoNameToId:
 class TestFwConfigImportObjectLookupUserType:
     def test_lookup_user_type_unknown(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
     ):
         # Arrange
         user_type_str = "some-user-type"
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state_controller.state.lookup_user_obj_type_id(user_type_str)
+            global_state.stm_mapper.lookup_user_obj_type_id(user_type_str)
 
     def test_lookup_user_type_known(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
     ):
         # Arrange
         user_type_str = "imported"
         expected_user_type = 2
-        import_state_controller.state.user_obj_type_map = {
+        global_state.stm_mapper.user_obj_type_map = {
             "admin": 1,
             "imported": 2,
             "readonly": 3,
         }
 
         # Act
-        user_type = import_state_controller.state.lookup_user_obj_type_id(user_type_str)
+        user_type = global_state.stm_mapper.lookup_user_obj_type_id(user_type_str)
 
         # Assert
         assert user_type == expected_user_type
@@ -230,30 +275,30 @@ class TestFwConfigImportObjectLookupUserType:
 class TestFwConfigImportObjectLookupSvcType:
     def test_lookup_svc_type_unknown(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
     ):
         # Arrange
         svc_type_str = "some-svc-type"
 
         # Act and Assert
         with pytest.raises(FwoImporterError):
-            import_state_controller.state.lookup_service_obj_type_id(svc_type_str)
+            global_state.stm_mapper.lookup_service_obj_type_id(svc_type_str)
 
     def test_lookup_svc_type_known(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
     ):
         # Arrange
         svc_type_str = "imported"
         expected_svc_type = 2
-        import_state_controller.state.service_obj_type_map = {
+        global_state.stm_mapper.service_obj_type_map = {
             "builtin": 1,
             "imported": 2,
             "custom": 3,
         }
 
         # Act
-        svc_type = import_state_controller.state.lookup_service_obj_type_id(svc_type_str)
+        svc_type = global_state.stm_mapper.lookup_service_obj_type_id(svc_type_str)
 
         # Assert
         assert svc_type == expected_svc_type
@@ -283,6 +328,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
 
         # Act
         fwconfig_import_object.write_member_updates(
+            fwo_api_call=api_call,
             new_group_member_flats=[
                 {
                     "admin": 1,
@@ -337,6 +383,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
 
         # Act
         fwconfig_import_object.write_member_updates(
+            fwo_api_call=api_call,
             new_group_member_flats=[],
             new_group_members=[],
             prefix=prefix,
@@ -374,6 +421,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.write_member_updates(
+                fwo_api_call=api_call,
                 new_group_member_flats=[],
                 new_group_members=[],
                 prefix=prefix,
@@ -406,6 +454,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         # Act
         with pytest.raises(FwoDuplicateKeyViolationError):
             fwconfig_import_object.write_member_updates(
+                fwo_api_call=api_call,
                 new_group_member_flats=[],
                 new_group_members=[],
                 prefix=prefix,
@@ -431,6 +480,7 @@ class TestFwConfigImportObjectWriteMemberUpdates:
         # Act
         with pytest.raises(TypeError):
             fwconfig_import_object.write_member_updates(
+                fwo_api_call=api_call,
                 new_group_member_flats=[],
                 new_group_members=[],
                 prefix=prefix,
@@ -446,12 +496,16 @@ class TestFwConfigImportObjectCollectGroupMembers:
     def test_collect_group_members_empty(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         new_group_members: list[dict[str, Any]] = []
 
         # Act
         fwconfig_import_object.collect_group_members(
+            import_state=import_state,
+            management_state=management_state,
             current_config_objects={},
             group_id=1,
             prefix="nwobj",
@@ -468,12 +522,16 @@ class TestFwConfigImportObjectCollectGroupMembers:
     def test_collect_group_members_no_changes(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         new_group_members: list[dict[str, Any]] = []
 
         # Act
         fwconfig_import_object.collect_group_members(
+            import_state=import_state,
+            management_state=management_state,
             current_config_objects={"1": {"id": 1, "uid": "1"}},
             group_id=1,
             prefix="nwobj",
@@ -491,15 +549,19 @@ class TestFwConfigImportObjectCollectGroupMembers:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         prefix = "nwobj"
         new_group_members: list[dict[str, Any]] = []
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=2)
-        fwconfig_import_object.import_state.state.import_id = 5
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=2)
+        import_state.import_id = 5
 
         # Act
         fwconfig_import_object.collect_group_members(
+            management_state=management_state,
+            import_state=import_state,
             current_config_objects={
                 "1": {"id": 1, "uid": "1"},
                 "2": {"id": 2, "uid": "2"},
@@ -526,12 +588,16 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
     def test_collect_flat_group_members_empty(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         new_group_member_flats: list[dict[str, Any]] = []
 
         # Act
         fwconfig_import_object.collect_flat_group_members(
+            management_state=management_state,
+            import_state=import_state,
             current_config_objects={},
             group_id=1,
             prefix="nwobj",
@@ -548,12 +614,16 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
     def test_collect_flat_group_members_no_changes(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         new_group_member_flats: list[dict[str, Any]] = []
 
         # Act
         fwconfig_import_object.collect_flat_group_members(
+            management_state=management_state,
+            import_state=import_state,
             current_config_objects={"1": {"id": 1, "uid": "1"}},
             group_id=1,
             prefix="nwobj",
@@ -571,15 +641,19 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         prefix = "nwobj"
         new_group_member_flats: list[dict[str, Any]] = []
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=2)
-        fwconfig_import_object.import_state.state.import_id = 5
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=2)
+        import_state.import_id = 5
 
         # Act
         fwconfig_import_object.collect_flat_group_members(
+            management_state=management_state,
+            import_state=import_state,
             current_config_objects={
                 "1": {"id": 1, "uid": "1"},
                 "2": {"id": 2, "uid": "2"},
@@ -605,13 +679,20 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
 class TestFwConfigImportObjectAddGroupMemberships:
     def test_add_group_memberships_no_changes(
         self,
+        api_call: FwoApiCall,
+        import_state: ImportState,
+        management_state: ManagementState,
         fwconfig_import_object: FwConfigImportObject,
     ):
         # Arrange
+        management_state.normalized_config = FwConfigNormalized()
         new_group_members: list[dict[str, Any]] = []
 
         # Act
         fwconfig_import_object.add_group_memberships(
+            import_state=import_state,
+            management_state=management_state,
+            fwo_api_call=api_call,
             obj_type=Type.NETWORK_OBJECT,
             prev_config=FwConfigNormalized(),
         )
@@ -623,26 +704,34 @@ class TestFwConfigImportObjectAddGroupMemberships:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        import_state: ImportState,
+        management_state: ManagementState,
         mocker: MockerFixture,
+        api_call: FwoApiCall,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=1,
         )
-        prev_config, _ = fwconfig_builder.build_config(
+        management_state.previous_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=1,
         )
         fwconfig_import_object.write_member_updates = mocker.Mock()
 
-        for obj in fwconfig_import_object.normalized_config.network_objects.values():
+        for obj in management_state.normalized_config.network_objects.values():
             obj.obj_typ = "not-a-group"
-        for obj in prev_config.network_objects.values():
+        for obj in management_state.previous_config.network_objects.values():
             obj.obj_typ = "not-a-group"
 
         # Act
         fwconfig_import_object.add_group_memberships(
+            fwo_api_call=api_call,
+            import_state=import_state,
+            management_state=management_state,
             obj_type=Type.NETWORK_OBJECT,
-            prev_config=prev_config,
+            prev_config=management_state.previous_config,
         )
 
         # Assert
@@ -650,87 +739,69 @@ class TestFwConfigImportObjectAddGroupMemberships:
 
     def test_add_group_memberships_no_group_changes(
         self,
+        import_state: ImportState,
+        management_state: ManagementState,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
         mocker: MockerFixture,
+        api_call: FwoApiCall,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=1,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
+        management_state.previous_config = copy.deepcopy(management_state.normalized_config)
         fwconfig_import_object.write_member_updates = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
 
         # Act
         fwconfig_import_object.add_group_memberships(
+            import_state=import_state,
+            management_state=management_state,
+            fwo_api_call=api_call,
             obj_type=Type.NETWORK_OBJECT,
-            prev_config=prev_config,
+            prev_config=management_state.previous_config,
         )
 
         # Assert
         fwconfig_import_object.write_member_updates.assert_not_called()
-
-    def test_add_group_memberships_no_group_id(
-        self,
-        fwconfig_import_object: FwConfigImportObject,
-        fwconfig_builder: FwConfigBuilder,
-        mocker: MockerFixture,
-    ):
-        # Arrange
-        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
-            network_object_count=1,
-        )
-        prev_config, __ = fwconfig_builder.build_config(
-            network_object_count=1,
-        )
-        fwconfig_import_object.write_member_updates = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=None)
-
-        # Act
-        fwconfig_import_object.add_group_memberships(
-            obj_type=Type.NETWORK_OBJECT,
-            prev_config=prev_config,
-        )
-
-        # Assert
-        fwconfig_import_object.write_member_updates.assert_not_called()
-
-        assert mock_logger.call_count == 1
-        assert (
-            mock_logger.call_args[0][0]
-            == f"failed to add group memberships: no id found for group uid '{next(iter(fwconfig_import_object.normalized_config.network_objects.keys()))}'"
-        )
 
     def test_add_group_memberships_with_changes(
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        import_state: ImportState,
+        management_state: ManagementState,
         mocker: MockerFixture,
+        api_call: FwoApiCall,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=1,
         )
-        fwconfig_import_object.import_state.state.import_id = 5
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
-        for obj in fwconfig_import_object.normalized_config.network_objects.values():
+        import_state.import_id = 5
+        management_state.previous_config = copy.deepcopy(management_state.normalized_config)
+        for obj in management_state.normalized_config.network_objects.values():
             obj.obj_member_refs = "new-member-uid"
         fwconfig_import_object.write_member_updates = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(
-            return_value=["old-member-uid"]
-        )
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
+        management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=["old-member-uid"])
 
         # Act
+        management_state.group_flats_mapper.init_config(management_state.normalized_config, import_state.super_config)
+
         fwconfig_import_object.add_group_memberships(
+            fwo_api_call=api_call,
+            import_state=import_state,
+            management_state=management_state,
             obj_type=Type.NETWORK_OBJECT,
-            prev_config=prev_config,
+            prev_config=management_state.previous_config,
         )
 
         # Assert
         fwconfig_import_object.write_member_updates.assert_called_once_with(
+            api_call,
             [
                 {
                     "import_created": 5,
@@ -755,31 +826,37 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
         mocker: MockerFixture,
+        import_state: ImportState,
+        management_state: ManagementState,
+        api_call: FwoApiCall,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=1,
             service_object_count=0,
             include_gateway=False,
         )
-        prev_config = fwconfig_builder.build_empty_config()
-        group_obj = next(iter(fwconfig_import_object.normalized_config.network_objects.values()))
+        management_state.previous_config = fwconfig_builder.build_empty_config(management_state.uid2id_mapper)
+        group_obj = next(iter(management_state.normalized_config.network_objects.values()))
         group_obj.obj_member_refs = group_obj.obj_uid
-        fwconfig_import_object.import_state.state.import_id = 7
+        import_state.import_id = 7
         fwconfig_import_object.write_member_updates = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
-        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(
-            return_value=[group_obj.obj_uid]
-        )
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
+        management_state.group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[group_obj.obj_uid])
 
         # Act
         fwconfig_import_object.add_group_memberships(
+            import_state=import_state,
+            management_state=management_state,
             obj_type=Type.NETWORK_OBJECT,
-            prev_config=prev_config,
+            prev_config=management_state.previous_config,
+            fwo_api_call=api_call,
         )
 
         # Assert
         fwconfig_import_object.write_member_updates.assert_called_once_with(
+            api_call,
             [
                 {
                     "import_created": 7,
@@ -804,38 +881,46 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
         mocker: MockerFixture,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=2,
             service_object_count=0,
             include_gateway=False,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
-        group_uid, member_uid = list(fwconfig_import_object.normalized_config.network_objects.keys())[:2]
-        fwconfig_import_object.normalized_config.network_objects[group_uid].obj_member_refs = member_uid
+        prev_config = copy.deepcopy(management_state.normalized_config)
+        group_uid, member_uid = list(management_state.normalized_config.network_objects.keys())[:2]
+        management_state.normalized_config.network_objects[group_uid].obj_member_refs = member_uid
         prev_config.network_objects[group_uid].obj_member_refs = member_uid
-        fwconfig_import_object.normalized_config.network_objects[member_uid].obj_typ = "host"
+        management_state.normalized_config.network_objects[member_uid].obj_typ = "host"
         prev_config.network_objects[member_uid].obj_typ = "host"
-        fwconfig_import_object.normalized_config.network_objects[member_uid].obj_name = "changed-member"
+        management_state.normalized_config.network_objects[member_uid].obj_name = "changed-member"
 
         def fake_get_id(uid: str, _before_update: bool = False):
             return 1 if uid == group_uid else 2
 
-        fwconfig_import_object.import_state.state.import_id = 9
+        import_state.import_id = 9
         fwconfig_import_object.write_member_updates = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
-        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
+        management_state.group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
+        management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
 
         # Act
         fwconfig_import_object.add_group_memberships(
+            import_state=import_state,
+            management_state=management_state,
+            fwo_api_call=global_state.fwo_api_call,
             obj_type=Type.NETWORK_OBJECT,
             prev_config=prev_config,
         )
 
         # Assert
         fwconfig_import_object.write_member_updates.assert_called_once_with(
+            global_state.fwo_api_call,
             [
                 {
                     "import_created": 9,
@@ -860,23 +945,25 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
         mocker: MockerFixture,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=3,
             service_object_count=0,
             include_gateway=False,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
-        group_uid, member_uid_one, member_uid_two = list(
-            fwconfig_import_object.normalized_config.network_objects.keys()
-        )[:3]
-        fwconfig_import_object.normalized_config.network_objects[
+        prev_config = copy.deepcopy(management_state.normalized_config)
+        group_uid, member_uid_one, member_uid_two = list(management_state.normalized_config.network_objects.keys())[:3]
+        management_state.normalized_config.network_objects[
             group_uid
         ].obj_member_refs = f"{member_uid_one}{LIST_DELIMITER}{member_uid_two}"
         prev_config.network_objects[group_uid].obj_member_refs = member_uid_one
-        fwconfig_import_object.normalized_config.network_objects[member_uid_one].obj_typ = "host"
-        fwconfig_import_object.normalized_config.network_objects[member_uid_two].obj_typ = "host"
+        management_state.normalized_config.network_objects[member_uid_one].obj_typ = "host"
+        management_state.normalized_config.network_objects[member_uid_two].obj_typ = "host"
         prev_config.network_objects[member_uid_one].obj_typ = "host"
         prev_config.network_objects[member_uid_two].obj_typ = "host"
 
@@ -888,21 +975,25 @@ class TestFwConfigImportObjectAddGroupMemberships:
             }
             return mapping[uid]
 
-        fwconfig_import_object.import_state.state.import_id = 11
+        import_state.import_id = 11
         fwconfig_import_object.write_member_updates = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
-        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
+        management_state.group_flats_mapper.get_network_object_flats = mocker.Mock(
             return_value=[member_uid_one, member_uid_two]
         )
 
         # Act
         fwconfig_import_object.add_group_memberships(
+            import_state=import_state,
+            management_state=management_state,
+            fwo_api_call=global_state.fwo_api_call,
             obj_type=Type.NETWORK_OBJECT,
             prev_config=prev_config,
         )
 
         # Assert
         fwconfig_import_object.write_member_updates.assert_called_once_with(
+            global_state.fwo_api_call,
             [
                 {
                     "import_created": 11,
@@ -940,30 +1031,34 @@ class TestFwConfigImportObjectFindRemovedObjects:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=2,
         )
-        prev_config, _ = fwconfig_builder.build_config(
+        management_state.previous_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=3,
         )
-        for obj in fwconfig_import_object.normalized_config.network_objects.values():
+        for obj in management_state.normalized_config.network_objects.values():
             obj.obj_typ = "not-a-group"
-        for obj in prev_config.network_objects.values():
+        for obj in management_state.previous_config.network_objects.values():
             obj.obj_typ = "not-a-group"
         removed_flats: list[dict[str, Any]] = []
         removed_members: list[dict[str, Any]] = []
 
         # Act
         fwconfig_import_object.find_removed_objects(
-            current_config_objects=fwconfig_import_object.normalized_config.network_objects,
-            prev_config_objects=prev_config.network_objects,
+            management_state=management_state,
+            current_config_objects=management_state.normalized_config.network_objects,
+            prev_config_objects=management_state.previous_config.network_objects,
             prefix="nwobj",
             removed_flats=removed_flats,
             removed_members=removed_members,
             typ=Type.NETWORK_OBJECT,
-            uid=next(iter(prev_config.network_objects.values())).obj_uid,
+            uid=next(iter(management_state.previous_config.network_objects.values())).obj_uid,
         )
 
         # Assert
@@ -975,25 +1070,31 @@ class TestFwConfigImportObjectFindRemovedObjects:
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=2,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
+        management_state.previous_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
+            network_object_count=2,
+        )
         removed_flats: list[dict[str, Any]] = []
         removed_members: list[dict[str, Any]] = []
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
 
         # Act
         fwconfig_import_object.find_removed_objects(
-            current_config_objects=fwconfig_import_object.normalized_config.network_objects,
-            prev_config_objects=prev_config.network_objects,
+            management_state=management_state,
+            current_config_objects=management_state.normalized_config.network_objects,
+            prev_config_objects=management_state.previous_config.network_objects,
             prefix="nwobj",
             removed_flats=removed_flats,
             removed_members=removed_members,
             typ=Type.NETWORK_OBJECT,
-            uid=next(iter(prev_config.network_objects.values())).obj_uid,
+            uid=next(iter(management_state.previous_config.network_objects.values())).obj_uid,
         )
 
         # Assert
@@ -1005,30 +1106,33 @@ class TestFwConfigImportObjectFindRemovedObjects:
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=2,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
-        for obj in fwconfig_import_object.normalized_config.network_objects.values():
+        management_state.previous_config = copy.deepcopy(management_state.normalized_config)
+        for obj in management_state.normalized_config.network_objects.values():
             obj.obj_member_refs = "new-member-uid"
-        for obj in prev_config.network_objects.values():
+        for obj in management_state.previous_config.network_objects.values():
             obj.obj_member_refs = "old-member-uid"
         removed_flats: list[dict[str, Any]] = []
         removed_members: list[dict[str, Any]] = []
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
+        management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
 
         # Act
         fwconfig_import_object.find_removed_objects(
-            current_config_objects=fwconfig_import_object.normalized_config.network_objects,
-            prev_config_objects=prev_config.network_objects,
+            management_state=management_state,
+            current_config_objects=management_state.normalized_config.network_objects,
+            prev_config_objects=management_state.previous_config.network_objects,
             prefix="nwobj",
             removed_flats=removed_flats,
             removed_members=removed_members,
             typ=Type.NETWORK_OBJECT,
-            uid=next(iter(prev_config.network_objects.values())).obj_uid,
+            uid=next(iter(management_state.previous_config.network_objects.values())).obj_uid,
         )
 
         # Assert
@@ -1070,33 +1174,36 @@ class TestFwConfigImportObjectFindRemovedObjects:
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=2,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
-        last_obj_uid = list(fwconfig_import_object.normalized_config.network_objects.keys())[-1]
-        for obj in list(fwconfig_import_object.normalized_config.network_objects.values())[:-1]:
+        management_state.previous_config = copy.deepcopy(management_state.normalized_config)
+        last_obj_uid = list(management_state.normalized_config.network_objects.keys())[-1]
+        for obj in list(management_state.normalized_config.network_objects.values())[:-1]:
             obj.obj_member_refs = last_obj_uid
-        for obj in list(prev_config.network_objects.values())[:-1]:
+        for obj in list(management_state.previous_config.network_objects.values())[:-1]:
             obj.obj_member_refs = last_obj_uid
         removed_flats: list[dict[str, Any]] = []
         removed_members: list[dict[str, Any]] = []
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=last_obj_uid)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(
-            return_value=[last_obj_uid]
-        )
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=last_obj_uid)
+        management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[last_obj_uid])
+
+        management_state.group_flats_mapper.init_config(management_state.normalized_config, None)
 
         # Act
         fwconfig_import_object.find_removed_objects(
-            current_config_objects=fwconfig_import_object.normalized_config.network_objects,
-            prev_config_objects=prev_config.network_objects,
+            management_state=management_state,
+            current_config_objects=management_state.normalized_config.network_objects,
+            prev_config_objects=management_state.previous_config.network_objects,
             prefix="nwobj",
             removed_flats=removed_flats,
             removed_members=removed_members,
             typ=Type.NETWORK_OBJECT,
-            uid=next(iter(prev_config.network_objects.values())).obj_uid,
+            uid=next(iter(management_state.previous_config.network_objects.values())).obj_uid,
         )
 
         # Assert
@@ -1109,43 +1216,54 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = FwConfigBuilder().build_config(
+        management_state.normalized_config, _ = FwConfigBuilder().build_config(
+            management_state.uid2id_mapper,
             network_object_count=2,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
+        prev_config = copy.deepcopy(management_state.normalized_config)
+        global_state.fwo_api_call.call = mocker.Mock()
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
 
         # Act
         fwconfig_import_object.remove_outdated_memberships(
+            import_state=import_state,
+            management_state=management_state,
+            fwo_api_call=global_state.fwo_api_call,
             prev_config=prev_config,
             typ=Type.NETWORK_OBJECT,
         )
 
         # Assert
-        fwconfig_import_object.import_state.api_call.call.assert_not_called()
+        global_state.fwo_api_call.call.assert_not_called()
 
     def test_remove_outdated_memberships_with_changes_and_success(
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=2,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
+        prev_config = copy.deepcopy(management_state.normalized_config)
         for obj in prev_config.network_objects.values():
             obj.obj_member_refs = "old-member-uid"
-        for obj in fwconfig_import_object.normalized_config.network_objects.values():
+        for obj in management_state.normalized_config.network_objects.values():
             obj.obj_member_refs = "new-member-uid"
 
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
+        management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "data": {
                     "update_objgrp_flat": {
@@ -1157,17 +1275,20 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
                 }
             }
         )
-        fwconfig_import_object.import_state.state.import_id = 5
+        import_state.import_id = 5
 
         # Act
         fwconfig_import_object.remove_outdated_memberships(
+            import_state=import_state,
+            management_state=management_state,
+            fwo_api_call=global_state.fwo_api_call,
             prev_config=prev_config,
             typ=Type.NETWORK_OBJECT,
         )
 
         # Assert
-        fwconfig_import_object.import_state.api_call.call.assert_called_once()
-        call_args = fwconfig_import_object.import_state.api_call.call.call_args
+        global_state.fwo_api_call.call.assert_called_once()
+        call_args = global_state.fwo_api_call.call.call_args
         assert call_args.kwargs["query_variables"] == {
             "importId": 5,
             "removedMembers": [
@@ -1185,20 +1306,24 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=2,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
-        for obj in fwconfig_import_object.normalized_config.network_objects.values():
+        management_state.previous_config = copy.deepcopy(management_state.normalized_config)
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
+        for obj in management_state.normalized_config.network_objects.values():
             obj.obj_member_refs = "new-member-uid"
-        for obj in prev_config.network_objects.values():
+        for obj in management_state.previous_config.network_objects.values():
             obj.obj_member_refs = "old-member-uid"
 
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
+        management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "errors": [
                     {
@@ -1207,17 +1332,20 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
                 ]
             }
         )
-        fwconfig_import_object.import_state.state.import_id = 5
+        import_state.import_id = 5
         mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
 
         # Act
         fwconfig_import_object.remove_outdated_memberships(
-            prev_config=prev_config,
+            import_state=import_state,
+            management_state=management_state,
+            prev_config=management_state.previous_config,
             typ=Type.NETWORK_OBJECT,
+            fwo_api_call=global_state.fwo_api_call,
         )
 
         # Assert
-        fwconfig_import_object.import_state.api_call.call.assert_called_once()
+        global_state.fwo_api_call.call.assert_called_once()
         mock_logger.assert_called_once()
         assert (
             mock_logger.call_args[0][0]
@@ -1229,34 +1357,41 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=2,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
-        for obj in fwconfig_import_object.normalized_config.network_objects.values():
+        management_state.previous_config = copy.deepcopy(management_state.normalized_config)
+        for obj in management_state.normalized_config.network_objects.values():
             obj.obj_member_refs = "new-member-uid"
-        for obj in prev_config.network_objects.values():
+        for obj in management_state.previous_config.network_objects.values():
             obj.obj_member_refs = "old-member-uid"
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
+        management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "error": "Some unexpected error occurred",
             }
         )
-        fwconfig_import_object.import_state.state.import_id = 5
+        import_state.import_id = 5
         mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
 
         # Act
         fwconfig_import_object.remove_outdated_memberships(
-            prev_config=prev_config,
+            import_state=import_state,
+            management_state=management_state,
+            prev_config=management_state.previous_config,
             typ=Type.NETWORK_OBJECT,
+            fwo_api_call=global_state.fwo_api_call,
         )
 
         # Assert
-        fwconfig_import_object.import_state.api_call.call.assert_called_once()
+        global_state.fwo_api_call.call.assert_called_once()
         mock_logger.assert_called_once()
         assert str(mock_logger.call_args[0][0]).startswith(
             "failed to remove outdated group memberships for Type.NETWORK_OBJECT: Traceback"
@@ -1267,24 +1402,28 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        prev_config, _ = fwconfig_builder.build_config(
+        management_state.previous_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=2,
             service_object_count=0,
             include_gateway=False,
         )
-        group_uid, member_uid = list(prev_config.network_objects.keys())[:2]
-        prev_config.network_objects[group_uid].obj_member_refs = member_uid
-        prev_config.network_objects[member_uid].obj_typ = "host"
-        fwconfig_import_object.normalized_config = FwConfigNormalized()
+        group_uid, member_uid = list(management_state.previous_config.network_objects.keys())[:2]
+        management_state.previous_config.network_objects[group_uid].obj_member_refs = member_uid
+        management_state.previous_config.network_objects[member_uid].obj_typ = "host"
+        management_state.normalized_config = FwConfigNormalized()
 
         def fake_get_id(uid: str, _before_update: bool = False):
             return 10 if uid == group_uid else 20
 
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
+        management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "data": {
                     "update_objgrp": {"affected_rows": 1},
@@ -1292,16 +1431,19 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
                 }
             }
         )
-        fwconfig_import_object.import_state.state.import_id = 6
+        import_state.import_id = 6
 
         # Act
         fwconfig_import_object.remove_outdated_memberships(
-            prev_config=prev_config,
+            import_state=import_state,
+            management_state=management_state,
+            prev_config=management_state.previous_config,
             typ=Type.NETWORK_OBJECT,
+            fwo_api_call=global_state.fwo_api_call,
         )
 
         # Assert
-        call_args = fwconfig_import_object.import_state.api_call.call.call_args
+        call_args = global_state.fwo_api_call.call.call_args
         assert call_args.kwargs["query_variables"] == {
             "importId": 6,
             "removedMembers": [{"_and": [{"objgrp_id": {"_eq": 10}}, {"objgrp_member_id": {"_eq": 20}}]}],
@@ -1313,21 +1455,25 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fwconfig_builder: FwConfigBuilder,
+        import_state: ImportState,
+        management_state: ManagementState,
+        global_state: GlobalState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=3,
             service_object_count=0,
             include_gateway=False,
         )
-        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
+        prev_config = copy.deepcopy(management_state.normalized_config)
         group_uid, member_uid_one, member_uid_two = list(prev_config.network_objects.keys())[:3]
         prev_config.network_objects[group_uid].obj_member_refs = f"{member_uid_one}{LIST_DELIMITER}{member_uid_two}"
-        fwconfig_import_object.normalized_config.network_objects[group_uid].obj_member_refs = member_uid_one
+        management_state.normalized_config.network_objects[group_uid].obj_member_refs = member_uid_one
         prev_config.network_objects[member_uid_one].obj_typ = "host"
         prev_config.network_objects[member_uid_two].obj_typ = "host"
-        fwconfig_import_object.normalized_config.network_objects[member_uid_one].obj_typ = "host"
-        fwconfig_import_object.normalized_config.network_objects[member_uid_two].obj_typ = "host"
+        management_state.normalized_config.network_objects[member_uid_one].obj_typ = "host"
+        management_state.normalized_config.network_objects[member_uid_two].obj_typ = "host"
 
         def fake_get_id(uid: str, _before_update: bool = False):
             mapping = {
@@ -1337,11 +1483,11 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             }
             return mapping[uid]
 
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
+        management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(
             return_value=[member_uid_one, member_uid_two]
         )
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "data": {
                     "update_objgrp": {"affected_rows": 2},
@@ -1349,16 +1495,19 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
                 }
             }
         )
-        fwconfig_import_object.import_state.state.import_id = 12
+        import_state.import_id = 12
 
         # Act
         fwconfig_import_object.remove_outdated_memberships(
+            import_state=import_state,
+            management_state=management_state,
             prev_config=prev_config,
             typ=Type.NETWORK_OBJECT,
+            fwo_api_call=global_state.fwo_api_call,
         )
 
         # Assert
-        call_args = fwconfig_import_object.import_state.api_call.call.call_args
+        call_args = global_state.fwo_api_call.call.call_args
         assert call_args.kwargs["query_variables"] == {
             "importId": 12,
             "removedMembers": [
@@ -1418,12 +1567,13 @@ class TestFwConfigImportObjectGetPrevFlats:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[1, 2, 3])
+        management_state.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[1, 2, 3])
 
         # Act
-        flats = fwconfig_import_object.get_prev_flats(Type.NETWORK_OBJECT, "some-uid")
+        flats = fwconfig_import_object.get_prev_flats(management_state, Type.NETWORK_OBJECT, "some-uid")
 
         # Assert
         assert flats == [1, 2, 3]
@@ -1432,12 +1582,13 @@ class TestFwConfigImportObjectGetPrevFlats:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.prev_group_flats_mapper.get_service_object_flats = mocker.Mock(return_value=[4, 5, 6])
+        management_state.prev_group_flats_mapper.get_service_object_flats = mocker.Mock(return_value=[4, 5, 6])
 
         # Act
-        flats = fwconfig_import_object.get_prev_flats(Type.SERVICE_OBJECT, "some-uid")
+        flats = fwconfig_import_object.get_prev_flats(management_state, Type.SERVICE_OBJECT, "some-uid")
 
         # Assert
         assert flats == [4, 5, 6]
@@ -1446,12 +1597,13 @@ class TestFwConfigImportObjectGetPrevFlats:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.prev_group_flats_mapper.get_user_flats = mocker.Mock(return_value=[7, 8, 9])
+        management_state.prev_group_flats_mapper.get_user_flats = mocker.Mock(return_value=[7, 8, 9])
 
         # Act
-        flats = fwconfig_import_object.get_prev_flats(Type.USER, "some-uid")
+        flats = fwconfig_import_object.get_prev_flats(management_state, Type.USER, "some-uid")
 
         # Assert
         assert flats == [7, 8, 9]
@@ -1462,12 +1614,13 @@ class TestFwConfigImportObjectGetFlats:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[1, 2, 3])
+        management_state.group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[1, 2, 3])
 
         # Act
-        flats = fwconfig_import_object.get_flats(Type.NETWORK_OBJECT, "some-uid")
+        flats = fwconfig_import_object.get_flats(management_state, Type.NETWORK_OBJECT, "some-uid")
 
         # Assert
         assert flats == [1, 2, 3]
@@ -1476,12 +1629,13 @@ class TestFwConfigImportObjectGetFlats:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.group_flats_mapper.get_service_object_flats = mocker.Mock(return_value=[4, 5, 6])
+        management_state.group_flats_mapper.get_service_object_flats = mocker.Mock(return_value=[4, 5, 6])
 
         # Act
-        flats = fwconfig_import_object.get_flats(Type.SERVICE_OBJECT, "some-uid")
+        flats = fwconfig_import_object.get_flats(management_state, Type.SERVICE_OBJECT, "some-uid")
 
         # Assert
         assert flats == [4, 5, 6]
@@ -1490,12 +1644,13 @@ class TestFwConfigImportObjectGetFlats:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.group_flats_mapper.get_user_flats = mocker.Mock(return_value=[7, 8, 9])
+        management_state.group_flats_mapper.get_user_flats = mocker.Mock(return_value=[7, 8, 9])
 
         # Act
-        flats = fwconfig_import_object.get_flats(Type.USER, "some-uid")
+        flats = fwconfig_import_object.get_flats(management_state, Type.USER, "some-uid")
 
         # Assert
         assert flats == [7, 8, 9]
@@ -1558,9 +1713,10 @@ class TestFwConfigImportObjectGetRefs:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
-        config, _ = fwconfig_builder.build_config(network_object_count=1)
+        config, _ = fwconfig_builder.build_config(management_state.uid2id_mapper, network_object_count=1)
         obj = next(iter(config.network_objects.values()))
         obj.obj_member_refs = "some-uid" + LIST_DELIMITER + "some-user@another-uid"
 
@@ -1574,9 +1730,10 @@ class TestFwConfigImportObjectGetRefs:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
-        config, _ = fwconfig_builder.build_config(service_object_count=1)
+        config, _ = fwconfig_builder.build_config(management_state.uid2id_mapper, service_object_count=1)
         obj = next(iter(config.service_objects.values()))
         obj.svc_member_refs = "some-uid" + LIST_DELIMITER + "some-user@another-uid"
 
@@ -1604,9 +1761,10 @@ class TestFwConfigImportObjectIsGroup:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
-        config, _ = fwconfig_builder.build_config(network_object_count=1)
+        config, _ = fwconfig_builder.build_config(management_state.uid2id_mapper, network_object_count=1)
         obj = next(iter(config.network_objects.values()))
         obj.obj_typ = "group"
 
@@ -1620,9 +1778,10 @@ class TestFwConfigImportObjectIsGroup:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
-        config, _ = fwconfig_builder.build_config(network_object_count=1)
+        config, _ = fwconfig_builder.build_config(management_state.uid2id_mapper, network_object_count=1)
         obj = next(iter(config.network_objects.values()))
         obj.obj_typ = "not-a-group"
 
@@ -1636,9 +1795,10 @@ class TestFwConfigImportObjectIsGroup:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
-        config, _ = fwconfig_builder.build_config(service_object_count=1)
+        config, _ = fwconfig_builder.build_config(management_state.uid2id_mapper, service_object_count=1)
         obj = next(iter(config.service_objects.values()))
         obj.svc_typ = "group"
 
@@ -1652,9 +1812,10 @@ class TestFwConfigImportObjectIsGroup:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
-        config, _ = fwconfig_builder.build_config(service_object_count=1)
+        config, _ = fwconfig_builder.build_config(management_state.uid2id_mapper, service_object_count=1)
         obj = next(iter(config.service_objects.values()))
         obj.svc_typ = "not-a-group"
 
@@ -1696,12 +1857,13 @@ class TestFwConfigImportObjectGetLocalId:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=42)
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=42)
 
         # Act
-        local_id = fwconfig_import_object.get_local_id(Type.NETWORK_OBJECT, "some-uid")
+        local_id = fwconfig_import_object.get_local_id(management_state, Type.NETWORK_OBJECT, "some-uid")
 
         # Assert
         assert local_id == 42
@@ -1710,12 +1872,13 @@ class TestFwConfigImportObjectGetLocalId:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.uid2id_mapper.get_service_object_id = mocker.Mock(return_value=43)
+        management_state.uid2id_mapper.get_service_object_id = mocker.Mock(return_value=43)
 
         # Act
-        local_id = fwconfig_import_object.get_local_id(Type.SERVICE_OBJECT, "some-uid")
+        local_id = fwconfig_import_object.get_local_id(management_state, Type.SERVICE_OBJECT, "some-uid")
 
         # Assert
         assert local_id == 43
@@ -1724,12 +1887,13 @@ class TestFwConfigImportObjectGetLocalId:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.uid2id_mapper.get_user_id = mocker.Mock(return_value=44)
+        management_state.uid2id_mapper.get_user_id = mocker.Mock(return_value=44)
 
         # Act
-        local_id = fwconfig_import_object.get_local_id(Type.USER, "some-uid")
+        local_id = fwconfig_import_object.get_local_id(management_state, Type.USER, "some-uid")
 
         # Assert
         assert local_id == 44
@@ -1740,12 +1904,13 @@ class TestFwConfigImportObjectGetId:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=42)
+        management_state.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=42)
 
         # Act
-        obj_id = fwconfig_import_object.get_id(Type.NETWORK_OBJECT, "some-uid")
+        obj_id = fwconfig_import_object.get_id(management_state, Type.NETWORK_OBJECT, "some-uid")
 
         # Assert
         assert obj_id == 42
@@ -1754,12 +1919,13 @@ class TestFwConfigImportObjectGetId:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.uid2id_mapper.get_service_object_id = mocker.Mock(return_value=43)
+        management_state.uid2id_mapper.get_service_object_id = mocker.Mock(return_value=43)
 
         # Act
-        obj_id = fwconfig_import_object.get_id(Type.SERVICE_OBJECT, "some-uid")
+        obj_id = fwconfig_import_object.get_id(management_state, Type.SERVICE_OBJECT, "some-uid")
 
         # Assert
         assert obj_id == 43
@@ -1768,12 +1934,13 @@ class TestFwConfigImportObjectGetId:
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.uid2id_mapper.get_user_id = mocker.Mock(return_value=44)
+        management_state.uid2id_mapper.get_user_id = mocker.Mock(return_value=44)
 
         # Act
-        obj_id = fwconfig_import_object.get_id(Type.USER, "some-uid")
+        obj_id = fwconfig_import_object.get_id(management_state, Type.USER, "some-uid")
 
         # Assert
         assert obj_id == 44
@@ -1783,13 +1950,15 @@ class TestFwConfigImportObjectGetConfigObjects:
     def test_get_config_objects_no_normalized_config(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config = None
+        management_state.normalized_config = None
 
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.get_config_objects(
+                management_state=management_state,
                 typ=Type.NETWORK_OBJECT,
                 prev_config=FwConfigNormalized(),
             )
@@ -1798,72 +1967,93 @@ class TestFwConfigImportObjectGetConfigObjects:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(network_object_count=2)
-        prev_config, __ = fwconfig_builder.build_config(network_object_count=1)
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper, network_object_count=2
+        )
+        management_state.previous_config, __ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper, network_object_count=1
+        )
 
         # Act
         prev_objs, current_objs = fwconfig_import_object.get_config_objects(
+            management_state=management_state,
             typ=Type.NETWORK_OBJECT,
-            prev_config=prev_config,
+            prev_config=management_state.previous_config,
         )
 
         # Assert
-        assert prev_objs == prev_config.network_objects
-        assert current_objs == fwconfig_import_object.normalized_config.network_objects
+        assert prev_objs == management_state.previous_config.network_objects
+        assert current_objs == management_state.normalized_config.network_objects
 
     def test_get_config_objects_service_objects(
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(service_object_count=2)
-        prev_config, __ = fwconfig_builder.build_config(service_object_count=1)
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper, service_object_count=2
+        )
+        management_state.previous_config, __ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper, service_object_count=1
+        )
 
         # Act
         prev_objs, current_objs = fwconfig_import_object.get_config_objects(
+            management_state=management_state,
             typ=Type.SERVICE_OBJECT,
-            prev_config=prev_config,
+            prev_config=management_state.previous_config,
         )
 
         # Assert
-        assert prev_objs == prev_config.service_objects
-        assert current_objs == fwconfig_import_object.normalized_config.service_objects
+        assert prev_objs == management_state.previous_config.service_objects
+        assert current_objs == management_state.normalized_config.service_objects
 
     def test_get_config_objects_user_objects(
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(user_object_count=2)
-        prev_config, __ = fwconfig_builder.build_config(user_object_count=1)
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper, user_object_count=2
+        )
+        management_state.previous_config, __ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper, user_object_count=1
+        )
 
         # Act
         prev_objs, current_objs = fwconfig_import_object.get_config_objects(
+            management_state=management_state,
             typ=Type.USER,
-            prev_config=prev_config,
+            prev_config=management_state.previous_config,
         )
 
         # Assert
-        assert prev_objs == prev_config.users
-        assert current_objs == fwconfig_import_object.normalized_config.users
+        assert prev_objs == management_state.previous_config.users
+        assert current_objs == management_state.normalized_config.users
 
 
 class TestFwConfigImportObjectPrepareNewZones:
     def test_prepare_new_zones_no_normalized_config(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config = None
+        management_state.normalized_config = None
 
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.prepare_new_zones(
-                mgm_id=1,
+                import_state=import_state,
+                management_state=management_state,
                 new_zone_names=["zone1", "zone2"],
             )
 
@@ -1871,19 +2061,22 @@ class TestFwConfigImportObjectPrepareNewZones:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config()
+        management_state.normalized_config, _ = fwconfig_builder.build_config(management_state.uid2id_mapper)
         new_zone_names = ["zone1", "zone2"]
         for zone_name in new_zone_names:
-            fwconfig_import_object.normalized_config.zone_objects[zone_name] = {
+            management_state.normalized_config.zone_objects[zone_name] = {
                 "zone_name": zone_name,
             }
-        fwconfig_import_object.import_state.state.import_id = 5
+        import_state.import_id = 5
 
         # Act
         new_zones = fwconfig_import_object.prepare_new_zones(
-            mgm_id=1,
+            import_state=import_state,
+            management_state=management_state,
             new_zone_names=new_zone_names,
         )
 
@@ -1908,14 +2101,19 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
     def test_prepare_new_userobjs_no_normalized_config(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config = None
+        management_state.normalized_config = None
 
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.prepare_new_userobjs(
-                mgm_id=1,
+                global_state=global_state,
+                import_state=import_state,
+                management_state=management_state,
                 new_user_uids=["user1", "user2"],
             )
 
@@ -1923,15 +2121,22 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        import_state: ImportState,
+        management_state: ManagementState,
+        global_state: GlobalState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(user_object_count=2)
-        new_user_uids = list(fwconfig_import_object.normalized_config.users.keys())[:2]
-        fwconfig_import_object.import_state.state.import_id = 5
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper, user_object_count=2
+        )
+        new_user_uids = list(management_state.normalized_config.users.keys())[:2]
+        import_state.import_id = 5
 
         # Act
         new_userobjs = fwconfig_import_object.prepare_new_userobjs(
-            mgm_id=1,
+            global_state=global_state,
+            import_state=import_state,
+            management_state=management_state,
             new_user_uids=new_user_uids,
         )
 
@@ -1960,14 +2165,19 @@ class TestFwConfigImportObjectPrepareNewSvcobjs:
     def test_prepare_new_svcobjs_no_normalized_config(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config = None
+        management_state.normalized_config = None
 
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.prepare_new_svcobjs(
-                mgm_id=1,
+                global_state=global_state,
+                import_state=import_state,
+                management_state=management_state,
                 new_svcobj_uids=["svc1", "svc2"],
             )
 
@@ -1975,29 +2185,36 @@ class TestFwConfigImportObjectPrepareNewSvcobjs:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(service_object_count=2)
-        new_svc_uids = list(fwconfig_import_object.normalized_config.service_objects.keys())[:2]
-        fwconfig_import_object.import_state.state.import_id = 5
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper, service_object_count=2
+        )
+        new_svc_uids = list(management_state.normalized_config.service_objects.keys())[:2]
+        import_state.import_id = 5
 
         # Act
         new_svcobjs = fwconfig_import_object.prepare_new_svcobjs(
-            mgm_id=1,
+            global_state=global_state,
+            import_state=import_state,
+            management_state=management_state,
             new_svcobj_uids=new_svc_uids,
         )
 
         # Assert
         assert new_svcobjs == [
             ServiceObjectForImport(
-                svc_object=fwconfig_import_object.normalized_config.service_objects[uid],
+                svc_object=management_state.normalized_config.service_objects[uid],
                 mgm_id=1,
-                import_id=fwconfig_import_object.import_state.state.import_id,
-                color_id=fwconfig_import_object.import_state.state.lookup_color_id(
-                    fwconfig_import_object.normalized_config.service_objects[uid].svc_color
+                import_id=import_state.import_id,
+                color_id=global_state.stm_mapper.lookup_color_id(
+                    management_state.normalized_config.service_objects[uid].svc_color
                 ),
-                typ_id=fwconfig_import_object.import_state.state.lookup_service_obj_type_id(
-                    fwconfig_import_object.normalized_config.service_objects[uid].svc_typ
+                typ_id=global_state.stm_mapper.lookup_service_obj_type_id(
+                    management_state.normalized_config.service_objects[uid].svc_typ
                 ),
             ).to_dict()
             for uid in new_svc_uids
@@ -2008,14 +2225,19 @@ class TestFwConfgImportObjectPrepareNewNwobjs:
     def test_prepare_new_nwobjs_no_normalized_config(
         self,
         fwconfig_import_object: FwConfigImportObject,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config = None
+        management_state.normalized_config = None
 
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.prepare_new_nwobjs(
-                mgm_id=1,
+                global_state=global_state,
+                import_state=import_state,
+                management_state=management_state,
                 new_nwobj_uids=["nwobj1", "nwobj2"],
             )
 
@@ -2023,29 +2245,36 @@ class TestFwConfgImportObjectPrepareNewNwobjs:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(network_object_count=2)
-        new_nwobj_uids = list(fwconfig_import_object.normalized_config.network_objects.keys())[:2]
-        fwconfig_import_object.import_state.state.import_id = 5
+        management_state.normalized_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper, network_object_count=2
+        )
+        new_nwobj_uids = list(management_state.normalized_config.network_objects.keys())[:2]
+        import_state.import_id = 5
 
         # Act
         new_nwobjs = fwconfig_import_object.prepare_new_nwobjs(
-            mgm_id=1,
+            global_state=global_state,
+            import_state=import_state,
+            management_state=management_state,
             new_nwobj_uids=new_nwobj_uids,
         )
 
         # Assert
         assert new_nwobjs == [
             NetworkObjectForImport(
-                nw_object=fwconfig_import_object.normalized_config.network_objects[uid],
+                nw_object=management_state.normalized_config.network_objects[uid],
                 mgm_id=1,
-                import_id=fwconfig_import_object.import_state.state.import_id,
-                color_id=fwconfig_import_object.import_state.state.lookup_color_id(
-                    fwconfig_import_object.normalized_config.network_objects[uid].obj_color
+                import_id=import_state.import_id,
+                color_id=global_state.stm_mapper.lookup_color_id(
+                    management_state.normalized_config.network_objects[uid].obj_color
                 ),
-                typ_id=fwconfig_import_object.import_state.state.lookup_network_obj_type_id(
-                    fwconfig_import_object.normalized_config.network_objects[uid].obj_typ
+                typ_id=global_state.stm_mapper.lookup_network_obj_type_id(
+                    management_state.normalized_config.network_objects[uid].obj_typ
                 ),
             ).to_dict()
             for uid in new_nwobj_uids
@@ -2058,14 +2287,21 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fw_config_manager: FwConfigManager,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.import_state.state.lookup_management_id = mocker.Mock(return_value=None)
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock()
+        import_state.lookup_management_id = mocker.Mock(return_value=None)
+        global_state.fwo_api_call.call = mocker.Mock()
 
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.update_objects_via_api(
+                global_state=global_state,
+                import_state=import_state,
+                management_state=management_state,
+                fwo_api_call=global_state.fwo_api_call,
                 new_nw_object_uids=[],
                 new_svc_obj_uids=[],
                 new_user_uids=[],
@@ -2078,18 +2314,23 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
             )
 
         # Assert
-        fwconfig_import_object.import_state.api_call.call.assert_not_called()
+        global_state.fwo_api_call.call.assert_not_called()
 
     def test_update_objects_via_api_with_errors(
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fw_config_manager: FwConfigManager,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
+
+        management_state.normalized_config = FwConfigNormalized()
         # Arrange
-        fwconfig_import_object.import_state.state.lookup_management_id = mocker.Mock(return_value=1)
+        import_state.lookup_management_id = mocker.Mock(return_value=1)
         mock_get_graphql_code(mocker, "importObjectsMutation")
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "errors": [
                     {
@@ -2102,6 +2343,7 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.update_objects_via_api(
+                global_state=global_state,
                 new_nw_object_uids=[],
                 new_svc_obj_uids=[],
                 new_user_uids=[],
@@ -2111,27 +2353,33 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
                 removed_user_uids=[],
                 removed_zone_names=[],
                 single_manager=fw_config_manager,
+                import_state=import_state,
+                management_state=management_state,
+                fwo_api_call=global_state.fwo_api_call,
             )
 
         # Assert
-        fwconfig_import_object.import_state.api_call.call.assert_called_once()
+        global_state.fwo_api_call.call.assert_called_once()
 
     def test_update_objects_via_api_with_exception(
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fw_config_manager: FwConfigManager,
+        import_state: ImportState,
+        management_state: ManagementState,
+        global_state: GlobalState,
     ):
         # Arrange
-        fwconfig_import_object.import_state.state.lookup_management_id = mocker.Mock(return_value=1)
+        import_state.lookup_management_id = mocker.Mock(return_value=1)
         mock_get_graphql_code(mocker, "importObjectsMutation")
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
-            side_effect=Exception("Unexpected error occurred")
-        )
+        global_state.fwo_api_call.call = mocker.Mock(side_effect=Exception("Unexpected error occurred"))
 
+        management_state.normalized_config = FwConfigNormalized()
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.update_objects_via_api(
+                global_state=global_state,
                 new_nw_object_uids=[],
                 new_svc_obj_uids=[],
                 new_user_uids=[],
@@ -2141,25 +2389,35 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
                 removed_user_uids=[],
                 removed_zone_names=[],
                 single_manager=fw_config_manager,
+                import_state=import_state,
+                management_state=management_state,
+                fwo_api_call=global_state.fwo_api_call,
             )
 
         # Assert
-        fwconfig_import_object.import_state.api_call.call.assert_called_once()
+        global_state.fwo_api_call.call.assert_called_once()
 
     def test_update_objects_via_api_with_wrong_response_format(
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fw_config_manager: FwConfigManager,
+        import_state: ImportState,
+        management_state: ManagementState,
+        global_state: GlobalState,
     ):
+
         # Arrange
-        fwconfig_import_object.import_state.state.lookup_management_id = mocker.Mock(return_value=1)
+        import_state.lookup_management_id = mocker.Mock(return_value=1)
         mock_get_graphql_code(mocker, "importObjectsMutation")
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(return_value={"unexpected_key": {}})
+        global_state.fwo_api_call.call = mocker.Mock(return_value={"unexpected_key": {}})
+
+        management_state.normalized_config = FwConfigNormalized()
 
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.update_objects_via_api(
+                global_state=global_state,
                 new_nw_object_uids=[],
                 new_svc_obj_uids=[],
                 new_user_uids=[],
@@ -2169,21 +2427,27 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
                 removed_user_uids=[],
                 removed_zone_names=[],
                 single_manager=fw_config_manager,
+                import_state=import_state,
+                management_state=management_state,
+                fwo_api_call=global_state.fwo_api_call,
             )
 
         # Assert
-        fwconfig_import_object.import_state.api_call.call.assert_called_once()
+        global_state.fwo_api_call.call.assert_called_once()
 
     def test_update_objects_via_api(
         self,
         fwconfig_import_object: FwConfigImportObject,
         mocker: MockerFixture,
         fw_config_manager: FwConfigManager,
+        import_state: ImportState,
+        management_state: ManagementState,
+        global_state: GlobalState,
     ):
         # Arrange
         FWOLogger.instance.debug_level = 9
-        fwconfig_import_object.import_state.state.lookup_management_id = mocker.Mock(return_value=1)
-        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
+        import_state.lookup_management_id = mocker.Mock(return_value=1)
+        global_state.fwo_api_call.call = mocker.Mock(
             return_value={
                 "data": {
                     "insert_object": {"affected_rows": 1, "returning": [{"id": 1}]},
@@ -2199,6 +2463,8 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         )
         mock_get_graphql_code(mocker, "importObjectsMutation")
 
+        management_state.normalized_config = FwConfigNormalized()
+
         # Act
         (
             new_nwobj_ids,
@@ -2210,6 +2476,7 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
             removed_user_ids,
             removed_zone_ids,
         ) = fwconfig_import_object.update_objects_via_api(
+            global_state=global_state,
             new_nw_object_uids=[],
             new_svc_obj_uids=[],
             new_user_uids=[],
@@ -2219,6 +2486,9 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
             removed_user_uids=[],
             removed_zone_names=[],
             single_manager=fw_config_manager,
+            import_state=import_state,
+            management_state=management_state,
+            fwo_api_call=global_state.fwo_api_call,
         )
 
         # Assert
@@ -2237,17 +2507,68 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
         self,
         fwconfig_import_object: FwConfigImportObject,
         fw_config_manager: FwConfigManager,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
-        fwconfig_import_object.normalized_config = None
+        management_state.normalized_config = None
 
         # Act
         with pytest.raises(FwoImporterError):
             fwconfig_import_object.update_object_diffs(
-                prev_config=FwConfigNormalized(),
-                prev_global_config=None,
+                global_state=global_state,
+                import_state=import_state,
+                management_state=management_state,
                 single_manager=fw_config_manager,
             )
+
+    def test_update_object_diffs_uses_previous_config_as_global_fallback(
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        mocker: MockerFixture,
+        fw_config_manager: FwConfigManager,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
+    ):
+        # Arrange
+        management_state.previous_config = FwConfigNormalized()
+        management_state.normalized_config = FwConfigNormalized()
+        import_state.previous_super_config = None
+        import_state.super_config = FwConfigNormalized()
+
+        management_state.uid2id_mapper.update_network_object_mapping = mocker.Mock()
+        management_state.uid2id_mapper.update_service_object_mapping = mocker.Mock()
+        management_state.uid2id_mapper.update_user_mapping = mocker.Mock()
+        management_state.uid2id_mapper.update_zone_mapping = mocker.Mock()
+        management_state.uid2id_mapper.add_network_object_mappings = mocker.Mock()
+        management_state.uid2id_mapper.add_service_object_mappings = mocker.Mock()
+        management_state.uid2id_mapper.add_user_mappings = mocker.Mock()
+        management_state.uid2id_mapper.add_zone_mappings = mocker.Mock()
+
+        management_state.group_flats_mapper.init_config = mocker.Mock()
+        management_state.prev_group_flats_mapper.init_config = mocker.Mock()
+
+        fwconfig_import_object.remove_outdated_memberships = mocker.Mock()
+        fwconfig_import_object.add_group_memberships = mocker.Mock()
+        fwconfig_import_object.add_changelog_objs = mocker.Mock()
+        fwconfig_import_object.update_time_objs_via_api = mocker.Mock()
+        fwconfig_import_object.update_objects_via_api = mocker.Mock(return_value=([], [], [], [], [], [], [], []))
+
+        # Act
+        fwconfig_import_object.update_object_diffs(
+            global_state=global_state,
+            import_state=import_state,
+            management_state=management_state,
+            single_manager=fw_config_manager,
+        )
+
+        # Assert
+        management_state.prev_group_flats_mapper.init_config.assert_called_once_with(
+            management_state.previous_config,
+            management_state.previous_config,
+        )
 
     def test_update_object_diffs_changes_and_filters(
         self,
@@ -2255,9 +2576,13 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
         mocker: MockerFixture,
         fw_config_manager: FwConfigManager,
         fwconfig_builder: FwConfigBuilder,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange:
-        prev_config, _ = fwconfig_builder.build_config(
+        management_state.previous_config, _ = fwconfig_builder.build_config(
+            management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
@@ -2266,12 +2591,12 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
             zone_object_count=3,
         )
 
-        curr_config = copy.deepcopy(prev_config)
+        curr_config = copy.deepcopy(management_state.previous_config)
 
-        first_nwobj_uid = next(iter(prev_config.network_objects.keys()))
-        first_svcobj_uid = next(iter(prev_config.service_objects.keys()))
-        first_userobj_uid = next(iter(prev_config.users.keys()))
-        first_zone_name = next(iter(prev_config.zone_objects.keys()))
+        first_nwobj_uid = next(iter(management_state.previous_config.network_objects.keys()))
+        first_svcobj_uid = next(iter(management_state.previous_config.service_objects.keys()))
+        first_userobj_uid = next(iter(management_state.previous_config.users.keys()))
+        first_zone_name = next(iter(management_state.previous_config.zone_objects.keys()))
 
         first_nwobj = curr_config.network_objects[first_nwobj_uid]
         first_svcobj = curr_config.service_objects[first_svcobj_uid]
@@ -2283,16 +2608,18 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
         first_userobj["user_name"] = "modified-name"
         first_zoneobj["zone_name"] = "modified-name"
 
-        fwconfig_import_object.normalized_config = curr_config
+        management_state.normalized_config = curr_config
+        import_state.previous_super_config = copy.deepcopy(management_state.previous_config)
+        import_state.super_config = copy.deepcopy(management_state.normalized_config)
 
-        fwconfig_import_object.uid2id_mapper.update_network_object_mapping = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.update_service_object_mapping = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.update_user_mapping = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.update_zone_mapping = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.add_network_object_mappings = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.add_service_object_mappings = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.add_user_mappings = mocker.Mock()
-        fwconfig_import_object.uid2id_mapper.add_zone_mappings = mocker.Mock()
+        management_state.uid2id_mapper.update_network_object_mapping = mocker.Mock()
+        management_state.uid2id_mapper.update_service_object_mapping = mocker.Mock()
+        management_state.uid2id_mapper.update_user_mapping = mocker.Mock()
+        management_state.uid2id_mapper.update_zone_mapping = mocker.Mock()
+        management_state.uid2id_mapper.add_network_object_mappings = mocker.Mock()
+        management_state.uid2id_mapper.add_service_object_mappings = mocker.Mock()
+        management_state.uid2id_mapper.add_user_mappings = mocker.Mock()
+        management_state.uid2id_mapper.add_zone_mappings = mocker.Mock()
 
         fwconfig_import_object.remove_outdated_memberships = mocker.Mock()
         fwconfig_import_object.add_group_memberships = mocker.Mock()
@@ -2324,7 +2651,7 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
 
         mocker.patch.object(ChangeLogger, "create_change_id_maps", new=fake_create_change_id_maps)
 
-        stats = fwconfig_import_object.import_state.state.stats
+        stats = import_state.statistics_controller
         stats.increment_network_object_add_count = mocker.Mock()
         stats.increment_network_object_delete_count = mocker.Mock()
         stats.increment_network_object_change_count = mocker.Mock()
@@ -2334,27 +2661,34 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
 
         # Act
         fwconfig_import_object.update_object_diffs(
-            prev_config=prev_config,
-            prev_global_config=None,
+            global_state=global_state,
+            import_state=import_state,
+            management_state=management_state,
             single_manager=fw_config_manager,
         )
 
         # Assert: update_objects_via_api called with expected uid sets
         args, _ = fwconfig_import_object.update_objects_via_api.call_args
-        assert args[0] is fw_config_manager
-        assert set(args[1]) == {first_nwobj_uid}
-        assert set(args[2]) == {first_svcobj_uid}
-        assert set(args[3]) == {first_userobj_uid}
-        assert set(args[4]) == {first_zone_name}
+        assert args[0] is global_state
+        assert args[1] is import_state
+        assert args[2] is management_state
+        assert args[3] is global_state.fwo_api_call
+        assert args[4] is fw_config_manager
         assert set(args[5]) == {first_nwobj_uid}
         assert set(args[6]) == {first_svcobj_uid}
         assert set(args[7]) == {first_userobj_uid}
         assert set(args[8]) == {first_zone_name}
+        assert set(args[9]) == {first_nwobj_uid}
+        assert set(args[10]) == {first_svcobj_uid}
+        assert set(args[11]) == {first_userobj_uid}
+        assert set(args[12]) == {first_zone_name}
 
         assert fwconfig_import_object.remove_outdated_memberships.call_count == 3
         assert fwconfig_import_object.add_group_memberships.call_count == 3
 
         fwconfig_import_object.add_changelog_objs.assert_called_once_with(
+            global_state,
+            import_state,
             [{"obj_id": 2}],
             [],
             [{"obj_id": 11}],

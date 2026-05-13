@@ -12,7 +12,6 @@ from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT
 from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
 from query_analyzer import QueryAnalyzer
-from services.service_provider import ServiceProvider
 
 JSON_CONTENT_TYPE = "application/json"
 
@@ -23,12 +22,21 @@ class FwoApi:
     fwo_jwt: str
     query_info: dict[str, Any]
     query_analyzer: QueryAnalyzer
+    fwo_user_mgmt_api_uri: str
 
-    def __init__(self, api_uri: str, jwt: str):
+    def __init__(
+        self,
+        api_uri: str,
+        importer_user_name: str,
+        importer_password: str,
+        importer_mgm_uri: str,
+        fwo_user_mgmt_api_uri: str,
+    ):
         self.fwo_api_url = api_uri
-        self.fwo_jwt = jwt
+        self.fwo_jwt = self.login(importer_user_name, importer_password, importer_mgm_uri)
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
+        self.fwo_user_mgmt_api_uri = fwo_user_mgmt_api_uri
 
     def call(
         self,
@@ -98,8 +106,8 @@ class FwoApi:
             raise FwoImporterError(f"Unexpected error during API call: {e!s}")
         return return_object
 
-    @staticmethod
     def login(
+        self,
         user: str,
         password: str | None,
         user_management_api_base_url: str | None,
@@ -152,9 +160,7 @@ class FwoApi:
             FwoImporterError: If request fails or returns error
 
         """
-        service_provider = ServiceProvider()
-        fwo_config = service_provider.get_fwo_config()
-        url = fwo_config["user_management_api_base_url"] + endpoint.lstrip("/")
+        url = self.fwo_user_mgmt_api_uri + endpoint.lstrip("/")
 
         with requests.Session() as session:
             if fwo_globals.verify_certs is None:

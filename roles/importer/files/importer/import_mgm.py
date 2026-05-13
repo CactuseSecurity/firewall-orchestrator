@@ -2,31 +2,17 @@
 import argparse
 import sys
 import traceback
-import warnings
 
+import fwo_globals
 import urllib3
 from common import import_management  # type: ignore[import-not-found]
-from fwo_api import FwoApi
-from fwo_api_call import FwoApiCall
-from fwo_base import init_service_provider, register_global_state
-from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
-from fwo_exceptions import FwoApiLoginFailedError
+from fwo_const import FWO_CONFIG_FILENAME, IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
-from model_controllers.import_state_controller import ImportStateController
+from states.global_state import GlobalState
+from states.import_state import ImportState
 
 if IMPORTER_BASE_DIR not in sys.path:
     sys.path.append(IMPORTER_BASE_DIR)
-
-
-def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
-    try:
-        return FwoApi.login(import_user, import_pwd, user_management_api)
-    except FwoApiLoginFailedError as e:
-        FWOLogger.error(e.message)
-    except Exception:
-        FWOLogger.error(
-            "import_main_loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
-        )
 
 
 def main(
@@ -43,63 +29,35 @@ def main(
     FWOLogger(debug_level)
     FWOLogger.debug("debug level set to " + str(debug_level))
 
-    service_provider = init_service_provider()
-    fwo_config = service_provider.get_fwo_config()
-    verify_certificates = verify_certificates_default
-    fwo_api_base_url = fwo_config["fwo_api_base_url"]
-    fwo_major_version = fwo_config["fwo_major_version"]
-    user_management_api_base_url = fwo_config["user_management_api_base_url"]
+    verify_certificates = verify_certificates_default or False
     if suppress_certificate_warnings:
         urllib3.disable_warnings()
 
+    fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
     FWOLogger.info("import-mgm starting ...")
     if IMPORTER_BASE_DIR not in sys.path:
         sys.path.append(IMPORTER_BASE_DIR)
 
-    importer_user_name = "importer"  # move to config file?
-    importer_pwd_file = BASE_DIR + "/etc/secrets/importer_pwd"
-
-    try:
-        importer_pwd = open(importer_pwd_file).read().replace("\n", "")  # noqa: SIM115
-    except Exception:
-        FWOLogger.error("error while reading importer pwd file")
-        raise
-
-    jwt = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
-    # check if login was successful - if not, wait and retry
-    if jwt is None:
-        FWOLogger.error("cannot proceed without successful login - exiting")
-        return
-
-    fwo_api = FwoApi(fwo_api_base_url, jwt)
-    fwo_api_call = FwoApiCall(fwo_api)
+    global_state = GlobalState(
+        config_filename=FWO_CONFIG_FILENAME,
+        force=force,
+        clear=clear_management_data,
+        debug_level=debug_level,
+    )
 
     urllib3.disable_warnings()  # suppress ssl warnings only
-    verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
-    suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
-    if not suppress_certificate_warnings:
-        warnings.resetwarnings()
 
-    import_state = ImportStateController.initialize_import(
-        mgm_id,
-        fwo_api_call,
-        suppress_certificate_warnings,
-        verify_certificates,
-        force,
-        fwo_major_version,
-        clear_management_data,
+    import_state = ImportState(
+        fwo_api=global_state.fwo_api, fwo_api_call=global_state.fwo_api_call, mgm_id=mgm_id, input_file=file
     )
-    register_global_state(import_state)
+    global_state.fwo_config_controller.update_settings(
+        suppress_consistency_check=suppress_consistency_check,
+        api_fetch_size=limit,
+    )
 
     import_management(
-        mgm_id,
-        fwo_api_call,
-        verify_certificates,
-        limit,
-        clear_management_data,
-        suppress_certificate_warnings,
-        file,
-        suppress_consistency_check,
+        global_state,
+        import_state,
     )
 
 

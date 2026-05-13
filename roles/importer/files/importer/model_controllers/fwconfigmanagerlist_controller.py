@@ -8,7 +8,7 @@ from fwo_const import IMPORT_TMP_PATH
 from fwo_log import FWOLogger
 from models.fwconfigmanager import FwConfigManager
 from models.fwconfigmanagerlist import FwConfigManagerList
-from models.import_state import ImportState
+from states.import_state import ImportState
 from utils.fwconfig_json_encoder import FwConfigJsonEncoder
 
 """

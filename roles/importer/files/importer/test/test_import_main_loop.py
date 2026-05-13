@@ -1,15 +1,15 @@
 import fwo_globals
 import pytest
-from fwo_api_call import FwoApiCall
+from fwo_api import FwoApi
 from fwo_exceptions import FwoApiLoginFailedError
-from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
 from pytest_mock.plugin import MockerFixture
+from states.global_state import GlobalState
+from states.import_state import ImportState
 from test.data.mock_objects import MockObjectsFactory
 from test.utils.test_utils import mock_get_graphql_code, mock_login
 
 from importer.import_main_loop import (
-    get_fwo_jwt,
     import_single_management,
     wait_with_shutdown_check,
 )
@@ -25,45 +25,33 @@ class TestGetFwoJwt:
         mock_login(mocker, return_value=expected_value)
 
         # Act
-        jwt_token = get_fwo_jwt("mocked_username", "", "mocked_mgm_api")
+        api = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api", "")
 
         # Assert
-        assert jwt_token == expected_value
+        assert api.fwo_jwt == expected_value
 
     def test_get_fwo_jwt_failure(
         self,
         mocker: MockerFixture,
     ):
         # Arrange
-        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
         side_effect = FwoApiLoginFailedError("Login failed")
         mock_login(mocker, side_effect=side_effect)
 
-        # Act
-        jwt_token = get_fwo_jwt("mocked_username", "", "mocked_mgm_api")
-
-        # Assert
-        assert jwt_token is None
-        call_args = mock_logger.call_args[0][0]
-        assert call_args == "Login failed"
+        # Act & Assert
+        with pytest.raises(FwoApiLoginFailedError, match="Login failed"):
+            FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api", "")
 
     def test_get_fwo_jwt_unexpected_exception(
         self,
         mocker: MockerFixture,
     ):
         # Arrange
-        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
         mock_login(mocker, side_effect=Exception("Unexpected error"))
 
         # Act & Assert
-        jwt_token = get_fwo_jwt("mocked_username", "", "mocked_mgm_api")
-
-        # Assert
-        assert jwt_token is None
-        logged_error_message = mock_logger.call_args[0][0]
-        assert logged_error_message.startswith(
-            "import_main_loop - unspecified error during FWO API login - skipping: Traceback"
-        )
+        with pytest.raises(Exception, match="Unexpected error"):
+            FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api", "")
 
 
 class TestWaitWithShutdownCheck:
@@ -132,17 +120,12 @@ class TestImportSingleManagement:
     def test_import_single_management_calls_wait_with_shutdown_check(
         self,
         mocker: MockerFixture,
-        import_state_controller: ImportStateController,
-        api_call: FwoApiCall,
+        import_state: ImportState,
+        global_state: GlobalState,
     ):
         # Arrange
         mock_wait = mocker.patch("importer.import_main_loop.wait_with_shutdown_check")
-        mock_initialize_import = mocker.patch.object(
-            ImportStateController,
-            "initialize_import",
-            return_value=import_state_controller,
-        )
-        mock_register_global_state = mocker.patch("importer.import_main_loop.register_global_state")
+
         mock_get_graphql_code(mocker, return_value={"data": {"jwt": "mocked_jwt"}})
         mock_get_mgm_details = mocker.patch.object(
             ManagementController,
@@ -153,26 +136,10 @@ class TestImportSingleManagement:
         # Act
         import_single_management(
             mgm_id=1,
-            fwo_api_call=api_call,
-            verify_certificates=True,
-            api_fetch_limit=100,
-            clear=False,
-            suppress_certificate_warnings=False,
-            force=False,
-            fwo_major_version=9,
-            sleep_timer=0,
+            import_state=import_state,
+            global_state=global_state,
         )
 
         # Assert
         mock_wait.assert_called_with(0)
         mock_get_mgm_details.assert_called_once()
-        mock_initialize_import.assert_called_once_with(
-            mgm_id=1,
-            api_call=api_call,
-            suppress_cert_warnings=False,
-            ssl_verification=True,
-            force=False,
-            version=9,
-            is_clearing_import=False,
-        )
-        mock_register_global_state.assert_called_once_with(import_state_controller)

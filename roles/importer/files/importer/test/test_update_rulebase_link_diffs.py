@@ -1,45 +1,52 @@
 import copy
+import unittest.mock
 
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
-from model_controllers.import_state_controller import ImportStateController
-from services.global_state import GlobalState
-from services.uid2id_mapper import Uid2IdMapper
+from model_controllers.rulebase_link_controller import RulebaseLinkController
+from states.global_state import GlobalState
+from states.import_state import ImportState
+from states.management_state import ManagementState
 from test.utils.config_builder import FwConfigBuilder
 
 
 def test_add_cp_section_header_at_the_bottom(
-    global_state: GlobalState,
-    import_state_controller: ImportStateController,
+    import_state: ImportState,
+    management_state: ManagementState,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    uid2id_mapper: Uid2IdMapper,
+    rb_link_controller: RulebaseLinkController,
+    global_state: GlobalState,
 ):
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
+        management_state.uid2id_mapper,
         network_object_count=10,
         service_object_count=10,
         rulebase_count=3,
         rules_per_rulebase_count=10,
     )
-    global_state.normalized_config = copy.deepcopy(config)
-    global_state.previous_config = copy.deepcopy(config)
-    import_state_controller.state.mgm_details.uid = mgm_id
+    management_state.normalized_config = copy.deepcopy(config)
+    management_state.previous_config = copy.deepcopy(config)
+    import_state.mgm_details.uid = mgm_id
 
     last_rulebase = config.rulebases[-1]
     last_rulebase_last_rule_uid = list(last_rulebase.rules.keys())[-1]
     new_rulebase = fwconfig_builder.add_rulebase(config, mgm_id)
-    gateway = global_state.normalized_config.gateways[0]
+    gateway = management_state.normalized_config.gateways[0]
     fwconfig_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
-    fwconfig_builder.update_rule_map_and_rulebase_map(config, import_state_controller.state.import_id)
-    to_rulebase_id = uid2id_mapper.get_rulebase_id(new_rulebase.uid)
-    from_rulebase_id = uid2id_mapper.get_rulebase_id(last_rulebase.uid)
-    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
+    fwconfig_builder.update_rule_map_and_rulebase_map(management_state, config)
+    to_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(new_rulebase.uid)
+    from_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(last_rulebase.uid)
+    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller)
 
-    import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-    new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs()
+    new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs(
+        global_state, import_state, management_state, rb_link_controller
+    )
 
     # Assert
 
@@ -56,46 +63,52 @@ def test_add_cp_section_header_at_the_bottom(
 
 
 def test_add_cp_section_header_in_existing_rulebase(
-    global_state: GlobalState,
-    import_state_controller: ImportStateController,
+    management_state: ManagementState,
+    import_state: ImportState,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    uid2id_mapper: Uid2IdMapper,
+    rb_link_controller: RulebaseLinkController,
+    global_state: GlobalState,
 ):
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
+        management_state.uid2id_mapper,
         network_object_count=10,
         service_object_count=10,
         rulebase_count=3,
         rules_per_rulebase_count=10,
     )
 
-    global_state.normalized_config = copy.deepcopy(config)
-    global_state.previous_config = copy.deepcopy(config)
-    import_state_controller.state.mgm_details.uid = mgm_id
+    management_state.normalized_config = copy.deepcopy(config)
+    management_state.previous_config = copy.deepcopy(config)
+    import_state.mgm_details.uid = mgm_id
 
-    last_rulebase = global_state.normalized_config.rulebases[-1]
+    last_rulebase = management_state.normalized_config.rulebases[-1]
     last_rulebase_last_rule_uid = list(last_rulebase.rules.keys())[-1]
     last_rulebase_last_rule = last_rulebase.rules.pop(last_rulebase_last_rule_uid)
 
-    new_rulebase = fwconfig_builder.add_rulebase(
-        global_state.normalized_config, import_state_controller.state.mgm_details.uid
+    new_rulebase = fwconfig_builder.add_rulebase(management_state.normalized_config, import_state.mgm_details.uid)
+    fwconfig_builder.add_rule(
+        management_state.normalized_config,
+        new_rulebase.uid,
+        rule=last_rulebase_last_rule,
+        uid2id_mapper=management_state.uid2id_mapper,
     )
-    fwconfig_builder.add_rule(global_state.normalized_config, new_rulebase.uid, rule=last_rulebase_last_rule)
-    gateway = global_state.normalized_config.gateways[0]
+    gateway = management_state.normalized_config.gateways[0]
     fwconfig_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
-    fwconfig_builder.update_rule_map_and_rulebase_map(
-        global_state.normalized_config, import_state_controller.state.import_id
-    )
-    to_rulebase_id = uid2id_mapper.get_rulebase_id(new_rulebase.uid)
-    from_rulebase_id = uid2id_mapper.get_rulebase_id(last_rulebase.uid)
-    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
+    fwconfig_builder.update_rule_map_and_rulebase_map(management_state, management_state.normalized_config)
+    to_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(new_rulebase.uid)
+    from_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(last_rulebase.uid)
+    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller)
 
-    import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-    new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs()
+    new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs(
+        global_state, import_state, management_state, rb_link_controller
+    )
 
     # Assert
     assert len(new_links) == 1, f"expected {1} new rulebase link, got {len(new_links)}"
@@ -110,90 +123,101 @@ def test_add_cp_section_header_in_existing_rulebase(
 
 
 def test_delete_cp_section_header(
-    global_state: GlobalState,
-    import_state_controller: ImportStateController,
+    management_state: ManagementState,
+    import_state: ImportState,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    uid2id_mapper: Uid2IdMapper,
+    rb_link_controller: RulebaseLinkController,
+    global_state: GlobalState,
 ):
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
+        management_state.uid2id_mapper,
         network_object_count=10,
         service_object_count=10,
         rulebase_count=3,
         rules_per_rulebase_count=10,
     )
 
-    global_state.normalized_config = copy.deepcopy(config)
-    global_state.previous_config = copy.deepcopy(config)
-    import_state_controller.state.mgm_details.uid = mgm_id
+    management_state.normalized_config = copy.deepcopy(config)
+    management_state.previous_config = copy.deepcopy(config)
+    import_state.mgm_details.uid = mgm_id
 
-    last_rulebase = global_state.previous_config.rulebases[-1]
+    last_rulebase = management_state.previous_config.rulebases[-1]
     last_five_rules_uids = list(last_rulebase.rules.keys())[-5:]
 
-    new_rulebase = fwconfig_builder.add_rulebase(global_state.previous_config, mgm_id)
+    new_rulebase = fwconfig_builder.add_rulebase(
+        management_state.previous_config, mgm_id, uid2id_mapper=management_state.uid2id_mapper
+    )
 
     for rule_uid in last_five_rules_uids:
         rule = last_rulebase.rules.pop(rule_uid)
-        fwconfig_builder.add_rule(global_state.previous_config, new_rulebase.uid, rule=rule)
+        fwconfig_builder.add_rule(
+            management_state.previous_config, new_rulebase.uid, rule=rule, uid2id_mapper=management_state.uid2id_mapper
+        )
     # Create rulebase link for cp_section header (previous config)
 
     last_rulebase_last_rule_uid = list(last_rulebase.rules.keys())[-1]
-    gateway = global_state.previous_config.gateways[0]
+    gateway = management_state.previous_config.gateways[0]
     fwconfig_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
-    fwconfig_builder.update_rule_map_and_rulebase_map(
-        global_state.previous_config, import_state_controller.state.import_id
-    )
-    fwconfig_builder.update_rule_num_numerics(global_state.previous_config)
-    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
-    import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
+    fwconfig_builder.update_rule_num_numerics(management_state.previous_config)
+    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller)
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-    _, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs()
+    _, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs(
+        global_state, import_state, management_state, rb_link_controller
+    )
 
     # Assert
-    assert deleted_links_ids[0] == fwconfig_import_gateway.get_rb_link_controller().rb_links[-1].id
+    assert deleted_links_ids[0] == rb_link_controller.rb_links[-1].id
 
 
 def test_add_inline_layer(
-    global_state: GlobalState,
-    import_state_controller: ImportStateController,
+    management_state: ManagementState,
+    import_state: ImportState,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    uid2id_mapper: Uid2IdMapper,
+    rb_link_controller: RulebaseLinkController,
+    global_state: GlobalState,
 ):
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
+        management_state.uid2id_mapper,
         network_object_count=10,
         service_object_count=10,
         rulebase_count=3,
         rules_per_rulebase_count=10,
     )
 
-    global_state.normalized_config = config
-    global_state.previous_config = copy.deepcopy(config)
-    import_state_controller.state.mgm_details.uid = mgm_id
+    management_state.normalized_config = config
+    management_state.previous_config = copy.deepcopy(config)
+    import_state.mgm_details.uid = mgm_id
 
     from_rulebase = config.rulebases[-1]
     from_rule = next(iter(from_rulebase.rules.values()))
 
     added_rulebase = fwconfig_builder.add_rulebase(config, mgm_id)
-    fwconfig_builder.add_rule(config, added_rulebase.uid)
+    fwconfig_builder.add_rule(config, added_rulebase.uid, uid2id_mapper=management_state.uid2id_mapper)
 
     gateway = config.gateways[0]
     fwconfig_builder.add_inline_layer(gateway, from_rulebase.uid, from_rule.rule_uid or "", added_rulebase.uid)
-    fwconfig_builder.update_rule_map_and_rulebase_map(config, import_state_controller.state.import_id)
+    fwconfig_builder.update_rule_map_and_rulebase_map(management_state, config)
 
     assert from_rule.rule_uid is not None, "from_rule_id is None in test setup"
-    from_rule_id = uid2id_mapper.get_rule_id(from_rule.rule_uid)
-    from_rulebase_id = uid2id_mapper.get_rulebase_id(from_rulebase.uid)
-    to_rulebase_id = uid2id_mapper.get_rulebase_id(added_rulebase.uid)
-    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
-    import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
+    from_rule_id = management_state.uid2id_mapper.get_rule_id(from_rule.rule_uid)
+    from_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(from_rulebase.uid)
+    to_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(added_rulebase.uid)
+    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller)
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-    new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs()
+    new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs(
+        global_state, import_state, management_state, rb_link_controller
+    )
 
     # Assert
     assert len(new_links) == 1, f"expected {1} new rulebase link, got {len(new_links)}"
@@ -210,100 +234,112 @@ def test_add_inline_layer(
 
 
 def test_delete_inline_layer(
-    global_state: GlobalState,
-    import_state_controller: ImportStateController,
+    management_state: ManagementState,
+    import_state: ImportState,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    uid2id_mapper: Uid2IdMapper,
+    rb_link_controller: RulebaseLinkController,
+    global_state: GlobalState,
 ):
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
+        management_state.uid2id_mapper,
         network_object_count=10,
         service_object_count=10,
         rulebase_count=3,
         rules_per_rulebase_count=10,
     )
 
-    global_state.normalized_config = copy.deepcopy(config)
-    global_state.previous_config = copy.deepcopy(config)
-    import_state_controller.state.mgm_details.uid = mgm_id
+    management_state.normalized_config = copy.deepcopy(config)
+    management_state.previous_config = copy.deepcopy(config)
+    import_state.mgm_details.uid = mgm_id
 
-    from_rulebase = global_state.previous_config.rulebases[-1]
+    from_rulebase = management_state.previous_config.rulebases[-1]
     from_rule = next(iter(from_rulebase.rules.values()))
 
-    added_rulebase = fwconfig_builder.add_rulebase(global_state.previous_config, mgm_id)
-    fwconfig_builder.add_rule(global_state.previous_config, added_rulebase.uid)
+    added_rulebase = fwconfig_builder.add_rulebase(management_state.previous_config, mgm_id)
+    fwconfig_builder.add_rule(
+        management_state.previous_config, added_rulebase.uid, uid2id_mapper=management_state.uid2id_mapper
+    )
 
-    gateway = global_state.previous_config.gateways[0]
+    gateway = management_state.previous_config.gateways[0]
     fwconfig_builder.add_inline_layer(gateway, from_rulebase.uid, from_rule.rule_uid or "", added_rulebase.uid)
 
-    fwconfig_builder.update_rule_map_and_rulebase_map(
-        global_state.previous_config, import_state_controller.state.import_id
-    )
-    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
-    import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
+    fwconfig_builder.update_rule_map_and_rulebase_map(management_state, management_state.previous_config)
+    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller)
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-    _, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs()
+    _, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs(
+        global_state, import_state, management_state, rb_link_controller
+    )
 
     # Assert
     assert len(deleted_links_ids) == 1, f"expected {1} new rulebase link, got {len(deleted_links_ids)}"
-    assert deleted_links_ids[0] == fwconfig_import_gateway.get_rb_link_controller().rb_links[-1].id
+    assert deleted_links_ids[0] == rb_link_controller.rb_links[-1].id
 
 
 def test_move_inline_layer(
     global_state: GlobalState,
-    import_state_controller: ImportStateController,
+    management_state: ManagementState,
+    import_state: ImportState,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    uid2id_mapper: Uid2IdMapper,
+    rb_link_controller: RulebaseLinkController,
 ):
+    global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
+        management_state.uid2id_mapper,
         network_object_count=10,
         service_object_count=10,
         rulebase_count=3,
         rules_per_rulebase_count=10,
     )
 
-    global_state.normalized_config = copy.deepcopy(config)
-    global_state.previous_config = copy.deepcopy(config)
-    import_state_controller.state.mgm_details.uid = mgm_id
+    management_state.normalized_config = copy.deepcopy(config)
+    management_state.previous_config = copy.deepcopy(config)
+    import_state.mgm_details.uid = mgm_id
 
-    from_rulebase_previous = global_state.previous_config.rulebases[-1]
+    from_rulebase_previous = management_state.previous_config.rulebases[-1]
     from_rule_previous = next(iter(from_rulebase_previous.rules.values()))
 
-    from_rulebase_normalized = global_state.normalized_config.rulebases[0]
+    from_rulebase_normalized = management_state.normalized_config.rulebases[0]
     from_rule_normalized = next(iter(from_rulebase_normalized.rules.values()))
 
-    added_rulebase = fwconfig_builder.add_rulebase(global_state.previous_config, mgm_id)
-    fwconfig_builder.add_rule(global_state.previous_config, added_rulebase.uid)
+    added_rulebase = fwconfig_builder.add_rulebase(management_state.previous_config, mgm_id)
+    fwconfig_builder.add_rule(
+        management_state.previous_config, added_rulebase.uid, uid2id_mapper=management_state.uid2id_mapper
+    )
     added_rulebase_copy = copy.deepcopy(added_rulebase)
-    fwconfig_builder.add_rulebase(global_state.normalized_config, mgm_id, added_rulebase_copy)
+    fwconfig_builder.add_rulebase(management_state.normalized_config, mgm_id, added_rulebase_copy)
 
-    gateway_previous = global_state.previous_config.gateways[0]
+    gateway_previous = management_state.previous_config.gateways[0]
     fwconfig_builder.add_inline_layer(
         gateway_previous, from_rulebase_previous.uid, from_rule_previous.rule_uid or "", added_rulebase.uid
     )
-    gateway_normalized = global_state.normalized_config.gateways[0]
+    gateway_normalized = management_state.normalized_config.gateways[0]
     fwconfig_builder.add_inline_layer(
         gateway_normalized, from_rulebase_normalized.uid, from_rule_normalized.rule_uid or "", added_rulebase_copy.uid
     )
 
-    fwconfig_builder.update_rule_map_and_rulebase_map(
-        global_state.previous_config, import_state_controller.state.import_id
-    )
+    fwconfig_builder.update_rule_map_and_rulebase_map(management_state, management_state.previous_config)
 
     assert from_rule_normalized.rule_uid is not None, "from_rule_id is None in test setup"
-    from_rule_id = uid2id_mapper.get_rule_id(from_rule_normalized.rule_uid)
-    from_rulebase_id = uid2id_mapper.get_rulebase_id(from_rulebase_normalized.uid)
-    to_rulebase_id = uid2id_mapper.get_rulebase_id(added_rulebase_copy.uid)
+    from_rule_id = management_state.uid2id_mapper.get_rule_id(from_rule_normalized.rule_uid)
+    from_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(from_rulebase_normalized.uid)
+    to_rulebase_id = management_state.uid2id_mapper.get_rulebase_id(added_rulebase_copy.uid)
 
-    fwconfig_builder.update_rb_links(gateway_previous.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
-    import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
+    fwconfig_builder.update_rb_links(
+        gateway_previous.RulebaseLinks, 1, management_state.uid2id_mapper, rb_link_controller
+    )
+    global_state.stm_mapper.gateway_map[3] = {management_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-    new_links, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs()
+    new_links, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs(
+        global_state, import_state, management_state, rb_link_controller
+    )
 
     # Assert
     assert len(new_links) == 1, f"expected {1} new rulebase link, got {len(new_links)}"
@@ -318,4 +354,4 @@ def test_move_inline_layer(
     )
     assert not new_links[0]["is_section"], "expected last rulebase link to have is_section false, got true"
     assert len(deleted_links_ids) == 1, f"expected {1} new rulebase link, got {len(deleted_links_ids)}"
-    assert deleted_links_ids[0] == fwconfig_import_gateway.get_rb_link_controller().rb_links[-1].id
+    assert deleted_links_ids[0] == rb_link_controller.rb_links[-1].id

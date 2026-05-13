@@ -6,11 +6,12 @@ import pytest
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from model_controllers.import_state_controller import ImportStateController
 from models.rule import RuleNormalized
 from pytest_mock import MockerFixture
-from services.global_state import GlobalState
 from services.uid2id_mapper import Uid2IdMapper
+from states.global_state import GlobalState
+from states.import_state import ImportState
+from states.management_state import ManagementState
 from test.utils.config_builder import FwConfigBuilder
 from test.utils.rule_helper_functions import insert_rule_in_config, move_rule_in_config, remove_rule_from_rulebase
 from test.utils.test_utils import mock_get_graphql_code
@@ -18,7 +19,7 @@ from test.utils.test_utils import mock_get_graphql_code
 
 @pytest.fixture
 def mock_graphql(mocker: MockerFixture):
-    mock_get_graphql_code(mocker, "query { dummy }")
+    mock_get_graphql_code(mocker, "query { rulebase_update_diffs }")
 
 
 @pytest.fixture
@@ -31,14 +32,122 @@ def mock_uid2id_mapper_response(uid2id_mapper: Uid2IdMapper, fwconfig_import_rul
 
 @pytest.fixture
 def mock_api_connection_response(api_connection: FwoApi):
-    api_connection.call = unittest.mock.Mock(
-        return_value={"data": {"insert_rulebase": {"affected_rows": 1}, "rule": []}}
-    )
+    def api_connection_side_effect(
+        query: str,
+        query_variables: dict[str, list[dict[str, Any]]],
+        analyze_payload: bool = False,  # noqa: ARG001
+    ) -> dict[str, Any]:
+        outcome: dict[str, Any] = {"data": {"rule": []}}
 
+        if "rulebases" in query_variables:
+            outcome["data"].update(
+                {
+                    "insert_rulebase": {
+                        "affected_rows": len(query_variables.get("rulebases", [])),
+                        "returning": [{"id": 999} for _ in range(len(query_variables.get("rulebases", [])))],
+                    }
+                }
+            )
 
-@pytest.fixture
-def mock_import_state_controller_response(import_state_controller: ImportStateController):
-    import_state_controller.state.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+        if "ruleMetadata" in query_variables:
+            outcome["data"].update(
+                {
+                    "insert_rule_metadata": {
+                        "affected_rows": len(query_variables.get("ruleMetadata", [])),
+                        "returning": [
+                            {"rule_metadata_id": 123 + i} for i in range(len(query_variables.get("ruleMetadata", [])))
+                        ],
+                    }
+                }
+            )
+
+        if "ruleFroms" in query_variables:
+            outcome["data"].update(
+                {
+                    "insert_rule_from": {
+                        "affected_rows": len(query_variables.get("ruleFroms", [])),
+                    },
+                    "insert_rule_to": {
+                        "affected_rows": len(query_variables.get("ruleTos", [])),
+                    },
+                    "insert_rule_service": {
+                        "affected_rows": len(query_variables.get("ruleServices", [])),
+                    },
+                    "insert_rule_nwobj_resolved": {
+                        "affected_rows": len(query_variables.get("ruleNwObjResolveds", [])),
+                    },
+                    "insert_rule_svc_resolved": {
+                        "affected_rows": len(query_variables.get("ruleSvcResolveds", [])),
+                    },
+                    "insert_rule_user_resolved": {
+                        "affected_rows": len(query_variables.get("ruleUserResolveds", [])),
+                    },
+                    "insert_rule_from_zone": {
+                        "affected_rows": len(query_variables.get("ruleFromZones", [])),
+                    },
+                    "insert_rule_to_zone": {
+                        "affected_rows": len(query_variables.get("ruleToZones", [])),
+                    },
+                    "insert_rule_time": {
+                        "affected_rows": len(query_variables.get("ruleTimes", [])),
+                    },
+                    "update_rule_from": {
+                        "affected_rows": len(query_variables.get("ruleFroms", [])),
+                    },
+                    "update_rule_to": {
+                        "affected_rows": len(query_variables.get("ruleTos", [])),
+                    },
+                    "update_rule_service": {
+                        "affected_rows": len(query_variables.get("ruleServices", [])),
+                    },
+                    "update_rule_nwobj_resolved": {
+                        "affected_rows": len(query_variables.get("ruleNwObjResolveds", [])),
+                    },
+                    "update_rule_svc_resolved": {
+                        "affected_rows": len(query_variables.get("ruleSvcResolveds", [])),
+                    },
+                    "update_rule_user_resolved": {
+                        "affected_rows": len(query_variables.get("ruleUserResolveds", [])),
+                    },
+                    "update_rule_from_zone": {
+                        "affected_rows": len(query_variables.get("ruleFromZones", [])),
+                    },
+                    "update_rule_to_zone": {
+                        "affected_rows": len(query_variables.get("ruleToZones", [])),
+                    },
+                    "update_rule_time": {
+                        "affected_rows": len(query_variables.get("ruleTimes", [])),
+                    },
+                }
+            )
+
+        if "rulesEnforcedOnGateway" in query_variables:
+            outcome["data"].update(
+                {
+                    "update_rule_enforced_on_gateway": {
+                        "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
+                    },
+                    "insert_rule_enforced_on_gateway": {
+                        "affected_rows": len(query_variables.get("rulesEnforcedOnGateway", [])),
+                    },
+                }
+            )
+
+        if "rulebase_update_diffs" in query:
+            outcome["data"].update(
+                {
+                    "rulebase": [
+                        {
+                            "uid": "rulebase-uid-1",
+                            "id": 69,
+                        }
+                    ]
+                }
+            )
+
+        return outcome
+
+    api_connection.call = unittest.mock.Mock(side_effect=api_connection_side_effect)
 
 
 @pytest.fixture
@@ -189,40 +298,41 @@ def mock_api_call_response(api_call: FwoApiCall):
 class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
     def test_update_rulebase_diffs_on_insert_delete_and_move(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
         fwconfig_import_rule: FwConfigImportRule,
         fwconfig_builder: FwConfigBuilder,
-        global_state: GlobalState,
         mock_graphql: None,  # noqa: ARG002
         mock_uid2id_mapper_response: None,  # noqa: ARG002
         mock_api_connection_response: None,  # noqa: ARG002
-        mock_import_state_controller_response: None,  # noqa: ARG002
         mock_fwconfig_import_rule_side_effects: None,  # noqa: ARG002
         mock_api_call_response: None,  # noqa: ARG002
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(
+            uid2id_mapper=management_state.uid2id_mapper,
             network_object_count=10,
             service_object_count=10,
             rulebase_count=3,
             rules_per_rulebase_count=10,
         )
 
-        global_state.previous_config = config
-        global_state.normalized_config = copy.deepcopy(config)
-        fwconfig_builder.initialize_rule_num_numerics(global_state.previous_config)
-        fwconfig_import_rule.normalized_config = global_state.normalized_config
+        global_state.stm_mapper.lookup_gateway_id = unittest.mock.Mock(return_value=1)
+        management_state.previous_config = config
+        management_state.normalized_config = copy.deepcopy(config)
+        fwconfig_builder.initialize_rule_num_numerics(management_state.previous_config)
 
-        rulebase = global_state.normalized_config.rulebases[0]
+        rulebase = management_state.normalized_config.rulebases[0]
         rule_uids = list(rulebase.rules.keys())
         rule_uid = rule_uids[0]
-        remove_rule_from_rulebase(global_state.normalized_config, rulebase.uid, rule_uid, rule_uids)
-        insert_rule_in_config(global_state.normalized_config, rulebase.uid, 0, rule_uids, fwconfig_builder)
-        move_rule_in_config(global_state.normalized_config, rulebase.uid, 9, 0, rule_uids)
+        remove_rule_from_rulebase(management_state.normalized_config, rulebase.uid, rule_uid, rule_uids)
+        insert_rule_in_config(management_state.normalized_config, rulebase.uid, 0, rule_uids, fwconfig_builder)
+        move_rule_in_config(management_state.normalized_config, rulebase.uid, 9, 0, rule_uids)
 
         # Act
 
-        fwconfig_import_rule.update_rulebase_diffs(global_state.previous_config)
+        fwconfig_import_rule.update_rulebase_diffs(management_state.previous_config)
 
         # The order of the entries in normalized_config
         assert rule_uids == list(rulebase.rules.keys())
@@ -234,7 +344,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         assert rule_uids == sorted_rulebase_rules_uids
 
         # Insert, delete and move recognized in ImportDetails
-        assert import_state_controller.state.stats.statistics.rule_add_count == 1
-        assert import_state_controller.state.stats.statistics.rule_delete_count == 1
-        assert import_state_controller.state.stats.statistics.rule_change_count == 1
-        assert import_state_controller.state.stats.statistics.rule_move_count == 1
+        assert import_state.statistics_controller.statistics.rule_add_count == 1
+        assert import_state.statistics_controller.statistics.rule_delete_count == 1
+        assert import_state.statistics_controller.statistics.rule_change_count == 1
+        assert import_state.statistics_controller.statistics.rule_move_count == 1

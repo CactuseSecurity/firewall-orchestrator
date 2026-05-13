@@ -1690,6 +1690,18 @@ INSERT INTO txt VALUES ('requested_interface',  'German',	'Angeforderte Schnitts
 INSERT INTO txt VALUES ('requested_interface',  'English',	'Requested Interface');
 INSERT INTO txt VALUES ('requested_interfaces', 'German',   'Angeforderte Schnittstellen');
 INSERT INTO txt VALUES ('requested_interfaces', 'English',  'Requested Interfaces');
+INSERT INTO txt VALUES ('modelling_request_status', 'German', 'Modellierungsantragsstatus');
+INSERT INTO txt VALUES ('modelling_request_status', 'English', 'Modelling Request Status');
+INSERT INTO txt VALUES ('request_status', 'German', 'Antragsstatus');
+INSERT INTO txt VALUES ('request_status', 'English', 'Request State');
+INSERT INTO txt VALUES ('open_tasks', 'German', 'Offene Aufgaben');
+INSERT INTO txt VALUES ('open_tasks', 'English', 'Open Tasks');
+INSERT INTO txt VALUES ('ticket_status', 'German', 'Ticketstatus');
+INSERT INTO txt VALUES ('ticket_status', 'English', 'Ticket State');
+INSERT INTO txt VALUES ('external_id', 'German', 'Externe ID');
+INSERT INTO txt VALUES ('external_id', 'English', 'External ID');
+INSERT INTO txt VALUES ('completion_date', 'German', 'Abschlussdatum');
+INSERT INTO txt VALUES ('completion_date', 'English', 'Completion Date');
 INSERT INTO txt VALUES ('requested_app',        'German',   'Angeforderte Anwendung');
 INSERT INTO txt VALUES ('requested_app',        'English',  'Requested App');
 INSERT INTO txt VALUES ('requesting_app',       'German',   'Anfordernde Anwendung');
@@ -2750,6 +2762,8 @@ INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert set
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
 INSERT INTO txt VALUES ('reset_to_default',     'German',   'Auf Vorgabewerte zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
+INSERT INTO txt VALUES ('reset',                'German',   'Zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset',                'English',  'Reset');
 INSERT INTO txt VALUES ('option',		        'German', 	'Option');
 INSERT INTO txt VALUES ('option',		        'English', 	'Option');
 INSERT INTO txt VALUES ('customize_texts',		'German', 	'Texte anpassen');
@@ -3441,6 +3455,10 @@ INSERT INTO txt VALUES ('U5119', 'German',  'Statusanzeige aller Tickets f&uuml;
 INSERT INTO txt VALUES ('U5119', 'English', 'Show the status of all tickets for external requests. Possibility to reinit if necessary.');
 INSERT INTO txt VALUES ('U5120', 'German',  'Informationen zu Modellierungsobjekten.');
 INSERT INTO txt VALUES ('U5120', 'English', 'Some Details for modelling objects.');
+INSERT INTO txt VALUES ('U5121', 'German',  'Statusanzeige des aktuellen Workflow-Antrags je Applikation im Modus Workflow-Benachrichtigungen.');
+INSERT INTO txt VALUES ('U5121', 'English', 'Shows the current workflow request status per application in Workflow notifications mode.');
+INSERT INTO txt VALUES ('U5122', 'German',  'Antragsstatus zur&uuml;cksetzen f&uuml;r ');
+INSERT INTO txt VALUES ('U5122', 'English', 'Reset request status for ');
 
 INSERT INTO txt VALUES ('U5201', 'German',  'Sind sie sicher, dass sie folgenden Nutzer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5201', 'English', 'Are you sure you want to delete user: ');
@@ -7032,6 +7050,12 @@ INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Ticket
 ');
 INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets for deleted requested interfaces" opens a separate list of all still open new-interface tickets whose requested interface does not exist anymore.
     The check is performed only when opening the popup, so it is independent from the current table filter.
+');
+INSERT INTO txt VALUES ('H7425', 'German', 'Diese Seite listet alle Applikationen mit modellierten Verbindungen und zeigt den letzten zugeordneten Workflow-Antrag.
+    Im Modus Workflow-Benachrichtigungen kann so schnell erkannt werden, ob ein Antrag noch in Bearbeitung, abgeschlossen oder abgelehnt ist.
+');
+INSERT INTO txt VALUES ('H7425', 'English', 'This page lists all applications with modelled connections and shows the latest assigned workflow request.
+    In Workflow notifications mode it makes it easy to see whether a request is still in process, completed, or rejected.
 ');
 
 INSERT INTO txt VALUES ('H8001', 'German',  'Das Workflow-Modul soll die Zusammenarbeit mehrerer beteiligter Akteure bei Arbeitsabl&auml;ufen im Umfeld der Netzwerkadministration unterst&uuml;tzen.

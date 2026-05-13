@@ -28916,6 +28916,20 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "approval_date",
+                      "approver",
+                      "assigned_group",
+                      "state_id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [

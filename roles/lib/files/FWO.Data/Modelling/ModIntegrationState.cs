@@ -105,6 +105,29 @@ namespace FWO.Data.Modelling
             return string.Join(Environment.NewLine, updatedLines);
         }
 
+        public static string RemoveMarkedComment(string? existingComment, string marker)
+        {
+            if (string.IsNullOrWhiteSpace(existingComment))
+            {
+                return "";
+            }
+
+            List<string> updatedLines = [];
+            foreach (string line in existingComment.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+            {
+                string updatedLine = line;
+                if (TryFindMarkedCommentSegment(updatedLine, marker, out Match markerMatch))
+                {
+                    updatedLine = updatedLine.Remove(markerMatch.Index, markerMatch.Length).Trim();
+                }
+                if (!string.IsNullOrWhiteSpace(updatedLine))
+                {
+                    updatedLines.Add(updatedLine);
+                }
+            }
+            return string.Join(Environment.NewLine, updatedLines);
+        }
+
         public static string GetStateName(string? markedValue)
         {
             return SplitStateValue(markedValue).StateName;

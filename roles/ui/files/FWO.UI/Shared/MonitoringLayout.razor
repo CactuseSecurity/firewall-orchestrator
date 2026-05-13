@@ -1,6 +1,8 @@
 ﻿@inherits LayoutComponentBase
 @layout MainLayout
 
+@using FWO.Data.Modelling
+
 @inject UserConfig userConfig
 @implements IDisposable
 
@@ -78,6 +80,16 @@
                         <span class="@Icons.Modelling"></span> @(userConfig.GetText("requested_interfaces"))
                     </NavLink>
                 </li>
+                @if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+                {
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="monitoring/modelling_requests">
+                                <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling_request_status"))
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                }
                 <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5016"))">
                     <h5>@(userConfig.GetText("external_requests"))</h5>

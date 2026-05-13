@@ -22,8 +22,8 @@ create table flow.nwobject
 
 create table flow.nwgroup
 (
-    nwgroup_id BIGSERIAL PRIMARY KEY,
-    name varchar NOT NULL,
+    nwgrp_id BIGSERIAL PRIMARY KEY,
+    name varchar,
     nwgrp_hash varchar(64) NOT NULL UNIQUE,
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
@@ -34,7 +34,7 @@ create table flow.nwgroup
 create table flow.svcobject
 (
     svcobj_id BIGSERIAL PRIMARY KEY,
-    name varchar NOT NULL,
+    name varchar,
     port_start integer, -- null for e.g. icmp-based objects
     port_end integer,
     ip_proto_id integer NOT NULL,
@@ -51,8 +51,8 @@ create table flow.svcobject
 
 create table flow.svcgroup
 (
-    svcgroup_id BIGSERIAL PRIMARY KEY,
-    name varchar NOT NULL,
+    svcgrp_id BIGSERIAL PRIMARY KEY,
+    name varchar,
     svcgrp_hash varchar(64) NOT NULL UNIQUE,
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
@@ -63,7 +63,7 @@ create table flow.svcgroup
 create table flow.timeobject
 (
     timeobj_id BIGSERIAL PRIMARY KEY,
-    name varchar NOT NULL,
+    name varchar,
     start_time Timestamp with time zone,
     end_time Timestamp with time zone,
     timeobj_hash varchar(64) NOT NULL UNIQUE,
@@ -95,8 +95,8 @@ create table flow.access_source
 create table flow.access_source_grp
 (
     access_id bigint NOT NULL,
-    nwgroup_id bigint NOT NULL,
-    primary key (access_id, nwgroup_id)
+    nwgrp_id bigint NOT NULL,
+    primary key (access_id, nwgrp_id)
 );
 
 create table flow.access_destination
@@ -109,8 +109,8 @@ create table flow.access_destination
 create table flow.access_destination_grp
 (
     access_id bigint NOT NULL,
-    nwgroup_id bigint NOT NULL,
-    primary key (access_id, nwgroup_id)
+    nwgrp_id bigint NOT NULL,
+    primary key (access_id, nwgrp_id)
 );
 
 create table flow.access_service
@@ -123,8 +123,8 @@ create table flow.access_service
 create table flow.access_service_grp
 (
     access_id bigint NOT NULL,
-    svcgroup_id bigint NOT NULL,
-    primary key (access_id, svcgroup_id)
+    svcgrp_id bigint NOT NULL,
+    primary key (access_id, svcgrp_id)
 );
 
 create table flow.access_timeobject
@@ -136,60 +136,14 @@ create table flow.access_timeobject
 
 create table flow.nwgroup_member
 (
-    nwgroup_id bigint NOT NULL,
+    nwgrp_id bigint NOT NULL,
     nwobj_id bigint NOT NULL,
-    primary key (nwgroup_id, nwobj_id)
+    primary key (nwgrp_id, nwobj_id)
 );
 
 create table flow.svcgroup_member
 (
-    svcgroup_id bigint NOT NULL,
+    svcgrp_id bigint NOT NULL,
     svcobj_id bigint NOT NULL,
-    primary key (svcgroup_id, svcobj_id)
-);
-
-create table flow.rule_flow_mapping
-(
-    rule_id bigint PRIMARY KEY,
-    access_id bigint NOT NULL
-);
-
-create table flow.nwobject_mapping
-(
-    flow_nwobj_id bigint NOT NULL,
-    obj_id bigint NOT NULL PRIMARY KEY,
-    mgm_id integer NOT NULL,
-    active_on_mgm boolean NOT NULL DEFAULT FALSE
-);
-
-create table flow.svcobject_mapping
-(
-    flow_svcobj_id bigint NOT NULL,
-    svc_id bigint NOT NULL PRIMARY KEY,
-    mgm_id integer NOT NULL,
-    active_on_mgm boolean NOT NULL DEFAULT FALSE
-);
-
-create table flow.timeobject_mapping
-(
-    flow_timeobj_id bigint NOT NULL,
-    time_obj_id bigint NOT NULL PRIMARY KEY,
-    mgm_id integer NOT NULL,
-    active_on_mgm boolean NOT NULL DEFAULT FALSE
-);
-
-create table flow.nwgroup_mapping
-(
-    flow_nwgroup_id bigint NOT NULL,
-    objgrp_id bigint NOT NULL PRIMARY KEY,
-    mgm_id integer NOT NULL,
-    active_on_mgm boolean NOT NULL DEFAULT FALSE
-);
-
-create table flow.svcgroup_mapping
-(
-    flow_svcgroup_id bigint NOT NULL,
-    svcgrp_id bigint NOT NULL PRIMARY KEY,
-    mgm_id integer NOT NULL,
-    active_on_mgm boolean NOT NULL DEFAULT FALSE
+    primary key (svcgrp_id, svcobj_id)
 );

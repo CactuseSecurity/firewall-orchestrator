@@ -1,3 +1,4 @@
+using FWO.Data.Flow;
 using NetTools;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
@@ -56,6 +57,15 @@ namespace FWO.Data
 
         [JsonProperty("objgrp_flats"), JsonPropertyName("objgrp_flats")]
         public GroupFlat<NetworkObject>[] ObjectGroupFlats { get; set; } = [];
+
+        [JsonProperty("flow_nwobj_id"), JsonPropertyName("flow_nwobj_id")]
+        public long? FlowNetworkObjectId { get; set; }
+
+        [JsonProperty("flow_nwobject"), JsonPropertyName("flow_nwobject")]
+        public FlowNwObject? FlowNwObject { get; set; }
+
+        [JsonProperty("flow_active"), JsonPropertyName("flow_active")]
+        public bool FlowActive { get; set; }
 
         public long Number;
         public bool Highlighted = false;

@@ -281,12 +281,8 @@ namespace FWO.Middleware.Server
 
         private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
-            string subject = (notification.EmailSubject ?? "")
-                .Replace(Placeholder.APPNAME, owner?.Name ?? "")
-                .Replace(Placeholder.APPID, owner?.ExtAppId ?? "")
-                .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
-            string body = BuildBody(notification, content);
-            body = body.Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
+            string subject = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(notification.EmailSubject ?? "", owner, timeIntervalText);
+            string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner, timeIntervalText);
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             if (report != null && notification.Layout == NotificationLayout.HtmlInBody)
             {
@@ -339,30 +335,6 @@ namespace FWO.Middleware.Server
             return mailData;
         }
 
-        private static string BuildBody(FwoNotification notification, string? content)
-        {
-            string notificationBody = notification.EmailBody ?? "";
-            string resolvedContent = ResolveContent(notification, content);
-            if (notificationBody.Contains(Placeholder.CONTENT))
-            {
-                return notificationBody.Replace(Placeholder.CONTENT, resolvedContent);
-            }
-
-            return string.IsNullOrEmpty(resolvedContent) ? notificationBody : resolvedContent;
-        }
-
-        private static string ResolveContent(FwoNotification notification, string? content)
-        {
-            if (string.IsNullOrEmpty(content))
-            {
-                return "";
-            }
-
-            return notification.Layout == NotificationLayout.HtmlInBody
-                ? content.Replace("\r\n", "<br>").Replace("\n", "<br>")
-                : content;
-        }
-
         private static string GetBundleGroupKey(FwoNotification notification)
         {
             return notification.BundleType == null || string.IsNullOrWhiteSpace(notification.BundleId)
@@ -372,25 +344,16 @@ namespace FWO.Middleware.Server
 
         private static async Task<FormFile?> BuildAttachment(FwoNotification notification, ReportBase report, string subject)
         {
-            switch (notification.Layout)
-            {
-                case NotificationLayout.PdfAsAttachment:
-                    string html = report.ExportToHtml();
+            return await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, subject, report.ExportToHtml, report.ExportToJson, report.ExportToCsv,
+                async html =>
+                {
                     string? pdfData = await report.ToPdf(html);
                     if (string.IsNullOrWhiteSpace(pdfData))
                     {
                         throw new ProcessingFailedException("No Pdf generated.");
                     }
-                    return EmailHelper.CreateAttachment(pdfData, GlobalConst.kPdf, subject);
-                case NotificationLayout.HtmlAsAttachment:
-                    return EmailHelper.CreateAttachment(report.ExportToHtml(), GlobalConst.kHtml, subject);
-                case NotificationLayout.JsonAsAttachment:
-                    return EmailHelper.CreateAttachment(report.ExportToJson(), GlobalConst.kJson, subject);
-                case NotificationLayout.CsvAsAttachment:
-                    return EmailHelper.CreateAttachment(report.ExportToCsv(), GlobalConst.kCsv, subject);
-                default:
-                    return null;
-            }
+                    return pdfData;
+                });
         }
 
         private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false, bool bcc = false)

@@ -178,7 +178,7 @@
 </PopUp>
 
 <PromoteObject @bind-Promote="WfHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.SaveTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.PromoteTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="PromoteTicketForPhase" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
 
 
 @code
@@ -311,6 +311,18 @@
     private void InitPromoteTicket()
     {
         WfHandler.SetTicketPopUpOpt(ObjAction.displayPromote);
+    }
+
+    private async Task PromoteTicketForPhase(WfStatefulObject ticket)
+    {
+        if (Phase == WorkflowPhases.request)
+        {
+            await WfHandler.PromoteTicketAndTasks(ticket);
+        }
+        else
+        {
+            await WfHandler.PromoteTicket(ticket);
+        }
     }
 
     private async Task InitSaveTicket()

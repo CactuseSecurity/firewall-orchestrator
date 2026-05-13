@@ -1161,13 +1161,13 @@
                   }
                 },
                 {
-                  "name": "rule_flow_mappings",
+                  "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "access_id",
+                      "column": "flow_access_id",
                       "table": {
-                        "name": "rule_flow_mapping",
-                        "schema": "flow"
+                        "name": "rule",
+                        "schema": "public"
                       }
                     }
                   }
@@ -1209,7 +1209,7 @@
                 {
                   "name": "nwgroup",
                   "using": {
-                    "foreign_key_constraint_on": "nwgroup_id"
+                    "foreign_key_constraint_on": "nwgrp_id"
                   }
                 }
               ]
@@ -1249,7 +1249,7 @@
                 {
                   "name": "svcgroup",
                   "using": {
-                    "foreign_key_constraint_on": "svcgroup_id"
+                    "foreign_key_constraint_on": "svcgrp_id"
                   }
                 }
               ]
@@ -1289,7 +1289,7 @@
                 {
                   "name": "nwgroup",
                   "using": {
-                    "foreign_key_constraint_on": "nwgroup_id"
+                    "foreign_key_constraint_on": "nwgrp_id"
                   }
                 }
               ]
@@ -1324,7 +1324,7 @@
                   "name": "access_destination_grps",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "nwgroup_id",
+                      "column": "nwgrp_id",
                       "table": {
                         "name": "access_destination_grp",
                         "schema": "flow"
@@ -1336,21 +1336,9 @@
                   "name": "access_source_grps",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "nwgroup_id",
+                      "column": "nwgrp_id",
                       "table": {
                         "name": "access_source_grp",
-                        "schema": "flow"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "nwgroup_mappings",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "flow_nwgroup_id",
-                      "table": {
-                        "name": "nwgroup_mapping",
                         "schema": "flow"
                       }
                     }
@@ -1360,38 +1348,24 @@
                   "name": "nwgroup_members",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "nwgroup_id",
+                      "column": "nwgrp_id",
                       "table": {
                         "name": "nwgroup_member",
                         "schema": "flow"
                       }
                     }
                   }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "nwgroup_mapping",
-                "schema": "flow"
-              },
-              "object_relationships": [
-                {
-                  "name": "flow_nwgroup",
-                  "using": {
-                    "foreign_key_constraint_on": "flow_nwgroup_id"
-                  }
                 },
                 {
-                  "name": "management",
+                  "name": "objects",
                   "using": {
-                    "foreign_key_constraint_on": "mgm_id"
-                  }
-                },
-                {
-                  "name": "object",
-                  "using": {
-                    "foreign_key_constraint_on": "objgrp_id"
+                    "foreign_key_constraint_on": {
+                      "column": "flow_nwgrp_id",
+                      "table": {
+                        "name": "object",
+                        "schema": "public"
+                      }
+                    }
                   }
                 }
               ]
@@ -1405,7 +1379,7 @@
                 {
                   "name": "nwgroup",
                   "using": {
-                    "foreign_key_constraint_on": "nwgroup_id"
+                    "foreign_key_constraint_on": "nwgrp_id"
                   }
                 },
                 {
@@ -1447,61 +1421,27 @@
                   }
                 },
                 {
-                  "name": "nwobject_mappings",
+                  "name": "nwgroup_members",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "flow_nwobj_id",
+                      "column": "nwobj_id",
                       "table": {
-                        "name": "nwobject_mapping",
+                        "name": "nwgroup_member",
                         "schema": "flow"
                       }
                     }
                   }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "nwobject_mapping",
-                "schema": "flow"
-              },
-              "object_relationships": [
-                {
-                  "name": "flow_nwobject",
-                  "using": {
-                    "foreign_key_constraint_on": "flow_nwobj_id"
-                  }
                 },
                 {
-                  "name": "management",
+                  "name": "objects",
                   "using": {
-                    "foreign_key_constraint_on": "mgm_id"
-                  }
-                },
-                {
-                  "name": "object",
-                  "using": {
-                    "foreign_key_constraint_on": "obj_id"
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "rule_flow_mapping",
-                "schema": "flow"
-              },
-              "object_relationships": [
-                {
-                  "name": "access",
-                  "using": {
-                    "foreign_key_constraint_on": "access_id"
-                  }
-                },
-                {
-                  "name": "rule",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_id"
+                    "foreign_key_constraint_on": {
+                      "column": "flow_nwobj_id",
+                      "table": {
+                        "name": "object",
+                        "schema": "public"
+                      }
+                    }
                   }
                 }
               ]
@@ -1516,7 +1456,7 @@
                   "name": "access_service_grps",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "svcgroup_id",
+                      "column": "svcgrp_id",
                       "table": {
                         "name": "access_service_grp",
                         "schema": "flow"
@@ -1525,13 +1465,13 @@
                   }
                 },
                 {
-                  "name": "svcgroup_mappings",
+                  "name": "services",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "flow_svcgroup_id",
+                      "column": "flow_svcgrp_id",
                       "table": {
-                        "name": "svcgroup_mapping",
-                        "schema": "flow"
+                        "name": "service",
+                        "schema": "public"
                       }
                     }
                   }
@@ -1540,38 +1480,12 @@
                   "name": "svcgroup_members",
                   "using": {
                     "foreign_key_constraint_on": {
-                      "column": "svcgroup_id",
+                      "column": "svcgrp_id",
                       "table": {
                         "name": "svcgroup_member",
                         "schema": "flow"
                       }
                     }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "svcgroup_mapping",
-                "schema": "flow"
-              },
-              "object_relationships": [
-                {
-                  "name": "flow_svcgroup",
-                  "using": {
-                    "foreign_key_constraint_on": "flow_svcgroup_id"
-                  }
-                },
-                {
-                  "name": "management",
-                  "using": {
-                    "foreign_key_constraint_on": "mgm_id"
-                  }
-                },
-                {
-                  "name": "service",
-                  "using": {
-                    "foreign_key_constraint_on": "svcgrp_id"
                   }
                 }
               ]
@@ -1585,7 +1499,7 @@
                 {
                   "name": "svcgroup",
                   "using": {
-                    "foreign_key_constraint_on": "svcgroup_id"
+                    "foreign_key_constraint_on": "svcgrp_id"
                   }
                 },
                 {
@@ -1623,41 +1537,27 @@
                   }
                 },
                 {
-                  "name": "svcobject_mappings",
+                  "name": "services",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "flow_svcobj_id",
                       "table": {
-                        "name": "svcobject_mapping",
-                        "schema": "flow"
+                        "name": "service",
+                        "schema": "public"
                       }
                     }
                   }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "svcobject_mapping",
-                "schema": "flow"
-              },
-              "object_relationships": [
-                {
-                  "name": "flow_svcobject",
-                  "using": {
-                    "foreign_key_constraint_on": "flow_svcobj_id"
-                  }
                 },
                 {
-                  "name": "management",
+                  "name": "svcgroup_members",
                   "using": {
-                    "foreign_key_constraint_on": "mgm_id"
-                  }
-                },
-                {
-                  "name": "service",
-                  "using": {
-                    "foreign_key_constraint_on": "svc_id"
+                    "foreign_key_constraint_on": {
+                      "column": "svcobj_id",
+                      "table": {
+                        "name": "svcgroup_member",
+                        "schema": "flow"
+                      }
+                    }
                   }
                 }
               ]
@@ -1681,41 +1581,15 @@
                   }
                 },
                 {
-                  "name": "timeobject_mappings",
+                  "name": "time_objects",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "flow_timeobj_id",
                       "table": {
-                        "name": "timeobject_mapping",
-                        "schema": "flow"
+                        "name": "time_object",
+                        "schema": "public"
                       }
                     }
-                  }
-                }
-              ]
-            },
-            {
-              "table": {
-                "name": "timeobject_mapping",
-                "schema": "flow"
-              },
-              "object_relationships": [
-                {
-                  "name": "flow_timeobject",
-                  "using": {
-                    "foreign_key_constraint_on": "flow_timeobj_id"
-                  }
-                },
-                {
-                  "name": "management",
-                  "using": {
-                    "foreign_key_constraint_on": "mgm_id"
-                  }
-                },
-                {
-                  "name": "time_object",
-                  "using": {
-                    "foreign_key_constraint_on": "time_obj_id"
                   }
                 }
               ]
@@ -10973,6 +10847,45 @@
               ],
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -11056,6 +10969,45 @@
                   "comment": ""
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -11134,6 +11086,45 @@
                           }
                         }
                       ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
                     }
                   },
                   "comment": ""
@@ -11278,6 +11269,84 @@
                           }
                         }
                       ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
                     }
                   },
                   "comment": ""
@@ -11828,6 +11897,18 @@
                   "name": "device",
                   "using": {
                     "foreign_key_constraint_on": "obj_nat_install"
+                  }
+                },
+                {
+                  "name": "flow_nwgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_nwgrp_id"
+                  }
+                },
+                {
+                  "name": "flow_nwobject",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_nwobj_id"
                   }
                 },
                 {
@@ -17468,6 +17549,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "flow_access",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_access_id"
+                  }
+                },
+                {
                   "name": "importControlByRuleLastSeen",
                   "using": {
                     "foreign_key_constraint_on": "rule_last_seen"
@@ -22043,6 +22130,18 @@
               },
               "object_relationships": [
                 {
+                  "name": "flow_svcgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_svcgrp_id"
+                  }
+                },
+                {
+                  "name": "flow_svcobject",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_svcobj_id"
+                  }
+                },
+                {
                   "name": "importControlBySvcLastSeen",
                   "using": {
                     "foreign_key_constraint_on": "svc_last_seen"
@@ -25800,6 +25899,12 @@
                 "schema": "public"
               },
               "object_relationships": [
+                {
+                  "name": "flow_timeobject",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_timeobj_id"
+                  }
+                },
                 {
                   "name": "import_control_created",
                   "using": {

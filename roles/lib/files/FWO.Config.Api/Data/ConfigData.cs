@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Mail;
 using FWO.Basics.Enums;
@@ -406,6 +407,15 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modDecommEmailBody"), JsonPropertyName("modDecommEmailBody")]
         public string ModDecommEmailBody { get; set; } = "";
+
+        [JsonProperty("modIntegrationMode"), JsonPropertyName("modIntegrationMode")]
+        public ModIntegrationMode ModIntegrationMode { get; set; } = ModIntegrationMode.FullyIntegrated;
+
+        [JsonProperty("modIntegrationStates"), JsonPropertyName("modIntegrationStates")]
+        public string ModIntegrationStates { get; set; } = "[]";
+
+        [JsonProperty("modIntegrationStateMarker"), JsonPropertyName("modIntegrationStateMarker")]
+        public string ModIntegrationStateMarker { get; set; } = ModIntegrationStateConfig.DefaultMarker;
 
         [JsonProperty("modRolloutActive"), JsonPropertyName("modRolloutActive")]
         public bool ModRolloutActive { get; set; } = true;

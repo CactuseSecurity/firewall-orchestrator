@@ -231,7 +231,7 @@ def main(
 
     # setting defaults (only as fallback if config defaults cannot be fetched via API):
     api_fetch_limit: int = 150
-    sleep_timer: int = 5
+    sleep_timer: int = 90
 
     while True:
         main_loop(

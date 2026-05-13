@@ -212,5 +212,13 @@ namespace FWO.Services.Workflow
                 Log.WriteError(title, message, exception);
             }
         }
+
+        /// <summary>
+        /// Displays a workflow message through the configured UI callback or middleware logger.
+        /// </summary>
+        public void DisplayMessage(Exception? exception = null, string title = "", string message = "", bool errorFlag = false)
+        {
+            DisplayMessageInUi(exception, title, message, errorFlag);
+        }
     }
 }

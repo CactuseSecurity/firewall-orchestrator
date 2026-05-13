@@ -281,18 +281,19 @@ namespace FWO.Middleware.Server
 
         private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
-            string subject = (notification.EmailSubject ?? "")
-                .Replace(Placeholder.APPNAME, owner?.Name ?? "")
-                .Replace(Placeholder.APPID, owner?.ExtAppId ?? "")
-                .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
-            string body = string.IsNullOrEmpty(content) ? notification.EmailBody ?? "" : content;
-            body = body.Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
+            string subject = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(notification.EmailSubject ?? "", owner, timeIntervalText);
+            string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner, timeIntervalText);
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             if (report != null && notification.Layout == NotificationLayout.HtmlInBody)
             {
                 body += report.ExportToHtml();
             }
-            MailData mailData = new(await CollectRecipients(notification, owner), subject) { Body = body, Cc = await CollectRecipients(notification, owner, true) };
+            MailData mailData = new(await CollectRecipients(notification, owner), subject)
+            {
+                Body = body,
+                Bcc = await CollectRecipients(notification, owner, false, true),
+                Cc = await CollectRecipients(notification, owner, true)
+            };
             if (attachment != null)
             {
                 mailData.Attachments = new FormFileCollection() { attachment };
@@ -343,28 +344,19 @@ namespace FWO.Middleware.Server
 
         private static async Task<FormFile?> BuildAttachment(FwoNotification notification, ReportBase report, string subject)
         {
-            switch (notification.Layout)
-            {
-                case NotificationLayout.PdfAsAttachment:
-                    string html = report.ExportToHtml();
+            return await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, subject, report.ExportToHtml, report.ExportToJson, report.ExportToCsv,
+                async html =>
+                {
                     string? pdfData = await report.ToPdf(html);
                     if (string.IsNullOrWhiteSpace(pdfData))
                     {
                         throw new ProcessingFailedException("No Pdf generated.");
                     }
-                    return EmailHelper.CreateAttachment(pdfData, GlobalConst.kPdf, subject);
-                case NotificationLayout.HtmlAsAttachment:
-                    return EmailHelper.CreateAttachment(report.ExportToHtml(), GlobalConst.kHtml, subject);
-                case NotificationLayout.JsonAsAttachment:
-                    return EmailHelper.CreateAttachment(report.ExportToJson(), GlobalConst.kJson, subject);
-                case NotificationLayout.CsvAsAttachment:
-                    return EmailHelper.CreateAttachment(report.ExportToCsv(), GlobalConst.kCsv, subject);
-                default:
-                    return null;
-            }
+                    return pdfData;
+                });
         }
 
-        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false)
+        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false, bool bcc = false)
         {
             if (GlobalConfig.UseDummyEmailAddress)
             {
@@ -372,8 +364,34 @@ namespace FWO.Middleware.Server
             }
             EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups);
             await emailHelper.Init();
-            return await emailHelper.GetRecipients(cc ? notification.RecipientCc : notification.RecipientTo, null, owner, null,
-                EmailHelper.SplitAddresses(cc ? notification.EmailAddressCc : notification.EmailAddressTo));
+            EmailRecipientOption recipientOption = notification.RecipientTo;
+            string? addressList = notification.EmailAddressTo;
+            if (bcc)
+            {
+                recipientOption = notification.RecipientBcc;
+                addressList = notification.EmailAddressBcc;
+            }
+            else if (cc)
+            {
+                recipientOption = notification.RecipientCc;
+                addressList = notification.EmailAddressCc;
+            }
+
+            List<string> addresses = EmailHelper.SplitAddresses(addressList);
+            if (recipientOption == EmailRecipientOption.ConfiguredResponsibles)
+            {
+                return await emailHelper.GetRecipients(addressList ?? "", owner, null);
+            }
+            if (recipientOption == EmailRecipientOption.OtherAddresses && LooksLikeRecipientSelectionJson(addressList))
+            {
+                return await emailHelper.GetRecipients(addressList ?? "", null, null);
+            }
+            return await emailHelper.GetRecipients(recipientOption, null, owner, null, addresses);
+        }
+
+        private static bool LooksLikeRecipientSelectionJson(string? recipientValue)
+        {
+            return recipientValue?.TrimStart().StartsWith('{') == true;
         }
     }
 }

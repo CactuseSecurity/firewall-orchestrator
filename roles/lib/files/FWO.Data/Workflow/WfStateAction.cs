@@ -16,7 +16,8 @@ namespace FWO.Data.Workflow
         UpdateConnectionOwner = 21,
         UpdateConnectionRelease = 22,
         DisplayConnection = 23,
-        UpdateConnectionReject = 24
+        UpdateConnectionReject = 24,
+        UpdateModelling = 25
         // CreateReport = 30
     }
 
@@ -68,6 +69,19 @@ namespace FWO.Data.Workflow
 
         public WfStateAction()
         { }
+
+        public WfStateAction(WfStateAction action)
+        {
+            Id = action.Id;
+            Name = action.Name;
+            ActionType = action.ActionType;
+            Scope = action.Scope;
+            TaskType = action.TaskType;
+            Phase = action.Phase;
+            Event = action.Event;
+            ButtonText = action.ButtonText;
+            ExternalParams = action.ExternalParams;
+        }
 
         public static bool IsReadonlyType(string actionTypeString)
         {

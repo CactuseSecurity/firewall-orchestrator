@@ -211,6 +211,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public void IsRelevantForNotificationRequest_UsesRequestedOnFw()
+        {
+            ModellingConnection notRequested = CreateNotificationRequestConnection();
+            ModellingConnection requested = CreateNotificationRequestConnection();
+            requested.RequestedOnFw = true;
+            ModellingConnection implementedAfterRequest = CreateNotificationRequestConnection("Implemented");
+            implementedAfterRequest.RequestedOnFw = true;
+            ModellingConnection rejectedAfterRequest = CreateNotificationRequestConnection("Rejected");
+            rejectedAfterRequest.RequestedOnFw = true;
+
+            ClassicAssert.IsTrue(notRequested.IsRelevantForNotificationRequest(0));
+            ClassicAssert.IsFalse(requested.IsRelevantForNotificationRequest(0));
+            ClassicAssert.IsFalse(implementedAfterRequest.IsRelevantForNotificationRequest(0));
+            ClassicAssert.IsFalse(rejectedAfterRequest.IsRelevantForNotificationRequest(0));
+        }
+
+        [Test]
         public void CleanUpVarianceResults_RemovesVarianceFlagsOnly()
         {
             ModellingConnection conn = new();
@@ -225,6 +242,14 @@ namespace FWO.Test
             ClassicAssert.IsFalse(conn.GetBoolProperty(ConState.VarianceFound.ToString()));
             ClassicAssert.IsFalse(conn.GetBoolProperty(ConState.NotImplemented.ToString()));
             ClassicAssert.IsTrue(conn.GetBoolProperty(ConState.Requested.ToString()));
+        }
+
+        private static ModellingConnection CreateNotificationRequestConnection(params string[] extraConfigTypes)
+        {
+            return new()
+            {
+                ExtraConfigs = [.. extraConfigTypes.Select(extraConfigType => new ModellingExtraConfig { ExtraConfigType = extraConfigType })]
+            };
         }
     }
 }

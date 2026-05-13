@@ -6,15 +6,18 @@ using System.Text.Json.Serialization;
 namespace FWO.Data
 {
     /// <summary>
-    /// Represents the selectable recipient options for modelling request/decommission emails.
+    /// Represents selectable email recipient options.
     /// </summary>
-    public class ModellingEmailRecipientSelection
+    public class EmailRecipientSelection
     {
         [JsonPropertyName("none")]
         public bool None { get; set; } = true;
 
         [JsonPropertyName("other_addresses")]
         public bool OtherAddresses { get; set; } = false;
+
+        [JsonPropertyName("other_address_list")]
+        public List<string> OtherAddressList { get; set; } = [];
 
         [JsonPropertyName("ensure_at_least_one_notification")]
         public bool EnsureAtLeastOneNotification { get; set; } = false;
@@ -23,10 +26,10 @@ namespace FWO.Data
         public List<int> OwnerResponsibleTypeIds { get; set; } = [];
 
         /// <summary>
-        /// Parses a config value into a modelling recipient selection.
+        /// Parses a config value into an email recipient selection.
         /// Supports new JSON values and legacy enum names.
         /// </summary>
-        public static ModellingEmailRecipientSelection Parse(string? configValue, IEnumerable<int>? activeOwnerResponsibleTypeIds = null)
+        public static EmailRecipientSelection Parse(string? configValue, IEnumerable<int>? activeOwnerResponsibleTypeIds = null)
         {
             string rawValue = configValue?.Trim() ?? "";
             if (string.IsNullOrWhiteSpace(rawValue))
@@ -34,9 +37,9 @@ namespace FWO.Data
                 return CreateDefault().Sanitize(activeOwnerResponsibleTypeIds);
             }
 
-            ModellingEmailRecipientSelection parsedSelection = TryParseValue(rawValue, activeOwnerResponsibleTypeIds)
+            EmailRecipientSelection parsedSelection = TryParseValue(rawValue, activeOwnerResponsibleTypeIds)
                 ?? CreateDefault();
-            return parsedSelection.Sanitize(activeOwnerResponsibleTypeIds);
+            return parsedSelection.Sanitize(activeOwnerResponsibleTypeIds, HasJsonOtherAddressList(rawValue));
         }
 
         /// <summary>
@@ -44,7 +47,7 @@ namespace FWO.Data
         /// </summary>
         public string ToConfigValue(IEnumerable<int>? activeOwnerResponsibleTypeIds = null)
         {
-            ModellingEmailRecipientSelection sanitized = Sanitize(activeOwnerResponsibleTypeIds);
+            EmailRecipientSelection sanitized = Sanitize(activeOwnerResponsibleTypeIds);
             if (!sanitized.HasAnyRecipientOption())
             {
                 return nameof(EmailRecipientOption.None);
@@ -57,7 +60,7 @@ namespace FWO.Data
         /// </summary>
         public bool HasAnyRecipientOption()
         {
-            return !None && (OtherAddresses || OwnerResponsibleTypeIds.Count > 0);
+            return OtherAddresses || OwnerResponsibleTypeIds.Count > 0;
         }
 
         /// <summary>
@@ -90,12 +93,17 @@ namespace FWO.Data
             return selectedTypeIds.OrderByDescending(typeId => typeId).ToList();
         }
 
-        private ModellingEmailRecipientSelection Sanitize(IEnumerable<int>? activeOwnerResponsibleTypeIds)
+        private EmailRecipientSelection Sanitize(IEnumerable<int>? activeOwnerResponsibleTypeIds, bool clearEmptyOtherAddresses = true)
         {
-            ModellingEmailRecipientSelection sanitized = new()
+            EmailRecipientSelection sanitized = new()
             {
-                None = None,
+                None = false,
                 OtherAddresses = OtherAddresses,
+                OtherAddressList = OtherAddressList
+                    .Where(address => !string.IsNullOrWhiteSpace(address))
+                    .Select(address => address.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
                 EnsureAtLeastOneNotification = EnsureAtLeastOneNotification,
                 OwnerResponsibleTypeIds = OwnerResponsibleTypeIds
                     .Where(id => id > 0)
@@ -111,28 +119,31 @@ namespace FWO.Data
                     .ToList();
             }
 
-            if (sanitized.None)
+            if (!sanitized.OtherAddresses)
+            {
+                sanitized.OtherAddressList = [];
+            }
+            else if (clearEmptyOtherAddresses && sanitized.OtherAddressList.Count == 0)
             {
                 sanitized.OtherAddresses = false;
-                sanitized.EnsureAtLeastOneNotification = false;
-                sanitized.OwnerResponsibleTypeIds = [];
-            }
-            else if (!sanitized.OtherAddresses && sanitized.OwnerResponsibleTypeIds.Count == 0)
-            {
-                sanitized.None = true;
             }
 
+            sanitized.None = !sanitized.OtherAddresses && sanitized.OwnerResponsibleTypeIds.Count == 0;
+            if (sanitized.None)
+            {
+                sanitized.EnsureAtLeastOneNotification = false;
+            }
             return sanitized;
         }
 
-        private static ModellingEmailRecipientSelection? TryParseValue(string rawValue, IEnumerable<int>? activeOwnerResponsibleTypeIds)
+        private static EmailRecipientSelection? TryParseValue(string rawValue, IEnumerable<int>? activeOwnerResponsibleTypeIds)
         {
-            if (LooksLikeJson(rawValue) && TryParseJson(rawValue, out ModellingEmailRecipientSelection jsonSelection))
+            if (LooksLikeJson(rawValue) && TryParseJson(rawValue, out EmailRecipientSelection jsonSelection))
             {
                 return jsonSelection;
             }
 
-            if (TryParseLegacy(rawValue, activeOwnerResponsibleTypeIds, out ModellingEmailRecipientSelection legacySelection))
+            if (TryParseLegacy(rawValue, activeOwnerResponsibleTypeIds, out EmailRecipientSelection legacySelection))
             {
                 return legacySelection;
             }
@@ -140,15 +151,16 @@ namespace FWO.Data
             return null;
         }
 
-        private static bool TryParseJson(string rawValue, out ModellingEmailRecipientSelection selection)
+        private static bool TryParseJson(string rawValue, out EmailRecipientSelection selection)
         {
             selection = CreateDefault();
             try
             {
-                ModellingEmailRecipientSelection? parsedSelection = JsonSerializer.Deserialize<ModellingEmailRecipientSelection>(rawValue);
+                EmailRecipientSelection? parsedSelection = JsonSerializer.Deserialize<EmailRecipientSelection>(rawValue);
                 if (parsedSelection != null)
                 {
                     parsedSelection.OwnerResponsibleTypeIds ??= [];
+                    parsedSelection.OtherAddressList ??= [];
                     selection = parsedSelection;
                     return true;
                 }
@@ -156,7 +168,7 @@ namespace FWO.Data
             catch
             {
                 Log.WriteWarning(
-                    "Parse ModellingEmailRecipientSelection",
+                    "Parse EmailRecipientSelection",
                     $"Could not parse recipient selection JSON value \"{rawValue}\". Falling back to legacy parsing.");
             }
 
@@ -166,7 +178,7 @@ namespace FWO.Data
         private static bool TryParseLegacy(
             string rawValue,
             IEnumerable<int>? activeOwnerResponsibleTypeIds,
-            out ModellingEmailRecipientSelection selection)
+            out EmailRecipientSelection selection)
         {
             List<int> activeTypeIds = ResolveActiveOwnerResponsibleTypeIds(activeOwnerResponsibleTypeIds);
 
@@ -202,6 +214,25 @@ namespace FWO.Data
             return rawValue.StartsWith('{');
         }
 
+        private static bool HasJsonOtherAddressList(string rawValue)
+        {
+            if (!LooksLikeJson(rawValue))
+            {
+                return false;
+            }
+
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(rawValue);
+                return document.RootElement.ValueKind == JsonValueKind.Object
+                    && document.RootElement.TryGetProperty("other_address_list", out _);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private static List<int> ResolveActiveOwnerResponsibleTypeIds(IEnumerable<int>? activeOwnerResponsibleTypeIds)
         {
             if (activeOwnerResponsibleTypeIds != null)
@@ -212,37 +243,37 @@ namespace FWO.Data
             return [GlobalConst.kOwnerResponsibleTypeMain, GlobalConst.kOwnerResponsibleTypeSupporting, GlobalConst.kOwnerResponsibleTypeOptionalEscalation];
         }
 
-        private static ModellingEmailRecipientSelection CreateNoneSelection()
+        private static EmailRecipientSelection CreateNoneSelection()
         {
             return CreateDefault();
         }
 
-        private static ModellingEmailRecipientSelection CreateOtherAddressSelection()
+        private static EmailRecipientSelection CreateOtherAddressSelection()
         {
-            return new ModellingEmailRecipientSelection
+            return new EmailRecipientSelection
             {
                 None = false,
                 OtherAddresses = true
             };
         }
 
-        private static ModellingEmailRecipientSelection CreateOwnerResponsibleTypeSelection(params int[] ownerResponsibleTypeIds)
+        private static EmailRecipientSelection CreateOwnerResponsibleTypeSelection(params int[] ownerResponsibleTypeIds)
         {
             return CreateOwnerResponsibleTypeSelection((IEnumerable<int>)ownerResponsibleTypeIds);
         }
 
-        private static ModellingEmailRecipientSelection CreateOwnerResponsibleTypeSelection(IEnumerable<int> ownerResponsibleTypeIds)
+        private static EmailRecipientSelection CreateOwnerResponsibleTypeSelection(IEnumerable<int> ownerResponsibleTypeIds)
         {
-            return new ModellingEmailRecipientSelection
+            return new EmailRecipientSelection
             {
                 None = false,
                 OwnerResponsibleTypeIds = ownerResponsibleTypeIds.ToList()
             };
         }
 
-        private static ModellingEmailRecipientSelection CreateFallbackSelection()
+        private static EmailRecipientSelection CreateFallbackSelection()
         {
-            return new ModellingEmailRecipientSelection
+            return new EmailRecipientSelection
             {
                 None = false,
                 EnsureAtLeastOneNotification = true,
@@ -250,9 +281,9 @@ namespace FWO.Data
             };
         }
 
-        private static ModellingEmailRecipientSelection CreateDefault()
+        private static EmailRecipientSelection CreateDefault()
         {
-            return new ModellingEmailRecipientSelection();
+            return new EmailRecipientSelection();
         }
     }
 }

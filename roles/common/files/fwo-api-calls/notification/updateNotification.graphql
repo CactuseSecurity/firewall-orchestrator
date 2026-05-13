@@ -7,6 +7,8 @@ mutation updateNotification(
   $emailAddressTo: String
   $recipientCc: String
   $emailAddressCc: String
+  $recipientBcc: String
+  $emailAddressBcc: String
   $subject: String
   $emailBody: String
   $scheduleId: Int
@@ -31,6 +33,8 @@ mutation updateNotification(
     email_address_to: $emailAddressTo
     recipient_cc: $recipientCc
     email_address_cc: $emailAddressCc
+    recipient_bcc: $recipientBcc
+    email_address_bcc: $emailAddressBcc
     email_subject: $subject
     email_body: $emailBody
     schedule_id: $scheduleId

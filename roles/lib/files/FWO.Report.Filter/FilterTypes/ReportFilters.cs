@@ -65,7 +65,8 @@ namespace FWO.Report.Filter.FilterTypes
 
             if (template.ReportParams.TimeFilter != null)
             {
-                TimeFilter = template.ReportParams.TimeFilter;
+                TimeFilter = new TimeFilter(template.ReportParams.TimeFilter);
+                SavedTimeFilter = new TimeFilter(template.ReportParams.TimeFilter);
             }
             SetDisplayedTimeSelection();
             RecertFilter = new(template.ReportParams.RecertFilter);
@@ -81,7 +82,7 @@ namespace FWO.Report.Filter.FilterTypes
             ReportParams reportParams = new((int)ReportType, ReportType == ReportType.UnusedRules ? ReducedDeviceFilter : DeviceFilter)
             {
                 IncludeObjects = IncludeObjects,
-                TimeFilter = SavedTimeFilter,
+                TimeFilter = new TimeFilter(SavedTimeFilter),
                 RecertFilter = new RecertFilter(RecertFilter),
                 UnusedFilter = new UnusedFilter()
                 {

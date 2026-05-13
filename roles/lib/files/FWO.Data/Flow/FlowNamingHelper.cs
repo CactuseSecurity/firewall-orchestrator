@@ -67,5 +67,19 @@ namespace FWO.Data.Flow
 
             return string.IsNullOrWhiteSpace(resolvedName) ? fallbackName : resolvedName;
         }
+
+        /// <summary>
+        /// Resolves a name only when the current flow object name is missing.
+        /// Existing non-empty names are left untouched so the save action only backfills gaps.
+        /// </summary>
+        public static string ResolveMissingNwObjectName(FlowNwObject nwObject, int? preferredManagementId, string fallbackName = "")
+        {
+            if (!string.IsNullOrWhiteSpace(nwObject.Name))
+            {
+                return nwObject.Name!;
+            }
+
+            return ResolveNwObjectName(nwObject, preferredManagementId, fallbackName);
+        }
     }
 }

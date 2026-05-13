@@ -160,7 +160,7 @@ else
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("duplicate_objects"))" Show="@ResolveDuplicateMode" Size=PopupSize.Medium OnClose="CloseDuplicateResolver">
+<PopUp Title="@(userConfig.GetText("duplicate_objects"))" Show="@ResolveDuplicateMode" Size=PopupSize.Auto OnClose="CloseDuplicateResolver">
     <Body>
         @if (SelectedDuplicateGroup != null)
         {
@@ -193,6 +193,7 @@ else
                         </button>
                     </Template>
                 </Column>
+                <Pager ShowPageNumber="true" ShowTotalCount="true" />
             </Table>
         }
     </Body>
@@ -208,7 +209,7 @@ else
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("create_custom_flow_object"))" Show="@CreateCustomObjectMode" Size=PopupSize.Large OnClose="CloseCreateCustomObject">
+<PopUp Title="@(userConfig.GetText("create_custom_flow_object"))" Show="@CreateCustomObjectMode" Size=PopupSize.XLarge OnClose="CloseCreateCustomObject">
     <Body>
         @if (CreateCustomObjectMode)
         {
@@ -275,6 +276,7 @@ else
                                         </button>
                                     </Template>
                                 </Column>
+                                <Pager ShowPageNumber="true" ShowTotalCount="true" />
                             </Table>
                         </div>
                     }
@@ -375,6 +377,26 @@ else
 
             configData.FlowNamingSourceManagementId = selectedNamingManagement?.Id;
             await globalConfig.WriteToDatabase(configData, apiConnection);
+
+            int? preferredManagementId = configData.FlowNamingSourceManagementId;
+            List<FlowNwObject> objectsToBackfill = [.. flowNwObjects.Where(nwObject => string.IsNullOrWhiteSpace(nwObject.Name))];
+            foreach (FlowNwObject nwObject in objectsToBackfill)
+            {
+                string resolvedName = FlowNamingHelper.ResolveMissingNwObjectName(nwObject, preferredManagementId, "");
+                if (string.IsNullOrWhiteSpace(resolvedName))
+                {
+                    continue;
+                }
+
+                FlowNwObject updatedObject = await apiConnection.SendQueryAsync<FlowNwObject>(FlowMutations.updateFlowNwObject, new
+                {
+                    nwobjId = nwObject.Id,
+                    name = resolvedName,
+                    showInRequestModule = nwObject.ShowInRequestModule
+                });
+                FlowAccessCatalogHelper.ApplyNwObjectUpdate(null, flowNwObjects, updatedObject);
+            }
+
             DisplayMessageInUi(null, userConfig.GetText("flow_naming"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)

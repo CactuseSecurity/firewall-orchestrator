@@ -130,5 +130,49 @@ namespace FWO.Test
 
             Assert.That(result, Is.EqualTo("fallback-name"));
         }
+
+        [Test]
+        public void ResolveMissingNwObjectName_KeepsExistingName()
+        {
+            FlowNwObject nwObject = new()
+            {
+                Name = "already-named",
+                NwObjectMappings =
+                [
+                    new FlowNwObjectMapping
+                    {
+                        MgmId = 1,
+                        ActiveOnMgm = true,
+                        Object = new NetworkObject { Name = "replacement-name" }
+                    }
+                ]
+            };
+
+            string result = FlowNamingHelper.ResolveMissingNwObjectName(nwObject, preferredManagementId: 1, fallbackName: "");
+
+            Assert.That(result, Is.EqualTo("already-named"));
+        }
+
+        [Test]
+        public void ResolveMissingNwObjectName_UsesCandidateWhenNameMissing()
+        {
+            FlowNwObject nwObject = new()
+            {
+                Name = "",
+                NwObjectMappings =
+                [
+                    new FlowNwObjectMapping
+                    {
+                        MgmId = 1,
+                        ActiveOnMgm = true,
+                        Object = new NetworkObject { Name = "replacement-name" }
+                    }
+                ]
+            };
+
+            string result = FlowNamingHelper.ResolveMissingNwObjectName(nwObject, preferredManagementId: 1, fallbackName: "");
+
+            Assert.That(result, Is.EqualTo("replacement-name"));
+        }
     }
 }

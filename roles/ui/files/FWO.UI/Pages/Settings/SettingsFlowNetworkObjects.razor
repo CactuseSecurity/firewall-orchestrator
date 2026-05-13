@@ -1,4 +1,4 @@
-@page "/settings/flows"
+@page "/settings/flows/networkobjects"
 
 @using FWO.Api.Client.Queries
 @using FWO.Config.Api
@@ -15,8 +15,8 @@
 @inject UserConfig userConfig
 
 <div class="input-group">
-    <h3>@(userConfig.GetText("flow_objects"))</h3>
-    <HelpLink Page="settings/flows"/>
+    <h3>@(userConfig.GetText("network_objects"))</h3>
+    <HelpLink Page="settings/flows/networkobjects"/>
 </div>
 <div class="form-group row align-items-center mb-2">
     <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("flow_naming")):</label>
@@ -360,7 +360,7 @@ else
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi(exception, userConfig.GetText("flow_objects"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("network_objects"), "", true);
         }
 
         StateHasChanged();

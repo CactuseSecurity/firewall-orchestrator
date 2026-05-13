@@ -1,4 +1,4 @@
-@page "/help/settings/flows"
+@page "/help/settings/flows/networkobjects"
 @model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
@@ -12,8 +12,8 @@
 @inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>@userConfig.GetText("flow_objects")</h3>
+    <h3>@userConfig.GetText("network_objects")</h3>
     <p>This page lists the flow network object catalog in one place.</p>
-    <p>Use it as a sanity check when you want to confirm that a flow object is present before moving on to edits or mappings.</p>
+    <p>Use it as a sanity check when you want to confirm that a network object is present before moving on to edits or mappings.</p>
     <p>The same page also contains tools for flow naming, duplicate conflict resolution, and manual custom objects with searchable per-management object selection.</p>
 </div>

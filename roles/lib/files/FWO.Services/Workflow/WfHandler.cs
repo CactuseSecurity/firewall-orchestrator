@@ -117,32 +117,18 @@ namespace FWO.Services.Workflow
                     InitOngoing = true;
                     if (usedInMwServer)
                     {
-                        apiConnection.SetRole(Roles.MiddlewareServer);
+                        await apiConnection.RunWithRole(Roles.MiddlewareServer, async () => await LoadInitialData(apiConnection, fetchData, ownerIds, allStates, fullTickets));
                     }
                     else if (AuthUser != null)
                     {
-                        apiConnection.SetProperRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Modeller, Roles.Auditor]);
+                        await apiConnection.RunWithBestRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Modeller, Roles.Auditor],
+                            async () => await LoadInitialData(apiConnection, fetchData, ownerIds, allStates, fullTickets));
                     }
                     else
                     {
                         throw new AuthenticationException("No AuthUser set");
                     }
-                    ActionHandler = new(apiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker);
-                    await ActionHandler.Init();
-                    dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, AuthUser == null || AuthUser.IsInRole(Roles.Admin) || AuthUser.IsInRole(Roles.Auditor)) { };
-                    Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
-                    AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-                    await stateMatrixDict.Init(Phase, apiConnection);
-                    MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
-                    if (fetchData)
-                    {
-                        TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets);
-                    }
-                    ReloadTasks = !fullTickets;
-                    PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
-                    apiConnection.SwitchBack();
                     Log.WriteDebug("Init stop:   ", $"{DateTime.Now:hh:mm:ss,fff}");
-                    InitOngoing = false;
                     InitDone = true;
                     return true;
                 }
@@ -151,7 +137,28 @@ namespace FWO.Services.Workflow
             {
                 DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
             }
+            finally
+            {
+                InitOngoing = false;
+            }
             return false;
+        }
+
+        private async Task LoadInitialData(ApiConnection activeApiConnection, bool fetchData, List<int>? ownerIds, bool allStates, bool fullTickets)
+        {
+            ActionHandler = new(activeApiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker);
+            await ActionHandler.Init();
+            dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, activeApiConnection, ActionHandler, AuthUser == null || AuthUser.IsInRole(Roles.Admin) || AuthUser.IsInRole(Roles.Auditor)) { };
+            Devices = await activeApiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            AllOwners = await activeApiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            await stateMatrixDict.Init(Phase, activeApiConnection);
+            MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
+            if (fetchData)
+            {
+                TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets);
+            }
+            ReloadTasks = !fullTickets;
+            PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
         }
 
         public void FilterForRequester()

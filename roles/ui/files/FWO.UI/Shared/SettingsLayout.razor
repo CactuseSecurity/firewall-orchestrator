@@ -2,17 +2,18 @@
 @layout MainLayout
 
 @inject UserConfig userConfig
+@inject ApiConnection apiConnection
 @implements IDisposable
 
 <Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
     <div class="me-2 ms-2 mt-4 mb-4">
         <ul class="navbar-nav navbar-dark flex-column">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}, {Roles.Auditor}, {Roles.FwAdmin}")" Context="devicesAuth">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                     <h5>@(userConfig.GetText("devices"))</h5>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")" Context="deviceSettingsAuth">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/credentials">
                         <span class="@Icons.Credential"></span> @(userConfig.GetText("import_credential"))
@@ -30,26 +31,26 @@
                 </li>
             </AuthorizeView>
             <hr />
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")" Context="authorizationHeaderAuth">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5012"))">
                     <h5>@(userConfig.GetText("authorization"))</h5>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="settingsAuth">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/ldap">
                         <span class="@Icons.Ldap"></span> @(userConfig.GetText("ldap_conns"))
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")" Context="tenantSettingsAuth">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/tenants">
                         <span class="@Icons.Tenant"></span> @(userConfig.GetText("tenants"))
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="adminSettingsAuth">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/users">
                         <span class="@Icons.User"></span> @(userConfig.GetText("users"))
@@ -197,7 +198,8 @@
                     <span class="@Icons.Language"></span> @(userConfig.GetText("language"))
                 </NavLink>
                 <AuthorizeView
-                    Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")">
+                    Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")"
+                    Context="reportSettingsAuth">
                     <NavLink class="nav-link" href="settings/report">
                         <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
                     </NavLink>
@@ -205,7 +207,7 @@
             </li>
             @if (userConfig.RecertificationMode == RecertificationMode.RuleByRule)
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
+                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")" Context="recertSettingsAuth">
                     <li class="nav-item px-2">
                         <NavLink class="nav-link" href="settings/recertificationpersonal">
                             <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
@@ -213,7 +215,7 @@
                     </li>
                 </AuthorizeView>
             }
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")" Context="modellingSettingsAuth">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/modellingpersonal">
                         <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
@@ -234,9 +236,30 @@
 {
     private int sidebarWidth = 250;
 
-    protected override void OnInitialized()
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
         userConfig.OnChange += OnChange;
+        if (authenticationStateTask != null)
+        {
+            apiConnection.SetBestRole((await authenticationStateTask).User,
+                [
+                    Roles.Admin,
+                    Roles.FwAdmin,
+                    Roles.Auditor,
+                    Roles.ReporterViewAll,
+                    Roles.Reporter,
+                    Roles.Recertifier,
+                    Roles.Modeller,
+                    Roles.Requester,
+                    Roles.Approver,
+                    Roles.Planner,
+                    Roles.Implementer,
+                    Roles.Reviewer
+                ]);
+        }
     }
 
     private void OnChange(Config _, ConfigItem[] __)

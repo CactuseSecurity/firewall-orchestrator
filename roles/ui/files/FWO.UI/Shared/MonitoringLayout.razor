@@ -9,7 +9,7 @@
 <Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
     <div class="me-2 ms-2 mt-4 mb-4">
         <ul class="navbar-nav navbar-dark flex-column">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")" Context="monitoringLayoutAuth">
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("alerts"))</h5>
                 </li>
@@ -82,7 +82,7 @@
                 </li>
                 @if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
                 {
-                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="monitoringRequestsAuth">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="monitoring/modelling_requests">
                                 <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling_request_status"))
@@ -114,7 +114,7 @@
                     <span class="@Icons.UiMessages"></span> @(userConfig.GetText("ui_messages"))
                 </NavLink>
             </li>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="monitoringAllAuth">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/monitor_all">
                         <span class="@Icons.Monitoring"></span> @(userConfig.GetText("all"))

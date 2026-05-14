@@ -32,7 +32,7 @@ namespace FWO.Services.Workflow
             try
             {
                 List<WfReqTask> scopedTasks = GetScopedRequestTasks(statefulObject, scope);
-                await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
+                await apiConnection.RunWithBestRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
                 {
                     updatedObjects += await UpdateModellingConnections(stateMarker, state, stateSetAt, ticketId, scopedTasks);
                     updatedObjects += await UpdateModellingGroups(stateMarker, state, stateSetAt, scopedTasks);

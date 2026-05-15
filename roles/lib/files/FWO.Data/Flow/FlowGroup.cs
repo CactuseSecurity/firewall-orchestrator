@@ -31,6 +31,9 @@ namespace FWO.Data.Flow
 
         [JsonProperty("nwgrp_members"), JsonPropertyName("nwgrp_members")]
         public List<FlowNwGroupMember> NwGroupMembers { get; set; } = new List<FlowNwGroupMember>();
+
+        [JsonProperty("objects"), JsonPropertyName("objects")]
+        public List<NetworkObject>? Objects { get; set; }
     }
 
     public class FlowSvcGroup : FlowGroup
@@ -43,6 +46,9 @@ namespace FWO.Data.Flow
 
         [JsonProperty("svcgrp_members"), JsonPropertyName("svcgrp_members")]
         public List<FlowSvcGroupMember> SvcGroupMembers { get; set; } = new List<FlowSvcGroupMember>();
+
+        [JsonProperty("services"), JsonPropertyName("services")]
+        public List<NetworkService>? Services { get; set; }
     }
 
     public class FlowNwGroupMember

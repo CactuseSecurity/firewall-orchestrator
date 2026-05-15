@@ -32,6 +32,9 @@ namespace FWO.Data.Flow
         [JsonProperty("show_in_request_module"), JsonPropertyName("show_in_request_module")]
         public bool ShowInRequestModule { get; set; }
 
+        [JsonProperty("services"), JsonPropertyName("services")]
+        public List<NetworkService>? Services { get; set; }
+
         public void GenerateHash()
         {
             Hash = FlowHashGenerator.GenerateSvcObjectHash(ProtoId, PortStart, PortEnd);

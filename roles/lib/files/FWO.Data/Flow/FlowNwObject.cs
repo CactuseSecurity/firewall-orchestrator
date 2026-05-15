@@ -29,9 +29,18 @@ namespace FWO.Data.Flow
         [JsonProperty("show_in_request_module"), JsonPropertyName("show_in_request_module")]
         public bool ShowInRequestModule { get; set; }
 
+        [JsonProperty("objects"), JsonPropertyName("objects")]
+        public List<NetworkObject>? Objects { get; set; }
+
         public void GenerateHash()
         {
             Hash = FlowHashGenerator.GenerateNwObjectHash(IpStart, IpEnd);
         }
+    }
+
+    public class FlowNwObjectInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowNwObject> Returning { get; set; } = [];
     }
 }

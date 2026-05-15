@@ -1,0 +1,20 @@
+mutation updateFlowNwGroup(
+  $nwgroupId: bigint!
+  $name: String!
+  $showInRequestModule: Boolean!
+) {
+  update_flow_nwgroup_by_pk(
+    pk_columns: { nwgroup_id: $nwgroupId }
+    _set: {
+      name: $name
+      show_in_request_module: $showInRequestModule
+    }
+  ) {
+    nwgroup_id
+    name
+    nwgrp_hash
+    state
+    removed_date
+    show_in_request_module
+  }
+}

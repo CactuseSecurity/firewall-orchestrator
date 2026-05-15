@@ -29,6 +29,9 @@ namespace FWO.Data.Flow
         [JsonProperty("show_in_request_module"), JsonPropertyName("show_in_request_module")]
         public bool ShowInRequestModule { get; set; }
 
+        [JsonProperty("time_objects"), JsonPropertyName("time_objects")]
+        public List<TimeObject>? TimeObjects { get; set; }
+
         public void GenerateHash()
         {
             Hash = FlowHashGenerator.GenerateTimeObjectHash(StartTime, EndTime);

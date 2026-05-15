@@ -1,0 +1,33 @@
+fragment flowNwGroupDetails on flow_nwgroup {
+  nwgroup_id
+  name
+  nwgrp_hash
+  state
+  removed_date
+  show_in_request_module
+  nwgroup_members(order_by: { nwobj_id: asc }) {
+    nwgroup_id
+    nwobj_id
+    nwobject {
+      nwobj_id
+      name
+      ip_start
+      ip_end
+      nwobj_hash
+      state
+      removed_date
+      show_in_request_module
+    }
+  }
+  objects(order_by: { obj_name: asc }) {
+    obj_id
+    obj_name
+    obj_ip
+    obj_ip_end
+    obj_uid
+    active
+    removed
+    flow_nwgrp_id
+    flow_active
+  }
+}

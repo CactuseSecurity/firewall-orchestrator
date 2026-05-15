@@ -1,0 +1,28 @@
+mutation insertFlowNwObject(
+  $name: String!
+  $ipStart: inet
+  $ipEnd: inet
+  $nwobjHash: String!
+  $showInRequestModule: Boolean!
+) {
+  insert_flow_nwobject(
+    objects: {
+      name: $name
+      ip_start: $ipStart
+      ip_end: $ipEnd
+      nwobj_hash: $nwobjHash
+      show_in_request_module: $showInRequestModule
+    }
+  ) {
+    returning {
+      nwobj_id
+      name
+      ip_start
+      ip_end
+      nwobj_hash
+      state
+      removed_date
+      show_in_request_module
+    }
+  }
+}

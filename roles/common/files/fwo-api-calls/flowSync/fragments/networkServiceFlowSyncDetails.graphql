@@ -1,0 +1,39 @@
+fragment networkServiceFlowSyncDetails on service {
+  svc_id
+  svc_name
+  svc_uid
+  svc_port
+  svc_port_end
+  svc_source_port
+  svc_source_port_end
+  svc_code
+  svc_timeout
+  svc_typ_id
+  service_type: stm_svc_typ {
+    name: svc_typ_name
+  }
+  ip_proto_id
+  protocol_name: stm_ip_proto {
+    id: ip_proto_id
+    name: ip_proto_name
+  }
+  svcgrp_flats(
+    where: {
+      removed: { _is_null: true }
+    }
+  ) {
+    flat_id: svcgrp_flat_id
+    byFlatId: serviceBySvcgrpFlatMemberId {
+      svc_port
+      svc_port_end
+      ip_proto_id
+      protocol_name: stm_ip_proto {
+        id: ip_proto_id
+        name: ip_proto_name
+      }
+      service_type: stm_svc_typ {
+        name: svc_typ_name
+      }
+    }
+  }
+}

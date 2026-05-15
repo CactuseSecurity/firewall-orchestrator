@@ -1,0 +1,34 @@
+fragment flowSvcGroupDetails on flow_svcgroup {
+  svcgroup_id
+  name
+  svcgrp_hash
+  state
+  removed_date
+  show_in_request_module
+  svcgroup_members(order_by: { svcobj_id: asc }) {
+    svcgroup_id
+    svcobj_id
+    svcobject {
+      svcobj_id
+      name
+      port_start
+      port_end
+      ip_proto_id
+      svcobj_hash
+      state
+      removed_date
+      show_in_request_module
+    }
+  }
+  services(order_by: { svc_name: asc }) {
+    svc_id
+    svc_name
+    svc_port
+    svc_port_end
+    svc_uid
+    active
+    removed
+    flow_svcgrp_id
+    flow_active
+  }
+}

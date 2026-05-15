@@ -5,6 +5,7 @@ using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Services;
+using FWO.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -60,6 +61,7 @@ builder.Services.AddQuartzHostedService(options =>
 // Register singletons for DI
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
+builder.Services.AddSingleton<FlowSync>();
 builder.Services.AddSingleton<JobExecutionTracker>();
 builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
 
@@ -74,6 +76,7 @@ builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
 builder.Services.AddSingleton<ReportSchedulerService>();
 builder.Services.AddSingleton<ComplianceSchedulerService>();
 builder.Services.AddSingleton<UpdateRuleOwnerMappingSchedulerService>();
+builder.Services.AddSingleton<UpdateFlowsSchedulerService>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -155,5 +158,6 @@ app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();
 app.Services.GetRequiredService<ReportSchedulerService>();
 app.Services.GetRequiredService<ComplianceSchedulerService>();
 app.Services.GetRequiredService<UpdateRuleOwnerMappingSchedulerService>();
+app.Services.GetRequiredService<UpdateFlowsSchedulerService>();
 
 await app.RunAsync();

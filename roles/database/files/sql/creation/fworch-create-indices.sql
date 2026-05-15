@@ -118,3 +118,26 @@ Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_c
 
 -- rule_owner
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;
+
+-- flow
+Create index idx_flow_access_hash on flow.access (access_hash);
+Create index idx_flow_access_active on flow.access (access_hash) WHERE state IN ('requested', 'implemented');
+Create index idx_flow_access_source_nwobj on flow.access_source (nwobj_id);
+Create index idx_flow_access_destination_nwobj on flow.access_destination (nwobj_id);
+Create index idx_flow_access_service_svcobj on flow.access_service (svcobj_id);
+Create index idx_flow_access_timeobject on flow.access_timeobject (timeobj_id);
+
+Create index idx_flow_access_source_grp_nwgrp on flow.access_source_grp (nwgrp_id);
+Create index idx_flow_access_destination_grp_nwgrp on flow.access_destination_grp (nwgrp_id);
+Create index idx_flow_access_service_grp_svcgrp on flow.access_service_grp (svcgrp_id);
+
+Create index idx_flow_nwgroup_member_nwobj on flow.nwgroup_member (nwobj_id);
+
+Create index idx_flow_svcgroup_member_svcobj on flow.svcgroup_member (svcobj_id);
+
+Create unique index if not exists rule_flow_access_id_active_only_one_per_mgm on rule (mgm_id, flow_access_id) where flow_active = true;
+Create unique index if not exists service_flow_svcobj_id_active_only_one_per_mgm on service (mgm_id, flow_svcobj_id) where flow_active = true;
+Create unique index if not exists service_flow_svcgrp_id_active_only_one_per_mgm on service (mgm_id, flow_svcgrp_id) where flow_active = true;
+Create unique index if not exists time_object_flow_timeobj_id_active_only_one_per_mgm on time_object (mgm_id, flow_timeobj_id) where flow_active = true;
+Create unique index if not exists object_flow_nwobj_id_active_only_one_per_mgm on object (mgm_id, flow_nwobj_id) where flow_active = true;
+Create unique index if not exists object_flow_nwgrp_id_active_only_one_per_mgm on object (mgm_id, flow_nwgrp_id) where flow_active = true;

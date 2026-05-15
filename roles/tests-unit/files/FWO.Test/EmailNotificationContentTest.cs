@@ -121,11 +121,12 @@ namespace FWO.Test
 
             List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, 1);
             WfTicket ticket = new() { Tasks = tasks };
-            ticket.UpdateIpStringsFromCidrInTaskElements();
+            ticket.UpdateCidrsInTaskElements();
 
             WfReqTask accessTask = tasks.First(task => task.TaskType == WfTaskType.access.ToString());
             Assert.That(accessTask.Elements.First(element => element.Field == ElemFieldType.source.ToString()).IpString, Is.EqualTo("10.0.0.1"));
             Assert.That(accessTask.Elements.First(element => element.Field == ElemFieldType.destination.ToString()).IpString, Is.EqualTo("10.0.0.2"));
+            Assert.That(accessTask.Elements.First(element => element.Field == ElemFieldType.source.ToString()).Cidr?.CidrString, Is.EqualTo("10.0.0.1/32"));
         }
 
         [Test]

@@ -130,10 +130,8 @@ namespace FWO.Services.Modelling
                 RequestAction = RequestAction.create.ToString(),
                 Field = ElemFieldType.source.ToString(),
                 Name = appServer.Name,
-                IpString = appServer.Ip,
-                IpEnd = appServer.IpEnd,
-                Cidr = new Cidr(appServer.Ip ?? ""),
-                CidrEnd = new Cidr(appServer.IpEnd ?? appServer.Ip ?? ""),
+                IpString = appServer.Ip?.StripOffUnnecessaryNetmask(),
+                IpEnd = appServer.IpEnd?.StripOffUnnecessaryNetmask(),
                 GroupName = appRole.IdString
             })];
         }
@@ -318,10 +316,8 @@ namespace FWO.Services.Modelling
                 RequestAction = RequestAction.create.ToString(),
                 Field = field.ToString(),
                 Name = appServer.Name,
-                IpString = appServer.Ip,
-                IpEnd = appServer.IpEnd,
-                Cidr = new Cidr(appServer.Ip ?? ""),
-                CidrEnd = new Cidr(appServer.IpEnd ?? appServer.Ip ?? "")
+                IpString = appServer.Ip?.StripOffUnnecessaryNetmask(),
+                IpEnd = appServer.IpEnd?.StripOffUnnecessaryNetmask()
             });
         }
 

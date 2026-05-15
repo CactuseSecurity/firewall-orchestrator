@@ -38,6 +38,7 @@ namespace FWO.Test
                 Assert.That(task.Elements, Has.Count.EqualTo(3));
                 Assert.That(task.Elements.Any(element => element.Field == ElemFieldType.source.ToString() && element.GroupName == "AR1"), Is.True);
                 Assert.That(task.Elements.Any(element => element.Field == ElemFieldType.destination.ToString() && element.Name == "Server1"), Is.True);
+                Assert.That(task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString()).IpString, Is.EqualTo("10.0.0.1"));
                 Assert.That(task.Elements.Any(element => element.Field == ElemFieldType.service.ToString() && element.Name == "HTTP"), Is.True);
             });
 
@@ -289,9 +290,9 @@ namespace FWO.Test
             {
                 Assert.That(tasks.Count(task => task.TaskType == WfTaskType.group_create.ToString()), Is.EqualTo(2));
                 Assert.That(accessTask.Elements.Any(element => element.GroupName == "ARChanged"), Is.True);
-                Assert.That(accessTask.Elements.Any(element => element.GroupName == "ARUnchanged"), Is.False);
+                Assert.That(accessTask.Elements.Any(element => element.GroupName == "ARUnchanged"), Is.True);
                 Assert.That(accessTask.Elements.Any(element => element.GroupName == "SGChanged"), Is.True);
-                Assert.That(accessTask.Elements.Any(element => element.GroupName == "SGUnchanged"), Is.False);
+                Assert.That(accessTask.Elements.Any(element => element.GroupName == "SGUnchanged"), Is.True);
             });
         }
 
@@ -355,7 +356,7 @@ namespace FWO.Test
                 Reason = "Need access",
                 ExtraConfigs = [.. extraConfigTypes.Select(extraConfigType => new ModellingExtraConfig { ExtraConfigType = extraConfigType })],
                 SourceAppRoles = [new() { Content = new() { Id = 1, IdString = "AR1" } }],
-                DestinationAppServers = [new() { Content = new() { Name = "Server1", Ip = "10.0.0.1" } }],
+                DestinationAppServers = [new() { Content = new() { Name = "Server1", Ip = "10.0.0.1/32" } }],
                 Services = [new() { Content = new() { Name = "HTTP", ProtoId = 6, Port = 80 } }]
             };
         }

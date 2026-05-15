@@ -82,11 +82,13 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)FullTicket);
                 }
-                if (query == ModellingQueries.getConnectionsByTicketId)
+                if (query == ModellingQueries.getConnectionsByTicketId
+                    || query == ModellingQueries.getWorkflowConnectionsByTicketId)
                 {
                     return Task.FromResult((T)(object)ConnectionsByTicket);
                 }
-                if (query == ModellingQueries.getConnectionById)
+                if (query == ModellingQueries.getConnectionById
+                    || query == ModellingQueries.getWorkflowConnectionById)
                 {
                     int id = GetVariable<int>(variables, "id");
                     return Task.FromResult((T)(object)(ConnectionsById.TryGetValue(id, out ModellingConnection? connection)
@@ -488,7 +490,7 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = true };
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(11));
             WfStateAction action = new()
@@ -517,7 +519,7 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = false };
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(12));
             WfStateAction action = new()
@@ -540,7 +542,7 @@ namespace FWO.Test
             apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, new ActionHandlerTestPolicyChecker() { Result = true });
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(13));
             WfStateAction action = new()
@@ -562,7 +564,7 @@ namespace FWO.Test
             apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, new ActionHandlerTestPolicyChecker() { Result = true });
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(14));
             WfStateAction action = new()
@@ -584,7 +586,7 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = true };
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfReqTask eligibleTask = CreateEligibleRequestTask(15);
             WfReqTask ineligibleTask = new()
@@ -657,7 +659,7 @@ namespace FWO.Test
             WfHandler wfHandler = new((_, title, message, error) => uiMessages.Add((title, message, error)), new SimulatedUserConfig(),
                 new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
             SetMatrix(wfHandler, WfTaskType.access.ToString());
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             WfReqTask accessTask = new() { Id = 1, TaskType = WfTaskType.access.ToString() };
             accessTask.SetAddInfo(AdditionalInfoKeys.ConnId, "41");
             WfReqTask ignoredConnectionTask = new() { Id = 2, TaskType = WfTaskType.new_interface.ToString() };
@@ -677,7 +679,7 @@ namespace FWO.Test
 
             await handler.PerformAction(action, ticket, WfObjectScopes.Ticket, ticketId: 77);
 
-            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getConnectionsByTicketId), Is.EqualTo(1));
+            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getWorkflowConnectionsByTicketId), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateConnectionProperties), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getAppRoleById), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getServiceGroupById), Is.EqualTo(1));
@@ -731,7 +733,7 @@ namespace FWO.Test
 
             await handler.PerformAction(action, selectedTask, WfObjectScopes.RequestTask);
 
-            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getConnectionById), Is.EqualTo(1));
+            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getWorkflowConnectionById), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateConnectionProperties), Is.EqualTo(1));
             object? connectionVars = apiConn.Variables[apiConn.Queries.IndexOf(ModellingQueries.updateConnectionProperties)];
             Assert.That(GetVariable<int>(connectionVars, "id"), Is.EqualTo(41));
@@ -775,7 +777,7 @@ namespace FWO.Test
 
             await handler.UpdateConnectionOwner(new FwoOwner { Id = 7 }, 77);
 
-            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getConnectionsByTicketId), Is.EqualTo(1));
+            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getWorkflowConnectionsByTicketId), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateProposedConnectionOwner), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.addHistoryEntry), Is.EqualTo(1));
             object? updateVars = apiConn.Variables[apiConn.Queries.IndexOf(ModellingQueries.updateProposedConnectionOwner)];

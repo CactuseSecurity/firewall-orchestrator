@@ -135,10 +135,13 @@ namespace FWO.Services.Workflow
                     }
 
                     // update of request tasks and creation of impl tasks may be necessary
-                    await UpdateRequestTasksFromTicket();
+                    bool requestTaskActionsChangedState = await UpdateRequestTasksFromTicket();
 
-                    //check for further promotion (req tasks may be promoted)
-                    await UpdateActTicketStateFromReqTasks();
+                    if (requestTaskActionsChangedState)
+                    {
+                        // check for further promotion (req tasks may be promoted)
+                        await UpdateActTicketStateFromReqTasks();
+                    }
 
                     ResetTicketActions();
                     return ActTicket.Id;

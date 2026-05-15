@@ -156,32 +156,7 @@
             {
                 await stateMatrix.Init(WorkflowPhases.request, apiConnection);
 
-                if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) ||
-                    authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) ||
-                    authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
-                {
-                    firstWorkflowPage = "/request/ticketsoverview";
-                }
-                else if (stateMatrix.PhaseActive[WorkflowPhases.request] && authenticationStateTask!.Result.User.IsInRole(Roles.Requester))
-                {
-                    firstWorkflowPage = "/request/tickets";
-                }
-                else if (stateMatrix.PhaseActive[WorkflowPhases.approval] && authenticationStateTask!.Result.User.IsInRole(Roles.Approver))
-                {
-                    firstWorkflowPage = "/request/approvals";
-                }
-                else if (stateMatrix.PhaseActive[WorkflowPhases.planning] && authenticationStateTask!.Result.User.IsInRole(Roles.Planner))
-                {
-                    firstWorkflowPage = "/request/plannings";
-                }
-                else if (stateMatrix.PhaseActive[WorkflowPhases.implementation] && authenticationStateTask!.Result.User.IsInRole(Roles.Implementer))
-                {
-                    firstWorkflowPage = "/request/implementations";
-                }
-                else if (stateMatrix.PhaseActive[WorkflowPhases.review] && authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer))
-                {
-                    firstWorkflowPage = "/request/reviews";
-                }
+                ConfigureFirstWorkflowPage();
             }
 
             availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
@@ -194,6 +169,36 @@
         InitComplete = true;
     }
 
+    private void ConfigureFirstWorkflowPage()
+    {
+        if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) ||
+            authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) ||
+            authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+        {
+            firstWorkflowPage = "/request/ticketsoverview";
+        }
+        else if (stateMatrix.PhaseActive[WorkflowPhases.request] && authenticationStateTask!.Result.User.IsInRole(Roles.Requester))
+        {
+            firstWorkflowPage = "/request/tickets";
+        }
+        else if (stateMatrix.PhaseActive[WorkflowPhases.approval] && authenticationStateTask!.Result.User.IsInRole(Roles.Approver))
+        {
+            firstWorkflowPage = "/request/approvals";
+        }
+        else if (stateMatrix.PhaseActive[WorkflowPhases.planning] && authenticationStateTask!.Result.User.IsInRole(Roles.Planner))
+        {
+            firstWorkflowPage = "/request/plannings";
+        }
+        else if (stateMatrix.PhaseActive[WorkflowPhases.implementation] && authenticationStateTask!.Result.User.IsInRole(Roles.Implementer))
+        {
+            firstWorkflowPage = "/request/implementations";
+        }
+        else if (stateMatrix.PhaseActive[WorkflowPhases.review] && authenticationStateTask!.Result.User.IsInRole(Roles.Reviewer))
+        {
+            firstWorkflowPage = "/request/reviews";
+        }
+    }
+    
     void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;

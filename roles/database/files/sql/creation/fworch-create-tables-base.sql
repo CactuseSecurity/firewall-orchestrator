@@ -475,8 +475,10 @@ create table notification
 	email_body Varchar,
 	schedule_id Integer,
 	bundle_type Varchar,
-	bundle_id Varchar
- );
+	bundle_id Varchar,
+	recipient_bcc Varchar,
+	email_address_bcc Varchar
+  );
 
 -- configuration
 

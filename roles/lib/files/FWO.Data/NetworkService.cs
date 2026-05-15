@@ -88,8 +88,17 @@ namespace FWO.Data
         [JsonProperty("flow_svcobject"), JsonPropertyName("flow_svcobject")]
         public FlowSvcObject? FlowSvcObject { get; set; }
 
+        [JsonProperty("flow_svcgrp_id"), JsonPropertyName("flow_svcgrp_id")]
+        public long? FlowServiceGroupId { get; set; }
+
+        [JsonProperty("flow_svcgroup"), JsonPropertyName("flow_svcgroup")]
+        public FlowSvcGroup? FlowSvcGroup { get; set; }
+
         [JsonProperty("flow_active"), JsonPropertyName("flow_active")]
         public bool FlowActive { get; set; }
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public long? Removed { get; set; }
 
         public long Number;
         public bool IsSurplus = false;

@@ -1,0 +1,51 @@
+query getFlowSyncManagementData($mgmId: Int!) {
+  management(where: { mgm_id: { _eq: $mgmId } }) {
+    id: mgm_id
+    name: mgm_name
+    networkObjects: objects(
+      where: {
+        removed: { _is_null: true }
+        flow_nwobj_id: { _is_null: true }
+        flow_nwgrp_id: { _is_null: true }
+      }
+      order_by: { obj_name: asc }
+    ) {
+      ...networkObjectFlowSyncDetails
+    }
+    serviceObjects: services(
+      where: {
+        removed: { _is_null: true }
+        flow_svcobj_id: { _is_null: true }
+        flow_svcgrp_id: { _is_null: true }
+      }
+      order_by: { svc_name: asc }
+    ) {
+      ...networkServiceFlowSyncDetails
+    }
+    timeObjects: time_objects(
+      where: {
+        removed: { _is_null: true }
+        flow_timeobj_id: { _is_null: true }
+      }
+      order_by: { time_obj_name: asc }
+    ) {
+      ...timeObjectFlowSyncDetails
+    }
+    rules(
+      where: {
+        access_rule: { _eq: true }
+        rule_head_text: { _is_null: true }
+        rule_disabled: { _eq: false }
+        action_id: { _eq: 1 }
+        rule_src_neg: { _eq: false }
+        rule_dst_neg: { _eq: false }
+        rule_svc_neg: { _eq: false }
+        removed: { _is_null: true }
+        flow_access_id: { _is_null: true }
+      }
+      order_by: { rule_num_numeric: asc }
+    ) {
+      ...ruleFlowSyncDetails
+    }
+  }
+}

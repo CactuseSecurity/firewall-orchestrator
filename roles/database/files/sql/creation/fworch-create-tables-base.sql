@@ -356,6 +356,7 @@ Create table "import_control"
 	"notification_done" Boolean NOT NULL Default FALSE,
 	"rule_owner_mapping_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
+	"flow_sync_done" Boolean NOT NULL Default FALSE,
  primary key ("control_id")
 );
 

@@ -64,8 +64,17 @@ namespace FWO.Data
         [JsonProperty("flow_nwobject"), JsonPropertyName("flow_nwobject")]
         public FlowNwObject? FlowNwObject { get; set; }
 
+        [JsonProperty("flow_nwgrp_id"), JsonPropertyName("flow_nwgrp_id")]
+        public long? FlowNetworkGroupId { get; set; }
+
+        [JsonProperty("flow_nwgroup"), JsonPropertyName("flow_nwgroup")]
+        public FlowNwGroup? FlowNwGroup { get; set; }
+
         [JsonProperty("flow_active"), JsonPropertyName("flow_active")]
         public bool FlowActive { get; set; }
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public long? Removed { get; set; }
 
         public long Number;
         public bool Highlighted = false;

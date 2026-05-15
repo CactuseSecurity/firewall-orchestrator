@@ -1,0 +1,9 @@
+mutation insertFlowTimeObjects($objects: [flow_timeobject_insert_input!]!) {
+  insert_flow_timeobject(objects: $objects) {
+    affected_rows
+    returning {
+      timeobj_id
+      timeobj_hash
+    }
+  }
+}

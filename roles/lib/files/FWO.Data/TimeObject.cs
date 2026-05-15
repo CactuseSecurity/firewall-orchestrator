@@ -32,5 +32,8 @@ namespace FWO.Data
 
         [JsonProperty("flow_active"), JsonPropertyName("flow_active")]
         public bool FlowActive { get; set; }
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public long? Removed { get; set; }
     }
 }

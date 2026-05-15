@@ -259,3 +259,5 @@ CREATE INDEX IF NOT EXISTS idx_flow_nwgroup_member_nwobj ON flow.nwgroup_member 
 CREATE INDEX IF NOT EXISTS idx_flow_svcgroup_member_svcobj ON flow.svcgroup_member (svcobj_id);
 
 ------------------------------------------------------------------------------
+
+ALTER TABLE import_control ADD COLUMN IF NOT EXISTS flow_sync_done Boolean NOT NULL Default FALSE;

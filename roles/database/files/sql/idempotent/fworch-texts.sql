@@ -75,6 +75,10 @@ INSERT INTO txt VALUES ('AnyActivity',          'German',   'Beliebige Aktivit&a
 INSERT INTO txt VALUES ('AnyActivity',          'English',  'Any Activity');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('RequestedConnections', 'German',   'Beantragte Verbindungen');
+INSERT INTO txt VALUES ('RequestedConnections', 'English',  'Requested Connections');
+INSERT INTO txt VALUES ('requested_connections','German',   'Beantragte Verbindungen');
+INSERT INTO txt VALUES ('requested_connections','English',  'Requested Connections');
 INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
 INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
 INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
@@ -99,12 +103,16 @@ INSERT INTO txt VALUES ('ExternalCall',			'German', 	'Externer Aufruf');
 INSERT INTO txt VALUES ('ExternalCall',			'English', 	'External call');
 INSERT INTO txt VALUES ('SendEmail',	        'German', 	'Email verschicken');
 INSERT INTO txt VALUES ('SendEmail',		    'English', 	'Send email');
+INSERT INTO txt VALUES ('WfAction',	            'German', 	'Workflow-Aktion');
+INSERT INTO txt VALUES ('WfAction',		        'English', 	'Workflow action');
 INSERT INTO txt VALUES ('UpdateConnectionOwner','German', 	'Verbindungseigent&uuml;mer &auml;ndern');
 INSERT INTO txt VALUES ('UpdateConnectionOwner','English', 	'Update Connection Owner');
 INSERT INTO txt VALUES ('UpdateConnectionRelease','German', 'Verbindung ver&ouml;ffentlichen');
 INSERT INTO txt VALUES ('UpdateConnectionRelease','English','Publish Connection');
 INSERT INTO txt VALUES ('UpdateConnectionReject','German',  'Schnittstelle ablehnen');
 INSERT INTO txt VALUES ('UpdateConnectionReject','English', 'Reject Interface');
+INSERT INTO txt VALUES ('UpdateModelling',       'German',  'Modellierung aktualisieren');
+INSERT INTO txt VALUES ('UpdateModelling',       'English', 'Update Modelling');
 INSERT INTO txt VALUES ('DisplayConnection',    'German',   'Verbindung darstellen');
 INSERT INTO txt VALUES ('DisplayConnection',    'English',  'Display Connection');
 INSERT INTO txt VALUES ('Ticket',			    'German', 	'Ticket');
@@ -263,6 +271,8 @@ INSERT INTO txt VALUES ('AllOwnerResponsibles', 'German',	'Eigent&uuml;mer alle 
 INSERT INTO txt VALUES ('AllOwnerResponsibles', 'English',	'Owner all responsibles');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'German',	'nur Eigent&uuml;mergruppe');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'English',	'Owner Group only');
+INSERT INTO txt VALUES ('ConfiguredResponsibles','German',	'Konfigurierte Verantwortliche');
+INSERT INTO txt VALUES ('ConfiguredResponsibles','English',	'Configured responsibles');
 INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'German',	'Hauptverantworlicher wenn Eigent&uuml;mergruppe nicht spezifiziert oder leer');
 INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'English','Owner Main Responsible if Owner Group not specified or empty');
 INSERT INTO txt VALUES ('Requester', 		    'German',	'Antragsteller');
@@ -1196,6 +1206,8 @@ INSERT INTO txt VALUES ('existing',             'German',   'Vorhanden');
 INSERT INTO txt VALUES ('existing',             'English',  'Existing');
 INSERT INTO txt VALUES ('value',                'German',   'Wert');
 INSERT INTO txt VALUES ('value',                'English',  'Value');
+INSERT INTO txt VALUES ('display_only',         'German',   'Nur anzeigen');
+INSERT INTO txt VALUES ('display_only',         'English',  'Display only');
 INSERT INTO txt VALUES ('action_type', 		    'German', 	'Aktionstyp');
 INSERT INTO txt VALUES ('action_type', 		    'English', 	'Action type');
 INSERT INTO txt VALUES ('external_params', 		'German', 	'Externe Parameter');
@@ -1358,6 +1370,8 @@ INSERT INTO txt VALUES ('recipient_to',    		'German',   'Empf&auml;nger (To)');
 INSERT INTO txt VALUES ('recipient_to',    		'English',  'Recipient (To)');
 INSERT INTO txt VALUES ('recipient_cc',    		'German',   'Empf&auml;nger (Cc)');
 INSERT INTO txt VALUES ('recipient_cc',    		'English',  'Recipient (Cc)');
+INSERT INTO txt VALUES ('recipient_bcc',        'German',   'Empf&auml;nger (Bcc)');
+INSERT INTO txt VALUES ('recipient_bcc',        'English',  'Recipient (Bcc)');
 INSERT INTO txt VALUES ('recertification_ok',   'German',   'Rezertifizierung Ok');
 INSERT INTO txt VALUES ('recertification_ok',   'English',  'Recertification Ok');
 INSERT INTO txt VALUES ('recertification_error','German',   'Rezertifizierungsfehler');
@@ -2408,12 +2422,8 @@ INSERT INTO txt VALUES ('impChangeNotifySleepTime','German','&Auml;nderungsbenac
 INSERT INTO txt VALUES ('impChangeNotifySleepTime','English','Change notification sleep time (in seconds)');
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenachrichtigungs-Start');
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingActive','German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierung aktiv?');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingActive','English', 'Update Rule Owner Mapping active?');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','German','Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','English','Update Rule Owner Mapping sleep time (in seconds)');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingStartAt',  'German','Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Start');
-INSERT INTO txt VALUES ('updateRuleOwnerMappingStartAt',  'English','Update Rule Owner Mapping start at');
 INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('externalRequestSleepTime','English','External Request sleep time (in seconds)');
 INSERT INTO txt VALUES ('externalRequestStartAt',  'German','Externer Auftrags-Start');
@@ -2812,6 +2822,18 @@ INSERT INTO txt VALUES ('modDecommEmailBody',   'German',   'Text der Stilllegun
 INSERT INTO txt VALUES ('modDecommEmailBody',   'English',  'Body of decommission emails');
 INSERT INTO txt VALUES ('modRolloutActive',     'German',   'Automatische Firewallbeantragung aktivieren');
 INSERT INTO txt VALUES ('modRolloutActive',     'English',  'Activate automatic Firewall request');
+INSERT INTO txt VALUES ('modIntegrationMode',   'German',   'Integrationsmodus');
+INSERT INTO txt VALUES ('modIntegrationMode',   'English',  'Integration Mode');
+INSERT INTO txt VALUES ('modIntegrationStates', 'German',   'Integrationsstatus');
+INSERT INTO txt VALUES ('modIntegrationStates', 'English',  'Integration States');
+INSERT INTO txt VALUES ('modIntegrationStateMarker', 'German',   'Statusmarker');
+INSERT INTO txt VALUES ('modIntegrationStateMarker', 'English',  'State Marker');
+INSERT INTO txt VALUES ('include_into_request', 'German',   'In Request aufnehmen');
+INSERT INTO txt VALUES ('include_into_request', 'English',  'Include into request');
+INSERT INTO txt VALUES ('FullyIntegrated',      'German',   'Voll integriert');
+INSERT INTO txt VALUES ('FullyIntegrated',      'English',  'Fully integrated');
+INSERT INTO txt VALUES ('WorkflowNotifications','German',   'Workflow-Benachrichtigungen');
+INSERT INTO txt VALUES ('WorkflowNotifications','English',  'Workflow notifications');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','German','Servicegruppen aufl&ouml;sen');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','English','Resolve service groups');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','German',   'Tasks zusammenfassen');
@@ -2890,6 +2912,14 @@ INSERT INTO txt VALUES ('email_to',				'German', 	'An');
 INSERT INTO txt VALUES ('email_to',				'English', 	'To');
 INSERT INTO txt VALUES ('email_cc',				'German', 	'CC');
 INSERT INTO txt VALUES ('email_cc',				'English', 	'CC');
+INSERT INTO txt VALUES ('attached_content',     'German',   'Angeh&auml;ngter Inhalt');
+INSERT INTO txt VALUES ('attached_content',     'English',  'Attached Content');
+INSERT INTO txt VALUES ('confirm_sent_mail',    'German',   'Versand per UI-Meldung best&auml;tigen');
+INSERT INTO txt VALUES ('confirm_sent_mail',    'English',  'Confirm sent email via UI message');
+INSERT INTO txt VALUES ('confirm_modelling_update', 'German',   'Aktualisierung per UI-Meldung best&auml;tigen');
+INSERT INTO txt VALUES ('confirm_modelling_update', 'English',  'Confirm modelling update via UI message');
+INSERT INTO txt VALUES ('modelling_objects_updated', 'German',   ' Modellierungsobjekte aktualisiert');
+INSERT INTO txt VALUES ('modelling_objects_updated', 'English',  ' modelling objects updated');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
 INSERT INTO txt VALUES ('app_zone_pattern',		'English', 	'App Zone Pattern');
 INSERT INTO txt VALUES ('app_zone_creation',	'German', 	'App Zonen Objekte erstellen');
@@ -3119,6 +3149,8 @@ INSERT INTO txt VALUES ('external_request',     'German',   'Externer Auftrag');
 INSERT INTO txt VALUES ('external_request',     'English',  'External Request');
 INSERT INTO txt VALUES ('external_requests',    'German',   'Externe Auftr&auml;ge');
 INSERT INTO txt VALUES ('external_requests',    'English',  'External Requests');
+INSERT INTO txt VALUES ('group_requests',       'German',   'Gruppenantr&auml;ge');
+INSERT INTO txt VALUES ('group_requests',       'English',  'Group Requests');
 INSERT INTO txt VALUES ('request_content',      'German',   'Auftragsinhalt');
 INSERT INTO txt VALUES ('request_content',      'English',  'Request content');
 INSERT INTO txt VALUES ('bundled_tasks',        'German',   'Geb&uuml;ndelte Auftr&auml;ge');
@@ -4077,6 +4109,8 @@ INSERT INTO txt VALUES ('T0108', 'German',  'Alle nicht gel&ouml;sten Compliance
 INSERT INTO txt VALUES ('T0108', 'English', 'All unresolved compliance violations');
 INSERT INTO txt VALUES ('T0109', 'German',  'Ver&auml;nderungen der Compliance-Verletzungen in Zeitraum x');
 INSERT INTO txt VALUES ('T0109', 'English', 'Changes in compliance violations in period x');
+INSERT INTO txt VALUES ('T0110', 'German',  'Alle in der letzten Woche genehmigten Workflow-Tickets');
+INSERT INTO txt VALUES ('T0110', 'English', 'All workflow tickets approved last week');
 
 -- Contextual Info (Tooltips)
 INSERT INTO txt VALUES ('C1000', 'German',  'Zeige alle Eigent&uuml;mer mit aktiver Rezertifizierung, unabh&auml;ngig vom n&auml;chsten Rezertifizierungsdatum.');
@@ -4581,8 +4615,8 @@ INSERT INTO txt VALUES ('H1520', 'German',  'Vollst&auml;ndiges Ticket anzeigen:
 INSERT INTO txt VALUES ('H1520', 'English', 'Show full ticket: If this option is enabled, every matching ticket shows all contained request tasks, implementation tasks and approvals. If it is disabled, the details only show objects whose reference date lies within the selected time range.');
 INSERT INTO txt VALUES ('H1521', 'German',  'Phase: Beschr&auml;nkt die Ticketauswahl auf den Statusbereich der gew&auml;hlten aktiven Workflow-Phase. In der Statusauswahl werden dann nur Status angeboten, die in dieser Phase verwendet werden. Derselbe Filter kann auch in der Filterleiste mit phase=... gesetzt werden.');
 INSERT INTO txt VALUES ('H1521', 'English', 'Phase: Restricts the ticket selection to the status range of the selected active workflow phase. The state dropdown then only offers states that are used in this phase. The same filter can also be set in the filter line with phase=....');
-INSERT INTO txt VALUES ('H1522', 'German',  'Label: Filtert Workflow-Tickets &uuml;ber ein zus&auml;tzliches Info-Feld in den Request Tasks. Der Dialog erlaubt Name und erwarteten Zustand oder Wert des Labels zu definieren.');
-INSERT INTO txt VALUES ('H1522', 'English', 'Label: Filters workflow tickets by an additional info field on the request tasks. The dialog allows defining the label name and the expected label state or value.');
+INSERT INTO txt VALUES ('H1522', 'German',  'Label: Filtert Workflow-Tickets &uuml;ber ein zus&auml;tzliches Info-Feld in den Request Tasks oder zeigt das gew&auml;hlte Label als zus&auml;tzliche Berichtsspalte an. Der Dialog erlaubt Name und erwarteten Zustand oder Wert des Labels zu definieren. Mit "Nur anzeigen" wird die Spalte angezeigt, ohne Tickets nach Existenz oder Wert des Labels zu filtern.');
+INSERT INTO txt VALUES ('H1522', 'English', 'Label: Filters workflow tickets by an additional info field on the request tasks or displays the selected label as an extra report column. The dialog allows defining the label name and the expected label state or value. Select "Display only" to show the column without filtering tickets by the label existence or value.');
 INSERT INTO txt VALUES ('H1523', 'German',  'Name: Referenziert einen Schl&uuml;ssel im AdditionalInfo-Feld des Request Tasks, z.B. ein Label, das zuvor durch eine Action gesetzt wurde.');
 INSERT INTO txt VALUES ('H1523', 'English', 'Name: References a key in the request task additional info field, for example a label that was set earlier by an action.');
 INSERT INTO txt VALUES ('H1524', 'German',  'Detaillierte Ansicht: Ist diese Option aktiviert, werden Request Tasks und deren Details im Bericht angezeigt. Der CSV-Export steht nur zur Verf&uuml;gung, wenn diese Option deaktiviert ist.');
@@ -5100,8 +5134,12 @@ INSERT INTO txt VALUES ('H4107', 'German',  'Empf&auml;nger (To): Es werden vers
 INSERT INTO txt VALUES ('H4107', 'English', 'Recipient (To): Different roles are offered as recipients (depending on context), for which the addresses are determined automatically. With "Other Addresses" addreesses can be inserted manually.');
 INSERT INTO txt VALUES ('H4108', 'German',  'Empf&auml;nger (Cc). Wie "Empf&auml;nger (To)" f&uuml;r Empf&auml;nger im CC.');
 INSERT INTO txt VALUES ('H4108', 'English', 'Recipient (Cc). As "Recipient (To)" for recipient in CC.');
+INSERT INTO txt VALUES ('H4108a','German',  'Empf&auml;nger (Bcc). Wie "Empf&auml;nger (To)" f&uuml;r Empf&auml;nger in Blindkopie.');
+INSERT INTO txt VALUES ('H4108a','English', 'Recipient (Bcc). As "Recipient (To)" for blind-copy recipients.');
 INSERT INTO txt VALUES ('H4109', 'German',  'Name: Name der Benachrichtigung, nur f&uuml;r Darstellungszwecke.');
 INSERT INTO txt VALUES ('H4109', 'English', 'Name: Name of notification, only for display purposes.');
+INSERT INTO txt VALUES ('H4110', 'German',  'Email-Inhalt: Text der Benachrichtigung. Bei Layouts ohne Anhang kann der Platzhalter @@CONTENT@@ verwendet werden, um den erzeugten Inhalt an dieser Stelle einzuf&uuml;gen. Wenn ein App-Kontext vorhanden ist, werden auch @@APPNAME@@ und @@APPID@@ ersetzt. In Workflow-Aktionsmails wird zus&auml;tzlich @@REQUESTER@@ ersetzt, wenn das Ticket bekannt ist.');
+INSERT INTO txt VALUES ('H4110', 'English', 'Email body: Text of the notification. For layouts without attachment, the @@CONTENT@@ placeholder can be used to insert the generated content at this position. If an app context is available, @@APPNAME@@ and @@APPID@@ are replaced as well. In workflow action emails, @@REQUESTER@@ is also replaced when the ticket is known.');
 
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
@@ -5935,9 +5973,13 @@ INSERT INTO txt VALUES ('H5521', 'German',  'Spezifische Parameter je nach ausge
 INSERT INTO txt VALUES ('H5521', 'English', 'Specific parameters depending on selected action type: Here can be defined, what should happen in the action.');
 INSERT INTO txt VALUES ('H5522', 'German',  'Autom. Weiterleitung: Hier ist der Zielstatus festzulegen, der dem ausgew&auml;hlten Objekt durch die Aktion zugewiesen werden soll (der Ausgangsstatus ergibt sich dann durch die Zuordnung in der Statustabelle).
     Wird der Wert "Automatisch" ausgew&auml;hlt, so wird der Status aus der Status-Matrix ermittelt.
+    Wird der Wert "Bedingt" ausgew&auml;hlt, wird kein fester Zielstatus verwendet. Stattdessen wird ein Pr&uuml;faufruf konfiguriert, z.B. eine Policy-Pr&uuml;fung. Abh&auml;ngig vom Ergebnis leitet die Aktion in den Status "Falls konform" oder "Falls nicht konform" weiter.
+    Ein optionales Pr&uuml;fergebnis-Label speichert das Ergebnis als "true" oder "false" in den AdditionalInfo der gepr&uuml;ften Request Tasks und kann anschliessend in Ticket-Reports angezeigt oder gefiltert werden.
 ');
 INSERT INTO txt VALUES ('H5522', 'English', 'Auto-forward: Here the target state is to be set, which should be assigned to the selected object in the action (the source state is the defined by the assignment of the action in the state table).
     If the value "Automatic" is selected, the state is computed by the state matrix.
+    If "Conditional" is selected, no fixed target state is used. Instead a check call is configured, for example a policy check. Depending on the result, the action forwards to the "If compliant state" or "If not compliant state" target.
+    An optional check result label stores the result as "true" or "false" in the AdditionalInfo of the checked request tasks and can later be displayed or filtered in ticket reports.
 ');
 INSERT INTO txt VALUES ('H5523', 'German',  'Genehmigung hinzuf&uuml;gen: Hier muss der Status angegeben werden, mit dem die neue Genehmigung angelegt werden soll. Des weiteren kann hier bereits eine Gruppenzuordnung und eine Deadline gesetzt werden.');
 INSERT INTO txt VALUES ('H5523', 'English', 'Add approval: Here the desired state of the approval to be created has to be filled. Additionally a group assignment and a deadline can be set.');
@@ -5952,10 +5994,10 @@ INSERT INTO txt VALUES ('H5526', 'English', 'Path analysis: Here the options "Wr
     In the first case the list of devices in the request task is replaced by the devices found in the path analysis, in the second the result of the path analysis is only displayed in a separate window.
 ');
 INSERT INTO txt VALUES ('H5527', 'German',  'Email verschicken: Es kann zwischen verschieden Optionen f&uuml;r den/die direkten Empf&auml;nger und Optional f&uuml;r die weiteren Empf&auml;nger im CC gew&auml;hlt werden.
-    Ausserdem m&uuml;ssen Betreff und Text der Email-Benachrichtigung hier festgelegt werden.
+    Ausserdem m&uuml;ssen Betreff und Text der Email-Benachrichtigung hier festgelegt werden. Angeh&auml;ngter Inhalt legt fest, welche Workflow-Inhalte in die Email aufgenommen werden: bei Layouts mit Anhang als Datei, bei Layouts ohne Anhang anstelle des Platzhalters CONTENT.
 ');
 INSERT INTO txt VALUES ('H5527', 'English', 'Send Email: There are different options for the direct recipients and optionally for the recipients in Cc to be chosen.
-    Furtheron subject and body of the email message have to be defined here.
+    Furtheron subject and body of the email message have to be defined here. Attached Content defines which workflow content is included in the email: as a file for layouts with attachments, or in place of the CONTENT placeholder for layouts without attachments.
 ');
 INSERT INTO txt VALUES ('H5528', 'German',  'Bedingt: W&auml;hlt einen Pr&uuml;faufruf aus. Fuer "Policy-Pr&uuml;fung" wird eine Mehrfachauswahl der verfuegbaren Policies angeboten.
     Optional kann ein Label gesetzt werden; dann wird dieses mit dem Pr&uuml;fergebnis "true" oder "false" in den AdditionalInfo der gepr&uuml;ften Request Tasks gespeichert.
@@ -5967,6 +6009,12 @@ INSERT INTO txt VALUES ('H5528', 'English', 'Conditional: Select a check to exec
     Only the rules requested in the request tasks of the calling ticket are checked. The "If compliant state" target is used only if all selected policies pass without violations.
     Otherwise, the "If not compliant state" target is used.
 ');
+INSERT INTO txt VALUES ('H5529', 'German',  'Modellierung aktualisieren: Hier kann einer der unter Modellierungseinstellungen definierten Integrationsstatus ausgew&auml;hlt werden. Der Wert "Keine(r/s)" bedeutet, dass kein Modellierungsstatus gesetzt wird.');
+INSERT INTO txt VALUES ('H5529', 'English', 'Update Modelling: Select one of the integration states defined in the modelling settings. The value "None" means that no modelling state is set.');
+INSERT INTO txt VALUES ('H5530', 'German',  'Versand per UI-Meldung best&auml;tigen: Nach erfolgreichem Versand zeigt die Aktion eine UI-Meldung mit der Anzahl versendeter Emails an.');
+INSERT INTO txt VALUES ('H5530', 'English', 'Confirm sent email via UI message: After successful sending, the action shows a UI message with the number of sent emails.');
+INSERT INTO txt VALUES ('H5534', 'German',  'Aktualisierung per UI-Meldung best&auml;tigen: Nach erfolgreicher Aktualisierung zeigt die Aktion eine UI-Meldung mit der Anzahl aktualisierter Modellierungsobjekte an.');
+INSERT INTO txt VALUES ('H5534', 'English', 'Confirm modelling update via UI message: After a successful update, the action shows a UI message with the number of updated modelling objects.');
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nnen beliebig viele neue Status angelegt bzw. vorhandene Status umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Status sind weitgehend frei w&auml;hlbar.
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.
     Da intern ausschliesslich die Nummern verarbeitet werden, sind auch doppelt vergebene Status-Namen (technisch) m&ouml;glich.
@@ -6457,14 +6505,13 @@ INSERT INTO txt VALUES ('H5675', 'German',  'Nur Administratoren k&ouml;nnen &Au
 INSERT INTO txt VALUES ('H5675', 'English', 'Only administrators can save changes.');
 INSERT INTO txt VALUES ('H5676', 'German',  'Wenn aktiviert, werden Benutzer aus Eigent&uuml;mergruppen entfernt, die nicht im Import enthalten sind. Andernfalls werden nur neue Benutzer hinzugef&uuml;gt.');
 INSERT INTO txt VALUES ('H5676', 'English', 'If enabled, users not listed in the import are removed from owner groups. Otherwise only new users are added.');
-INSERT INTO txt VALUES ('H5677', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für den Owner repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.
-');
-INSERT INTO txt VALUES ('H5677', 'English', 'Enter the keys that represent the Owner field. You can add multiple keys by clicking the + button.
-');
-INSERT INTO txt VALUES ('H5678', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für die &Auml;nderungsId repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.
-');
-INSERT INTO txt VALUES ('H5678', 'English', 'Enter the keys that represent the ChangeId field. You can add multiple keys by clicking the + button.
-');
+INSERT INTO txt VALUES ('H5677', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für den Owner repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.');
+INSERT INTO txt VALUES ('H5677', 'English', 'Enter the keys that represent the Owner field. You can add multiple keys by clicking the + button.');
+INSERT INTO txt VALUES ('H5678', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld für die &Auml;nderungsId repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.');
+INSERT INTO txt VALUES ('H5678', 'English', 'Enter the keys that represent the ChangeId field. You can add multiple keys by clicking the + button.');
+INSERT INTO txt VALUES ('H5679', 'German',  'Integrationsmodus: Legt fest, ob Modelling voll integriert arbeitet oder Workflow-Benachrichtigungen erzeugt. Im Workflow-Benachrichtigungsmodus werden Verbindungen beantragt, solange "requested_on_fw" nicht gesetzt ist. "Implemented" und "Rejected" k&ouml;nnen sp&auml;ter f&uuml;r erneute Beantragung nach &Auml;nderungen genutzt werden.');
+INSERT INTO txt VALUES ('H5679', 'English', 'Integration Mode: Defines whether Modelling works fully integrated or creates workflow notifications. In workflow notification mode, connections are requested while "requested_on_fw" is not set. "Implemented" and "Rejected" can later be used for re-requesting after changes.');
+
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
     Die hier gemachten &Auml;nderungen werden in der UI beim n&auml;chsten Login sichtbar, bei Hilfetexten erst nach dem n&auml;chsten Restart.
@@ -7284,10 +7331,12 @@ INSERT INTO txt VALUES ('H8501', 'English', 'Actions of different types provide 
 INSERT INTO txt VALUES ('H8511', 'German',  'Autom. Weiterleitung: Obwohl die Statusweiterleitung mit dem Mechanismus der Status-Matrix weitgehend abgebildet werden kann, erweitert diese Aktion die M&ouml;glichkeiten.
     So kann die Weiterleitung st&auml;rker auf bestimmte Objekttypen eingeschr&auml;nkt werden (die Status-Matrix gilt f&uuml;r alle Objekte eines Tasktyps).
     Auch ein Aufblenden einer speziellen Weiterleitung als "Shortcut" kann erw&uuml;nscht sein.
+    Neben einem festen Zielstatus und der automatischen Ermittlung &uuml;ber die Status-Matrix kann die Weiterleitung auch bedingt erfolgen. Im bedingten Fall wird zun&auml;chst ein Pr&uuml;faufruf, z.B. eine Policy-Pr&uuml;fung, ausgef&uuml;hrt. Je nach Ergebnis wird einer von zwei Zielstatus gesetzt, und ein optionales Pr&uuml;fergebnis-Label kann f&uuml;r sp&auml;tere Berichte am Request Task gespeichert werden.
 ');
 INSERT INTO txt VALUES ('H8511', 'English', 'Auto-forward: Although state forwarding can widely be realized by the state matrix mechanism, this action enlarges the options.
     The forwarding can be more restricted to dedicated object types (the state matrix is valid for all object types within a task type).
     Additionally the display of a special state transition as "Shortcut" may be desired.
+    Besides a fixed target state and automatic state selection through the state matrix, forwarding can also be conditional. In the conditional case a check call, for example a policy check, is executed first. Depending on the result, one of two target states is set, and an optional check result label can be stored on the request task for later reports.
 ');
 INSERT INTO txt VALUES ('H8512', 'German',  'Genehmigung hinzuf&uuml;gen: Wenn im Verlauf des Workflows (z.B. vom Planer) festgestellt wird, dass weitere Genehmigungen eingeholt werden m&uuml;ssen,
     kann man mit dieser Aktion weitere Genehmigungsobjekte erzeugen und zuweisen.
@@ -8022,4 +8071,3 @@ INSERT INTO txt VALUES ('H5912', 'German',  'Custom-Field-Schl&uuml;ssel: Nur er
 INSERT INTO txt VALUES ('H5912', 'English', 'Custom field key: Required only when source is "Custom Field". Configuration cannot be saved without this key.');
 INSERT INTO txt VALUES ('H5913', 'German',  'Neu berechnen: Startet die Aktualisierung der Eigent&uuml;merzuordnung f&uuml;r bestehende Regeln auf Basis der aktuellen Konfiguration.');
 INSERT INTO txt VALUES ('H5913', 'English', 'Recalculate: Starts updating owner mappings for existing rules based on the current configuration.');
-

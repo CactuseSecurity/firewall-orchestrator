@@ -61,7 +61,7 @@ namespace FWO.Test
                 PreferredCollapseState.Expanded
             ];
 
-            IEnumerable<PreferredCollapseState> result = values.Except(PreferredCollapseState.Expanded);
+            IEnumerable<PreferredCollapseState> result = values.Except([PreferredCollapseState.Expanded]);
 
             Assert.That(result, Is.EqualTo(
             [
@@ -80,9 +80,9 @@ namespace FWO.Test
                 PreferredCollapseState.Intermediate
             ];
 
-            IEnumerable<PreferredCollapseState> result = values.Except(
+            IEnumerable<PreferredCollapseState> result = values.Except([
                 PreferredCollapseState.Collapsed,
-                PreferredCollapseState.Intermediate);
+                PreferredCollapseState.Intermediate]);
 
             Assert.That(result, Is.EqualTo(
             [
@@ -95,7 +95,7 @@ namespace FWO.Test
         {
             IEnumerable<PreferredCollapseState>? values = null;
 
-            Assert.Throws<ArgumentNullException>(() => values!.Except(PreferredCollapseState.Collapsed).ToList());
+            Assert.Throws<ArgumentNullException>(() => values!.Except([PreferredCollapseState.Collapsed]).ToList());
         }
     }
 }

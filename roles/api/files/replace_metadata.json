@@ -2293,17 +2293,6 @@
               ],
               "update_permissions": [
                 {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "comment"
-                    ],
-                    "filter": {},
-                    "check": null
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -2528,6 +2517,17 @@
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "comment"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "modeller",
                   "permission": {

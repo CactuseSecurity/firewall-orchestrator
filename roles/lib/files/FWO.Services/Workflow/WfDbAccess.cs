@@ -135,8 +135,10 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    int newStateId = ticket.StateId;
                     ticket = await GetTicket(returnIds[0].NewIdLong);
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
+                    MarkCreatedStateChanged(ticket, newStateId);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
                 }
             }
             catch (Exception exception)
@@ -144,6 +146,13 @@ namespace FWO.Services.Workflow
                 DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
             }
             return ticket;
+        }
+
+        private static void MarkCreatedStateChanged(WfStatefulObject statefulObject, int newStateId)
+        {
+            statefulObject.StateId = 0;
+            statefulObject.ResetStateChanged();
+            statefulObject.StateId = newStateId;
         }
 
         public async Task<WfTicket> UpdateTicketInDb(WfTicket ticket)
@@ -159,7 +168,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
                 }
             }
             catch (Exception exception)
@@ -851,7 +860,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
                 }
             }
             catch (Exception exception)
@@ -888,6 +897,11 @@ namespace FWO.Services.Workflow
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
             }
+        }
+
+        private static string? GetRequesterDn(WfTicket ticket)
+        {
+            return !string.IsNullOrWhiteSpace(ticket.Requester?.Dn) ? ticket.Requester.Dn : ticket.RequesterDn;
         }
 
         public async Task UpdateImplTaskStateInDb(WfImplTask impltask)

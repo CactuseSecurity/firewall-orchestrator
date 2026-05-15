@@ -38,6 +38,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getConnections;
         public static readonly string getConnectionsResolved;
         public static readonly string getConnectionsByTicketId;
+        public static readonly string getWorkflowConnectionById;
+        public static readonly string getWorkflowConnectionsByTicketId;
         public static readonly string getDeletedConnections;
         public static readonly string getInterfaceUsers;
         public static readonly string getCommonServices;
@@ -165,6 +167,8 @@ namespace FWO.Api.Client.Queries
                 getConnections = connectionDetailsFragment + GetQueryText("modelling/getConnections.graphql");
                 getConnectionsResolved = connectionResolvedDetailsFragment + GetQueryText("modelling/getConnectionsResolved.graphql");
                 getConnectionsByTicketId = connectionDetailsFragment + GetQueryText("modelling/getConnectionsByTicketId.graphql");
+                getWorkflowConnectionById = GetQueryText("modelling/getWorkflowConnectionById.graphql");
+                getWorkflowConnectionsByTicketId = GetQueryText("modelling/getWorkflowConnectionsByTicketId.graphql");
                 getDeletedConnections = connectionDetailsFragment + GetQueryText("modelling/getDeletedConnections.graphql");
                 getInterfaceUsers = GetQueryText("modelling/getInterfaceUsers.graphql");
                 getCommonServices = connectionDetailsFragment + GetQueryText("modelling/getCommonServices.graphql");

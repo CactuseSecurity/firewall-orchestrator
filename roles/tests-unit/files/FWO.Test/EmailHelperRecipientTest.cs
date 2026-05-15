@@ -11,14 +11,15 @@ namespace FWO.Test
     [TestFixture]
     public class EmailHelperRecipientTest
     {
-        private static EmailHelper CreateEmailHelper(List<UserGroup>? ownerGroups = null, bool useDummyEmailAddress = true)
+        private static EmailHelper CreateEmailHelper(List<UserGroup>? ownerGroups = null, bool useDummyEmailAddress = true,
+            IWorkflowRecipientResolver? recipientResolver = null)
         {
             SimulatedUserConfig userConfig = new()
             {
                 UseDummyEmailAddress = useDummyEmailAddress,
                 DummyEmailAddress = "dummy@example.test"
             };
-            return new EmailHelper(new SimulatedApiConnection(), null, userConfig, DefaultInit.DoNothing, ownerGroups);
+            return new EmailHelper(new SimulatedApiConnection(), null, userConfig, DefaultInit.DoNothing, ownerGroups, recipientResolver: recipientResolver);
         }
 
         [Test]
@@ -120,6 +121,21 @@ namespace FWO.Test
 
             Assert.That(currentRecipients, Is.EqualTo(new[] { "dummy@example.test" }));
             Assert.That(recentRecipients, Is.EqualTo(new[] { "dummy@example.test" }));
+        }
+
+        [Test]
+        public async Task GetRecipientsUsesResolverForCurrentHandler()
+        {
+            EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false, recipientResolver: new TestWorkflowRecipientResolver(
+                new() { Dn = "cn=current,dc=external", Email = "current@example.test" }));
+            WfStatefulObject statefulObject = new()
+            {
+                CurrentHandler = new() { Dn = "cn=current,dc=external" }
+            };
+
+            List<string> recipients = await helper.GetRecipients(EmailRecipientOption.CurrentHandler, statefulObject, null, null, null);
+
+            Assert.That(recipients, Is.EqualTo(new[] { "current@example.test" }));
         }
 
         [Test]
@@ -239,6 +255,26 @@ namespace FWO.Test
             using Stream stream = formFile.OpenReadStream();
             using StreamReader reader = new(stream);
             return await reader.ReadToEndAsync();
+        }
+
+        private class TestWorkflowRecipientResolver : IWorkflowRecipientResolver
+        {
+            private readonly UiUser user;
+
+            public TestWorkflowRecipientResolver(UiUser user)
+            {
+                this.user = user;
+            }
+
+            public Task<List<string>> ResolveUserDns(IEnumerable<string> dns)
+            {
+                return Task.FromResult(dns.Contains(user.Dn, StringComparer.OrdinalIgnoreCase) ? new List<string> { user.Dn } : []);
+            }
+
+            public Task<List<UiUser>> ResolveUsers(IEnumerable<string> dns)
+            {
+                return Task.FromResult(dns.Contains(user.Dn, StringComparer.OrdinalIgnoreCase) ? new List<UiUser> { user } : []);
+            }
         }
     }
 }

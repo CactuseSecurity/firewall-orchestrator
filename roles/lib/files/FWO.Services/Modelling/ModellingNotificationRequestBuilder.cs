@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -131,6 +132,8 @@ namespace FWO.Services.Modelling
                 Name = appServer.Name,
                 IpString = appServer.Ip,
                 IpEnd = appServer.IpEnd,
+                Cidr = new Cidr(appServer.Ip ?? ""),
+                CidrEnd = new Cidr(appServer.IpEnd ?? appServer.Ip ?? ""),
                 GroupName = appRole.IdString
             })];
         }
@@ -295,10 +298,9 @@ namespace FWO.Services.Modelling
                 });
         }
 
-        private IEnumerable<WfReqElement> BuildNetworkGroupElements(IEnumerable<ModellingAppRole> groups, ElemFieldType field)
+        private static IEnumerable<WfReqElement> BuildNetworkGroupElements(IEnumerable<ModellingAppRole> groups, ElemFieldType field)
         {
             return groups
-                .Where(IsAppRoleIncluded)
                 .Select(group => group.IdString)
                 .Where(groupName => !string.IsNullOrWhiteSpace(groupName))
                 .Select(groupName => new WfReqElement
@@ -317,7 +319,9 @@ namespace FWO.Services.Modelling
                 Field = field.ToString(),
                 Name = appServer.Name,
                 IpString = appServer.Ip,
-                IpEnd = appServer.IpEnd
+                IpEnd = appServer.IpEnd,
+                Cidr = new Cidr(appServer.Ip ?? ""),
+                CidrEnd = new Cidr(appServer.IpEnd ?? appServer.Ip ?? "")
             });
         }
 
@@ -333,10 +337,9 @@ namespace FWO.Services.Modelling
                 });
         }
 
-        private IEnumerable<WfReqElement> BuildServiceGroupElements(IEnumerable<ModellingServiceGroup> serviceGroups)
+        private static IEnumerable<WfReqElement> BuildServiceGroupElements(IEnumerable<ModellingServiceGroup> serviceGroups)
         {
             return serviceGroups
-                .Where(IsServiceGroupIncluded)
                 .Select(group => group.Name ?? "")
                 .Where(groupName => !string.IsNullOrWhiteSpace(groupName))
                 .Select(groupName => new WfReqElement

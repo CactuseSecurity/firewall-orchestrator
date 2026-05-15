@@ -61,6 +61,7 @@ namespace FWO.Services.Workflow
         private readonly ApiConnection? apiConnection;
         public readonly MiddlewareClient? MiddlewareClient;
         public readonly IRequestedRulePolicyChecker? RequestedRulePolicyChecker;
+        public readonly IWorkflowRecipientResolver? WorkflowRecipientResolver = null;
         private readonly StateMatrixDict stateMatrixDict = new();
         private WfDbAccess? dbAcc;
 
@@ -96,14 +97,16 @@ namespace FWO.Services.Workflow
         /// constructor for use in middleware server
         /// </summary>
         public WfHandler(UserConfig userConfig, ApiConnection apiConnection, WorkflowPhases phase, List<UserGroup>? userGroups,
-            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null)
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, Action<Exception?, string, string, bool>? displayMessage = null,
+            IWorkflowRecipientResolver? workflowRecipientResolver = null)
         {
-            DisplayMessageInUi = LogMessage;
+            DisplayMessageInUi = displayMessage ?? LogMessage;
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
             Phase = phase;
             UserGroups = userGroups;
             RequestedRulePolicyChecker = requestedRulePolicyChecker;
+            WorkflowRecipientResolver = workflowRecipientResolver;
             usedInMwServer = true;
         }
 
@@ -144,9 +147,48 @@ namespace FWO.Services.Workflow
             return false;
         }
 
+        public async Task<bool> InitForActionExecution()
+        {
+            try
+            {
+                if (!InitOngoing && apiConnection != null)
+                {
+                    Log.WriteDebug("Init action start:  ", $"{DateTime.Now:hh:mm:ss,fff}");
+                    InitOngoing = true;
+                    if (usedInMwServer)
+                    {
+                        await apiConnection.RunWithRole(Roles.MiddlewareServer, async () =>
+                        {
+                            ActionHandler = new(apiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker, WorkflowRecipientResolver);
+                            await ActionHandler.Init();
+                            dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, true) { };
+                            await stateMatrixDict.Init(Phase, apiConnection);
+                            MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
+                        });
+                    }
+                    else
+                    {
+                        return await Init();
+                    }
+                    Log.WriteDebug("Init action stop:   ", $"{DateTime.Now:hh:mm:ss,fff}");
+                    InitDone = true;
+                    return true;
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+            }
+            finally
+            {
+                InitOngoing = false;
+            }
+            return false;
+        }
+
         private async Task LoadInitialData(ApiConnection activeApiConnection, bool fetchData, List<int>? ownerIds, bool allStates, bool fullTickets)
         {
-            ActionHandler = new(activeApiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker);
+            ActionHandler = new(activeApiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker, WorkflowRecipientResolver);
             await ActionHandler.Init();
             dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, activeApiConnection, ActionHandler, AuthUser == null || AuthUser.IsInRole(Roles.Admin) || AuthUser.IsInRole(Roles.Auditor)) { };
             Devices = await activeApiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);

@@ -442,33 +442,47 @@ namespace FWO.Services
                 return [];
             }
 
-            if (recipientResolver != null)
+            List<string> resolvedDns = await ResolveUserDnsFromWorkflowResolver(dnsList);
+            if (resolvedDns.Count > 0)
             {
-                List<string> resolvedDns = await recipientResolver.ResolveUserDns(dnsList);
-                if (resolvedDns.Count > 0)
-                {
-                    return resolvedDns;
-                }
+                return resolvedDns;
             }
 
-            if (middlewareClient != null)
-            {
-                try
-                {
-                    var response = await middlewareClient.ResolveGroupMembers(new GroupResolveParameters { Dns = dnsList });
-                    if (response.IsSuccessful && response.Data != null)
-                    {
-                        return response.Data.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                    }
+            resolvedDns = await ResolveUserDnsFromMiddleware(dnsList);
+            return resolvedDns.Count > 0 ? resolvedDns : ResolveUserDnsFromOwnerGroups(dnsList);
+        }
 
-                    displayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-                }
-                catch (Exception exception)
-                {
-                    displayMessageInUi(exception, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-                }
+        private async Task<List<string>> ResolveUserDnsFromWorkflowResolver(List<string> dnsList)
+        {
+            return recipientResolver == null ? [] : await recipientResolver.ResolveUserDns(dnsList);
+        }
+
+        private async Task<List<string>> ResolveUserDnsFromMiddleware(List<string> dnsList)
+        {
+            if (middlewareClient == null)
+            {
+                return [];
             }
 
+            try
+            {
+                var response = await middlewareClient.ResolveGroupMembers(new GroupResolveParameters { Dns = dnsList });
+                if (response.IsSuccessful && response.Data != null)
+                {
+                    return [.. response.Data.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase)];
+                }
+
+                DisplayResolveGroupMembersError(null);
+            }
+            catch (Exception exception)
+            {
+                DisplayResolveGroupMembersError(exception);
+            }
+            return [];
+        }
+
+        private List<string> ResolveUserDnsFromOwnerGroups(List<string> dnsList)
+        {
             HashSet<string> resolved = new(StringComparer.OrdinalIgnoreCase);
             foreach (string dn in dnsList)
             {
@@ -486,6 +500,11 @@ namespace FWO.Services
                 }
             }
             return resolved.ToList();
+        }
+
+        private void DisplayResolveGroupMembersError(Exception? exception)
+        {
+            displayMessageInUi(exception, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
         }
 
         private string GetEmailAddress(string? dn)

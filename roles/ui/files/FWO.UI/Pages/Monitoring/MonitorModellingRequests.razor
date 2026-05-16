@@ -71,11 +71,11 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<OwnerRequestStatus> Rows = [];
-    private WfStateDict States = new();
+    private readonly WfStateDict States = new();
     private ExtStateHandler? ExtStateHandler;
     private OwnerRequestStatus ResetRow = new();
     private bool InitComplete = false;
-    private bool ResetMode = false;
+    private bool ResetMode { get; set; } = false;
     private int PageSize { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -115,20 +115,20 @@ else
             Owner = owner,
             TicketId = ticket.Id,
             StateName = States.Name[ticket.StateId] ?? ticket.StateId.ToString(),
-            Status = RequestStatus(ticket, openTasks),
+            Status = RequestStatus(ticket),
             OpenTaskCount = openTasks,
             CreatedAt = ticket.CreationDate,
             CompletedAt = ticket.CompletionDate
         };
     }
 
-    private string RequestStatus(WfTicket ticket, int openTasks)
+    private string RequestStatus(WfTicket ticket)
     {
         if (ExtStateHandler == null)
         {
             return "";
         }
-        return ExtStateHandler?.GetExternalStateName(ticket.StateId) ?? States.Name[ticket.StateId] ?? ticket.StateId.ToString();
+        return ExtStateHandler.GetExternalStateName(ticket.StateId) ?? States.Name[ticket.StateId] ?? ticket.StateId.ToString();
     }
 
     private void RequestReset(OwnerRequestStatus row)

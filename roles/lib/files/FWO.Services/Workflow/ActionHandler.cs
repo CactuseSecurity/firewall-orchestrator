@@ -64,37 +64,46 @@ namespace FWO.Services.Workflow
 
         public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
         {
-            if (statefulObject.StateChanged())
+            if (!statefulObject.StateChanged())
             {
-                Log.WriteDebug("DoStateChangeActions", $"State changed for {scope} from {statefulObject.ChangedFrom()} to {statefulObject.StateId}.");
-                if (!useInMwServer && wfHandler.MiddlewareClient != null)
-                {
-                    await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId));
-                    statefulObject.ResetStateChanged();
-                    return;
-                }
-
-                List<WfStateAction> onSetActions = [.. GetRelevantActions(statefulObject, scope).Where(x => x.Event == StateActionEvents.OnSet.ToString())];
-                List<WfStateAction> onLeaveActions = [.. GetRelevantActions(statefulObject, scope, false).Where(x => x.Event == StateActionEvents.OnLeave.ToString())];
-                statefulObject.ResetStateChanged();
-
-                foreach (var action in onSetActions)
-                {
-                    if (action.Phase == "" || action.Phase == wfHandler.Phase.ToString())
-                    {
-                        Log.WriteDebug("DoStateChangeActions", $"Perform OnSet action '{action.Name}' ({action.ActionType}) for {scope} state {statefulObject.StateId}.");
-                        await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
-                    }
-                }
-                foreach (var action in onLeaveActions)
-                {
-                    if (action.Phase == "" || action.Phase == wfHandler.Phase.ToString())
-                    {
-                        Log.WriteDebug("DoStateChangeActions", $"Perform OnLeave action '{action.Name}' ({action.ActionType}) for {scope} state {statefulObject.ChangedFrom()}.");
-                        await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
-                    }
-                }
+                return;
             }
+
+            Log.WriteDebug("DoStateChangeActions", $"State changed for {scope} from {statefulObject.ChangedFrom()} to {statefulObject.StateId}.");
+            if (!useInMwServer && wfHandler.MiddlewareClient != null)
+            {
+                await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId));
+                statefulObject.ResetStateChanged();
+                return;
+            }
+
+            List<WfStateAction> onSetActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnSet, true);
+            List<WfStateAction> onLeaveActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnLeave, false);
+            statefulObject.ResetStateChanged();
+
+            await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, owner, ticketId, userGrpDn);
+            await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, owner, ticketId, userGrpDn);
+        }
+
+        private List<WfStateAction> StateActionsForEvent(WfStatefulObject statefulObject, WfObjectScopes scope, StateActionEvents actionEvent, bool currentState)
+        {
+            return [.. GetRelevantActions(statefulObject, scope, currentState).Where(action => action.Event == actionEvent.ToString())];
+        }
+
+        private async Task PerformStateActions(List<WfStateAction> actions, StateActionEvents actionEvent, WfStatefulObject statefulObject,
+            WfObjectScopes scope, FwoOwner? owner, long? ticketId, string? userGrpDn)
+        {
+            foreach (var action in actions.Where(IsActionInCurrentPhase))
+            {
+                string stateText = actionEvent == StateActionEvents.OnLeave ? statefulObject.ChangedFrom().ToString() : statefulObject.StateId.ToString();
+                Log.WriteDebug("DoStateChangeActions", $"Perform {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText}.");
+                await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+            }
+        }
+
+        private bool IsActionInCurrentPhase(WfStateAction action)
+        {
+            return action.Phase == "" || action.Phase == wfHandler.Phase.ToString();
         }
 
         public async Task DoOwnerChangeActions(WfStatefulObject statefulObject, FwoOwner? owner, long ticketId)

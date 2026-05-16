@@ -46,6 +46,16 @@ namespace FWO.Test
             return (T)field.GetValue(component)!;
         }
 
+        private static T GetPrivateProperty<T>(MonitorModellingRequests component, string propertyName)
+        {
+            PropertyInfo? property = typeof(MonitorModellingRequests).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(MonitorModellingRequests).FullName, propertyName);
+            }
+            return (T)property.GetValue(component)!;
+        }
+
         private static void SetInjectedApiConnection(MonitorModellingRequests component, ApiConnection apiConnection)
         {
             PropertyInfo? prop = typeof(MonitorModellingRequests).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
@@ -165,7 +175,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(GetPrivateField<bool>(component, "ResetMode"), Is.True);
+                Assert.That(GetPrivateProperty<bool>(component, "ResetMode"), Is.True);
                 Assert.That(GetPrivateField<object>(component, "ResetRow"), Is.SameAs(row));
             });
         }

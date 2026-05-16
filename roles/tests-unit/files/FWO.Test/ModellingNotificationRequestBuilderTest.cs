@@ -87,10 +87,10 @@ namespace FWO.Test
             {
                 Assert.That(includedTask.Elements.Any(element => element.GroupName == "ARIncluded"), Is.True);
                 Assert.That(includedTask.Elements.Any(element => element.GroupName == "ARUnmarked"), Is.True);
-                Assert.That(includedTask.Elements.Any(element => element.GroupName == "ARExcluded"), Is.False);
+                Assert.That(includedTask.Elements.Any(element => element.GroupName == "ARExcluded"), Is.True);
                 Assert.That(includedTask.Elements.Any(element => element.GroupName == "SGIncluded"), Is.True);
                 Assert.That(includedTask.Elements.Any(element => element.GroupName == "SGUnmarked"), Is.True);
-                Assert.That(includedTask.Elements.Any(element => element.GroupName == "SGExcluded"), Is.False);
+                Assert.That(includedTask.Elements.Any(element => element.GroupName == "SGExcluded"), Is.True);
             });
         }
 

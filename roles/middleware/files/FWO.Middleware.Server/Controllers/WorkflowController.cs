@@ -49,81 +49,15 @@ namespace FWO.Middleware.Server.Controllers
             WorkflowActionResult result = new();
             try
             {
-                Log.WriteDebug("Workflow Actions", $"Received action execution request. Scope: {parameters.Scope}, ActionId: {parameters.ActionId}, ObjectId: {parameters.ObjectId}, TicketId: {parameters.TicketId}, State: {parameters.OldStateId}->{parameters.NewStateId}, Phase: {parameters.Phase}.");
-                if (!Enum.TryParse(parameters.Scope, out WfObjectScopes scope) || scope == WfObjectScopes.None)
+                LogActionRequest(parameters);
+                if (!TryParseScope(parameters, result, out WfObjectScopes scope))
                 {
-                    Log.WriteWarning("Workflow Actions", $"Invalid scope '{parameters.Scope}'.");
-                    result.ErrorMessage = $"Invalid scope '{parameters.Scope}'.";
                     return result;
                 }
 
-                WorkflowPhases phase = Enum.TryParse(parameters.Phase, out WorkflowPhases parsedPhase) ? parsedPhase : WorkflowPhases.request;
-
+                WorkflowPhases phase = ParsePhase(parameters.Phase);
                 long lockTicketId = GetTicketId(parameters, scope);
-                SemaphoreSlim ticketActionLock = TicketActionLocks.GetOrAdd(lockTicketId, _ => new SemaphoreSlim(1, 1));
-                await ticketActionLock.WaitAsync();
-                try
-                {
-                    using ApiConnection actionApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url."), jwtWriter.CreateJWTMiddlewareServer());
-                    return await actionApiConnection.RunWithRole(Roles.MiddlewareServer, async () =>
-                    {
-                        using UserConfig userConfig = new(globalConfig, actionApiConnection, new UiUser { DbId = 0, Language = globalConfig.DefaultLanguage }, false);
-                        WfHandler wfHandler = new(userConfig, actionApiConnection, phase, null, new ComplianceRequestedRulePolicyChecker(userConfig, actionApiConnection),
-                            (exception, title, message, errorFlag) =>
-                            {
-                                string resultMessage = string.IsNullOrWhiteSpace(message) ? exception?.Message ?? "" : message;
-                                result.Messages.Add(new() { Title = title, Message = resultMessage, ErrorFlag = errorFlag });
-                                if (exception != null)
-                                {
-                                    Log.WriteError(title, resultMessage, exception);
-                                }
-                            },
-                            new WorkflowRecipientResolver(actionApiConnection, ldaps));
-
-                        if (!await wfHandler.InitForActionExecution())
-                        {
-                            string initDetails = result.Messages.LastOrDefault(message => message.ErrorFlag)?.Message ?? "";
-                            string errorMessage = string.IsNullOrWhiteSpace(initDetails)
-                                ? "Workflow handler initialization failed."
-                                : $"Workflow handler initialization failed. {initDetails}";
-                            Log.WriteWarning("Workflow Actions", errorMessage);
-                            result.ErrorMessage = errorMessage;
-                            return result;
-                        }
-
-                        WfTicket? ticket = await wfHandler.ResolveTicket(lockTicketId);
-                        if (ticket == null)
-                        {
-                            Log.WriteWarning("Workflow Actions", $"Ticket {lockTicketId} could not be resolved.");
-                            result.ErrorMessage = $"Ticket {lockTicketId} could not be resolved.";
-                            return result;
-                        }
-                        wfHandler.TicketList = [ticket];
-
-                        (WfStatefulObject? statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn) = ResolveActionContext(wfHandler, ticket, parameters, scope);
-                        if (statefulObject == null)
-                        {
-                            Log.WriteWarning("Workflow Actions", $"Stateful object could not be resolved. Scope: {scope}, ObjectId: {parameters.ObjectId}, TicketId: {ticket.Id}.");
-                            result.ErrorMessage = $"Stateful object could not be resolved. Scope: {scope}, ObjectId: {parameters.ObjectId}, TicketId: {ticket.Id}.";
-                            return result;
-                        }
-
-                        if (parameters.ActionId > 0)
-                        {
-                            result.Success = await wfHandler.ActionHandler!.PerformActionById(parameters.ActionId, statefulObject, scope, owner, actionTicketId, userGrpDn);
-                            return result;
-                        }
-
-                        MarkStateChanged(statefulObject, parameters.OldStateId, parameters.NewStateId);
-                        await wfHandler.ActionHandler!.DoStateChangeActions(statefulObject, scope, owner, actionTicketId, userGrpDn);
-                        result.Success = true;
-                        return result;
-                    });
-                }
-                finally
-                {
-                    ticketActionLock.Release();
-                }
+                return await ExecuteActionsWithTicketLock(parameters, scope, phase, lockTicketId, result);
             }
             catch (Exception exc)
             {
@@ -131,6 +65,142 @@ namespace FWO.Middleware.Server.Controllers
                 result.ErrorMessage = exc.Message;
                 return result;
             }
+        }
+
+        private static void LogActionRequest(WorkflowActionParameters parameters)
+        {
+            Log.WriteDebug("Workflow Actions", $"Received action execution request. Scope: {parameters.Scope}, ActionId: {parameters.ActionId}, ObjectId: {parameters.ObjectId}, TicketId: {parameters.TicketId}, State: {parameters.OldStateId}->{parameters.NewStateId}, Phase: {parameters.Phase}.");
+        }
+
+        private static bool TryParseScope(WorkflowActionParameters parameters, WorkflowActionResult result, out WfObjectScopes scope)
+        {
+            if (Enum.TryParse(parameters.Scope, out scope) && scope != WfObjectScopes.None)
+            {
+                return true;
+            }
+
+            SetWarning(result, $"Invalid scope '{parameters.Scope}'.");
+            return false;
+        }
+
+        private static WorkflowPhases ParsePhase(string phase)
+        {
+            return Enum.TryParse(phase, out WorkflowPhases parsedPhase) ? parsedPhase : WorkflowPhases.request;
+        }
+
+        private async Task<WorkflowActionResult> ExecuteActionsWithTicketLock(WorkflowActionParameters parameters, WfObjectScopes scope,
+            WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
+        {
+            SemaphoreSlim ticketActionLock = TicketActionLocks.GetOrAdd(lockTicketId, _ => new SemaphoreSlim(1, 1));
+            await ticketActionLock.WaitAsync();
+            try
+            {
+                return await ExecuteActionsWithApi(parameters, scope, phase, lockTicketId, result);
+            }
+            finally
+            {
+                ticketActionLock.Release();
+            }
+        }
+
+        private async Task<WorkflowActionResult> ExecuteActionsWithApi(WorkflowActionParameters parameters, WfObjectScopes scope,
+            WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
+        {
+            using ApiConnection actionApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url."), jwtWriter.CreateJWTMiddlewareServer());
+            return await actionApiConnection.RunWithRole(Roles.MiddlewareServer,
+                async () => await ExecuteActionsInMiddlewareContext(actionApiConnection, parameters, scope, phase, lockTicketId, result));
+        }
+
+        private async Task<WorkflowActionResult> ExecuteActionsInMiddlewareContext(ApiConnection actionApiConnection, WorkflowActionParameters parameters,
+            WfObjectScopes scope, WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
+        {
+            using UserConfig userConfig = new(globalConfig, actionApiConnection, new UiUser { DbId = 0, Language = globalConfig.DefaultLanguage }, false);
+            WfHandler wfHandler = CreateWorkflowHandler(actionApiConnection, userConfig, phase, result);
+            if (!await InitWorkflowHandler(wfHandler, result))
+            {
+                return result;
+            }
+
+            WfTicket? ticket = await ResolveWorkflowTicket(wfHandler, lockTicketId, result);
+            if (ticket == null)
+            {
+                return result;
+            }
+
+            (WfStatefulObject? statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn) =
+                ResolveActionContext(wfHandler, ticket, parameters, scope);
+            if (statefulObject == null)
+            {
+                SetWarning(result, $"Stateful object could not be resolved. Scope: {scope}, ObjectId: {parameters.ObjectId}, TicketId: {ticket.Id}.");
+                return result;
+            }
+
+            result.Success = await ExecuteResolvedAction(wfHandler, parameters, scope, statefulObject, owner, actionTicketId, userGrpDn);
+            return result;
+        }
+
+        private WfHandler CreateWorkflowHandler(ApiConnection actionApiConnection, UserConfig userConfig, WorkflowPhases phase, WorkflowActionResult result)
+        {
+            return new WfHandler(userConfig, actionApiConnection, phase, null, new ComplianceRequestedRulePolicyChecker(userConfig, actionApiConnection),
+                (exception, title, message, errorFlag) => AddWorkflowMessage(result, exception, title, message, errorFlag),
+                new WorkflowRecipientResolver(actionApiConnection, ldaps));
+        }
+
+        private static void AddWorkflowMessage(WorkflowActionResult result, Exception? exception, string title, string message, bool errorFlag)
+        {
+            string resultMessage = string.IsNullOrWhiteSpace(message) ? exception?.Message ?? "" : message;
+            result.Messages.Add(new() { Title = title, Message = resultMessage, ErrorFlag = errorFlag });
+            if (exception != null)
+            {
+                Log.WriteError(title, resultMessage, exception);
+            }
+        }
+
+        private static async Task<bool> InitWorkflowHandler(WfHandler wfHandler, WorkflowActionResult result)
+        {
+            if (await wfHandler.InitForActionExecution())
+            {
+                return true;
+            }
+
+            string initDetails = result.Messages.LastOrDefault(message => message.ErrorFlag)?.Message ?? "";
+            string errorMessage = string.IsNullOrWhiteSpace(initDetails)
+                ? "Workflow handler initialization failed."
+                : $"Workflow handler initialization failed. {initDetails}";
+            SetWarning(result, errorMessage);
+            return false;
+        }
+
+        private static async Task<WfTicket?> ResolveWorkflowTicket(WfHandler wfHandler, long lockTicketId, WorkflowActionResult result)
+        {
+            WfTicket? ticket = await wfHandler.ResolveTicket(lockTicketId);
+            if (ticket == null)
+            {
+                SetWarning(result, $"Ticket {lockTicketId} could not be resolved.");
+                return null;
+            }
+
+            wfHandler.TicketList = [ticket];
+            return ticket;
+        }
+
+        private static async Task<bool> ExecuteResolvedAction(WfHandler wfHandler, WorkflowActionParameters parameters, WfObjectScopes scope,
+            WfStatefulObject statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn)
+        {
+            if (parameters.ActionId > 0)
+            {
+                return await wfHandler.ActionHandler!.PerformActionById(parameters.ActionId, statefulObject, scope, owner, actionTicketId, userGrpDn);
+            }
+
+            MarkStateChanged(statefulObject, parameters.OldStateId, parameters.NewStateId);
+            await wfHandler.ActionHandler!.DoStateChangeActions(statefulObject, scope, owner, actionTicketId, userGrpDn);
+            return true;
+        }
+
+        private static void SetWarning(WorkflowActionResult result, string errorMessage)
+        {
+            Log.WriteWarning("Workflow Actions", errorMessage);
+            result.ErrorMessage = errorMessage;
         }
 
         private static long GetTicketId(WorkflowActionParameters parameters, WfObjectScopes scope)

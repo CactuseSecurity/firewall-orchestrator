@@ -50,6 +50,15 @@
                     </div>
                 </div>
             }
+            @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.NameField)
+            {
+                <div class="form-group row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5648"))">
+                    <label class="col-sm-4 col-form-label me-2">@userConfig.GetText("modelledMarker"):</label>
+                    <div class="col-sm-5">
+                        <input type="text" class="form-control" @bind="actModelledMarker" />
+                    </div>
+                </div>
+            }
         }
     </Body>
     <Footer>
@@ -104,6 +113,7 @@
     private List<string> OwnerKeys = [];
     private List<string> OwnerKeysToAdd = [];
     private List<string> OwnerKeysToDelete = [];
+    private string actModelledMarker = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,6 +151,8 @@
                     OwnerKeys = new List<string> { json };
                 }
             }
+
+            actModelledMarker = ConfigData.ModModelledMarker ?? "";
         }
         catch (Exception exception)
         {
@@ -176,11 +188,29 @@
         }
     }
 
+    /// <summary>
+    /// Triggers a full rule-owner mapping rebuild after mapping configuration changes were saved.
+    /// </summary>
+    private async Task<bool> TriggerFullRuleOwnerReinitialize()
+    {
+        OwnerMappingCalcInProgress = true;
+        try
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            var args = new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true, Completion = tcs };
+            EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
+            return await tcs.Task;
+        }
+        finally
+        {
+            OwnerMappingCalcInProgress = false;
+        }
+    }
+
     private async Task SaveOwnerMappingSourceConfig()
     {
         try
         {
-            
             if (ConfigData == null)
             {
                 throw new ArgumentException("Data saved before loaded. This should be impossible.");
@@ -198,9 +228,24 @@
                 return;
             }
 
+            int oldSource = ConfigData.OwnerSoruceMappingID;
+            string oldOwnerKey = ConfigData.CustomFieldOwnerKey ?? "";
+            string oldModelledMarker = ConfigData.ModModelledMarker ?? "";
+
             ConfigData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource.Value;
             ConfigData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
+            ConfigData.ModModelledMarker = actModelledMarker;
             await globalConfig.WriteToDatabase(ConfigData, apiConnection);
+
+            if (ShouldTriggerRuleOwnerReinitialize(oldSource, oldOwnerKey, "", oldModelledMarker, ConfigData))
+            {
+                bool rebuildSuccess = await TriggerFullRuleOwnerReinitialize();
+                if (!rebuildSuccess)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("owner_mapping"), userConfig.GetText("E5502"), true);
+                    return;
+                }
+            }
 
             DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
         }
@@ -208,6 +253,25 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
         }
+    }
+
+    private static bool ShouldTriggerRuleOwnerReinitialize(int oldSource, string oldOwnerKey, string oldChangeIdKey, string oldModelledMarker, ConfigData configData)
+    {
+        bool sourceChanged = oldSource != configData.OwnerSoruceMappingID;
+        bool customFieldConfigChanged = oldOwnerKey != configData.CustomFieldOwnerKey || oldChangeIdKey != configData.CustomFieldChangeIdKey;
+        bool nameFieldConfigChanged = oldModelledMarker != configData.ModModelledMarker;
+
+        if (sourceChanged)
+        {
+            return true;
+        }
+
+        if (configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.CustomField && customFieldConfigChanged)
+        {
+            return true;
+        }
+
+        return configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.NameField && nameFieldConfigChanged;
     }
 
     private void AddOwnerKey()
@@ -235,6 +299,7 @@
 
     private void Close()
     {
+        actModelledMarker = ConfigData?.ModModelledMarker ?? "";
         Display = false;
         _ = DisplayChanged.InvokeAsync(Display);
     }

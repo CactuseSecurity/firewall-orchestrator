@@ -95,7 +95,7 @@
                     </Template>
                 </Column>
             }
-            @if(ShowProductionState && (userConfig.VarianceAnalysisSync || userConfig.VarianceAnalysisRefresh || userConfig.VarianceAnalysisSleepTime > 0))
+            @if(ShowProductionState && ShowImplementationStateColumn)
             {
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("impl_state"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
                     <Template>
@@ -274,6 +274,9 @@
     private bool ShowActionsColumn => !SelectInterfaceView && !PopupMode &&
         (AppHandler != null || OrphanedMode);
 
+    private bool ShowImplementationStateColumn => userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications ||
+        userConfig.VarianceAnalysisSync || userConfig.VarianceAnalysisRefresh || userConfig.VarianceAnalysisSleepTime > 0;
+
     private string DisplayConditional(ModellingConnection conn, string content)
     {
         if (conn.IsRequested)
@@ -297,6 +300,13 @@
 
     public string DisplayImplState(ModellingConnection connection)
     {
+        if(userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+        {
+            string stateMarker = ModIntegrationStateConfig.EffectiveMarker(userConfig.ModIntegrationStateMarker);
+            string markerValue = connection.GetStringProperty(stateMarker);
+            return string.IsNullOrWhiteSpace(markerValue) ? "" : System.Net.WebUtility.HtmlEncode(markerValue);
+        }
+
         List<string> modellingProps = CollectModellingProps(connection);
         if(modellingProps.Count > 0)
         {

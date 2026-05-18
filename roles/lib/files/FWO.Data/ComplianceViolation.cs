@@ -53,7 +53,17 @@ namespace FWO.Data
                 case "ForbiddenService":
                     return ComplianceViolationType.ServiceViolation;
 
-                // TODO : implement for all criterion types
+                case "MinimumCIDRLength":
+                    return ComplianceViolationType.MinimumCIDRLengthViolation;
+
+                case "ForbidZonesAsSource":
+                    return ComplianceViolationType.ZoneObjectSourceViolation;
+
+                case "ForbidZonesAsDestination":
+                    return ComplianceViolationType.ZoneObjectDestinationViolation;
+
+                case "ForbidBidirectionalDuplicate":
+                    return ComplianceViolationType.BidirectionalDuplicateViolation;
 
                 default:
                     return ComplianceViolationType.None;
@@ -111,5 +121,4 @@ namespace FWO.Data
         }
     }
 }
-
 

@@ -1,19 +1,15 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Config.Api;
 using FWO.Logging;
-using FWO.Mail;
-using FWO.Encryption;
 using FWO.Report;
 using FWO.Services;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {
@@ -88,11 +84,23 @@ namespace FWO.Middleware.Server
                     WorkInProgress = true;
                     if (await NewImportFound())
                     {
-                        if (globalConfig.ImpChangeNotifyType != (int)NotificationLayout.SimpleText)
+                        NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.ImportChange, globalConfig, apiConnection, []);
+                        if (notificationService.Notifications.Count == 0)
+                        {
+                            Log.WriteInfo(LogMessageTitle, "No notification configured for import changes. Imports remain unnotified.");
+                            WorkInProgress = false;
+                            return;
+                        }
+
+                        if (notificationService.Notifications.Any(notification => notification.Layout != NotificationLayout.SimpleText))
                         {
                             await GenerateChangeReport();
                         }
-                        await SendEmail();
+                        foreach (FwoNotification notification in notificationService.Notifications)
+                        {
+                            await notificationService.SendNotification(notification, null, CreateBody(), changeReport);
+                        }
+                        await notificationService.UpdateNotificationsLastSent();
                         await SetImportsNotified();
                     }
                     WorkInProgress = false;
@@ -152,63 +160,9 @@ namespace FWO.Middleware.Server
             };
         }
 
-        private async Task SendEmail()
-        {
-            string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, LogMessageTitle, "Could not decrypt mailserver password.");
-            EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
-                globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
-
-            MailData? mail = await PrepareEmail();
-
-            await MailKitMailer.SendAsync(mail, emailConnection,
-                globalConfig.ImpChangeNotifyType == (int)NotificationLayout.HtmlInBody, new());
-        }
-
-        private async Task<MailData> PrepareEmail()
-        {
-            string subject = globalConfig.ImpChangeNotifySubject;
-            string body = CreateBody();
-            FormFile? attachment = null;
-            if (changeReport != null)
-            {
-                switch (globalConfig.ImpChangeNotifyType)
-                {
-                    case (int)NotificationLayout.HtmlInBody:
-                        body += changeReport.ExportToHtml();
-                        break;
-                    case (int)NotificationLayout.PdfAsAttachment:
-                        string html = changeReport.ExportToHtml();
-                        string? pdfData = await changeReport.ToPdf(html);
-
-                        if (string.IsNullOrWhiteSpace(pdfData))
-                            throw new ProcessingFailedException("No Pdf generated.");
-
-                        attachment = CreateAttachment(pdfData, GlobalConst.kPdf);
-                        break;
-                    case (int)NotificationLayout.HtmlAsAttachment:
-                        attachment = CreateAttachment(changeReport.ExportToHtml(), GlobalConst.kHtml);
-                        break;
-                    case (int)NotificationLayout.CsvAsAttachment:
-                        attachment = CreateAttachment(changeReport.ExportToCsv(), GlobalConst.kCsv);
-                        break;
-                    case (int)NotificationLayout.JsonAsAttachment:
-                        attachment = CreateAttachment(changeReport.ExportToJson(), GlobalConst.kJson);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            MailData mailData = new(CollectRecipients(), subject) { Body = body };
-            if (attachment != null)
-            {
-                mailData.Attachments = new FormFileCollection() { attachment };
-            }
-            return mailData;
-        }
-
         private string CreateBody()
         {
-            StringBuilder body = new(globalConfig.ImpChangeNotifyBody);
+            StringBuilder body = new();
             foreach (var mgmtId in importedManagements)
             {
                 int mgmtCounter = 0;
@@ -216,49 +170,14 @@ namespace FWO.Middleware.Server
                 {
                     mgmtCounter += imp.RelevantChanges;
                 }
-                body.Append(globalConfig.ImpChangeNotifyType == (int)NotificationLayout.HtmlInBody ? "<br>" : "\r\n\r\n");
+                if (body.Length > 0)
+                {
+                    body.AppendLine();
+                    body.AppendLine();
+                }
                 body.Append($"{importsToNotify.FirstOrDefault(x => x.MgmtId == mgmtId).Mgmt.MgmtName} (id={mgmtId}): {mgmtCounter} {userConfig.GetText("changes")}");
             }
             return body.ToString();
-        }
-
-        private FormFile? CreateAttachment(string? content, string fileFormat)
-        {
-            if (content != null)
-            {
-                string fileName = $"{Regex.Replace(globalConfig.ImpChangeNotifySubject, @"\s", "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
-
-                MemoryStream memoryStream;
-                string contentType;
-
-                if (fileFormat == GlobalConst.kPdf)
-                {
-                    memoryStream = new(Convert.FromBase64String(content));
-                    contentType = "application/octet-stream";
-                }
-                else
-                {
-                    memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
-                    contentType = $"application/{fileFormat}";
-                }
-
-                return new(memoryStream, 0, memoryStream.Length, "FWO-Report-Attachment", fileName)
-                {
-                    Headers = new HeaderDictionary(),
-                    ContentType = contentType
-                };
-            }
-            return null;
-        }
-
-        private List<string> CollectRecipients()
-        {
-            if (globalConfig.UseDummyEmailAddress)
-            {
-                return [globalConfig.DummyEmailAddress];
-            }
-            string[] separatingStrings = [",", ";", "|"];
-            return globalConfig.ImpChangeNotifyRecipients.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
         }
 
         private async Task SetImportsNotified()

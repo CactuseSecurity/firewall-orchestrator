@@ -391,7 +391,6 @@ A complete 80K lines rework of FWO, including
 
 # 9.0.19 - 09.04.2026 DEVELOP
 - add owner additional_info jsonb field including owner edit UI support
-- backfill rule source and destination zone text fields from rule zone links
 
 # 9.0.20 - 11.04.2026 DEVELOP
 - extend notification handling
@@ -413,3 +412,4 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 
 # 9.0.24 - 27.04.2026 DEVELOP
 - introduce new modelling integration mode WorkflowNotifications
+- backfill rule source and destination zone text fields from rule zone links

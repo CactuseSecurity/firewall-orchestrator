@@ -1690,6 +1690,18 @@ INSERT INTO txt VALUES ('requested_interface',  'German',	'Angeforderte Schnitts
 INSERT INTO txt VALUES ('requested_interface',  'English',	'Requested Interface');
 INSERT INTO txt VALUES ('requested_interfaces', 'German',   'Angeforderte Schnittstellen');
 INSERT INTO txt VALUES ('requested_interfaces', 'English',  'Requested Interfaces');
+INSERT INTO txt VALUES ('modelling_request_status', 'German', 'Modellierungsantragsstatus');
+INSERT INTO txt VALUES ('modelling_request_status', 'English', 'Modelling Request Status');
+INSERT INTO txt VALUES ('request_status', 'German', 'Antragsstatus');
+INSERT INTO txt VALUES ('request_status', 'English', 'Request State');
+INSERT INTO txt VALUES ('open_tasks', 'German', 'Offene Aufgaben');
+INSERT INTO txt VALUES ('open_tasks', 'English', 'Open Tasks');
+INSERT INTO txt VALUES ('ticket_status', 'German', 'Ticketstatus');
+INSERT INTO txt VALUES ('ticket_status', 'English', 'Ticket State');
+INSERT INTO txt VALUES ('external_id', 'German', 'Externe ID');
+INSERT INTO txt VALUES ('external_id', 'English', 'External ID');
+INSERT INTO txt VALUES ('completion_date', 'German', 'Abschlussdatum');
+INSERT INTO txt VALUES ('completion_date', 'English', 'Completion Date');
 INSERT INTO txt VALUES ('requested_app',        'German',   'Angeforderte Anwendung');
 INSERT INTO txt VALUES ('requested_app',        'English',  'Requested App');
 INSERT INTO txt VALUES ('requesting_app',       'German',   'Anfordernde Anwendung');
@@ -2750,6 +2762,8 @@ INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert set
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
 INSERT INTO txt VALUES ('reset_to_default',     'German',   'Auf Vorgabewerte zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('reset_to_default',     'English',  'Reset to Default');
+INSERT INTO txt VALUES ('reset',                'German',   'Zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset',                'English',  'Reset');
 INSERT INTO txt VALUES ('option',		        'German', 	'Option');
 INSERT INTO txt VALUES ('option',		        'English', 	'Option');
 INSERT INTO txt VALUES ('customize_texts',		'German', 	'Texte anpassen');
@@ -3441,6 +3455,10 @@ INSERT INTO txt VALUES ('U5119', 'German',  'Statusanzeige aller Tickets f&uuml;
 INSERT INTO txt VALUES ('U5119', 'English', 'Show the status of all tickets for external requests. Possibility to reinit if necessary.');
 INSERT INTO txt VALUES ('U5120', 'German',  'Informationen zu Modellierungsobjekten.');
 INSERT INTO txt VALUES ('U5120', 'English', 'Some Details for modelling objects.');
+INSERT INTO txt VALUES ('U5121', 'German',  'Statusanzeige des aktuellen Workflow-Antrags je Applikation im Modus Workflow-Benachrichtigungen.');
+INSERT INTO txt VALUES ('U5121', 'English', 'Shows the current workflow request status per application in Workflow notifications mode.');
+INSERT INTO txt VALUES ('U5122', 'German',  'Antragsstatus zur&uuml;cksetzen f&uuml;r ');
+INSERT INTO txt VALUES ('U5122', 'English', 'Reset request status for ');
 
 INSERT INTO txt VALUES ('U5201', 'German',  'Sind sie sicher, dass sie folgenden Nutzer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5201', 'English', 'Are you sure you want to delete user: ');
@@ -5994,10 +6012,10 @@ INSERT INTO txt VALUES ('H5526', 'English', 'Path analysis: Here the options "Wr
     In the first case the list of devices in the request task is replaced by the devices found in the path analysis, in the second the result of the path analysis is only displayed in a separate window.
 ');
 INSERT INTO txt VALUES ('H5527', 'German',  'Email verschicken: Es kann zwischen verschieden Optionen f&uuml;r den/die direkten Empf&auml;nger und Optional f&uuml;r die weiteren Empf&auml;nger im CC gew&auml;hlt werden.
-    Ausserdem m&uuml;ssen Betreff und Text der Email-Benachrichtigung hier festgelegt werden. Angeh&auml;ngter Inhalt legt fest, welche Workflow-Inhalte in die Email aufgenommen werden: bei Layouts mit Anhang als Datei, bei Layouts ohne Anhang anstelle des Platzhalters CONTENT.
+    Ausserdem m&uuml;ssen Betreff und Text der Email-Benachrichtigung hier festgelegt werden. Angeh&auml;ngter Inhalt legt fest, welche Workflow-Inhalte in die Email aufgenommen werden: bei Layouts mit Anhang als Datei, bei Layouts ohne Anhang anstelle des Platzhalters @@CONTENT@@.
 ');
 INSERT INTO txt VALUES ('H5527', 'English', 'Send Email: There are different options for the direct recipients and optionally for the recipients in Cc to be chosen.
-    Furtheron subject and body of the email message have to be defined here. Attached Content defines which workflow content is included in the email: as a file for layouts with attachments, or in place of the CONTENT placeholder for layouts without attachments.
+    Furtheron subject and body of the email message have to be defined here. Attached Content defines which workflow content is included in the email: as a file for layouts with attachments, or in place of the @@CONTENT@@ placeholder for layouts without attachments.
 ');
 INSERT INTO txt VALUES ('H5528', 'German',  'Bedingt: W&auml;hlt einen Pr&uuml;faufruf aus. Fuer "Policy-Pr&uuml;fung" wird eine Mehrfachauswahl der verfuegbaren Policies angeboten.
     Optional kann ein Label gesetzt werden; dann wird dieses mit dem Pr&uuml;fergebnis "true" oder "false" in den AdditionalInfo der gepr&uuml;ften Request Tasks gespeichert.
@@ -7032,6 +7050,18 @@ INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Ticket
 ');
 INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets for deleted requested interfaces" opens a separate list of all still open new-interface tickets whose requested interface does not exist anymore.
     The check is performed only when opening the popup, so it is independent from the current table filter.
+');
+INSERT INTO txt VALUES ('H7425', 'German', 'Diese Seite listet Owner mit modellierten Verbindungen und zeigt den letzten zugeordneten Workflow-Antrag.
+    Die Spalte Antragsstatus zeigt, ob ein Antrag gerade l&auml;uft, ob ein neuer Antrag m&ouml;glich ist, ob noch nie ein Antrag gestellt wurde oder ob aktuell nichts zu beantragen ist.
+    Ticket, Ticketstatus, offene Aufgaben sowie Erstellungs- und Abschlussdatum helfen bei der Einordnung des letzten Antrags.
+    Administratoren k&ouml;nnen &uuml;ber die Aktionsspalte den Integrationsstatus aller in diesem Antrag angeforderten Verbindungen und Gruppen setzen, den Workflow-Status des Tickets &auml;ndern oder den Antragsbezug f&uuml;r den Owner zur&uuml;cksetzen.
+    Das Setzen des Integrationsstatus verwendet die konfigurierten Integrationsstatuswerte aus den Modellierungseinstellungen.
+');
+INSERT INTO txt VALUES ('H7425', 'English', 'This page lists owners with modelled connections and shows the latest assigned workflow request.
+    The request status column indicates whether a request is currently running, whether a new request is possible, whether no request has ever been sent, or whether there is currently nothing to request.
+    Ticket, ticket state, open tasks, creation date, and completion date help classify the latest request.
+    Administrators can use the actions column to set the integration state of all connections and groups requested by the ticket, change the workflow state of the ticket, or reset the request assignment for the owner.
+    Setting the integration state uses the configured integration-state values from the modelling settings.
 ');
 
 INSERT INTO txt VALUES ('H8001', 'German',  'Das Workflow-Modul soll die Zusammenarbeit mehrerer beteiligter Akteure bei Arbeitsabl&auml;ufen im Umfeld der Netzwerkadministration unterst&uuml;tzen.

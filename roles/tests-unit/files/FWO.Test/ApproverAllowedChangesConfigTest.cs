@@ -107,5 +107,24 @@ namespace FWO.Test
             Assert.That(ApproverAllowedChangesAccess.CanEditTaskField(config, context, WorkflowEditableFieldKeys.Services), Is.False);
             Assert.That(ApproverAllowedChangesAccess.CanEditTaskField(config, context, WorkflowEditableFieldKeys.Reason), Is.True);
         }
+
+        [Test]
+        public void AccessHelper_CanSaveTaskChanges_OnlyWhenConfiguredFieldsAreEditable()
+        {
+            ApproverAllowedChangesAccess.TaskFieldEditContext context = new()
+            {
+                IsApprovalPhase = true,
+                ApproveReqTaskMode = true,
+                TaskType = WfTaskType.access,
+                HasImplementationTasks = true
+            };
+            ApproverAllowedChangesConfig copiedFieldsOnly = new();
+            copiedFieldsOnly.SetTaskField(WfTaskType.access, WorkflowEditableFieldKeys.Services, true);
+            ApproverAllowedChangesConfig editableFields = new();
+            editableFields.SetTaskField(WfTaskType.access, WorkflowEditableFieldKeys.Reason, true);
+
+            Assert.That(ApproverAllowedChangesAccess.CanSaveTaskChanges(copiedFieldsOnly, context), Is.False);
+            Assert.That(ApproverAllowedChangesAccess.CanSaveTaskChanges(editableFields, context), Is.True);
+        }
     }
 }

@@ -247,6 +247,13 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
+        public async Task<RestResponse<WorkflowActionResult>> ExecuteWorkflowActions(WorkflowActionParameters parameters)
+        {
+            RestRequest request = new("Workflow/Actions", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<WorkflowActionResult>(request);
+        }
+
         public async Task<RestResponse<string>> GetReport(ReportGetParameters parameters)
         {
             RestRequest request = new("Report", Method.Post);

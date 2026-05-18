@@ -84,7 +84,7 @@ namespace FWO.Ui.Services
                 conn.SyncState(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
             }
 
-            if (userConfig.VarianceAnalysisSync)
+            if (userConfig.VarianceAnalysisSync && userConfig.ModIntegrationMode != ModIntegrationMode.WorkflowNotifications)
             {
                 await AnalyseStatus(connections);
             }

@@ -95,6 +95,16 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ResolveTicket_ReturnsNull_WhenNoDbAccess()
+        {
+            WfHandler handler = new();
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Null);
+        }
+
+        [Test]
         public async Task HandleInjectedTicketId_ReturnsEmpty_WhenStateBeforeEnd()
         {
             TicketTestApiConn apiConn = new() { Ticket = new WfTicket { Id = 7, StateId = 5 } };
@@ -127,7 +137,67 @@ namespace FWO.Test
         }
 
         [Test]
-        public void SetTicketOpt_SetsModes()
+        public async Task GetOpenTickets_ReturnsEmpty_WhenNoDbAccess()
+        {
+            WfHandler handler = new();
+
+            List<WfTicket> tickets = await handler.GetOpenTickets(WfTaskType.access.ToString());
+
+            Assert.That(tickets, Is.Empty);
+        }
+
+        [Test]
+        public void SetTicketEnv_SetsActiveTicketAndCollectsImplementationTasks()
+        {
+            WfHandler handler = new()
+            {
+                MasterStateMatrix = new StateMatrix { LowestInputState = 1 }
+            };
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                ImplementationTasks =
+                {
+                    new WfImplTask { Id = 21 },
+                    new WfImplTask { Id = 22 }
+                }
+            };
+            WfTicket ticket = new() { Id = 7, Tasks = { reqTask } };
+
+            handler.SetTicketEnv(ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActTicket, Is.SameAs(ticket));
+                Assert.That(handler.ActStateMatrix, Is.SameAs(handler.MasterStateMatrix));
+                Assert.That(handler.AllTicketImplTasks.Select(task => task.Id), Is.EqualTo(new long[] { 21, 22 }));
+                Assert.That(handler.AllTicketImplTasks.All(task => task.TicketId == 7), Is.True);
+                Assert.That(handler.AllTicketImplTasks.All(task => task.ReqTaskId == 11), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task SelectTicket_SetsEnvironmentAndMode()
+        {
+            WfHandler handler = new()
+            {
+                MasterStateMatrix = new StateMatrix { LowestInputState = 1 }
+            };
+            WfTicket ticket = new() { Id = 7, StateId = 5 };
+
+            await handler.SelectTicket(ticket, ObjAction.edit);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActTicket, Is.SameAs(ticket));
+                Assert.That(handler.DisplayTicketMode, Is.True);
+                Assert.That(handler.EditTicketMode, Is.True);
+                Assert.That(handler.AddTicketMode, Is.False);
+            });
+        }
+
+        [Test]
+        public void SetTicketOpt_SetsModesAndResetClearsModes()
         {
             WfHandler handler = new();
 
@@ -143,6 +213,46 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SetTicketPopUpOpt_SetsPopupFlags()
+        {
+            WfHandler handler = new();
+
+            handler.SetTicketPopUpOpt(ObjAction.displayPromote);
+            Assert.That(handler.DisplayPromoteTicketMode, Is.True);
+
+            handler.SetTicketPopUpOpt(ObjAction.displaySaveTicket);
+            Assert.That(handler.DisplaySaveTicketMode, Is.True);
+        }
+
+        [Test]
+        public void ResetTicketActions_ClearsPopupFlags()
+        {
+            WfHandler handler = new()
+            {
+                DisplayPromoteTicketMode = true,
+                DisplaySaveTicketMode = true
+            };
+
+            handler.ResetTicketActions();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayPromoteTicketMode, Is.False);
+                Assert.That(handler.DisplaySaveTicketMode, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task SaveTicket_ReturnsZero_WhenNoDbAccess()
+        {
+            WfHandler handler = new();
+
+            long ticketId = await handler.SaveTicket(new WfStatefulObject { StateId = 5 });
+
+            Assert.That(ticketId, Is.EqualTo(0));
+        }
+
+        [Test]
         public async Task ConfAddCommentToTicket_AddsComment()
         {
             WfHandler handler = new();
@@ -150,8 +260,12 @@ namespace FWO.Test
 
             await handler.ConfAddCommentToTicket("comment");
 
-            Assert.That(handler.ActTicket.Comments, Has.Count.EqualTo(1));
-            Assert.That(handler.ActTicket.Comments[0].Comment.CommentText, Is.EqualTo("comment"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActTicket.Comments, Has.Count.EqualTo(1));
+                Assert.That(handler.ActTicket.Comments[0].Comment.Scope, Is.EqualTo(WfObjectScopes.Ticket.ToString()));
+                Assert.That(handler.ActTicket.Comments[0].Comment.CommentText, Is.EqualTo("comment"));
+            });
         }
     }
 }

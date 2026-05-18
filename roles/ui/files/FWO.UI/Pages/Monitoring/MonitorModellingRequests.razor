@@ -1,0 +1,516 @@
+@using FWO.Data.Modelling
+@using FWO.Data.Workflow
+@using FWO.Services.Workflow
+
+@page "/monitoring/modelling_requests"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("modelling_request_status"))</h3>
+    <HelpLink Page="monitoring/modelling_requests" />
+</div>
+@(userConfig.GetText("U5121"))
+<hr />
+
+@if (userConfig.ModIntegrationMode != ModIntegrationMode.WorkflowNotifications)
+{
+    <div>@(userConfig.GetText("WorkflowNotifications")) @(userConfig.GetText("inactive"))</div>
+}
+else if (InitComplete)
+{
+    <div class="m-2 vheight75">
+        <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerRequestStatus" Items="Rows" ColumnReorder="true">
+            <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("actions"))" Field="@(x => x.TicketId)" Sortable="false" Filterable="false">
+                <Template Context="row">
+                    @if (row.TicketId > 0)
+                    {
+                        <AuthorizeView Roles="@Roles.Admin">
+                            <Authorized Context="authState">
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-warning" disabled="@(ConfiguredImplementationStatuses.Count == 0)" @onclick="() => RequestImplementationStatusChange(row)">
+                                        @(DisplayService.DisplayButton(userConfig, "modIntegrationStates", Icons.ChangeState))
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestTicketStateChange(row)">
+                                        @(DisplayService.DisplayButton(userConfig, "ticket_status", Icons.ChangeState))
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestReset(row)">
+                                        @(DisplayService.DisplayButton(userConfig, "reset", Icons.Undo))
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                    }
+                </Template>
+            </Column>
+            <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("owner"))" Field="@(x => x.Owner.Name)" Sortable="true" Filterable="true">
+                <Template Context="row">
+                    @row.Owner.Display(userConfig.GetText("common_service"))
+                </Template>
+            </Column>
+            <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("external_id"))" Field="@(x => x.Owner.ExtAppId)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("request_status"))" Field="@(x => x.Status)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("ticket"))" Field="@(x => x.TicketId)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("ticket_status"))" Field="@(x => x.StateName)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("open_tasks"))" Field="@(x => x.OpenTaskCount)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("creation_date"))" Field="@(x => x.CreatedAt)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("completion_date"))" Field="@(x => x.CompletedAt)" Sortable="true" Filterable="true" />
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
+}
+else
+{
+    <Loading/>
+}
+
+<Confirm @bind-Display="ResetMode" AllowedRoles="@Roles.Admin" PerformAction="ResetOwnerRequestStatus" Title="@userConfig.GetText("confirm")"
+    Message="@(userConfig.GetText("U5122") + ResetRow.Owner.Display(userConfig.GetText("common_service")) + "?")" />
+
+<PopUp Title="@userConfig.GetText("modIntegrationStates")" Show="ChangeImplementationStatusMode" Size=PopupSize.Small OnClose="CancelImplementationStatusChange">
+    <Body>
+        @if (ChangeImplementationStatusMode)
+        {
+            <div class="form-group row">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@userConfig.GetText("modIntegrationStates"):</label>
+                <div class="col-sm-7">
+                    <Dropdown ElementType="string" @bind-SelectedElement="SelectedImplementationStatus" ElementToString="@(state => state)" Elements="ConfiguredImplementationStatuses" />
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SetRequestImplementationStatus">
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </NotAuthorized>
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="CancelImplementationStatusChange">
+                @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@userConfig.GetText("change_state")" Show="ChangeTicketStateMode" Size=PopupSize.Small OnClose="CancelTicketStateChange">
+    <Body>
+        @if (ChangeTicketStateMode)
+        {
+            <div class="form-group row">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@userConfig.GetText("ticket_status"):</label>
+                <div class="col-sm-7">
+                    <Dropdown ElementType="int" @bind-SelectedElement="SelectedTicketStateId" ElementToString="TicketStateName" Elements="AvailableTicketStateIds">
+                        <ElementTemplate Context="stateId">
+                            @TicketStateName(stateId)
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SetTicketState">
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </NotAuthorized>
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="CancelTicketStateChange">
+                @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<OwnerRequestStatus> Rows = [];
+    private readonly WfStateDict States = new();
+    private ExtStateHandler? ExtStateHandler;
+    private OwnerRequestStatus ResetRow = new();
+    private OwnerRequestStatus ChangeStatusRow = new();
+    private OwnerRequestStatus ChangeTicketStateRow = new();
+    private List<string> ConfiguredImplementationStatuses = [];
+    private List<int> AvailableTicketStateIds => [.. States.Name.Keys.Order()];
+    private string SelectedImplementationStatus = "";
+    private int SelectedTicketStateId = 0;
+    private bool InitComplete = false;
+    private bool ResetMode { get; set; } = false;
+    private bool ChangeImplementationStatusMode { get; set; } = false;
+    private bool ChangeTicketStateMode { get; set; } = false;
+    private int PageSize { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Auditor]);
+            ConfiguredImplementationStatuses = ConfiguredStatusNames();
+            await States.Init(apiConnection);
+            ExtStateHandler = new(apiConnection);
+            await LoadRows();
+            InitComplete = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task LoadRows()
+    {
+        List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+        List<OwnerTicket> latestTickets = await apiConnection.SendQueryAsync<List<OwnerTicket>>(MonitorQueries.getLatestOwnerTickets);
+        Dictionary<int, OwnerTicket> latestByOwner = latestTickets.ToDictionary(ownerTicket => ownerTicket.Owner.Id);
+
+        Rows = [.. owners
+            .Select(owner =>
+            {
+                latestByOwner.TryGetValue(owner.Id, out OwnerTicket? ownerTicket);
+                return BuildRow(owner, ownerTicket?.Ticket);
+            })
+            .OrderBy(row => row.Owner.Name)];
+    }
+
+    private OwnerRequestStatus BuildRow(FwoOwner owner, WfTicket? ticket)
+    {
+        int openTasks = ticket == null || ExtStateHandler == null ? 0 : ticket.Tasks.Count(task => ExtStateHandler.IsInProgress(task.StateId));
+        return new()
+        {
+            Owner = owner,
+            TicketId = ticket?.Id ?? 0,
+            StateId = ticket?.StateId ?? 0,
+            StateName = ticket == null ? "" : States.GetName(ticket.StateId),
+            Status = RequestStatus(owner, ticket),
+            OpenTaskCount = openTasks,
+            CreatedAt = ticket?.CreationDate,
+            CompletedAt = ticket?.CompletionDate
+        };
+    }
+
+    private string RequestStatus(FwoOwner owner, WfTicket? ticket)
+    {
+        if (IsRequestRunning(ticket))
+        {
+            return userConfig.GetText("in_process");
+        }
+
+        if (owner.ConnectionCount.Aggregate.Count > 0)
+        {
+            return userConfig.GetText("request_fw_change");
+        }
+        return ticket == null ? userConfig.GetText("never_requested") : userConfig.GetText("U9026");
+    }
+
+    private bool IsRequestRunning(WfTicket? ticket)
+    {
+        return ticket != null && ExtStateHandler != null
+            && ExtStateHandler.IsInProgress(ticket.StateId)
+            && ticket.Tasks.Any(task => ExtStateHandler.IsInProgress(task.StateId));
+    }
+
+    private void RequestReset(OwnerRequestStatus row)
+    {
+        ResetRow = row;
+        ResetMode = true;
+    }
+
+    private void RequestImplementationStatusChange(OwnerRequestStatus row)
+    {
+        ChangeStatusRow = row;
+        ConfiguredImplementationStatuses = ConfiguredStatusNames();
+        SelectedImplementationStatus = ConfiguredImplementationStatuses.FirstOrDefault() ?? "";
+        ChangeImplementationStatusMode = true;
+    }
+
+    private void CancelImplementationStatusChange()
+    {
+        ChangeImplementationStatusMode = false;
+        SelectedImplementationStatus = "";
+    }
+
+    private void RequestTicketStateChange(OwnerRequestStatus row)
+    {
+        ChangeTicketStateRow = row;
+        SelectedTicketStateId = row.StateId;
+        ChangeTicketStateMode = true;
+    }
+
+    private void CancelTicketStateChange()
+    {
+        ChangeTicketStateMode = false;
+        SelectedTicketStateId = 0;
+    }
+
+    private string TicketStateName(int stateId)
+    {
+        return States.GetName(stateId);
+    }
+
+    private List<string> ConfiguredStatusNames()
+    {
+        return [.. ModIntegrationStateConfig.Parse(userConfig.ModIntegrationStates)
+            .Select(state => state.Name.Trim())
+            .Where(stateName => !string.IsNullOrWhiteSpace(stateName))
+            .Distinct()];
+    }
+
+    private async Task SetRequestImplementationStatus()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(SelectedImplementationStatus) && ChangeStatusRow.TicketId > 0)
+            {
+                WfTicket ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ChangeStatusRow.TicketId });
+                await SetTicketImplementationStatus(ticket, SelectedImplementationStatus);
+            }
+            ChangeImplementationStatusMode = false;
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_request_status"), "", true);
+        }
+    }
+
+    private async Task SetTicketState()
+    {
+        try
+        {
+            if (ChangeTicketStateRow.TicketId > 0)
+            {
+                WfTicket ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ChangeTicketStateRow.TicketId });
+                await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicketState, new
+                {
+                    id = ticket.Id,
+                    state = SelectedTicketStateId,
+                    closed = ticket.CompletionDate,
+                    deadline = ticket.Deadline,
+                    priority = ticket.Priority
+                });
+                ChangeTicketStateMode = false;
+                await LoadRows();
+                StateHasChanged();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_request_status"), "", true);
+        }
+    }
+
+    private async Task SetTicketImplementationStatus(WfTicket ticket, string status)
+    {
+        string stateMarker = ModIntegrationStateConfig.EffectiveMarker(userConfig.ModIntegrationStateMarker);
+        string stateSetAt = DateTime.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture);
+        await SetConnectionImplementationStatus(ticket, stateMarker, status, stateSetAt);
+        await SetGroupImplementationStatus(ticket, stateMarker, status, stateSetAt);
+    }
+
+    private async Task ResetOwnerRequestStatus()
+    {
+        try
+        {
+            await CleanOwnerModellingRequestState(ResetRow.Owner.Id);
+            await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.deleteOwnerTickets, new { ownerId = ResetRow.Owner.Id });
+            ResetMode = false;
+            ReplaceResetRowDisplay();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_request_status"), "", true);
+        }
+    }
+
+    private async Task SetConnectionImplementationStatus(WfTicket ticket, string stateMarker, string status, string stateSetAt)
+    {
+        HashSet<int> requestedConnectionIds = RequestedConnectionIds(ticket);
+        List<ModellingConnection> connections = requestedConnectionIds.Count > 0
+            ? await LoadWorkflowConnectionsByIds(requestedConnectionIds)
+            : await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getWorkflowConnectionsByTicketId, new { ticketId = ticket.Id });
+
+        foreach (ModellingConnection connection in connections)
+        {
+            connection.RemoveProperty(stateMarker);
+            connection.RemoveProperty(ModIntegrationStateConfig.TimestampMarker(stateMarker));
+            connection.AddProperty(stateMarker, ModIntegrationStateConfig.BuildStateValue(status, stateSetAt));
+            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, new { id = connection.Id, connProp = connection.Properties });
+        }
+    }
+
+    private async Task<List<ModellingConnection>> LoadWorkflowConnectionsByIds(HashSet<int> connectionIds)
+    {
+        List<ModellingConnection> connections = [];
+        foreach (int connectionId in connectionIds)
+        {
+            List<ModellingConnection> loadedConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getWorkflowConnectionById, new { id = connectionId });
+            ModellingConnection? connection = loadedConnections.FirstOrDefault();
+            if (connection != null)
+            {
+                connections.Add(connection);
+            }
+        }
+        return connections;
+    }
+
+    private static HashSet<int> RequestedConnectionIds(WfTicket ticket)
+    {
+        return [.. ticket.Tasks
+            .Where(task => task.TaskType == WfTaskType.access.ToString())
+            .Select(task => task.GetAddInfoIntValue(AdditionalInfoKeys.ConnId))
+            .Where(id => id != null)
+            .Select(id => id ?? 0)];
+    }
+
+    private async Task SetGroupImplementationStatus(WfTicket ticket, string stateMarker, string status, string stateSetAt)
+    {
+        string markedState = $"{stateMarker}: {ModIntegrationStateConfig.BuildStateValue(status, stateSetAt)}";
+        foreach (long appRoleId in RequestedAppRoleIds(ticket))
+        {
+            ModellingAppRole appRole = await apiConnection.SendQueryAsync<ModellingAppRole>(ModellingQueries.getAppRoleById, new { id = appRoleId });
+            string comment = ModIntegrationStateConfig.ReplaceMarkedComment(appRole.Comment, stateMarker, markedState);
+            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateNwGroupComment, new { id = appRoleId, comment });
+        }
+
+        foreach (int serviceGroupId in RequestedServiceGroupIds(ticket))
+        {
+            ModellingServiceGroup serviceGroup = await apiConnection.SendQueryAsync<ModellingServiceGroup>(ModellingQueries.getServiceGroupById, new { id = serviceGroupId });
+            string comment = ModIntegrationStateConfig.ReplaceMarkedComment(serviceGroup.Comment, stateMarker, markedState);
+            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateServiceGroupComment, new { id = serviceGroupId, comment });
+        }
+    }
+
+    private static HashSet<long> RequestedAppRoleIds(WfTicket ticket)
+    {
+        return [.. ticket.Tasks
+            .Where(task => task.TaskType.StartsWith("group_", StringComparison.OrdinalIgnoreCase))
+            .Select(task => task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId))
+            .Where(id => id != null)
+            .Select(id => id ?? 0)];
+    }
+
+    private static HashSet<int> RequestedServiceGroupIds(WfTicket ticket)
+    {
+        return [.. ticket.Tasks
+            .Where(task => task.TaskType.StartsWith("group_", StringComparison.OrdinalIgnoreCase))
+            .Select(task => task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId))
+            .Where(id => id != null)
+            .Select(id => id ?? 0)];
+    }
+
+    private async Task CleanOwnerModellingRequestState(int ownerId)
+    {
+        string stateMarker = ModIntegrationStateConfig.EffectiveMarker(userConfig.ModIntegrationStateMarker);
+        await CleanConnectionRequestState(ownerId, stateMarker);
+        await CleanNwGroupRequestState(ownerId, stateMarker);
+        await CleanServiceGroupRequestState(ownerId, stateMarker);
+    }
+
+    private async Task CleanConnectionRequestState(int ownerId, string stateMarker)
+    {
+        List<ModellingConnection> connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = ownerId });
+        foreach (ModellingConnection connection in connections)
+        {
+            RemoveConnectionRequestState(connection, stateMarker);
+            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.resetConnectionRequestState, new { id = connection.Id, connProp = connection.Properties });
+        }
+    }
+
+    private static void RemoveConnectionRequestState(ModellingConnection connection, string stateMarker)
+    {
+        connection.RemoveProperty(stateMarker);
+        connection.RemoveProperty(ModIntegrationStateConfig.TimestampMarker(stateMarker));
+    }
+
+    private async Task CleanNwGroupRequestState(int ownerId, string stateMarker)
+    {
+        List<ModellingAppRole> nwGroups = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNwGroupsForApp, new { appId = ownerId });
+        foreach (ModellingAppRole nwGroup in nwGroups)
+        {
+            string comment = RemoveGroupRequestState(nwGroup.Comment, stateMarker);
+            if (comment != (nwGroup.Comment ?? ""))
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateNwGroupComment, new { id = nwGroup.Id, comment });
+            }
+        }
+    }
+
+    private async Task CleanServiceGroupRequestState(int ownerId, string stateMarker)
+    {
+        List<ModellingServiceGroup> serviceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = ownerId });
+        foreach (ModellingServiceGroup serviceGroup in serviceGroups)
+        {
+            string comment = RemoveGroupRequestState(serviceGroup.Comment, stateMarker);
+            if (comment != (serviceGroup.Comment ?? ""))
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateServiceGroupComment, new { id = serviceGroup.Id, comment });
+            }
+        }
+    }
+
+    private static string RemoveGroupRequestState(string? comment, string stateMarker)
+    {
+        string cleanedComment = ModIntegrationStateConfig.RemoveMarkedComment(comment, stateMarker);
+        return ModIntegrationStateConfig.RemoveMarkedComment(cleanedComment, ModIntegrationStateConfig.TimestampMarker(stateMarker));
+    }
+
+    private void ReplaceResetRowDisplay()
+    {
+        int index = Rows.FindIndex(row => row.Owner.Id == ResetRow.Owner.Id);
+        if (index >= 0)
+        {
+            Rows[index] = OwnerRequestStatus.NoRequest(Rows[index].Owner, userConfig.GetText("never_requested"));
+        }
+    }
+
+    private void UpdatePageSize(int pageSize)
+    {
+        PageSize = pageSize;
+    }
+
+    private sealed class OwnerRequestStatus
+    {
+        public FwoOwner Owner { get; set; } = new();
+        public long TicketId { get; set; }
+        public int StateId { get; set; }
+        public string Status { get; set; } = "";
+        public string StateName { get; set; } = "";
+        public int OpenTaskCount { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+
+        public static OwnerRequestStatus NoRequest(FwoOwner owner, string status)
+        {
+            return new()
+            {
+                Owner = owner,
+                Status = status
+            };
+        }
+    }
+}

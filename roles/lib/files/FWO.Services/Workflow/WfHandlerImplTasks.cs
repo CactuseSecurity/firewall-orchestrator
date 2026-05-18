@@ -321,17 +321,11 @@ namespace FWO.Services.Workflow
         private async Task CreateImplTasksForCombinedOrSelectedDevices(WfReqTask reqTask)
         {
             List<int> deviceIds = reqTask.GetDeviceList();
-            if (deviceIds.Count == 0)
-            {
-                return;
-            }
-
-            if (reqTask.HasAllDevicesSelected())
+            if (deviceIds.Count == 0 || reqTask.HasAllDevicesSelected())
             {
                 await CreateAccessImplTask(reqTask, null, false);
                 return;
             }
-
             await CreateImplTasksForDevices(reqTask, deviceIds);
         }
 

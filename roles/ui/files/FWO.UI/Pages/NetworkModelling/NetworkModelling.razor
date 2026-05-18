@@ -273,21 +273,17 @@ else
     {
         try
         {
-            bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
-            bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
-            if (isAdmin)
+            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi, true);
+            if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
             {
-                apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
                 recertifiableOwnerIds = apps.Select(owner => owner.Id).ToHashSet();
             }
-            else if (isAuditor)
+            else if (authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
             {
-                apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
                 recertifiableOwnerIds = [];
             }
             else
             {
-                apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
                 recertifiableOwnerIds = userConfig.User.RecertOwnerships.ToHashSet();
             }
 

@@ -1,12 +1,19 @@
 mutation updateNotification(
   $id: Int!
+  $userId: Int
   $channel: String!
   $name: String
   $recipientTo: String
   $emailAddressTo: String
   $recipientCc: String
   $emailAddressCc: String
+  $recipientBcc: String
+  $emailAddressBcc: String
   $subject: String
+  $emailBody: String
+  $scheduleId: Int
+  $bundleType: String
+  $bundleId: String
   $layout: String!
   $deadline: String
   $intervalBeforeDeadline: Int
@@ -19,13 +26,20 @@ mutation updateNotification(
   update_notification_by_pk(
     pk_columns: { id: $id }
     _set: {
+    user_id: $userId
     channel: $channel
     name: $name
     recipient_to: $recipientTo
     email_address_to: $emailAddressTo
     recipient_cc: $recipientCc
     email_address_cc: $emailAddressCc
+    recipient_bcc: $recipientBcc
+    email_address_bcc: $emailAddressBcc
     email_subject: $subject
+    email_body: $emailBody
+    schedule_id: $scheduleId
+    bundle_type: $bundleType
+    bundle_id: $bundleId
     layout: $layout
     deadline: $deadline
     interval_before_deadline: $intervalBeforeDeadline

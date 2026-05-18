@@ -1,0 +1,15 @@
+query getRulesForOwnerMappingNameField {
+  rule(
+    where: {
+      removed: { _is_null: true }
+      rule_name: { _is_null: false }
+    }
+  ) {
+    rule_id
+    rule_name
+    rule_uid
+    rule_metadatum {
+      rule_metadata_id
+    }
+  }
+}

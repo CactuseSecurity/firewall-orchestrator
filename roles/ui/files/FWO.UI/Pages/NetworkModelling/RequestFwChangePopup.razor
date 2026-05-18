@@ -37,7 +37,7 @@
             else
             {
                 <div class="m-2">
-                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="TaskList" PageSize="0" ColumnReorder="true">
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="TaskListSnapshot" PageSize="0" ColumnReorder="true">
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="false" />
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("type"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
                             <Template>
@@ -127,12 +127,14 @@
 
 
     private List<WfReqTask> TaskList = [];
+    private List<WfReqTask> TaskListSnapshot => [.. TaskList];
     private List<IpProtocol> ipProtos = [];
     private List<Device> Devices = [];
     private bool WorkInProgress = false;
     private bool FirstTry = true;
     private bool RequestInProcess = false;
     private bool SubscriptionsSetupComplete = false;
+    private DateTime? LastRequestStartedAt = null;
     private WfStateDict states = new();
     private ExtStateHandler? extStateHandler;
     private List<GraphQlApiSubscription<List<WfReqTask>>> actTaskSubscriptions = [];
@@ -171,9 +173,18 @@
         {
             if (!await GetActTicketStatus() && extStateHandler != null)
             {
-                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);
-                TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
-                PlannedAppZoneDbUpdate = varianceAnalysis.PlannedAppZoneDbUpdate;
+                if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+                {
+                    List<ModellingHistoryEntry> history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(ModellingQueries.getHistoryForApp, new { appId = SelectedApp.Id });
+                    ModellingNotificationRequestBuilder requestBuilder = new(userConfig, history, LastRequestStartedAt);
+                    TaskList = requestBuilder.BuildRequestTasks(Connections, SelectedApp, extStateHandler.GetInternalStateId(ExtStates.ExtReqInitialized) ?? 0);
+                }
+                else
+                {
+                    ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);
+                    TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
+                    PlannedAppZoneDbUpdate = varianceAnalysis.PlannedAppZoneDbUpdate;
+                }
             }
         }
         catch (Exception exception)
@@ -184,9 +195,11 @@
 
     private async Task<bool> GetActTicketStatus()
     {
+        LastRequestStartedAt = null;
         WfTicket? intTicket = await ModellingAppHandler.GetLatestFWRequestTicket(SelectedApp, apiConnection);
         if (intTicket != null)
         {
+            LastRequestStartedAt = intTicket.CreationDate;
             SetActTicketStatus(intTicket);
             if (RequestInProcess)
             {
@@ -244,6 +257,10 @@
 
     private string DisplayDevices(WfReqTask task)
     {
+        if (task.HasAllDevicesSelected())
+        {
+            return userConfig.GetText("all");
+        }
         List<string> DevNames = [];
         foreach (var devId in task.GetDeviceList())
         {
@@ -344,56 +361,78 @@
         WorkInProgress = true;
         try
         {
-            apiConnection.SetRole( Roles.Modeller );
-            if (PlannedAppZoneDbUpdate is not null)
+            await apiConnection.RunWithRole(Roles.Modeller, async () =>
             {
-                ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
-                await appZoneHandler.UpsertAppZone(PlannedAppZoneDbUpdate);
-            }
-
-            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
-            WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
-                "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler?.GetInternalStateId(ExtStates.ExtReqInitialized), "");
-            if (intTicket.Id > 0)
-            {
-                RequestInProcess = true;
-                TaskList = intTicket.Tasks;
-                await SaveTicketId(intTicket.Id);
-                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                if (PlannedAppZoneDbUpdate is not null)
                 {
-                    ChangeType = ModellingTypes.ChangeType.InitRequests,
-                    ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
-                    ObjectId = 0,
-                    Text = $"Initialized Rollout Requests (Ticket {intTicket.Id})",
-                    ApiConnection = apiConnection,
-                    UserConfig = userConfig,
-                    ApplicationId = intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
-                    DisplayMessageInUi = DefaultInit.DoNothing,
-                    Requester = intTicket.Requester?.Name
-                });
-                SubscribeTaskChanges();
-                await CreateExtRequests(intTicket);
-                await MarkConnectionsAsRequested(Connections);
-                await RefreshParent(intTicket);
-                DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
-            }
-            apiConnection.SwitchBack();
+                    ModellingAppZoneHandler appZoneHandler = new(apiConnection, userConfig, SelectedApp, DisplayMessageInUi);
+                    await appZoneHandler.UpsertAppZone(PlannedAppZoneDbUpdate);
+                }
+
+                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+                WfTicket intTicket = await ticketCreator.CreateTicket(SelectedApp, TaskList,
+                    "Rollout modelled connections for: " + SelectedApp.Name, extStateHandler?.GetInternalStateId(ExtStates.ExtReqInitialized), "");
+                if (intTicket.Id > 0)
+                {
+                    RequestInProcess = true;
+                    TaskList = intTicket.Tasks;
+                    await MarkConnectionsAsRequested(Connections);
+                    await SaveTicketId(intTicket.Id);
+                    await ModellingHandlerBase.LogChange(new LogChangeRequest
+                    {
+                        ChangeType = ModellingTypes.ChangeType.InitRequests,
+                        ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
+                        ObjectId = 0,
+                        Text = $"Initialized Rollout Requests (Ticket {intTicket.Id})",
+                        ApiConnection = apiConnection,
+                        UserConfig = userConfig,
+                        ApplicationId = intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
+                        DisplayMessageInUi = DefaultInit.DoNothing,
+                        Requester = intTicket.Requester?.Name
+                    });
+                    SubscribeTaskChanges();
+                    if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+                    {
+                        await CreateNotificationRequests(intTicket);
+                    }
+                    else
+                    {
+                        await CreateExtRequests(intTicket);
+                    }
+                    await RefreshParent(intTicket);
+                    DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
+                }
+            });
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
-            apiConnection.SwitchBack();
         }
-        WorkInProgress = false;
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private async Task MarkConnectionsAsRequested(List<ModellingConnection> Connections)
     {
-        foreach(var conn in Connections.Where(c => !c.RequestedOnFw))
+        IEnumerable<ModellingConnection> connectionsToMark = userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications
+            ? Connections.Where(connection => RequestedConnectionIds().Contains(connection.Id))
+            : Connections;
+        foreach(var conn in connectionsToMark.Where(c => !c.RequestedOnFw))
         {
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.updateConnectionFwRequested, new { id = conn.Id });
             conn.RequestedOnFw = true;
         }
+    }
+
+    private HashSet<int> RequestedConnectionIds()
+    {
+        return [.. TaskList
+            .Where(task => task.TaskType == WfTaskType.access.ToString())
+            .Select(task => task.GetAddInfoIntValue(AdditionalInfoKeys.ConnId))
+            .Where(id => id != null)
+            .Select(id => id ?? 0)];
     }
 
     private async Task SaveTicketId(long ticketId)
@@ -440,6 +479,22 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
         }
+    }
+
+    private async Task CreateNotificationRequests(WfTicket intTicket)
+    {
+        await ModellingHandlerBase.LogChange(new LogChangeRequest
+        {
+            ChangeType = ModellingTypes.ChangeType.InitRequests,
+            ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
+            ObjectId = 0,
+            Text = "Initialized Rollout Notification Requests",
+            ApiConnection = apiConnection,
+            UserConfig = userConfig,
+            ApplicationId = intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
+            DisplayMessageInUi = DefaultInit.DoNothing,
+            Requester = intTicket.Requester?.Name
+        });
     }
 
     private void SubscribeTaskChanges()
@@ -495,7 +550,14 @@
         if (!SubscriptionsSetupComplete)
             return;
 
-        TaskList[TaskList.FindIndex(t => t.Id == task.Id)] = task;
+        int taskIndex = TaskList.FindIndex(t => t.Id == task.Id);
+        if (taskIndex < 0)
+        {
+            return;
+        }
+        List<WfReqTask> updatedTasks = [.. TaskList];
+        updatedTasks[taskIndex] = task;
+        TaskList = updatedTasks;
     }
 
     private void Close()

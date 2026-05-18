@@ -74,6 +74,23 @@ namespace FWO.Data.Workflow
             }
         }
 
+        public void ResetStateChangeTracking()
+        {
+            ResetStateChanged();
+            foreach (WfReqTask reqTask in Tasks)
+            {
+                reqTask.ResetStateChanged();
+                foreach (WfApproval approval in reqTask.Approvals)
+                {
+                    approval.ResetStateChanged();
+                }
+                foreach (WfImplTask implTask in reqTask.ImplementationTasks)
+                {
+                    implTask.ResetStateChanged();
+                }
+            }
+        }
+
         public static void UpdateCidrsInImplTaskElements(List<WfImplTask> implementationTasks)
         {
             foreach (WfImplTask implTask in implementationTasks)

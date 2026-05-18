@@ -37,7 +37,7 @@ namespace FWO.Services.Logging
                 _ => logEvent.ToString()
             };
         }
-        
+
         private static string ComposePromptLogTitle(PromptLogEvent promptEvent, ChangeLogObject obj,
             ChangeLogOperation operation)
         {

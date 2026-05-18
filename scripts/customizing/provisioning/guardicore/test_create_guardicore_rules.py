@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from types import ModuleType, TracebackType
     from typing import Self
 
@@ -32,8 +33,8 @@ class StaticJsonResponse:
 class SessionStub:
     def __init__(
         self,
-        get_handler: Any = None,
-        post_handler: Any = None,
+        get_handler: Callable[..., StaticJsonResponse] | None = None,
+        post_handler: Callable[..., StaticJsonResponse] | None = None,
     ) -> None:
         self.headers: dict[str, Any] = {}
         self.verify = True
@@ -56,7 +57,7 @@ class SessionStub:
             return StaticJsonResponse()
         return self._get_handler(kwargs)
 
-    def post(self, endpoint: str, json: dict[str, Any], timeout: int) -> StaticJsonResponse:
+    def post(self, endpoint: str, json: Any, timeout: int) -> StaticJsonResponse:
         if self._post_handler is None:
             return StaticJsonResponse()
         return self._post_handler(endpoint, json, timeout)

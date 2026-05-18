@@ -1,5 +1,6 @@
 from models.caseinsensitiveenum import CaseInsensitiveEnum
-from pydantic import BaseModel
+from models.time_object import validate_iso_timestamp_value
+from pydantic import BaseModel, field_validator
 
 
 class RuleType(CaseInsensitiveEnum):
@@ -64,6 +65,11 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
     rule_src_zone: str | None = None
     rule_dst_zone: str | None = None
     rule_head_text: str | None = None
+
+    @field_validator("last_hit")
+    @classmethod
+    def validate_last_hit_format(cls, value: str | None) -> str | None:
+        return validate_iso_timestamp_value("Rule last_hit", value)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RuleNormalized):

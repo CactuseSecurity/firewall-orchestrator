@@ -1,0 +1,48 @@
+name: Full Test Install
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-install:
+    name: Test install on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    env:
+      RUNNING_ON_GITHUB_ACTIONS: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-22.04]
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt install build-essential ldap-utils libldap2-dev libsasl2-dev -y
+          python -m pip install ansible psycopg2-binary python-ldap requests
+
+      - name: Run Ansible test install
+        run: |
+          cd ${{ github.workspace }}
+          ansible-playbook -e force_install=true -e "ansible_python_interpreter=$(which python)" site.yml -K
+
+      - name: Running in GitHub actions requires testing puppeteer pdf creation separately
+        if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
+        run: |
+          cd ${{ github.workspace }}/roles/tests-unit/files/FWO.Test
+          dotnet restore
+          dotnet build
+          dotnet test --filter "Name=HtmlToPdfTest"
+

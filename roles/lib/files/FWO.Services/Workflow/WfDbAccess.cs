@@ -29,6 +29,14 @@ namespace FWO.Services.Workflow
                     foreach (var ticket in tickets)
                     {
                         ticket.UpdateCidrsInTaskElements();
+                        ticket.ResetStateChangeTracking();
+                    }
+                }
+                else
+                {
+                    foreach (var ticket in tickets)
+                    {
+                        ticket.ResetStateChangeTracking();
                     }
                 }
             }
@@ -79,6 +87,7 @@ namespace FWO.Services.Workflow
                 var Variables = new { id };
                 ticket = await ApiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, Variables);
                 ticket.UpdateCidrsInTaskElements();
+                ticket.ResetStateChangeTracking();
             }
             catch (Exception exception)
             {
@@ -180,7 +189,7 @@ namespace FWO.Services.Workflow
             long returnId = 0;
             try
             {
-                var Variables = BuildReqTaskVariables(reqtask);
+                var Variables = BuildReqTaskInsertVariables(reqtask);
                 Variables["ticketId"] = reqtask.TicketId;
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestTask, Variables)).ReturnIds;
                 if (returnIds == null)
@@ -219,7 +228,7 @@ namespace FWO.Services.Workflow
         {
             try
             {
-                var Variables = BuildReqTaskVariables(reqtask);
+                var Variables = BuildReqTaskUpdateVariables(reqtask);
                 Variables["id"] = reqtask.Id;
                 Variables["devices"] = reqtask.SelectedDevices;
                 long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTask, Variables)).UpdatedIdLong;
@@ -277,14 +286,20 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private static Dictionary<string, object?> BuildReqTaskVariables(WfReqTask reqtask)
+        private static Dictionary<string, object?> BuildReqTaskInsertVariables(WfReqTask reqtask)
+        {
+            Dictionary<string, object?> variables = BuildReqTaskUpdateVariables(reqtask);
+            variables["taskType"] = reqtask.TaskType;
+            return variables;
+        }
+
+        private static Dictionary<string, object?> BuildReqTaskUpdateVariables(WfReqTask reqtask)
         {
             return new Dictionary<string, object?>
             {
                 ["title"] = reqtask.Title,
                 ["taskNumber"] = reqtask.TaskNumber,
                 ["state"] = reqtask.StateId,
-                ["taskType"] = reqtask.TaskType,
                 ["requestAction"] = reqtask.RequestAction,
                 ["ruleAction"] = reqtask.RuleAction,
                 ["tracking"] = reqtask.Tracking,
@@ -466,7 +481,7 @@ namespace FWO.Services.Workflow
             long returnId = 0;
             try
             {
-                var Variables = BuildImplTaskVariables(impltask);
+                var Variables = BuildImplTaskInsertVariables(impltask);
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newImplementationTask, Variables)).ReturnIds;
                 if (returnIds == null)
                 {
@@ -503,7 +518,7 @@ namespace FWO.Services.Workflow
         {
             try
             {
-                var Variables = BuildImplTaskVariables(impltask);
+                var Variables = BuildImplTaskUpdateVariables(impltask);
                 Variables["id"] = impltask.Id;
                 long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationTask, Variables)).UpdatedIdLong;
                 if (udId != impltask.Id)
@@ -539,7 +554,14 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private static Dictionary<string, object?> BuildImplTaskVariables(WfImplTask impltask)
+        private static Dictionary<string, object?> BuildImplTaskInsertVariables(WfImplTask impltask)
+        {
+            Dictionary<string, object?> variables = BuildImplTaskUpdateVariables(impltask);
+            variables["taskType"] = impltask.TaskType;
+            return variables;
+        }
+
+        private static Dictionary<string, object?> BuildImplTaskUpdateVariables(WfImplTask impltask)
         {
             return new Dictionary<string, object?>
             {
@@ -547,7 +569,6 @@ namespace FWO.Services.Workflow
                 ["reqTaskId"] = impltask.ReqTaskId,
                 ["implIaskNumber"] = impltask.TaskNumber,
                 ["state"] = impltask.StateId,
-                ["taskType"] = impltask.TaskType,
                 ["device"] = impltask.DeviceId,
                 ["implAction"] = impltask.ImplAction,
                 ["ruleAction"] = impltask.RuleAction,

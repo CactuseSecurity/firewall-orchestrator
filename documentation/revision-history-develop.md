@@ -392,3 +392,24 @@ A complete 80K lines rework of FWO, including
 # 9.0.19 - 09.04.2026 DEVELOP
 - add owner additional_info jsonb field including owner edit UI support
 - backfill rule source and destination zone text fields from rule zone links
+
+# 9.0.20 - 11.04.2026 DEVELOP
+- extend notification handling
+
+# 9.0.21 - 21.04.2026 DEVELOP
+- fix ldap users with special chars not being processed correctly in role handling
+- fix empty mail being sent for orphaned rule report
+- update dependencies (notably closing mailkit and pytest vuln)
+- fix time zone issues in importer
+
+# 9.0.23 - 27.04.2026 DEVELOP
+- enhance notifications by bcc
+- add display-only workflow label report column option
+- add default template for workflow tickets approved last week
+Removed deprecated configuration keys:
+- updateRuleOwnerMappingActive
+- updateRuleOwnerMappingStartAt
+These settings are no longer used due to the full automation of UpdateRuleOwner.
+
+# 9.0.24 - 27.04.2026 DEVELOP
+- introduce new modelling integration mode WorkflowNotifications

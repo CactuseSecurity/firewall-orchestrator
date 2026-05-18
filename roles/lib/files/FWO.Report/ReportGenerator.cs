@@ -40,7 +40,7 @@ namespace FWO.Report
                 {
                     await GenerateConnectionRelatedReport(report, reportTemplate, apiConnection, userConfig, displayMessageInUi, token);
                 }
-                else if (report.ReportType == ReportType.OwnerRecertification)
+                else if (report.ReportType.IsOwnerReport())
                 {
                     await GenerateOwnerReport(report, reportTemplate, apiConnection, token);
                 }
@@ -80,6 +80,10 @@ namespace FWO.Report
             report.ReportData.RecertificationDisplayPeriod = reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod;
             foreach (var owner in report.ReportData.OwnerData.Select(o => o.Owner))
             {
+                if (!owner.RecertActive)
+                {
+                    continue;
+                }
                 if (owner.NextRecertDate < DateTime.Now)
                 {
                     owner.RecertOverdue = true;

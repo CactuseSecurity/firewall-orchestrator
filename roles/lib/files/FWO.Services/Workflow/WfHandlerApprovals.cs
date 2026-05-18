@@ -187,7 +187,7 @@ namespace FWO.Services.Workflow
                 implTask.StateId = ActReqTask.StateId;
                 if (dbAcc != null)
                 {
-                    await dbAcc.UpdateImplTaskInDb(implTask, ActReqTask);
+                    await dbAcc.UpdateImplTaskStateInDb(implTask);
                 }
             }
         }

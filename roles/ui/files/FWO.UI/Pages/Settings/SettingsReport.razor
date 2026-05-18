@@ -1,4 +1,8 @@
-﻿@page "/settings/report"
+@using FWO.Basics.Enums
+@using FWO.Ui.Data.Extensions
+@using FWO.Basics.Extensions
+
+@page "/settings/report"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection apiConnection
@@ -7,7 +11,7 @@
 
 <div class="input-group">
     <h3>@(userConfig.GetText("report_settings"))</h3>
-    <HelpLink Page="settings/report"/>
+    <HelpLink Page="settings/report" />
 </div>
 @(userConfig.GetText("U5413"))
 <hr />
@@ -60,11 +64,20 @@
         </div>
     </form>
     <hr />
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5462"))">
+        <label for="creationTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("PreferredCollapseState")):</label>
+        <div class="col-sm-2">
+            <Dropdown ElementType="PreferredCollapseState" ElementToString="_ => _.ToString(userConfig)"
+                      Elements="Enum.GetValues<PreferredCollapseState>().Where(state => state != PreferredCollapseState.Intermediate)"
+                      @bind-SelectedElement="configData!.ReportingPersonalPreferredCollapseState" />
+        </div>
+    </div>
+    <hr />
     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
 }
 else
 {
-    <Loading/>
+    <Loading />
 }
 
 
@@ -95,7 +108,7 @@ else
             if (configData != null)
             {
                 await userConfig.WriteToDatabase(configData, apiConnection);
-                DisplayMessageInUi(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);             
+                DisplayMessageInUi(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);
             }
             else
             {

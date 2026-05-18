@@ -1,13 +1,11 @@
-using System.Buffers.Binary;
 using System.Net;
-using System.Numerics;
 using System.Text;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Basics.Comparer;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Networking;
 using FWO.Logging;
 using FWO.Ui.Display;
 using Microsoft.AspNetCore.Authorization;
@@ -256,7 +254,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 })
                 .ToList(),
             ServiceShort = DisplayServicesPlain(item, userConfig),
-            ChangeID = CustomFieldResolver.ExtractCustomFieldValue<string>(item, userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "") ?? notFound,
+            ChangeID = CustomFieldResolver.ExtractCustomFieldValue<string>(item, userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "", out _) ?? notFound,
             Name = item.Name ?? notFound,
             CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
             LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
@@ -382,86 +380,11 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 #pragma warning disable CS1591
 public sealed class IpFilterHelper
 {
-    private readonly Dictionary<string, IPAddress?> _parseCache = new();
+    private readonly NetworkObjectRangeAnalyzer _rangeAnalyzer = new();
 
     public bool IsInRange(IPAddress ipAddress, int minPrefix, List<NetworkObject> objects)
     {
-        var cleanedObjects = objects.Where(obj => obj.Type.Name != "group");
-
-        foreach (var ipObject in cleanedObjects)
-        {
-            var start = ParseAndCache(ipObject.IP);
-            var end = ParseAndCache(ipObject.IpEnd);
-
-            if (start is null)
-            {
-                continue;
-            }
-
-            int rangePrefix = CommonPrefixLength(start, end);
-
-            if (rangePrefix < minPrefix)
-            {
-                break;
-            }
-
-            if (IsInRange(ipAddress, start, end))
-            {
-                return true;
-            }
-
-        }
-
-        return false;
-    }
-
-    private IPAddress? ParseAndCache(string? ipString)
-    {
-        if (string.IsNullOrWhiteSpace(ipString)) return null;
-
-        var sanitized = SanitizeIpString(ipString);
-        if (_parseCache.TryGetValue(sanitized, out var cached))
-            return cached;
-
-        IPAddress.TryParse(sanitized, out var parsed);
-        _parseCache[sanitized] = parsed;
-
-        return parsed;
-    }
-
-    private static string SanitizeIpString(string? ipString)
-    {
-        if (string.IsNullOrWhiteSpace(ipString)) return string.Empty;
-
-        var trimmed = ipString.AsSpan().Trim();
-        var slashIndex = trimmed.IndexOf('/');
-
-        return (slashIndex >= 0 ? trimmed[..slashIndex] : trimmed).Trim().ToString();
-    }
-
-    private static bool IsInRange(IPAddress ip, IPAddress? startIp, IPAddress? endIp)
-    {
-        if (startIp is null) return false;
-        if (endIp is null) return startIp.Equals(ip);
-
-        var comparer = new IPAdressComparer();
-        if (comparer.Compare(startIp, endIp) > 0)
-            (startIp, endIp) = (endIp, startIp);
-
-        return comparer.Compare(startIp, ip) <= 0 &&
-               comparer.Compare(endIp, ip) >= 0;
-    }
-
-    private static int CommonPrefixLength(IPAddress? ipA, IPAddress? ipB)
-    {
-        if (ipA is null) return -1;
-        if (ipB is null) return 32;
-
-        uint a = BinaryPrimitives.ReadUInt32BigEndian(ipA.GetAddressBytes());
-        uint b = BinaryPrimitives.ReadUInt32BigEndian(ipB.GetAddressBytes());
-        uint diff = a ^ b;
-
-        return diff == 0 ? 32 : BitOperations.LeadingZeroCount(diff);
+        return _rangeAnalyzer.MatchesIpFilter(ipAddress, minPrefix, objects);
     }
 }
 

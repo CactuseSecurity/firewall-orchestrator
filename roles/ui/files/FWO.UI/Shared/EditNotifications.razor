@@ -4,6 +4,8 @@
 @using FWO.Data
 @using FWO.Recert
 @using FWO.Services
+@using FWO.Ui.Pages.Settings
+@using FWO.Ui.Services
 @using System.Text.Json
 
 
@@ -15,7 +17,7 @@
 <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddNotification" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
 
 <div class="m-2 vheight75">
-    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoNotification" Items="Notifications" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoNotification" Items="DisplayedNotifications" PageSize="0" ColumnReorder="true">
         <Column TableItem="FwoNotification" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -117,7 +119,7 @@
                             <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.OffsetBeforeDeadline" />
                         </div>
                         <div class="col-sm-2">
-                            <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actNotification.IntervalBeforeDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                            <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="IntervalBeforeDeadlineSelection" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                     Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
                                 <ElementTemplate Context="interval">
                                     @(userConfig.GetText(interval.ToString()))
@@ -132,7 +134,7 @@
                         <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.RepeatOffsetAfterDeadline" />
                     </div>
                     <div class="col-sm-2">
-                        <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actNotification.RepeatIntervalAfterDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                        <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="RepeatIntervalAfterDeadlineSelection" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                 Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
                             <ElementTemplate Context="interval">
                                 @(userConfig.GetText(interval.ToString()))
@@ -157,55 +159,72 @@
                 </div>
             </div>
 
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4107"))">
-                <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_to")):</label>
-                <div class="col-sm-9">
-                    <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientTo" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                            Elements="OfferedAdressOptions()" >
-                        <ElementTemplate Context="recip">
-                            @(userConfig.GetText(recip.ToString()))
-                        </ElementTemplate>
-                    </Dropdown>
-                    @if(actNotification.RecipientTo == EmailRecipientOption.OtherAddresses)
-                    {
-                        <div class="col-sm-12 mt-2">
-                            <EditList ElementType="string" Elements="ToAddresses.ToArray()" ElementsToAdd="ToAddressesToAdd" ElementsToDelete="ToAddressesToDelete" StdLayout="false">
-                                <Display Context="addr">
-                                    <div class="col-sm-12 border bg-transparent">@(addr)</div>
-                                </Display>
-                            </EditList>
-                        </div>
-                        <div class="row col-sm-12 mt-1">
-                            <input type="text" class="col-sm-10" @bind="actToAddress" />
-                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddToAddress" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
-                        </div>
-                    }
+            @if(Client.IsWorkflowRecipientClient())
+            {
+                <WorkflowEmailRecipientEditor LabelText="@(userConfig.GetText("recipient_to"))"
+                                              @bind-Recipient="actNotification.RecipientTo"
+                                              @bind-AddressValue="actNotification.EmailAddressTo"
+                                              TooltipText="@(userConfig.PureLine("H4107"))" />
+                <WorkflowEmailRecipientEditor LabelText="@(userConfig.GetText("recipient_cc"))"
+                                              @bind-Recipient="actNotification.RecipientCc"
+                                              @bind-AddressValue="actNotification.EmailAddressCc"
+                                              TooltipText="@(userConfig.PureLine("H4108"))"
+                                              RowClass="form-group row mt-2" />
+                <WorkflowEmailRecipientEditor LabelText="@(userConfig.GetText("recipient_bcc"))"
+                                              @bind-Recipient="actNotification.RecipientBcc"
+                                              @bind-AddressValue="actNotification.EmailAddressBcc"
+                                              TooltipText="@(userConfig.PureLine("H4108a"))"
+                                              RowClass="form-group row mt-2" />
+            }
+            else if(Client.IsModellingRecipientClient())
+            {
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4107"))">
+                    <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_to")):</label>
+                    <div class="col-sm-9">
+                        <EmailRecipientSelectionEditor Selection="@ToRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                            CheckboxIdPrefix="notif_to_resp"
+                            Client="@Client" />
+                    </div>
                 </div>
-            </div>
 
-            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4108"))">
-                <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_cc")):</label>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4108"))">
+                    <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_cc")):</label>
+                    <div class="col-sm-9">
+                        <EmailRecipientSelectionEditor Selection="@CcRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                            CheckboxIdPrefix="notif_cc_resp"
+                            Client="@Client" />
+                    </div>
+                </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4108a"))">
+                    <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_bcc")):</label>
+                    <div class="col-sm-9">
+                        <EmailRecipientSelectionEditor Selection="@BccRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
+                            CheckboxIdPrefix="notif_bcc_resp"
+                            Client="@Client" />
+                    </div>
+                </div>
+            }
+            else
+            {
+                <OtherEmailAddressesEditor AddressValue="@actNotification.EmailAddressTo"
+                                           AddressValueChanged="@SetDirectAddressTo"
+                                           TooltipText="@(userConfig.PureLine("H4107"))"
+                                           LabelText="@(userConfig.GetText("recipient_to"))"
+                                           RowClass="form-group row" />
+                <OtherEmailAddressesEditor AddressValue="@actNotification.EmailAddressCc"
+                                           AddressValueChanged="@SetDirectAddressCc"
+                                           TooltipText="@(userConfig.PureLine("H4108"))"
+                                           LabelText="@(userConfig.GetText("recipient_cc"))" />
+                <OtherEmailAddressesEditor AddressValue="@actNotification.EmailAddressBcc"
+                                           AddressValueChanged="@SetDirectAddressBcc"
+                                           TooltipText="@(userConfig.PureLine("H4108a"))"
+                                           LabelText="@(userConfig.GetText("recipient_bcc"))" />
+            }
+
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4110"))">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("email_body")):</label>
                 <div class="col-sm-9">
-                    <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientCc" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                            Elements="OfferedAdressOptions()" >
-                        <ElementTemplate Context="recip">
-                            @(userConfig.GetText(recip.ToString()))
-                        </ElementTemplate>
-                    </Dropdown>
-                    @if(actNotification.RecipientCc == EmailRecipientOption.OtherAddresses)
-                    {
-                        <div class="col-sm-12 mt-2">
-                            <EditList ElementType="string" Elements="CcAddresses.ToArray()" ElementsToAdd="CcAddressesToAdd" ElementsToDelete="CcAddressesToDelete" StdLayout="false">
-                                <Display Context="addr">
-                                    <div class="col-sm-12 border bg-transparent">@(addr)</div>
-                                </Display>
-                            </EditList>
-                        </div>
-                        <div class="row col-sm-12 mt-1">
-                            <input type="text" class="col-sm-10" @bind="actCcAddress" />
-                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddCcAddress" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
-                        </div>
-                    }
+                    <textarea rows="4" class="form-control form-control-sm w-100" @bind="actNotification.EmailBody" />
                 </div>
             </div>
         }
@@ -236,18 +255,26 @@
     [Parameter]
     public NotificationClient Client { get; set; }
 
+    [Parameter]
+    public List<int>? NotificationIds { get; set; }
+
+    [Parameter]
+    public EventCallback<List<int>> NotificationIdsChanged { get; set; }
 
     private List<FwoNotification> Notifications = [];
+    private List<FwoNotification> DisplayedNotifications =>
+        NotificationIds == null
+            ? Notifications
+            : [.. Notifications.Where(notification => NotificationIds.Contains(notification.Id))];
     private FwoNotification actNotification = new();
 
     private List<string> ToAddresses = [];
-    private List<string> ToAddressesToAdd = [];
-    private List<string> ToAddressesToDelete = [];
-    private string actToAddress = "";
     private List<string> CcAddresses = [];
-    private List<string> CcAddressesToAdd = [];
-    private List<string> CcAddressesToDelete = [];
-    private string actCcAddress = "";
+    private List<string> BccAddresses = [];
+    private List<OwnerResponsibleType> activeOwnerResponsibleTypes = [];
+    private EmailRecipientSelection ToRecipientSelection = new();
+    private EmailRecipientSelection CcRecipientSelection = new();
+    private EmailRecipientSelection BccRecipientSelection = new();
     
     private bool AddNotifMode = false;
     private bool EditNotifMode = false;
@@ -261,6 +288,7 @@
         try
         {
             Notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = Client.ToString() });
+            activeOwnerResponsibleTypes = OrderActiveResponsibleTypes(await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes));
             InitActNotification();
         }
         catch (Exception exception)
@@ -272,8 +300,12 @@
     private void InitActNotification()
     {
         actNotification = new(){ NotificationClient = Client };
-        actNotification.RecipientTo = EmailRecipientOption.OwnerMainResponsible;
+        actNotification.RecipientTo = EmailRecipientOption.None;
         actNotification.RecipientCc = EmailRecipientOption.None;
+        actNotification.RecipientBcc = EmailRecipientOption.None;
+        ToRecipientSelection = CreateDefaultToSelection();
+        CcRecipientSelection = CreateDefaultSelectionForRecipient(actNotification.RecipientCc);
+        BccRecipientSelection = CreateDefaultSelectionForRecipient(actNotification.RecipientBcc);
         if(Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
         {
             actNotification.Layout = NotificationLayout.HtmlInBody;
@@ -284,11 +316,30 @@
         }
     }
 
+    private SchedulerInterval IntervalBeforeDeadlineSelection
+    {
+        get => actNotification.IntervalBeforeDeadline ?? SchedulerInterval.Weeks;
+        set => actNotification.IntervalBeforeDeadline = value;
+    }
+
+    private SchedulerInterval RepeatIntervalAfterDeadlineSelection
+    {
+        get => actNotification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Weeks;
+        set => actNotification.RepeatIntervalAfterDeadline = value;
+    }
+
     private void EditNotification(FwoNotification notification)
     {
-        actNotification = notification;
+        actNotification = new FwoNotification(notification);
         ToAddresses = EmailHelper.SplitAddresses(notification.EmailAddressTo);
         CcAddresses = EmailHelper.SplitAddresses(notification.EmailAddressCc);
+        BccAddresses = EmailHelper.SplitAddresses(notification.EmailAddressBcc);
+        (actNotification.RecipientTo, actNotification.EmailAddressTo) = MigrateLegacyRecipientSelection(actNotification.RecipientTo, actNotification.EmailAddressTo);
+        (actNotification.RecipientCc, actNotification.EmailAddressCc) = MigrateLegacyRecipientSelection(actNotification.RecipientCc, actNotification.EmailAddressCc);
+        (actNotification.RecipientBcc, actNotification.EmailAddressBcc) = MigrateLegacyRecipientSelection(actNotification.RecipientBcc, actNotification.EmailAddressBcc);
+        ToRecipientSelection = ParseRecipientSelection(actNotification.RecipientTo, actNotification.EmailAddressTo, ToAddresses);
+        CcRecipientSelection = ParseRecipientSelection(actNotification.RecipientCc, actNotification.EmailAddressCc, CcAddresses);
+        BccRecipientSelection = ParseRecipientSelection(actNotification.RecipientBcc, actNotification.EmailAddressBcc, BccAddresses);
         EditNotifMode = true;
     }
 
@@ -311,35 +362,81 @@
         ResetNotifMode = true;
     }
 
-    private void AddToAddress()
-    {
-        bool shortened = false;
-        actToAddress = actToAddress.SanitizeMand(ref shortened);
-        ToAddressesToAdd.Add(actToAddress);
-        actToAddress = "";
-        if(shortened)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("email_address"), userConfig.GetText("U0001"), true);
-        }
-    }
-
-    private void AddCcAddress()
-    {
-        bool shortened = false;
-        actCcAddress = actCcAddress.SanitizeMand(ref shortened);
-        CcAddressesToAdd.Add(actCcAddress);
-        actCcAddress = "";
-        if(shortened)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("email_address"), userConfig.GetText("U0001"), true);
-        }
-    }
-
     public string DisplayNotification(FwoNotification notification)
     {
-        string DisplayedInterval = notification.OffsetBeforeDeadline > 0 ? $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline.ToString())}"
-            : $"{notification.RepeatOffsetAfterDeadline} {userConfig.GetText(notification.RepeatIntervalAfterDeadline.ToString())}";
-        return $"{notification.Name}: {DisplayedInterval}: {notification.RecipientTo.ToString()}";
+        List<string> displayParts = [notification.Name];
+        string displayedInterval = DisplayedInterval(notification);
+        if (!string.IsNullOrWhiteSpace(displayedInterval))
+        {
+            displayParts.Add(displayedInterval);
+        }
+        displayParts.Add(DisplayRecipient(notification.RecipientTo, notification.EmailAddressTo));
+        return string.Join(": ", displayParts);
+    }
+
+    private string DisplayRecipient(EmailRecipientOption recipientOption, string? recipientValue)
+    {
+        if (recipientOption == EmailRecipientOption.OtherAddresses)
+        {
+            return DisplayOtherAddresses(recipientValue);
+        }
+
+        if (recipientOption != EmailRecipientOption.ConfiguredResponsibles)
+        {
+            return userConfig.GetText(recipientOption.ToString());
+        }
+
+        EmailRecipientSelection selection = ParseRecipientSelection(recipientOption, recipientValue, []);
+        List<string> selectedTypeNames = activeOwnerResponsibleTypes
+            .Where(type => selection.OwnerResponsibleTypeIds.Contains(type.Id))
+            .OrderBy(type => type.SortOrder)
+            .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(GetOwnerResponsibleTypeDisplayName)
+            .ToList();
+        if (selection.OtherAddresses)
+        {
+            selectedTypeNames.Add(userConfig.GetText(nameof(EmailRecipientOption.OtherAddresses)));
+        }
+        return selectedTypeNames.Count == 0
+            ? userConfig.GetText(recipientOption.ToString())
+            : $"{userConfig.GetText(recipientOption.ToString())} ({string.Join(", ", selectedTypeNames)})";
+    }
+
+    private string DisplayOtherAddresses(string? recipientValue)
+    {
+        if (LooksLikeRecipientSelectionJson(recipientValue))
+        {
+            EmailRecipientSelection selection = ParseRecipientSelection(EmailRecipientOption.OtherAddresses, recipientValue, []);
+            if (selection.OtherAddressList.Count > 0)
+            {
+                return string.Join(", ", selection.OtherAddressList);
+            }
+        }
+
+        List<string> addresses = EmailHelper.SplitAddresses(recipientValue ?? "");
+        return addresses.Count == 0
+            ? userConfig.GetText(nameof(EmailRecipientOption.OtherAddresses))
+            : string.Join(", ", addresses);
+    }
+
+    private string DisplayedInterval(FwoNotification notification)
+    {
+        if (notification.Deadline == NotificationDeadline.None)
+        {
+            return "";
+        }
+
+        if (notification.OffsetBeforeDeadline > 0 && notification.IntervalBeforeDeadline != null)
+        {
+            return $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline.ToString()!)}";
+        }
+
+        if (notification.RepeatOffsetAfterDeadline > 0 && notification.RepeatIntervalAfterDeadline != null)
+        {
+            return $"{notification.RepeatOffsetAfterDeadline} {userConfig.GetText(notification.RepeatIntervalAfterDeadline.ToString()!)}";
+        }
+
+        return "";
     }
 
     private string GetDeleteMessage()
@@ -347,13 +444,152 @@
         return userConfig.GetText("U4001") + DisplayNotification(actNotification);
     }
 
-    private List<EmailRecipientOption> OfferedAdressOptions()
+    private static List<OwnerResponsibleType> OrderActiveResponsibleTypes(IEnumerable<OwnerResponsibleType> ownerResponsibleTypes)
     {
-        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
+        return ownerResponsibleTypes
+            .Where(type => type.Active)
+            .ToList();
+    }
+
+    private List<int> ActiveOwnerResponsibleTypeIds()
+    {
+        return activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
+    }
+
+    private bool HasConfiguredResponsibleTypes()
+    {
+        return activeOwnerResponsibleTypes.Count > 0;
+    }
+
+    private EmailRecipientSelection ParseRecipientSelection(EmailRecipientOption recipientOption, string? recipientValue, List<string> legacyAddresses)
+    {
+        return recipientOption switch
         {
-            return EmailRecipientGroups.GetModellingOptions().ToList();
+            EmailRecipientOption.ConfiguredResponsibles => EmailRecipientSelection.Parse(recipientValue, ActiveOwnerResponsibleTypeIds()),
+            EmailRecipientOption.OtherAddresses => ParseOtherAddressSelection(recipientValue, legacyAddresses),
+            _ => CreateDefaultSelectionForRecipient(recipientOption)
+        };
+    }
+
+    private EmailRecipientSelection ParseOtherAddressSelection(string? recipientValue, List<string> legacyAddresses)
+    {
+        if (LooksLikeRecipientSelectionJson(recipientValue))
+        {
+            return EmailRecipientSelection.Parse(recipientValue, ActiveOwnerResponsibleTypeIds());
         }
-        return Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>().ToList();
+
+        return CreateOtherAddressSelection(legacyAddresses);
+    }
+
+    private (EmailRecipientOption recipientOption, string recipientValue) MigrateLegacyRecipientSelection(EmailRecipientOption recipientOption, string recipientValue)
+    {
+        if (!HasConfiguredResponsibleTypes() || recipientOption == EmailRecipientOption.ConfiguredResponsibles)
+        {
+            return (recipientOption, recipientValue);
+        }
+
+        if (TryCreateSelectionFromLegacyRecipient(recipientOption, out EmailRecipientSelection selection))
+        {
+            return (EmailRecipientOption.ConfiguredResponsibles, selection.ToConfigValue(ActiveOwnerResponsibleTypeIds()));
+        }
+        return (recipientOption, recipientValue);
+    }
+
+    private bool TryCreateSelectionFromLegacyRecipient(EmailRecipientOption recipientOption, out EmailRecipientSelection selection)
+    {
+        selection = new EmailRecipientSelection();
+        switch (recipientOption)
+        {
+            case EmailRecipientOption.OwnerMainResponsible:
+                return TryCreateSelectionForActiveTypes([GlobalConst.kOwnerResponsibleTypeMain], false, out selection);
+            case EmailRecipientOption.OwnerGroupOnly:
+                return TryCreateSelectionForActiveTypes([GlobalConst.kOwnerResponsibleTypeSupporting], false, out selection);
+            case EmailRecipientOption.AllOwnerResponsibles:
+                return TryCreateSelectionForActiveTypes(ActiveOwnerResponsibleTypeIds(), false, out selection);
+            case EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty:
+                return TryCreateSelectionForActiveTypes([GlobalConst.kOwnerResponsibleTypeSupporting, GlobalConst.kOwnerResponsibleTypeMain], true, out selection);
+            default:
+                return false;
+        }
+    }
+
+    private bool TryCreateSelectionForActiveTypes(IEnumerable<int> responsibleTypeIds, bool ensureAtLeastOneNotification, out EmailRecipientSelection selection)
+    {
+        List<int> typeIds = responsibleTypeIds.ToList();
+        selection = new EmailRecipientSelection();
+        if (typeIds.Count == 0 || typeIds.Any(typeId => !IsActiveResponsibleType(typeId)))
+        {
+            return false;
+        }
+
+        selection = new EmailRecipientSelection
+        {
+            None = false,
+            EnsureAtLeastOneNotification = ensureAtLeastOneNotification,
+            OwnerResponsibleTypeIds = typeIds
+        };
+        return true;
+    }
+
+    private bool IsActiveResponsibleType(int responsibleTypeId)
+    {
+        return activeOwnerResponsibleTypes.Any(type => type.Id == responsibleTypeId);
+    }
+
+    private EmailRecipientSelection CreateDefaultResponsibleSelection()
+    {
+        int? defaultTypeId = activeOwnerResponsibleTypes.FirstOrDefault(type => type.Id == GlobalConst.kOwnerResponsibleTypeMain)?.Id
+            ?? activeOwnerResponsibleTypes.FirstOrDefault()?.Id;
+
+        return new EmailRecipientSelection
+        {
+            None = defaultTypeId == null,
+            OwnerResponsibleTypeIds = defaultTypeId == null ? [] : [(int)defaultTypeId]
+        };
+    }
+
+    private EmailRecipientSelection CreateDefaultToSelection()
+    {
+        if (Client.IsModellingRecipientClient() && HasConfiguredResponsibleTypes())
+        {
+            return CreateDefaultResponsibleSelection();
+        }
+        if (!Client.IsModellingRecipientClient())
+        {
+            return CreateOtherAddressSelection([]);
+        }
+        return new EmailRecipientSelection();
+    }
+
+    private EmailRecipientSelection CreateDefaultSelectionForRecipient(EmailRecipientOption recipientOption)
+    {
+        return recipientOption switch
+        {
+            EmailRecipientOption.OtherAddresses => CreateOtherAddressSelection([]),
+            EmailRecipientOption.ConfiguredResponsibles => CreateDefaultResponsibleSelection(),
+            _ => new EmailRecipientSelection()
+        };
+    }
+
+    private static EmailRecipientSelection CreateOtherAddressSelection(List<string> addresses)
+    {
+        return new EmailRecipientSelection
+        {
+            None = false,
+            OtherAddresses = true,
+            OtherAddressList = addresses
+        };
+    }
+
+    private static bool LooksLikeRecipientSelectionJson(string? recipientValue)
+    {
+        return recipientValue?.TrimStart().StartsWith('{') == true;
+    }
+
+    private string GetOwnerResponsibleTypeDisplayName(OwnerResponsibleType type)
+    {
+        string localized = userConfig.GetText(type.Name);
+        return localized == GlobalConst.kUndefinedText ? type.Name : localized;
     }
 
     private List<NotificationLayout> OfferedLayoutOptions()
@@ -375,58 +611,18 @@
         try
         {
             SyncAddresses();
+            EnsureNotificationIntervals();
             if(CheckConsistency())
             {
                 if(AddNotifMode)
                 {
-                    var Variables = new
-                    {
-                        client = Client.ToString(),
-                        channel = actNotification.Channel.ToString(),
-                        name = actNotification.Name,
-                        recipientTo = actNotification.RecipientTo.ToString(),
-                        emailAddressTo = actNotification.EmailAddressTo,
-                        recipientCc = actNotification.RecipientCc.ToString(),
-                        emailAddressCc = actNotification.EmailAddressCc,
-                        subject = actNotification.EmailSubject,
-                        layout = actNotification.Layout.ToString(),
-                        deadline = actNotification.Deadline.ToString(),
-                        intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
-                        offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
-                        intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
-                        initialOffsetAfterDeadline = actNotification.InitialOffsetAfterDeadline,
-                        offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
-                        repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
-                    };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.addNotification, Variables)).ReturnIds;
-                    if (returnIds != null)
-                    {
-                        actNotification.Id = returnIds[0].NewId;
-                        Notifications.Add(actNotification);
-                    }
+                    actNotification = await NotificationMutationHelper.AddAsync(apiConnection, Client, actNotification);
+                    Notifications.Add(actNotification);
+                    await AddNotificationId(actNotification.Id);
                 }
                 else
                 {
-                    var Variables = new
-                    {
-                        id = actNotification.Id,
-                        channel = actNotification.Channel.ToString(),
-                        name = actNotification.Name,
-                        recipientTo = actNotification.RecipientTo.ToString(),
-                        emailAddressTo = actNotification.EmailAddressTo,
-                        recipientCc = actNotification.RecipientCc.ToString(),
-                        emailAddressCc = actNotification.EmailAddressCc,
-                        subject = actNotification.EmailSubject,
-                        layout = actNotification.Layout.ToString(),
-                        deadline = actNotification.Deadline.ToString(),
-                        intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
-                        offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
-                        intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
-                        initialOffsetAfterDeadline = actNotification.InitialOffsetAfterDeadline,
-                        offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
-                        repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
-                    };
-                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.updateNotification, Variables);
+                    actNotification = await NotificationMutationHelper.UpdateAsync(apiConnection, Client, actNotification);
                     Notifications[Notifications.FindIndex(x => x.Id == actNotification.Id)] = actNotification;
                 }
                 Close();
@@ -440,23 +636,63 @@
 
     private void SyncAddresses()
     {
-        foreach (var addr in ToAddressesToDelete)
+        if (Client.IsWorkflowRecipientClient())
         {
-            ToAddresses.Remove(addr);
+            return;
         }
-        ToAddressesToDelete = [];
-        ToAddresses.AddRange(ToAddressesToAdd);
-        ToAddressesToAdd = [];
-        actNotification.EmailAddressTo = String.Join(",", ToAddresses);
+        if (!Client.IsModellingRecipientClient())
+        {
+            actNotification.RecipientTo = string.IsNullOrWhiteSpace(actNotification.EmailAddressTo) ? EmailRecipientOption.None : EmailRecipientOption.OtherAddresses;
+            actNotification.RecipientCc = string.IsNullOrWhiteSpace(actNotification.EmailAddressCc) ? EmailRecipientOption.None : EmailRecipientOption.OtherAddresses;
+            actNotification.RecipientBcc = string.IsNullOrWhiteSpace(actNotification.EmailAddressBcc) ? EmailRecipientOption.None : EmailRecipientOption.OtherAddresses;
+            return;
+        }
+        (actNotification.RecipientTo, actNotification.EmailAddressTo) = RecipientFieldsFromSelection(ToRecipientSelection, ToAddresses);
+        (actNotification.RecipientCc, actNotification.EmailAddressCc) = RecipientFieldsFromSelection(CcRecipientSelection, CcAddresses);
+        (actNotification.RecipientBcc, actNotification.EmailAddressBcc) = RecipientFieldsFromSelection(BccRecipientSelection, BccAddresses);
+    }
 
-        foreach (var addr in CcAddressesToDelete)
+    private (EmailRecipientOption recipientOption, string recipientValue) RecipientFieldsFromSelection(EmailRecipientSelection selection, List<string> legacyAddresses)
+    {
+        EmailRecipientSelection effectiveSelection = EffectiveSelection(selection, legacyAddresses);
+        if (!HasEffectiveRecipient(effectiveSelection, []))
         {
-            CcAddresses.Remove(addr);
+            return (EmailRecipientOption.None, "");
         }
-        CcAddressesToDelete = [];
-        CcAddresses.AddRange(CcAddressesToAdd);
-        CcAddressesToAdd = [];
-        actNotification.EmailAddressCc = String.Join(",", CcAddresses);
+
+        string recipientValue = effectiveSelection.ToConfigValue(ActiveOwnerResponsibleTypeIds());
+        return effectiveSelection.OwnerResponsibleTypeIds.Count > 0
+            ? (EmailRecipientOption.ConfiguredResponsibles, recipientValue)
+            : (EmailRecipientOption.OtherAddresses, recipientValue);
+    }
+
+    private static EmailRecipientSelection EffectiveSelection(EmailRecipientSelection selection, List<string> legacyAddresses)
+    {
+        if (selection.HasAnyRecipientOption() || legacyAddresses.Count == 0)
+        {
+            return selection;
+        }
+        return CreateOtherAddressSelection(legacyAddresses);
+    }
+
+    private static bool HasEffectiveRecipient(EmailRecipientSelection selection, List<string> legacyAddresses)
+    {
+        return selection.OwnerResponsibleTypeIds.Count > 0
+            || selection.OtherAddresses && selection.OtherAddressList.Count > 0
+            || legacyAddresses.Count > 0;
+    }
+
+    private void EnsureNotificationIntervals()
+    {
+        if (actNotification.OffsetBeforeDeadline != null && actNotification.IntervalBeforeDeadline == null)
+        {
+            actNotification.IntervalBeforeDeadline = IntervalBeforeDeadlineSelection;
+        }
+
+        if (actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepeatIntervalAfterDeadline == null)
+        {
+            actNotification.RepeatIntervalAfterDeadline = RepeatIntervalAfterDeadlineSelection;
+        }
     }
 
     private bool CheckConsistency()
@@ -466,41 +702,90 @@
             DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4010"), true);
             return false;
         }
-        if(actNotification.RecipientTo == EmailRecipientOption.None ||
-            actNotification.RecipientTo == EmailRecipientOption.OtherAddresses && ToAddresses.Count == 0 ||
-            actNotification.RecipientCc == EmailRecipientOption.OtherAddresses && CcAddresses.Count == 0)
+        if(Client.IsWorkflowRecipientClient() && IsWorkflowRecipientEmpty(actNotification.RecipientTo, actNotification.EmailAddressTo)
+            || Client.IsModellingRecipientClient() && IsRecipientEmpty(ToRecipientSelection, ToAddresses)
+            || !Client.IsWorkflowRecipientClient() && !Client.IsModellingRecipientClient() && EmailHelper.SplitAddresses(actNotification.EmailAddressTo).Count == 0)
         {
             DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4011"), true);
             return false;
         }
         if(actNotification.Deadline != NotificationDeadline.None)
         {
-            if(actNotification.OffsetBeforeDeadline == null && actNotification.RepeatOffsetAfterDeadline == null)
-            {
-                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), true);
-                return false;
-            }
-            if(actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepetitionsAfterDeadline == null ||
-                (actNotification.RepeatOffsetAfterDeadline == null && actNotification.RepetitionsAfterDeadline != null))
-            {
-                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4013"), true);
-                return false;
-            }
+            return CheckConsistencyWithDeadline();
         }
         return true;
     }
 
+    private bool CheckConsistencyWithDeadline()
+    {
+        if(actNotification.OffsetBeforeDeadline == null && actNotification.RepeatOffsetAfterDeadline == null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), true);
+            return false;
+        }
+        if (actNotification.OffsetBeforeDeadline != null && actNotification.IntervalBeforeDeadline == null
+            || actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepeatIntervalAfterDeadline == null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), true);
+            return false;
+        }
+        if(actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepetitionsAfterDeadline == null ||
+           (actNotification.RepeatOffsetAfterDeadline == null && actNotification.RepetitionsAfterDeadline != null))
+        {
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4013"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private static bool IsRecipientEmpty(EmailRecipientSelection selection, List<string> legacyAddresses)
+    {
+        return !HasEffectiveRecipient(selection, legacyAddresses);
+    }
+
+    private static bool IsWorkflowRecipientEmpty(EmailRecipientOption recipientOption, string addresses)
+    {
+        return recipientOption == EmailRecipientOption.None
+            || recipientOption == EmailRecipientOption.OtherAddresses && EmailHelper.SplitAddresses(addresses).Count == 0;
+    }
+
+    private Task SetDirectAddressTo(string addresses)
+    {
+        actNotification.EmailAddressTo = addresses;
+        return Task.CompletedTask;
+    }
+
+    private Task SetDirectAddressCc(string addresses)
+    {
+        actNotification.EmailAddressCc = addresses;
+        return Task.CompletedTask;
+    }
+
+    private Task SetDirectAddressBcc(string addresses)
+    {
+        actNotification.EmailAddressBcc = addresses;
+        return Task.CompletedTask;
+    }
+
     private async Task Delete()
     {
+        int notificationId = actNotification.Id;
+        bool removedReference = false;
         try
         {
-            await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.deleteNotification, new { id = actNotification.Id });
+            await RemoveNotificationId(notificationId);
+            removedReference = true;
+            await NotificationMutationHelper.DeleteAsync(apiConnection, notificationId);
             Notifications.Remove(actNotification);
             DeleteNotifMode = false;
             StateHasChanged();
         }
         catch (Exception exception)
         {
+            if (removedReference)
+            {
+                await AddNotificationId(notificationId);
+            }
             DisplayMessageInUi(exception, userConfig.GetText("delete_notification"), "", true);
         }
     }
@@ -532,14 +817,31 @@
     private void Close()
     {
         ToAddresses = [];
-        ToAddressesToAdd = [];
-        ToAddressesToDelete = [];
         CcAddresses = [];
-        CcAddressesToAdd = [];
-        CcAddressesToDelete = [];
+        BccAddresses = [];
         AddNotifMode = false;
         EditNotifMode = false;
         DeleteNotifMode = false;
         ResetNotifMode = false;
+    }
+
+    private async Task AddNotificationId(int notificationId)
+    {
+        if (NotificationIds == null || NotificationIds.Contains(notificationId))
+        {
+            return;
+        }
+        NotificationIds.Add(notificationId);
+        await NotificationIdsChanged.InvokeAsync(NotificationIds);
+    }
+
+    private async Task RemoveNotificationId(int notificationId)
+    {
+        if (NotificationIds == null)
+        {
+            return;
+        }
+        NotificationIds.Remove(notificationId);
+        await NotificationIdsChanged.InvokeAsync(NotificationIds);
     }
 }

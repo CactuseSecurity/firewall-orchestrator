@@ -370,3 +370,4 @@ ALTER TABLE modelling.selected_connections ADD CONSTRAINT modelling_selected_con
 -- notification
 ALTER TABLE notification ADD CONSTRAINT notification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE notification ADD CONSTRAINT notification_user_foreign_key FOREIGN KEY (user_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE notification ADD CONSTRAINT notification_report_schedule_foreign_key FOREIGN KEY (schedule_id) REFERENCES report_schedule(report_schedule_id) ON UPDATE RESTRICT ON DELETE CASCADE;

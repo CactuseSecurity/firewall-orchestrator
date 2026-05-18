@@ -32,7 +32,7 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <returns>List of roles</returns>
         [HttpGet]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")]
         public async Task<List<RoleGetReturnParameters>> Get()
         {
             // No parameters

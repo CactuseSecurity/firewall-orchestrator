@@ -3,7 +3,6 @@ mutation updateRequestTask(
   $title: String!
   $taskNumber: Int
   $state: Int
-  $taskType: String!
   $requestAction: action_enum
   $ruleAction: Int
   $tracking: Int
@@ -21,7 +20,6 @@ mutation updateRequestTask(
     title: $title
     task_number: $taskNumber
     state_id: $state
-    task_type: $taskType
     request_action: $requestAction
     rule_action: $ruleAction
     rule_tracking: $tracking

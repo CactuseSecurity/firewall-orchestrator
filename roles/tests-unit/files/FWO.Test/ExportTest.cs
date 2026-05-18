@@ -10,6 +10,7 @@ using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Test.Mocks;
 using FWO.Ui.Pages.Reporting;
+using System.Reflection;
 
 
 
@@ -165,7 +166,7 @@ namespace FWO.Test
         public void ChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter, false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter, false)
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -184,7 +185,7 @@ namespace FWO.Test
         public void ChangesGenerateHtmlIncludeObjects()
         {
             Log.WriteInfo("Test Log", "starting changes report html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter, true, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter, true)
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -203,7 +204,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, timeFilter, false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, timeFilter, false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -222,7 +223,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report tech html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, timeFilter, false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, timeFilter, false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -249,6 +250,172 @@ namespace FWO.Test
             reportHtml = reportHtml.ReplaceAll(matches, StaticAnkerId);
 
             ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
+        }
+
+        [Test]
+        public void OwnerRecertificationSupportsCsvExport()
+        {
+            ClassicAssert.IsTrue(ReportType.OwnerRecertification.SupportsCsvExport());
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsv()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("# Statistics", csv);
+            StringAssert.Contains("# Overdue owners: 1", csv);
+            StringAssert.Contains("# Owners due within 7 days: 1", csv);
+            StringAssert.Contains("# Further active owners: 1", csv);
+            StringAssert.Contains("# Owners with inactive recertification: 1", csv);
+            StringAssert.Contains("\"Next Recertification Date\",\"Id\",\"Name\",\"Last Recertified\",\"Last Recertifier\",", csv);
+            StringAssert.Contains("\"EXT-OVERDUE\",\"Overdue Owner\",", csv);
+            StringAssert.Contains("\"EXT-UPCOMING\",\"Upcoming Owner\",", csv);
+            StringAssert.Contains("\"EXT-FURTHER\",\"Further Owner\",", csv);
+            StringAssert.Contains("# Owners with inactive recertification", csv);
+            StringAssert.Contains("\"Id\",\"Name\",", csv);
+            StringAssert.Contains("\"EXT-INACTIVE\",\"Inactive Owner\",", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateCsvWithoutUpcomingSectionForZeroDisplayPeriod()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport(0)
+            };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("# Overdue owners: 1", csv);
+            StringAssert.DoesNotContain("# Owners due within 0 days", csv);
+            StringAssert.DoesNotContain("# No owners due within 0 days.", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlIncludesStatisticsAndInactiveSection()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+
+            string html = report.ExportToHtml();
+
+            StringAssert.Contains("<h3", html);
+            StringAssert.Contains(">Statistics</h3>", html);
+            StringAssert.Contains("<li>Overdue owners: 1</li>", html);
+            StringAssert.Contains("<li>Owners due within 7 days: 1</li>", html);
+            StringAssert.Contains("<li>Further active owners: 1</li>", html);
+            StringAssert.Contains("<li>Owners with inactive recertification: 1</li>", html);
+            StringAssert.Contains(">Owners with inactive recertification</h3>", html);
+            StringAssert.Contains("<th>Id</th><th>Name</th>", RemoveLinebreaks(html));
+            StringAssert.DoesNotContain("<th>Last Recertified</th><th>Last Recertifier</th></tr><tr><td>EXT-INACTIVE", RemoveLinebreaks(html));
+        }
+
+        [Test]
+        public void OwnerRecertificationGenerateHtmlWithoutUpcomingSectionForZeroDisplayPeriod()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport(0)
+            };
+
+            string html = report.ExportToHtml();
+
+            StringAssert.DoesNotContain(">Owners due within 0 days</h3>", html);
+            StringAssert.DoesNotContain("<li>Owners due within 0 days:", html);
+            StringAssert.DoesNotContain("No owners due within 0 days.", html);
+        }
+
+        [Test]
+        public void OwnerRecertificationUsesAlternativeFurtherHeadlineWhenNextRecertDateIsMissing()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport(withNullFurtherDate: true)
+            };
+
+            string csv = report.ExportToCsv();
+
+            StringAssert.Contains("# Further owners: 1", csv);
+            StringAssert.DoesNotContain("# Further active owners: 1", csv);
+        }
+
+        [Test]
+        public void OwnerRecertificationInactiveOwnersAreOrderedByIdInCsv()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport(withMultipleInactiveOwners: true)
+            };
+
+            string csv = report.ExportToCsv();
+            int firstInactive = csv.IndexOf("\"EXT-INACTIVE-LOW\",\"Inactive Owner Low\",", StringComparison.Ordinal);
+            int secondInactive = csv.IndexOf("\"EXT-INACTIVE\",\"Inactive Owner\",", StringComparison.Ordinal);
+
+            Assert.That(firstInactive, Is.GreaterThanOrEqualTo(0));
+            Assert.That(secondInactive, Is.GreaterThanOrEqualTo(0));
+            Assert.That(firstInactive, Is.LessThan(secondInactive));
+        }
+
+        [Test]
+        public void OwnersGenerateCsvAndHtml()
+        {
+            ReportOwners report = new(query, userConfig, ReportType.Owners)
+            {
+                ReportData = new ReportData()
+                {
+                    OwnerData =
+                    [
+                        new OwnerConnectionReport()
+                        {
+                            Owner = new FwoOwner()
+                            {
+                                ExtAppId = "APP-1",
+                                Name = "Owner One",
+                                Criticality = "High",
+                                OwnerLifeCycleStateId = 1,
+                                AdditionalInfo = new Dictionary<string, string>() { { "department", "IT" }, { "region", "EU" } },
+                                OwnerResponsibles =
+                                [
+                                    new OwnerResponsible(){ Dn = "cn=user1,ou=users,dc=test", ResponsibleTypeId = 1 },
+                                    new OwnerResponsible(){ Dn = "cn=user2,ou=users,dc=test", ResponsibleTypeId = 2 }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            };
+            SetPrivateField(report, "ownerLifeCycleStates", new Dictionary<int, string> { { 1, "Active" } });
+            SetPrivateField(report, "ownerResponsibleTypes", new List<OwnerResponsibleType>
+            {
+                new OwnerResponsibleType() { Id = 1, Name = "Main", Active = true, SortOrder = 1 },
+                new OwnerResponsibleType() { Id = 2, Name = "Backup", Active = true, SortOrder = 2 }
+            });
+
+            string csv = report.ExportToCsv();
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains("\"Id\",\"Name\",\"Criticality\",\"State\",\"Main\",\"Backup\",\"Additional Info\",", csv);
+            StringAssert.Contains("\"APP-1\",\"Owner One\",\"High\",\"Active\",\"user1\",\"user2\",\"department: IT; region: EU\",", csv);
+            StringAssert.Contains("<th>Id</th><th>Name</th><th>Criticality</th><th>State</th><th>Main</th><th>Backup</th><th>Additional Info</th>", html);
+            StringAssert.Contains("<td>APP-1</td><td>Owner One</td><td>High</td><td>Active</td><td>user1</td><td>user2</td><td>department: IT<br>region: EU</td>", html);
+        }
+
+        private static void SetPrivateField<T>(object target, string fieldName, T value)
+        {
+            FieldInfo? field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field == null)
+            {
+                throw new MissingFieldException(target.GetType().FullName, fieldName);
+            }
+            field.SetValue(target, value);
         }
 
         [Test]
@@ -366,7 +533,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -395,7 +562,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateCsvIncludeObjects()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), true, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), true)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -430,7 +597,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report tech csv generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -475,7 +642,7 @@ namespace FWO.Test
                                         "\"rule_tos\": [" +
                                         "{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []},\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
                                         "\"rule_action\": \"accept\",\"rule_track\": \"none\",\"section_header\": \"\"," +
-                                        "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"removed\": null,\"removed_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": \"2022-04-19T00:00:00\",\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"Recert\": false}," +
+                                        "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"removed\": null,\"removed_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": \"2022-04-19T00:00:00Z\",\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"Recert\": false}," +
                                         "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
                                         "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"rulebase_id\": 0,\"rule_num\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"rule_times\": [],\"violations\": [],\"rulebase\": {\"id\": 0,\"name\": \"\",\"uid\": \"\",\"mgm_id\": 0,\"is_global\": false,\"created\": 0,\"removed\": 0,\"rules\": []},\"uiuser\": null,\"rule\": null,\"rule_owners\": [],\"ChangeID\": \"\",\"AdoITID\": \"\",\"Compliance\": 0,\"ViolationDetails\": \"\",\"DisplayOrderNumberString\": \"1\",\"DisplayOrderNumber\": 1,\"Certified\": false,\"DeviceName\": \"\",\"RulebaseName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false}," +
                                         "{\"rule_id\": 0,\"rule_uid\": \"uid2:123\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule2\",\"rule_comment\": \"comment2\",\"rule_disabled\": false," +
@@ -579,7 +746,7 @@ namespace FWO.Test
         public void ChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, new TimeFilter(), false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, new TimeFilter(), false)
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -610,7 +777,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -642,7 +809,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -672,7 +839,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateJsonIncludeObjects()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), true, true)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), true)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -1251,6 +1418,84 @@ namespace FWO.Test
             reportData.OwnerData[0].RuleDifferences.Add(new() { ModelledConnection = Conn2, ImplementedRules = [Rule1] });
             reportData.OwnerData[0].PrepareObjectData(true);
             return reportData;
+        }
+
+        private static ReportData ConstructOwnerRecertReport(int recertificationDisplayPeriod = 7, bool withNullFurtherDate = false, bool withMultipleInactiveOwners = false)
+        {
+            List<OwnerConnectionReport> ownerData =
+            [
+                new()
+                {
+                    Owner = new()
+                    {
+                        Id = 1,
+                        Name = "Overdue Owner",
+                        ExtAppId = "EXT-OVERDUE",
+                        RecertActive = true,
+                        RecertOverdue = true,
+                        NextRecertDate = DateTime.Today.AddDays(-1),
+                        LastRecertified = DateTime.Today.AddDays(-30),
+                        LastRecertifierDn = "cn=overdue.user,ou=users,dc=test,dc=local"
+                    }
+                },
+                new()
+                    {
+                        Owner = new()
+                        {
+                            Id = 2,
+                            Name = "Upcoming Owner",
+                            ExtAppId = "EXT-UPCOMING",
+                            RecertActive = true,
+                            RecertUpcoming = recertificationDisplayPeriod > 0,
+                            NextRecertDate = DateTime.Today.AddDays(3),
+                            LastRecertified = DateTime.Today.AddDays(-20),
+                            LastRecertifierDn = "cn=upcoming.user,ou=users,dc=test,dc=local"
+                        }
+                    },
+                new()
+                {
+                    Owner = new()
+                    {
+                        Id = 3,
+                        Name = "Further Owner",
+                        ExtAppId = "EXT-FURTHER",
+                        RecertActive = true,
+                        NextRecertDate = withNullFurtherDate ? null : DateTime.Today.AddDays(20),
+                        LastRecertified = DateTime.Today.AddDays(-10),
+                        LastRecertifierDn = "cn=further.user,ou=users,dc=test,dc=local"
+                    }
+                },
+                new()
+                {
+                    Owner = new()
+                    {
+                        Id = 4,
+                        Name = "Inactive Owner",
+                        ExtAppId = "EXT-INACTIVE",
+                        RecertActive = false
+                    }
+                }
+            ];
+
+            if (withMultipleInactiveOwners)
+            {
+                ownerData.Add(new()
+                {
+                    Owner = new()
+                    {
+                        Id = 0,
+                        Name = "Inactive Owner Low",
+                        ExtAppId = "EXT-INACTIVE-LOW",
+                        RecertActive = false
+                    }
+                });
+            }
+
+            return new ReportData()
+            {
+                RecertificationDisplayPeriod = recertificationDisplayPeriod,
+                OwnerData = ownerData
+            };
         }
 
         private static string RemoveGenDate(string exportString, bool html = false, bool json = false)

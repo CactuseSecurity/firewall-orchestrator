@@ -5,16 +5,26 @@ namespace FWO.Test
 {
     internal class SimulatedGlobalConfig : GlobalConfig
     {
-        public Dictionary<string, string> DummyTranslate = SimulatedUserConfig.DummyTranslate;
+        public Dictionary<string, string> DummyTranslate = new(SimulatedUserConfig.DummyTranslate);
+        public Dictionary<string, string> GermanTranslate = new(SimulatedUserConfig.DummyTranslate);
 
         public override string GetText(string key)
         {
-            return DummyTranslate.TryGetValue(key, out string? value) ? value : key;
+            return GetTextInLanguage(key, DefaultLanguage);
         }
 
         public SimulatedGlobalConfig() : base()
         {
-            LangDict = new() { { "English", DummyTranslate } };
+            LangDict = new()
+            {
+                { "English", DummyTranslate },
+                { "German", GermanTranslate }
+            };
+            OverDict = new()
+            {
+                { "English", [] },
+                { "German", [] }
+            };
         }
     }
 
@@ -27,6 +37,8 @@ namespace FWO.Test
             {"ResolvedRulesTech","Rules Report (technical)"},
             {"UnusedRules","Unused Rules Report"},
             {"Recertification","Recertification Report"},
+            {"OwnerRecertification","Owner Recertification"},
+            {"Owners","Owners"},
             {"NatRules","NAT Rules Report"},
             {"Changes","Changes Report"},
             {"ResolvedChanges","Changes Report (resolved)"},
@@ -47,6 +59,14 @@ namespace FWO.Test
             {"change_type","Change Type"},
             {"number","No."},
             {"name","Name"},
+            {"modIntegrationStates","Integration States"},
+            {"modIntegrationStateMarker","State Marker"},
+            {"include_into_request","Include into request"},
+            {"request_fw_change","Request firewall changes"},
+            {"last_requested","Last Requested"},
+            {"UpdateModelling","Update Modelling"},
+            {"none","None"},
+            {"H5529","Update Modelling"},
             {"source_zone","Source Zone"},
             {"source","Source"},
             {"destination_zone","Destination Zone"},
@@ -60,11 +80,15 @@ namespace FWO.Test
             {"type","Type"},
             {"ip_address","IP Address"},
             {"members","Members"},
+            {"requested_connections","Requested Connections"},
+            {"group_requests","Group Requests"},
             {"network_objects","Network Objects"},
             {"network_services","Network Services"},
             {"protocol","Protocol"},
             {"port","Port"},
             {"next_recert_date","Next Recertification Date"},
+            {"last_recertified","Last Recertified"},
+            {"last_recertifier","Last Recertifier"},
             {"owner","Owner"},
             {"ext_app_id","External App Id"},
             {"ip_matches","IP address match"},
@@ -84,7 +108,9 @@ namespace FWO.Test
             {"is_in_use","Is in use"},
             {"devices","Devices"},
             {"owners","Owners"},
+            {"requests","Requests"},
             {"filter","Filter"},
+            {"statistics","Statistics"},
             {"id","Id"},
             {"ip","Ip"},
             {"group","Group"},
@@ -113,6 +139,7 @@ namespace FWO.Test
             { "tableofcontent", "Table of content" },
             {"objects","Objects"},
             {"all","All"},
+            {"oneTaskForAllDevices","One task for all devices"},
             {"report","Report"},
             {"rule", "Rule"},
             {"collapse_all","Collapse All"},
@@ -192,6 +219,10 @@ namespace FWO.Test
             {"requested_ext_app_id","Requested Ext App Id" },
             {"requested_interface","Requested Interface" },
             {"display_ticket","Display Ticket" },
+            {"ext_ticket_number","External ticket number" },
+            {"group_create","Create Group" },
+            {"group_modify","Modify Group" },
+            {"group_delete","Delete Group" },
             {"creation_date","Creation Date" },
             {"reason","Reason" },
             {"all_open","All Open" },
@@ -199,10 +230,21 @@ namespace FWO.Test
             {"U9018","Ticket rejected." },
             {"U9036","Rejected by Admin" },
             {"state","State" },
+            {"criticality","Criticality" },
+            {"additional_info","Additional Info" },
+            {"active","Active" },
+            {"inactive","Inactive" },
             {"ticket","Ticket" },
             {"tasks","Tasks" },
             {"requester","Requester" },
             {"reference_date","Reference date" },
+            {"U4003","Overdue owners" },
+            {"U4004","No overdue owners." },
+            {"U4005","Owners due within @@DAYS@@ days" },
+            {"U4006","No owners due within @@DAYS@@ days." },
+            {"U4007","Further active owners" },
+            {"U4008","Further owners" },
+            {"U4009","Owners with inactive recertification" },
             {"created","Created" },
             {"closed","Closed" },
             {"task_number","Task Number" },
@@ -226,6 +268,12 @@ namespace FWO.Test
             {"E9021","Interface permission required" },
             {"decomm_interface","Decommission Interface" },
             {"send_email","Send Email"},
+            {"confirm_sent_mail","Confirm sent email via UI message"},
+            {"confirm_modelling_update","Confirm modelling update via UI message"},
+            {"modelling_objects_updated"," modelling objects updated"},
+            {"H5530","Confirm sent email via UI message: After successful sending, the action shows a UI message with the number of sent emails."},
+            {"H5534","Confirm modelling update via UI message: After a successful update, the action shows a UI message with the number of updated modelling objects."},
+            {"emails_sent"," emails sent"},
             {"U9033","Emails sent to @@OK_NUMBER@@ owners."},
             {"E9019","Email could not be sent to @@FAIL_NUMBER@@ owners."},
             {"notification","Notification" },
@@ -233,6 +281,7 @@ namespace FWO.Test
             {"criteria","Criteria"},
             {"add","Add"},
             {"cancel","Cancel"},
+            {"change_default","Change default"},
             {"save","Save"},
             {"monitoring","Monitoring"},
             {"modelling","Modelling"},
@@ -277,6 +326,7 @@ namespace FWO.Test
             {"confirm","Confirm"},
             {"delete","Delete"},
             {"remove","Remove"},
+            {"close","Close"},
             {"PagerPagesize","Page size"},
             {"PagerSubmit","Apply"},
             {"loading","Loading"},
@@ -345,12 +395,16 @@ namespace FWO.Test
             {"TicketReport","Ticket Report"},
             {"TicketChangeReport","Ticket Change Report"},
             {"workflow_filters","Workflow Filters"},
+            {"variance_filters","Variance Filters"},
+            {"rules_for_deleted_conns","Rules from deleted connections"},
+            {"analyse_remaining_rules","Analyse remaining rules"},
             {"task_type","Task type"},
             {"phase","Phase"},
             {"label","Label"},
             {"existing","existing"},
             {"not_existing","not existing"},
             {"value","value"},
+            {"display_only","Display only"},
             {"TicketCreation","Ticket creation"},
             {"TicketClosure","Ticket closure"},
             {"ApprovalOpened","Approval opened"},
@@ -365,6 +419,7 @@ namespace FWO.Test
             {"rule_delete","rule delete"},
             {"new_interface","new interface"},
             {"now","now"},
+            {"today","today"},
             {"last","last"},
             {"day","day"},
             {"week","week"},
@@ -379,7 +434,8 @@ namespace FWO.Test
             {"H1520","Show full ticket tooltip"},
             {"H1521","Phase tooltip"},
             {"H1524","Detailed view tooltip"},
-            {"detailed_view","Detailed View"}
+            {"detailed_view","Detailed View"},
+            {"task","Task"}
         };
 
         public override string GetText(string key)

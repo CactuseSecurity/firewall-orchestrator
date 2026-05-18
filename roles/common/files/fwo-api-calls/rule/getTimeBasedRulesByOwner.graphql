@@ -54,9 +54,30 @@ query getTimeBasedRulesByOwner {
           obj_name
           obj_ip
           obj_ip_end
+          obj_member_refs
           type: stm_obj_typ {
             id: obj_typ_id
             name: obj_typ_name
+          }
+          objgrp_flats(
+            where: {
+              active: { _eq: true }
+              removed: { _is_null: true }
+            }
+            order_by: { objgrp_flat_member_id: asc }
+          ) {
+            flat_id: objgrp_flat_id
+            byFlatId: objectByObjgrpFlatMemberId {
+              obj_id
+              obj_uid
+              obj_name
+              obj_ip
+              obj_ip_end
+              obj_member_refs
+              type: stm_obj_typ {
+                name: obj_typ_name
+              }
+            }
           }
         }
       }
@@ -78,9 +99,30 @@ query getTimeBasedRulesByOwner {
           obj_name
           obj_ip
           obj_ip_end
+          obj_member_refs
           type: stm_obj_typ {
             id: obj_typ_id
             name: obj_typ_name
+          }
+          objgrp_flats(
+            where: {
+              active: { _eq: true }
+              removed: { _is_null: true }
+            }
+            order_by: { objgrp_flat_member_id: asc }
+          ) {
+            flat_id: objgrp_flat_id
+            byFlatId: objectByObjgrpFlatMemberId {
+              obj_id
+              obj_uid
+              obj_name
+              obj_ip
+              obj_ip_end
+              obj_member_refs
+              type: stm_obj_typ {
+                name: obj_typ_name
+              }
+            }
           }
         }
       }
@@ -97,6 +139,7 @@ query getTimeBasedRulesByOwner {
           svc_name
           svc_port
           svc_port_end
+          svc_member_refs
           service_type: stm_svc_typ {
             name: svc_typ_name
           }
@@ -104,6 +147,31 @@ query getTimeBasedRulesByOwner {
           protocol_name: stm_ip_proto {
             id: ip_proto_id
             name: ip_proto_name
+          }
+          svcgrp_flats(
+            where: {
+              active: { _eq: true }
+              removed: { _is_null: true }
+            }
+            order_by: { svcgrp_flat_member_id: asc }
+          ) {
+            flat_id: svcgrp_flat_id
+            byFlatId: serviceBySvcgrpFlatMemberId {
+              svc_id
+              svc_uid
+              svc_name
+              svc_port
+              svc_port_end
+              svc_member_refs
+              ip_proto_id
+              protocol_name: stm_ip_proto {
+                id: ip_proto_id
+                name: ip_proto_name
+              }
+              service_type: stm_svc_typ {
+                name: svc_typ_name
+              }
+            }
           }
         }
       }

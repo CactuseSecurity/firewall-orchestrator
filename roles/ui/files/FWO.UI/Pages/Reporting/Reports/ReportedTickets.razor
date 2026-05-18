@@ -1,6 +1,7 @@
 @using FWO.Data.Report
 @using FWO.Data.Workflow
 @using FWO.Basics
+@using FWO.Report
 @inject UserConfig userConfig
 
 @if (Tickets.Count > 0)
@@ -23,8 +24,16 @@
                 @(ResolveStateName(ticket.StateId))
             </Template>
         </Column>
-        <Column TableItem="WfTicket" Title="@(userConfig.GetText("created"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
-        <Column TableItem="WfTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
+        <Column TableItem="WfTicket" Title="@($"{userConfig.GetText("ticket")} {userConfig.GetText("created")}")" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
+        <Column TableItem="WfTicket" Title="@($"{userConfig.GetText("ticket")} {userConfig.GetText("closed")}")" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
+        @if (HasReferenceDateColumn())
+        {
+            <Column TableItem="WfTicket" Title="@userConfig.GetText(ReferenceDate.ToString())" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                <Template Context="ticket">
+                    @(GetTicketReferenceDateValue(ticket))
+                </Template>
+            </Column>
+        }
         @if (HasLabelColumn())
         {
             <Column TableItem="WfTicket" Title="@LabelName" Field="@(x => x.Id)" Sortable="false" Filterable="false">
@@ -107,6 +116,9 @@
     public Dictionary<int, string> StateNames { get; set; } = [];
 
     [Parameter]
+    public Dictionary<long, DateTime?> TicketReferenceDates { get; set; } = [];
+
+    [Parameter]
     public ReportType SelectedReportType { get; set; }
 
     [Parameter]
@@ -130,7 +142,12 @@
     [Parameter]
     public string TimeRangeEnd { get; set; } = "";
 
-    private IEnumerable<WfTicket> SortedTickets => Tickets.OrderBy(ticket => ticket.Id);
+    private IEnumerable<WfTicket> SortedTickets => HasReferenceDateColumn()
+        ? Tickets
+            .OrderByDescending(ticket => GetStoredTicketReferenceDate(ticket).HasValue)
+            .ThenByDescending(GetStoredTicketReferenceDate)
+            .ThenByDescending(ticket => ticket.Id)
+        : Tickets.OrderBy(ticket => ticket.Id);
 
     private string ResolveStateName(int stateId)
     {
@@ -142,6 +159,17 @@
         return !string.IsNullOrWhiteSpace(LabelName);
     }
 
+    private bool HasReferenceDateColumn()
+    {
+        return SelectedReportType == ReportType.TicketChangeReport;
+    }
+
+    private string GetTicketReferenceDateValue(WfTicket ticket)
+    {
+        DateTime? referenceDate = GetStoredTicketReferenceDate(ticket);
+        return referenceDate?.ToString() ?? "";
+    }
+
     private string GetLabelValue(WfTicket ticket)
     {
         if (!HasLabelColumn())
@@ -149,15 +177,7 @@
             return "";
         }
 
-        List<string> labelValues =
-        [
-            .. ticket.Tasks
-                .Select(task => task.GetAddInfoValue(LabelName))
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .Distinct()
-        ];
-
-        return string.Join(", ", labelValues);
+        return WorkflowTicketSelectionHelper.GetLabelValue(ticket, LabelName);
     }
 
     private List<WfReqTask> GetDisplayedTasks(WfTicket ticket)
@@ -167,46 +187,13 @@
             return [];
         }
 
-        if (ShowFullTicket)
-        {
-            return ticket.Tasks.OrderBy(task => task.Id).ToList();
-        }
-
-        if (SelectedReportType == ReportType.TicketReport)
-        {
-            return FilterTasksByTaskType(ticket.Tasks);
-        }
-
-        List<WfReqTask> tasks = ReferenceDate switch
-        {
-            WorkflowReferenceDate.TicketCreation => ticket.Tasks.ToList(),
-            WorkflowReferenceDate.TicketClosure => ticket.Tasks.ToList(),
-            WorkflowReferenceDate.TaskStart => ticket.Tasks
-                .Where(task => IsInSelectedTimeRange(task.Start))
-                .ToList(),
-            WorkflowReferenceDate.TaskEnd => ticket.Tasks
-                .Where(task => IsInSelectedTimeRange(task.Stop))
-                .ToList(),
-            WorkflowReferenceDate.ApprovalOpened => ticket.Tasks
-                .Where(task => GetDisplayedApprovals(task).Count > 0)
-                .ToList(),
-            WorkflowReferenceDate.Approved => ticket.Tasks
-                .Where(task => GetDisplayedApprovals(task).Count > 0)
-                .ToList(),
-            WorkflowReferenceDate.ImplementationStart => ticket.Tasks
-                .Where(task => GetDisplayedImplementationTasks(task).Count > 0)
-                .ToList(),
-            WorkflowReferenceDate.ImplementationEnd => ticket.Tasks
-                .Where(task => GetDisplayedImplementationTasks(task).Count > 0)
-                .ToList(),
-            WorkflowReferenceDate.AnyActivity => ticket.Tasks
-                .Where(task => IsInSelectedTimeRange(task.Start) || IsInSelectedTimeRange(task.Stop) ||
-                    GetDisplayedImplementationTasks(task).Count > 0 ||
-                    GetDisplayedApprovals(task).Count > 0)
-                .ToList(),
-            _ => []
-        };
-        return FilterTasksByTaskType(tasks);
+        return WorkflowTicketSelectionHelper.GetReferenceTasks(
+            ticket,
+            ShowFullTicket,
+            ReferenceDate,
+            TimeRangeStart,
+            TimeRangeEnd,
+            TaskTypes);
     }
 
     private bool ShowNestedTaskDetails(WfReqTask task)
@@ -216,46 +203,20 @@
 
     private bool HasDisplayedImplementationTasks(WfReqTask task)
     {
-        return ShowImplementationTasks() && GetDisplayedImplementationTasks(task).Count > 0;
+        return WorkflowTicketSelectionHelper.ShowImplementationTasks(
+            DetailedView,
+            ShowFullTicket,
+            SelectedReportType,
+            ReferenceDate) && GetDisplayedImplementationTasks(task).Count > 0;
     }
 
     private bool HasDisplayedApprovals(WfReqTask task)
     {
-        return ShowApprovals() && GetDisplayedApprovals(task).Count > 0;
-    }
-
-    private bool ShowImplementationTasks()
-    {
-        if (!DetailedView)
-        {
-            return false;
-        }
-
-        if (ShowFullTicket || SelectedReportType == ReportType.TicketReport)
-        {
-            return true;
-        }
-
-        return ReferenceDate == WorkflowReferenceDate.ImplementationStart
-            || ReferenceDate == WorkflowReferenceDate.ImplementationEnd
-            || ReferenceDate == WorkflowReferenceDate.AnyActivity;
-    }
-
-    private bool ShowApprovals()
-    {
-        if (!DetailedView)
-        {
-            return false;
-        }
-
-        if (ShowFullTicket || SelectedReportType == ReportType.TicketReport)
-        {
-            return true;
-        }
-
-        return ReferenceDate == WorkflowReferenceDate.ApprovalOpened
-            || ReferenceDate == WorkflowReferenceDate.Approved
-            || ReferenceDate == WorkflowReferenceDate.AnyActivity;
+        return WorkflowTicketSelectionHelper.ShowApprovals(
+            DetailedView,
+            ShowFullTicket,
+            SelectedReportType,
+            ReferenceDate) && GetDisplayedApprovals(task).Count > 0;
     }
 
     private List<WfImplTask> GetDisplayedImplementationTasks(WfReqTask task)
@@ -265,25 +226,12 @@
             return [];
         }
 
-        if (ShowFullTicket || SelectedReportType == ReportType.TicketReport)
-        {
-            return task.ImplementationTasks.OrderBy(implTask => implTask.Id).ToList();
-        }
-
-        List<WfImplTask> implementationTasks = ReferenceDate switch
-        {
-            WorkflowReferenceDate.ImplementationStart => task.ImplementationTasks
-                .Where(implTask => IsInSelectedTimeRange(implTask.Start))
-                .ToList(),
-            WorkflowReferenceDate.ImplementationEnd => task.ImplementationTasks
-                .Where(implTask => IsInSelectedTimeRange(implTask.Stop))
-                .ToList(),
-            WorkflowReferenceDate.AnyActivity => task.ImplementationTasks
-                .Where(implTask => IsInSelectedTimeRange(implTask.Start) || IsInSelectedTimeRange(implTask.Stop))
-                .ToList(),
-            _ => []
-        };
-        return implementationTasks.OrderBy(implTask => implTask.Id).ToList();
+        return WorkflowTicketSelectionHelper.GetReferenceImplementationTasks(
+            task,
+            ShowFullTicket || SelectedReportType == ReportType.TicketReport,
+            ReferenceDate,
+            TimeRangeStart,
+            TimeRangeEnd);
     }
 
     private List<WfApproval> GetDisplayedApprovals(WfReqTask task)
@@ -293,62 +241,18 @@
             return [];
         }
 
-        if (ShowFullTicket || SelectedReportType == ReportType.TicketReport)
-        {
-            return task.Approvals.OrderBy(approval => approval.Id).ToList();
-        }
-
-        List<WfApproval> approvals = ReferenceDate switch
-        {
-            WorkflowReferenceDate.ApprovalOpened => task.Approvals
-                .Where(approval => IsInSelectedTimeRange(approval.DateOpened))
-                .ToList(),
-            WorkflowReferenceDate.Approved => task.Approvals
-                .Where(approval => IsInSelectedTimeRange(approval.ApprovalDate))
-                .ToList(),
-            WorkflowReferenceDate.AnyActivity => task.Approvals
-                .Where(approval => IsInSelectedTimeRange(approval.DateOpened) || IsInSelectedTimeRange(approval.ApprovalDate))
-                .ToList(),
-            _ => []
-        };
-        return approvals.OrderBy(approval => approval.Id).ToList();
+        return WorkflowTicketSelectionHelper.GetReferenceApprovals(
+            task,
+            ShowFullTicket || SelectedReportType == ReportType.TicketReport,
+            ReferenceDate,
+            TimeRangeStart,
+            TimeRangeEnd);
     }
 
-    private bool IsInSelectedTimeRange(DateTime? date)
+    private DateTime? GetStoredTicketReferenceDate(WfTicket ticket)
     {
-        if (!date.HasValue)
-        {
-            return false;
-        }
-
-        return IsInSelectedTimeRange(date.Value);
-    }
-
-    private bool IsInSelectedTimeRange(DateTime date)
-    {
-        if (date == default)
-        {
-            return false;
-        }
-
-        if (!DateTime.TryParse(TimeRangeStart, out DateTime start))
-        {
-            return true;
-        }
-
-        if (!DateTime.TryParse(TimeRangeEnd, out DateTime end))
-        {
-            return true;
-        }
-
-        return date >= start && date <= end;
-    }
-
-    private List<WfReqTask> FilterTasksByTaskType(IEnumerable<WfReqTask> tasks)
-    {
-        return tasks
-            .Where(task => TaskTypes.Count == 0 || TaskTypes.Any(taskType => task.TaskType == taskType.ToString()))
-            .OrderBy(task => task.Id)
-            .ToList();
+        return TicketReferenceDates.TryGetValue(ticket.Id, out DateTime? referenceDate)
+            ? referenceDate
+            : null;
     }
 }

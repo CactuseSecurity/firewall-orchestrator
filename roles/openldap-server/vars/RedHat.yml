@@ -8,4 +8,4 @@ openldap_server_app_path: "/etc/openldap"
 openldap_server_user: ldap
 openldap_schema_dir: "/etc/openldap/schema"
 openldap_module_path: "/usr/lib64/openldap"
-openldap_service_defaults_file: ""
+openldap_service_defaults_file: "/etc/sysconfig/slapd"

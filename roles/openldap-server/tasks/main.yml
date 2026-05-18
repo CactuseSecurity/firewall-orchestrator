@@ -102,6 +102,7 @@
       - name: Configure LDAP protocol, URI and port
         lineinfile:
             path: "{{ openldap_service_defaults_file }}"
+            create: true
             regexp: "^SLAPD_SERVICES="
             line: 'SLAPD_SERVICES="{{ openldap_server_services }}"'
 

@@ -1,5 +1,5 @@
 [Service]
-EnvironmentFile=-/etc/default/slapd
+EnvironmentFile=-{{ openldap_service_defaults_file }}
 ExecStartPre=/bin/mkdir -p /run/slapd
 ExecStartPre=/bin/chown {{ openldap_server_user }}:{{ openldap_server_user }} /run/slapd
 ExecStart=

@@ -3,6 +3,7 @@ product_version: "9.0.24"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
+importer_python_interpreter: "{{ '/usr/bin/python3.11' if ansible_os_family == 'RedHat' else ansible_python_interpreter }}"
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
 
@@ -153,7 +154,7 @@ apache_ssl_dir: "/etc/{{ webserver_package_name }}/ssl"
 apache_selinux_ports:
   - "{{ api_web_port }}"
   - "{{ middleware_web_listener_port }}"
-python_venv_package_name: "{{ 'python3-venv' if ansible_os_family == 'Debian' else 'python3' }}"
+python_venv_package_name: "{{ ['python3-venv'] if ansible_os_family == 'Debian' else ['python3.11', 'python3.11-pip'] }}"
 middleware_ldap_packages: >-
   {{
     [

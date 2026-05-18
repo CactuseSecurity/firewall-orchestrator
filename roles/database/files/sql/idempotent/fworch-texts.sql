@@ -7051,11 +7051,17 @@ INSERT INTO txt VALUES ('H7424', 'German', 'Die Schaltfl&auml;che "Offene Ticket
 INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets for deleted requested interfaces" opens a separate list of all still open new-interface tickets whose requested interface does not exist anymore.
     The check is performed only when opening the popup, so it is independent from the current table filter.
 ');
-INSERT INTO txt VALUES ('H7425', 'German', 'Diese Seite listet alle Applikationen mit modellierten Verbindungen und zeigt den letzten zugeordneten Workflow-Antrag.
-    Im Modus Workflow-Benachrichtigungen kann so schnell erkannt werden, ob ein Antrag noch in Bearbeitung, abgeschlossen oder abgelehnt ist.
+INSERT INTO txt VALUES ('H7425', 'German', 'Diese Seite listet Owner mit modellierten Verbindungen und zeigt den letzten zugeordneten Workflow-Antrag.
+    Die Spalte Antragsstatus zeigt, ob ein Antrag gerade l&auml;uft, ob ein neuer Antrag m&ouml;glich ist, ob noch nie ein Antrag gestellt wurde oder ob aktuell nichts zu beantragen ist.
+    Ticket, Ticketstatus, offene Aufgaben sowie Erstellungs- und Abschlussdatum helfen bei der Einordnung des letzten Antrags.
+    Administratoren k&ouml;nnen &uuml;ber die Aktionsspalte den Integrationsstatus aller in diesem Antrag angeforderten Verbindungen und Gruppen setzen, den Workflow-Status des Tickets &auml;ndern oder den Antragsbezug f&uuml;r den Owner zur&uuml;cksetzen.
+    Das Setzen des Integrationsstatus verwendet die konfigurierten Integrationsstatuswerte aus den Modellierungseinstellungen.
 ');
-INSERT INTO txt VALUES ('H7425', 'English', 'This page lists all applications with modelled connections and shows the latest assigned workflow request.
-    In Workflow notifications mode it makes it easy to see whether a request is still in process, completed, or rejected.
+INSERT INTO txt VALUES ('H7425', 'English', 'This page lists owners with modelled connections and shows the latest assigned workflow request.
+    The request status column indicates whether a request is currently running, whether a new request is possible, whether no request has ever been sent, or whether there is currently nothing to request.
+    Ticket, ticket state, open tasks, creation date, and completion date help classify the latest request.
+    Administrators can use the actions column to set the integration state of all connections and groups requested by the ticket, change the workflow state of the ticket, or reset the request assignment for the owner.
+    Setting the integration state uses the configured integration-state values from the modelling settings.
 ');
 
 INSERT INTO txt VALUES ('H8001', 'German',  'Das Workflow-Modul soll die Zusammenarbeit mehrerer beteiligter Akteure bei Arbeitsabl&auml;ufen im Umfeld der Netzwerkadministration unterst&uuml;tzen.

@@ -757,13 +757,10 @@
         {
             await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActReqTask, WfObjectScopes.RequestTask, actOwner, WfHandler.ActReqTask.TicketId);
         }
-        if(action.ActionType == nameof(StateActionTypes.AddApproval))
+        if(action.ActionType == nameof(StateActionTypes.AddApproval) && await WfHandler.ReloadActReqTask())
         {
-            if(await WfHandler.ReloadActReqTask())
-            {
-                InitElements();
-                await InitComments();
-            }
+            InitElements();
+            await InitComments();
         }
         await Reset();
     }

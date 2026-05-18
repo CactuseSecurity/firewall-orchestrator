@@ -155,7 +155,7 @@ else
     private OwnerRequestStatus ChangeStatusRow = new();
     private OwnerRequestStatus ChangeTicketStateRow = new();
     private List<string> ConfiguredImplementationStatuses = [];
-    private List<int> AvailableTicketStateIds = [];
+    private List<int> AvailableTicketStateIds => [.. States.Name.Keys.Order()];
     private string SelectedImplementationStatus = "";
     private int SelectedTicketStateId = 0;
     private bool InitComplete = false;
@@ -171,7 +171,6 @@ else
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Auditor]);
             ConfiguredImplementationStatuses = ConfiguredStatusNames();
             await States.Init(apiConnection);
-            AvailableTicketStateIds = [.. States.Name.Keys.Order()];
             ExtStateHandler = new(apiConnection);
             await LoadRows();
             InitComplete = true;

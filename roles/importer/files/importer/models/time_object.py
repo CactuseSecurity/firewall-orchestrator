@@ -1,8 +1,31 @@
 from __future__ import annotations
 
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, field_validator
+
+
+def validate_iso_timestamp_value(field_name: str, value: str | None) -> str | None:
+    if value is None:
+        return value
+    try:
+        normalized_value = value.strip().replace("Z", "+00:00")
+
+        # Python 3.10 is stricter and does not always parse offsets like +0000.
+        # Convert +HHMM / -HHMM to +HH:MM / -HH:MM before parsing.
+        if re.search(r"[+-]\d{4}$", normalized_value):
+            normalized_value = f"{normalized_value[:-5]}{normalized_value[-5:-2]}:{normalized_value[-2:]}"
+
+        parsed_time = datetime.fromisoformat(normalized_value)
+
+        if parsed_time.tzinfo is None:
+            parsed_time = parsed_time.replace(tzinfo=timezone.utc)
+        return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
+    except ValueError:
+        raise ValueError(
+            f"{field_name} value '{value}' must be an ISO 8601 timestamp like YYYY-MM-DDTHH:MM[:SS][Z|±HH:MM|±HHMM]; timestamps without a timezone are treated as UTC"
+        )
 
 
 class TimeObject(BaseModel):
@@ -11,18 +34,13 @@ class TimeObject(BaseModel):
     start_time: str | None = None
     end_time: str | None = None
 
-    # time format must be like '1970-01-01T00:00:00'
+    # time format must be like '1970-01-01T00:00:00+00:00'.
     # needs to match format from database, otherwise changes will be detected for all time objects during import
+    # we only write UTC times to the database, so we convert any timezone-aware time to UTC and store it in that format
     @field_validator("start_time", "end_time")
     @classmethod
     def validate_time_format(cls, value: str | None) -> str | None:
-        if value is None:
-            return value
-        try:
-            datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")  # noqa: DTZ007 - naive datetime matches DB format
-            return value
-        except ValueError:
-            raise ValueError(f"Time value '{value}' does not match format 'YYYY-MM-DDTHH:MM:SS'") from None
+        return validate_iso_timestamp_value("Time", value)
 
 
 class TimeObjectForImport(BaseModel):

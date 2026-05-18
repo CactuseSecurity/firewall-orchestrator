@@ -85,8 +85,10 @@ namespace FWO.Api.Client.Queries
         public static readonly string getAppRoles;
         public static readonly string getNewestAppRoles;
         public static readonly string getDummyAppRole;
+        public static readonly string getAppRoleById;
         public static readonly string newAppRole;
         public static readonly string updateAppRole;
+        public static readonly string updateNwGroupComment;
         public static readonly string deleteNwGroup;
         // public static readonly string getAppServerForAppRole;
         public static readonly string addNwObjectToNwGroup;
@@ -104,6 +106,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getGlobalServiceGroups;
         public static readonly string newServiceGroup;
         public static readonly string updateServiceGroup;
+        public static readonly string updateServiceGroupComment;
         public static readonly string deleteServiceGroup;
         public static readonly string addServiceToServiceGroup;
         public static readonly string removeServiceFromServiceGroup;
@@ -115,6 +118,9 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string newAppZone;
         public static readonly string getAppZonesByAppId;
+
+        public static readonly string getOwnersForRuleOwnerNameField;
+        public static readonly string getOwnersForRuleOwnerNameFieldFilteredByOwner;
 
         static ModellingQueries()
         {
@@ -203,8 +209,10 @@ namespace FWO.Api.Client.Queries
                 getAppRoles = appServerDetailsFragment + appRoleDetailsFragment + GetQueryText("modelling/getAppRoles.graphql");
                 getNewestAppRoles = GetQueryText("modelling/getNewestAppRoles.graphql");
                 getDummyAppRole = appServerDetailsFragment + appRoleDetailsFragment + GetQueryText("modelling/getDummyAppRole.graphql");
+                getAppRoleById = appServerDetailsFragment + appRoleDetailsFragment + GetQueryText("modelling/getAppRoleById.graphql");
                 newAppRole = GetQueryText("modelling/newAppRole.graphql");
                 updateAppRole = GetQueryText("modelling/updateAppRole.graphql");
+                updateNwGroupComment = GetQueryText("modelling/updateNwGroupComment.graphql");
                 deleteNwGroup = GetQueryText("modelling/deleteNwGroup.graphql");
                 addNwObjectToNwGroup = GetQueryText("modelling/addNwObjectToNwGroup.graphql");
                 removeNwObjectFromNwGroup = GetQueryText("modelling/removeNwObjectFromNwGroup.graphql");
@@ -221,6 +229,7 @@ namespace FWO.Api.Client.Queries
                 getGlobalServiceGroups = serviceDetailsFragment + serviceGroupDetailsFragment + GetQueryText("modelling/getGlobalServiceGroups.graphql");
                 newServiceGroup = GetQueryText("modelling/newServiceGroup.graphql");
                 updateServiceGroup = GetQueryText("modelling/updateServiceGroup.graphql");
+                updateServiceGroupComment = GetQueryText("modelling/updateServiceGroupComment.graphql");
                 deleteServiceGroup = GetQueryText("modelling/deleteServiceGroup.graphql");
                 addServiceToServiceGroup = GetQueryText("modelling/addServiceToServiceGroup.graphql");
                 removeServiceFromServiceGroup = GetQueryText("modelling/removeServiceFromServiceGroup.graphql");
@@ -232,6 +241,9 @@ namespace FWO.Api.Client.Queries
 
                 newAppZone = GetQueryText("modelling/addNwAppZone.graphql");
                 getAppZonesByAppId = appServerDetailsFragment + GetQueryText("modelling/getAppZonesByAppId.graphql");
+
+                getOwnersForRuleOwnerNameField = GetQueryText("modelling/getOwnersForRuleOwnerNameField.graphql");
+                getOwnersForRuleOwnerNameFieldFilteredByOwner = GetQueryText("modelling/getOwnersForRuleOwnerNameFieldFilteredByOwner.graphql");
             }
             catch (Exception exception)
             {

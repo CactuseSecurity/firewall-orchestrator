@@ -40,7 +40,7 @@
                     </Column>
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
                         <Template>
-                            @(States.Name[context.StateId])
+                            @(States.GetName(context.StateId))
                         </Template>
                     </Column>
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("comments"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >

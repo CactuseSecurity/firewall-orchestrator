@@ -989,10 +989,12 @@
                       "found_date",
                       "id",
                       "is_initial",
+                      "mgmt_uid",
                       "policy_id",
                       "removed_date",
                       "risk_score",
-                      "rule_id"
+                      "rule_id",
+                      "rule_uid"
                     ],
                     "filter": {}
                   },
@@ -1007,10 +1009,12 @@
                       "found_date",
                       "id",
                       "is_initial",
+                      "mgmt_uid",
                       "policy_id",
                       "removed_date",
                       "risk_score",
-                      "rule_id"
+                      "rule_id",
+                      "rule_uid"
                     ],
                     "filter": {}
                   },
@@ -10101,6 +10105,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10108,6 +10113,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10134,6 +10140,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10141,6 +10148,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10167,6 +10175,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10174,6 +10183,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10200,6 +10210,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10207,6 +10218,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10233,6 +10245,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10240,6 +10253,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10266,6 +10280,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10273,6 +10288,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10293,13 +10309,14 @@
               ],
               "select_permissions": [
                 {
-                  "role": "auditor",
+                  "role": "approver",
                   "permission": {
                     "columns": [
                       "bundle_id",
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10307,6 +10324,46 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10333,6 +10390,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10340,6 +10398,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10372,13 +10431,14 @@
                   "comment": ""
                 },
                 {
-                  "role": "middleware-server",
+                  "role": "implementer",
                   "permission": {
                     "columns": [
                       "bundle_id",
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10386,6 +10446,46 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10412,6 +10512,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10419,6 +10520,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10451,13 +10553,14 @@
                   "comment": ""
                 },
                 {
-                  "role": "recertifier",
+                  "role": "planner",
                   "permission": {
                     "columns": [
                       "bundle_id",
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10465,6 +10568,46 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10504,6 +10647,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10511,6 +10655,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10550,6 +10695,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10557,6 +10703,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10587,6 +10734,84 @@
                     }
                   },
                   "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "bundle_id",
+                      "bundle_type",
+                      "channel",
+                      "deadline",
+                      "email_address_bcc",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_body",
+                      "email_subject",
+                      "layout",
+                      "name",
+                      "notification_client",
+                      "recipient_bcc",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "initial_offset_after_deadline",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "schedule_id",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {
+                      "notification_client": {
+                        "_eq": "WfAction"
+                      }
+                    }
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -10598,6 +10823,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10605,6 +10831,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10676,6 +10903,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10683,6 +10911,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10747,6 +10976,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10754,6 +10984,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10807,6 +11038,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10814,6 +11046,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10867,6 +11100,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10874,6 +11108,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -10927,6 +11162,7 @@
                       "bundle_type",
                       "channel",
                       "deadline",
+                      "email_address_bcc",
                       "email_address_cc",
                       "email_address_to",
                       "email_body",
@@ -10934,6 +11170,7 @@
                       "layout",
                       "name",
                       "notification_client",
+                      "recipient_bcc",
                       "recipient_cc",
                       "recipient_to",
                       "id",
@@ -12870,6 +13107,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "additional_info",
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
@@ -12948,6 +13186,30 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "active_state",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "active_state",
+                      "name",
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "importer",
                   "permission": {
@@ -17589,6 +17851,20 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "access_rule",
+                      "active",
+                      "dev_id",
+                      "rule_id",
+                      "rule_uid"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -20944,6 +21220,22 @@
                 },
                 {
                   "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
                   "permission": {
                     "columns": [
                       "created",
@@ -30877,6 +31169,32 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "device_id",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "request_action"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -31211,6 +31529,32 @@
               ],
               "update_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "device_id",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "request_action"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                },
+                {
                   "role": "requester",
                   "permission": {
                     "columns": [
@@ -31238,6 +31582,13 @@
                 }
               ],
               "delete_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "fw-admin",
                   "permission": {
@@ -31827,10 +32178,20 @@
                       "additional_info",
                       "assigned_group",
                       "current_handler",
+                      "devices",
+                      "free_text",
+                      "mgm_id",
+                      "reason",
                       "recent_handler",
+                      "request_action",
+                      "rule_action",
+                      "rule_tracking",
                       "start",
                       "state_id",
-                      "stop"
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "title"
                     ],
                     "filter": {},
                     "check": null
@@ -32975,10 +33336,12 @@
                       "assigned_group",
                       "current_handler",
                       "date_completed",
+                      "reason",
                       "recent_handler",
                       "state_id",
                       "ticket_deadline",
-                      "ticket_priority"
+                      "ticket_priority",
+                      "title"
                     ],
                     "filter": {},
                     "check": null

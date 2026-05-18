@@ -71,7 +71,7 @@ namespace FWO.Services.Logging
                 _ => family.ToString()
             };
         }
-        
+
         public static string GetObjectName(ChangeLogObject obj)
         {
             return obj switch

@@ -15,7 +15,7 @@ namespace FWO.Test
     [Parallelizable]
     public class ReportTicketChangesTest
     {
-        private class ReportTicketChangesApiConnection(List<WfTicket> tickets) : ApiConnection
+        private class ReportTicketChangesApiConnection(List<WfTicket> tickets, List<TicketId>? ownerTicketIds = null) : ApiConnection
         {
             public Dictionary<string, object>? LastQueryVariables { get; private set; }
 
@@ -39,6 +39,10 @@ namespace FWO.Test
                 if (typeof(QueryResponseType) == typeof(List<WfState>) && query == RequestQueries.getStates)
                 {
                     return Task.FromResult((QueryResponseType)(object)new List<WfState> { new() { Id = 9, Name = "done" } });
+                }
+                if (typeof(QueryResponseType) == typeof(List<TicketId>) && query == RequestQueries.getOwnerTicketIds)
+                {
+                    return Task.FromResult((QueryResponseType)(object)(ownerTicketIds ?? []));
                 }
                 if (typeof(QueryResponseType) == typeof(List<GlobalStateMatrixHelper>))
                 {
@@ -90,6 +94,77 @@ namespace FWO.Test
             Assert.That(report.ReportData.Tickets[0].Id, Is.EqualTo(1001));
             Assert.That(report.ReportData.ElementsCount, Is.EqualTo(1));
             Assert.That(report.ReportData.WorkflowStateNames[9], Is.EqualTo("done"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketReport_Generate_FiltersTicketsByOwnerVisibility_WhenReqOwnerBasedIsEnabled()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqOwnerBased = true
+            };
+            userConfig.User.DbId = 50;
+            userConfig.User.Roles = [Roles.Requester];
+            userConfig.User.Ownerships = [4];
+            ReportBase report = ReportBase.ConstructReport(template, userConfig);
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 1001,
+                    Title = "Owned ticket",
+                    StateId = 9,
+                    Tasks = [new WfReqTask()],
+                    Requester = new UiUser { Name = "owner-visible", DbId = 99 }
+                },
+                new()
+                {
+                    Id = 1002,
+                    Title = "Foreign ticket",
+                    StateId = 9,
+                    Tasks = [new WfReqTask()],
+                    Requester = new UiUser { Name = "foreign", DbId = 99 }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets, [new() { Id = 1001 }]), _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(report.ReportData.Tickets.Select(ticket => ticket.Id), Is.EqualTo(new List<long> { 1001 }));
+            Assert.That(report.ReportData.ElementsCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketReport_Generate_ReturnsNoTickets_WhenReqOwnerBasedIsEnabledWithoutOwnerships()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqOwnerBased = true
+            };
+            userConfig.User.DbId = 50;
+            userConfig.User.Roles = [Roles.Requester];
+            ReportBase report = ReportBase.ConstructReport(template, userConfig);
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 1001,
+                    Title = "Hidden ticket",
+                    StateId = 9,
+                    Tasks = [new WfReqTask()],
+                    Requester = new UiUser { Name = "foreign", DbId = 99 }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(report.ReportData.Tickets, Is.Empty);
+            Assert.That(report.ReportData.ElementsCount, Is.EqualTo(0));
         }
 
         [Test]
@@ -202,8 +277,8 @@ namespace FWO.Test
             string html = report.ExportToHtml();
 
             Assert.That(html, Does.Contain("<th>Name</th>"));
-            Assert.That(html, Does.Contain("<th>Created</th>"));
-            Assert.That(html, Does.Contain("<th>Closed</th>"));
+            Assert.That(html, Does.Contain("<th>Ticket Created</th>"));
+            Assert.That(html, Does.Contain("<th>Ticket Closed</th>"));
             Assert.That(html, Does.Not.Contain("<th>Priority</th>"));
             Assert.That(html, Does.Not.Contain("<th>Deadline</th>"));
             Assert.That(html, Does.Contain("<td>done</td>"));
@@ -426,6 +501,59 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public async Task TicketChangeReport_ExportToHtml_UsesApprovalDateAsReferenceColumnForApprovedFilter()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.DetailedView = true;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.Approved;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            template.ReportParams.TimeFilter.StartTime = new DateTime(2026, 1, 1, 0, 0, 0);
+            template.ReportParams.TimeFilter.EndTime = new DateTime(2026, 1, 31, 23, 59, 59);
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 10034,
+                    Title = "Approved ticket",
+                    StateId = 9,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 440,
+                            TaskNumber = 1,
+                            Title = "Request task with approved entry",
+                            StateId = 9,
+                            TaskType = WfTaskType.access.ToString(),
+                            Approvals =
+                            [
+                                new WfApproval
+                                {
+                                    Id = 441,
+                                    ApproverGroup = "Visible approved entry",
+                                    StateId = 9,
+                                    ApprovalDate = new DateTime(2026, 1, 18, 8, 15, 0)
+                                }
+                            ]
+                        }
+                    ],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            string html = report.ExportToHtml();
+
+            Assert.That(html, Does.Contain("<th>Ticket Closed</th>"));
+            Assert.That(html, Does.Contain("<th>Approved</th>"));
+            Assert.That(html, Does.Contain(">Visible approved entry<"));
+        }
+
+        [Test]
+        [Parallelizable]
         public async Task TicketChangeReport_ExportToHtml_ShowFullTicketOverridesReferenceDateFiltering()
         {
             ReportTemplate template = new();
@@ -433,6 +561,7 @@ namespace FWO.Test
             template.ReportParams.WorkflowFilter.DetailedView = true;
             template.ReportParams.WorkflowFilter.ShowFullTicket = true;
             template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.ImplementationStart;
+            template.ReportParams.WorkflowFilter.TaskTypes = [WfTaskType.access];
             template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
             template.ReportParams.TimeFilter.StartTime = new DateTime(2026, 1, 1, 0, 0, 0);
             template.ReportParams.TimeFilter.EndTime = new DateTime(2026, 1, 31, 23, 59, 59);
@@ -464,6 +593,14 @@ namespace FWO.Test
                                     Start = new DateTime(2026, 2, 5, 10, 0, 0)
                                 }
                             ]
+                        },
+                        new WfReqTask
+                        {
+                            Id = 432,
+                            TaskNumber = 2,
+                            Title = "Rule modify task shown despite task type filter",
+                            StateId = 9,
+                            TaskType = WfTaskType.rule_modify.ToString()
                         }
                     ],
                     Requester = new UiUser { Name = "creator" }
@@ -476,6 +613,7 @@ namespace FWO.Test
 
             Assert.That(html, Does.Contain(">Task outside range but still shown<"));
             Assert.That(html, Does.Contain(">Implementation outside range but shown<"));
+            Assert.That(html, Does.Contain(">Rule modify task shown despite task type filter<"));
         }
 
         [Test]
@@ -572,7 +710,7 @@ namespace FWO.Test
         {
             ReportTemplate template = new();
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.existing };
+            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.display_only };
             ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
             List<WfTicket> tickets =
             [
@@ -664,9 +802,258 @@ namespace FWO.Test
 
             string csv = report.ExportToCsv();
 
-            Assert.That(csv, Does.Contain("\"Id\",\"Name\",\"Tasks\",\"Requester\",\"State\",\"Created\",\"Closed\",\"policy_check\""));
+            Assert.That(csv, Does.Contain("\"Id\",\"Name\",\"Tasks\",\"Requester\",\"State\",\"Ticket Created\",\"Ticket Closed\",\"policy_check\""));
             Assert.That(csv, Does.Contain("\"1007\",\"Csv ticket report\",\"1\",\"reporter\",\"done\""));
             Assert.That(csv, Does.Contain("\"true\""));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketChangeReport_ExportToCsv_UsesApprovedColumnAndApprovalDateForApprovedFilter()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.DetailedView = false;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.Approved;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            template.ReportParams.TimeFilter.StartTime = new DateTime(2026, 1, 1, 0, 0, 0);
+            template.ReportParams.TimeFilter.EndTime = new DateTime(2026, 1, 31, 23, 59, 59);
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 10035,
+                    Title = "Approved csv ticket",
+                    StateId = 9,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 450,
+                            TaskNumber = 1,
+                            Title = "Request task with approved csv entry",
+                            StateId = 9,
+                            TaskType = WfTaskType.access.ToString(),
+                            Approvals =
+                            [
+                                new WfApproval
+                                {
+                                    Id = 451,
+                                    ApproverGroup = "Visible approved csv entry",
+                                    StateId = 9,
+                                    ApprovalDate = new DateTime(2026, 1, 20, 11, 30, 0)
+                                }
+                            ]
+                        }
+                    ],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            string csv = report.ExportToCsv();
+
+            Assert.That(csv, Does.Contain("\"Id\",\"Name\",\"Tasks\",\"Requester\",\"State\",\"Ticket Created\",\"Ticket Closed\",\"Approved\""));
+            Assert.That(csv, Does.Contain("2026").And.Contain("11:30:00"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketChangeReport_ExportToCsv_UsesInRangeReferenceDateForAnyActivity()
+        {
+            DateTime inRangeActivityDate = new(2025, 12, 20, 14, 30, 0);
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.DetailedView = false;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.AnyActivity;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            template.ReportParams.TimeFilter.StartTime = new DateTime(2025, 1, 1, 0, 0, 0);
+            template.ReportParams.TimeFilter.EndTime = new DateTime(2025, 12, 31, 23, 59, 59);
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 10036,
+                    Title = "Cross-year activity ticket",
+                    StateId = 9,
+                    CreationDate = new DateTime(2025, 6, 1, 8, 0, 0),
+                    CompletionDate = new DateTime(2026, 1, 10, 9, 0, 0),
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 460,
+                            TaskNumber = 1,
+                            Title = "Request task with mixed dates",
+                            StateId = 9,
+                            TaskType = WfTaskType.access.ToString(),
+                            Start = new DateTime(2025, 7, 1, 8, 0, 0),
+                            Stop = new DateTime(2026, 1, 5, 12, 0, 0),
+                            Approvals =
+                            [
+                                new WfApproval
+                                {
+                                    Id = 461,
+                                    ApproverGroup = "In-range approval",
+                                    StateId = 9,
+                                    ApprovalDate = inRangeActivityDate
+                                }
+                            ]
+                        }
+                    ],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            string csv = report.ExportToCsv();
+
+            Assert.That(csv, Does.Contain("\"Id\",\"Name\",\"Tasks\",\"Requester\",\"State\",\"Ticket Created\",\"Ticket Closed\",\"Any activity\""));
+            Assert.That(csv, Does.Contain($"\"{inRangeActivityDate}\""));
+            Assert.That(csv, Does.Contain($"\"{tickets[0].CompletionDate}\""));
+            Assert.That(csv, Does.Not.Contain($"\"{new DateTime(2026, 1, 5, 12, 0, 0)}\""));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketChangeReport_ExportToCsv_UsesInRangeReferenceDateForAnyActivityWhenShowFullTicketIsEnabled()
+        {
+            DateTime inRangeActivityDate = new(2025, 12, 20, 14, 30, 0);
+            DateTime outOfRangeTaskStop = new(2026, 1, 5, 12, 0, 0);
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.DetailedView = false;
+            template.ReportParams.WorkflowFilter.ShowFullTicket = true;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.AnyActivity;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            template.ReportParams.TimeFilter.StartTime = new DateTime(2025, 1, 1, 0, 0, 0);
+            template.ReportParams.TimeFilter.EndTime = new DateTime(2025, 12, 31, 23, 59, 59);
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 10037,
+                    Title = "Cross-year full ticket",
+                    StateId = 9,
+                    CreationDate = new DateTime(2025, 6, 1, 8, 0, 0),
+                    CompletionDate = new DateTime(2026, 1, 10, 9, 0, 0),
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 470,
+                            TaskNumber = 1,
+                            Title = "Full task with mixed dates",
+                            StateId = 9,
+                            TaskType = WfTaskType.access.ToString(),
+                            Start = new DateTime(2025, 7, 1, 8, 0, 0),
+                            Stop = outOfRangeTaskStop,
+                            Approvals =
+                            [
+                                new WfApproval
+                                {
+                                    Id = 471,
+                                    ApproverGroup = "In-range full approval",
+                                    StateId = 9,
+                                    ApprovalDate = inRangeActivityDate
+                                }
+                            ]
+                        }
+                    ],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(report.ReportData.TicketReferenceDates[tickets[0].Id], Is.EqualTo(inRangeActivityDate));
+
+            string csv = report.ExportToCsv();
+
+            Assert.That(csv, Does.Contain($"\"{inRangeActivityDate}\""));
+            Assert.That(csv, Does.Not.Contain($"\"{outOfRangeTaskStop}\""));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketChangeReport_ExportToCsv_UsesTicketCreationDateForAnyActivityWhenClosureIsOutOfRange()
+        {
+            DateTime inRangeCreationDate = new(2025, 10, 15, 10, 0, 0);
+            DateTime outOfRangeClosureDate = new(2026, 2, 1, 9, 0, 0);
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.DetailedView = false;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.AnyActivity;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            template.ReportParams.TimeFilter.StartTime = new DateTime(2025, 1, 1, 0, 0, 0);
+            template.ReportParams.TimeFilter.EndTime = new DateTime(2025, 12, 31, 23, 59, 59);
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 10038,
+                    Title = "Cross-year creation ticket",
+                    StateId = 9,
+                    CreationDate = inRangeCreationDate,
+                    CompletionDate = outOfRangeClosureDate,
+                    Tasks = [],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(report.ReportData.TicketReferenceDates[tickets[0].Id], Is.EqualTo(inRangeCreationDate));
+
+            string csv = report.ExportToCsv();
+
+            Assert.That(csv, Does.Contain($"\"{inRangeCreationDate}\""));
+            Assert.That(csv, Does.Contain($"\"{outOfRangeClosureDate}\""));
+            Assert.That(csv, Does.Not.Contain($"\"{outOfRangeClosureDate}\",\"{outOfRangeClosureDate}\""));
+        }
+
+        [Test]
+        [Parallelizable]
+        public async Task TicketChangeReport_ExportToCsv_ExcludesBoundaryClosureDateForAnyActivity()
+        {
+            DateTime inRangeCreationDate = new(2025, 12, 31, 23, 0, 0);
+            DateTime boundaryClosureDate = new(2026, 1, 1, 0, 0, 0);
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.TicketChangeReport;
+            template.ReportParams.WorkflowFilter.DetailedView = false;
+            template.ReportParams.WorkflowFilter.ReferenceDate = WorkflowReferenceDate.AnyActivity;
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            template.ReportParams.TimeFilter.StartTime = new DateTime(2025, 1, 1, 0, 0, 0);
+            template.ReportParams.TimeFilter.EndTime = new DateTime(2026, 1, 1, 0, 0, 0);
+            ReportBase report = ReportBase.ConstructReport(template, new SimulatedUserConfig());
+            List<WfTicket> tickets =
+            [
+                new()
+                {
+                    Id = 10039,
+                    Title = "Boundary closure ticket",
+                    StateId = 9,
+                    CreationDate = inRangeCreationDate,
+                    CompletionDate = boundaryClosureDate,
+                    Tasks = [],
+                    Requester = new UiUser { Name = "creator" }
+                }
+            ];
+
+            await report.Generate(0, new ReportTicketChangesApiConnection(tickets), _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(report.ReportData.TicketReferenceDates[tickets[0].Id], Is.EqualTo(inRangeCreationDate));
+
+            string csv = report.ExportToCsv();
+
+            Assert.That(csv, Does.Contain($"\"{inRangeCreationDate}\""));
+            Assert.That(csv, Does.Not.Contain($"\"{boundaryClosureDate}\",\"{boundaryClosureDate}\""));
         }
 
         [Test]

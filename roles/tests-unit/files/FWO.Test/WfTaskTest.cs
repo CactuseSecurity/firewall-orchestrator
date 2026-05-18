@@ -113,6 +113,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public void WfReqTaskBase_GetResolvedDeviceList_ExpandsAllMarker()
+        {
+            WfReqTaskBase task = new();
+            task.SetDeviceList([WfReqTaskBase.kAllDevicesId]);
+
+            List<int> deviceIds = task.GetResolvedDeviceList([new Device { Id = 4 }, new Device { Id = 7 }]);
+
+            Assert.That(task.HasAllDevicesSelected(), Is.True);
+            Assert.That(deviceIds, Is.EqualTo(new List<int> { 4, 7 }));
+        }
+
+        [Test]
         public void WfReqTask_OwnerList_JoinsNames()
         {
             WfReqTask task = new();
@@ -193,6 +205,16 @@ namespace FWO.Test
 
             task.SelectedDevices = "[1,2]";
             Assert.That(task.GetDeviceList(), Is.EqualTo(new List<int> { 1, 2 }));
+        }
+
+        [Test]
+        public void WfReqTask_GetDeviceList_PreservesAllMarker()
+        {
+            WfReqTask task = new();
+            task.SelectedDevices = "[-1]";
+
+            Assert.That(task.HasAllDevicesSelected(), Is.True);
+            Assert.That(task.GetDeviceList(), Is.EqualTo(new List<int> { WfReqTaskBase.kAllDevicesId }));
         }
 
         [Test]

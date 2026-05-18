@@ -113,9 +113,11 @@ namespace FWO.Services.Modelling
 
                 int successCount = 0;
                 int failCount = 0;
+                List<string> legacyOtherAddresses = EmailHelper.SplitAddresses(userConfig.ModDecommEmailOtherAddresses);
                 foreach (var app in appsToNotify)
                 {
-                    if (await emailHelper.SendEmailToOwnerResponsibles(app, subject, ConstructBody(app, reason, proposedInterface), userConfig.ModDecommEmailReceiver))
+                    if (await emailHelper.SendEmailToOwnerResponsibles(app, subject, ConstructBody(app, reason, proposedInterface),
+                        userConfig.ModDecommEmailReceiver, false, legacyOtherAddresses))
                     {
                         successCount++;
                     }

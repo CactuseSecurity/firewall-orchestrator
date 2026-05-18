@@ -62,6 +62,18 @@ namespace FWO.Test
             RepetitionsAfterDeadline = 2
         };
 
+        readonly FwoNotification NotifImportChange = new()
+        {
+            Id = 4,
+            NotificationClient = NotificationClient.ImportChange,
+            RecipientTo = EmailRecipientOption.OtherAddresses,
+            EmailAddressTo = "import@b.de",
+            EmailSubject = "import-subject",
+            EmailBody = "configured import body@@CONTENT@@",
+            Deadline = NotificationDeadline.None,
+            Layout = NotificationLayout.HtmlInBody
+        };
+
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
@@ -70,10 +82,12 @@ namespace FWO.Test
             {
                 string? Vars = variables?.ToString();
                 List<FwoNotification>? notifs = Vars != null && Vars.Contains($"{NotificationClient.InterfaceRequest}")
-                    ? [NotifReq1, NotifReq2]
+                    ? [CloneNotification(NotifReq1), CloneNotification(NotifReq2)]
+                    : Vars != null && Vars.Contains($"{NotificationClient.ImportChange}")
+                        ? [CloneNotification(NotifImportChange)]
                     : Vars != null && Vars.Contains($"{NotificationClient.RuleTimer}")
-                        ? [NotifRuleTimer]
-                        : [NotifRec];
+                        ? [CloneNotification(NotifRuleTimer)]
+                        : [CloneNotification(NotifRec)];
                 GraphQLResponse<dynamic> response = new() { Data = notifs };
                 return response.Data;
             }
@@ -92,8 +106,51 @@ namespace FWO.Test
                 GraphQLResponse<dynamic> response = new() { Data = new ReturnId() { AffectedRows = notifCount } };
                 return response.Data;
             }
+            if (responseType == typeof(List<UiUser>) && query == AuthQueries.getUserEmails)
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<UiUser>() };
+                return response.Data;
+            }
+            if (responseType == typeof(List<OwnerResponsibleType>) && query == OwnerQueries.getOwnerResponsibleTypes)
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<OwnerResponsibleType>() };
+                return response.Data;
+            }
 
             throw new NotImplementedException();
+        }
+
+        private static FwoNotification CloneNotification(FwoNotification notification)
+        {
+            return new FwoNotification
+            {
+                Id = notification.Id,
+                NotificationClient = notification.NotificationClient,
+                UserId = notification.UserId,
+                OwnerId = notification.OwnerId,
+                Channel = notification.Channel,
+                Name = notification.Name,
+                RecipientTo = notification.RecipientTo,
+                EmailAddressTo = notification.EmailAddressTo,
+                RecipientCc = notification.RecipientCc,
+                EmailAddressCc = notification.EmailAddressCc,
+                RecipientBcc = notification.RecipientBcc,
+                EmailAddressBcc = notification.EmailAddressBcc,
+                EmailSubject = notification.EmailSubject,
+                EmailBody = notification.EmailBody,
+                ScheduleId = notification.ScheduleId,
+                BundleType = notification.BundleType,
+                BundleId = notification.BundleId,
+                Layout = notification.Layout,
+                Deadline = notification.Deadline,
+                IntervalBeforeDeadline = notification.IntervalBeforeDeadline,
+                OffsetBeforeDeadline = notification.OffsetBeforeDeadline,
+                RepeatIntervalAfterDeadline = notification.RepeatIntervalAfterDeadline,
+                InitialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline,
+                RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
+                RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
+                LastSent = notification.LastSent
+            };
         }
     }
 }

@@ -421,13 +421,14 @@ namespace FWO.Report.Filter
                 }}";
         }
 
-        private static string ConstructOwnerRecertQuery(DynGraphqlQuery query, string paramString)
+        private static string ConstructOwnerQuery(DynGraphqlQuery query, string paramString, ReportType reportType)
         {
+            string orderBy = reportType == ReportType.OwnerRecertification ? "next_recert_date: desc, name: asc" : "name: asc";
             return $@"
                 {OwnerQueries.ownerDetailsFragment}
-                query getOpenOwnerRecerts ({paramString})
+                query getOwners ({paramString})
                 {{
-                    owner (where: {{ {query.OwnerWhereStatement} }} order_by: {{ next_recert_date: desc, name: asc }})
+                    owner (where: {{ {query.OwnerWhereStatement} }} order_by: {{ {orderBy} }})
                     {{
                         ...ownerDetails
                     }}
@@ -483,7 +484,8 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.OwnerRecertification:
-                    query.FullQuery = Queries.Compact(ConstructOwnerRecertQuery(query, paramString));
+                case ReportType.Owners:
+                    query.FullQuery = Queries.Compact(ConstructOwnerQuery(query, paramString, (ReportType)filter.ReportParams.ReportType));
                     break;
             }
         }
@@ -631,6 +633,10 @@ namespace FWO.Report.Filter
             {
                 SetOwnerRecertFilter(ref query, reportParams.ReportParams.ModellingFilter, reportParams.ReportParams.RecertFilter);
             }
+            if (reportType == ReportType.Owners)
+            {
+                SetOwnerListFilter(ref query, reportParams.ReportParams.OwnerFilter);
+            }
             if (reportType == ReportType.UnusedRules)
             {
                 SetUnusedFilter(ref query, reportParams.ReportParams.UnusedFilter);
@@ -681,6 +687,7 @@ namespace FWO.Report.Filter
                 WorkflowLabelFilterMode.not_existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: true),
                 WorkflowLabelFilterMode.existing => BuildTicketLabelExistsFilter(query, labelFilter.Name, negate: false),
                 WorkflowLabelFilterMode.value => BuildTicketLabelValueFilter(query, labelFilter.Name, labelFilter.Value),
+                WorkflowLabelFilterMode.display_only => null,
                 _ => null
             };
         }
@@ -964,6 +971,23 @@ namespace FWO.Report.Filter
                 // currently overruling tenant filter!!
                 query.OpenRulesTable = $@" rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";
                 query.SelectedOwner = modellingFilter.SelectedOwner;
+            }
+        }
+
+        private static void SetOwnerListFilter(ref DynGraphqlQuery query, OwnerFilter? ownerFilter)
+        {
+            query.OwnerWhereStatement += "{ id: { _gt: 0 } }";
+            if (ownerFilter?.SelectedOwnerLifeCycleStateId != null)
+            {
+                query.QueryParameters.Add("$ownerLifeCycleStateId: Int");
+                query.QueryVariables["ownerLifeCycleStateId"] = ownerFilter.SelectedOwnerLifeCycleStateId;
+                query.OwnerWhereStatement += "{ owner_lifecycle_state_id: { _eq: $ownerLifeCycleStateId } }";
+            }
+            if (!string.IsNullOrWhiteSpace(ownerFilter?.SelectedCriticality))
+            {
+                query.QueryParameters.Add("$ownerCriticality: String");
+                query.QueryVariables["ownerCriticality"] = ownerFilter.SelectedCriticality;
+                query.OwnerWhereStatement += "{ criticality: { _eq: $ownerCriticality } }";
             }
         }
 

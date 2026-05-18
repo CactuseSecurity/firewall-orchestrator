@@ -10,6 +10,7 @@ namespace FWO.Data.Workflow
         onlyForOneDevice,
         forEachDevice,
         enterInReqTask,
+        oneTaskForAllDevices,
         afterPathAnalysis
     }
 
@@ -25,6 +26,8 @@ namespace FWO.Data.Workflow
 
     public class WfReqTaskBase : WfTaskBase
     {
+        public const int kAllDevicesId = -1;
+
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = Workflow.RequestAction.create.ToString();
 
@@ -74,13 +77,28 @@ namespace FWO.Data.Workflow
             return DeviceList;
         }
 
+        public bool HasAllDevicesSelected()
+        {
+            return GetDeviceList().Contains(kAllDevicesId);
+        }
+
+        public virtual List<int> GetResolvedDeviceList(List<Device> devices)
+        {
+            if (HasAllDevicesSelected())
+            {
+                return [.. devices.Select(device => device.Id)];
+            }
+            return GetDeviceList();
+        }
+
+        public void SetDeviceList(List<int> deviceIds)
+        {
+            DeviceList = [.. deviceIds];
+        }
+
         public void SetDeviceList(List<Device> devList)
         {
-            DeviceList = [];
-            foreach (var dev in devList)
-            {
-                DeviceList.Add(dev.Id);
-            }
+            SetDeviceList([.. devList.Select(dev => dev.Id)]);
         }
 
         public int? GetAddInfoIntValue(string key)

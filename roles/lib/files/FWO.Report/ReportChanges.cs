@@ -21,21 +21,12 @@ namespace FWO.Report
         private const int ColumnCount = 14;
 
         private readonly TimeFilter timeFilter;
-        private readonly bool IncludeObjectsInReportChanges;
+        private readonly bool IncludeObjects;
 
-        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, TimeFilter timeFilter, bool includeObjectsInReportChanges, bool IncludeObjectsInReportChangesUiPresesed) : base(query, userConfig, reportType)
+        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, TimeFilter timeFilter, bool includeObjects) : base(query, userConfig, reportType)
         {
             this.timeFilter = timeFilter;
-
-            if (IncludeObjectsInReportChangesUiPresesed)
-            {
-
-                this.IncludeObjectsInReportChanges = includeObjectsInReportChanges;
-            }
-            else
-            {
-                this.IncludeObjectsInReportChanges = userConfig.GlobalConfig!.ImpChangeIncludeObjectChanges;
-            }
+            IncludeObjects = includeObjects;
         }
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
@@ -58,14 +49,14 @@ namespace FWO.Report
         {
             int queriesNeeded = 0;
             List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection, startTime);
-            List<ManagementReport> managementsWithImportIds = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, ruleChangeRequired: true, IncludeObjectsInReportChanges);
+            List<ManagementReport> managementsWithImportIds = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, ruleChangeRequired: true, IncludeObjects);
             foreach (var management in managementsWithRelevantImportId)
             {
                 List<long> importIdLastBeforeRange = [management.RelevantImportId ?? -1];
                 List<long> importIdsInRange = [.. managementsWithImportIds.Where(m => m.Id == management.Id).SelectMany(m => m.ImportControls).Select(ic => ic.ControlId).DefaultIfEmpty(0)];
                 List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
 
-                SetMgtQueryVars(management.Id, relevantImportIds[0], relevantImportIds[1], IncludeObjectsInReportChanges);
+                SetMgtQueryVars(management.Id, relevantImportIds[0], relevantImportIds[1], IncludeObjects);
                 ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
 
                 queriesNeeded += 1;
@@ -120,7 +111,7 @@ namespace FWO.Report
                 {
                     long importIdOld = managementImportIds[management.Id][i - 1];
                     long importIdNew = managementImportIds[management.Id][i];
-                    SetMgtQueryVars(management.Id, importIdOld, importIdNew, IncludeObjectsInReportChanges);
+                    SetMgtQueryVars(management.Id, importIdOld, importIdNew, IncludeObjects);
 
                     ManagementReport newData = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First(); // Error
                     (bool newObjects, Dictionary<string, int> maxAddedCounts) = management.Merge(newData);
@@ -181,7 +172,7 @@ namespace FWO.Report
                 {
                     AppendRuleChangeRowsCSV(report, management, ruleChangeDisplayCsv);
 
-                    if (IncludeObjectsInReportChanges)
+                    if (IncludeObjects)
                     {
                         report.AppendLine($"#");
                         report.AppendLine("\"Network objects\"");
@@ -332,7 +323,7 @@ namespace FWO.Report
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
 
-                if (IncludeObjectsInReportChanges)
+                if (IncludeObjects)
                 {
                     report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">Network objects</h4>");
                     report.AppendLine("<table>");
@@ -525,7 +516,7 @@ namespace FWO.Report
                 report.Append("],");
 
 
-                if (IncludeObjectsInReportChanges)
+                if (IncludeObjects)
                 {
                     AppendObjectChangeRowsJson(report, management, ruleChangeDisplayJson);
 

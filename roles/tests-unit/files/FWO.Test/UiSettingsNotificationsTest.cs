@@ -44,6 +44,16 @@ namespace FWO.Test
             return (T)field.GetValue(component)!;
         }
 
+        private static T GetPrivateProperty<T>(SettingsNotifications component, string propertyName)
+        {
+            PropertyInfo? property = typeof(SettingsNotifications).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(SettingsNotifications).FullName, propertyName);
+            }
+            return (T)property.GetValue(component)!;
+        }
+
         private static void SetInjectedGlobalConfig(SettingsNotifications component, GlobalConfig globalConfig)
         {
             PropertyInfo? prop = typeof(SettingsNotifications).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
@@ -130,6 +140,82 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task OnInitializedAsync_UsesExplicitDefaultOption_WhenNotificationLanguageIsUnset()
+        {
+            SettingsNotifications component = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                DefaultLanguage = "German",
+                NotificationLanguage = "",
+                UiLanguages =
+                [
+                    new Language { Name = "German", CultureInfo = "de-DE" },
+                    new Language { Name = "English", CultureInfo = "en-US" }
+                ]
+            };
+            SetInjectedGlobalConfig(component, globalConfig);
+
+            Task initTask = (Task)GetPrivateMethod("OnInitializedAsync").Invoke(component, null)!;
+            await initTask;
+
+            Language defaultOption = GetPrivateField<Language>(component, "defaultNotificationLanguage");
+            Language selected = GetPrivateField<Language>(component, "selectedNotificationLanguage");
+            List<Language> options = GetPrivateProperty<IEnumerable<Language>>(component, "NotificationLanguageOptions").ToList();
+            Assert.That(selected, Is.SameAs(defaultOption));
+            Assert.That(options[0], Is.SameAs(defaultOption));
+            Assert.That(options.Count(option => ReferenceEquals(option, defaultOption)), Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task OnInitializedAsync_UsesConcreteSelection_WhenNotificationLanguageIsConfigured()
+        {
+            SettingsNotifications component = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                DefaultLanguage = "German",
+                NotificationLanguage = "English",
+                UiLanguages =
+                [
+                    new Language { Name = "German", CultureInfo = "de-DE" },
+                    new Language { Name = "English", CultureInfo = "en-US" }
+                ]
+            };
+            SetInjectedGlobalConfig(component, globalConfig);
+
+            Task initTask = (Task)GetPrivateMethod("OnInitializedAsync").Invoke(component, null)!;
+            await initTask;
+
+            Language selected = GetPrivateField<Language>(component, "selectedNotificationLanguage");
+            Assert.That(selected.Name, Is.EqualTo("English"));
+        }
+
+        [Test]
+        public async Task OnInitializedAsync_FlagsUnknownStoredNotificationLanguage()
+        {
+            SettingsNotifications component = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                DefaultLanguage = "German",
+                NotificationLanguage = "French",
+                UiLanguages =
+                [
+                    new Language { Name = "German", CultureInfo = "de-DE" },
+                    new Language { Name = "English", CultureInfo = "en-US" }
+                ]
+            };
+            SetInjectedGlobalConfig(component, globalConfig);
+
+            Task initTask = (Task)GetPrivateMethod("OnInitializedAsync").Invoke(component, null)!;
+            await initTask;
+
+            Language defaultOption = GetPrivateField<Language>(component, "defaultNotificationLanguage");
+            Language selected = GetPrivateField<Language>(component, "selectedNotificationLanguage");
+            bool hasUnknownSelection = GetPrivateField<bool>(component, "hasUnknownNotificationLanguageSelection");
+            Assert.That(selected, Is.SameAs(defaultOption));
+            Assert.That(hasUnknownSelection, Is.True);
+        }
+
+        [Test]
         public void AddInitiatorKey_AddsTrimmedValue_AndSkipsCaseInsensitiveDuplicates()
         {
             SettingsNotifications component = new();
@@ -184,6 +270,36 @@ namespace FWO.Test
             Assert.That(serializedMap!.ContainsKey("user"), Is.False);
             Assert.That(serializedMap["nsb"], Is.EqualTo("by nsb"));
             Assert.That(serializedMap["app"], Is.EqualTo("from app"));
+        }
+
+        [Test]
+        public void PrepareConfigData_PreservesUnknownStoredNotificationLanguage()
+        {
+            SettingsNotifications component = new();
+            ConfigData configData = new()
+            {
+                NotificationLanguage = "French"
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UiLanguages =
+                [
+                    new Language { Name = "German", CultureInfo = "de-DE" },
+                    new Language { Name = "English", CultureInfo = "en-US" }
+                ]
+            };
+
+            SetInjectedGlobalConfig(component, globalConfig);
+            SetPrivateField(component, "configData", configData);
+            SetPrivateField(component, "selectedNotificationLanguage", new Language());
+            SetPrivateField(component, "hasUnknownNotificationLanguageSelection", true);
+            SetPrivateField(component, "initiatorKeys", CreateInitiatorList());
+            SetPrivateField(component, "initiatorKeysToDelete", CreateInitiatorList());
+            SetPrivateField(component, "initiatorKeysToAdd", CreateInitiatorList());
+
+            GetPrivateMethod("PrepareConfigData").Invoke(component, null);
+
+            Assert.That(configData.NotificationLanguage, Is.EqualTo("French"));
         }
     }
 }

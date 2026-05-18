@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Config.Api;
 using FWO.Mail;
 using FWO.Encryption;
+using FWO.Logging;
 using FWO.Report;
 using FWO.Services;
 
@@ -164,44 +165,12 @@ namespace FWO.Middleware.Server
             {
                 return true;
             }
+
             DateTime deadline = GetDeadlineDate(notification.Deadline, owner, extDeadline);
-            if (deadline >= DateTime.Now)
-            {
-                SchedulerInterval intervalBeforeDeadline = GetRequiredInterval(notification.IntervalBeforeDeadline, nameof(notification.IntervalBeforeDeadline));
-                var notifDate = intervalBeforeDeadline switch
-                {
-                    SchedulerInterval.Days => deadline.AddDays(-notification.OffsetBeforeDeadline ?? 0),
-                    SchedulerInterval.Weeks => deadline.AddDays(-notification.OffsetBeforeDeadline * GlobalConst.kDaysPerWeek ?? 0),
-                    SchedulerInterval.Months => deadline.AddMonths(-notification.OffsetBeforeDeadline ?? 0),
-                    _ => throw new NotSupportedException("Time interval is not supported.")
-                };
-                return IsTimeToSend(notification.LastSent, notifDate);
-            }
-            else
-            {
-                SchedulerInterval repeatIntervalAfterDeadline = GetRequiredInterval(notification.RepeatIntervalAfterDeadline, nameof(notification.RepeatIntervalAfterDeadline));
-                var nextNotifDate = repeatIntervalAfterDeadline switch
-                {
-                    SchedulerInterval.Days => deadline.Date.AddDays(notification.InitialOffsetAfterDeadline ?? 0),
-                    SchedulerInterval.Weeks => deadline.Date.AddDays(notification.InitialOffsetAfterDeadline * GlobalConst.kDaysPerWeek ?? 0),
-                    SchedulerInterval.Months => deadline.Date.AddMonths(notification.InitialOffsetAfterDeadline ?? 0),
-                    _ => throw new NotSupportedException("Time interval is not supported."),
-                };
-                var currentNotifDate = nextNotifDate;
-                int counter = -1;
-                while (nextNotifDate <= DateTime.Now.Date && counter++ <= notification.RepetitionsAfterDeadline)
-                {
-                    currentNotifDate = nextNotifDate;
-                    nextNotifDate = repeatIntervalAfterDeadline switch
-                    {
-                        SchedulerInterval.Days => nextNotifDate.AddDays(notification.RepeatOffsetAfterDeadline ?? 0),
-                        SchedulerInterval.Weeks => nextNotifDate.AddDays(notification.RepeatOffsetAfterDeadline * GlobalConst.kDaysPerWeek ?? 0),
-                        SchedulerInterval.Months => nextNotifDate.AddMonths(notification.RepeatOffsetAfterDeadline ?? 0),
-                        _ => throw new NotSupportedException("Time interval is not supported."),
-                    };
-                }
-                return counter <= notification.RepetitionsAfterDeadline && IsTimeToSend(notification.LastSent, currentNotifDate);
-            }
+
+            return deadline >= DateTime.Now
+                ? IsNotificationDueBeforeDeadline(deadline, notification)
+                : IsNotificationDueAfterDeadline(deadline, notification);
         }
 
         private static bool IsTimeToSend(DateTime? lastSent, DateTime notifDate)
@@ -209,9 +178,58 @@ namespace FWO.Middleware.Server
             return (lastSent == null || ((DateTime)lastSent).Date < notifDate.Date) && notifDate.Date <= DateTime.Now.Date;
         }
 
-        private static SchedulerInterval GetRequiredInterval(SchedulerInterval? interval, string propertyName)
+        private static bool TryGetConfiguredInterval(SchedulerInterval? interval, string propertyName, out SchedulerInterval configuredInterval)
         {
-            return interval ?? throw new InvalidOperationException($"Notification interval '{propertyName}' is not configured.");
+            if (interval != null)
+            {
+                configuredInterval = (SchedulerInterval)interval;
+                return true;
+            }
+
+            Log.WriteWarning("Notifications", $"Notification interval '{propertyName}' is not configured. Skipping due evaluation.");
+            configuredInterval = default;
+            return false;
+        }
+
+        private static bool IsNotificationDueBeforeDeadline(DateTime deadline, FwoNotification notification)
+        {
+            if (!TryGetConfiguredInterval(notification.IntervalBeforeDeadline, nameof(notification.IntervalBeforeDeadline), out SchedulerInterval intervalBeforeDeadline))
+            {
+                return false;
+            }
+
+            DateTime notifDate = ApplyIntervalOffset(deadline, intervalBeforeDeadline, -notification.OffsetBeforeDeadline ?? 0);
+            return IsTimeToSend(notification.LastSent, notifDate);
+        }
+
+        private static bool IsNotificationDueAfterDeadline(DateTime deadline, FwoNotification notification)
+        {
+            if (!TryGetConfiguredInterval(notification.RepeatIntervalAfterDeadline, nameof(notification.RepeatIntervalAfterDeadline), out SchedulerInterval repeatIntervalAfterDeadline))
+            {
+                return false;
+            }
+
+            DateTime nextNotifDate = ApplyIntervalOffset(deadline.Date, repeatIntervalAfterDeadline, notification.InitialOffsetAfterDeadline ?? 0);
+            DateTime currentNotifDate = nextNotifDate;
+            int counter = -1;
+            while (nextNotifDate <= DateTime.Now.Date && counter++ <= notification.RepetitionsAfterDeadline)
+            {
+                currentNotifDate = nextNotifDate;
+                nextNotifDate = ApplyIntervalOffset(nextNotifDate, repeatIntervalAfterDeadline, notification.RepeatOffsetAfterDeadline ?? 0);
+            }
+
+            return counter <= notification.RepetitionsAfterDeadline && IsTimeToSend(notification.LastSent, currentNotifDate);
+        }
+
+        private static DateTime ApplyIntervalOffset(DateTime value, SchedulerInterval interval, int offset)
+        {
+            return interval switch
+            {
+                SchedulerInterval.Days => value.AddDays(offset),
+                SchedulerInterval.Weeks => value.AddDays(offset * GlobalConst.kDaysPerWeek),
+                SchedulerInterval.Months => value.AddMonths(offset),
+                _ => throw new NotSupportedException("Time interval is not supported.")
+            };
         }
 
         private static DateTime GetDeadlineDate(NotificationDeadline deadline, FwoOwner? owner, DateTime? extDeadline)
@@ -263,18 +281,19 @@ namespace FWO.Middleware.Server
 
         private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
-            string subject = notification.EmailSubject
-                .Replace(Placeholder.APPNAME, owner?.Name ?? "")
-                .Replace(Placeholder.APPID, owner?.ExtAppId ?? "")
-                .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
-            string body = string.IsNullOrEmpty(content) ? notification.EmailBody : content;
-            body = body.Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
+            string subject = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(notification.EmailSubject ?? "", owner, timeIntervalText);
+            string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner, timeIntervalText);
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             if (report != null && notification.Layout == NotificationLayout.HtmlInBody)
             {
                 body += report.ExportToHtml();
             }
-            MailData mailData = new(await CollectRecipients(notification, owner), subject) { Body = body, Cc = await CollectRecipients(notification, owner, true) };
+            MailData mailData = new(await CollectRecipients(notification, owner), subject)
+            {
+                Body = body,
+                Bcc = await CollectRecipients(notification, owner, false, true),
+                Cc = await CollectRecipients(notification, owner, true)
+            };
             if (attachment != null)
             {
                 mailData.Attachments = new FormFileCollection() { attachment };
@@ -325,28 +344,19 @@ namespace FWO.Middleware.Server
 
         private static async Task<FormFile?> BuildAttachment(FwoNotification notification, ReportBase report, string subject)
         {
-            switch (notification.Layout)
-            {
-                case NotificationLayout.PdfAsAttachment:
-                    string html = report.ExportToHtml();
+            return await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, subject, report.ExportToHtml, report.ExportToJson, report.ExportToCsv,
+                async html =>
+                {
                     string? pdfData = await report.ToPdf(html);
                     if (string.IsNullOrWhiteSpace(pdfData))
                     {
                         throw new ProcessingFailedException("No Pdf generated.");
                     }
-                    return EmailHelper.CreateAttachment(pdfData, GlobalConst.kPdf, subject);
-                case NotificationLayout.HtmlAsAttachment:
-                    return EmailHelper.CreateAttachment(report.ExportToHtml(), GlobalConst.kHtml, subject);
-                case NotificationLayout.JsonAsAttachment:
-                    return EmailHelper.CreateAttachment(report.ExportToJson(), GlobalConst.kJson, subject);
-                case NotificationLayout.CsvAsAttachment:
-                    return EmailHelper.CreateAttachment(report.ExportToCsv(), GlobalConst.kCsv, subject);
-                default:
-                    return null;
-            }
+                    return pdfData;
+                });
         }
 
-        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false)
+        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false, bool bcc = false)
         {
             if (GlobalConfig.UseDummyEmailAddress)
             {
@@ -354,8 +364,34 @@ namespace FWO.Middleware.Server
             }
             EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups);
             await emailHelper.Init();
-            return await emailHelper.GetRecipients(cc ? notification.RecipientCc : notification.RecipientTo, null, owner, null,
-                EmailHelper.SplitAddresses(cc ? notification.EmailAddressCc : notification.EmailAddressTo));
+            EmailRecipientOption recipientOption = notification.RecipientTo;
+            string? addressList = notification.EmailAddressTo;
+            if (bcc)
+            {
+                recipientOption = notification.RecipientBcc;
+                addressList = notification.EmailAddressBcc;
+            }
+            else if (cc)
+            {
+                recipientOption = notification.RecipientCc;
+                addressList = notification.EmailAddressCc;
+            }
+
+            List<string> addresses = EmailHelper.SplitAddresses(addressList);
+            if (recipientOption == EmailRecipientOption.ConfiguredResponsibles)
+            {
+                return await emailHelper.GetRecipients(addressList ?? "", owner, null);
+            }
+            if (recipientOption == EmailRecipientOption.OtherAddresses && LooksLikeRecipientSelectionJson(addressList))
+            {
+                return await emailHelper.GetRecipients(addressList ?? "", null, null);
+            }
+            return await emailHelper.GetRecipients(recipientOption, null, owner, null, addresses);
+        }
+
+        private static bool LooksLikeRecipientSelectionJson(string? recipientValue)
+        {
+            return recipientValue?.TrimStart().StartsWith('{') == true;
         }
     }
 }

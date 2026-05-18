@@ -46,7 +46,7 @@
         </Column>
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
             <Template>
-                @(States.Name[context.StateId])
+                @(States.GetName(context.StateId))
             </Template>
         </Column>
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("priority"))" Field="@(x => x.Priority)" Sortable="true" Filterable="false" >

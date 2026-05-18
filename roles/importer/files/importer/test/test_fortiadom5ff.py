@@ -1,10 +1,23 @@
+from datetime import datetime, timezone
+
 import pytest
+from fw_modules.fortiadom5ff.fmgr_rule import rule_parse_last_hit
 from fw_modules.fortiadom5ff.fwcommon import to_time_object
 from fwo_exceptions import ImportInterruptionError
+from models.time_object import TimeObject
 from pytest_mock import MockerFixture
 
 
 class TestToTimeObject:
+    @staticmethod
+    def _expected_as_utc(date_part: str, time_part: str) -> str:
+        return (
+            datetime.strptime(f"{date_part} {time_part}", "%Y/%m/%d %H:%M")
+            .astimezone()
+            .astimezone(timezone.utc)
+            .isoformat(timespec="seconds")
+        )
+
     def test_to_time_object_parses_list_timestamps(self):
         time_obj = to_time_object(
             {
@@ -16,8 +29,8 @@ class TestToTimeObject:
 
         assert time_obj.time_obj_uid == "work-hours"
         assert time_obj.time_obj_name == "work-hours"
-        assert time_obj.start_time == "2026-02-17T12:00:00"
-        assert time_obj.end_time == "2026-02-17T18:30:00"
+        assert time_obj.start_time == self._expected_as_utc("2026/02/17", "12:00")
+        assert time_obj.end_time == self._expected_as_utc("2026/02/17", "18:30")
 
     def test_to_time_object_parses_single_string_timestamp(self):
         time_obj = to_time_object(
@@ -28,8 +41,53 @@ class TestToTimeObject:
             }
         )
 
-        assert time_obj.start_time == "2020-01-01T00:00:00"
-        assert time_obj.end_time == "2020-01-01T23:59:00"
+        assert time_obj.start_time == self._expected_as_utc("2020/01/01", "00:00")
+        assert time_obj.end_time == self._expected_as_utc("2020/01/01", "23:59")
+
+    @pytest.mark.parametrize(
+        ("start_time", "end_time", "expected_start", "expected_end"),
+        [
+            (
+                "2026-03-11T11:57:00+01:00",
+                "2026-03-11T12:57:00+01:00",
+                "2026-03-11T10:57:00+00:00",
+                "2026-03-11T11:57:00+00:00",
+            ),
+            (
+                " 2026-03-11T11:57:00+0200 ",
+                " 2026-03-11T12:57:00+0200 ",
+                "2026-03-11T09:57:00+00:00",
+                "2026-03-11T10:57:00+00:00",
+            ),
+        ],
+    )
+    def test_time_object_converts_supported_timestamp_formats_to_utc(
+        self,
+        start_time: str,
+        end_time: str,
+        expected_start: str,
+        expected_end: str,
+    ):
+        time_obj = TimeObject(
+            time_obj_uid="tz-conversion",
+            time_obj_name="tz-conversion",
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        assert time_obj.start_time == expected_start
+        assert time_obj.end_time == expected_end
+
+    def test_time_object_rejects_invalid_timestamp_with_shared_message(self):
+        with pytest.raises(
+            ValueError,
+            match=r"Time value 'not-a-timestamp' must be an ISO 8601 timestamp like YYYY-MM-DDTHH:MM\[:SS\]\[Z\|±HH:MM\|±HHMM\]; timestamps without a timezone are treated as UTC",
+        ):
+            TimeObject(
+                time_obj_uid="broken",
+                time_obj_name="broken",
+                start_time="not-a-timestamp",
+            )
 
     def test_to_time_object_returns_none_for_default_start_time(self):
         time_obj = to_time_object(
@@ -83,3 +141,14 @@ class TestToTimeObject:
                     "end": ["18:00", "2026/02/17"],
                 }
             )
+
+
+def test_rule_parse_last_hit_returns_offset_aware_iso_timestamp():
+    epoch_seconds = 1761998205
+
+    parsed = rule_parse_last_hit({"_last_hit": epoch_seconds})
+
+    assert parsed is not None
+    parsed_time = datetime.fromisoformat(parsed)
+    assert parsed_time.tzinfo is not None
+    assert int(parsed_time.timestamp()) == epoch_seconds

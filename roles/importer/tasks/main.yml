@@ -33,12 +33,15 @@
       package:
         name: python3-venv
         state: present
-      when: ansible_python_interpreter == '/usr/bin/python3' # Skip if using custom python
 
+    - name: Install importer runtime packages
+      package:
+        name: "{{ importer_runtime_packages }}"
+        state: present
 
     - name: Create Python virtual environment
       ansible.builtin.command:
-        cmd: '{{ ansible_python_interpreter }} -m venv {{ importer_venv_dir }}'
+        cmd: '{{ importer_python_interpreter }} -m venv {{ importer_venv_dir }}'
         creates: "{{ importer_venv_dir }}"
 
     - name: Install Python packages from requirements.txt

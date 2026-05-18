@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 import pytest
 from fw_modules.fortiadom5ff.fmgr_rule import rule_parse_last_hit
@@ -6,6 +9,9 @@ from fw_modules.fortiadom5ff.fwcommon import to_time_object
 from fwo_exceptions import ImportInterruptionError
 from models.time_object import TimeObject
 from pytest_mock import MockerFixture
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 class TestToTimeObject:

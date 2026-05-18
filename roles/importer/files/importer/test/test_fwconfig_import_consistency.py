@@ -1,10 +1,16 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from models.networkobject import NetworkObject
 from netaddr import IPNetwork
 from test.data.mock_objects import MockObjectsFactory
-from test.utils.config_builder import FwConfigBuilder
+
+if TYPE_CHECKING:
+    from model_controllers.import_state_controller import ImportStateController
+    from test.utils.config_builder import FwConfigBuilder
 
 
 class TestCheckConsistencyColors:

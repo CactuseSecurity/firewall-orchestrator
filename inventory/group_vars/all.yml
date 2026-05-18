@@ -41,14 +41,6 @@ fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
 last_commit_id_file_path: "{{ fworch_conf_dir }}/last_commit_id.txt"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
 importer_venv_dir: "{{ fworch_home }}/importer/importer-venv"
-importer_python_interpreter: "{{ '/usr/bin/python3.11' if ansible_os_family == 'RedHat' else ansible_python_interpreter }}"
-importer_runtime_packages: >-
-  {{
-    ['python3-venv'] if ansible_os_family == 'Debian' else [
-      'python3.11',
-      'python3.11-pip'
-    ]
-  }}
 
 # setting default proxy (may be overwritten via --extra-vars)
 http_proxy: "{{ lookup('env','http_proxy') }}"
@@ -151,37 +143,9 @@ fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"
 fworch_api_importer_lockfile: "{{ fworch_log_lock_dir }}/importer_api_log.lock"
 
 ### apache: both package and dir name (needed both on ui and api hosts):
-webserver_package_name: "{{ 'httpd' if ansible_os_family == 'RedHat' else 'apache2' }}"
-http_conf_dir: "{{ '/etc/httpd/conf.d/' if ansible_os_family == 'RedHat' else '/etc/apache2/sites-available/' }}"
-wsgi_package_name: "{{ 'python3-mod_wsgi' if ansible_os_family == 'RedHat' else 'libapache2-mod-wsgi' }}"
-apache_packages: "{{ [webserver_package_name, wsgi_package_name] + (['mod_ssl'] if ansible_os_family == 'RedHat' else []) }}"
-apache_ports_config_file: "{{ '/etc/httpd/conf.d/fworch-ports.conf' if ansible_os_family == 'RedHat' else '/etc/apache2/ports.conf' }}"
-apache_ssl_dir: "/etc/{{ webserver_package_name }}/ssl"
-apache_selinux_ports:
-  - "{{ api_web_port }}"
-  - "{{ middleware_web_listener_port }}"
-middleware_ldap_packages: >-
-  {{
-    [
-      'python3-pip',
-      'python3-setuptools'
-    ] + (
-      [
-        'python3-dev',
-        'libsasl2-dev',
-        'libldap2-dev',
-        'libssl-dev',
-        'python3-pyldap'
-      ] if ansible_os_family == 'Debian' else [
-        'python3-devel',
-        'cyrus-sasl-devel',
-        'openldap-devel',
-        'openssl-devel',
-        'python3-ldap'
-      ]
-    )
-  }}
-middleware_crypto_packages: "{{ ['python3-cryptography', 'python3-pyOpenSSL'] if ansible_os_family == 'RedHat' else ['python3-cryptography', 'python3-openssl'] }}"
+webserver_package_name: apache2
+http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
+wsgi_package_name: libapache2-mod-wsgi
 
 ############# wkhtmltopdf #########################
 

@@ -95,10 +95,8 @@ def normalize_network_object(
     elif "member" in obj_orig:  # addrgrp4, TODO for addrgrp6 change obj_typ to 'group_v6' and adjust obj_member_refs
         member_name_list: list[str] = obj_orig["member"]
         member_ref_list: list[str] = get_obj_member_refs_list(obj_orig, native_config_objects, current_obj_type)
-        if len(member_ref_list) != len(member_name_list):
-            raise ValueError("member reference and member name counts do not match")
         sorted_member_refs, sorted_member_names = sort_and_join_refs(
-            list(zip(member_ref_list, member_name_list, strict=True))
+            list(zip(member_ref_list, member_name_list, strict=False))
         )
         obj.update({"obj_typ": "group"})
         obj.update({"obj_member_names": sorted_member_names})

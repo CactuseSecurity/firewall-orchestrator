@@ -49,9 +49,7 @@ None
 
 ## Notes
 
-- The role writes `SLAPD_SERVICES` to the OS-specific service defaults file:
-  `/etc/default/slapd` on Debian-family targets and `/etc/sysconfig/slapd`
-  on RedHat-family targets.
+- The role writes `SLAPD_SERVICES` to `/etc/default/slapd`.
 - The systemd drop-in consumes that value so the listener configuration is
   defined in one place.
 - When `openldap_server_enable_ssl` is `false`, the role starts `slapd`

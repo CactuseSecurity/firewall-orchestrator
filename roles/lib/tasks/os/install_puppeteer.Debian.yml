@@ -58,7 +58,7 @@
               }
             mode: "0644"
           notify:
-            - Reload and Restart AppArmor
+            - Reload Chrome AppArmor profile
 
       when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04
 

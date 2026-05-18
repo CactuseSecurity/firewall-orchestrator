@@ -96,6 +96,7 @@ namespace FWO.Test
                 ProtoId = 6,
                 ServiceId = 7,
                 Name = "svc",
+                GroupName = "grp",
                 RequestAction = "delete"
             };
 
@@ -109,6 +110,7 @@ namespace FWO.Test
             Assert.That(reqElement.ProtoId, Is.EqualTo(6));
             Assert.That(reqElement.ServiceId, Is.EqualTo(7));
             Assert.That(reqElement.Name, Is.EqualTo("svc"));
+            Assert.That(reqElement.GroupName, Is.EqualTo("grp"));
             Assert.That(reqElement.RequestAction, Is.EqualTo("delete"));
         }
 
@@ -123,7 +125,8 @@ namespace FWO.Test
                 PortEnd = 81,
                 ProtoId = 6,
                 ServiceId = 7,
-                Name = "svc"
+                Name = "svc",
+                GroupName = "grp"
             };
 
             WfImplElement implElement = element.ToImplElement();
@@ -136,6 +139,7 @@ namespace FWO.Test
             Assert.That(implElement.ProtoId, Is.EqualTo(6));
             Assert.That(implElement.ServiceId, Is.EqualTo(7));
             Assert.That(implElement.Name, Is.EqualTo("svc"));
+            Assert.That(implElement.GroupName, Is.EqualTo("grp"));
         }
 
         [Test]

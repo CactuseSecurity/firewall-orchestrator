@@ -151,7 +151,7 @@ namespace FWO.Test
                 Name = "obj",
                 GroupName = "grp"
             });
-            task.Elements.Add(new WfReqElement { Id = 2, TaskId = 10, Field = ElemFieldType.service.ToString(), Port = 80, ProtoId = 6 });
+            task.Elements.Add(new WfReqElement { Id = 2, TaskId = 10, Field = ElemFieldType.service.ToString(), Port = 80, ProtoId = 6, Name = "svc", GroupName = "svcgrp" });
             task.Elements.Add(new WfReqElement { Id = 3, TaskId = 10, Field = ElemFieldType.rule.ToString(), RuleUid = "uid", Name = "rule" });
 
             List<NwObjectElement> nwObjects = task.GetNwObjectElements(ElemFieldType.source);
@@ -170,6 +170,8 @@ namespace FWO.Test
             Assert.That(nwObjects[0].GroupName, Is.EqualTo("grp"));
             Assert.That(services, Has.Count.EqualTo(1));
             Assert.That(services[0].Port, Is.EqualTo(80));
+            Assert.That(services[0].Name, Is.EqualTo("svc"));
+            Assert.That(services[0].GroupName, Is.EqualTo("svcgrp"));
             Assert.That(rules, Has.Count.EqualTo(1));
             Assert.That(rules[0].RuleUid, Is.EqualTo("uid"));
             Assert.That(rules[0].Name, Is.EqualTo("rule"));

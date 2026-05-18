@@ -28609,6 +28609,28 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},

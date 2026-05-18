@@ -78,13 +78,14 @@ namespace FWO.Test
             prop.SetValue(component, userConfig);
         }
 
-        private static object CreateRequestStatusRow(FwoOwner owner, long ticketId, string status)
+        private static object CreateRequestStatusRow(FwoOwner owner, long ticketId, string status, int stateId = 0)
         {
             Type rowType = GetRequestStatusType();
             object row = Activator.CreateInstance(rowType) ?? throw new InvalidOperationException("Could not create owner request status row.");
             rowType.GetProperty("Owner")?.SetValue(row, owner);
             rowType.GetProperty("TicketId")?.SetValue(row, ticketId);
             rowType.GetProperty("Status")?.SetValue(row, status);
+            rowType.GetProperty("StateId")?.SetValue(row, stateId);
             return row;
         }
 
@@ -181,6 +182,59 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RequestImplementationStatusChange_OffersConfiguredStates()
+        {
+            MonitorModellingRequests component = new();
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig
+            {
+                ModIntegrationStates = ModIntegrationStateConfig.ToConfigValue(
+                [
+                    new() { Name = " Done " },
+                    new() { Name = "Retry" },
+                    new() { Name = "Done" }
+                ])
+            });
+            object row = CreateRequestStatusRow(new FwoOwner { Id = 7, Name = "App" }, 77, "Requested");
+
+            GetPrivateMethod("RequestImplementationStatusChange").Invoke(component, [row]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateProperty<bool>(component, "ChangeImplementationStatusMode"), Is.True);
+                Assert.That(GetPrivateField<object>(component, "ChangeStatusRow"), Is.SameAs(row));
+                Assert.That(GetPrivateField<List<string>>(component, "ConfiguredImplementationStatuses"), Is.EqualTo(new List<string> { "Done", "Retry" }));
+                Assert.That(GetPrivateField<string>(component, "SelectedImplementationStatus"), Is.EqualTo("Done"));
+            });
+        }
+
+        [Test]
+        public void RequestTicketStateChange_StoresSelectedRowAndCurrentState()
+        {
+            MonitorModellingRequests component = new();
+            object row = CreateRequestStatusRow(new FwoOwner { Id = 7, Name = "App" }, 77, "Requested", 5);
+
+            GetPrivateMethod("RequestTicketStateChange").Invoke(component, [row]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateProperty<bool>(component, "ChangeTicketStateMode"), Is.True);
+                Assert.That(GetPrivateField<object>(component, "ChangeTicketStateRow"), Is.SameAs(row));
+                Assert.That(GetPrivateField<int>(component, "SelectedTicketStateId"), Is.EqualTo(5));
+            });
+        }
+
+        [Test]
+        public void TicketStateName_ResolvesConfiguredStateName()
+        {
+            MonitorModellingRequests component = new();
+            SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [5] = "Approved" } });
+
+            string stateName = (string)GetPrivateMethod("TicketStateName").Invoke(component, [5])!;
+
+            Assert.That(stateName, Is.EqualTo("Approved"));
+        }
+
+        [Test]
         public void ReplaceResetRowDisplay_ReplacesMatchingRowWithNoRequestDisplay()
         {
             MonitorModellingRequests component = new();
@@ -240,8 +294,31 @@ namespace FWO.Test
                 Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("never requested"));
                 Assert.That(GetRowProperty<FwoOwner>(rows[1]!, "Owner").Name, Is.EqualTo("Zulu"));
                 Assert.That(GetRowProperty<long>(rows[1]!, "TicketId"), Is.EqualTo(200));
+                Assert.That(GetRowProperty<string>(rows[1]!, "Status"), Is.EqualTo("U9026"));
                 Assert.That(GetRowProperty<string>(rows[1]!, "StateName"), Is.EqualTo("Open"));
             });
+        }
+
+        [Test]
+        public async Task LoadRows_ShowsRequestPossibleHint_WhenOwnerHasConnectionsAndNoRunningRequest()
+        {
+            MonitorModellingRequests component = new();
+            MonitorModellingRequestsApiConn apiConn = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Alpha", ConnectionCount = new() { Aggregate = new() { Count = 1 } } }
+                ]
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig());
+            SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict());
+
+            Task task = (Task)GetPrivateMethod("LoadRows").Invoke(component, null)!;
+            await task;
+
+            IList rows = GetPrivateField<IList>(component, "Rows");
+            Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("request_fw_change"));
         }
 
         [Test]
@@ -294,6 +371,109 @@ namespace FWO.Test
                 Assert.That(GetVariable<string>(apiConn.Variables[5], "comment"), Is.EqualTo("after"));
             });
         }
+
+        [Test]
+        public async Task SetTicketImplementationStatus_UpdatesRequestedConnectionsAndGroups()
+        {
+            MonitorModellingRequests component = new();
+            MonitorModellingRequestsApiConn apiConn = new();
+            string marker = ModIntegrationStateConfig.DefaultMarker;
+            WfReqTask accessTask = new() { Id = 1, TicketId = 77, TaskType = WfTaskType.access.ToString() };
+            accessTask.SetAddInfo(AdditionalInfoKeys.ConnId, "100");
+            WfReqTask appRoleTask = new() { Id = 2, TicketId = 77, TaskType = WfTaskType.group_modify.ToString() };
+            appRoleTask.SetAddInfo(AdditionalInfoKeys.AppRoleId, "200");
+            WfReqTask serviceGroupTask = new() { Id = 3, TicketId = 77, TaskType = WfTaskType.group_modify.ToString() };
+            serviceGroupTask.SetAddInfo(AdditionalInfoKeys.SvcGrpId, "300");
+            WfTicket ticket = new() { Id = 77, Tasks = [accessTask, appRoleTask, serviceGroupTask] };
+            ModellingConnection connection = new() { Id = 100 };
+            connection.AddProperty("keep", "value");
+            apiConn.WorkflowConnectionsById[100] = connection;
+            apiConn.AppRoles[200] = new ModellingAppRole
+            {
+                Id = 200,
+                Comment = $"{marker}: Old | 2026-05-01T10:00:00Z{Environment.NewLine}keep"
+            };
+            apiConn.ServiceGroupsById[300] = new ModellingServiceGroup { Id = 300, Comment = "before" };
+            SetInjectedApiConnection(component, apiConn);
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig());
+
+            Task task = (Task)GetPrivateMethod("SetTicketImplementationStatus").Invoke(component, [ticket, "Done"])!;
+            await task;
+
+            object connectionUpdate = apiConn.Variables[1];
+            object appRoleUpdate = apiConn.Variables[3];
+            object serviceGroupUpdate = apiConn.Variables[5];
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(new List<string>
+                {
+                    ModellingQueries.getWorkflowConnectionById,
+                    ModellingQueries.updateConnectionProperties,
+                    ModellingQueries.getAppRoleById,
+                    ModellingQueries.updateNwGroupComment,
+                    ModellingQueries.getServiceGroupById,
+                    ModellingQueries.updateServiceGroupComment
+                }));
+                Assert.That(GetVariable<int>(connectionUpdate, "id"), Is.EqualTo(100));
+                Assert.That(GetVariable<string>(connectionUpdate, "connProp"), Does.Contain("keep"));
+                Assert.That(GetVariable<string>(connectionUpdate, "connProp"), Does.Contain($"\"{marker}\":\"Done | "));
+                Assert.That(GetVariable<long>(appRoleUpdate, "id"), Is.EqualTo(200));
+                Assert.That(GetVariable<string>(appRoleUpdate, "comment"), Does.Contain($"{marker}: Done"));
+                Assert.That(GetVariable<string>(appRoleUpdate, "comment"), Does.Contain("keep"));
+                Assert.That(GetVariable<int>(serviceGroupUpdate, "id"), Is.EqualTo(300));
+                Assert.That(GetVariable<string>(serviceGroupUpdate, "comment"), Does.Contain("before"));
+                Assert.That(GetVariable<string>(serviceGroupUpdate, "comment"), Does.Contain($"{marker}: Done"));
+            });
+        }
+
+        [Test]
+        public async Task SetTicketState_UpdatesTicketStateAndReloadsRows()
+        {
+            MonitorModellingRequests component = new();
+            FwoOwner owner = new() { Id = 7, Name = "App" };
+            object row = CreateRequestStatusRow(owner, 77, "Requested", 5);
+            MonitorModellingRequestsApiConn apiConn = new()
+            {
+                Ticket = new WfTicket
+                {
+                    Id = 77,
+                    StateId = 5,
+                    Deadline = new DateTime(2026, 6, 1),
+                    Priority = 3,
+                    CompletionDate = new DateTime(2026, 5, 17)
+                },
+                Owners = [owner],
+                LatestTickets =
+                [
+                    new OwnerTicket
+                    {
+                        Owner = owner,
+                        Ticket = new WfTicket { Id = 77, StateId = 8 }
+                    }
+                ]
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig());
+            SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [8] = "Closed" } });
+            SetPrivateField(component, "ChangeTicketStateRow", row);
+            SetPrivateField(component, "SelectedTicketStateId", 8);
+
+            Task task = (Task)GetPrivateMethod("SetTicketState").Invoke(component, null)!;
+            await task;
+
+            object updateVars = apiConn.Variables[1];
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Does.Contain(RequestQueries.getTicketById));
+                Assert.That(apiConn.Queries, Does.Contain(RequestQueries.updateTicketState));
+                Assert.That(GetVariable<long>(updateVars, "id"), Is.EqualTo(77));
+                Assert.That(GetVariable<int>(updateVars, "state"), Is.EqualTo(8));
+                Assert.That(GetVariable<DateTime?>(updateVars, "closed"), Is.EqualTo(new DateTime(2026, 5, 17)));
+                Assert.That(GetVariable<DateTime?>(updateVars, "deadline"), Is.EqualTo(new DateTime(2026, 6, 1)));
+                Assert.That(GetVariable<int?>(updateVars, "priority"), Is.EqualTo(3));
+                Assert.That(GetPrivateProperty<bool>(component, "ChangeTicketStateMode"), Is.False);
+            });
+        }
     }
 
     internal sealed class MonitorModellingRequestsUserConfig : SimulatedUserConfig
@@ -316,8 +496,23 @@ namespace FWO.Test
         public List<FwoOwner> Owners { get; set; } = [];
         public List<OwnerTicket> LatestTickets { get; set; } = [];
         public List<ModellingConnection> Connections { get; } = [];
+        public List<ModellingConnection> WorkflowConnections { get; } = [];
+        public Dictionary<int, ModellingConnection> WorkflowConnectionsById { get; } = [];
         public List<ModellingAppRole> NwGroups { get; } = [];
+        public Dictionary<long, ModellingAppRole> AppRoles { get; } = [];
         public List<ModellingServiceGroup> ServiceGroups { get; } = [];
+        public Dictionary<int, ModellingServiceGroup> ServiceGroupsById { get; } = [];
+        public WfTicket Ticket { get; set; } = new();
+
+        private static T GetVariable<T>(object variables, string name)
+        {
+            PropertyInfo? property = variables.GetType().GetProperty(name);
+            if (property == null)
+            {
+                throw new MissingMemberException(variables.GetType().FullName, name);
+            }
+            return (T)property.GetValue(variables)!;
+        }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
@@ -339,13 +534,37 @@ namespace FWO.Test
             {
                 return Task.FromResult((QueryResponseType)(object)Connections);
             }
+            if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getWorkflowConnectionsByTicketId)
+            {
+                return Task.FromResult((QueryResponseType)(object)WorkflowConnections);
+            }
+            if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getWorkflowConnectionById)
+            {
+                int id = GetVariable<int>(variables!, "id");
+                List<ModellingConnection> result = WorkflowConnectionsById.TryGetValue(id, out ModellingConnection? connection) ? [connection] : [];
+                return Task.FromResult((QueryResponseType)(object)result);
+            }
             if (typeof(QueryResponseType) == typeof(List<ModellingAppRole>) && query == ModellingQueries.getNwGroupsForApp)
             {
                 return Task.FromResult((QueryResponseType)(object)NwGroups);
             }
+            if (typeof(QueryResponseType) == typeof(ModellingAppRole) && query == ModellingQueries.getAppRoleById)
+            {
+                long id = GetVariable<long>(variables!, "id");
+                return Task.FromResult((QueryResponseType)(object)AppRoles[id]);
+            }
             if (typeof(QueryResponseType) == typeof(List<ModellingServiceGroup>) && query == ModellingQueries.getServiceGroupsForApp)
             {
                 return Task.FromResult((QueryResponseType)(object)ServiceGroups);
+            }
+            if (typeof(QueryResponseType) == typeof(ModellingServiceGroup) && query == ModellingQueries.getServiceGroupById)
+            {
+                int id = GetVariable<int>(variables!, "id");
+                return Task.FromResult((QueryResponseType)(object)ServiceGroupsById[id]);
+            }
+            if (typeof(QueryResponseType) == typeof(WfTicket) && query == RequestQueries.getTicketById)
+            {
+                return Task.FromResult((QueryResponseType)(object)Ticket);
             }
             if (typeof(QueryResponseType) == typeof(ReturnId))
             {

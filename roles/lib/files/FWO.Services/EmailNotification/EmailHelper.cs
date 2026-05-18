@@ -89,13 +89,13 @@ namespace FWO.Services
         public async Task<bool> SendWorkflowActionEmail(FwoNotification notification, WfStatefulObject statefulObject, FwoOwner? owner, string? userGrpDn = null,
             WorkflowEmailContent? workflowContent = null, WfStatefulObject? placeholderObject = null)
         {
-            List<string> tos = await GetWorkflowActionRecipients(notification.RecipientTo, notification.EmailAddressTo, statefulObject, owner, ScopedUserTo, ScopedUserEmailTo);
+            List<string> tos = await GetWorkflowActionRecipients(notification.RecipientTo, notification.EmailAddressTo, statefulObject, owner, ScopedUserTo, ScopedUserEmailTo, userGrpDn);
             List<string>? ccs = notification.RecipientCc == EmailRecipientOption.None
                 ? null
-                : await GetWorkflowActionRecipients(notification.RecipientCc, notification.EmailAddressCc, statefulObject, owner, ScopedUserCc, ScopedUserEmailCc);
+                : await GetWorkflowActionRecipients(notification.RecipientCc, notification.EmailAddressCc, statefulObject, owner, ScopedUserCc, ScopedUserEmailCc, userGrpDn);
             List<string>? bccs = notification.RecipientBcc == EmailRecipientOption.None
                 ? null
-                : await GetWorkflowActionRecipients(notification.RecipientBcc, notification.EmailAddressBcc, statefulObject, owner, ScopedUserBcc, ScopedUserEmailBcc);
+                : await GetWorkflowActionRecipients(notification.RecipientBcc, notification.EmailAddressBcc, statefulObject, owner, ScopedUserBcc, ScopedUserEmailBcc, userGrpDn);
             WfStatefulObject placeholderContext = placeholderObject ?? statefulObject;
             string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(notification.EmailSubject, placeholderContext, owner);
             string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, workflowContent), placeholderContext, owner);
@@ -110,9 +110,11 @@ namespace FWO.Services
             WfStatefulObject statefulObject,
             FwoOwner? owner,
             string? scopedUser,
-            string? scopedUserEmail)
+            string? scopedUserEmail,
+            string? assignedGroupDn = null)
         {
-            List<string> recipients = await GetRecipients(recipientOption, statefulObject, owner, scopedUser, SplitAddresses(addressList), scopedUserEmail);
+            WfStatefulObject recipientContext = AssignedGroupRecipientContext(recipientOption, statefulObject, assignedGroupDn);
+            List<string> recipients = await GetRecipients(recipientOption, recipientContext, owner, scopedUser, SplitAddresses(addressList), scopedUserEmail);
             if (recipients.Count == 0 && recipientOption != EmailRecipientOption.None)
             {
                 Log.WriteWarning("Workflow Email", $"No recipients resolved for option '{recipientOption}'. Scoped DN: '{scopedUser ?? ""}', stateful object: '{statefulObject.GetType().Name}'.");
@@ -120,11 +122,21 @@ namespace FWO.Services
             return recipients;
         }
 
+        private static WfStatefulObject AssignedGroupRecipientContext(EmailRecipientOption recipientOption, WfStatefulObject statefulObject, string? assignedGroupDn)
+        {
+            if (recipientOption != EmailRecipientOption.AssignedGroup || string.IsNullOrWhiteSpace(assignedGroupDn))
+            {
+                return statefulObject;
+            }
+            return new WfStatefulObject(statefulObject) { AssignedGroup = assignedGroupDn };
+        }
+
         private async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
             bool mailFormatHtml = true, FormFile? attachment = null)
         {
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
+            ApplyDummyRecipientOverride(ref tos, ref ccs, ref bccs);
             tos = [.. tos.Where(t => t != "")];
             if (tos.Count == 0)
             {
@@ -150,6 +162,10 @@ namespace FWO.Services
         public async Task<List<string>> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser,
             List<string>? otherAddresses, string? scopedUserEmail = null)
         {
+            if (userConfig.UseDummyEmailAddress && recipientOption != EmailRecipientOption.None)
+            {
+                return DummyRecipients();
+            }
             Dictionary<EmailRecipientOption, Func<Task<List<string>>>> handlers = BuildRecipientHandlers(statefulObject, owner, scopedUser, otherAddresses, scopedUserEmail);
             if (handlers.TryGetValue(recipientOption, out Func<Task<List<string>>>? handler))
             {
@@ -216,6 +232,10 @@ namespace FWO.Services
             if (!selection.HasAnyRecipientOption())
             {
                 return [];
+            }
+            if (userConfig.UseDummyEmailAddress)
+            {
+                return DummyRecipients();
             }
 
             HashSet<string> recipients = new(StringComparer.OrdinalIgnoreCase);
@@ -301,6 +321,23 @@ namespace FWO.Services
                 .Where(type => type.Active)
                 .Select(type => type.Id)
                 .ToList();
+        }
+
+        private void ApplyDummyRecipientOverride(ref List<string> tos, ref List<string>? ccs, ref List<string>? bccs)
+        {
+            if (!userConfig.UseDummyEmailAddress)
+            {
+                return;
+            }
+
+            tos = DummyRecipients();
+            ccs = [];
+            bccs = [];
+        }
+
+        private List<string> DummyRecipients()
+        {
+            return string.IsNullOrWhiteSpace(userConfig.DummyEmailAddress) ? [] : [userConfig.DummyEmailAddress];
         }
 
         public List<string> GetOwnerMainResponsibleRecipients(List<UserGroup> owners)

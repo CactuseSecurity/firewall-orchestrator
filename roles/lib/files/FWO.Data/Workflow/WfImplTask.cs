@@ -131,7 +131,9 @@ namespace FWO.Data.Workflow
                         Port = implElem.Port ?? 0,
                         PortEnd = implElem.PortEnd,
                         ProtoId = implElem.ProtoId ?? 0,
-                        ServiceId = implElem.ServiceId
+                        ServiceId = implElem.ServiceId,
+                        Name = implElem.Name,
+                        GroupName = implElem.GroupName
                     });
                 }
             }

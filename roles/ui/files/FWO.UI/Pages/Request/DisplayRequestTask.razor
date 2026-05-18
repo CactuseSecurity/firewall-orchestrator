@@ -355,13 +355,13 @@
                                 @foreach(var source in actSources)
                                 {
                                     <div class="list-group-item border bg-secondary">
-                                        <label>@NwObjDisplay.DisplayIp(source.IpString, source.IpEndString)</label>
+                                        <label>@DisplayObjectElement(source)</label>
                                     </div>
                                 }
                                 @foreach(var service in actServices)
                                 {
                                     <div class="list-group-item border bg-secondary">
-                                        <label>@DisplayBase.DisplayService(service, ipProtos)</label>
+                                        <label>@DisplayServiceElement(service)</label>
                                     </div>
                                 }
                             </div>
@@ -369,6 +369,7 @@
                     </div>
                 }
 
+                <hr />
                 @if(!WfHandler.EditReqTaskMode)
                 {
                     <div class="form-group row mt-2">
@@ -386,18 +387,6 @@
                     </div>
                 }
 
-                <div class="col-sm-12 mt-2">
-                    <div class="btn-group">
-                        @foreach(var action in offeredActions)
-                        {
-                            @if(WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode || WfStateAction.IsReadonlyType(action.ActionType))
-                            {
-                                <button type="button" class="btn btn-sm btn-dark ml-13" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
-                            }
-                        }
-                    </div>
-                </div>
-
                 @if(Phase == WorkflowPhases.planning || WfHandler.ActReqTask.ImplementationTasks.Count > 0)
                 {
                     <h5 class="mt-2">@(userConfig.GetText("implementation_tasks"))</h5>
@@ -409,61 +398,84 @@
         }
     </Body>
     <Footer>
-        <div class="btn-group">
-            @if (WfHandler.EditReqTaskMode)
-            {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
-                    <Authorized>
-                        @if(WfHandler.AddTicketMode)
+        <div class="d-flex align-items-center w-100">
+            <div class="d-flex flex-fill justify-content-start">
+            </div>
+            <div class="d-flex flex-fill justify-content-center px-4">
+                <div class="btn-group">
+                    @if (CanShowApprovalsButton())
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="ShowApprovals">
+                            @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
+                    }
+                    @foreach(var action in offeredActions)
+                    {
+                        @if(CanShowConfiguredActionButton(action))
                         {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                            <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                         }
-                        else
-                        {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
-                        }
-                    </Authorized>
-                    <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
-                    </NotAuthorized>
-                </AuthorizeView>
-            }
-            else if (WfHandler.PlanReqTaskMode)
-            {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
-                    </NotAuthorized>
-                </AuthorizeView>
-            }
-            else if (WfHandler.ApproveReqTaskMode)
-            {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(DisplayService.DisplayButton(userConfig, "approve", Icons.Approve))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "approve", Icons.Approve))</button>
-                    </NotAuthorized>
-                </AuthorizeView>
-            }
-            @if(WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode)
-            {
-                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
-            }
-            else
-            {
-                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
-            }
+                    }
+                </div>
+            </div>
+            <div class="d-flex flex-fill justify-content-end">
+                <div class="btn-group">
+                    @if (WfHandler.EditReqTaskMode)
+                    {
+                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
+                            <Authorized>
+                                @if(WfHandler.AddTicketMode)
+                                {
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                                }
+                            </Authorized>
+                            <NotAuthorized>
+                                <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    }
+                    else if (WfHandler.PlanReqTaskMode)
+                    {
+                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
+                            <Authorized>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    }
+                    else if (WfHandler.ApproveReqTaskMode)
+                    {
+                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
+                            <Authorized>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(DisplayService.DisplayButton(userConfig, "approve", Icons.Approve))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "approve", Icons.Approve))</button>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    }
+                    @if(WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode)
+                    {
+                        <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
+                    }
+                </div>
+            </div>
         </div>
     </Footer>
 </PopUp>
 
 <PromoteObject @bind-Promote="WfHandler.DisplayPromoteReqTaskMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActReqTask.Title" Save="ConfPromoteReqTask" StatefulObject="WfHandler.ActReqTask" StateMatrix="WfHandler.ActStateMatrix" States="States"/>
 <PromoteObject @bind-Promote="WfHandler.DisplayApproveMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@userConfig.GetText("approval")" WithComment="true" Save="ConfApproveTask" StatefulObject="WfHandler.ActApproval" StateMatrix="WfHandler.ActStateMatrix" States="States"/>
+<DisplayApprovals @bind-Display="WfHandler.DisplayApprovalReqMode" WfHandler="WfHandler" ResetParent="ResetApprovalsPopup" Approvals="WfHandler.ActReqTask.Approvals" States="States" ReadOnlyMode="IsRequestTaskReadOnly()"/>
 <CommentObject @bind-Display="WfHandler.DisplayReqTaskCommentMode" ResetParent="InitComments" ObjectName="@WfHandler.ActReqTask.Title" Save="ConfAddComment"/>
 <DisplayPathAnalysis @bind-Display="WfHandler.DisplayPathAnalysisMode" ReqTask="WfHandler.ActReqTask"/>
 @if(WfHandler.ActionHandler != null)
@@ -529,6 +541,7 @@
     private List<Management> managements = [];
     private Management? actManagement;
     private FwoOwner? actRequestingOwner;
+    private long displayedReqTaskId = -1;
   
     protected override async Task OnInitializedAsync()
     {
@@ -559,9 +572,10 @@
     {
         try
         {
-            if (WfHandler.DisplayReqTaskMode && firstParamSet)
+            if (WfHandler.DisplayReqTaskMode && (firstParamSet || displayedReqTaskId != WfHandler.ActReqTask.Id))
             {
                 firstParamSet = false;
+                displayedReqTaskId = WfHandler.ActReqTask.Id;
                 InitElements();
                 await InitComments();
                 await Reset();
@@ -631,6 +645,7 @@
     private async Task Close()
     {
         firstParamSet = true;
+        displayedReqTaskId = -1;
         await ResetParent();
     }
 
@@ -702,6 +717,32 @@
         return selectableDevices.First(dev => dev.Id == WfReqTaskBase.kAllDevicesId);
     }
 
+    private string DisplayObjectElement(NwObjectElement element)
+    {
+        if (!string.IsNullOrEmpty(element.GroupName))
+        {
+            return element.GroupName;
+        }
+        if (!string.IsNullOrEmpty(element.Name) && string.IsNullOrEmpty(element.IpString))
+        {
+            return element.Name;
+        }
+        return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+    }
+
+    private string DisplayServiceElement(NwServiceElement element)
+    {
+        if (!string.IsNullOrEmpty(element.GroupName))
+        {
+            return element.GroupName;
+        }
+        if (!string.IsNullOrEmpty(element.Name) && element.Port == 0)
+        {
+            return element.Name;
+        }
+        return DisplayBase.DisplayService(element, ipProtos);
+    }
+
     private bool NeedsManualDeviceSelection()
     {
         bool planningPhaseActive = WfHandler.ActStateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool isActive) && isActive;
@@ -715,6 +756,14 @@
         if(WfHandler.ActionHandler != null)
         {
             await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActReqTask, WfObjectScopes.RequestTask, actOwner, WfHandler.ActReqTask.TicketId);
+        }
+        if(action.ActionType == nameof(StateActionTypes.AddApproval))
+        {
+            if(await WfHandler.ReloadActReqTask())
+            {
+                InitElements();
+                await InitComments();
+            }
         }
         await Reset();
     }
@@ -733,6 +782,33 @@
     {
         await WfHandler.SetApprovalEnv();
         WfHandler.SetReqTaskPopUpOpt(ObjAction.displayApprove);
+    }
+
+    private void ShowApprovals()
+    {
+        WfHandler.SetReqTaskPopUpOpt(ObjAction.displayApprovals);
+    }
+
+    private bool CanShowApprovalsButton()
+    {
+        return WfHandler.StateMatrix(WfHandler.ActReqTask.TaskType).PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) && approvalPhaseActive;
+    }
+
+    private bool CanShowConfiguredActionButton(WfStateAction action)
+    {
+        return WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode || WfStateAction.IsReadonlyType(action.ActionType);
+    }
+
+    private bool IsRequestTaskReadOnly()
+    {
+        return WfHandler.ReadOnlyMode || !(WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode);
+    }
+
+    private async Task ResetApprovalsPopup()
+    {
+        WfHandler.DisplayApprovalReqMode = false;
+        WfHandler.ResetApprovalActions();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task ConfApproveTask(WfStatefulObject approval)

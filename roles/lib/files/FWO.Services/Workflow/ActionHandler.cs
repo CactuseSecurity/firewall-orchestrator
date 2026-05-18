@@ -115,13 +115,25 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task DoOnAssignmentActions(WfStatefulObject statefulObject, string? userGrpDn)
+        public async Task DoOnAssignmentActions(WfStatefulObject statefulObject, WfObjectScopes scope, string? userGrpDn)
         {
-            List<WfStateAction> assignmentActions = GetRelevantActions(statefulObject, WfObjectScopes.None);
+            List<WfStateAction> assignmentActions = GetAssignmentActions(statefulObject, scope);
             foreach (var action in assignmentActions.Where(x => x.Event == StateActionEvents.OnAssignment.ToString()))
             {
-                await PerformAction(action, statefulObject, WfObjectScopes.None, null, null, userGrpDn);
+                await PerformAction(action, statefulObject, scope, null, null, userGrpDn);
             }
+        }
+
+        private List<WfStateAction> GetAssignmentActions(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            List<WfStateAction> actions = GetRelevantActions(statefulObject, scope);
+            actions.AddRange(GetRelevantActions(statefulObject, WfObjectScopes.None).Where(action => actions.All(existing => !IsSamePersistedAction(existing, action))));
+            return actions;
+        }
+
+        private static bool IsSamePersistedAction(WfStateAction firstAction, WfStateAction secondAction)
+        {
+            return firstAction.Id > 0 && firstAction.Id == secondAction.Id;
         }
 
         public async Task PerformAction(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
@@ -176,7 +188,7 @@ namespace FWO.Services.Workflow
                     await SetScope(statefulObject, scope);
                     UpdateModellingActionParams updateModellingParams = UpdateModellingActionParams.FromExternalParams(action.ExternalParams);
                     int updatedModellingObjects = await UpdateModelling(updateModellingParams.ModellingState, statefulObject, scope, ticketId);
-                    if (updateModellingParams.ConfirmUiMessage && updatedModellingObjects > 0)
+                    if (updateModellingParams.ConfirmUiMessage)
                     {
                         wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("UpdateModelling"), $"{updatedModellingObjects}{wfHandler.userConfig.GetText("modelling_objects_updated")}", false);
                     }
@@ -226,17 +238,13 @@ namespace FWO.Services.Workflow
             try
             {
                 RestResponse<WorkflowActionResult> response = await wfHandler.MiddlewareClient!.ExecuteWorkflowActions(parameters);
+                DisplayWorkflowActionMessages(response.Data?.Messages);
                 if (!response.IsSuccessful || response.Data?.Success != true)
                 {
                     string details = response.Data?.ErrorMessage ?? response.ErrorMessage ?? response.Content ?? "";
                     string message = $"Middleware execution failed. Status: {(int)response.StatusCode} {response.StatusDescription}. {details}";
                     Log.WriteError("Workflow Actions", message);
                     throw new InvalidOperationException(message);
-                }
-
-                foreach (WorkflowActionMessage message in response.Data.Messages)
-                {
-                    wfHandler.DisplayMessage(null, message.Title, message.Message, message.ErrorFlag);
                 }
             }
             finally
@@ -245,9 +253,24 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private static string BuildMiddlewareDelegationKey(WorkflowActionParameters parameters)
+        private void DisplayWorkflowActionMessages(List<WorkflowActionMessage>? messages)
         {
-            return $"{parameters.Scope}|{parameters.ActionId}|{parameters.ObjectId}|{parameters.TicketId}|{parameters.OldStateId}|{parameters.NewStateId}|{parameters.Phase}";
+            foreach (WorkflowActionMessage message in messages ?? [])
+            {
+                wfHandler.DisplayMessage(null, message.Title, message.Message, message.ErrorFlag);
+            }
+        }
+
+        private string BuildMiddlewareDelegationKey(WorkflowActionParameters parameters)
+        {
+            return $"{GetMiddlewareDelegationUserKey()}|{parameters.Scope}|{parameters.ActionId}|{parameters.ObjectId}|{parameters.TicketId}|{parameters.OldStateId}|{parameters.NewStateId}|{parameters.Phase}";
+        }
+
+        private string GetMiddlewareDelegationUserKey()
+        {
+            return wfHandler.AuthUser?.FindFirst("x-hasura-uuid")?.Value
+                ?? wfHandler.AuthUser?.Identity?.Name
+                ?? NoAuthUser;
         }
 
         private static bool TryRegisterMiddlewareDelegation(string delegationKey)
@@ -332,7 +355,7 @@ namespace FWO.Services.Workflow
                     EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, wfHandler.DisplayMessage, UserGroups, useInMwServer, workflowRecipientResolver);
                     await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc);
                     WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
-                    if (await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, workflowContent: workflowContent, placeholderObject: placeholderObject))
+                    if (await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, userGrpDn, workflowContent, placeholderObject))
                     {
                         ++sentEmailCount;
                         if (actionNotification.Id > 0)

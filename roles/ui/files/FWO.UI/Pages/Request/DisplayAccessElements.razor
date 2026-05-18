@@ -71,7 +71,7 @@
                 {
                     <div class="form-group row">
                         <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <label>@nwObjects.FirstOrDefault(x => x.Id == source.NetworkId)?.Name</label>
+                        <label>@DisplayNetworkObject(source)</label>
                         <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteSource(source)">x</button>
                     </div>
                 }
@@ -83,7 +83,7 @@
                     @foreach(var source in Sources.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@nwObjects.FirstOrDefault(x => x.Id == source.NetworkId)?.Name</label>
+                            <label>@DisplayNetworkObject(source)</label>
                         </div>
                     }
                     @foreach(var source in Sources.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
@@ -110,7 +110,7 @@
                 {
                     <div class="form-group row">
                         <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <label>@nwObjects.FirstOrDefault(x => x.Id == destination.NetworkId)?.Name</label>
+                        <label>@DisplayNetworkObject(destination)</label>
                         <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteDestination(destination)">x</button>
                     </div>
                 }
@@ -122,7 +122,7 @@
                     @foreach(var destination in Destinations.Where(x => (x.NetworkId != null && x.NetworkId != 0)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@nwObjects.FirstOrDefault(x => x.Id == destination.NetworkId)?.Name</label>
+                            <label>@DisplayNetworkObject(destination)</label>
                         </div>
                     }
                     @foreach(var destination in Destinations.Where(x => (x.NetworkId == null || x.NetworkId == 0)))
@@ -149,7 +149,7 @@
                 {
                     <div class="form-group row">
                         <label class="col-sm-2">@(userConfig.GetText("obj")):</label>
-                        <label>@nwServices.FirstOrDefault(x => x.Id == service.ServiceId)?.Name</label>
+                        <label>@DisplayNetworkService(service)</label>
                         <button type="button" class="col-sm-1 btn btn-sm btn-secondary" @onclick:preventDefault @onclick="() => DeleteService(service)">x</button>
                     </div>
                 }
@@ -160,12 +160,12 @@
                 <div class="list-group">
                     @foreach(var service in Services.Where(x => (x.ServiceId != null && x.ServiceId != 0)))
                     {
-                        <label class="list-group-item border bg-secondary">@((service.ServiceId != null) ? nwServices.Find(x => x.Id == service.ServiceId)?.Name : "")</label>
+                        <label class="list-group-item border bg-secondary">@DisplayNetworkService(service)</label>
                     }
                     @foreach(var service in Services.Where(x => (x.ServiceId == null || x.ServiceId == 0)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@DisplayBase.DisplayService(service, IpProtos)</label>
+                            <label>@DisplayServiceElement(service)</label>
                         </div>
                     }
                 </div>
@@ -298,6 +298,36 @@ else
             newServiceInt = null;
             StateHasChanged();
         }
+    }
+
+    private string DisplayNetworkObject(NwObjectElement element)
+    {
+        return nwObjects.FirstOrDefault(nwObject => nwObject.Id == element.NetworkId)?.Name
+            ?? element.Name
+            ?? element.NetworkId?.ToString()
+            ?? "";
+    }
+
+    private string DisplayNetworkService(NwServiceElement element)
+    {
+        return nwServices.FirstOrDefault(service => service.Id == element.ServiceId)?.Name
+            ?? element.GroupName
+            ?? element.Name
+            ?? element.ServiceId?.ToString()
+            ?? "";
+    }
+
+    private string DisplayServiceElement(NwServiceElement element)
+    {
+        if (!string.IsNullOrEmpty(element.GroupName))
+        {
+            return element.GroupName;
+        }
+        if (!string.IsNullOrEmpty(element.Name) && element.Port == 0)
+        {
+            return element.Name;
+        }
+        return DisplayBase.DisplayService(element, IpProtos);
     }
 
     protected override void OnInitialized()

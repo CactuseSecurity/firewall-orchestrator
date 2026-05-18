@@ -5,6 +5,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Middleware.Client;
 using FWO.Services;
 using FWO.Services.EventMediator;
 using FWO.Services.EventMediator.Interfaces;
@@ -12,6 +13,7 @@ using FWO.Services.Workflow;
 using FWO.Ui.Pages.Request;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -45,6 +47,24 @@ namespace FWO.Test
             throw new MissingFieldException(type.FullName, memberName);
         }
 
+        private static T GetMember<T>(object instance, string memberName)
+        {
+            Type type = instance.GetType();
+            PropertyInfo? property = type.GetProperty(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property != null)
+            {
+                return (T)property.GetValue(instance)!;
+            }
+
+            FieldInfo? field = type.GetField(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field != null)
+            {
+                return (T)field.GetValue(instance)!;
+            }
+
+            throw new MissingFieldException(type.FullName, memberName);
+        }
+
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
         {
             FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -60,6 +80,33 @@ namespace FWO.Test
             return component;
         }
 
+        private static DisplayTicketTable CreateTicketTable(WfHandler handler, WorkflowPhases phase)
+        {
+            DisplayTicketTable component = new();
+            SetMember(component, nameof(DisplayTicketTable.WfHandler), handler);
+            SetMember(component, nameof(DisplayTicketTable.Phase), phase);
+            return component;
+        }
+
+        private static WfReqTask CreateAccessTask(long id, string sourceIp, string destinationIp, int servicePort)
+        {
+            return new()
+            {
+                Id = id,
+                TicketId = 100,
+                Title = $"Task {id}",
+                TaskType = WfTaskType.access.ToString(),
+                RuleAction = 1,
+                Tracking = 1,
+                Elements =
+                [
+                    new WfReqElement { Id = id * 10 + 1, TaskId = id, Field = ElemFieldType.source.ToString(), IpString = sourceIp },
+                    new WfReqElement { Id = id * 10 + 2, TaskId = id, Field = ElemFieldType.destination.ToString(), IpString = destinationIp },
+                    new WfReqElement { Id = id * 10 + 3, TaskId = id, Field = ElemFieldType.service.ToString(), Port = servicePort, ProtoId = 6 }
+                ]
+            };
+        }
+
         private static IRenderedComponent<DisplayRequestTask> RenderDisplayRequestTask(
             Bunit.TestContext context,
             WfHandler handler,
@@ -71,6 +118,7 @@ namespace FWO.Test
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new RequestWorkflowAuthStateProvider(roles));
             context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
             context.Services.AddSingleton<DomEventService>();
             context.Services.AddSingleton<IEventMediator>(new EventMediator());
@@ -97,6 +145,7 @@ namespace FWO.Test
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new RequestWorkflowAuthStateProvider(roles));
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
             context.Services.AddSingleton<DomEventService>();
             context.Services.AddSingleton<IEventMediator>(new EventMediator());
@@ -143,7 +192,70 @@ namespace FWO.Test
         }
 
         [Test]
-        public void DisplayReqTaskTable_ApprovalPhase_StopsEditAtLowestStartedState()
+        public void DisplayTicketTable_ApprovalPhase_AllowsEditInPhaseRange()
+        {
+            WfHandler handler = new()
+            {
+                ReadOnlyMode = false,
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestInputState = 49,
+                    LowestEndState = 99
+                }
+            };
+            DisplayTicketTable component = CreateTicketTable(handler, WorkflowPhases.approval);
+            MethodInfo? method = typeof(DisplayTicketTable).GetMethod("CanEditTicketInPhase", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            bool canEdit = (bool)method!.Invoke(component, [new WfTicket { StateId = 60 }])!;
+
+            Assert.That(canEdit, Is.True);
+        }
+
+        [Test]
+        public void DisplayTicketTable_ApprovalPhase_UsesDetailsOutsidePhaseRange()
+        {
+            WfHandler handler = new()
+            {
+                ReadOnlyMode = false,
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestInputState = 49,
+                    LowestEndState = 99
+                }
+            };
+            DisplayTicketTable component = CreateTicketTable(handler, WorkflowPhases.approval);
+            MethodInfo? method = typeof(DisplayTicketTable).GetMethod("CanEditTicketInPhase", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            bool canEdit = (bool)method!.Invoke(component, [new WfTicket { StateId = 99 }])!;
+
+            Assert.That(canEdit, Is.False);
+        }
+
+        [Test]
+        public void DisplayTicketTable_ReadOnlyMode_UsesDetailsInPhaseRange()
+        {
+            WfHandler handler = new()
+            {
+                ReadOnlyMode = true,
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestInputState = 49,
+                    LowestEndState = 99
+                }
+            };
+            DisplayTicketTable component = CreateTicketTable(handler, WorkflowPhases.approval);
+            MethodInfo? method = typeof(DisplayTicketTable).GetMethod("CanEditTicketInPhase", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            bool canEdit = (bool)method!.Invoke(component, [new WfTicket { StateId = 60 }])!;
+
+            Assert.That(canEdit, Is.False);
+        }
+
+        [Test]
+        public void DisplayReqTaskTable_ApprovalPhase_BlocksStructuralTaskChanges()
         {
             WfHandler handler = new()
             {
@@ -167,6 +279,38 @@ namespace FWO.Test
             bool canEdit = (bool)method!.Invoke(component, [reqTask])!;
 
             Assert.That(canEdit, Is.False);
+        }
+
+        [Test]
+        public void DisplayReqTaskTable_RequestPhase_AllowsStructuralTaskChangesInTicketEditMode()
+        {
+            WfHandler handler = new()
+            {
+                EditTicketMode = true
+            };
+            DisplayReqTaskTable component = CreateReqTaskTable(handler, WorkflowPhases.request);
+            MethodInfo? method = typeof(DisplayReqTaskTable).GetMethod("CanChangeReqTaskStructure", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            bool canChange = (bool)method!.Invoke(component, [])!;
+
+            Assert.That(canChange, Is.True);
+        }
+
+        [Test]
+        public void DisplayReqTaskTable_ApprovalPhase_BlocksStructuralTaskChangesInTicketEditMode()
+        {
+            WfHandler handler = new()
+            {
+                EditTicketMode = true
+            };
+            DisplayReqTaskTable component = CreateReqTaskTable(handler, WorkflowPhases.approval);
+            MethodInfo? method = typeof(DisplayReqTaskTable).GetMethod("CanChangeReqTaskStructure", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            bool canChange = (bool)method!.Invoke(component, [])!;
+
+            Assert.That(canChange, Is.False);
         }
 
         [Test]
@@ -217,6 +361,44 @@ namespace FWO.Test
             }
 
             Assert.That(newDropdownCount, Is.GreaterThan(existingDropdownCount));
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_ReinitializesElementsWhenActiveTaskChanges()
+        {
+            WfReqTask firstTask = CreateAccessTask(12, "10.0.0.1", "10.0.1.1", 80);
+            WfReqTask secondTask = CreateAccessTask(13, "10.0.0.2", "10.0.1.2", 443);
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                ReadOnlyMode = true,
+                ActReqTask = firstTask,
+                ActTicket = new WfTicket { Id = 100, Tasks = [firstTask, secondTask] },
+                Devices = []
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix());
+            WfStateDict states = new() { Name = { [0] = "Draft" } };
+
+            await using Bunit.TestContext context = new();
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, states, Roles.Requester);
+
+            Assert.That(GetMember<List<NwObjectElement>>(component.Instance, "actSources").Single().IpString, Is.EqualTo("10.0.0.1/32"));
+            Assert.That(GetMember<List<NwObjectElement>>(component.Instance, "actDestinations").Single().IpString, Is.EqualTo("10.0.1.1/32"));
+            Assert.That(GetMember<List<NwServiceElement>>(component.Instance, "actServices").Single().Port, Is.EqualTo(80));
+
+            handler.ActReqTask = secondTask;
+            await component.InvokeAsync(() => component.Instance.SetParametersAsync(ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(DisplayRequestTask.Phase)] = WorkflowPhases.request,
+                [nameof(DisplayRequestTask.States)] = states,
+                [nameof(DisplayRequestTask.WfHandler)] = handler,
+                [nameof(DisplayRequestTask.ResetParent)] = (Func<Task>)DefaultInit.DoNothing,
+                [nameof(DisplayRequestTask.StartImplPhase)] = (Func<WfImplTask, Task>)DefaultInit.DoNothing
+            })));
+
+            Assert.That(GetMember<List<NwObjectElement>>(component.Instance, "actSources").Single().IpString, Is.EqualTo("10.0.0.2/32"));
+            Assert.That(GetMember<List<NwObjectElement>>(component.Instance, "actDestinations").Single().IpString, Is.EqualTo("10.0.1.2/32"));
+            Assert.That(GetMember<List<NwServiceElement>>(component.Instance, "actServices").Single().Port, Is.EqualTo(443));
         }
 
         [Test]

@@ -1,12 +1,11 @@
-using FWO.Api.Client;
 using FWO.Basics;
-using FWO.Config.File;
 using FWO.Data;
 using FWO.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace FWO.Middleware.Server
@@ -28,10 +27,10 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// create jwt for given user
-        /// </summary>
-        /// <returns>generated token</returns>
-        public async Task<string> CreateJWT(UiUser? user = null, TimeSpan? lifetime = null)
+		/// create jwt for the given user
+		/// </summary>
+		/// <returns>generated token</returns>
+        public string CreateJWT(UiUser? user, TimeSpan lifetime)
         {
             if (user != null)
                 Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
@@ -40,19 +39,9 @@ namespace FWO.Middleware.Server
 
             JwtSecurityTokenHandler tokenHandler = new();
 
-            GraphQlApiConnection apiConnection = new(ConfigFile.ApiServerUri, CreateJWTMiddlewareServer());
-            // if lifetime was speciefied use it, otherwise use standard lifetime
-            int jwtMinutesValid = (int)(lifetime?.TotalMinutes ?? await UiUserHandler.GetExpirationTime(apiConnection));
-
-            ClaimsIdentity subject;
-            if (user != null)
-                subject = SetClaims(await UiUserHandler.HandleUiUserAtLogin(apiConnection, user));
-            else
-                subject = SetClaims(new UiUser() { Name = "", Password = "", Dn = Roles.Anonymous, Roles = [Roles.Anonymous] });
-            // adding uiuser.uiuser_id as x-hasura-user-id to JWT
-
-            // Dispose Api Connection
-            apiConnection.Dispose();
+            ClaimsIdentity subject = user != null
+                ? SetClaims(user)
+                : SetClaims(new UiUser() { Name = "", Password = "", Dn = Roles.Anonymous, Roles = [Roles.Anonymous] });
 
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
@@ -62,16 +51,15 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                // Anonymous jwt is valid for ten years (does not violate security)
-                expires: DateTime.UtcNow.AddMinutes(user != null ? jwtMinutesValid : 60 * 24 * 365 * 10),
+                expires: DateTime.UtcNow.Add(lifetime),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
 
             string GeneratedToken = tokenHandler.WriteToken(token);
             if (user != null)
-                Log.WriteDebug("Jwt generation", $"Generated JWT {token.RawData} for User {user.Name}");
+                Log.WriteDebug("Jwt generation", $"Generated JWT for user {user.Name}. Valid until: {TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local)}.");
             else
-                Log.WriteDebug("Jwt generation", $"Generated JWT {token.RawData}");
+                Log.WriteDebug("Jwt generation", $"Generated anonymous JWT. Valid until: {TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local)}.");
             return GeneratedToken;
         }
 
@@ -80,9 +68,9 @@ namespace FWO.Middleware.Server
         /// necessary because this JWT needs to be used within getClaims
         /// </summary>
         /// <returns>JWT for middleware-server role.</returns>
-        public string CreateJWTMiddlewareServer()
+        public string CreateJWTMiddlewareServer(TimeSpan lifetime)
         {
-            return CreateJWTInternal(Roles.MiddlewareServer);
+            return CreateJWTInternal(Roles.MiddlewareServer, lifetime);
         }
 
         /// <summary>
@@ -90,16 +78,17 @@ namespace FWO.Middleware.Server
         /// necessary because this JWT needs to be used within getClaims
         /// </summary>
         /// <returns>JWT for reporter-viewall role.</returns>
-        public string CreateJWTReporterViewall()
+        public string CreateJWTReporterViewall(TimeSpan lifetime)
         {
-            return CreateJWTInternal(Roles.ReporterViewAll);
+            return CreateJWTInternal(Roles.ReporterViewAll, lifetime);
         }
 
-        private string CreateJWTInternal(string role)
+        private string CreateJWTInternal(string role, TimeSpan lifetime)
         {
             JwtSecurityTokenHandler tokenHandler = new();
             ClaimsIdentity subject = new();
             subject.AddClaim(new Claim("unique_name", role));
+            subject.AddClaim(CreateJwtIdClaim());
             subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { role }), System.IdentityModel.Tokens.Jwt.JsonClaimValueTypes.JsonArray));
             subject.AddClaim(new Claim("x-hasura-default-role", role));
 
@@ -110,11 +99,11 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddYears(200),
+                expires: DateTime.UtcNow.Add(lifetime),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);
-            Log.WriteDebug("Jwt generation", $"Generated JWT {GeneratedToken} for {role}.");
+            Log.WriteDebug("Jwt generation", $"Generated internal JWT for role {role}. Valid until: {TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local)}.");
             return GeneratedToken;
         }
 
@@ -122,6 +111,7 @@ namespace FWO.Middleware.Server
         {
             ClaimsIdentity claimsIdentity = new();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
+            claimsIdentity.AddClaim(CreateJwtIdClaim());
             claimsIdentity.AddClaim(new Claim("x-hasura-user-id", user.DbId.ToString()));
             if (user.Dn != null && user.Dn.Length > 0)
                 claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
@@ -190,6 +180,19 @@ namespace FWO.Middleware.Server
                 Log.WriteError("User roles", $"User {user.Name} does not have any assigned roles.");
             }
             return defaultRole;
+        }
+
+        private static Claim CreateJwtIdClaim()
+        {
+            return new Claim("jti", Guid.NewGuid().ToString());
+        }
+
+        /// <summary>
+        /// Generates a cryptographically secure refresh token
+        /// </summary>
+        public static string GenerateRefreshToken()
+        {
+            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         }
     }
 }

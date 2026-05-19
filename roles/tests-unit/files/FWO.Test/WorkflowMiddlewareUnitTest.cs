@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
@@ -9,6 +10,7 @@ using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 using System.Reflection;
+using System.Security.Claims;
 
 namespace FWO.Test
 {
@@ -115,6 +117,127 @@ namespace FWO.Test
         }
 
         [Test]
+        public void WorkflowController_CallerCanExecutePhase_RequiresMatchingWorkflowRole()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Requester), WorkflowPhases.request), Is.True);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Requester), WorkflowPhases.approval), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Modeller), WorkflowPhases.request), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Admin), WorkflowPhases.review), Is.True);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_TryParsePhase_RejectsInvalidPhase()
+        {
+            WorkflowActionParameters parameters = new() { Phase = "invalid" };
+            WorkflowActionResult result = new();
+            object?[] args = [parameters, result, WorkflowPhases.request];
+
+            bool parsed = InvokePrivateStaticWithRef<bool>(typeof(WorkflowController), "TryParsePhase", args);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("Invalid workflow phase"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidateOfferedAction_UsesOldStateForLocallyChangedObject()
+        {
+            WfStateAction action = new()
+            {
+                Id = 1,
+                Event = StateActionEvents.OfferButton.ToString(),
+                Scope = WfObjectScopes.ImplementationTask.ToString(),
+                TaskType = WfTaskType.access.ToString()
+            };
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.implementation,
+                ActionHandler = new ActionHandler(new SimulatedApiConnection(), new WfHandler())
+            };
+            SetPrivateField(handler.ActionHandler, "states", new List<WfState>
+            {
+                new() { Id = 210, Actions = [new WfStateActionDataHelper { Action = action }] }
+            });
+            WfImplTask persistedTask = new() { StateId = 210, TaskType = WfTaskType.access.ToString() };
+            WorkflowActionParameters parameters = new()
+            {
+                ActionId = action.Id,
+                OldStateId = 210,
+                NewStateId = 249
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidateOfferedAction",
+                handler, parameters, WfObjectScopes.ImplementationTask, WorkflowPhases.implementation, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.True);
+                Assert.That(result.ErrorMessage, Is.Null.Or.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidateOfferedAction_RejectsWhenPersistedStateDiffersFromOldState()
+        {
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.implementation,
+                ActionHandler = new ActionHandler(new SimulatedApiConnection(), new WfHandler())
+            };
+            WfImplTask persistedTask = new() { StateId = 211, TaskType = WfTaskType.access.ToString() };
+            WorkflowActionParameters parameters = new()
+            {
+                ActionId = 1,
+                OldStateId = 210,
+                NewStateId = 249
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidateOfferedAction",
+                handler, parameters, WfObjectScopes.ImplementationTask, WorkflowPhases.implementation, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("not 210"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessTicket_RequiresOwnerClaimWhenOwnerBased()
+        {
+            SimulatedUserConfig userConfig = new() { ReqOwnerBased = true };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks =
+                [
+                    new()
+                    {
+                        Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 7 } }]
+                    }
+                ]
+            };
+
+            bool ownerAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-editable-owners", "{7}")), userConfig, ticket);
+            bool otherOwnerRejected = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-editable-owners", "{8}")), userConfig, ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ownerAllowed, Is.True);
+                Assert.That(otherOwnerRejected, Is.False);
+            });
+        }
+
+        [Test]
         public async Task WorkflowRecipientResolver_ResolveUserDns_ReturnsDistinctDirectUserDns()
         {
             WorkflowRecipientResolver resolver = new(new RecipientResolverApiConn(), []);
@@ -185,6 +308,25 @@ namespace FWO.Test
             MethodInfo method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException($"{methodName} not found.");
             return (T)method.Invoke(null, parameters)!;
+        }
+
+        private static T InvokePrivateStaticWithRef<T>(Type type, string methodName, object?[] parameters)
+        {
+            MethodInfo method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException($"{methodName} not found.");
+            return (T)method.Invoke(null, parameters)!;
+        }
+
+        private static ClaimsPrincipal PrincipalWithRoles(params string[] roles)
+        {
+            ClaimsIdentity identity = new(roles.Select(role => new Claim(ClaimTypes.Role, role)), "test");
+            return new ClaimsPrincipal(identity);
+        }
+
+        private static ClaimsPrincipal PrincipalWithRolesAndClaims(string[] roles, params Claim[] claims)
+        {
+            ClaimsIdentity identity = new(roles.Select(role => new Claim(ClaimTypes.Role, role)).Concat(claims), "test");
+            return new ClaimsPrincipal(identity);
         }
 
         private static T GetPrivateField<T>(object instance, string fieldName)

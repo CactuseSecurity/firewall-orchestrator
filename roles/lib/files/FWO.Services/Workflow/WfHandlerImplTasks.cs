@@ -47,6 +47,17 @@ namespace FWO.Services.Workflow
             ActStateMatrix = stateMatrixDict.Matrices[implTask.TaskType];
         }
 
+        public bool TrySetImplTaskEnv(WfImplTask implTask)
+        {
+            if (!stateMatrixDict.Matrices.ContainsKey(implTask.TaskType))
+            {
+                return false;
+            }
+
+            SetImplTaskEnv(implTask);
+            return true;
+        }
+
         public void SetImplTaskOpt(ObjAction action)
         {
             ResetImplTaskActions();

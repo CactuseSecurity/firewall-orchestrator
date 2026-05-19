@@ -133,6 +133,17 @@ namespace FWO.Services.Workflow
             ActStateMatrix = stateMatrixDict.Matrices[reqTask.TaskType];
         }
 
+        public bool TrySetReqTaskEnv(WfReqTask reqTask)
+        {
+            if (!stateMatrixDict.Matrices.ContainsKey(reqTask.TaskType))
+            {
+                return false;
+            }
+
+            SetReqTaskEnv(reqTask);
+            return true;
+        }
+
         public void SetReqTaskMode(ObjAction action)
         {
             ResetReqTaskActions();

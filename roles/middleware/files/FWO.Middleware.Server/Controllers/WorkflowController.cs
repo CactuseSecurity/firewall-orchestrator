@@ -11,6 +11,7 @@ using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
+using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -43,7 +44,7 @@ namespace FWO.Middleware.Server.Controllers
         /// <param name="parameters">Workflow action parameters</param>
         /// <returns>true if the workflow action execution was handled</returns>
         [HttpPost("Actions")]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}, {Roles.Modeller}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")]
         public async Task<WorkflowActionResult> ExecuteActions([FromBody] WorkflowActionParameters parameters)
         {
             WorkflowActionResult result = new();
@@ -55,7 +56,17 @@ namespace FWO.Middleware.Server.Controllers
                     return result;
                 }
 
-                WorkflowPhases phase = ParsePhase(parameters.Phase);
+                if (!TryParsePhase(parameters, result, out WorkflowPhases phase))
+                {
+                    return result;
+                }
+
+                if (!CallerCanExecutePhase(User, phase))
+                {
+                    SetWarning(result, $"User is not authorized to execute workflow actions in phase '{phase}'.");
+                    return result;
+                }
+
                 long lockTicketId = GetTicketId(parameters, scope);
                 return await ExecuteActionsWithTicketLock(parameters, scope, phase, lockTicketId, result);
             }
@@ -83,9 +94,33 @@ namespace FWO.Middleware.Server.Controllers
             return false;
         }
 
-        private static WorkflowPhases ParsePhase(string phase)
+        private static bool TryParsePhase(WorkflowActionParameters parameters, WorkflowActionResult result, out WorkflowPhases phase)
         {
-            return Enum.TryParse(phase, out WorkflowPhases parsedPhase) ? parsedPhase : WorkflowPhases.request;
+            if (Enum.TryParse(parameters.Phase, out phase))
+            {
+                return true;
+            }
+
+            SetWarning(result, $"Invalid workflow phase '{parameters.Phase}'.");
+            return false;
+        }
+
+        private static bool CallerCanExecutePhase(ClaimsPrincipal user, WorkflowPhases phase)
+        {
+            if (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin))
+            {
+                return true;
+            }
+
+            return phase switch
+            {
+                WorkflowPhases.request => user.IsInRole(Roles.Requester),
+                WorkflowPhases.approval => user.IsInRole(Roles.Approver),
+                WorkflowPhases.planning => user.IsInRole(Roles.Planner),
+                WorkflowPhases.implementation => user.IsInRole(Roles.Implementer),
+                WorkflowPhases.review => user.IsInRole(Roles.Reviewer),
+                _ => false
+            };
         }
 
         private async Task<WorkflowActionResult> ExecuteActionsWithTicketLock(WorkflowActionParameters parameters, WfObjectScopes scope,
@@ -127,11 +162,22 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
+            if (!CallerCanAccessTicket(User, userConfig, ticket))
+            {
+                SetWarning(result, $"User is not authorized to execute workflow actions for ticket {ticket.Id}.");
+                return result;
+            }
+
             (WfStatefulObject? statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn) =
                 ResolveActionContext(wfHandler, ticket, parameters, scope);
             if (statefulObject == null)
             {
                 SetWarning(result, $"Stateful object could not be resolved. Scope: {scope}, ObjectId: {parameters.ObjectId}, TicketId: {ticket.Id}.");
+                return result;
+            }
+
+            if (!ValidateExecutionRequest(wfHandler, parameters, scope, phase, statefulObject, result))
+            {
                 return result;
             }
 
@@ -154,6 +200,58 @@ namespace FWO.Middleware.Server.Controllers
             {
                 Log.WriteError(title, resultMessage, exception);
             }
+        }
+
+        private static bool ValidateExecutionRequest(WfHandler wfHandler, WorkflowActionParameters parameters, WfObjectScopes scope,
+            WorkflowPhases phase, WfStatefulObject statefulObject, WorkflowActionResult result)
+        {
+            return parameters.ActionId > 0
+                ? ValidateOfferedAction(wfHandler, parameters, scope, phase, statefulObject, result)
+                : ValidatePersistedStateTransition(wfHandler, parameters, statefulObject, result);
+        }
+
+        private static bool ValidateOfferedAction(WfHandler wfHandler, WorkflowActionParameters parameters, WfObjectScopes scope,
+            WorkflowPhases phase, WfStatefulObject statefulObject, WorkflowActionResult result)
+        {
+            int expectedState = parameters.OldStateId > 0 ? parameters.OldStateId : parameters.NewStateId;
+            if (expectedState > 0 && statefulObject.StateId != expectedState)
+            {
+                SetWarning(result, $"Action execution rejected because the object state is {statefulObject.StateId}, not {expectedState}.");
+                return false;
+            }
+
+            bool actionOffered = wfHandler.ActionHandler?.GetOfferedActions(statefulObject, scope, phase).Any(action => action.Id == parameters.ActionId) == true;
+            if (!actionOffered)
+            {
+                SetWarning(result, $"Action {parameters.ActionId} is not offered for scope '{scope}' in phase '{phase}' and current state {statefulObject.StateId}.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ValidatePersistedStateTransition(WfHandler wfHandler, WorkflowActionParameters parameters,
+            WfStatefulObject statefulObject, WorkflowActionResult result)
+        {
+            if (parameters.OldStateId == parameters.NewStateId)
+            {
+                SetWarning(result, $"State-change action execution rejected because no state change was requested.");
+                return false;
+            }
+
+            if (statefulObject.StateId != parameters.NewStateId)
+            {
+                SetWarning(result, $"State-change action execution rejected because the persisted object state is {statefulObject.StateId}, not {parameters.NewStateId}.");
+                return false;
+            }
+
+            if (!wfHandler.ActStateMatrix.getAllowedTransitions(parameters.OldStateId, true).Contains(parameters.NewStateId))
+            {
+                SetWarning(result, $"State-change action execution rejected because transition {parameters.OldStateId}->{parameters.NewStateId} is not allowed.");
+                return false;
+            }
+
+            return true;
         }
 
         private static async Task<bool> InitWorkflowHandler(WfHandler wfHandler, WorkflowActionResult result)
@@ -208,14 +306,67 @@ namespace FWO.Middleware.Server.Controllers
             return parameters.TicketId > 0 || scope != WfObjectScopes.Ticket ? parameters.TicketId : parameters.ObjectId;
         }
 
+        private static bool CallerCanAccessTicket(ClaimsPrincipal user, UserConfig userConfig, WfTicket ticket)
+        {
+            if (user.IsInRole(Roles.Admin) || user.IsInRole(Roles.FwAdmin) || !userConfig.ReqOwnerBased)
+            {
+                return true;
+            }
+
+            if (CallerIsRequester(user, ticket))
+            {
+                return true;
+            }
+
+            HashSet<int> editableOwnerIds = GetClaimIds(user, "x-hasura-editable-owners");
+            return editableOwnerIds.Count > 0 && ticket.Tasks.Any(task => CallerOwnsTask(task, editableOwnerIds));
+        }
+
+        private static bool CallerIsRequester(ClaimsPrincipal user, WfTicket ticket)
+        {
+            int? userId = GetClaimInt(user, "x-hasura-user-id");
+            string? userDn = GetClaimValue(user, "x-hasura-uuid");
+            return (userId != null && ticket.Requester?.DbId == userId)
+                || (!string.IsNullOrWhiteSpace(userDn) && string.Equals(GetRequesterDn(ticket), userDn, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool CallerOwnsTask(WfReqTask task, HashSet<int> editableOwnerIds)
+        {
+            int requestingOwnerId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner);
+            return task.Owners.Any(owner => editableOwnerIds.Contains(owner.Owner.Id))
+                || (requestingOwnerId > 0 && editableOwnerIds.Contains(requestingOwnerId));
+        }
+
+        private static HashSet<int> GetClaimIds(ClaimsPrincipal user, string claimName)
+        {
+            string claimValue = GetClaimValue(user, claimName) ?? "";
+            return claimValue
+                .Trim('{', '}', ' ')
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(value => int.TryParse(value, out _))
+                .Select(int.Parse)
+                .ToHashSet();
+        }
+
+        private static int? GetClaimInt(ClaimsPrincipal user, string claimName)
+        {
+            return int.TryParse(GetClaimValue(user, claimName), out int value) ? value : null;
+        }
+
+        private static string? GetClaimValue(ClaimsPrincipal user, string claimName)
+        {
+            return user.Claims.FirstOrDefault(claim => claim.Type.Equals(claimName, StringComparison.OrdinalIgnoreCase)
+                || claim.Type.EndsWith("/" + claimName, StringComparison.OrdinalIgnoreCase))?.Value;
+        }
+
         private static (WfStatefulObject?, FwoOwner?, long?, string?) ResolveActionContext(WfHandler wfHandler, WfTicket ticket,
             WorkflowActionParameters parameters, WfObjectScopes scope)
         {
             return scope switch
             {
                 WfObjectScopes.Ticket => (ticket, null, ticket.Id, GetRequesterDn(ticket)),
-                WfObjectScopes.RequestTask => ResolveRequestTask(ticket, parameters.ObjectId),
-                WfObjectScopes.ImplementationTask => ResolveImplementationTask(ticket, parameters.ObjectId),
+                WfObjectScopes.RequestTask => ResolveRequestTask(wfHandler, ticket, parameters.ObjectId),
+                WfObjectScopes.ImplementationTask => ResolveImplementationTask(wfHandler, ticket, parameters.ObjectId),
                 WfObjectScopes.Approval => ResolveApproval(wfHandler, ticket, parameters.ObjectId),
                 _ => (null, null, null, null)
             };
@@ -226,13 +377,19 @@ namespace FWO.Middleware.Server.Controllers
             return !string.IsNullOrWhiteSpace(ticket.Requester?.Dn) ? ticket.Requester.Dn : ticket.RequesterDn;
         }
 
-        private static (WfStatefulObject?, FwoOwner?, long?, string?) ResolveRequestTask(WfTicket ticket, long objectId)
+        private static (WfStatefulObject?, FwoOwner?, long?, string?) ResolveRequestTask(WfHandler wfHandler, WfTicket ticket, long objectId)
         {
             WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(task => task.Id == objectId);
-            return reqTask == null ? (null, null, null, null) : (reqTask, reqTask.Owners.FirstOrDefault()?.Owner, reqTask.TicketId, null);
+            if (reqTask == null)
+            {
+                return (null, null, null, null);
+            }
+
+            wfHandler.TrySetReqTaskEnv(reqTask);
+            return (reqTask, reqTask.Owners.FirstOrDefault()?.Owner, reqTask.TicketId, null);
         }
 
-        private static (WfStatefulObject?, FwoOwner?, long?, string?) ResolveImplementationTask(WfTicket ticket, long objectId)
+        private static (WfStatefulObject?, FwoOwner?, long?, string?) ResolveImplementationTask(WfHandler wfHandler, WfTicket ticket, long objectId)
         {
             foreach (WfReqTask reqTask in ticket.Tasks)
             {
@@ -240,6 +397,7 @@ namespace FWO.Middleware.Server.Controllers
                 if (implTask != null)
                 {
                     implTask.TicketId = implTask.TicketId > 0 ? implTask.TicketId : reqTask.TicketId;
+                    wfHandler.TrySetImplTaskEnv(implTask);
                     return (implTask, reqTask.Owners.FirstOrDefault()?.Owner, implTask.TicketId, null);
                 }
             }
@@ -253,7 +411,7 @@ namespace FWO.Middleware.Server.Controllers
                 WfApproval? approval = reqTask.Approvals.FirstOrDefault(approval => approval.Id == objectId);
                 if (approval != null)
                 {
-                    wfHandler.SetReqTaskEnv(reqTask);
+                    wfHandler.TrySetReqTaskEnv(reqTask);
                     return (approval, reqTask.Owners.FirstOrDefault()?.Owner, reqTask.TicketId, null);
                 }
             }

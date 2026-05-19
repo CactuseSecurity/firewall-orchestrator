@@ -1750,6 +1750,14 @@ INSERT INTO txt VALUES ('show_history',		    'German', 	'&Auml;nderungshistorie'
 INSERT INTO txt VALUES ('show_history',		    'English', 	'Show History');
 INSERT INTO txt VALUES ('request_fw_change',    'German', 	'Firewall-&Auml;nderungen beantragen');
 INSERT INTO txt VALUES ('request_fw_change',    'English', 	'Request firewall changes');
+INSERT INTO txt VALUES ('request_running',      'German', 	'Antrag l&auml;uft');
+INSERT INTO txt VALUES ('request_running',      'English', 	'Request running');
+INSERT INTO txt VALUES ('changes_not_requested','German', 	'&Auml;nderungen nicht beantragt');
+INSERT INTO txt VALUES ('changes_not_requested','English', 	'Changes not requested');
+INSERT INTO txt VALUES ('all_implemented',      'German', 	'Alles implementiert');
+INSERT INTO txt VALUES ('all_implemented',      'English', 	'All implemented');
+INSERT INTO txt VALUES ('rejections',           'German', 	'Ablehnungen');
+INSERT INTO txt VALUES ('rejections',           'English', 	'Rejections');
 INSERT INTO txt VALUES ('ext_ticket_auth',      'German', 	'Authorization-Header-String');
 INSERT INTO txt VALUES ('ext_ticket_auth',      'English', 	'Authorization header string');
 INSERT INTO txt VALUES ('ext_ticket_lookup_id', 'German', 	'Externe Nutzer Id ermitteln');
@@ -2842,6 +2850,16 @@ INSERT INTO txt VALUES ('modIntegrationStates', 'German',   'Integrationsstatus'
 INSERT INTO txt VALUES ('modIntegrationStates', 'English',  'Integration States');
 INSERT INTO txt VALUES ('modIntegrationStateMarker', 'German',   'Statusmarker');
 INSERT INTO txt VALUES ('modIntegrationStateMarker', 'English',  'State Marker');
+INSERT INTO txt VALUES ('monitor_status',       'German',   'Monitorstatus');
+INSERT INTO txt VALUES ('monitor_status',       'English',  'Monitor status');
+INSERT INTO txt VALUES ('monitor_status_none',  'German',   'Keiner');
+INSERT INTO txt VALUES ('monitor_status_none',  'English',  'None');
+INSERT INTO txt VALUES ('monitor_status_request_running', 'German', 'Antrag l&auml;uft');
+INSERT INTO txt VALUES ('monitor_status_request_running', 'English', 'Request running');
+INSERT INTO txt VALUES ('monitor_status_implemented', 'German', 'Implementiert');
+INSERT INTO txt VALUES ('monitor_status_implemented', 'English', 'Implemented');
+INSERT INTO txt VALUES ('monitor_status_rejected', 'German', 'Abgelehnt');
+INSERT INTO txt VALUES ('monitor_status_rejected', 'English', 'Rejected');
 INSERT INTO txt VALUES ('include_into_request', 'German',   'In Request aufnehmen');
 INSERT INTO txt VALUES ('include_into_request', 'English',  'Include into request');
 INSERT INTO txt VALUES ('FullyIntegrated',      'German',   'Voll integriert');
@@ -7052,13 +7070,13 @@ INSERT INTO txt VALUES ('H7424', 'English', 'The button "Open tickets for delete
     The check is performed only when opening the popup, so it is independent from the current table filter.
 ');
 INSERT INTO txt VALUES ('H7425', 'German', 'Diese Seite listet Owner mit modellierten Verbindungen und zeigt den letzten zugeordneten Workflow-Antrag.
-    Die Spalte Antragsstatus zeigt, ob ein Antrag gerade l&auml;uft, ob ein neuer Antrag m&ouml;glich ist, ob noch nie ein Antrag gestellt wurde oder ob aktuell nichts zu beantragen ist.
+    Die Spalte Antragsstatus wird aus den konfigurierten Integrationsstatuswerten der modellierten Verbindungen und Gruppen sowie deren Monitorstatus ermittelt. Sie unterscheidet zwischen nie beantragt, laufendem Antrag, nichts zu beantragen, alles implementiert, Ablehnungen und nicht beantragten &Auml;nderungen.
     Ticket, Ticketstatus, offene Aufgaben sowie Erstellungs- und Abschlussdatum helfen bei der Einordnung des letzten Antrags.
     Administratoren k&ouml;nnen &uuml;ber die Aktionsspalte den Integrationsstatus aller in diesem Antrag angeforderten Verbindungen und Gruppen setzen, den Workflow-Status des Tickets &auml;ndern oder den Antragsbezug f&uuml;r den Owner zur&uuml;cksetzen.
     Das Setzen des Integrationsstatus verwendet die konfigurierten Integrationsstatuswerte aus den Modellierungseinstellungen.
 ');
 INSERT INTO txt VALUES ('H7425', 'English', 'This page lists owners with modelled connections and shows the latest assigned workflow request.
-    The request status column indicates whether a request is currently running, whether a new request is possible, whether no request has ever been sent, or whether there is currently nothing to request.
+    The request status column is derived from the configured integration-state values of the modelled connections and groups and from their configured monitor status. It distinguishes never requested, request running, nothing to request, all implemented, rejections, and changes not requested.
     Ticket, ticket state, open tasks, creation date, and completion date help classify the latest request.
     Administrators can use the actions column to set the integration state of all connections and groups requested by the ticket, change the workflow state of the ticket, or reset the request assignment for the owner.
     Setting the integration state uses the configured integration-state values from the modelling settings.

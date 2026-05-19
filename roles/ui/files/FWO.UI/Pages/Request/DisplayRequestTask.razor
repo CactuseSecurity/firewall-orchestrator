@@ -753,16 +753,23 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        if(WfHandler.ActionHandler != null)
+        try
         {
-            await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActReqTask, WfObjectScopes.RequestTask, actOwner, WfHandler.ActReqTask.TicketId);
+            if(WfHandler.ActionHandler != null)
+            {
+                await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActReqTask, WfObjectScopes.RequestTask, actOwner, WfHandler.ActReqTask.TicketId);
+            }
+            if(action.ActionType == nameof(StateActionTypes.AddApproval) && await WfHandler.ReloadActReqTask())
+            {
+                InitElements();
+                await InitComments();
+            }
+            await Reset();
         }
-        if(action.ActionType == nameof(StateActionTypes.AddApproval) && await WfHandler.ReloadActReqTask())
+        catch (Exception exception)
         {
-            InitElements();
-            await InitComments();
+            DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
         }
-        await Reset();
     }
 
     private void InitPromoteReqTask()

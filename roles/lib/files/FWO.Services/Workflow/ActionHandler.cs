@@ -201,10 +201,10 @@ namespace FWO.Services.Workflow
         public async Task<bool> PerformActionById(int actionId, WfStatefulObject statefulObject, WfObjectScopes scope,
             FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
         {
-            WfStateAction? action = states.SelectMany(state => state.Actions.Select(actionHelper => actionHelper.Action)).FirstOrDefault(action => action.Id == actionId);
+            WfStateAction? action = GetOfferedActions(statefulObject, scope, wfHandler.Phase).FirstOrDefault(action => action.Id == actionId);
             if (action == null)
             {
-                Log.WriteError("Workflow Actions", $"Action id {actionId} not found.");
+                Log.WriteError("Workflow Actions", $"Action id {actionId} is not offered for {scope} in state {statefulObject.StateId} and phase {wfHandler.Phase}.");
                 return false;
             }
             await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);

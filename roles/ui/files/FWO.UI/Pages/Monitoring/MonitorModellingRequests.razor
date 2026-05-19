@@ -187,16 +187,17 @@ else
         List<OwnerTicket> latestTickets = await apiConnection.SendQueryAsync<List<OwnerTicket>>(MonitorQueries.getLatestOwnerTickets);
         Dictionary<int, OwnerTicket> latestByOwner = latestTickets.ToDictionary(ownerTicket => ownerTicket.Owner.Id);
 
-        Rows = [.. owners
-            .Select(owner =>
-            {
-                latestByOwner.TryGetValue(owner.Id, out OwnerTicket? ownerTicket);
-                return BuildRow(owner, ownerTicket?.Ticket);
-            })
-            .OrderBy(row => row.Owner.Name)];
+        List<OwnerRequestStatus> rows = [];
+        foreach (FwoOwner owner in owners)
+        {
+            latestByOwner.TryGetValue(owner.Id, out OwnerTicket? ownerTicket);
+            rows.Add(await BuildRow(owner, ownerTicket?.Ticket));
+        }
+
+        Rows = [.. rows.OrderBy(row => row.Owner.Name)];
     }
 
-    private OwnerRequestStatus BuildRow(FwoOwner owner, WfTicket? ticket)
+    private async Task<OwnerRequestStatus> BuildRow(FwoOwner owner, WfTicket? ticket)
     {
         int openTasks = ticket == null || ExtStateHandler == null ? 0 : ticket.Tasks.Count(task => ExtStateHandler.IsInProgress(task.StateId));
         return new()
@@ -205,32 +206,64 @@ else
             TicketId = ticket?.Id ?? 0,
             StateId = ticket?.StateId ?? 0,
             StateName = ticket == null ? "" : States.GetName(ticket.StateId),
-            Status = RequestStatus(owner, ticket),
+            Status = await RequestStatus(owner, ticket),
             OpenTaskCount = openTasks,
             CreatedAt = ticket?.CreationDate,
             CompletedAt = ticket?.CompletionDate
         };
     }
 
-    private string RequestStatus(FwoOwner owner, WfTicket? ticket)
+    private async Task<string> RequestStatus(FwoOwner owner, WfTicket? ticket)
     {
-        if (IsRequestRunning(ticket))
+        IntegrationStateSummary integrationStates = await GetIntegrationStateSummary(owner.Id);
+        if (integrationStates.HasRunningRequest)
         {
-            return userConfig.GetText("in_process");
+            return userConfig.GetText("request_running");
         }
 
-        if (owner.ConnectionCount.Aggregate.Count > 0)
+        if (integrationStates.HasRejected)
         {
-            return userConfig.GetText("request_fw_change");
+            return userConfig.GetText("rejections");
         }
+
+        if (integrationStates.AllImplemented)
+        {
+            return userConfig.GetText("all_implemented");
+        }
+
+        if (integrationStates.HasUnrequestedChanges)
+        {
+            return ticket == null ? userConfig.GetText("never_requested") : userConfig.GetText("changes_not_requested");
+        }
+
         return ticket == null ? userConfig.GetText("never_requested") : userConfig.GetText("U9026");
     }
 
-    private bool IsRequestRunning(WfTicket? ticket)
+    private async Task<IntegrationStateSummary> GetIntegrationStateSummary(int ownerId)
     {
-        return ticket != null && ExtStateHandler != null
-            && ExtStateHandler.IsInProgress(ticket.StateId)
-            && ticket.Tasks.Any(task => ExtStateHandler.IsInProgress(task.StateId));
+        string stateMarker = ModIntegrationStateConfig.EffectiveMarker(userConfig.ModIntegrationStateMarker);
+        HashSet<string> includedRequestStateNames = ModIntegrationStateConfig.IncludedRequestStateNames(userConfig.ModIntegrationStates);
+        Dictionary<string, string> monitorStatusByStateName = ModIntegrationStateConfig.MonitorStatusByStateName(userConfig.ModIntegrationStates);
+        IntegrationStateSummary summary = new(includedRequestStateNames, monitorStatusByStateName);
+
+        List<ModellingConnection> connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = ownerId });
+        foreach (ModellingConnection connection in connections)
+        {
+            summary.Add(ModIntegrationStateConfig.GetStateName(connection.GetStringProperty(stateMarker)));
+        }
+
+        List<ModellingAppRole> appRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNwGroupsForApp, new { appId = ownerId });
+        foreach (ModellingAppRole appRole in appRoles)
+        {
+            summary.Add(ModIntegrationStateConfig.GetMarkedCommentValue(appRole.Comment, stateMarker));
+        }
+
+        List<ModellingServiceGroup> serviceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupsForApp, new { appId = ownerId });
+        foreach (ModellingServiceGroup serviceGroup in serviceGroups)
+        {
+            summary.Add(ModIntegrationStateConfig.GetMarkedCommentValue(serviceGroup.Comment, stateMarker));
+        }
+        return summary;
     }
 
     private void RequestReset(OwnerRequestStatus row)
@@ -511,6 +544,52 @@ else
                 Owner = owner,
                 Status = status
             };
+        }
+    }
+
+    private sealed class IntegrationStateSummary(HashSet<string> requestStateNames, Dictionary<string, string> monitorStatusByStateName)
+    {
+        private int objectCount;
+        private int unrequestedCount;
+        private int requestableCount;
+        private int runningCount;
+        private int implementedCount;
+        private int rejectedCount;
+
+        public bool HasUnrequestedChanges => unrequestedCount > 0 || requestableCount > 0;
+        public bool HasRunningRequest => runningCount > 0;
+        public bool HasRejected => rejectedCount > 0;
+        public bool AllImplemented => objectCount > 0 && implementedCount == objectCount;
+
+        public void Add(string stateName)
+        {
+            objectCount++;
+            if (string.IsNullOrWhiteSpace(stateName))
+            {
+                unrequestedCount++;
+                return;
+            }
+
+            string normalizedStateName = stateName.Trim();
+            if (requestStateNames.Contains(normalizedStateName))
+            {
+                requestableCount++;
+            }
+            string monitorStatus = monitorStatusByStateName.TryGetValue(normalizedStateName, out string? configuredMonitorStatus)
+                ? configuredMonitorStatus
+                : ModIntegrationStateStatus.None;
+            if (monitorStatus == ModIntegrationStateStatus.RequestRunning)
+            {
+                runningCount++;
+            }
+            if (monitorStatus == ModIntegrationStateStatus.Implemented)
+            {
+                implementedCount++;
+            }
+            if (monitorStatus == ModIntegrationStateStatus.Rejected)
+            {
+                rejectedCount++;
+            }
         }
     }
 }

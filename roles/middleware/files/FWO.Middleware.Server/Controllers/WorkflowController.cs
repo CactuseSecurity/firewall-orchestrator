@@ -7,6 +7,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using FWO.Middleware.Server.Services;
 using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,16 +27,18 @@ namespace FWO.Middleware.Server.Controllers
         private readonly GlobalConfig globalConfig;
         private readonly List<Ldap> ldaps;
         private readonly JwtWriter jwtWriter;
+        private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public WorkflowController(GlobalConfig globalConfig, List<Ldap> ldaps, JwtWriter jwtWriter)
+        public WorkflowController(GlobalConfig globalConfig, List<Ldap> ldaps, JwtWriter jwtWriter, TokenLifetimeProvider tokenLifetimeProvider)
         {
             this.globalConfig = globalConfig;
             this.ldaps = ldaps;
             this.jwtWriter = jwtWriter;
+            this.tokenLifetimeProvider = tokenLifetimeProvider;
         }
 
         /// <summary>
@@ -141,7 +144,8 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<WorkflowActionResult> ExecuteActionsWithApi(WorkflowActionParameters parameters, WfObjectScopes scope,
             WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
         {
-            using ApiConnection actionApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url."), jwtWriter.CreateJWTMiddlewareServer());
+            using ApiConnection actionApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url."),
+                jwtWriter.CreateJWTMiddlewareServer(tokenLifetimeProvider.GetInternalServiceTokenLifetime()));
             return await actionApiConnection.RunWithRole(Roles.MiddlewareServer,
                 async () => await ExecuteActionsInMiddlewareContext(actionApiConnection, parameters, scope, phase, lockTicketId, result));
         }

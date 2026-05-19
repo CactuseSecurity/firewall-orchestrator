@@ -336,6 +336,13 @@ namespace FWO.Test
             return (T)field.GetValue(instance)!;
         }
 
+        private static void SetPrivateField(object instance, string fieldName, object? value)
+        {
+            FieldInfo field = instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException($"{fieldName} not found.");
+            field.SetValue(instance, value);
+        }
+
         private static T GetTupleItem<T>(object tuple, string itemName)
         {
             FieldInfo field = tuple.GetType().GetField(itemName)

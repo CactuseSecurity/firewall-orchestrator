@@ -340,6 +340,63 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplaySentEmailConfirmation_SuppressesZeroSentEmails()
+        {
+            List<(string Title, string Message, bool ErrorFlag)> messages = [];
+            WfHandler wfHandler = new(new SimulatedUserConfig(), new ActionHandlerTestApiConn(), WorkflowPhases.request, null,
+                displayMessage: (_, title, message, errorFlag) => messages.Add((title, message, errorFlag)));
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
+            EmailActionParams actionParams = new()
+            {
+                ConfirmSentMail = true
+            };
+
+            GetPrivateMethod("DisplaySentEmailConfirmation").Invoke(handler, [actionParams, 0]);
+
+            Assert.That(messages, Is.Empty);
+        }
+
+        [Test]
+        public void DisplaySentEmailConfirmation_ShowsPositiveSentEmails()
+        {
+            List<(string Title, string Message, bool ErrorFlag)> messages = [];
+            WfHandler wfHandler = new(new SimulatedUserConfig(), new ActionHandlerTestApiConn(), WorkflowPhases.request, null,
+                displayMessage: (_, title, message, errorFlag) => messages.Add((title, message, errorFlag)));
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
+            EmailActionParams actionParams = new()
+            {
+                ConfirmSentMail = true
+            };
+
+            GetPrivateMethod("DisplaySentEmailConfirmation").Invoke(handler, [actionParams, 2]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo("Send Email"));
+                Assert.That(messages[0].Message, Is.EqualTo("2 emails sent"));
+                Assert.That(messages[0].ErrorFlag, Is.False);
+            });
+        }
+
+        [Test]
+        public void DisplaySentEmailConfirmation_SuppressesConfirmationWhenDisabled()
+        {
+            List<(string Title, string Message, bool ErrorFlag)> messages = [];
+            WfHandler wfHandler = new(new SimulatedUserConfig(), new ActionHandlerTestApiConn(), WorkflowPhases.request, null,
+                displayMessage: (_, title, message, errorFlag) => messages.Add((title, message, errorFlag)));
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
+            EmailActionParams actionParams = new()
+            {
+                ConfirmSentMail = false
+            };
+
+            GetPrivateMethod("DisplaySentEmailConfirmation").Invoke(handler, [actionParams, 2]);
+
+            Assert.That(messages, Is.Empty);
+        }
+
+        [Test]
         public async Task SetScope_SetsRequesterForToCcAndBcc()
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());

@@ -275,9 +275,18 @@ namespace FWO.Test
                 Cidr = new Cidr("10.0.0.1/32"),
                 IpString = "10.0.0.1/32",
                 NetworkId = 12,
-                Name = "obj"
+                Name = "obj",
+                GroupName = "AR-Impl"
             });
-            task.ImplElements.Add(new WfImplElement { Id = 2, ImplTaskId = 10, Field = ElemFieldType.service.ToString(), Port = 80, ProtoId = 6 });
+            task.ImplElements.Add(new WfImplElement
+            {
+                Id = 2,
+                ImplTaskId = 10,
+                Field = ElemFieldType.service.ToString(),
+                Port = 80,
+                ProtoId = 6,
+                GroupName = "SG-Impl"
+            });
             task.ImplElements.Add(new WfImplElement { Id = 3, ImplTaskId = 10, Field = ElemFieldType.rule.ToString(), RuleUid = "uid", Name = "rule" });
 
             List<NwObjectElement> nwObjects = task.GetNwObjectElements(ElemFieldType.source);
@@ -291,8 +300,10 @@ namespace FWO.Test
             Assert.That(nwObjects[0].IpString, Is.EqualTo("10.0.0.1/32"));
             Assert.That(nwObjects[0].NetworkId, Is.EqualTo(12));
             Assert.That(nwObjects[0].Name, Is.EqualTo("obj"));
+            Assert.That(nwObjects[0].GroupName, Is.EqualTo("AR-Impl"));
             Assert.That(services, Has.Count.EqualTo(1));
             Assert.That(services[0].Port, Is.EqualTo(80));
+            Assert.That(services[0].GroupName, Is.EqualTo("SG-Impl"));
             Assert.That(rules, Has.Count.EqualTo(1));
             Assert.That(rules[0].RuleUid, Is.EqualTo("uid"));
             Assert.That(rules[0].Name, Is.EqualTo("rule"));

@@ -110,7 +110,8 @@ namespace FWO.Data.Workflow
                         Cidr = new Cidr(implElem.Cidr != null ? implElem.Cidr.CidrString : ""),
                         IpString = implElem.IpString ?? "",
                         NetworkId = implElem.NetworkId,
-                        Name = implElem.Name
+                        Name = implElem.Name,
+                        GroupName = implElem.GroupName ?? ""
                     });
                 }
             }

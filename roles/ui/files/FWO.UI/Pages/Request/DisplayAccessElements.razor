@@ -302,7 +302,8 @@ else
 
     private string DisplayNetworkObject(NwObjectElement element)
     {
-        return nwObjects.FirstOrDefault(nwObject => nwObject.Id == element.NetworkId)?.Name
+        return !string.IsNullOrWhiteSpace(element.GroupName) ? element.GroupName
+            : nwObjects.FirstOrDefault(nwObject => nwObject.Id == element.NetworkId)?.Name
             ?? element.Name
             ?? element.NetworkId?.ToString()
             ?? "";

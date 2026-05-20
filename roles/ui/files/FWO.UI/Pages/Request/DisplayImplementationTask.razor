@@ -253,13 +253,13 @@
                                 @foreach(var source in actSources)
                                 {
                                     <div class="list-group-item border bg-secondary">
-                                        <label>@NwObjDisplay.DisplayIp(source.IpString, source.IpEndString)</label>
+                                        <label>@DisplayObjectElement(source)</label>
                                     </div>
                                 }
                                 @foreach(var service in actServices)
                                 {
                                     <div class="list-group-item border bg-secondary">
-                                        <label>@DisplayBase.DisplayService(service, ipProtos)</label>
+                                        <label>@DisplayServiceElement(service)</label>
                                     </div>
                                 }
                             </div>
@@ -480,6 +480,32 @@
         return WfHandler.ActImplTask.TaskType == WfTaskType.access.ToString()
             && WfHandler.ActImplTask.DeviceId == null
             && WfHandler.ActReqTask.HasAllDevicesSelected();
+    }
+
+    private string DisplayObjectElement(NwObjectElement element)
+    {
+        if (!string.IsNullOrWhiteSpace(element.GroupName))
+        {
+            return element.GroupName;
+        }
+        if (!string.IsNullOrWhiteSpace(element.Name) && string.IsNullOrWhiteSpace(element.IpString))
+        {
+            return element.Name;
+        }
+        return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+    }
+
+    private string DisplayServiceElement(NwServiceElement element)
+    {
+        if (!string.IsNullOrWhiteSpace(element.GroupName))
+        {
+            return element.GroupName;
+        }
+        if (!string.IsNullOrWhiteSpace(element.Name) && element.Port == 0)
+        {
+            return element.Name;
+        }
+        return DisplayBase.DisplayService(element, ipProtos);
     }
 
     private async Task Close()

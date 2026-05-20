@@ -373,10 +373,7 @@ namespace FWO.Services.Workflow
                 }
                 await UpdateSentNotificationTimestamps(sentNotificationIds);
                 Log.WriteInfo("SendEmail", $"Sent {sentEmailCount} workflow action email(s).");
-                if (emailActionParams.ConfirmSentMail)
-                {
-                    wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("send_email"), $"{sentEmailCount}{wfHandler.userConfig.GetText("emails_sent")}", sentEmailCount == 0);
-                }
+                DisplaySentEmailConfirmation(emailActionParams, sentEmailCount);
             }
             catch (Exception exc)
             {
@@ -385,6 +382,14 @@ namespace FWO.Services.Workflow
                 {
                     wfHandler.DisplayMessage(exc, wfHandler.userConfig.GetText("send_email"), "", true);
                 }
+            }
+        }
+
+        private void DisplaySentEmailConfirmation(EmailActionParams emailActionParams, int sentEmailCount)
+        {
+            if (emailActionParams.ConfirmSentMail && sentEmailCount > 0)
+            {
+                wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("send_email"), $"{sentEmailCount}{wfHandler.userConfig.GetText("emails_sent")}", false);
             }
         }
 

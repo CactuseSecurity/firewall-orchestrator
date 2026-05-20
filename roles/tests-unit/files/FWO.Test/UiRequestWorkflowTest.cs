@@ -134,6 +134,33 @@ namespace FWO.Test
             return wrapper.FindComponent<DisplayRequestTask>();
         }
 
+        private static IRenderedComponent<DisplayImplementationTask> RenderDisplayImplementationTask(
+            Bunit.TestContext context,
+            WfHandler handler,
+            WfStateDict states,
+            params string[] roles)
+        {
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new RequestWorkflowAuthStateProvider(roles));
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton<IEventMediator>(new EventMediator());
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<DisplayImplementationTask>(child => child
+                    .Add(p => p.Phase, WorkflowPhases.implementation)
+                    .Add(p => p.States, states)
+                    .Add(p => p.WfHandler, handler)
+                    .Add(p => p.ResetParent, DefaultInit.DoNothing)
+                    .Add(p => p.StateMatrix, new StateMatrix())
+                    .Add(p => p.IncludePopups, false)));
+
+            return wrapper.FindComponent<DisplayImplementationTask>();
+        }
+
         private static IRenderedComponent<PromoteObject> RenderPromoteObject(
             Bunit.TestContext context,
             WfStateDict states,
@@ -361,6 +388,96 @@ namespace FWO.Test
             }
 
             Assert.That(newDropdownCount, Is.GreaterThan(existingDropdownCount));
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_ReadOnlyObjectEntriesPreferGroupName()
+        {
+            await using Bunit.TestContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+            List<NwObjectElement> sources =
+            [
+                new() { NetworkId = 42, GroupName = "AR-Displayed", Name = "HiddenSourceName" }
+            ];
+            List<NwObjectElement> destinations =
+            [
+                new() { NetworkId = 43, GroupName = "AR-Destination", Name = "HiddenDestinationName" }
+            ];
+            List<NwServiceElement> services =
+            [
+                new() { ServiceId = 44, GroupName = "SG-Displayed", Name = "HiddenServiceName" }
+            ];
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, sources)
+                .Add(p => p.Destinations, destinations)
+                .Add(p => p.Services, services)
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, false));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("AR-Displayed"));
+                Assert.That(component.Markup, Does.Contain("AR-Destination"));
+                Assert.That(component.Markup, Does.Contain("SG-Displayed"));
+                Assert.That(component.Markup, Does.Not.Contain("HiddenSourceName"));
+                Assert.That(component.Markup, Does.Not.Contain("HiddenDestinationName"));
+                Assert.That(component.Markup, Does.Not.Contain("HiddenServiceName"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayImplementationTask_GroupCreateReadOnlyDisplaysGroupElements()
+        {
+            WfImplTask implTask = new()
+            {
+                Id = 21,
+                Title = "Create groups",
+                TaskType = WfTaskType.group_create.ToString(),
+                StateId = 1,
+                ImplElements =
+                [
+                    new WfImplElement
+                    {
+                        Id = 1,
+                        ImplTaskId = 21,
+                        Field = ElemFieldType.source.ToString(),
+                        NetworkId = 42,
+                        GroupName = "AR-ImplGroup",
+                        Name = "HiddenObjectName"
+                    },
+                    new WfImplElement
+                    {
+                        Id = 2,
+                        ImplTaskId = 21,
+                        Field = ElemFieldType.service.ToString(),
+                        ServiceId = 44,
+                        GroupName = "SG-ImplGroup",
+                        Name = "HiddenServiceName"
+                    }
+                ]
+            };
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                EditImplTaskMode = false,
+                ActImplTask = implTask,
+                ActReqTask = new WfReqTask(),
+                Devices = []
+            };
+            WfStateDict states = new() { Name = { [1] = "Open" } };
+
+            await using Bunit.TestContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler, states, Roles.Implementer);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("AR-ImplGroup"));
+                Assert.That(component.Markup, Does.Contain("SG-ImplGroup"));
+                Assert.That(component.Markup, Does.Not.Contain("HiddenObjectName"));
+                Assert.That(component.Markup, Does.Not.Contain("HiddenServiceName"));
+            });
         }
 
         [Test]

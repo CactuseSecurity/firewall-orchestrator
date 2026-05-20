@@ -20,12 +20,18 @@ namespace FWO.Services
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
 
+        /// <summary>
+        /// Creates a new flow sync service with API access and global configuration.
+        /// </summary>
         public FlowSync(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
         }
 
+        /// <summary>
+        /// Fetches the normalized objects and existing flow data needed for synchronization.
+        /// </summary>
         private async Task<FlowSyncFlowData> GetFlowSyncDataAsync(int mgmId)
         {
             var nwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, new { mgmId }) ?? [];
@@ -125,6 +131,9 @@ namespace FWO.Services
             var updateCount = await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateImportControlForFlowSync, new { controlId = maxImportId, mgmId, flowSyncDone = true });
         }
 
+        /// <summary>
+        /// Inserts missing flow network objects and updates normalized object mappings.
+        /// </summary>
         private async Task ProcessNetworkObjectsAsync(IEnumerable<NetworkObject> nwObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
             Dictionary<string, FlowNwObjectInsert> pendingNwObjInserts = [];
@@ -179,6 +188,9 @@ namespace FWO.Services
             }
         }
 
+        /// <summary>
+        /// Builds or reuses a flow network object and prepares mapping updates for the normalized object.
+        /// </summary>
         private bool TryBuildFlowNwObj(NetworkObject obj, FlowSyncFlowData flowData, Dictionary<string, FlowNwObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
         {
             if (!TryGetFlowNwObjectHash(obj, flowData, out var hash))
@@ -231,6 +243,9 @@ namespace FWO.Services
         }
 
 
+        /// <summary>
+        /// Inserts missing flow service objects and updates normalized service mappings.
+        /// </summary>
         private async Task ProcessServiceObjectsAsync(IEnumerable<NetworkService> svcObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
             Dictionary<string, FlowSvcObjectInsert> pendingSvcObjInserts = [];
@@ -284,6 +299,9 @@ namespace FWO.Services
             }
         }
 
+        /// <summary>
+        /// Builds or reuses a flow service object and prepares mapping updates for the normalized service.
+        /// </summary>
         private bool TryBuildFlowSvcObj(NetworkService svc, FlowSyncFlowData flowData, Dictionary<string, FlowSvcObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
         {
             if (!TryGetFlowSvcObjectHash(svc, flowData, out var hash))
@@ -336,6 +354,9 @@ namespace FWO.Services
             return true;
         }
 
+        /// <summary>
+        /// Inserts missing flow time objects and updates normalized time object mappings.
+        /// </summary>
         private async Task ProcessTimeObjectsAsync(IEnumerable<TimeObject> timeObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
             Dictionary<string, FlowTimeObjectInsert> pendingTimeObjInserts = [];
@@ -384,6 +405,9 @@ namespace FWO.Services
             }
         }
 
+        /// <summary>
+        /// Builds or reuses a flow time object and prepares mapping updates for the normalized time object.
+        /// </summary>
         private bool TryBuildFlowTimeObj(TimeObject timeObj, FlowSyncFlowData flowData, Dictionary<string, FlowTimeObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
         {
             if (!TryGetFlowTimeObjectHash(timeObj, flowData, out var hash))
@@ -437,6 +461,9 @@ namespace FWO.Services
         }
 
 
+        /// <summary>
+        /// Inserts missing flow network groups, including their member references, and updates normalized group mappings.
+        /// </summary>
         private async Task ProcessNetworkGroupsAsync(IEnumerable<NetworkObject> nwGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
             Dictionary<string, FlowNwGroupInsert> pendingNwGroupInserts = [];
@@ -489,6 +516,9 @@ namespace FWO.Services
             }
         }
 
+        /// <summary>
+        /// Builds or reuses a flow network group and prepares mapping updates for the normalized group.
+        /// </summary>
         private bool TryBuildNwGroup(NetworkObject group, FlowSyncFlowData flowData, Dictionary<string, FlowNwGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
         {
             if (!TryBuildNwGroupMemberHashes(group, flowData, out var memberHashes))
@@ -544,6 +574,9 @@ namespace FWO.Services
             return true;
         }
 
+        /// <summary>
+        /// Inserts missing flow service groups, including their member references, and updates normalized group mappings.
+        /// </summary>
         private async Task ProcessServiceGroupsAsync(IEnumerable<NetworkService> svcGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
             Dictionary<string, FlowSvcGroupInsert> pendingSvcGroupInserts = [];
@@ -595,6 +628,9 @@ namespace FWO.Services
             }
         }
 
+        /// <summary>
+        /// Builds or reuses a flow service group and prepares mapping updates for the normalized group.
+        /// </summary>
         private bool TryBuildSvcGroup(NetworkService group, FlowSyncFlowData flowData, Dictionary<string, FlowSvcGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
         {
             if (!TryBuildSvcGroupMemberHashes(group, flowData, out var memberHashes))
@@ -650,6 +686,9 @@ namespace FWO.Services
             return true;
         }
 
+        /// <summary>
+        /// Inserts missing flow accesses and updates normalized rule mappings.
+        /// </summary>
         private async Task ProcessRulesAsync(IEnumerable<Rule> rules, FlowSyncFlowData flowData)
         {
             Dictionary<string, FlowAccessInsert> pendingAccessInserts = [];
@@ -708,9 +747,6 @@ namespace FWO.Services
         /// hash, and if not, looking up a stored hash in flow data. Returns false if no hash can be determined, which
         /// indicates that the object should be skipped (e.g. non-technical objects that need manual creation).
         /// </summary>
-        /// <param name="obj"></param>
-        /// <param name="flowData"></param>
-        /// <param name="hash"></param>
         /// <returns></returns>
         private static bool TryGetFlowNwObjectHash(NetworkObject obj, FlowSyncFlowData flowData, out string hash)
         {
@@ -729,6 +765,9 @@ namespace FWO.Services
             return true;
         }
 
+        /// <summary>
+        /// Resolves or calculates the hash for a service object when protocol and ports are available.
+        /// </summary>
         private static bool TryGetFlowSvcObjectHash(NetworkService svc, FlowSyncFlowData flowData, out string hash)
         {
             hash = "";
@@ -751,6 +790,9 @@ namespace FWO.Services
             return true;
         }
 
+        /// <summary>
+        /// Resolves or calculates the hash for a time object when start or end is present.
+        /// </summary>
         private static bool TryGetFlowTimeObjectHash(TimeObject timeObj, FlowSyncFlowData flowData, out string hash)
         {
             hash = "";
@@ -770,15 +812,9 @@ namespace FWO.Services
 
         /// <summary>
         /// Builds a list of member hashes for a network group by looking up each flat member's object hash. If any
-        /// member is non-technical (no IP) and does not have a stored hash, or if any technical member's hash cannot
-        /// be found in flow data, the method returns false indicating that the group should be skipped. Otherwise, it
-        /// returns true and outputs the list of member hashes.
+        /// member is non-technical (no IP) and does not have a stored hash the method returns false indicating that
+        /// the group should be skipped. Otherwise, it returns true and outputs the list of member hashes.
         /// </summary>
-        /// <param name="group"></param>
-        /// <param name="flowData"></param>
-        /// <param name="memberHashes"></param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
         private static bool TryBuildNwGroupMemberHashes(NetworkObject group, FlowSyncFlowData flowData, out HashSet<string> memberHashes)
         {
             memberHashes = [];
@@ -791,7 +827,7 @@ namespace FWO.Services
             {
                 if (member.Object == null)
                 {
-                    throw new Exception($"Network group member {member.Id} does not have the object included in the query result");
+                    throw new InvalidOperationException($"Network group member {member.Id} does not have the object included in the query result");
                 }
                 if (member.Object.Type.Name == ObjectType.Group)
                 {
@@ -804,7 +840,7 @@ namespace FWO.Services
                 if (!flowData.NwObjects.ContainsKey(memberHash))
                 {
                     // technical member objects should have been previously inserted
-                    throw new Exception($"Network group member {member.Id} expected to have a corresponding flow object, but it was not found. Hash: {memberHash}");
+                    throw new InvalidOperationException($"Network group member {member.Id} expected to have a corresponding flow object, but it was not found. Hash: {memberHash}");
                 }
                 memberHashes.Add(memberHash);
             }
@@ -812,6 +848,9 @@ namespace FWO.Services
             return memberHashes.Count > 0;
         }
 
+        /// <summary>
+        /// Builds a list of member hashes for a service group based on flat service members.
+        /// </summary>
         private static bool TryBuildSvcGroupMemberHashes(NetworkService group, FlowSyncFlowData flowData, out HashSet<string> memberHashes)
         {
             memberHashes = [];
@@ -824,7 +863,7 @@ namespace FWO.Services
             {
                 if (member.Object == null)
                 {
-                    throw new Exception($"Service group member {member.Id} does not have the service included in the query result");
+                    throw new InvalidOperationException($"Service group member {member.Id} does not have the service included in the query result");
                 }
                 if (member.Object.Type.Name == ServiceType.Group)
                 {
@@ -842,19 +881,13 @@ namespace FWO.Services
 
         /// <summary>
         /// Calculates all relevant hashes and collects the ids of all flow objects that technically define the rule
-        /// access (src/dst/service/time), as well as group ids of any groups used in the rule. If any non-technical
-        /// object is encountered that does not have a stored hash, or if any technical object does not have a
-        /// corresponding flow object in flow data, the method returns false indicating that the rule should be skipped.
-        /// Otherwise, it returns true and outputs a FlowAccessInsert object if the access does not already exist, along
-        /// with a flag indicating whether the access is new or already exists. The flow access insert object can then
-        /// be used to insert a new flow access if needed, and the mapping updates can be used to link the rule to the
-        /// flow access and set flow_active status accordingly.
+        /// access (src/dst/service), as well as time objects and group ids of any groups used in the rule. If any
+        /// non-technical object is encountered that does not have a stored hash the method returns false indicating
+        /// that the rule should be skipped. Otherwise, it returns true and outputs a FlowAccessInsert object if the
+        /// access does not already exist, along with a flag indicating whether the access is new or already exists.
+        /// The flow access insert object can then be used to insert a new flow access if needed, and the mapping
+        /// updates can be used to link the rule to the flow access and set flow_active status accordingly.
         /// </summary>
-        /// <param name="rule"></param>
-        /// <param name="flowData"></param>
-        /// <param name="pendingAccessInserts"></param>
-        /// <param name="newFlowMappings"></param>
-        /// <returns></returns>
         private bool TryBuildRuleAccess(
             Rule rule,
             FlowSyncFlowData flowData,
@@ -953,17 +986,10 @@ namespace FWO.Services
         /// Collects the flow nwobj ids of the network objects that technically define the rule src/dst, as well as the
         /// flow nwgroup ids of groups used in the rule. If obj is a group, all non-group members' ids are added.
         /// Hashes of all involved non-group objects are added to the provided hash set for later access hash generation
-        /// Returns false if any non-technical object is encountered that does not have a stored hash, or if any 
-        /// technical object does not have a corresponding flow object in flow data.
+        /// Returns false if any non-technical object is encountered that does not have a stored hash.
         /// An empty group in src/dst is not supported and will also lead to a false return value. An empty group
         /// within a group in src/dst is supported, as long as the top-level group has at least one technical member.
         /// </summary>
-        /// <param name="obj"></param>
-        /// <param name="flowData"></param>
-        /// <param name="objectIds"></param>
-        /// <param name="groupIds"></param>
-        /// <param name="hashes"></param>
-        /// <returns></returns>
         private static bool TryAddRuleNetworkLocation(
             NetworkObject obj,
             FlowSyncFlowData flowData,
@@ -995,7 +1021,7 @@ namespace FWO.Services
                 if (!flowData.NwObjects.TryGetValue(objHash, out FlowNwObject? flowNwObj))
                 {
                     // technical objects should have been previously inserted
-                    throw new Exception($"Network object {obj.Id} expected to have a corresponding flow object, but it was not found. Hash: {objHash}");
+                    throw new InvalidOperationException($"Network object {obj.Id} expected to have a corresponding flow object, but it was not found. Hash: {objHash}");
                 }
                 objectIds.Add(flowNwObj.Id);
                 hashes.Add(objHash);
@@ -1008,17 +1034,10 @@ namespace FWO.Services
         /// Collects the flow svcobj ids of the services that technically define the rule service, as well as the
         /// flow svcgroup ids of groups used in the rule. If a group is used, all non-group members' ids are added.
         /// Hashes of all involved non-group services are added to the provided hash set for later access hash
-        /// generation. Returns false if any non-technical service is encountered that does not have a stored hash, or
-        /// if any technical service does not have a corresponding flow object in flow data. An empty group in services
-        /// is not supported and will also lead to a false return value. An empty group within a group in services is
-        /// supported, as long as the top-level group has at least one technical member.
+        /// generation. Returns false if any non-technical service is encountered that does not have a stored hash.
+        /// An empty group in services is not supported and will also lead to a false return value. An empty group
+        /// within a group in services is supported, as long as the top-level group has at least one technical member.
         /// </summary>
-        /// <param name="svc"></param>
-        /// <param name="flowData"></param>
-        /// <param name="serviceIds"></param>
-        /// <param name="serviceGroupIds"></param>
-        /// <param name="hashes"></param>
-        /// <returns></returns>
         private static bool TryAddRuleService(
             NetworkService svc,
             FlowSyncFlowData flowData,
@@ -1050,7 +1069,7 @@ namespace FWO.Services
                 if (!flowData.SvcObjects.TryGetValue(svcHash, out FlowSvcObject? flowSvcObj))
                 {
                     // technical services should have been previously inserted
-                    throw new Exception($"Service {svc.Id} expected to have a corresponding flow object, but it was not found. Hash: {svcHash}");
+                    throw new InvalidOperationException($"Service {svc.Id} expected to have a corresponding flow object, but it was not found. Hash: {svcHash}");
                 }
                 serviceIds.Add(flowSvcObj.Id);
                 hashes.Add(svcHash);
@@ -1062,11 +1081,6 @@ namespace FWO.Services
         /// <summary>
         /// Collects the flow timeobj ids of the time objects used in the rule.
         /// </summary>
-        /// <param name="ruleTimes"></param>
-        /// <param name="flowData"></param>
-        /// <param name="timeIds"></param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
         private static bool TryAddRuleTimeObjects(
             IEnumerable<RuleTime> ruleTimes,
             FlowSyncFlowData flowData,
@@ -1076,7 +1090,7 @@ namespace FWO.Services
             {
                 if (ruleTime.TimeObj == null)
                 {
-                    throw new Exception($"RuleTime {ruleTime.Id} does not have the time object included in the query result");
+                    throw new InvalidOperationException($"RuleTime {ruleTime.Id} does not have the time object included in the query result");
                 }
                 if (!TryGetFlowTimeObjectHash(ruleTime.TimeObj, flowData, out var timeHash))
                 {
@@ -1085,7 +1099,7 @@ namespace FWO.Services
                 if (!flowData.TimeObjects.TryGetValue(timeHash, out FlowTimeObject? flowTimeObj))
                 {
                     // technical time objects should have been previously inserted
-                    throw new Exception($"Time object {ruleTime.TimeObj.Id} expected to have a corresponding flow object, but it was not found. Hash: {timeHash}");
+                    throw new InvalidOperationException($"Time object {ruleTime.TimeObj.Id} expected to have a corresponding flow object, but it was not found. Hash: {timeHash}");
                 }
                 timeIds.Add(flowTimeObj.Id);
             }
@@ -1093,6 +1107,9 @@ namespace FWO.Services
             return true;
         }
 
+        /// <summary>
+        /// Wraps access member inserts into a container for the mutation input.
+        /// </summary>
         private static FlowAccessInsertMembersContainer BuildAccessMembersContainer<T>(IEnumerable<T> items) where T : class
         {
             var list = items.ToList();

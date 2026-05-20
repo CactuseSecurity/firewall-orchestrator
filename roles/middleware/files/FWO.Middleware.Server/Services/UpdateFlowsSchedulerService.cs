@@ -41,13 +41,16 @@ namespace FWO.Middleware.Server.Services
         { }
 
         /// <inheritdoc />
-        protected override int SleepTime => globalConfig.ImpChangeNotifySleepTime;
+        protected override int SleepTime => 0;
 
         /// <inheritdoc />
         protected override DateTime StartAt => DateTime.Now.AddSeconds(1);
 
         /// <inheritdoc />
-        protected override TimeSpan Interval => TimeSpan.FromSeconds(globalConfig.ImpChangeNotifySleepTime);
+        protected override TimeSpan Interval => TimeSpan.FromSeconds(1);
+
+        /// <inheritdoc />
+        protected override bool IsActive => false;
 
         /// <inheritdoc />
         protected override string IntervalLogSuffix => "s";

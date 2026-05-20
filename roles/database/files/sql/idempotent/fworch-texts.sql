@@ -1752,8 +1752,8 @@ INSERT INTO txt VALUES ('request_fw_change',    'German', 	'Firewall-&Auml;nderu
 INSERT INTO txt VALUES ('request_fw_change',    'English', 	'Request firewall changes');
 INSERT INTO txt VALUES ('request_running',      'German', 	'Antrag l&auml;uft');
 INSERT INTO txt VALUES ('request_running',      'English', 	'Request running');
-INSERT INTO txt VALUES ('changes_not_requested','German', 	'&Auml;nderungen nicht beantragt');
-INSERT INTO txt VALUES ('changes_not_requested','English', 	'Changes not requested');
+INSERT INTO txt VALUES ('changes_not_requested','German', 	'Unbeantragte &Auml;nderungen');
+INSERT INTO txt VALUES ('changes_not_requested','English', 	'Unrequested Changes');
 INSERT INTO txt VALUES ('all_implemented',      'German', 	'Alles implementiert');
 INSERT INTO txt VALUES ('all_implemented',      'English', 	'All implemented');
 INSERT INTO txt VALUES ('rejections',           'German', 	'Ablehnungen');

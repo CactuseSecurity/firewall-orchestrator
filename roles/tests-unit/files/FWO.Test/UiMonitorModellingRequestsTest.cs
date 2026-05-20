@@ -323,6 +323,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task LoadRows_ShowsChangesNotRequested_WhenUnmarkedConnectionsExistAfterTicket()
+        {
+            MonitorModellingRequests component = new();
+            MonitorModellingRequestsApiConn apiConn = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Alpha", ConnectionCount = new() { Aggregate = new() { Count = 1 } } }
+                ],
+                LatestTickets =
+                [
+                    new OwnerTicket
+                    {
+                        Owner = new FwoOwner { Id = 1, Name = "Alpha" },
+                        Ticket = new WfTicket { Id = 200, StateId = 5 }
+                    }
+                ]
+            };
+            apiConn.Connections.Add(new ModellingConnection { Id = 10 });
+            SetInjectedApiConnection(component, apiConn);
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig());
+            SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [5] = "Open" } });
+
+            Task task = (Task)GetPrivateMethod("LoadRows").Invoke(component, null)!;
+            await task;
+
+            IList rows = GetPrivateField<IList>(component, "Rows");
+            Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("Changes not requested"));
+        }
+
+        [Test]
         public async Task LoadRows_ShowsAllImplemented_WhenAllObjectsAreImplemented()
         {
             MonitorModellingRequests component = new();
@@ -345,7 +376,13 @@ namespace FWO.Test
             connection.AddProperty(ModIntegrationStateConfig.DefaultMarker, "Implemented | 2026-05-18T10:00:00Z");
             apiConn.Connections.Add(connection);
             SetInjectedApiConnection(component, apiConn);
-            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig());
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig
+            {
+                ModIntegrationStates = ModIntegrationStateConfig.ToConfigValue(
+                [
+                    new() { Name = "Implemented", IncludeIntoRequest = true, MonitorStatus = ModIntegrationStateStatus.Implemented }
+                ])
+            });
             SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [5] = "Open" } });
 
             Task task = (Task)GetPrivateMethod("LoadRows").Invoke(component, null)!;
@@ -353,6 +390,213 @@ namespace FWO.Test
 
             IList rows = GetPrivateField<IList>(component, "Rows");
             Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("All implemented"));
+        }
+
+        [Test]
+        public async Task LoadRows_ShowsAllImplemented_BeforeRequestableChanges()
+        {
+            MonitorModellingRequests component = new();
+            MonitorModellingRequestsApiConn apiConn = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Alpha", ConnectionCount = new() { Aggregate = new() { Count = 1 } } }
+                ],
+                LatestTickets =
+                [
+                    new OwnerTicket
+                    {
+                        Owner = new FwoOwner { Id = 1, Name = "Alpha" },
+                        Ticket = new WfTicket { Id = 200, StateId = 5, CreationDate = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc) }
+                    }
+                ]
+            };
+            ModellingConnection connection = new() { Id = 10 };
+            connection.AddProperty(ModIntegrationStateConfig.DefaultMarker, "Implemented | 2026-05-02T10:00:00Z");
+            apiConn.Connections.Add(connection);
+            apiConn.History.Add(new ModellingHistoryEntry
+            {
+                ObjectType = (int)ModellingTypes.ModObjectType.Connection,
+                ObjectId = 10,
+                ChangeTime = new DateTime(2026, 5, 3, 0, 0, 0, DateTimeKind.Utc)
+            });
+            SetInjectedApiConnection(component, apiConn);
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig
+            {
+                ModIntegrationStates = ModIntegrationStateConfig.ToConfigValue(
+                [
+                    new() { Name = "Implemented", IncludeIntoRequest = true, MonitorStatus = ModIntegrationStateStatus.Implemented }
+                ])
+            });
+            SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [5] = "Open" } });
+
+            Task task = (Task)GetPrivateMethod("LoadRows").Invoke(component, null)!;
+            await task;
+
+            IList rows = GetPrivateField<IList>(component, "Rows");
+            Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("All implemented"));
+        }
+
+        [Test]
+        public async Task LoadRows_DoesNotTreatIncludedNamedStateAsUnrequestedChange()
+        {
+            MonitorModellingRequests component = new();
+            MonitorModellingRequestsApiConn apiConn = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Alpha", ConnectionCount = new() { Aggregate = new() { Count = 1 } } }
+                ],
+                LatestTickets =
+                [
+                    new OwnerTicket
+                    {
+                        Owner = new FwoOwner { Id = 1, Name = "Alpha" },
+                        Ticket = new WfTicket { Id = 200, StateId = 5 }
+                    }
+                ]
+            };
+            ModellingConnection connection = new() { Id = 10 };
+            connection.AddProperty(ModIntegrationStateConfig.DefaultMarker, "Retry | 2026-05-18T10:00:00Z");
+            apiConn.Connections.Add(connection);
+            SetInjectedApiConnection(component, apiConn);
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig
+            {
+                ModIntegrationStates = ModIntegrationStateConfig.ToConfigValue([new() { Name = "Retry", IncludeIntoRequest = true }])
+            });
+            SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [5] = "Open" } });
+
+            Task task = (Task)GetPrivateMethod("LoadRows").Invoke(component, null)!;
+            await task;
+
+            IList rows = GetPrivateField<IList>(component, "Rows");
+            Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("U9026"));
+        }
+
+        [Test]
+        public async Task LoadRows_IgnoresUnmarkedGroups()
+        {
+            MonitorModellingRequests component = new();
+            MonitorModellingRequestsApiConn apiConn = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Alpha", ConnectionCount = new() { Aggregate = new() { Count = 1 } } }
+                ],
+                LatestTickets =
+                [
+                    new OwnerTicket
+                    {
+                        Owner = new FwoOwner { Id = 1, Name = "Alpha" },
+                        Ticket = new WfTicket { Id = 200, StateId = 5 }
+                    }
+                ]
+            };
+            ModellingConnection connection = new() { Id = 10 };
+            connection.AddProperty(ModIntegrationStateConfig.DefaultMarker, "Implemented | 2026-05-18T10:00:00Z");
+            apiConn.Connections.Add(connection);
+            apiConn.NwGroups.Add(new ModellingAppRole { Id = 20, Comment = "manual note" });
+            apiConn.ServiceGroups.Add(new ModellingServiceGroup { Id = 30, Comment = "manual note" });
+            SetInjectedApiConnection(component, apiConn);
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig
+            {
+                ModIntegrationStates = ModIntegrationStateConfig.ToConfigValue(
+                [
+                    new() { Name = "Implemented", MonitorStatus = ModIntegrationStateStatus.Implemented }
+                ])
+            });
+            SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [5] = "Open" } });
+
+            Task task = (Task)GetPrivateMethod("LoadRows").Invoke(component, null)!;
+            await task;
+
+            IList rows = GetPrivateField<IList>(component, "Rows");
+            Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("All implemented"));
+        }
+
+        [Test]
+        public async Task LoadRows_DoesNotShowAllImplemented_WhenConnectionsAreUnmarked()
+        {
+            MonitorModellingRequests component = new();
+            MonitorModellingRequestsApiConn apiConn = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Alpha", ConnectionCount = new() { Aggregate = new() { Count = 1 } } }
+                ],
+                LatestTickets =
+                [
+                    new OwnerTicket
+                    {
+                        Owner = new FwoOwner { Id = 1, Name = "Alpha" },
+                        Ticket = new WfTicket { Id = 200, StateId = 5 }
+                    }
+                ]
+            };
+            apiConn.Connections.Add(new ModellingConnection
+            {
+                Id = 10,
+                RequestedOnFw = true,
+                SourceAppRoles =
+                [
+                    new() { Content = new() { Id = 20, IdString = "AR", Comment = "ImplementationState: Implemented | 2026-05-18T10:00:00Z" } }
+                ]
+            });
+            SetInjectedApiConnection(component, apiConn);
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig
+            {
+                ModIntegrationStates = ModIntegrationStateConfig.ToConfigValue(
+                [
+                    new() { Name = "Implemented", MonitorStatus = ModIntegrationStateStatus.Implemented }
+                ])
+            });
+            SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [5] = "Open" } });
+
+            Task task = (Task)GetPrivateMethod("LoadRows").Invoke(component, null)!;
+            await task;
+
+            IList rows = GetPrivateField<IList>(component, "Rows");
+            Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("U9026"));
+        }
+
+        [Test]
+        public async Task LoadRows_UsesRequestBuilderForUnmarkedConnectionsWhenMarkersExist()
+        {
+            MonitorModellingRequests component = new();
+            MonitorModellingRequestsApiConn apiConn = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Alpha", ConnectionCount = new() { Aggregate = new() { Count = 2 } } }
+                ],
+                LatestTickets =
+                [
+                    new OwnerTicket
+                    {
+                        Owner = new FwoOwner { Id = 1, Name = "Alpha" },
+                        Ticket = new WfTicket { Id = 200, StateId = 5 }
+                    }
+                ]
+            };
+            ModellingConnection implementedConnection = new() { Id = 10 };
+            implementedConnection.AddProperty(ModIntegrationStateConfig.DefaultMarker, "Implemented | 2026-05-18T10:00:00Z");
+            apiConn.Connections.Add(implementedConnection);
+            apiConn.Connections.Add(new ModellingConnection { Id = 11 });
+            SetInjectedApiConnection(component, apiConn);
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig
+            {
+                ModIntegrationStates = ModIntegrationStateConfig.ToConfigValue(
+                [
+                    new() { Name = "Implemented", MonitorStatus = ModIntegrationStateStatus.Implemented }
+                ])
+            });
+            SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [5] = "Open" } });
+
+            Task task = (Task)GetPrivateMethod("LoadRows").Invoke(component, null)!;
+            await task;
+
+            IList rows = GetPrivateField<IList>(component, "Rows");
+            Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("Changes not requested"));
         }
 
         [Test]
@@ -442,7 +686,7 @@ namespace FWO.Test
                     }
                 ]
             };
-            apiConn.NwGroups.Add(new ModellingAppRole { Id = 20, Comment = "manual note" });
+            apiConn.Connections.Add(new ModellingConnection { Id = 10 });
             SetInjectedApiConnection(component, apiConn);
             SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig());
             SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [5] = "Open" } });
@@ -452,6 +696,37 @@ namespace FWO.Test
 
             IList rows = GetPrivateField<IList>(component, "Rows");
             Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("Changes not requested"));
+        }
+
+        [Test]
+        public async Task LoadRows_ShowsNothingToRequest_WhenUnmarkedConnectionsAreAlreadyRequested()
+        {
+            MonitorModellingRequests component = new();
+            MonitorModellingRequestsApiConn apiConn = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Alpha", ConnectionCount = new() { Aggregate = new() { Count = 1 } } }
+                ],
+                LatestTickets =
+                [
+                    new OwnerTicket
+                    {
+                        Owner = new FwoOwner { Id = 1, Name = "Alpha" },
+                        Ticket = new WfTicket { Id = 200, StateId = 5 }
+                    }
+                ]
+            };
+            apiConn.Connections.Add(new ModellingConnection { Id = 10, RequestedOnFw = true });
+            SetInjectedApiConnection(component, apiConn);
+            SetInjectedUserConfig(component, new MonitorModellingRequestsUserConfig());
+            SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [5] = "Open" } });
+
+            Task task = (Task)GetPrivateMethod("LoadRows").Invoke(component, null)!;
+            await task;
+
+            IList rows = GetPrivateField<IList>(component, "Rows");
+            Assert.That(GetRowProperty<string>(rows[0]!, "Status"), Is.EqualTo("U9026"));
         }
 
         [Test]
@@ -645,6 +920,7 @@ namespace FWO.Test
         public List<ModellingConnection> Connections { get; } = [];
         public List<ModellingConnection> WorkflowConnections { get; } = [];
         public Dictionary<int, ModellingConnection> WorkflowConnectionsById { get; } = [];
+        public List<ModellingHistoryEntry> History { get; } = [];
         public List<ModellingAppRole> NwGroups { get; } = [];
         public Dictionary<long, ModellingAppRole> AppRoles { get; } = [];
         public List<ModellingServiceGroup> ServiceGroups { get; } = [];
@@ -681,6 +957,14 @@ namespace FWO.Test
             {
                 return Task.FromResult((QueryResponseType)(object)Connections);
             }
+            if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getConnectionsResolved)
+            {
+                return Task.FromResult((QueryResponseType)(object)Connections);
+            }
+            if (typeof(QueryResponseType) == typeof(List<ModellingAppRole>) && query == ModellingQueries.getDummyAppRole)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<ModellingAppRole>());
+            }
             if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getWorkflowConnectionsByTicketId)
             {
                 return Task.FromResult((QueryResponseType)(object)WorkflowConnections);
@@ -690,6 +974,10 @@ namespace FWO.Test
                 int id = GetVariable<int>(variables!, "id");
                 List<ModellingConnection> result = WorkflowConnectionsById.TryGetValue(id, out ModellingConnection? connection) ? [connection] : [];
                 return Task.FromResult((QueryResponseType)(object)result);
+            }
+            if (typeof(QueryResponseType) == typeof(List<ModellingHistoryEntry>) && query == ModellingQueries.getHistoryForApp)
+            {
+                return Task.FromResult((QueryResponseType)(object)History);
             }
             if (typeof(QueryResponseType) == typeof(List<ModellingAppRole>) && query == ModellingQueries.getNwGroupsForApp)
             {

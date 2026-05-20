@@ -72,8 +72,14 @@ namespace FWO.Services.Workflow
             Log.WriteDebug("DoStateChangeActions", $"State changed for {scope} from {statefulObject.ChangedFrom()} to {statefulObject.StateId}.");
             if (!useInMwServer && wfHandler.MiddlewareClient != null)
             {
-                await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId));
-                statefulObject.ResetStateChanged();
+                try
+                {
+                    await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId));
+                }
+                finally
+                {
+                    statefulObject.ResetStateChanged();
+                }
                 return;
             }
 
@@ -221,6 +227,7 @@ namespace FWO.Services.Workflow
                 TicketId = GetTicketId(statefulObject, scope, ticketId),
                 OldStateId = statefulObject.StateChanged() ? statefulObject.ChangedFrom() : statefulObject.StateId,
                 NewStateId = statefulObject.StateId,
+                StateChangedByCreation = statefulObject.StateChangedByCreation(),
                 Phase = wfHandler.Phase.ToString()
             };
         }

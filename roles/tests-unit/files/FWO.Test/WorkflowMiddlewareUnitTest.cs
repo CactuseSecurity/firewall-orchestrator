@@ -210,6 +210,91 @@ namespace FWO.Test
         }
 
         [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_AllowsAdminForcedTransition()
+        {
+            WfHandler handler = new()
+            {
+                ActStateMatrix = new StateMatrix
+                {
+                    Matrix = new() { [0] = [49] }
+                }
+            };
+            WfImplTask persistedTask = new() { StateId = 630 };
+            WorkflowActionParameters parameters = new()
+            {
+                OldStateId = 0,
+                NewStateId = 630
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                PrincipalWithRoles(Roles.Admin), handler, parameters, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.True);
+                Assert.That(result.ErrorMessage, Is.Null.Or.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_RejectsNonAdminUnconfiguredTransition()
+        {
+            WfHandler handler = new()
+            {
+                ActStateMatrix = new StateMatrix
+                {
+                    Matrix = new() { [0] = [49] }
+                }
+            };
+            WfImplTask persistedTask = new() { StateId = 630 };
+            WorkflowActionParameters parameters = new()
+            {
+                OldStateId = 0,
+                NewStateId = 630
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                PrincipalWithRoles(Roles.Requester), handler, parameters, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("not allowed"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_AllowsCreatedObjectInitialState()
+        {
+            WfHandler handler = new()
+            {
+                ActStateMatrix = new StateMatrix
+                {
+                    Matrix = new() { [0] = [49] }
+                }
+            };
+            WfTicket persistedTicket = new() { StateId = 1 };
+            WorkflowActionParameters parameters = new()
+            {
+                OldStateId = 0,
+                NewStateId = 1,
+                StateChangedByCreation = true
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                PrincipalWithRoles(Roles.Requester), handler, parameters, persistedTicket, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.True);
+                Assert.That(result.ErrorMessage, Is.Null.Or.Empty);
+            });
+        }
+
+        [Test]
         public void WorkflowController_CallerCanAccessTicket_RequiresOwnerClaimWhenOwnerBased()
         {
             SimulatedUserConfig userConfig = new() { ReqOwnerBased = true };

@@ -137,8 +137,9 @@ namespace FWO.Services.Workflow
                 {
                     int newStateId = ticket.StateId;
                     ticket = await GetTicket(returnIds[0].NewIdLong);
-                    MarkCreatedStateChanged(ticket, newStateId);
+                    ticket.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
+                    await DoCreatedRequestTaskActions(ticket);
                 }
             }
             catch (Exception exception)
@@ -148,11 +149,14 @@ namespace FWO.Services.Workflow
             return ticket;
         }
 
-        private static void MarkCreatedStateChanged(WfStatefulObject statefulObject, int newStateId)
+        private async Task DoCreatedRequestTaskActions(WfTicket ticket)
         {
-            statefulObject.StateId = 0;
-            statefulObject.ResetStateChanged();
-            statefulObject.StateId = newStateId;
+            foreach (WfReqTask reqTask in ticket.Tasks)
+            {
+                int newStateId = reqTask.StateId;
+                reqTask.MarkCreatedStateChanged(newStateId);
+                await ActionHandler.DoStateChangeActions(reqTask, WfObjectScopes.RequestTask, reqTask.Owners.Count > 0 ? reqTask.Owners.First().Owner : null, reqTask.TicketId);
+            }
         }
 
         public async Task<WfTicket> UpdateTicketInDb(WfTicket ticket)

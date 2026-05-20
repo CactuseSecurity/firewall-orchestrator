@@ -10,6 +10,7 @@ namespace FWO.Data.Middleware
         public long TicketId { get; set; }
         public int OldStateId { get; set; }
         public int NewStateId { get; set; }
+        public bool StateChangedByCreation { get; set; }
         public string Phase { get; set; } = WorkflowPhases.request.ToString();
     }
 

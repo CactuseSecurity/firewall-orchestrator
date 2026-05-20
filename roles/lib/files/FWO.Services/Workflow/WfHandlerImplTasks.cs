@@ -272,7 +272,7 @@ namespace FWO.Services.Workflow
                 {
                     // Todo: further analysis how many impl tasks currently have to be there and create or update where needed
                     if (reqTask.ImplementationTasks.Count == 0
-                        && reqTask.StateId >= stateMatrixDict.Matrices[reqTask.TaskType].MinImplTasksNeeded)
+                        && RequestTaskNeedsInitialImplTasks(reqTask))
                     {
                         await AutoCreateImplTasks(reqTask);
                     }
@@ -282,6 +282,13 @@ namespace FWO.Services.Workflow
                     }
                 }
             }
+        }
+
+        private bool RequestTaskNeedsInitialImplTasks(WfReqTask reqTask)
+        {
+            return stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
+                && reqTask.StateId >= matrix.MinImplTasksNeeded
+                && reqTask.StateId < matrix.MinTicketCompleted;
         }
 
         private async Task AutoCreateImplTasks(WfReqTask reqTask)

@@ -428,6 +428,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildWorkflowActionParameters_IncludesCreationStateChangeFlag()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
+            WfTicket ticket = new() { Id = 42 };
+            ticket.MarkCreatedStateChanged(1);
+
+            WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
+                .Invoke(handler, [ticket, WfObjectScopes.Ticket, null, 0])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parameters.OldStateId, Is.EqualTo(0));
+                Assert.That(parameters.NewStateId, Is.EqualTo(1));
+                Assert.That(parameters.StateChangedByCreation, Is.True);
+            });
+        }
+
+        [Test]
         public async Task DoOwnerChangeActions_ExecutesOwnerChangeActions()
         {
             ActionHandlerTestApiConn apiConn = new();

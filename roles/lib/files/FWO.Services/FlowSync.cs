@@ -887,7 +887,7 @@ namespace FWO.Services
         /// that the rule should be skipped. Otherwise, it returns true and outputs a FlowAccessInsert object if the
         /// access does not already exist, along with a flag indicating whether the access is new or already exists.
         /// The flow access insert object can then be used to insert a new flow access if needed, and the mapping
-        /// updates can be used to link the rule to the flow access and set flow_active status accordingly.
+        /// updates can be used to link the rule to the flow access.
         /// </summary>
         private static bool TryBuildRuleAccess(
             Rule rule,

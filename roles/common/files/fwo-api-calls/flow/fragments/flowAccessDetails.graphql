@@ -101,6 +101,5 @@ fragment flowAccessDetails on flow_access {
   rules(order_by: { rule_id: asc }) {
     rule_id
     flow_access_id
-    flow_active
   }
 }

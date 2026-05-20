@@ -101,10 +101,10 @@ namespace FWO.Data.Flow
         public bool ShowInRequestModule { get; set; }
 
         [JsonProperty("nwgroup_members"), JsonPropertyName("nwgroup_members")]
-        public FlowNwGroupMembersContainer? NwGroupMembers { get; set; }
+        public FlowNwGroupInsertMembersContainer? NwGroupMembers { get; set; }
     }
 
-    public class FlowNwGroupMembersContainer
+    public class FlowNwGroupInsertMembersContainer
     {
         [JsonProperty("data"), JsonPropertyName("data")]
         public List<FlowNwGroupMemberInsert> Data { get; set; } = [];
@@ -134,10 +134,10 @@ namespace FWO.Data.Flow
         public bool ShowInRequestModule { get; set; }
 
         [JsonProperty("svcgroup_members"), JsonPropertyName("svcgroup_members")]
-        public FlowSvcGroupMembersContainer? SvcGroupMembers { get; set; }
+        public FlowSvcGroupInsertMembersContainer? SvcGroupMembers { get; set; }
     }
 
-    public class FlowSvcGroupMembersContainer
+    public class FlowSvcGroupInsertMembersContainer
     {
         [JsonProperty("data"), JsonPropertyName("data")]
         public List<FlowSvcGroupMemberInsert> Data { get; set; } = [];
@@ -161,28 +161,28 @@ namespace FWO.Data.Flow
         public DateTime? RemovedDate { get; set; }
 
         [JsonProperty("access_sources"), JsonPropertyName("access_sources")]
-        public FlowAccessMembersContainer? AccessSources { get; set; }
+        public FlowAccessInsertMembersContainer? AccessSources { get; set; }
 
         [JsonProperty("access_source_grps"), JsonPropertyName("access_source_grps")]
-        public FlowAccessMembersContainer? AccessSourceGroups { get; set; }
+        public FlowAccessInsertMembersContainer? AccessSourceGroups { get; set; }
 
         [JsonProperty("access_destinations"), JsonPropertyName("access_destinations")]
-        public FlowAccessMembersContainer? AccessDestinations { get; set; }
+        public FlowAccessInsertMembersContainer? AccessDestinations { get; set; }
 
         [JsonProperty("access_destination_grps"), JsonPropertyName("access_destination_grps")]
-        public FlowAccessMembersContainer? AccessDestinationGroups { get; set; }
+        public FlowAccessInsertMembersContainer? AccessDestinationGroups { get; set; }
 
         [JsonProperty("access_services"), JsonPropertyName("access_services")]
-        public FlowAccessMembersContainer? AccessServices { get; set; }
+        public FlowAccessInsertMembersContainer? AccessServices { get; set; }
 
         [JsonProperty("access_service_grps"), JsonPropertyName("access_service_grps")]
-        public FlowAccessMembersContainer? AccessServiceGroups { get; set; }
+        public FlowAccessInsertMembersContainer? AccessServiceGroups { get; set; }
 
         [JsonProperty("access_timeobjects"), JsonPropertyName("access_timeobjects")]
-        public FlowAccessMembersContainer? AccessTimeObjects { get; set; }
+        public FlowAccessInsertMembersContainer? AccessTimeObjects { get; set; }
     }
 
-    public class FlowAccessMembersContainer
+    public class FlowAccessInsertMembersContainer
     {
         [JsonProperty("data"), JsonPropertyName("data")]
         public List<object> Data { get; set; } = [];
@@ -200,36 +200,6 @@ namespace FWO.Data.Flow
     {
         [JsonProperty("affected_rows"), JsonPropertyName("affected_rows")]
         public int AffectedRows { get; set; }
-    }
-
-    public class FlowSvcObjectInsertResult
-    {
-        [JsonProperty("returning"), JsonPropertyName("returning")]
-        public List<FlowSvcObject> Returning { get; set; } = [];
-    }
-
-    public class FlowTimeObjectInsertResult
-    {
-        [JsonProperty("returning"), JsonPropertyName("returning")]
-        public List<FlowTimeObject> Returning { get; set; } = [];
-    }
-
-    public class FlowNwGroupInsertResult
-    {
-        [JsonProperty("returning"), JsonPropertyName("returning")]
-        public List<FlowNwGroup> Returning { get; set; } = [];
-    }
-
-    public class FlowSvcGroupInsertResult
-    {
-        [JsonProperty("returning"), JsonPropertyName("returning")]
-        public List<FlowSvcGroup> Returning { get; set; } = [];
-    }
-
-    public class FlowAccessInsertResult
-    {
-        [JsonProperty("returning"), JsonPropertyName("returning")]
-        public List<FlowAccess> Returning { get; set; } = [];
     }
 
     // Small reference DTOs used in access member lists

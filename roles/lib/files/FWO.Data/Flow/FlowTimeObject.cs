@@ -31,10 +31,11 @@ namespace FWO.Data.Flow
 
         [JsonProperty("time_objects"), JsonPropertyName("time_objects")]
         public List<TimeObject>? TimeObjects { get; set; }
+    }
 
-        public void GenerateHash()
-        {
-            Hash = FlowHashGenerator.GenerateTimeObjectHash(StartTime, EndTime);
-        }
+    public class FlowTimeObjectInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowTimeObject> Returning { get; set; } = [];
     }
 }

@@ -748,7 +748,7 @@ else
                 name = NewCustomFlowNwObject.Name.Trim(),
                 ipStart = (string?)null,
                 ipEnd = (string?)null,
-                nwobjHash = FlowHashGenerator.GenerateNwObjectHash(null, null),
+                nwobjHash = FlowHashGenerator.GenerateRandomHash(),
                 showInRequestModule = NewCustomFlowNwObject.ShowInRequestModule
             });
             FlowNwObject createdObject = createdObjects.Returning.FirstOrDefault() ?? throw new InvalidOperationException("Created flow object not returned by API.");

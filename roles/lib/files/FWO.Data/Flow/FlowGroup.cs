@@ -74,4 +74,16 @@ namespace FWO.Data.Flow
         [JsonProperty("svcobject"), JsonPropertyName("svcobject")]
         public FlowSvcObject SvcObject { get; set; } = new FlowSvcObject();
     }
+
+    public class FlowNwGroupInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowNwGroup> Returning { get; set; } = [];
+    }
+
+    public class FlowSvcGroupInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowSvcGroup> Returning { get; set; } = [];
+    }
 }

@@ -127,59 +127,18 @@ namespace FWO.Services
 
         private async Task ProcessNetworkObjectsAsync(IEnumerable<NetworkObject> nwObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
-            var pendingNwObjInserts = new Dictionary<string, FlowNwObjectInsert>();
+            Dictionary<string, FlowNwObjectInsert> pendingNwObjInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
 
             var skippedNwObjects = 0;
 
             foreach (var obj in nwObjects)
             {
-                if (!TryGetFlowNwObjectHash(obj, flowData, out var hash))
+                if (!TryBuildFlowNwObj(obj, flowData, pendingNwObjInserts, newFLowMappings, useManagementNamesForFlow))
                 {
                     skippedNwObjects++;
                     continue;
                 }
-
-                var alreadyExists = flowData.NwObjects.TryGetValue(hash, out var existingFlowObj);
-                var alreadyBeingInserted = pendingNwObjInserts.TryGetValue(hash, out var pendingInsert);
-
-                if (!alreadyExists && !alreadyBeingInserted)
-                {
-                    var newInsert = new FlowNwObjectInsert
-                    {
-                        NwObjHash = hash,
-                        IpStart = obj.IP,
-                        IpEnd = obj.IpEnd,
-                        State = "implemented",
-                        RemovedDate = null,
-                        ShowInRequestModule = false,
-                        Name = useManagementNamesForFlow ? obj.Name : null
-                    };
-                    pendingNwObjInserts.Add(hash, newInsert);
-                }
-                if (alreadyBeingInserted)
-                {
-                    pendingInsert!.Name = null;
-                }
-
-                var flowActive = true;
-                if (existingFlowObj != null && existingFlowObj.Objects?.Count > 0)
-                {
-                    // a flow mapping exists or is being inserted for current management -> set flow_active to false
-                    flowActive = false;
-                }
-
-                if (!newFLowMappings.TryGetValue(hash, out var mappingUpdates))
-                {
-                    mappingUpdates = [];
-                    newFLowMappings.Add(hash, mappingUpdates);
-                }
-                mappingUpdates.Add(new FlowMappingUpdate
-                {
-                    Id = obj.Id,
-                    FlowId = existingFlowObj?.Id, // will be updated after insertion if object is new
-                    FlowActive = flowActive
-                });
             }
 
             // make sure FlowActive is false for multiple mapping updates per hash
@@ -220,62 +179,72 @@ namespace FWO.Services
             }
         }
 
+        private bool TryBuildFlowNwObj(NetworkObject obj, FlowSyncFlowData flowData, Dictionary<string, FlowNwObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        {
+            if (!TryGetFlowNwObjectHash(obj, flowData, out var hash))
+            {
+                return false;
+            }
+
+            var alreadyExists = flowData.NwObjects.TryGetValue(hash, out var existingFlowObj);
+            var alreadyBeingInserted = pendingInserts.TryGetValue(hash, out var pendingInsert);
+
+            if (!alreadyExists && !alreadyBeingInserted)
+            {
+                var newInsert = new FlowNwObjectInsert
+                {
+                    NwObjHash = hash,
+                    IpStart = obj.IP,
+                    IpEnd = obj.IpEnd,
+                    State = "implemented",
+                    RemovedDate = null,
+                    ShowInRequestModule = false,
+                    Name = useManagementNamesForFlow ? obj.Name : null
+                };
+                pendingInserts.Add(hash, newInsert);
+            }
+            if (alreadyBeingInserted)
+            {
+                pendingInsert!.Name = null;
+            }
+
+            var flowActive = true;
+            if (existingFlowObj != null && existingFlowObj.Objects?.Count > 0 || alreadyBeingInserted)
+            {
+                // a flow mapping exists for current management -> set flow_active to false
+                flowActive = false;
+            }
+
+            if (!newFlowMappings.TryGetValue(hash, out var mappingUpdates))
+            {
+                mappingUpdates = [];
+                newFlowMappings.Add(hash, mappingUpdates);
+            }
+            mappingUpdates.Add(new FlowMappingUpdate
+            {
+                Id = obj.Id,
+                FlowId = existingFlowObj?.Id, // will be updated after insertion if object is new
+                FlowActive = flowActive
+            });
+
+            return true;
+        }
+
 
         private async Task ProcessServiceObjectsAsync(IEnumerable<NetworkService> svcObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
-            var pendingSvcObjInserts = new Dictionary<string, FlowSvcObjectInsert>();
+            Dictionary<string, FlowSvcObjectInsert> pendingSvcObjInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
 
             var skippedSvcObjects = 0;
 
             foreach (var svc in svcObjects)
             {
-                if (!TryGetFlowSvcObjectHash(svc, flowData, out var hash))
+                if (!TryBuildFlowSvcObj(svc, flowData, pendingSvcObjInserts, newFLowMappings, useManagementNamesForFlow))
                 {
                     skippedSvcObjects++;
                     continue;
                 }
-                var alreadyExists = flowData.SvcObjects.TryGetValue(hash, out var existingFlowObj);
-                var alreadyBeingInserted = pendingSvcObjInserts.TryGetValue(hash, out var pendingInsert);
-
-                if (!alreadyExists && !alreadyBeingInserted)
-                {
-                    var newInsert = new FlowSvcObjectInsert
-                    {
-                        Name = useManagementNamesForFlow ? svc.Name : null,
-                        PortStart = svc.DestinationPort,
-                        PortEnd = svc.DestinationPortEnd,
-                        IpProtoId = svc.ProtoId!.Value,
-                        SvcObjHash = hash,
-                        State = "implemented",
-                        RemovedDate = null,
-                        ShowInRequestModule = false
-                    };
-                    pendingSvcObjInserts.Add(hash, newInsert);
-                }
-                if (alreadyBeingInserted)
-                {
-                    pendingInsert!.Name = null;
-                }
-
-                var flowActive = true;
-                if (existingFlowObj != null && existingFlowObj.Services?.Count > 0 || alreadyBeingInserted)
-                {
-                    // a flow mapping exists for current management -> set flow_active to false
-                    flowActive = false;
-                }
-
-                if (!newFLowMappings.TryGetValue(hash, out var mappingUpdates))
-                {
-                    mappingUpdates = [];
-                    newFLowMappings.Add(hash, mappingUpdates);
-                }
-                mappingUpdates.Add(new FlowMappingUpdate
-                {
-                    Id = svc.Id,
-                    FlowId = existingFlowObj?.Id,
-                    FlowActive = flowActive
-                });
             }
 
             // make sure FlowActive is false for multiple mapping updates per hash
@@ -315,54 +284,72 @@ namespace FWO.Services
             }
         }
 
+        private bool TryBuildFlowSvcObj(NetworkService svc, FlowSyncFlowData flowData, Dictionary<string, FlowSvcObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        {
+            if (!TryGetFlowSvcObjectHash(svc, flowData, out var hash))
+            {
+                return false;
+            }
+
+            var alreadyExists = flowData.SvcObjects.TryGetValue(hash, out var existingFlowObj);
+            var alreadyBeingInserted = pendingInserts.TryGetValue(hash, out var pendingInsert);
+
+            if (!alreadyExists && !alreadyBeingInserted)
+            {
+                var newInsert = new FlowSvcObjectInsert
+                {
+                    Name = useManagementNamesForFlow ? svc.Name : null,
+                    PortStart = svc.DestinationPort,
+                    PortEnd = svc.DestinationPortEnd,
+                    IpProtoId = svc.ProtoId!.Value,
+                    SvcObjHash = hash,
+                    State = "implemented",
+                    RemovedDate = null,
+                    ShowInRequestModule = false
+                };
+                pendingInserts.Add(hash, newInsert);
+            }
+            if (alreadyBeingInserted)
+            {
+                pendingInsert!.Name = null;
+            }
+
+            var flowActive = true;
+            if (existingFlowObj != null && existingFlowObj.Services?.Count > 0 || alreadyBeingInserted)
+            {
+                // a flow mapping exists for current management -> set flow_active to false
+                flowActive = false;
+            }
+
+            if (!newFlowMappings.TryGetValue(hash, out var mappingUpdates))
+            {
+                mappingUpdates = [];
+                newFlowMappings.Add(hash, mappingUpdates);
+            }
+            mappingUpdates.Add(new FlowMappingUpdate
+            {
+                Id = svc.Id,
+                FlowId = existingFlowObj?.Id, // will be updated after insertion if object is new
+                FlowActive = flowActive
+            });
+
+            return true;
+        }
+
         private async Task ProcessTimeObjectsAsync(IEnumerable<TimeObject> timeObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
-            var pendingTimeObjInserts = new Dictionary<string, FlowTimeObjectInsert>();
+            Dictionary<string, FlowTimeObjectInsert> pendingTimeObjInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
+
+            var skippedTimeObjects = 0;
 
             foreach (var timeObj in timeObjects)
             {
-                var hash = FlowHashGenerator.GenerateTimeObjectHash(timeObj.StartTime, timeObj.EndTime);
-                var alreadyExists = flowData.TimeObjects.TryGetValue(hash, out var existingFlowObj);
-                var alreadyBeingInserted = pendingTimeObjInserts.TryGetValue(hash, out var pendingInsert);
-
-                if (!alreadyExists && !alreadyBeingInserted)
+                if (!TryBuildFlowTimeObj(timeObj, flowData, pendingTimeObjInserts, newFLowMappings, useManagementNamesForFlow))
                 {
-                    var newInsert = new FlowTimeObjectInsert
-                    {
-                        Name = useManagementNamesForFlow ? timeObj.Name : null,
-                        StartTime = timeObj.StartTime,
-                        EndTime = timeObj.EndTime,
-                        TimeObjHash = hash,
-                        State = "implemented",
-                        RemovedDate = null,
-                        ShowInRequestModule = false
-                    };
-                    pendingTimeObjInserts.Add(hash, newInsert);
+                    skippedTimeObjects++;
+                    continue;
                 }
-                if (alreadyBeingInserted)
-                {
-                    pendingInsert!.Name = null;
-                }
-
-                var flowActive = true;
-                if (existingFlowObj != null && existingFlowObj.TimeObjects?.Count > 0 || alreadyBeingInserted)
-                {
-                    // a flow mapping exists for current management -> set flow_active to false
-                    flowActive = false;
-                }
-
-                if (!newFLowMappings.TryGetValue(hash, out var mappingUpdates))
-                {
-                    mappingUpdates = [];
-                    newFLowMappings.Add(hash, mappingUpdates);
-                }
-                mappingUpdates.Add(new FlowMappingUpdate
-                {
-                    Id = timeObj.Id,
-                    FlowId = existingFlowObj?.Id,
-                    FlowActive = flowActive
-                });
             }
 
             var newFlowTimeObjects = pendingTimeObjInserts.Values.ToList();
@@ -376,7 +363,7 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow time objects for management.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow time objects for management. Skipped (neither start nor end time specified): {skippedTimeObjects}.");
             }
 
             if (newFLowMappings.Count != 0)
@@ -397,66 +384,72 @@ namespace FWO.Services
             }
         }
 
+        private bool TryBuildFlowTimeObj(TimeObject timeObj, FlowSyncFlowData flowData, Dictionary<string, FlowTimeObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        {
+            if (!TryGetFlowTimeObjectHash(timeObj, flowData, out var hash))
+            {
+                return false;
+            }
+
+            var alreadyExists = flowData.TimeObjects.TryGetValue(hash, out var existingFlowObj);
+            var alreadyBeingInserted = pendingInserts.TryGetValue(hash, out var pendingInsert);
+
+            if (!alreadyExists && !alreadyBeingInserted)
+            {
+                var newInsert = new FlowTimeObjectInsert
+                {
+                    Name = useManagementNamesForFlow ? timeObj.Name : null,
+                    StartTime = timeObj.StartTime,
+                    EndTime = timeObj.EndTime,
+                    TimeObjHash = hash,
+                    State = "implemented",
+                    RemovedDate = null,
+                    ShowInRequestModule = false
+                };
+                pendingInserts.Add(hash, newInsert);
+            }
+
+            if (alreadyBeingInserted)
+            {
+                pendingInsert!.Name = null;
+            }
+
+            var flowActive = true;
+            if (existingFlowObj != null && existingFlowObj.TimeObjects?.Count > 0 || alreadyBeingInserted)
+            {
+                // a flow mapping exists for current management -> set flow_active to false
+                flowActive = false;
+            }
+
+            if (!newFlowMappings.TryGetValue(hash, out var mappingUpdates))
+            {
+                mappingUpdates = [];
+                newFlowMappings.Add(hash, mappingUpdates);
+            }
+            mappingUpdates.Add(new FlowMappingUpdate
+            {
+                Id = timeObj.Id,
+                FlowId = existingFlowObj?.Id, // will be updated after insertion if object is new
+                FlowActive = flowActive
+            });
+
+            return true;
+        }
+
 
         private async Task ProcessNetworkGroupsAsync(IEnumerable<NetworkObject> nwGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
-            var pendingNwGroupInserts = new Dictionary<string, FlowNwGroupInsert>();
+            Dictionary<string, FlowNwGroupInsert> pendingNwGroupInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
 
             var skippedNwGroups = 0;
             foreach (var group in nwGroups)
             {
-                if (!TryBuildNwGroupMemberHashes(group, flowData, out var memberHashes))
+                if (!TryBuildNwGroup(group, flowData, pendingNwGroupInserts, newFLowMappings, useManagementNamesForFlow))
                 {
                     skippedNwGroups++;
                     continue; // Skip groups with non-technical members - they need to be manually created first
                 }
-
-                var hash = FlowHashGenerator.GenerateGroupHash(memberHashes);
-                var alreadyExists = flowData.NwGroups.TryGetValue(hash, out var existingFlowGroup);
-                var alreadyBeingInserted = pendingNwGroupInserts.TryGetValue(hash, out var pendingInsert);
-
-                if (!alreadyExists && !alreadyBeingInserted)
-                {
-                    var newInsert = new FlowNwGroupInsert
-                    {
-                        Name = useManagementNamesForFlow ? group.Name : null,
-                        NwGrpHash = hash,
-                        State = "implemented",
-                        NwGroupMembers = new FlowNwGroupMembersContainer
-                        {
-                            Data = [.. memberHashes.Select(memberHash => new FlowNwGroupMemberInsert
-                            {
-                                NwObjId = flowData.NwObjects[memberHash].Id
-                            })]
-                        }
-                    };
-                    pendingNwGroupInserts.Add(hash, newInsert);
-                }
-                if (alreadyBeingInserted)
-                {
-                    pendingInsert!.Name = null;
-                }
-
-                var flowActive = true;
-                if (existingFlowGroup != null && existingFlowGroup.Objects?.Count > 0 || alreadyBeingInserted)
-                {
-                    // a flow mapping exists for current management -> set flow_active to false
-                    flowActive = false;
-                }
-
-                if (!newFLowMappings.TryGetValue(hash, out var mappingUpdates))
-                {
-                    mappingUpdates = [];
-                    newFLowMappings.Add(hash, mappingUpdates);
-                }
-                mappingUpdates.Add(new FlowMappingUpdate
-                {
-                    Id = group.Id,
-                    FlowId = existingFlowGroup?.Id, // will be updated after insertion if group is new
-                    FlowActive = flowActive
-                });
-
             }
 
             // make sure FlowActive is false for multiple mapping updates per hash
@@ -496,64 +489,74 @@ namespace FWO.Services
             }
         }
 
+        private bool TryBuildNwGroup(NetworkObject group, FlowSyncFlowData flowData, Dictionary<string, FlowNwGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        {
+            if (!TryBuildNwGroupMemberHashes(group, flowData, out var memberHashes))
+            {
+                return false;
+            }
+
+            var hash = FlowHashGenerator.GenerateGroupHash(memberHashes);
+            var alreadyExists = flowData.NwGroups.TryGetValue(hash, out var existingFlowGroup);
+            var alreadyBeingInserted = pendingInserts.TryGetValue(hash, out var pendingInsert);
+
+            if (!alreadyExists && !alreadyBeingInserted)
+            {
+                var newInsert = new FlowNwGroupInsert
+                {
+                    Name = useManagementNamesForFlow ? group.Name : null,
+                    NwGrpHash = hash,
+                    State = "implemented",
+                    NwGroupMembers = new FlowNwGroupInsertMembersContainer
+                    {
+                        Data = [.. memberHashes.Select(memberHash => new FlowNwGroupMemberInsert
+                        {
+                            NwObjId = flowData.NwObjects[memberHash].Id
+                        })]
+                    }
+                };
+                pendingInserts.Add(hash, newInsert);
+            }
+            if (alreadyBeingInserted)
+            {
+                pendingInsert!.Name = null;
+            }
+
+            var flowActive = true;
+            if (existingFlowGroup != null && existingFlowGroup.Objects?.Count > 0 || alreadyBeingInserted)
+            {
+                // a flow mapping exists for current management -> set flow_active to false
+                flowActive = false;
+            }
+
+            if (!newFlowMappings.TryGetValue(hash, out var mappingUpdates))
+            {
+                mappingUpdates = [];
+                newFlowMappings.Add(hash, mappingUpdates);
+            }
+            mappingUpdates.Add(new FlowMappingUpdate
+            {
+                Id = group.Id,
+                FlowId = existingFlowGroup?.Id, // will be updated after insertion if group is new
+                FlowActive = flowActive
+            });
+
+            return true;
+        }
+
         private async Task ProcessServiceGroupsAsync(IEnumerable<NetworkService> svcGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
-            var pendingSvcGroupInserts = new Dictionary<string, FlowSvcGroupInsert>();
+            Dictionary<string, FlowSvcGroupInsert> pendingSvcGroupInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
 
             var skippedSvcGroups = 0;
             foreach (var group in svcGroups)
             {
-                if (!TryBuildSvcGroupMemberHashes(group, flowData, out var memberHashes))
+                if (!TryBuildSvcGroup(group, flowData, pendingSvcGroupInserts, newFLowMappings, useManagementNamesForFlow))
                 {
                     skippedSvcGroups++;
                     continue;
                 }
-
-                var hash = FlowHashGenerator.GenerateGroupHash(memberHashes);
-                var alreadyExists = flowData.SvcGroups.TryGetValue(hash, out var existingFlowGroup);
-                var alreadyBeingInserted = pendingSvcGroupInserts.TryGetValue(hash, out var pendingInsert);
-
-                if (!alreadyExists && !alreadyBeingInserted)
-                {
-                    var newInsert = new FlowSvcGroupInsert
-                    {
-                        SvcGrpHash = hash,
-                        Name = useManagementNamesForFlow ? group.Name : null,
-                        State = "implemented",
-                        SvcGroupMembers = new FlowSvcGroupMembersContainer
-                        {
-                            Data = [.. memberHashes.Select(memberHash => new FlowSvcGroupMemberInsert
-                            {
-                                SvcObjId = flowData.SvcObjects[memberHash].Id
-                            })]
-                        }
-                    };
-                    pendingSvcGroupInserts.Add(hash, newInsert);
-                }
-                if (alreadyBeingInserted)
-                {
-                    pendingInsert!.Name = null;
-                }
-
-                var flowActive = true;
-                if (existingFlowGroup != null && existingFlowGroup.Services?.Count > 0 || alreadyBeingInserted)
-                {
-                    // a flow mapping exists for current management -> set flow_active to false
-                    flowActive = false;
-                }
-
-                if (!newFLowMappings.TryGetValue(hash, out var mappingUpdates))
-                {
-                    mappingUpdates = [];
-                    newFLowMappings.Add(hash, mappingUpdates);
-                }
-                mappingUpdates.Add(new FlowMappingUpdate
-                {
-                    Id = group.Id,
-                    FlowId = existingFlowGroup?.Id, // will be updated after insertion if group is new
-                    FlowActive = flowActive
-                });
             }
 
             // make sure FlowActive is false for multiple mapping updates per hash
@@ -592,9 +595,64 @@ namespace FWO.Services
             }
         }
 
+        private bool TryBuildSvcGroup(NetworkService group, FlowSyncFlowData flowData, Dictionary<string, FlowSvcGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        {
+            if (!TryBuildSvcGroupMemberHashes(group, flowData, out var memberHashes))
+            {
+                return false;
+            }
+
+            var hash = FlowHashGenerator.GenerateGroupHash(memberHashes);
+            var alreadyExists = flowData.SvcGroups.TryGetValue(hash, out var existingFlowGroup);
+            var alreadyBeingInserted = pendingInserts.TryGetValue(hash, out var pendingInsert);
+
+            if (!alreadyExists && !alreadyBeingInserted)
+            {
+                var newInsert = new FlowSvcGroupInsert
+                {
+                    SvcGrpHash = hash,
+                    Name = useManagementNamesForFlow ? group.Name : null,
+                    State = "implemented",
+                    SvcGroupMembers = new FlowSvcGroupInsertMembersContainer
+                    {
+                        Data = [.. memberHashes.Select(memberHash => new FlowSvcGroupMemberInsert
+                        {
+                            SvcObjId = flowData.SvcObjects[memberHash].Id
+                        })]
+                    }
+                };
+                pendingInserts.Add(hash, newInsert);
+            }
+            if (alreadyBeingInserted)
+            {
+                pendingInsert!.Name = null;
+            }
+
+            var flowActive = true;
+            if (existingFlowGroup != null && existingFlowGroup.Services?.Count > 0 || alreadyBeingInserted)
+            {
+                // a flow mapping exists for current management -> set flow_active to false
+                flowActive = false;
+            }
+
+            if (!newFlowMappings.TryGetValue(hash, out var mappingUpdates))
+            {
+                mappingUpdates = [];
+                newFlowMappings.Add(hash, mappingUpdates);
+            }
+            mappingUpdates.Add(new FlowMappingUpdate
+            {
+                Id = group.Id,
+                FlowId = existingFlowGroup?.Id, // will be updated after insertion if group is new
+                FlowActive = flowActive
+            });
+
+            return true;
+        }
+
         private async Task ProcessRulesAsync(IEnumerable<Rule> rules, FlowSyncFlowData flowData)
         {
-            var pendingAccessInserts = new Dictionary<string, FlowAccessInsert>();
+            Dictionary<string, FlowAccessInsert> pendingAccessInserts = [];
             Dictionary<string, List<FlowMappingUpdate>> newFlowMappings = [];
 
             var skippedRules = 0;
@@ -696,7 +754,7 @@ namespace FWO.Services
         private static bool TryGetFlowTimeObjectHash(TimeObject timeObj, FlowSyncFlowData flowData, out string hash)
         {
             hash = "";
-            if (!timeObj.StartTime.HasValue || !timeObj.EndTime.HasValue)
+            if (!timeObj.StartTime.HasValue && !timeObj.EndTime.HasValue)
             {
                 if (flowData.TimeObjectHashes.TryGetValue(timeObj.Id, out var storedHash) && !string.IsNullOrWhiteSpace(storedHash))
                 {
@@ -853,11 +911,7 @@ namespace FWO.Services
             var alreadyExists = flowData.Accesses.TryGetValue(accessHash, out var existingAccess);
             var alreadyBeingInserted = pendingAccessInserts.ContainsKey(accessHash);
 
-            var flowActive = true;
-            if (existingAccess != null && existingAccess.Rules?.Count > 0)
-            {
-                flowActive = false;
-            }
+            var flowActive = existingAccess == null || existingAccess.Rules == null || existingAccess.Rules.Count == 0;
 
             if (!newFlowMappings.TryGetValue(accessHash, out var mappingUpdates))
             {
@@ -1039,10 +1093,10 @@ namespace FWO.Services
             return true;
         }
 
-        private static FlowAccessMembersContainer BuildAccessMembersContainer<T>(IEnumerable<T> items) where T : class
+        private static FlowAccessInsertMembersContainer BuildAccessMembersContainer<T>(IEnumerable<T> items) where T : class
         {
             var list = items.ToList();
-            return new FlowAccessMembersContainer { Data = [.. list.Cast<object>()] };
+            return new FlowAccessInsertMembersContainer { Data = [.. list.Cast<object>()] };
         }
 
         /// <summary>

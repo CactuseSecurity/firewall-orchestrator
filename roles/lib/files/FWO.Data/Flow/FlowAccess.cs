@@ -46,14 +46,11 @@ namespace FWO.Data.Flow
 
         [JsonProperty("rules"), JsonPropertyName("rules")]
         public List<Rule>? Rules { get; set; }
+    }
 
-        public void GenerateAccessHash()
-        {
-            var sourceHashes = Sources?.Select(s => s.NwObject?.Hash ?? "") ?? new List<string>();
-            var destinationHashes = Destinations?.Select(d => d.NwObject?.Hash ?? "") ?? new List<string>();
-            var serviceHashes = Services?.Select(s => s.SvcObject?.Hash ?? "") ?? new List<string>();
-
-            Hash = FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes);
-        }
+    public class FlowAccessInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowAccess> Returning { get; set; } = [];
     }
 }

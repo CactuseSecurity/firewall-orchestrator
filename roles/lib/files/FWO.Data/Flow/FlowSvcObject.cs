@@ -34,10 +34,11 @@ namespace FWO.Data.Flow
 
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<NetworkService>? Services { get; set; }
+    }
 
-        public void GenerateHash()
-        {
-            Hash = FlowHashGenerator.GenerateSvcObjectHash(ProtoId, PortStart, PortEnd);
-        }
+    public class FlowSvcObjectInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowSvcObject> Returning { get; set; } = [];
     }
 }

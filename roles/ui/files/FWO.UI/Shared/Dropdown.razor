@@ -4,20 +4,24 @@
 @typeparam ElementType
 
 @inject DomEventService eventService
-@inject IJSRuntime? jsRuntime
+@inject IJSRuntime jsRuntime
 @implements IDisposable
 
 <div id="@($"dropdown-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
-    <label id="@($"dropdown-input-prepend-{Id}")" class="input-group-text d-flex justify-content-center" style="width: 40px;" for="@($"dropdown-input-{Id}")">
+    <label id="@($"dropdown-input-prepend-{Id}")" class="input-group-text d-flex justify-content-center"
+           style="width: 40px;" for="@($"dropdown-input-{Id}")">
         <span id="@($"dropdown-input-prepend-icon-{Id}")" class="@Icons.CollapseDown"></span>
     </label>
-    <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control" style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onfocus="ShowMenu" @oninput="Filter" @bind="searchValue" />
+    <input type="text" id="@($"dropdown-input-{Id}")" class="@InputClass form-control"
+           style="@($"width: calc(100% - {40 + AppendWidth}px);")" @onfocus="ShowMenu" @oninput="Filter"
+           @bind="searchValue" />
     @if (Append != null)
     {
         @Append
     }
 </div>
-<ul id="@($"dropdown-menu-{Id}")" class="dropdown-menu" style="@($"position: fixed; top: {yPositionDropdown}px; left: {xPositionDropdown}px; max-height: calc(100vh - {yPositionDropdown}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
+<ul id="@($"dropdown-menu-{Id}")" class="dropdown-menu"
+    style="@($"position: fixed; top: {yPositionDropdown}px; left: {xPositionDropdown}px; max-height: calc(100vh - {yPositionDropdown}px - 10px); overflow: auto;" + (Toggled ? "" : " display: inline;"))">
     @if (!Toggled)
     {
         int i = 1;
@@ -26,8 +30,10 @@
             foreach (ElementType element in SelectedElements)
             {
                 <li id="@($"dropdown-menu-li-selected-{Id + i++}")">
-                    <button id="@($"dropdown-menu-selected-{Id + i++}")" type="button" @onclick="async () => await UnselectElement(element)" class="dropdown-item @(Small ? "small" : "")">
-                        <div id="@($"dropdown-menu-selected-content-{Id + i++}")" class="d-flex align-items-baseline justify-content-between">
+                    <button id="@($"dropdown-menu-selected-{Id + i++}")" type="button"
+                            @onclick="async () => await UnselectElement(element)" class="dropdown-item @(Small ? "small" : "")">
+                        <div id="@($"dropdown-menu-selected-content-{Id + i++}")"
+                             class="d-flex align-items-baseline justify-content-between">
                             @ElementTemplate(element)
                             @if ((Nullable || Multiselect))
                             {
@@ -37,12 +43,17 @@
                     </button>
                 </li>
             }
-            <li id="@($"dropdown-menu-li-divider-{Id + i++}")"><hr id="@($"dropdown-menu-divider-{Id + i++}")" class="dropdown-divider @(Small ? "small" : "")"></li>
+            <li id="@($"dropdown-menu-li-divider-{Id + i++}")">
+                <hr id="@($"dropdown-menu-divider-{Id + i++}")" class="dropdown-divider @(Small ? "small" : "")">
+            </li>
         }
         @foreach (ElementType element in FilteredElements.Where(element => !SelectedElements.Contains(element)))
         {
             <li id="@($"dropdown-menu-li-element-{Id + i++}")">
-                <button id="@($"dropdown-menu-element-{Id + i++}")" type="button" @onclick="async () => await SelectElement(element)" class="dropdown-item @(Small ? "small" : "")">@ElementTemplate(element)</button>
+                <button id="@($"dropdown-menu-element-{Id + i++}")" type="button"
+                        @onclick="async () => await SelectElement(element)"                        class="dropdown-item @(Small ? "small" : "")">
+                    @ElementTemplate(element)
+                </button>
             </li>
         }
     }

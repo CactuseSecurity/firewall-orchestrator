@@ -63,7 +63,7 @@ namespace FWO.Services
                 .OrderBy(group => group.Max(import => import.ControlId))
                 .ToList();
 
-            if (!pendingByManagement.Any())
+            if (pendingByManagement.Count == 0)
             {
                 Log.WriteWarning(LogMessageTitle, "Pending imports do not contain a management id.");
                 return false;
@@ -191,7 +191,7 @@ namespace FWO.Services
         /// <summary>
         /// Builds or reuses a flow network object and prepares mapping updates for the normalized object.
         /// </summary>
-        private bool TryBuildFlowNwObj(NetworkObject obj, FlowSyncFlowData flowData, Dictionary<string, FlowNwObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        private static bool TryBuildFlowNwObj(NetworkObject obj, FlowSyncFlowData flowData, Dictionary<string, FlowNwObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
         {
             if (!TryGetFlowNwObjectHash(obj, flowData, out var hash))
             {
@@ -302,7 +302,7 @@ namespace FWO.Services
         /// <summary>
         /// Builds or reuses a flow service object and prepares mapping updates for the normalized service.
         /// </summary>
-        private bool TryBuildFlowSvcObj(NetworkService svc, FlowSyncFlowData flowData, Dictionary<string, FlowSvcObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        private static bool TryBuildFlowSvcObj(NetworkService svc, FlowSyncFlowData flowData, Dictionary<string, FlowSvcObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
         {
             if (!TryGetFlowSvcObjectHash(svc, flowData, out var hash))
             {
@@ -408,7 +408,7 @@ namespace FWO.Services
         /// <summary>
         /// Builds or reuses a flow time object and prepares mapping updates for the normalized time object.
         /// </summary>
-        private bool TryBuildFlowTimeObj(TimeObject timeObj, FlowSyncFlowData flowData, Dictionary<string, FlowTimeObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        private static bool TryBuildFlowTimeObj(TimeObject timeObj, FlowSyncFlowData flowData, Dictionary<string, FlowTimeObjectInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
         {
             if (!TryGetFlowTimeObjectHash(timeObj, flowData, out var hash))
             {
@@ -519,7 +519,7 @@ namespace FWO.Services
         /// <summary>
         /// Builds or reuses a flow network group and prepares mapping updates for the normalized group.
         /// </summary>
-        private bool TryBuildNwGroup(NetworkObject group, FlowSyncFlowData flowData, Dictionary<string, FlowNwGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        private static bool TryBuildNwGroup(NetworkObject group, FlowSyncFlowData flowData, Dictionary<string, FlowNwGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
         {
             if (!TryBuildNwGroupMemberHashes(group, flowData, out var memberHashes))
             {
@@ -631,7 +631,7 @@ namespace FWO.Services
         /// <summary>
         /// Builds or reuses a flow service group and prepares mapping updates for the normalized group.
         /// </summary>
-        private bool TryBuildSvcGroup(NetworkService group, FlowSyncFlowData flowData, Dictionary<string, FlowSvcGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
+        private static bool TryBuildSvcGroup(NetworkService group, FlowSyncFlowData flowData, Dictionary<string, FlowSvcGroupInsert> pendingInserts, Dictionary<string, List<FlowMappingUpdate>> newFlowMappings, bool useManagementNamesForFlow)
         {
             if (!TryBuildSvcGroupMemberHashes(group, flowData, out var memberHashes))
             {
@@ -888,7 +888,7 @@ namespace FWO.Services
         /// The flow access insert object can then be used to insert a new flow access if needed, and the mapping
         /// updates can be used to link the rule to the flow access and set flow_active status accordingly.
         /// </summary>
-        private bool TryBuildRuleAccess(
+        private static bool TryBuildRuleAccess(
             Rule rule,
             FlowSyncFlowData flowData,
             Dictionary<string, FlowAccessInsert> pendingAccessInserts,

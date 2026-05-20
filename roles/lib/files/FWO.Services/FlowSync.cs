@@ -210,7 +210,7 @@ namespace FWO.Services
                     IpEnd = obj.IpEnd,
                     State = "implemented",
                     RemovedDate = null,
-                    ShowInRequestModule = false,
+                    ShowInRequestModule = true,
                     Name = useManagementNamesForFlow ? obj.Name : null
                 };
                 pendingInserts.Add(hash, newInsert);
@@ -323,7 +323,7 @@ namespace FWO.Services
                     SvcObjHash = hash,
                     State = "implemented",
                     RemovedDate = null,
-                    ShowInRequestModule = false
+                    ShowInRequestModule = true
                 };
                 pendingInserts.Add(hash, newInsert);
             }
@@ -428,7 +428,7 @@ namespace FWO.Services
                     TimeObjHash = hash,
                     State = "implemented",
                     RemovedDate = null,
-                    ShowInRequestModule = false
+                    ShowInRequestModule = true
                 };
                 pendingInserts.Add(hash, newInsert);
             }
@@ -537,6 +537,8 @@ namespace FWO.Services
                     Name = useManagementNamesForFlow ? group.Name : null,
                     NwGrpHash = hash,
                     State = "implemented",
+                    RemovedDate = null,
+                    ShowInRequestModule = true,
                     NwGroupMembers = new FlowNwGroupInsertMembersContainer
                     {
                         Data = [.. memberHashes.Select(memberHash => new FlowNwGroupMemberInsert
@@ -649,6 +651,8 @@ namespace FWO.Services
                     SvcGrpHash = hash,
                     Name = useManagementNamesForFlow ? group.Name : null,
                     State = "implemented",
+                    RemovedDate = null,
+                    ShowInRequestModule = true,
                     SvcGroupMembers = new FlowSvcGroupInsertMembersContainer
                     {
                         Data = [.. memberHashes.Select(memberHash => new FlowSvcGroupMemberInsert

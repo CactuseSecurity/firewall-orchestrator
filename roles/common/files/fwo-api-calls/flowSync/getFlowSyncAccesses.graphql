@@ -1,0 +1,43 @@
+query getFlowSyncAccesses($mgmId: Int!) {
+  flow_access(order_by: { access_id: asc }) {
+    access_id
+    access_hash
+    requester_id
+    owner_id
+    state
+    removed_date
+    access_sources(order_by: { nwobj_id: asc }) {
+      access_id
+      nwobj_id
+    }
+    access_source_grps(order_by: { nwgrp_id: asc }) {
+      access_id
+      nwgrp_id
+    }
+    access_destinations(order_by: { nwobj_id: asc }) {
+      access_id
+      nwobj_id
+    }
+    access_destination_grps(order_by: { nwgrp_id: asc }) {
+      access_id
+      nwgrp_id
+    }
+    access_services(order_by: { svcobj_id: asc }) {
+      access_id
+      svcobj_id
+    }
+    access_service_grps(order_by: { svcgrp_id: asc }) {
+      access_id
+      svcgrp_id
+    }
+    access_timeobjects(order_by: { timeobj_id: asc }) {
+      access_id
+      timeobj_id
+    }
+    rules(where: { mgm_id: { _eq: $mgmId } }) {
+      rule_id
+      rule_uid
+      removed
+    }
+  }
+}

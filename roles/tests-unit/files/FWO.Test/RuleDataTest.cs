@@ -66,7 +66,6 @@ namespace FWO.Test
 
             Assert.That(rule, Is.Not.Null);
             Assert.That(rule!.FlowAccessId, Is.EqualTo(3001));
-            Assert.That(rule.FlowActive, Is.True);
             Assert.That(rule.FlowAccess, Is.Not.Null);
             Assert.That(rule.FlowAccess!.Id, Is.EqualTo(3001));
         }

@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;

@@ -250,8 +250,7 @@ else
     {
         string stateMarker = ModIntegrationStateConfig.EffectiveMarker(userConfig.ModIntegrationStateMarker);
         Dictionary<string, string> monitorStatusByStateName = ModIntegrationStateConfig.MonitorStatusByStateName(userConfig.ModIntegrationStates);
-        HashSet<string> includedRequestStateNames = ModIntegrationStateConfig.IncludedRequestStateNames(userConfig.ModIntegrationStates);
-        IntegrationStateSummary summary = new(monitorStatusByStateName, includedRequestStateNames);
+        IntegrationStateSummary summary = new(monitorStatusByStateName);
 
         (List<ModellingConnection> statusConnections, List<ModellingConnection> requestConnections) = await LoadConnectionsForStatus(owner);
         foreach (ModellingConnection connection in statusConnections)
@@ -589,7 +588,7 @@ else
         }
     }
 
-    private sealed class IntegrationStateSummary(Dictionary<string, string> monitorStatusByStateName, HashSet<string> includedRequestStateNames)
+    private sealed class IntegrationStateSummary(Dictionary<string, string> monitorStatusByStateName)
     {
         private int objectCount;
         private int connectionCount;
@@ -634,8 +633,7 @@ else
             string monitorStatus = monitorStatusByStateName.TryGetValue(normalizedStateName, out string? configuredMonitorStatus)
                 ? configuredMonitorStatus
                 : ModIntegrationStateStatus.None;
-            if (monitorStatus == ModIntegrationStateStatus.RequestRunning ||
-                (monitorStatus == ModIntegrationStateStatus.None && includedRequestStateNames.Contains(normalizedStateName)))
+            if (monitorStatus == ModIntegrationStateStatus.RequestRunning)
             {
                 runningCount++;
             }

@@ -52,10 +52,10 @@ namespace FWO.Data.Flow
         /// </summary>
         public static string GenerateTimeObjectHash(DateTime? startTime, DateTime? endTime)
         {
-            if (!startTime.HasValue || !endTime.HasValue)
+            if (!startTime.HasValue && !endTime.HasValue)
             {
-                // Abstracted time object - cannot generate deterministic hash
-                throw new ArgumentException("Time object must have both start and end time defined for hash generation. For dynamic objects, consider using GenerateRandomHash instead.");
+                // custom time object - cannot generate deterministic hash
+                throw new ArgumentException("Time object must have either start or end time defined for hash generation. For custom objects, consider using GenerateRandomHash instead.");
             }
 
             // Deterministic hash from time range (using ISO 8601 format for reproducibility)

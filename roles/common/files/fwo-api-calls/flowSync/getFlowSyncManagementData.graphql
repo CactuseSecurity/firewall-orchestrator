@@ -1,8 +1,8 @@
 query getFlowSyncManagementData($mgmId: Int!) {
   management(where: { mgm_id: { _eq: $mgmId } }) {
-    id: mgm_id
-    name: mgm_name
-    networkObjects: objects(
+    mgm_id
+    mgm_name
+    objects(
       where: {
         removed: { _is_null: true }
         flow_nwobj_id: { _is_null: true }
@@ -12,7 +12,7 @@ query getFlowSyncManagementData($mgmId: Int!) {
     ) {
       ...networkObjectFlowSyncDetails
     }
-    serviceObjects: services(
+    services(
       where: {
         removed: { _is_null: true }
         flow_svcobj_id: { _is_null: true }
@@ -22,7 +22,7 @@ query getFlowSyncManagementData($mgmId: Int!) {
     ) {
       ...networkServiceFlowSyncDetails
     }
-    timeObjects: time_objects(
+    time_objects(
       where: {
         removed: { _is_null: true }
         flow_timeobj_id: { _is_null: true }

@@ -29,7 +29,7 @@ namespace FWO.Data.Flow
         [JsonProperty("nwgrp_hash"), JsonPropertyName("nwgrp_hash")]
         public override string Hash { get; set; } = "";
 
-        [JsonProperty("nwgrp_members"), JsonPropertyName("nwgrp_members")]
+        [JsonProperty("nwgroup_members"), JsonPropertyName("nwgroup_members")]
         public List<FlowNwGroupMember> NwGroupMembers { get; set; } = [];
 
         [JsonProperty("objects"), JsonPropertyName("objects")]
@@ -44,8 +44,8 @@ namespace FWO.Data.Flow
         [JsonProperty("svcgrp_hash"), JsonPropertyName("svcgrp_hash")]
         public override string Hash { get; set; } = "";
 
-        [JsonProperty("svcgrp_members"), JsonPropertyName("svcgrp_members")]
-        public List<FlowSvcGroupMember> SvcGroupMembers { get; set; } = new List<FlowSvcGroupMember>();
+        [JsonProperty("svcgroup_members"), JsonPropertyName("svcgroup_members")]
+        public List<FlowSvcGroupMember> SvcGroupMembers { get; set; } = [];
 
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<NetworkService>? Services { get; set; }

@@ -5,23 +5,23 @@ namespace FWO.Data.Flow
 {
     public class FlowSyncManagementData
     {
-        [JsonProperty("id"), JsonPropertyName("id")]
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
         public int Id { get; set; }
 
-        [JsonProperty("name"), JsonPropertyName("name")]
+        [JsonProperty("mgm_name"), JsonPropertyName("mgm_name")]
         public string Name { get; set; } = "";
 
-        [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
-        public List<FWO.Data.NetworkObject> NetworkObjects { get; set; } = [];
+        [JsonProperty("objects"), JsonPropertyName("objects")]
+        public List<NetworkObject> NetworkObjects { get; set; } = [];
 
-        [JsonProperty("serviceObjects"), JsonPropertyName("serviceObjects")]
-        public List<FWO.Data.NetworkService> ServiceObjects { get; set; } = [];
+        [JsonProperty("services"), JsonPropertyName("services")]
+        public List<NetworkService> ServiceObjects { get; set; } = [];
 
-        [JsonProperty("timeObjects"), JsonPropertyName("timeObjects")]
-        public List<FWO.Data.TimeObject> TimeObjects { get; set; } = [];
+        [JsonProperty("time_objects"), JsonPropertyName("time_objects")]
+        public List<TimeObject> TimeObjects { get; set; } = [];
 
         [JsonProperty("rules"), JsonPropertyName("rules")]
-        public List<FWO.Data.Rule> Rules { get; set; } = [];
+        public List<Rule> Rules { get; set; } = [];
     }
 
     // Insert DTOs used when creating missing flow entries via GraphQL mutations.
@@ -194,6 +194,12 @@ namespace FWO.Data.Flow
         public long? FlowId { get; set; }
         public bool FlowActive { get; set; }
 
+    }
+
+    public class FlowRuleMappingUpdate
+    {
+        public long Id { get; set; }
+        public long? FlowId { get; set; }
     }
 
     public class MutationResult

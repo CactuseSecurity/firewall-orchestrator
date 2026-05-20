@@ -380,8 +380,8 @@ ALTER TABLE notification ADD CONSTRAINT notification_report_schedule_foreign_key
 
 -- flow
 ALTER TABLE flow.svcobject ADD CONSTRAINT flow_svcobject_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE flow.access ADD CONSTRAINT flow_access_requester_foreign_key FOREIGN KEY (requester_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE flow.access ADD CONSTRAINT flow_access_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access ADD CONSTRAINT flow_access_requester_foreign_key FOREIGN KEY (requester_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE SET NULL;
+ALTER TABLE flow.access ADD CONSTRAINT flow_access_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE SET NULL;
 
 ALTER TABLE flow.access_source ADD CONSTRAINT flow_access_source_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE flow.access_source ADD CONSTRAINT flow_access_source_nwobject_foreign_key FOREIGN KEY (nwobj_id) REFERENCES flow.nwobject(nwobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;

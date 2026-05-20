@@ -195,18 +195,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS time_object_flow_timeobj_id_active_only_one_pe
 ALTER TABLE rule ADD COLUMN IF NOT EXISTS flow_access_id bigint;
 ALTER TABLE rule DROP CONSTRAINT IF EXISTS flow_access_id_foreign_key;
 ALTER TABLE rule ADD CONSTRAINT flow_access_id_foreign_key FOREIGN KEY (flow_access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE SET NULL;
-ALTER TABLE rule ADD COLUMN IF NOT EXISTS flow_active boolean NOT NULL DEFAULT FALSE;
-CREATE UNIQUE INDEX IF NOT EXISTS rule_flow_access_id_active_only_one_per_mgm
-    ON rule (mgm_id, flow_access_id)
-    WHERE flow_active = true;
 
 ALTER TABLE flow.svcobject DROP CONSTRAINT IF EXISTS flow_svcobject_proto_foreign_key;
 ALTER TABLE flow.svcobject ADD CONSTRAINT flow_svcobject_proto_foreign_key FOREIGN KEY (ip_proto_id) REFERENCES stm_ip_proto(ip_proto_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 ALTER TABLE flow.access DROP CONSTRAINT IF EXISTS flow_access_requester_foreign_key;
-ALTER TABLE flow.access ADD CONSTRAINT flow_access_requester_foreign_key FOREIGN KEY (requester_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access ADD CONSTRAINT flow_access_requester_foreign_key FOREIGN KEY (requester_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE SET NULL;
 ALTER TABLE flow.access DROP CONSTRAINT IF EXISTS flow_access_owner_foreign_key;
-ALTER TABLE flow.access ADD CONSTRAINT flow_access_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE flow.access ADD CONSTRAINT flow_access_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE SET NULL;
 
 ALTER TABLE flow.access_source DROP CONSTRAINT IF EXISTS flow_access_source_access_foreign_key;
 ALTER TABLE flow.access_source ADD CONSTRAINT flow_access_source_access_foreign_key FOREIGN KEY (access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;

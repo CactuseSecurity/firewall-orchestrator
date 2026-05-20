@@ -692,7 +692,7 @@ namespace FWO.Services
         private async Task ProcessRulesAsync(IEnumerable<Rule> rules, FlowSyncFlowData flowData)
         {
             Dictionary<string, FlowAccessInsert> pendingAccessInserts = [];
-            Dictionary<string, List<FlowMappingUpdate>> newFlowMappings = [];
+            Dictionary<string, List<FlowRuleMappingUpdate>> newFlowMappings = [];
 
             var skippedRules = 0;
 
@@ -704,9 +704,6 @@ namespace FWO.Services
                     continue;
                 }
             }
-
-            // make sure FlowActive is false for multiple mapping updates per hash
-            newFlowMappings.Where(m => m.Value.Count > 1).ToList().ForEach(m => m.Value.ForEach(update => update.FlowActive = false));
 
             // insert newFlowAccesses and newFlowAccessMembers
             var newFlowAccesses = pendingAccessInserts.Values.ToList();
@@ -723,7 +720,7 @@ namespace FWO.Services
                 Log.WriteInfo(LogMessageTitle, $"Inserted {insertedAccesses.Count} new flow accesses for management. Skipped: {skippedRules}.");
             }
 
-            // update normalized rules with flow mappings and flow_active status
+            // update normalized rules with flow mappings
             if (newFlowMappings.Count != 0)
             {
                 var updates = new List<object>();
@@ -732,7 +729,7 @@ namespace FWO.Services
                     updates.Add(new
                     {
                         where = new { rule_id = new { _eq = mapping.Id } },
-                        _set = new { flow_access_id = mapping.FlowId, flow_active = mapping.FlowActive }
+                        _set = new { flow_access_id = mapping.FlowId }
                     });
                 }
 
@@ -892,7 +889,7 @@ namespace FWO.Services
             Rule rule,
             FlowSyncFlowData flowData,
             Dictionary<string, FlowAccessInsert> pendingAccessInserts,
-            Dictionary<string, List<FlowMappingUpdate>> newFlowMappings)
+            Dictionary<string, List<FlowRuleMappingUpdate>> newFlowMappings)
         {
             var sourceIds = new HashSet<long>();
             var sourceGroupIds = new HashSet<long>();
@@ -944,18 +941,15 @@ namespace FWO.Services
             var alreadyExists = flowData.Accesses.TryGetValue(accessHash, out var existingAccess);
             var alreadyBeingInserted = pendingAccessInserts.ContainsKey(accessHash);
 
-            var flowActive = existingAccess == null || existingAccess.Rules == null || existingAccess.Rules.Count == 0;
-
             if (!newFlowMappings.TryGetValue(accessHash, out var mappingUpdates))
             {
                 mappingUpdates = [];
                 newFlowMappings.Add(accessHash, mappingUpdates);
             }
-            mappingUpdates.Add(new FlowMappingUpdate
+            mappingUpdates.Add(new FlowRuleMappingUpdate
             {
                 Id = rule.Id,
-                FlowId = existingAccess?.Id,
-                FlowActive = flowActive
+                FlowId = existingAccess?.Id
             });
 
             if (!alreadyExists && !alreadyBeingInserted)

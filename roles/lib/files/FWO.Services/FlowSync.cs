@@ -123,8 +123,7 @@ namespace FWO.Services
             await ProcessRulesAsync(managementData.Rules, flowData);
 
             // remove flow mappings from all normalized entries that are set to removed
-            var cleanupCount = await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateFlowMappingsForRemoved, new { mgmId });
-            Log.WriteDebug(LogMessageTitle, $"Cleaned up flow mappings for {cleanupCount} removed normalized objects.");
+            await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateFlowMappingsForRemoved, new { mgmId });
 
             // Mark imports as completed
             var maxImportId = importsForManagement.Max(i => i.ControlId);

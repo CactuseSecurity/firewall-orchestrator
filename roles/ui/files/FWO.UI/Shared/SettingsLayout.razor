@@ -30,7 +30,7 @@
                 </li>
             </AuthorizeView>
             <hr />
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            <AuthorizeView Roles="@($"{Roles.Admin}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                     <h5>Flow</h5>
                 </li>

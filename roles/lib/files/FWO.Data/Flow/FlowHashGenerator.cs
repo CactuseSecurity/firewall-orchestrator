@@ -5,14 +5,14 @@ namespace FWO.Data.Flow
 {
     /// <summary>
     /// Generates deterministic or random hashes for flow objects.
-    /// - Uses SHA256 for technical values (IP ranges, protocol+ports, timestamps)
-    /// - Uses UUID v4 for null/dynamic values
+    /// Uses SHA256 for technical values (IP ranges, protocol+ports, timestamps)
     /// </summary>
     public static class FlowHashGenerator
     {
         /// <summary>
         /// Generates hash for network objects from IP range.
-        /// SHA256 of "ipstart-ipend" if both present, UUID v4 if either is null (FQDN/dynamic objects).
+        /// SHA256 of "ipstart-ipend" if both present.
+        /// Throws exception if either IP is null or whitespace.
         /// </summary>
         public static string GenerateNwObjectHash(string? ipStart, string? ipEnd)
         {
@@ -29,8 +29,8 @@ namespace FWO.Data.Flow
 
         /// <summary>
         /// Generates hash for service objects from protocol and port range.
-        /// SHA256 of "proto_id-port_start-port_end" if ports present,
-        /// UUID v4 if either port is null (protocol-only objects like ICMP).
+        /// SHA256 of "proto_id-port_start-port_end" if ports present.
+        /// Throws exception if either port is null.
         /// </summary>
         public static string GenerateSvcObjectHash(int protoId, int? portStart, int? portEnd)
         {
@@ -49,7 +49,6 @@ namespace FWO.Data.Flow
         /// Generates hash for time objects from time range.
         /// Time objects without defined start and end times are considered non-technical and must use GenerateRandomHash instead.
         /// This includes 'all time' objects, as they cannot be differentiated from time objects missing start/end times for other reasons.
-        /// SHA256 of "start_time-end_time" if both present, UUID v4 if either is null.
         /// </summary>
         public static string GenerateTimeObjectHash(DateTime? startTime, DateTime? endTime)
         {
@@ -101,10 +100,6 @@ namespace FWO.Data.Flow
         /// Generates hash for groups from member hashes.
         /// SHA256 of sorted member hashes ensures same group hash regardless of member order.
         /// Throws exception if memberHashes is empty, as groups must have at least one member.
-        /// </summary>
-        /// <param name="memberHashes"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentException"></exception>
         public static string GenerateGroupHash(IEnumerable<string> memberHashes)
         {
             // We don't allow empty flow groups
@@ -121,7 +116,6 @@ namespace FWO.Data.Flow
         /// <summary>
         /// Generates a random hash using UUID v4, which is suitable for non-technical or dynamic objects that cannot have deterministic hashes.
         /// </summary>
-        /// <returns></returns>
         public static string GenerateRandomHash()
         {
             return Guid.NewGuid().ToString("N"); // 32 hex chars, no dashes

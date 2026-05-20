@@ -33,13 +33,16 @@ namespace FWO.Api.Client.Queries
         public static readonly string insertFlowSvcObjects;
         public static readonly string insertFlowTimeObjects;
         public static readonly string insertFlowNwGroups;
+        public static readonly string insertFlowNwGroupMembers;
         public static readonly string insertFlowSvcGroups;
+        public static readonly string insertFlowSvcGroupMembers;
         public static readonly string insertFlowAccesses;
         public static readonly string updateObjectFlowMappings;
         public static readonly string updateServiceFlowMappings;
         public static readonly string updateTimeObjectFlowMappings;
         public static readonly string updateRuleFlowMappings;
         public static readonly string updateImportControlForFlowSync;
+        public static readonly string updateFlowMappingsForRemoved;
 
         static FlowQueries()
         {
@@ -100,7 +103,9 @@ namespace FWO.Api.Client.Queries
                 insertFlowSvcObjects = GetQueryText("flowSync/insertFlowSvcObjects.graphql");
                 insertFlowTimeObjects = GetQueryText("flowSync/insertFlowTimeObjects.graphql");
                 insertFlowNwGroups = GetQueryText("flowSync/insertFlowNwGroups.graphql");
+                insertFlowNwGroupMembers = GetQueryText("flowSync/insertFlowNwGroupMembers.graphql");
                 insertFlowSvcGroups = GetQueryText("flowSync/insertFlowSvcGroups.graphql");
+                insertFlowSvcGroupMembers = GetQueryText("flowSync/insertFlowSvcGroupMembers.graphql");
                 insertFlowAccesses = GetQueryText("flowSync/insertFlowAccesses.graphql");
 
                 updateObjectFlowMappings = GetQueryText("flowSync/updateObjectFlowMappings.graphql");
@@ -108,6 +113,7 @@ namespace FWO.Api.Client.Queries
                 updateTimeObjectFlowMappings = GetQueryText("flowSync/updateTimeObjectFlowMappings.graphql");
                 updateRuleFlowMappings = GetQueryText("flowSync/updateRuleFlowMappings.graphql");
                 updateImportControlForFlowSync = GetQueryText("flowSync/updateImportControlForFlowSync.graphql");
+                updateFlowMappingsForRemoved = GetQueryText("flowSync/updateFlowMappingsForRemoved.graphql");
             }
             catch (Exception exception)
             {

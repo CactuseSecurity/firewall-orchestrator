@@ -49,7 +49,7 @@ namespace FWO.Data.Flow
         /// </summary>
         public static string BuildSearchText(FlowAccess access)
         {
-            List<string> parts = [access.Id.ToString(), access.AccessHash, access.State];
+            List<string> parts = [access.Id.ToString(), access.Hash, access.State];
 
             AddNameList(parts, access.Sources, source => source.NwObject?.Name);
             AddNameList(parts, access.SourceGroups, sourceGroup => sourceGroup.NwGroup?.Name);

@@ -1,6 +1,5 @@
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
-using Newtonsoft.Json.Linq;
 
 namespace FWO.Data.Flow
 {
@@ -189,6 +188,50 @@ namespace FWO.Data.Flow
         public List<object> Data { get; set; } = [];
     }
 
+    public class FlowMappingUpdate
+    {
+        public long Id { get; set; }
+        public long? FlowId { get; set; }
+        public bool FlowActive { get; set; }
+
+    }
+
+    public class MutationResult
+    {
+        [JsonProperty("affected_rows"), JsonPropertyName("affected_rows")]
+        public int AffectedRows { get; set; }
+    }
+
+    public class FlowSvcObjectInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowSvcObject> Returning { get; set; } = [];
+    }
+
+    public class FlowTimeObjectInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowTimeObject> Returning { get; set; } = [];
+    }
+
+    public class FlowNwGroupInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowNwGroup> Returning { get; set; } = [];
+    }
+
+    public class FlowSvcGroupInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowSvcGroup> Returning { get; set; } = [];
+    }
+
+    public class FlowAccessInsertResult
+    {
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<FlowAccess> Returning { get; set; } = [];
+    }
+
     // Small reference DTOs used in access member lists
     public class NwRef
     {
@@ -220,67 +263,41 @@ namespace FWO.Data.Flow
         public long TimeObjId { get; set; }
     }
 
-    [Newtonsoft.Json.JsonConverter(typeof(FlowSyncFlowDataContainerConverter))]
-    public class FlowSyncFlowDataContainer : FlowSyncFlowData
-    {
-    }
-
     public class FlowSyncFlowData
     {
-        [JsonProperty("flow_nwobject"), JsonPropertyName("flow_nwobject")]
-        public List<FlowNwObject> NwObjects { get; set; } = [];
+        public readonly Dictionary<string, FlowNwObject> NwObjects = [];
+        public readonly Dictionary<string, FlowNwGroup> NwGroups = [];
+        public readonly Dictionary<string, FlowSvcObject> SvcObjects = [];
+        public readonly Dictionary<string, FlowSvcGroup> SvcGroups = [];
+        public readonly Dictionary<string, FlowTimeObject> TimeObjects = [];
+        public readonly Dictionary<string, FlowAccess> Accesses = [];
 
-        [JsonProperty("flow_nwgroup"), JsonPropertyName("flow_nwgroup")]
-        public List<FlowNwGroup> NwGroups { get; set; } = [];
+        public Dictionary<long, string> NwObjectHashes { get; private set; } = [];
+        public Dictionary<long, string> SvcObjectHashes { get; private set; } = [];
+        public Dictionary<long, string> TimeObjectHashes { get; private set; } = [];
+        public Dictionary<long, string> AccessHashes { get; private set; } = [];
 
-        [JsonProperty("flow_svcobject"), JsonPropertyName("flow_svcobject")]
-        public List<FlowSvcObject> SvcObjects { get; set; } = [];
-
-        [JsonProperty("flow_svcgroup"), JsonPropertyName("flow_svcgroup")]
-        public List<FlowSvcGroup> SvcGroups { get; set; } = [];
-
-        [JsonProperty("flow_timeobject"), JsonPropertyName("flow_timeobject")]
-        public List<FlowTimeObject> TimeObjects { get; set; } = [];
-
-        [JsonProperty("flow_access"), JsonPropertyName("flow_access")]
-        public List<FlowAccess> Accesses { get; set; } = [];
-
-        public Dictionary<long, string> CustomNwObjectHashes => NwObjects.Where(o => o.IpStart == null).ToDictionary(o => o.Id, o => o.Hash);
-        public Dictionary<long, string> CustomSvcObjectHashes => SvcObjects.Where(o => o.PortStart == null).ToDictionary(o => o.Id, o => o.Hash);
-        public Dictionary<long, string> CustomTimeObjectHashes => TimeObjects.Where(o => o.StartTime == null).ToDictionary(o => o.Id, o => o.Hash);
-    }
-
-    /// <summary>
-    /// Custom converter for FlowSyncFlowDataContainer to handle flat JSON structures.
-    /// Allows deserializing from a flat object with flow_nwobject, flow_nwgroup, etc. properties.
-    /// </summary>
-    public class FlowSyncFlowDataContainerConverter : Newtonsoft.Json.JsonConverter
-    {
-        public override bool CanConvert(Type objectType)
+        public FlowSyncFlowData(List<FlowNwObject> nwObjects, List<FlowNwGroup> nwGroups, List<FlowSvcObject> svcObjects, List<FlowSvcGroup> svcGroups, List<FlowTimeObject> timeObjects, List<FlowAccess> accesses)
         {
-            return objectType == typeof(FlowSyncFlowDataContainer);
-        }
+            NwObjects = nwObjects.ToDictionary(fo => fo.Hash, fo => fo);
+            NwGroups = nwGroups.ToDictionary(fg => fg.Hash, fg => fg);
+            SvcObjects = svcObjects.ToDictionary(fs => fs.Hash, fs => fs);
+            SvcGroups = svcGroups.ToDictionary(fsg => fsg.Hash, fsg => fsg);
+            TimeObjects = timeObjects.ToDictionary(fto => fto.Hash, fto => fto);
+            Accesses = accesses.ToDictionary(fa => fa.Hash, fa => fa);
 
-        public override object? ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, object? existingValue, Newtonsoft.Json.JsonSerializer serializer)
-        {
-            JObject jObject = JObject.Load(reader);
-
-            var result = new FlowSyncFlowDataContainer
-            {
-                NwObjects = jObject["flow_nwobject"]?.ToObject<List<FlowNwObject>>(serializer) ?? [],
-                NwGroups = jObject["flow_nwgroup"]?.ToObject<List<FlowNwGroup>>(serializer) ?? [],
-                SvcObjects = jObject["flow_svcobject"]?.ToObject<List<FlowSvcObject>>(serializer) ?? [],
-                SvcGroups = jObject["flow_svcgroup"]?.ToObject<List<FlowSvcGroup>>(serializer) ?? [],
-                TimeObjects = jObject["flow_timeobject"]?.ToObject<List<FlowTimeObject>>(serializer) ?? [],
-                Accesses = jObject["flow_access"]?.ToObject<List<FlowAccess>>(serializer) ?? []
-            };
-
-            return result;
-        }
-
-        public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object? value, Newtonsoft.Json.JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
+            NwObjectHashes = nwObjects.SelectMany(fo => (fo.Objects ?? Enumerable.Empty<NetworkObject>())
+                    .Select(o => new { o.Id, ParentHash = fo.Hash }))
+                .ToDictionary(x => x.Id, x => x.ParentHash);
+            SvcObjectHashes = svcObjects.SelectMany(fs => (fs.Services ?? Enumerable.Empty<NetworkService>())
+                    .Select(s => new { s.Id, ParentHash = fs.Hash }))
+                .ToDictionary(x => x.Id, x => x.ParentHash);
+            TimeObjectHashes = timeObjects.SelectMany(fto => (fto.TimeObjects ?? Enumerable.Empty<TimeObject>())
+                    .Select(to => new { to.Id, ParentHash = fto.Hash }))
+                .ToDictionary(x => x.Id, x => x.ParentHash);
+            AccessHashes = accesses.SelectMany(fa => (fa.Rules ?? Enumerable.Empty<Rule>())
+                    .Select(r => new { r.Id, ParentHash = fa.Hash }))
+                .ToDictionary(x => x.Id, x => x.ParentHash);
         }
     }
 }

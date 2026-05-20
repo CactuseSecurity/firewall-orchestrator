@@ -12,7 +12,7 @@ namespace FWO.Test
             FlowAccess access = new()
             {
                 Id = 77,
-                AccessHash = "abc123",
+                Hash = "abc123",
                 State = "implemented",
                 Sources =
                 [
@@ -46,7 +46,7 @@ namespace FWO.Test
             FlowAccess access = new()
             {
                 Id = 77,
-                AccessHash = "abc123",
+                Hash = "abc123",
                 State = "implemented",
                 Sources =
                 [

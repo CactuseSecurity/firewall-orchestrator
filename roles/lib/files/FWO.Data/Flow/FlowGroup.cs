@@ -23,14 +23,14 @@ namespace FWO.Data.Flow
 
     public class FlowNwGroup : FlowGroup
     {
-        [JsonProperty("nwgroup_id"), JsonPropertyName("nwgroup_id")]
+        [JsonProperty("nwgrp_id"), JsonPropertyName("nwgrp_id")]
         public override long Id { get; set; }
 
         [JsonProperty("nwgrp_hash"), JsonPropertyName("nwgrp_hash")]
         public override string Hash { get; set; } = "";
 
         [JsonProperty("nwgrp_members"), JsonPropertyName("nwgrp_members")]
-        public List<FlowNwGroupMember> NwGroupMembers { get; set; } = new List<FlowNwGroupMember>();
+        public List<FlowNwGroupMember> NwGroupMembers { get; set; } = [];
 
         [JsonProperty("objects"), JsonPropertyName("objects")]
         public List<NetworkObject>? Objects { get; set; }
@@ -38,7 +38,7 @@ namespace FWO.Data.Flow
 
     public class FlowSvcGroup : FlowGroup
     {
-        [JsonProperty("svcgroup_id"), JsonPropertyName("svcgroup_id")]
+        [JsonProperty("svcgrp_id"), JsonPropertyName("svcgrp_id")]
         public override long Id { get; set; }
 
         [JsonProperty("svcgrp_hash"), JsonPropertyName("svcgrp_hash")]
@@ -53,7 +53,7 @@ namespace FWO.Data.Flow
 
     public class FlowNwGroupMember
     {
-        [JsonProperty("nwgroup_id"), JsonPropertyName("nwgroup_id")]
+        [JsonProperty("nwgrp_id"), JsonPropertyName("nwgrp_id")]
         public long NwGroupId { get; set; }
 
         [JsonProperty("nwobj_id"), JsonPropertyName("nwobj_id")]
@@ -65,7 +65,7 @@ namespace FWO.Data.Flow
 
     public class FlowSvcGroupMember
     {
-        [JsonProperty("svcgroup_id"), JsonPropertyName("svcgroup_id")]
+        [JsonProperty("svcgrp_id"), JsonPropertyName("svcgrp_id")]
         public long SvcGroupId { get; set; }
 
         [JsonProperty("svcobj_id"), JsonPropertyName("svcobj_id")]

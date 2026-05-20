@@ -6,14 +6,6 @@ using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Logging;
 
-// Aliases for readability
-using FlowNwObjectInsert = FWO.Data.Flow.FlowNwObjectInsert;
-using FlowSvcObjectInsert = FWO.Data.Flow.FlowSvcObjectInsert;
-using FlowTimeObjectInsert = FWO.Data.Flow.FlowTimeObjectInsert;
-using FlowNwGroupInsert = FWO.Data.Flow.FlowNwGroupInsert;
-using FlowSvcGroupInsert = FWO.Data.Flow.FlowSvcGroupInsert;
-using FlowAccessInsert = FWO.Data.Flow.FlowAccessInsert;
-
 namespace FWO.Services
 {
     /// <summary>
@@ -34,7 +26,7 @@ namespace FWO.Services
             this.globalConfig = globalConfig;
         }
 
-        private async Task<FlowSyncFlowDataContainer> GetFlowSyncDataAsync(int mgmId)
+        private async Task<FlowSyncFlowData> GetFlowSyncDataAsync(int mgmId)
         {
             var nwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, new { mgmId }) ?? [];
             var nwGroups = await apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, new { mgmId }) ?? [];
@@ -43,15 +35,7 @@ namespace FWO.Services
             var timeObjects = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowSyncTimeObjects, new { mgmId }) ?? [];
             var accesses = await apiConnection.SendQueryAsync<List<FlowAccess>>(FlowQueries.getFlowSyncAccesses, new { mgmId }) ?? [];
 
-            return new FlowSyncFlowDataContainer
-            {
-                NwObjects = nwObjects,
-                NwGroups = nwGroups,
-                SvcObjects = svcObjects,
-                SvcGroups = svcGroups,
-                TimeObjects = timeObjects,
-                Accesses = accesses
-            };
+            return new FlowSyncFlowData(nwObjects, nwGroups, svcObjects, svcGroups, timeObjects, accesses);
         }
 
         /// <summary>
@@ -118,597 +102,958 @@ namespace FWO.Services
             int mgmFlowNamingSourceId = globalConfig.FlowNamingSourceManagementId ?? 0;
             bool useManagementNamesForFlow = mgmFlowNamingSourceId == mgmId;
 
-            // Step 1: Calculate hashes and track uniqueness (hash -> list of normalized object IDs)
-            var nwObjHashMap = CalculateNwObjectHashes(managementData.NetworkObjects.Where(o => o.Removed == null && o.Type.Name != ObjectType.Group).ToList());
-            var svcObjHashMap = CalculateSvcObjectHashes(managementData.ServiceObjects.Where(s => s.Removed == null && s.Type.Name != ServiceType.Group).ToList());
-            var timeObjHashMap = CalculateTimeObjectHashes(managementData.TimeObjects.Where(t => t.Removed == null).ToList());
-            var nwGrpHashMap = CalculateNwGroupHashes(managementData.NetworkObjects.Where(o => o.Removed == null && o.Type.Name == ObjectType.Group).ToList(), flowData);
-            var svcGrpHashMap = CalculateSvcGroupHashes(managementData.ServiceObjects.Where(s => s.Removed == null && s.Type.Name == ServiceType.Group).ToList(), flowData);
-            var ruleHashMap = CalculateRuleHashes(managementData.Rules ?? [], flowData);
-
-            // Step 2: Insert missing flows
-            await SyncFlowNwObjectsAsync(nwObjHashMap, flowData);
-            await SyncFlowSvcObjectsAsync(svcObjHashMap, flowData);
-            await SyncFlowTimeObjectsAsync(timeObjHashMap, flowData);
-
-            var omittedNwGroups = await SyncFlowNwGroupsAsync(nwGrpHashMap, flowData);
-            var omittedSvcGroups = await SyncFlowSvcGroupsAsync(svcGrpHashMap, flowData);
-            var skippedRules = await SyncFlowAccessesAsync(ruleHashMap, flowData);
-
-            // Reload flow data after inserts to get new IDs
+            // Process simple objects first, as they are used in groups and accesses
+            await ProcessNetworkObjectsAsync(managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);
+            await ProcessServiceObjectsAsync(managementData.ServiceObjects.Where(s => s.Type.Name != ServiceType.Group), flowData, useManagementNamesForFlow);
+            await ProcessTimeObjectsAsync(managementData.TimeObjects, flowData, useManagementNamesForFlow);
+            // Refresh flow data to include newly inserted objects
             flowData = await GetFlowSyncDataAsync(mgmId);
+            // Process groups next, as they are used in accesses
+            await ProcessNetworkGroupsAsync(managementData.NetworkObjects.Where(o => o.Type.Name == ObjectType.Group), flowData, useManagementNamesForFlow);
+            await ProcessServiceGroupsAsync(managementData.ServiceObjects.Where(s => s.Type.Name == ServiceType.Group), flowData, useManagementNamesForFlow);
+            // Refresh flow data to include newly inserted groups
+            flowData = await GetFlowSyncDataAsync(mgmId);
+            // Finally, process accesses which reference all object types
+            await ProcessRulesAsync(managementData.Rules, flowData);
 
-            // Step 3: Update normalized objects with flow mappings and flow_active status
-            await UpdateNwObjectMappingsAsync(managementData.NetworkObjects, flowData, nwObjHashMap, nwGrpHashMap);
-            await UpdateSvcObjectMappingsAsync(managementData.ServiceObjects, flowData, svcObjHashMap, svcGrpHashMap);
-            await UpdateTimeObjectMappingsAsync(managementData.TimeObjects, flowData, timeObjHashMap);
-            await UpdateRuleMappingsAsync(managementData.Rules ?? [], flowData, ruleHashMap);
+            // remove flow mappings from all normalized entries that are set to removed
+            var cleanupCount = await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateFlowMappingsForRemoved, new { mgmId });
+            Log.WriteDebug(LogMessageTitle, $"Cleaned up flow mappings for {cleanupCount} removed normalized objects.");
 
-            await UpdateImportControlsAsync(importsForManagement);
-
-            Log.WriteInfo(LogMessageTitle, $"Management {mgmId} synchronized. Omitted network groups: {omittedNwGroups}, omitted service groups: {omittedSvcGroups}, skipped access rules: {skippedRules}.");
+            // Mark imports as completed
+            var maxImportId = importsForManagement.Max(i => i.ControlId);
+            var updateCount = await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateImportControlForFlowSync, new { controlId = maxImportId, mgmId, flowSyncDone = true });
         }
 
-        /// <summary>
-        /// Checks if a hash already exists in the flow data (for any object type).
-        /// </summary>
-        private static bool HashExistsInFlowData(FlowSyncFlowData flowData, string hash)
+        private async Task ProcessNetworkObjectsAsync(IEnumerable<NetworkObject> nwObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
-            return flowData.NwObjects.Any(o => o.Hash == hash) ||
-                   flowData.SvcObjects.Any(o => o.Hash == hash) ||
-                   flowData.TimeObjects.Any(o => o.Hash == hash) ||
-                   flowData.NwGroups.Any(g => g.Hash == hash) ||
-                   flowData.SvcGroups.Any(g => g.Hash == hash) ||
-                   flowData.Accesses.Any(a => a.AccessHash == hash);
-        }
+            var pendingNwObjInserts = new Dictionary<string, FlowNwObjectInsert>();
+            Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
 
-        /// <summary>
-        /// Maps normalized network objects to their calculated hashes.
-        /// Result: hash -> list of normalized object IDs (to detect uniqueness).
-        /// </summary>
-        private Dictionary<string, List<long>> CalculateNwObjectHashes(List<NetworkObject> objects)
-        {
-            var hashMap = new Dictionary<string, List<long>>();
-            foreach (var obj in objects)
+            var skippedNwObjects = 0;
+
+            foreach (var obj in nwObjects)
             {
-                var flowObj = new FlowNwObject { IpStart = obj.IP, IpEnd = obj.IpEnd, Name = obj.Name };
-                flowObj.GenerateHash();
-                if (!hashMap.ContainsKey(flowObj.Hash))
-                    hashMap[flowObj.Hash] = [];
-                hashMap[flowObj.Hash].Add(obj.Id);
-            }
-            return hashMap;
-        }
-
-        /// <summary>
-        /// Maps normalized service objects to their calculated hashes.
-        /// Result: hash -> list of normalized object IDs (to detect uniqueness).
-        /// </summary>
-        private Dictionary<string, List<long>> CalculateSvcObjectHashes(List<NetworkService> services)
-        {
-            var hashMap = new Dictionary<string, List<long>>();
-            foreach (var svc in services)
-            {
-                var flowSvc = new FlowSvcObject { PortStart = svc.DestinationPort, PortEnd = svc.DestinationPortEnd, ProtoId = svc.ProtoId ?? 0, Name = svc.Name };
-                flowSvc.GenerateHash();
-                if (!hashMap.ContainsKey(flowSvc.Hash))
-                    hashMap[flowSvc.Hash] = [];
-                hashMap[flowSvc.Hash].Add(svc.Id);
-            }
-            return hashMap;
-        }
-
-        /// <summary>
-        /// Maps normalized time objects to their calculated hashes.
-        /// Result: hash -> list of normalized object IDs (to detect uniqueness).
-        /// </summary>
-        private Dictionary<string, List<long>> CalculateTimeObjectHashes(List<TimeObject> timeObjects)
-        {
-            var hashMap = new Dictionary<string, List<long>>();
-            foreach (var timeObj in timeObjects)
-            {
-                var flowTime = new FlowTimeObject { StartTime = timeObj.StartTime, EndTime = timeObj.EndTime, Name = timeObj.Name };
-                flowTime.GenerateHash();
-                if (!hashMap.ContainsKey(flowTime.Hash))
-                    hashMap[flowTime.Hash] = [];
-                hashMap[flowTime.Hash].Add(timeObj.Id);
-            }
-            return hashMap;
-        }
-
-        /// <summary>
-        /// Maps normalized network groups to their calculated hashes.
-        /// Only groups with all technical members are included.
-        /// Result: hash -> list of normalized group IDs (to detect uniqueness).
-        /// </summary>
-        private Dictionary<string, List<long>> CalculateNwGroupHashes(List<NetworkObject> groups, FlowSyncFlowData flowData)
-        {
-            var hashMap = new Dictionary<string, List<long>>();
-            foreach (var group in groups)
-            {
-                if (TryBuildNwGroupHash(group, flowData, out var hash))
+                if (!TryGetFlowNwObjectHash(obj, flowData, out var hash))
                 {
-                    if (!hashMap.ContainsKey(hash!))
-                        hashMap[hash!] = [];
-                    hashMap[hash!].Add(group.Id);
-                }
-            }
-            return hashMap;
-        }
-
-        /// <summary>
-        /// Maps normalized service groups to their calculated hashes.
-        /// Only groups with all technical members are included.
-        /// Result: hash -> list of normalized group IDs (to detect uniqueness).
-        /// </summary>
-        private Dictionary<string, List<long>> CalculateSvcGroupHashes(List<NetworkService> groups, FlowSyncFlowData flowData)
-        {
-            var hashMap = new Dictionary<string, List<long>>();
-            foreach (var group in groups)
-            {
-                if (TryBuildSvcGroupHash(group, flowData, out var hash))
-                {
-                    if (!hashMap.ContainsKey(hash!))
-                        hashMap[hash!] = [];
-                    hashMap[hash!].Add(group.Id);
-                }
-            }
-            return hashMap;
-        }
-
-        /// <summary>
-        /// Maps normalized rules to their calculated access hashes.
-        /// Only rules with all resolvable members are included.
-        /// Result: hash -> list of normalized rule IDs (to detect uniqueness).
-        /// </summary>
-        private Dictionary<string, List<long>> CalculateRuleHashes(List<Rule> rules, FlowSyncFlowData flowData)
-        {
-            var hashMap = new Dictionary<string, List<long>>();
-            foreach (var rule in rules.Where(r => r.Removed == null))
-            {
-                if (TryBuildAccessHash(rule, flowData, out var hash))
-                {
-                    if (!hashMap.ContainsKey(hash!))
-                        hashMap[hash!] = [];
-                    hashMap[hash!].Add(rule.Id);
-                }
-            }
-            return hashMap;
-        }
-
-        /// <summary>
-        /// Syncs network objects: inserts missing flow entries for new hashes.
-        /// </summary>
-        private async Task SyncFlowNwObjectsAsync(Dictionary<string, List<long>> nwObjHashMap, FlowSyncFlowData flowData)
-        {
-            var toInsert = new List<FlowNwObjectInsert>();
-            foreach (var kvp in nwObjHashMap)
-            {
-                if (HashExistsInFlowData(flowData, kvp.Key))
-                    continue;
-                toInsert.Add(new FlowNwObjectInsert { NwObjHash = kvp.Key, State = "implemented", RemovedDate = null, ShowInRequestModule = false, Name = null });
-            }
-            if (toInsert.Any())
-                await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.insertFlowNwObjects, new { objects = toInsert });
-        }
-
-        /// <summary>
-        /// Syncs service objects: inserts missing flow entries for new hashes.
-        /// </summary>
-        private async Task SyncFlowSvcObjectsAsync(Dictionary<string, List<long>> svcObjHashMap, FlowSyncFlowData flowData)
-        {
-            var toInsert = new List<FlowSvcObjectInsert>();
-            foreach (var kvp in svcObjHashMap)
-            {
-                if (HashExistsInFlowData(flowData, kvp.Key))
-                    continue;
-                toInsert.Add(new FlowSvcObjectInsert { SvcObjHash = kvp.Key, State = "implemented", RemovedDate = null, ShowInRequestModule = false, Name = null });
-            }
-            if (toInsert.Any())
-                await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.insertFlowSvcObjects, new { objects = toInsert });
-        }
-
-        /// <summary>
-        /// Syncs time objects: inserts missing flow entries for new hashes.
-        /// </summary>
-        private async Task SyncFlowTimeObjectsAsync(Dictionary<string, List<long>> timeObjHashMap, FlowSyncFlowData flowData)
-        {
-            var toInsert = new List<FlowTimeObjectInsert>();
-            foreach (var kvp in timeObjHashMap)
-            {
-                if (HashExistsInFlowData(flowData, kvp.Key))
-                    continue;
-                toInsert.Add(new FlowTimeObjectInsert { TimeObjHash = kvp.Key, State = "implemented", RemovedDate = null, ShowInRequestModule = false, Name = null });
-            }
-            if (toInsert.Any())
-                await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.insertFlowTimeObjects, new { objects = toInsert });
-        }
-
-        /// <summary>
-        /// Syncs network groups: inserts missing flow entries. Returns count of omitted groups.
-        /// </summary>
-        private async Task<int> SyncFlowNwGroupsAsync(Dictionary<string, List<long>> nwGrpHashMap, FlowSyncFlowData flowData)
-        {
-            var toInsert = new List<FlowNwGroupInsert>();
-            int omitted = 0;
-            foreach (var kvp in nwGrpHashMap)
-            {
-                if (HashExistsInFlowData(flowData, kvp.Key))
-                    continue;
-                toInsert.Add(new FlowNwGroupInsert { NwGrpHash = kvp.Key, State = "implemented", RemovedDate = null, ShowInRequestModule = false, Name = null });
-            }
-            if (toInsert.Any())
-                await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.insertFlowNwGroups, new { objects = toInsert });
-            return omitted;
-        }
-
-        /// <summary>
-        /// Syncs service groups: inserts missing flow entries. Returns count of omitted groups.
-        /// </summary>
-        private async Task<int> SyncFlowSvcGroupsAsync(Dictionary<string, List<long>> svcGrpHashMap, FlowSyncFlowData flowData)
-        {
-            var toInsert = new List<FlowSvcGroupInsert>();
-            int omitted = 0;
-            foreach (var kvp in svcGrpHashMap)
-            {
-                if (HashExistsInFlowData(flowData, kvp.Key))
-                    continue;
-                toInsert.Add(new FlowSvcGroupInsert { SvcGrpHash = kvp.Key, State = "implemented", RemovedDate = null, ShowInRequestModule = false, Name = null });
-            }
-            if (toInsert.Any())
-                await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.insertFlowSvcGroups, new { objects = toInsert });
-            return omitted;
-        }
-
-        /// <summary>
-        /// Syncs rule accesses: inserts missing flow entries. Returns count of skipped rules.
-        /// </summary>
-        private async Task<int> SyncFlowAccessesAsync(Dictionary<string, List<long>> ruleHashMap, FlowSyncFlowData flowData)
-        {
-            var toInsert = new List<FlowAccessInsert>();
-            int skipped = 0;
-            foreach (var kvp in ruleHashMap)
-            {
-                if (HashExistsInFlowData(flowData, kvp.Key))
-                    continue;
-                toInsert.Add(new FlowAccessInsert { AccessHash = kvp.Key, RequesterId = null, OwnerId = null, State = "implemented", RemovedDate = null });
-            }
-            if (toInsert.Any())
-                await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.insertFlowAccesses, new { objects = toInsert });
-            return skipped;
-        }
-
-        /// <summary>
-        /// Updates normalized network objects with their flow mappings.
-        /// flow_active is true only if the mapping is unique (exactly one nw object maps to this hash).
-        /// </summary>
-        private async Task UpdateNwObjectMappingsAsync(List<NetworkObject> objects, FlowSyncFlowData flowData,
-            Dictionary<string, List<long>> nwObjHashMap, Dictionary<string, List<long>> nwGrpHashMap)
-        {
-            var updates = new List<object>();
-
-            foreach (var obj in objects)
-            {
-                if (obj.Removed.HasValue)
-                {
-                    updates.Add(new { where = new { obj_id = new { _eq = obj.Id } }, _set = new { flow_nwobj_id = (long?)null, flow_nwgrp_id = (long?)null, flow_active = false } });
+                    skippedNwObjects++;
                     continue;
                 }
 
-                if (obj.Type.Name == ObjectType.Group)
+                var alreadyExists = flowData.NwObjects.TryGetValue(hash, out var existingFlowObj);
+                var alreadyBeingInserted = pendingNwObjInserts.TryGetValue(hash, out var pendingInsert);
+
+                if (!alreadyExists && !alreadyBeingInserted)
                 {
-                    if (!TryBuildNwGroupHash(obj, flowData, out var groupHash) || string.IsNullOrWhiteSpace(groupHash))
+                    var newInsert = new FlowNwObjectInsert
                     {
-                        updates.Add(new { where = new { obj_id = new { _eq = obj.Id } }, _set = new { flow_nwobj_id = (long?)null, flow_nwgrp_id = (long?)null, flow_active = false } });
-                        continue;
-                    }
-                    var flowGrpId = FindFlowIdByHash(flowData, groupHash);
-                    bool isUnique = nwGrpHashMap.TryGetValue(groupHash, out var grpMapping) && grpMapping.Count == 1;
-                    updates.Add(new { where = new { obj_id = new { _eq = obj.Id } }, _set = new { flow_nwobj_id = (long?)null, flow_nwgrp_id = flowGrpId, flow_active = (flowGrpId.HasValue && isUnique) } });
-                    continue;
+                        NwObjHash = hash,
+                        IpStart = obj.IP,
+                        IpEnd = obj.IpEnd,
+                        State = "implemented",
+                        RemovedDate = null,
+                        ShowInRequestModule = false,
+                        Name = useManagementNamesForFlow ? obj.Name : null
+                    };
+                    pendingNwObjInserts.Add(hash, newInsert);
+                }
+                if (alreadyBeingInserted)
+                {
+                    pendingInsert!.Name = null;
                 }
 
-                var flowObjHash = GetNwObjectHash(obj);
-                var flowObjId = FindFlowIdByHash(flowData, flowObjHash);
-                bool isObjUnique = nwObjHashMap.TryGetValue(flowObjHash, out var objMapping) && objMapping.Count == 1;
-                updates.Add(new { where = new { obj_id = new { _eq = obj.Id } }, _set = new { flow_nwobj_id = flowObjId, flow_nwgrp_id = (long?)null, flow_active = (flowObjId.HasValue && isObjUnique) } });
+                var flowActive = true;
+                if (existingFlowObj != null && existingFlowObj.Objects?.Count > 0)
+                {
+                    // a flow mapping exists or is being inserted for current management -> set flow_active to false
+                    flowActive = false;
+                }
+
+                if (!newFLowMappings.TryGetValue(hash, out var mappingUpdates))
+                {
+                    mappingUpdates = [];
+                    newFLowMappings.Add(hash, mappingUpdates);
+                }
+                mappingUpdates.Add(new FlowMappingUpdate
+                {
+                    Id = obj.Id,
+                    FlowId = existingFlowObj?.Id, // will be updated after insertion if object is new
+                    FlowActive = flowActive
+                });
             }
 
-            await SendUpdateManyAsync(FlowQueries.updateObjectFlowMappings, updates);
-        }
+            // make sure FlowActive is false for multiple mapping updates per hash
+            newFLowMappings.Where(m => m.Value.Count > 1).ToList().ForEach(m => m.Value.ForEach(update => update.FlowActive = false));
 
-        /// <summary>
-        /// Updates normalized service objects with their flow mappings.
-        /// flow_active is true only if the mapping is unique (exactly one svc object maps to this hash).
-        /// </summary>
-        private async Task UpdateSvcObjectMappingsAsync(List<NetworkService> services, FlowSyncFlowData flowData,
-            Dictionary<string, List<long>> svcObjHashMap, Dictionary<string, List<long>> svcGrpHashMap)
-        {
-            var updates = new List<object>();
-
-            foreach (var svc in services)
+            // insert newFlowNwObjects
+            var newFlowNwObjects = pendingNwObjInserts.Values.ToList();
+            if (newFlowNwObjects.Count != 0)
             {
-                if (svc.Removed.HasValue)
+                var insertResult = await apiConnection.SendQueryAsync<FlowNwObjectInsertResult>(FlowQueries.insertFlowNwObjects, new { objects = newFlowNwObjects });
+                var insertedObjects = insertResult?.Returning ?? [];
+
+                foreach (var inserted in insertedObjects)
                 {
-                    updates.Add(new { where = new { svc_id = new { _eq = svc.Id } }, _set = new { flow_svcobj_id = (long?)null, flow_svcgrp_id = (long?)null, flow_active = false } });
-                    continue;
+                    // update mapping updates needing flow id of newly inserted objects
+                    newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                if (svc.Type.Name == ServiceType.Group)
-                {
-                    if (!TryBuildSvcGroupHash(svc, flowData, out var groupHash) || string.IsNullOrWhiteSpace(groupHash))
-                    {
-                        updates.Add(new { where = new { svc_id = new { _eq = svc.Id } }, _set = new { flow_svcobj_id = (long?)null, flow_svcgrp_id = (long?)null, flow_active = false } });
-                        continue;
-                    }
-                    var flowGrpId = FindFlowIdByHash(flowData, groupHash);
-                    bool isUnique = svcGrpHashMap.TryGetValue(groupHash, out var grpMapping) && grpMapping.Count == 1;
-                    updates.Add(new { where = new { svc_id = new { _eq = svc.Id } }, _set = new { flow_svcobj_id = (long?)null, flow_svcgrp_id = flowGrpId, flow_active = (flowGrpId.HasValue && isUnique) } });
-                    continue;
-                }
-
-                var flowObjHash = GetSvcObjectHash(svc);
-                var flowObjId = FindFlowIdByHash(flowData, flowObjHash);
-                bool isObjUnique = svcObjHashMap.TryGetValue(flowObjHash, out var objMapping) && objMapping.Count == 1;
-                updates.Add(new { where = new { svc_id = new { _eq = svc.Id } }, _set = new { flow_svcobj_id = flowObjId, flow_svcgrp_id = (long?)null, flow_active = (flowObjId.HasValue && isObjUnique) } });
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow network objects for management. Skipped (non-technical): {skippedNwObjects}.");
             }
 
-            await SendUpdateManyAsync(FlowQueries.updateServiceFlowMappings, updates);
+            // update normalized objects with flow mappings and flow_active status
+            if (newFLowMappings.Count != 0)
+            {
+                var updates = new List<object>();
+                foreach (var mapping in newFLowMappings.Values.SelectMany(m => m))
+                {
+                    updates.Add(new
+                    {
+                        where = new { obj_id = new { _eq = mapping.Id } },
+                        _set = new { flow_nwobj_id = mapping.FlowId, flow_active = mapping.FlowActive }
+                    });
+                }
+
+                var updateCount = await SendUpdateManyAsync(FlowQueries.updateObjectFlowMappings, updates);
+
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {updateCount} network objects");
+            }
         }
 
-        /// <summary>
-        /// Updates normalized time objects with their flow mappings.
-        /// flow_active is true only if the mapping is unique (exactly one time object maps to this hash).
-        /// </summary>
-        private async Task UpdateTimeObjectMappingsAsync(List<TimeObject> timeObjects, FlowSyncFlowData flowData,
-            Dictionary<string, List<long>> timeObjHashMap)
+
+        private async Task ProcessServiceObjectsAsync(IEnumerable<NetworkService> svcObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
         {
-            var updates = new List<object>();
+            var pendingSvcObjInserts = new Dictionary<string, FlowSvcObjectInsert>();
+            Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
+
+            var skippedSvcObjects = 0;
+
+            foreach (var svc in svcObjects)
+            {
+                if (!TryGetFlowSvcObjectHash(svc, flowData, out var hash))
+                {
+                    skippedSvcObjects++;
+                    continue;
+                }
+                var alreadyExists = flowData.SvcObjects.TryGetValue(hash, out var existingFlowObj);
+                var alreadyBeingInserted = pendingSvcObjInserts.TryGetValue(hash, out var pendingInsert);
+
+                if (!alreadyExists && !alreadyBeingInserted)
+                {
+                    var newInsert = new FlowSvcObjectInsert
+                    {
+                        Name = useManagementNamesForFlow ? svc.Name : null,
+                        PortStart = svc.DestinationPort,
+                        PortEnd = svc.DestinationPortEnd,
+                        IpProtoId = svc.ProtoId!.Value,
+                        SvcObjHash = hash,
+                        State = "implemented",
+                        RemovedDate = null,
+                        ShowInRequestModule = false
+                    };
+                    pendingSvcObjInserts.Add(hash, newInsert);
+                }
+                if (alreadyBeingInserted)
+                {
+                    pendingInsert!.Name = null;
+                }
+
+                var flowActive = true;
+                if (existingFlowObj != null && existingFlowObj.Services?.Count > 0 || alreadyBeingInserted)
+                {
+                    // a flow mapping exists for current management -> set flow_active to false
+                    flowActive = false;
+                }
+
+                if (!newFLowMappings.TryGetValue(hash, out var mappingUpdates))
+                {
+                    mappingUpdates = [];
+                    newFLowMappings.Add(hash, mappingUpdates);
+                }
+                mappingUpdates.Add(new FlowMappingUpdate
+                {
+                    Id = svc.Id,
+                    FlowId = existingFlowObj?.Id,
+                    FlowActive = flowActive
+                });
+            }
+
+            // make sure FlowActive is false for multiple mapping updates per hash
+            newFLowMappings.Where(m => m.Value.Count > 1).ToList().ForEach(m => m.Value.ForEach(update => update.FlowActive = false));
+
+            // insert newFlowSvcObjects
+            var newFlowSvcObjects = pendingSvcObjInserts.Values.ToList();
+            if (newFlowSvcObjects.Count != 0)
+            {
+                var insertResult = await apiConnection.SendQueryAsync<FlowSvcObjectInsertResult>(FlowQueries.insertFlowSvcObjects, new { objects = newFlowSvcObjects });
+                var insertedObjects = insertResult?.Returning ?? [];
+
+                foreach (var inserted in insertedObjects)
+                {
+                    newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
+                }
+
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow service objects for management. Skipped (missing proto): {skippedSvcObjects}.");
+            }
+
+            // update normalized services with flow mappings and flow_active status
+            if (newFLowMappings.Count != 0)
+            {
+                var updates = new List<object>();
+                foreach (var mapping in newFLowMappings.Values.SelectMany(m => m))
+                {
+                    updates.Add(new
+                    {
+                        where = new { svc_id = new { _eq = mapping.Id } },
+                        _set = new { flow_svcobj_id = mapping.FlowId, flow_active = mapping.FlowActive }
+                    });
+                }
+
+                var updateCount = await SendUpdateManyAsync(FlowQueries.updateServiceFlowMappings, updates);
+
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {updateCount} service objects");
+            }
+        }
+
+        private async Task ProcessTimeObjectsAsync(IEnumerable<TimeObject> timeObjects, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        {
+            var pendingTimeObjInserts = new Dictionary<string, FlowTimeObjectInsert>();
+            Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
 
             foreach (var timeObj in timeObjects)
             {
-                if (timeObj.Removed.HasValue)
+                var hash = FlowHashGenerator.GenerateTimeObjectHash(timeObj.StartTime, timeObj.EndTime);
+                var alreadyExists = flowData.TimeObjects.TryGetValue(hash, out var existingFlowObj);
+                var alreadyBeingInserted = pendingTimeObjInserts.TryGetValue(hash, out var pendingInsert);
+
+                if (!alreadyExists && !alreadyBeingInserted)
                 {
-                    updates.Add(new { where = new { time_obj_id = new { _eq = timeObj.Id } }, _set = new { flow_timeobj_id = (long?)null, flow_active = false } });
+                    var newInsert = new FlowTimeObjectInsert
+                    {
+                        Name = useManagementNamesForFlow ? timeObj.Name : null,
+                        StartTime = timeObj.StartTime,
+                        EndTime = timeObj.EndTime,
+                        TimeObjHash = hash,
+                        State = "implemented",
+                        RemovedDate = null,
+                        ShowInRequestModule = false
+                    };
+                    pendingTimeObjInserts.Add(hash, newInsert);
+                }
+                if (alreadyBeingInserted)
+                {
+                    pendingInsert!.Name = null;
+                }
+
+                var flowActive = true;
+                if (existingFlowObj != null && existingFlowObj.TimeObjects?.Count > 0 || alreadyBeingInserted)
+                {
+                    // a flow mapping exists for current management -> set flow_active to false
+                    flowActive = false;
+                }
+
+                if (!newFLowMappings.TryGetValue(hash, out var mappingUpdates))
+                {
+                    mappingUpdates = [];
+                    newFLowMappings.Add(hash, mappingUpdates);
+                }
+                mappingUpdates.Add(new FlowMappingUpdate
+                {
+                    Id = timeObj.Id,
+                    FlowId = existingFlowObj?.Id,
+                    FlowActive = flowActive
+                });
+            }
+
+            var newFlowTimeObjects = pendingTimeObjInserts.Values.ToList();
+            if (newFlowTimeObjects.Count != 0)
+            {
+                var insertResult = await apiConnection.SendQueryAsync<FlowTimeObjectInsertResult>(FlowQueries.insertFlowTimeObjects, new { objects = newFlowTimeObjects });
+                var insertedObjects = insertResult?.Returning ?? [];
+
+                foreach (var inserted in insertedObjects)
+                {
+                    newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
+                }
+
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow time objects for management.");
+            }
+
+            if (newFLowMappings.Count != 0)
+            {
+                var updates = new List<object>();
+                foreach (var mapping in newFLowMappings.Values.SelectMany(m => m))
+                {
+                    updates.Add(new
+                    {
+                        where = new { time_obj_id = new { _eq = mapping.Id } },
+                        _set = new { flow_timeobj_id = mapping.FlowId, flow_active = mapping.FlowActive }
+                    });
+                }
+
+                var updateCount = await SendUpdateManyAsync(FlowQueries.updateTimeObjectFlowMappings, updates);
+
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {updateCount} time objects");
+            }
+        }
+
+
+        private async Task ProcessNetworkGroupsAsync(IEnumerable<NetworkObject> nwGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        {
+            var pendingNwGroupInserts = new Dictionary<string, FlowNwGroupInsert>();
+            Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
+
+            var skippedNwGroups = 0;
+            foreach (var group in nwGroups)
+            {
+                if (!TryBuildNwGroupMemberHashes(group, flowData, out var memberHashes))
+                {
+                    skippedNwGroups++;
+                    continue; // Skip groups with non-technical members - they need to be manually created first
+                }
+
+                var hash = FlowHashGenerator.GenerateGroupHash(memberHashes);
+                var alreadyExists = flowData.NwGroups.TryGetValue(hash, out var existingFlowGroup);
+                var alreadyBeingInserted = pendingNwGroupInserts.TryGetValue(hash, out var pendingInsert);
+
+                if (!alreadyExists && !alreadyBeingInserted)
+                {
+                    var newInsert = new FlowNwGroupInsert
+                    {
+                        Name = useManagementNamesForFlow ? group.Name : null,
+                        NwGrpHash = hash,
+                        State = "implemented",
+                        NwGroupMembers = new FlowNwGroupMembersContainer
+                        {
+                            Data = [.. memberHashes.Select(memberHash => new FlowNwGroupMemberInsert
+                            {
+                                NwObjId = flowData.NwObjects[memberHash].Id
+                            })]
+                        }
+                    };
+                    pendingNwGroupInserts.Add(hash, newInsert);
+                }
+                if (alreadyBeingInserted)
+                {
+                    pendingInsert!.Name = null;
+                }
+
+                var flowActive = true;
+                if (existingFlowGroup != null && existingFlowGroup.Objects?.Count > 0 || alreadyBeingInserted)
+                {
+                    // a flow mapping exists for current management -> set flow_active to false
+                    flowActive = false;
+                }
+
+                if (!newFLowMappings.TryGetValue(hash, out var mappingUpdates))
+                {
+                    mappingUpdates = [];
+                    newFLowMappings.Add(hash, mappingUpdates);
+                }
+                mappingUpdates.Add(new FlowMappingUpdate
+                {
+                    Id = group.Id,
+                    FlowId = existingFlowGroup?.Id, // will be updated after insertion if group is new
+                    FlowActive = flowActive
+                });
+
+            }
+
+            // make sure FlowActive is false for multiple mapping updates per hash
+            newFLowMappings.Where(m => m.Value.Count > 1).ToList().ForEach(m => m.Value.ForEach(update => update.FlowActive = false));
+
+            // insert newFlowNwGroups and newFlowNwGroupMembers
+            var newFlowNwGroups = pendingNwGroupInserts.Values.ToList();
+            if (newFlowNwGroups.Count != 0)
+            {
+                var insertGroupResult = await apiConnection.SendQueryAsync<FlowNwGroupInsertResult>(FlowQueries.insertFlowNwGroups, new { objects = newFlowNwGroups });
+                var insertedGroups = insertGroupResult?.Returning ?? [];
+
+                foreach (var inserted in insertedGroups)
+                {
+                    // update mapping updates needing flow id of newly inserted groups
+                    newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
+                }
+
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedGroups.Count} new flow network groups for management. Skipped (contains non-technical or empty): {skippedNwGroups}.");
+            }
+
+            // update normalized objects with flow mappings and flow_active status
+            if (newFLowMappings.Count != 0)
+            {
+                var updates = new List<object>();
+                foreach (var mapping in newFLowMappings.Values.SelectMany(m => m))
+                {
+                    updates.Add(new
+                    {
+                        where = new { obj_id = new { _eq = mapping.Id } },
+                        _set = new { flow_nwgrp_id = mapping.FlowId, flow_active = mapping.FlowActive }
+                    });
+                }
+                await SendUpdateManyAsync(FlowQueries.updateObjectFlowMappings, updates);
+
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {newFLowMappings.Count} network groups");
+            }
+        }
+
+        private async Task ProcessServiceGroupsAsync(IEnumerable<NetworkService> svcGroups, FlowSyncFlowData flowData, bool useManagementNamesForFlow)
+        {
+            var pendingSvcGroupInserts = new Dictionary<string, FlowSvcGroupInsert>();
+            Dictionary<string, List<FlowMappingUpdate>> newFLowMappings = [];
+
+            var skippedSvcGroups = 0;
+            foreach (var group in svcGroups)
+            {
+                if (!TryBuildSvcGroupMemberHashes(group, flowData, out var memberHashes))
+                {
+                    skippedSvcGroups++;
                     continue;
                 }
 
-                var flowObjHash = GetTimeObjectHash(timeObj);
-                var flowObjId = FindFlowIdByHash(flowData, flowObjHash);
-                bool isUnique = timeObjHashMap.TryGetValue(flowObjHash, out var objMapping) && objMapping.Count == 1;
-                updates.Add(new { where = new { time_obj_id = new { _eq = timeObj.Id } }, _set = new { flow_timeobj_id = flowObjId, flow_active = (flowObjId.HasValue && isUnique) } });
+                var hash = FlowHashGenerator.GenerateGroupHash(memberHashes);
+                var alreadyExists = flowData.SvcGroups.TryGetValue(hash, out var existingFlowGroup);
+                var alreadyBeingInserted = pendingSvcGroupInserts.TryGetValue(hash, out var pendingInsert);
+
+                if (!alreadyExists && !alreadyBeingInserted)
+                {
+                    var newInsert = new FlowSvcGroupInsert
+                    {
+                        SvcGrpHash = hash,
+                        Name = useManagementNamesForFlow ? group.Name : null,
+                        State = "implemented",
+                        SvcGroupMembers = new FlowSvcGroupMembersContainer
+                        {
+                            Data = [.. memberHashes.Select(memberHash => new FlowSvcGroupMemberInsert
+                            {
+                                SvcObjId = flowData.SvcObjects[memberHash].Id
+                            })]
+                        }
+                    };
+                    pendingSvcGroupInserts.Add(hash, newInsert);
+                }
+                if (alreadyBeingInserted)
+                {
+                    pendingInsert!.Name = null;
+                }
+
+                var flowActive = true;
+                if (existingFlowGroup != null && existingFlowGroup.Services?.Count > 0 || alreadyBeingInserted)
+                {
+                    // a flow mapping exists for current management -> set flow_active to false
+                    flowActive = false;
+                }
+
+                if (!newFLowMappings.TryGetValue(hash, out var mappingUpdates))
+                {
+                    mappingUpdates = [];
+                    newFLowMappings.Add(hash, mappingUpdates);
+                }
+                mappingUpdates.Add(new FlowMappingUpdate
+                {
+                    Id = group.Id,
+                    FlowId = existingFlowGroup?.Id, // will be updated after insertion if group is new
+                    FlowActive = flowActive
+                });
             }
 
-            await SendUpdateManyAsync(FlowQueries.updateTimeObjectFlowMappings, updates);
+            // make sure FlowActive is false for multiple mapping updates per hash
+            newFLowMappings.Where(m => m.Value.Count > 1).ToList().ForEach(m => m.Value.ForEach(update => update.FlowActive = false));
+
+            // insert newFlowSvcGroups and newFlowSvcGroupMembers
+            var newFlowSvcGroups = pendingSvcGroupInserts.Values.ToList();
+            if (newFlowSvcGroups.Count != 0)
+            {
+                var insertGroupResult = await apiConnection.SendQueryAsync<FlowSvcGroupInsertResult>(FlowQueries.insertFlowSvcGroups, new { objects = newFlowSvcGroups });
+                var insertedGroups = insertGroupResult?.Returning ?? [];
+
+                foreach (var inserted in insertedGroups)
+                {
+                    newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
+                }
+
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedGroups.Count} new flow service groups for management. Skipped (contains non-technical or empty): {skippedSvcGroups}.");
+            }
+
+            // update normalized services with flow mappings and flow_active status
+            if (newFLowMappings.Count != 0)
+            {
+                var updates = new List<object>();
+                foreach (var mapping in newFLowMappings.Values.SelectMany(m => m))
+                {
+                    updates.Add(new
+                    {
+                        where = new { svc_id = new { _eq = mapping.Id } },
+                        _set = new { flow_svcgrp_id = mapping.FlowId, flow_active = mapping.FlowActive }
+                    });
+                }
+                await SendUpdateManyAsync(FlowQueries.updateServiceFlowMappings, updates);
+
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {newFLowMappings.Count} service groups");
+            }
+        }
+
+        private async Task ProcessRulesAsync(IEnumerable<Rule> rules, FlowSyncFlowData flowData)
+        {
+            var pendingAccessInserts = new Dictionary<string, FlowAccessInsert>();
+            Dictionary<string, List<FlowMappingUpdate>> newFlowMappings = [];
+
+            var skippedRules = 0;
+
+            foreach (var rule in rules)
+            {
+                if (!TryBuildRuleAccess(rule, flowData, pendingAccessInserts, newFlowMappings))
+                {
+                    skippedRules++;
+                    continue;
+                }
+            }
+
+            // make sure FlowActive is false for multiple mapping updates per hash
+            newFlowMappings.Where(m => m.Value.Count > 1).ToList().ForEach(m => m.Value.ForEach(update => update.FlowActive = false));
+
+            // insert newFlowAccesses and newFlowAccessMembers
+            var newFlowAccesses = pendingAccessInserts.Values.ToList();
+            if (newFlowAccesses.Count != 0)
+            {
+                var insertResult = await apiConnection.SendQueryAsync<FlowAccessInsertResult>(FlowQueries.insertFlowAccesses, new { objects = newFlowAccesses });
+                var insertedAccesses = insertResult?.Returning ?? [];
+
+                foreach (var inserted in insertedAccesses)
+                {
+                    newFlowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
+                }
+
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedAccesses.Count} new flow accesses for management. Skipped: {skippedRules}.");
+            }
+
+            // update normalized rules with flow mappings and flow_active status
+            if (newFlowMappings.Count != 0)
+            {
+                var updates = new List<object>();
+                foreach (var mapping in newFlowMappings.Values.SelectMany(m => m))
+                {
+                    updates.Add(new
+                    {
+                        where = new { rule_id = new { _eq = mapping.Id } },
+                        _set = new { flow_access_id = mapping.FlowId, flow_active = mapping.FlowActive }
+                    });
+                }
+
+                var updateCount = await SendUpdateManyAsync(FlowQueries.updateRuleFlowMappings, updates);
+
+                Log.WriteInfo(LogMessageTitle, $"Updated flow mappings for {updateCount} rules");
+            }
         }
 
         /// <summary>
-        /// Updates normalized rules with their flow access mappings.
-        /// flow_active is true only if the mapping is unique (exactly one rule maps to this hash).
+        /// Get the hash for a network object by first checking if it has technical properties (IP) to calculate the
+        /// hash, and if not, looking up a stored hash in flow data. Returns false if no hash can be determined, which
+        /// indicates that the object should be skipped (e.g. non-technical objects that need manual creation).
         /// </summary>
-        private async Task UpdateRuleMappingsAsync(List<Rule> rules, FlowSyncFlowData flowData,
-            Dictionary<string, List<long>> ruleHashMap)
+        /// <param name="obj"></param>
+        /// <param name="flowData"></param>
+        /// <param name="hash"></param>
+        /// <returns></returns>
+        private static bool TryGetFlowNwObjectHash(NetworkObject obj, FlowSyncFlowData flowData, out string hash)
         {
-            var updates = new List<object>();
-
-            foreach (var rule in rules.Where(r => r.Removed == null))
+            hash = "";
+            if (string.IsNullOrWhiteSpace(obj.IP))
             {
-                if (rule.Removed.HasValue)
+                if (flowData.NwObjectHashes.TryGetValue(obj.Id, out var storedHash) && !string.IsNullOrWhiteSpace(storedHash))
                 {
-                    updates.Add(new { where = new { rule_id = new { _eq = rule.Id } }, _set = new { flow_access_id = (long?)null, flow_active = false } });
-                    continue;
+                    hash = storedHash;
+                    return true;
                 }
-
-                if (!TryBuildAccessHash(rule, flowData, out var accessHash) || string.IsNullOrWhiteSpace(accessHash))
-                {
-                    updates.Add(new { where = new { rule_id = new { _eq = rule.Id } }, _set = new { flow_access_id = (long?)null, flow_active = false } });
-                    continue;
-                }
-
-                var flowAccessId = FindFlowIdByHash(flowData, accessHash);
-                bool isUnique = ruleHashMap.TryGetValue(accessHash, out var ruleMapping) && ruleMapping.Count == 1;
-                updates.Add(new { where = new { rule_id = new { _eq = rule.Id } }, _set = new { flow_access_id = flowAccessId, flow_active = (flowAccessId.HasValue && isUnique) } });
+                return false; // Skip non-IP objects (e.g. FQDNs) - they need to be manually created
             }
 
-            await SendUpdateManyAsync(FlowQueries.updateRuleFlowMappings, updates);
+            hash = FlowHashGenerator.GenerateNwObjectHash(obj.IP, obj.IpEnd);
+            return true;
+        }
+
+        private static bool TryGetFlowSvcObjectHash(NetworkService svc, FlowSyncFlowData flowData, out string hash)
+        {
+            hash = "";
+            if (!svc.ProtoId.HasValue)
+            {
+                // objects without protocol are not supported - flow svcobjects require a protocol to be meaningful
+                return false;
+            }
+            if (!svc.DestinationPort.HasValue || !svc.DestinationPortEnd.HasValue)
+            {
+                if (flowData.SvcObjectHashes.TryGetValue(svc.Id, out var storedHash) && !string.IsNullOrWhiteSpace(storedHash))
+                {
+                    hash = storedHash;
+                    return true;
+                }
+                return false;
+            }
+
+            hash = FlowHashGenerator.GenerateSvcObjectHash(svc.ProtoId.Value, svc.DestinationPort.Value, svc.DestinationPortEnd.Value);
+            return true;
+        }
+
+        private static bool TryGetFlowTimeObjectHash(TimeObject timeObj, FlowSyncFlowData flowData, out string hash)
+        {
+            hash = "";
+            if (!timeObj.StartTime.HasValue || !timeObj.EndTime.HasValue)
+            {
+                if (flowData.TimeObjectHashes.TryGetValue(timeObj.Id, out var storedHash) && !string.IsNullOrWhiteSpace(storedHash))
+                {
+                    hash = storedHash;
+                    return true;
+                }
+                return false;
+            }
+
+            hash = FlowHashGenerator.GenerateTimeObjectHash(timeObj.StartTime, timeObj.EndTime);
+            return true;
         }
 
         /// <summary>
-        /// Marks import controls as complete for the current sync run.
+        /// Builds a list of member hashes for a network group by looking up each flat member's object hash. If any
+        /// member is non-technical (no IP) and does not have a stored hash, or if any technical member's hash cannot
+        /// be found in flow data, the method returns false indicating that the group should be skipped. Otherwise, it
+        /// returns true and outputs the list of member hashes.
         /// </summary>
-        private async Task UpdateImportControlsAsync(List<ImportControl> importsForManagement)
+        /// <param name="group"></param>
+        /// <param name="flowData"></param>
+        /// <param name="memberHashes"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        private static bool TryBuildNwGroupMemberHashes(NetworkObject group, FlowSyncFlowData flowData, out HashSet<string> memberHashes)
         {
-            foreach (var importControl in importsForManagement)
+            memberHashes = [];
+            if (group.ObjectGroupFlats == null || group.ObjectGroupFlats.Length == 0)
             {
-                await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateImportControlForFlowSync, new { controlId = importControl.ControlId, flowSyncDone = true });
+                return false;
             }
+
+            foreach (var member in group.ObjectGroupFlats)
+            {
+                if (member.Object == null)
+                {
+                    throw new Exception($"Network group member {member.Id} does not have the object included in the query result");
+                }
+                if (member.Object.Type.Name == ObjectType.Group)
+                {
+                    continue;
+                }
+                if (!TryGetFlowNwObjectHash(member.Object, flowData, out var memberHash))
+                {
+                    return false;
+                }
+                if (!flowData.NwObjects.ContainsKey(memberHash))
+                {
+                    // technical member objects should have been previously inserted
+                    throw new Exception($"Network group member {member.Id} expected to have a corresponding flow object, but it was not found. Hash: {memberHash}");
+                }
+                memberHashes.Add(memberHash);
+            }
+
+            return memberHashes.Count > 0;
+        }
+
+        private static bool TryBuildSvcGroupMemberHashes(NetworkService group, FlowSyncFlowData flowData, out HashSet<string> memberHashes)
+        {
+            memberHashes = [];
+            if (group.ServiceGroupFlats == null || group.ServiceGroupFlats.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var member in group.ServiceGroupFlats)
+            {
+                if (member.Object == null)
+                {
+                    throw new Exception($"Service group member {member.Id} does not have the service included in the query result");
+                }
+                if (member.Object.Type.Name == ServiceType.Group)
+                {
+                    continue;
+                }
+                if (!TryGetFlowSvcObjectHash(member.Object, flowData, out var memberHash))
+                {
+                    return false;
+                }
+                memberHashes.Add(memberHash);
+            }
+
+            return memberHashes.Count > 0;
+        }
+
+        /// <summary>
+        /// Calculates all relevant hashes and collects the ids of all flow objects that technically define the rule
+        /// access (src/dst/service/time), as well as group ids of any groups used in the rule. If any non-technical
+        /// object is encountered that does not have a stored hash, or if any technical object does not have a
+        /// corresponding flow object in flow data, the method returns false indicating that the rule should be skipped.
+        /// Otherwise, it returns true and outputs a FlowAccessInsert object if the access does not already exist, along
+        /// with a flag indicating whether the access is new or already exists. The flow access insert object can then
+        /// be used to insert a new flow access if needed, and the mapping updates can be used to link the rule to the
+        /// flow access and set flow_active status accordingly.
+        /// </summary>
+        /// <param name="rule"></param>
+        /// <param name="flowData"></param>
+        /// <param name="pendingAccessInserts"></param>
+        /// <param name="newFlowMappings"></param>
+        /// <returns></returns>
+        private bool TryBuildRuleAccess(
+            Rule rule,
+            FlowSyncFlowData flowData,
+            Dictionary<string, FlowAccessInsert> pendingAccessInserts,
+            Dictionary<string, List<FlowMappingUpdate>> newFlowMappings)
+        {
+            var sourceIds = new HashSet<long>();
+            var sourceGroupIds = new HashSet<long>();
+            var destinationIds = new HashSet<long>();
+            var destinationGroupIds = new HashSet<long>();
+            var serviceIds = new HashSet<long>();
+            var serviceGroupIds = new HashSet<long>();
+            var timeIds = new HashSet<long>();
+
+            var sourceHashes = new HashSet<string>();
+            var destinationHashes = new HashSet<string>();
+            var serviceHashes = new HashSet<string>();
+
+            foreach (var location in rule.Froms)
+            {
+                if (!TryAddRuleNetworkLocation(location.Object, flowData, sourceIds, sourceGroupIds, sourceHashes))
+                {
+                    return false;
+                }
+            }
+
+            foreach (var location in rule.Tos)
+            {
+                if (!TryAddRuleNetworkLocation(location.Object, flowData, destinationIds, destinationGroupIds, destinationHashes))
+                {
+                    return false;
+                }
+            }
+
+            foreach (var wrapper in rule.Services)
+            {
+                if (!TryAddRuleService(wrapper.Content, flowData, serviceIds, serviceGroupIds, serviceHashes))
+                {
+                    return false;
+                }
+            }
+
+            if (sourceHashes.Count == 0 || destinationHashes.Count == 0 || serviceHashes.Count == 0)
+            {
+                return false;
+            }
+
+            if (!TryAddRuleTimeObjects(rule.RuleTimes, flowData, timeIds))
+            {
+                return false;
+            }
+
+            string accessHash = FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes);
+            var alreadyExists = flowData.Accesses.TryGetValue(accessHash, out var existingAccess);
+            var alreadyBeingInserted = pendingAccessInserts.ContainsKey(accessHash);
+
+            var flowActive = true;
+            if (existingAccess != null && existingAccess.Rules?.Count > 0)
+            {
+                flowActive = false;
+            }
+
+            if (!newFlowMappings.TryGetValue(accessHash, out var mappingUpdates))
+            {
+                mappingUpdates = [];
+                newFlowMappings.Add(accessHash, mappingUpdates);
+            }
+            mappingUpdates.Add(new FlowMappingUpdate
+            {
+                Id = rule.Id,
+                FlowId = existingAccess?.Id,
+                FlowActive = flowActive
+            });
+
+            if (!alreadyExists && !alreadyBeingInserted)
+            {
+                var accessInsert = new FlowAccessInsert
+                {
+                    AccessHash = accessHash,
+                    RequesterId = null,
+                    OwnerId = rule.OwnerId,
+                    State = "implemented",
+                    RemovedDate = null,
+                    AccessSources = BuildAccessMembersContainer(sourceIds.Select(id => new NwRef { NwObjId = id })),
+                    AccessSourceGroups = BuildAccessMembersContainer(sourceGroupIds.Select(id => new NwGroupRef { NwGroupId = id })),
+                    AccessDestinations = BuildAccessMembersContainer(destinationIds.Select(id => new NwRef { NwObjId = id })),
+                    AccessDestinationGroups = BuildAccessMembersContainer(destinationGroupIds.Select(id => new NwGroupRef { NwGroupId = id })),
+                    AccessServices = BuildAccessMembersContainer(serviceIds.Select(id => new SvcRef { SvcObjId = id })),
+                    AccessServiceGroups = BuildAccessMembersContainer(serviceGroupIds.Select(id => new SvcGroupRef { SvcGroupId = id })),
+                    AccessTimeObjects = BuildAccessMembersContainer(timeIds.Select(id => new TimeRef { TimeObjId = id }))
+                };
+
+                pendingAccessInserts.Add(accessHash, accessInsert);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Collects the flow nwobj ids of the network objects that technically define the rule src/dst, as well as the
+        /// flow nwgroup ids of groups used in the rule. If obj is a group, all non-group members' ids are added.
+        /// Hashes of all involved non-group objects are added to the provided hash set for later access hash generation
+        /// Returns false if any non-technical object is encountered that does not have a stored hash, or if any 
+        /// technical object does not have a corresponding flow object in flow data.
+        /// An empty group in src/dst is not supported and will also lead to a false return value. An empty group
+        /// within a group in src/dst is supported, as long as the top-level group has at least one technical member.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="flowData"></param>
+        /// <param name="objectIds"></param>
+        /// <param name="groupIds"></param>
+        /// <param name="hashes"></param>
+        /// <returns></returns>
+        private static bool TryAddRuleNetworkLocation(
+            NetworkObject obj,
+            FlowSyncFlowData flowData,
+            HashSet<long> objectIds,
+            HashSet<long> groupIds,
+            HashSet<string> hashes)
+        {
+            if (obj.Type.Name == ObjectType.Group)
+            {
+                if (!TryBuildNwGroupMemberHashes(obj, flowData, out var memberHashes))
+                {
+                    return false;
+                }
+                var groupHash = FlowHashGenerator.GenerateGroupHash(memberHashes);
+                if (!flowData.NwGroups.TryGetValue(groupHash, out var flowGroup))
+                {
+                    return false;
+                }
+                objectIds.UnionWith(flowGroup.NwGroupMembers.Select(m => m.NwObjectId));
+                groupIds.Add(flowGroup.Id);
+                hashes.UnionWith(memberHashes);
+            }
+            else
+            {
+                if (!TryGetFlowNwObjectHash(obj, flowData, out var objHash))
+                {
+                    return false;
+                }
+                if (!flowData.NwObjects.TryGetValue(objHash, out FlowNwObject? flowNwObj))
+                {
+                    // technical objects should have been previously inserted
+                    throw new Exception($"Network object {obj.Id} expected to have a corresponding flow object, but it was not found. Hash: {objHash}");
+                }
+                objectIds.Add(flowNwObj.Id);
+                hashes.Add(objHash);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Collects the flow svcobj ids of the services that technically define the rule service, as well as the
+        /// flow svcgroup ids of groups used in the rule. If a group is used, all non-group members' ids are added.
+        /// Hashes of all involved non-group services are added to the provided hash set for later access hash
+        /// generation. Returns false if any non-technical service is encountered that does not have a stored hash, or
+        /// if any technical service does not have a corresponding flow object in flow data. An empty group in services
+        /// is not supported and will also lead to a false return value. An empty group within a group in services is
+        /// supported, as long as the top-level group has at least one technical member.
+        /// </summary>
+        /// <param name="svc"></param>
+        /// <param name="flowData"></param>
+        /// <param name="serviceIds"></param>
+        /// <param name="serviceGroupIds"></param>
+        /// <param name="hashes"></param>
+        /// <returns></returns>
+        private static bool TryAddRuleService(
+            NetworkService svc,
+            FlowSyncFlowData flowData,
+            HashSet<long> serviceIds,
+            HashSet<long> serviceGroupIds,
+            HashSet<string> hashes)
+        {
+            if (svc.Type.Name == ServiceType.Group)
+            {
+                if (!TryBuildSvcGroupMemberHashes(svc, flowData, out var memberHashes))
+                {
+                    return false;
+                }
+                var groupHash = FlowHashGenerator.GenerateGroupHash(memberHashes);
+                if (!flowData.SvcGroups.TryGetValue(groupHash, out var flowGroup))
+                {
+                    return false;
+                }
+                serviceIds.UnionWith(flowGroup.SvcGroupMembers.Select(m => m.SvcObjectId));
+                serviceGroupIds.Add(flowGroup.Id);
+                hashes.UnionWith(memberHashes);
+            }
+            else
+            {
+                if (!TryGetFlowSvcObjectHash(svc, flowData, out var svcHash))
+                {
+                    return false;
+                }
+                if (!flowData.SvcObjects.TryGetValue(svcHash, out FlowSvcObject? flowSvcObj))
+                {
+                    // technical services should have been previously inserted
+                    throw new Exception($"Service {svc.Id} expected to have a corresponding flow object, but it was not found. Hash: {svcHash}");
+                }
+                serviceIds.Add(flowSvcObj.Id);
+                hashes.Add(svcHash);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Collects the flow timeobj ids of the time objects used in the rule.
+        /// </summary>
+        /// <param name="ruleTimes"></param>
+        /// <param name="flowData"></param>
+        /// <param name="timeIds"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        private static bool TryAddRuleTimeObjects(
+            IEnumerable<RuleTime> ruleTimes,
+            FlowSyncFlowData flowData,
+            HashSet<long> timeIds)
+        {
+            foreach (var ruleTime in ruleTimes)
+            {
+                if (ruleTime.TimeObj == null)
+                {
+                    throw new Exception($"RuleTime {ruleTime.Id} does not have the time object included in the query result");
+                }
+                if (!TryGetFlowTimeObjectHash(ruleTime.TimeObj, flowData, out var timeHash))
+                {
+                    return false;
+                }
+                if (!flowData.TimeObjects.TryGetValue(timeHash, out FlowTimeObject? flowTimeObj))
+                {
+                    // technical time objects should have been previously inserted
+                    throw new Exception($"Time object {ruleTime.TimeObj.Id} expected to have a corresponding flow object, but it was not found. Hash: {timeHash}");
+                }
+                timeIds.Add(flowTimeObj.Id);
+            }
+
+            return true;
+        }
+
+        private static FlowAccessMembersContainer BuildAccessMembersContainer<T>(IEnumerable<T> items) where T : class
+        {
+            var list = items.ToList();
+            return new FlowAccessMembersContainer { Data = [.. list.Cast<object>()] };
         }
 
         /// <summary>
         /// Batch sends update mutations to the database.
         /// </summary>
-        private async Task SendUpdateManyAsync(string query, List<object> updates)
+        private async Task<int> SendUpdateManyAsync(string query, List<object> updates)
         {
-            if (!updates.Any())
-                return;
-            await apiConnection.SendQueryAsync<List<MutationResult>>(query, new { updates });
-        }
-
-        /// <summary>
-        /// Attempts to build a hash for a network group. Returns false if members cannot be resolved.
-        /// </summary>
-        private bool TryBuildNwGroupHash(NetworkObject group, FlowSyncFlowData flowData, out string? hash)
-        {
-            hash = null;
-            var members = group.ObjectGroupFlats
-                .Select(gf => gf.Object)
-                .Where(m => m != null)
-                .Cast<NetworkObject>()
-                .ToList();
-            if (!members.Any())
-                return false;
-
-            var memberHashes = new List<string>();
-            foreach (var member in members)
-            {
-                if (member.Type.Name == ObjectType.Group || string.IsNullOrWhiteSpace(member.IP))
-                    return false;
-                string mHash = GetNwObjectHash(member);
-                if (!flowData.NwObjects.Any(o => o.Hash == mHash))
-                    return false;
-                memberHashes.Add(mHash);
-            }
-            hash = FlowHashGenerator.GenerateGroupHash(memberHashes);
-            return true;
-        }
-
-        /// <summary>
-        /// Attempts to build a hash for a service group. Returns false if members cannot be resolved.
-        /// </summary>
-        private bool TryBuildSvcGroupHash(NetworkService group, FlowSyncFlowData flowData, out string? hash)
-        {
-            hash = null;
-            var members = group.ServiceGroupFlats
-                .Select(gf => gf.Object)
-                .Where(m => m != null)
-                .Cast<NetworkService>()
-                .ToList();
-            if (!members.Any())
-                return false;
-
-            var memberHashes = new List<string>();
-            foreach (var member in members)
-            {
-                if (member.Type.Name == ServiceType.Group)
-                    return false;
-                string mHash = GetSvcObjectHash(member);
-                if (!flowData.SvcObjects.Any(o => o.Hash == mHash))
-                    return false;
-                memberHashes.Add(mHash);
-            }
-            hash = FlowHashGenerator.GenerateGroupHash(memberHashes);
-            return true;
-        }
-
-        /// <summary>
-        /// Attempts to build a hash for a rule's access. Returns false if members cannot be resolved.
-        /// </summary>
-        private bool TryBuildAccessHash(Rule rule, FlowSyncFlowData flowData, out string? hash)
-        {
-            hash = null;
-            var srcHashes = new List<string>();
-            var dstHashes = new List<string>();
-            var svcHashes = new List<string>();
-
-            foreach (var from in rule.Froms)
-            {
-                if (!TryResolveObjectHash(from.Object, flowData, out var h))
-                    return false;
-                srcHashes.Add(h!);
-            }
-            foreach (var to in rule.Tos)
-            {
-                if (!TryResolveObjectHash(to.Object, flowData, out var h))
-                    return false;
-                dstHashes.Add(h!);
-            }
-            foreach (var svc in rule.Services)
-            {
-                if (!TryResolveServiceHash(svc.Content, flowData, out var h))
-                    return false;
-                svcHashes.Add(h!);
-            }
-
-            if (!srcHashes.Any() || !dstHashes.Any() || !svcHashes.Any())
-                return false;
-
-            hash = FlowHashGenerator.GenerateAccessHash(srcHashes, dstHashes, svcHashes);
-            return true;
-        }
-
-        /// <summary>
-        /// Tries to resolve a network object to its flow hash. Returns false if unresolvable.
-        /// </summary>
-        private bool TryResolveObjectHash(NetworkObject? obj, FlowSyncFlowData flowData, out string? hash)
-        {
-            hash = null;
-            if (obj == null || obj.Removed.HasValue)
-                return false;
-
-            if (obj.Type.Name == ObjectType.Group)
-            {
-                return TryBuildNwGroupHash(obj, flowData, out hash) && !string.IsNullOrWhiteSpace(hash);
-            }
-
-            hash = GetNwObjectHash(obj);
-            return !string.IsNullOrWhiteSpace(hash);
-        }
-
-        /// <summary>
-        /// Tries to resolve a service object to its flow hash. Returns false if unresolvable.
-        /// </summary>
-        private bool TryResolveServiceHash(NetworkService? svc, FlowSyncFlowData flowData, out string? hash)
-        {
-            hash = null;
-            if (svc == null || svc.Removed.HasValue)
-                return false;
-
-            if (svc.Type.Name == ServiceType.Group)
-            {
-                return TryBuildSvcGroupHash(svc, flowData, out hash) && !string.IsNullOrWhiteSpace(hash);
-            }
-
-            hash = GetSvcObjectHash(svc);
-            return !string.IsNullOrWhiteSpace(hash);
-        }
-
-        /// <summary>
-        /// Finds a flow object/group/access ID by hash in the flow data.
-        /// </summary>
-        private static long? FindFlowIdByHash(FlowSyncFlowData flowData, string hash)
-        {
-            return flowData.NwObjects.FirstOrDefault(o => o.Hash == hash)?.Id ??
-                   flowData.SvcObjects.FirstOrDefault(o => o.Hash == hash)?.Id ??
-                   flowData.TimeObjects.FirstOrDefault(o => o.Hash == hash)?.Id ??
-                   flowData.NwGroups.FirstOrDefault(g => g.Hash == hash)?.Id ??
-                   flowData.SvcGroups.FirstOrDefault(g => g.Hash == hash)?.Id ??
-                   flowData.Accesses.FirstOrDefault(a => a.AccessHash == hash)?.Id;
-        }
-
-        /// <summary>
-        /// Calculates hash for a network object.
-        /// </summary>
-        private string GetNwObjectHash(NetworkObject obj)
-        {
-            var flowObj = new FlowNwObject { IpStart = obj.IP, IpEnd = obj.IpEnd, Name = obj.Name };
-            flowObj.GenerateHash();
-            return flowObj.Hash;
-        }
-
-        /// <summary>
-        /// Calculates hash for a service object.
-        /// </summary>
-        private string GetSvcObjectHash(NetworkService svc)
-        {
-            var flowSvc = new FlowSvcObject { PortStart = svc.DestinationPort, PortEnd = svc.DestinationPortEnd, ProtoId = svc.ProtoId ?? 0, Name = svc.Name };
-            flowSvc.GenerateHash();
-            return flowSvc.Hash;
-        }
-
-        /// <summary>
-        /// Calculates hash for a time object.
-        /// </summary>
-        private string GetTimeObjectHash(TimeObject timeObj)
-        {
-            var flowTime = new FlowTimeObject { StartTime = timeObj.StartTime, EndTime = timeObj.EndTime, Name = timeObj.Name };
-            flowTime.GenerateHash();
-            return flowTime.Hash;
-        }
-
-        private sealed class MutationResult
-        {
-            [Newtonsoft.Json.JsonProperty("affected_rows")]
-            public int AffectedRows { get; set; }
+            if (updates.Count == 0)
+                return 0;
+            var result = await apiConnection.SendQueryAsync<List<MutationResult>>(query, new { updates });
+            return result?.Sum(r => r.AffectedRows) ?? 0;
         }
 
     }

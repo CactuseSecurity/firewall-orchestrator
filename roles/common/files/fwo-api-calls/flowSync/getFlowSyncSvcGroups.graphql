@@ -6,7 +6,7 @@ query getFlowSyncSvcGroups($mgmId: Int!) {
     state
     removed_date
     show_in_request_module
-    svcgroup_members(order_by: { svcobj_id: asc }) {
+    svcgrp_members: svcgroup_members(order_by: { svcobj_id: asc }) {
       svcgrp_id
       svcobj_id
     }

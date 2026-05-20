@@ -19,7 +19,7 @@ fragment flowAccessDetails on flow_access {
       show_in_request_module
     }
   }
-  access_source_grps(order_by: { nwgroup_id: asc }) {
+  access_source_grps(order_by: { nwgrp_id: asc }) {
     access_id
     nwgrp_id
     nwgroup {
@@ -45,7 +45,7 @@ fragment flowAccessDetails on flow_access {
       show_in_request_module
     }
   }
-  access_destination_grps(order_by: { nwgroup_id: asc }) {
+  access_destination_grps(order_by: { nwgrp_id: asc }) {
     access_id
     nwgrp_id
     nwgroup {
@@ -72,7 +72,7 @@ fragment flowAccessDetails on flow_access {
       show_in_request_module
     }
   }
-  access_service_grps(order_by: { svcgroup_id: asc }) {
+  access_service_grps(order_by: { svcgrp_id: asc }) {
     access_id
     svcgrp_id
     svcgroup {

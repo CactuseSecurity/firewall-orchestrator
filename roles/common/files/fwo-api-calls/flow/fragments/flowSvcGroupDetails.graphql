@@ -1,12 +1,12 @@
 fragment flowSvcGroupDetails on flow_svcgroup {
-  svcgroup_id
+  svcgrp_id
   name
   svcgrp_hash
   state
   removed_date
   show_in_request_module
   svcgroup_members(order_by: { svcobj_id: asc }) {
-    svcgroup_id
+    svcgrp_id
     svcobj_id
     svcobject {
       svcobj_id

@@ -56,6 +56,20 @@ namespace FWO.Data.Flow
 
         [JsonProperty("removed_date"), JsonPropertyName("removed_date")]
         public DateTime? RemovedDate { get; set; }
+
+        public static FlowNwObjectInsert FromFlowNwObject(FlowNwObject flowNwObject)
+        {
+            return new FlowNwObjectInsert
+            {
+                Name = flowNwObject.Name,
+                IpStart = flowNwObject.IpStart,
+                IpEnd = flowNwObject.IpEnd,
+                ShowInRequestModule = flowNwObject.ShowInRequestModule,
+                NwObjHash = flowNwObject.Hash,
+                State = flowNwObject.State,
+                RemovedDate = flowNwObject.RemovedDate
+            };
+        }
     }
 
     public class FlowNwObjectInsertResult

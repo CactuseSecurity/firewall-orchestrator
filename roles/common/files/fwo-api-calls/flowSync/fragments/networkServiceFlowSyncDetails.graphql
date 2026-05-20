@@ -24,6 +24,7 @@ fragment networkServiceFlowSyncDetails on service {
   ) {
     flat_id: svcgrp_flat_id
     byFlatId: serviceBySvcgrpFlatMemberId {
+      svc_id
       svc_port
       svc_port_end
       ip_proto_id

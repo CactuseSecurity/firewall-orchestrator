@@ -8,10 +8,8 @@ query getFlowSyncData($mgmId: Int!) {
     state
     removed_date
     show_in_request_module
-    objects(where: { mgm_id: { _eq: $mgmId } }) {
+    objects(where: { mgm_id: { _eq: $mgmId }, removed: { _is_null: true } }) {
       obj_id
-      obj_uid
-      removed
     }
   }
   flow_nwgroup(order_by: { nwgrp_id: asc }) {
@@ -25,10 +23,8 @@ query getFlowSyncData($mgmId: Int!) {
       nwgrp_id
       nwobj_id
     }
-    objects(where: { mgm_id: { _eq: $mgmId } }) {
+    objects(where: { mgm_id: { _eq: $mgmId }, removed: { _is_null: true } }) {
       obj_id
-      obj_uid
-      removed
     }
   }
   flow_svcobject(order_by: { svcobj_id: asc }) {
@@ -41,10 +37,8 @@ query getFlowSyncData($mgmId: Int!) {
     state
     removed_date
     show_in_request_module
-    services(where: { mgm_id: { _eq: $mgmId } }) {
+    services(where: { mgm_id: { _eq: $mgmId }, removed: { _is_null: true } }) {
       svc_id
-      svc_uid
-      removed
     }
   }
   flow_svcgroup(order_by: { svcgrp_id: asc }) {
@@ -58,10 +52,8 @@ query getFlowSyncData($mgmId: Int!) {
       svcgrp_id
       svcobj_id
     }
-    services(where: { mgm_id: { _eq: $mgmId } }) {
+    services(where: { mgm_id: { _eq: $mgmId }, removed: { _is_null: true } }) {
       svc_id
-      svc_uid
-      removed
     }
   }
   flow_timeobject(order_by: { timeobj_id: asc }) {
@@ -73,10 +65,10 @@ query getFlowSyncData($mgmId: Int!) {
     state
     removed_date
     show_in_request_module
-    time_objects(where: { mgm_id: { _eq: $mgmId } }) {
+    time_objects(
+      where: { mgm_id: { _eq: $mgmId }, removed: { _is_null: true } }
+    ) {
       time_obj_id
-      time_obj_uid
-      removed
     }
   }
   flow_access(order_by: { access_id: asc }) {
@@ -114,10 +106,8 @@ query getFlowSyncData($mgmId: Int!) {
       access_id
       timeobj_id
     }
-    rules(where: { mgm_id: { _eq: $mgmId } }) {
+    rules(where: { mgm_id: { _eq: $mgmId }, removed: { _is_null: true } }) {
       rule_id
-      rule_uid
-      removed
     }
   }
 }

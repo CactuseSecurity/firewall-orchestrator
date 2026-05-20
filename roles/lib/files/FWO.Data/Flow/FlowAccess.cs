@@ -9,7 +9,7 @@ namespace FWO.Data.Flow
         public long Id { get; set; }
 
         [JsonProperty("access_hash"), JsonPropertyName("access_hash")]
-        public string AccessHash { get; set; } = "";
+        public string Hash { get; set; } = "";
 
         [JsonProperty("requester_id"), JsonPropertyName("requester_id")]
         public int? RequesterId { get; set; }
@@ -53,7 +53,7 @@ namespace FWO.Data.Flow
             var destinationHashes = Destinations?.Select(d => d.NwObject?.Hash ?? "") ?? new List<string>();
             var serviceHashes = Services?.Select(s => s.SvcObject?.Hash ?? "") ?? new List<string>();
 
-            AccessHash = FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes);
+            Hash = FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes);
         }
     }
 }

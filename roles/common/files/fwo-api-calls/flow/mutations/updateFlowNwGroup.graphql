@@ -4,13 +4,13 @@ mutation updateFlowNwGroup(
   $showInRequestModule: Boolean!
 ) {
   update_flow_nwgroup_by_pk(
-    pk_columns: { nwgroup_id: $nwgroupId }
+    pk_columns: { nwgrp_id: $nwgroupId }
     _set: {
       name: $name
       show_in_request_module: $showInRequestModule
     }
   ) {
-    nwgroup_id
+    nwgrp_id
     name
     nwgrp_hash
     state

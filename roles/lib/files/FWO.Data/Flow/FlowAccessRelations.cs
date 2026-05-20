@@ -23,7 +23,7 @@ namespace FWO.Data.Flow
         [JsonProperty("access_id"), JsonPropertyName("access_id")]
         public long AccessId { get; set; }
 
-        [JsonProperty("nwgroup_id"), JsonPropertyName("nwgroup_id")]
+        [JsonProperty("nwgrp_id"), JsonPropertyName("nwgrp_id")]
         public long NwGroupId { get; set; }
 
         [JsonProperty("access"), JsonPropertyName("access")]
@@ -53,7 +53,7 @@ namespace FWO.Data.Flow
         [JsonProperty("access_id"), JsonPropertyName("access_id")]
         public long AccessId { get; set; }
 
-        [JsonProperty("nwgroup_id"), JsonPropertyName("nwgroup_id")]
+        [JsonProperty("nwgrp_id"), JsonPropertyName("nwgrp_id")]
         public long NwGroupId { get; set; }
 
         [JsonProperty("access"), JsonPropertyName("access")]
@@ -84,7 +84,7 @@ namespace FWO.Data.Flow
         [JsonProperty("access_id"), JsonPropertyName("access_id")]
         public long AccessId { get; set; }
 
-        [JsonProperty("svcgroup_id"), JsonPropertyName("svcgroup_id")]
+        [JsonProperty("svcgrp_id"), JsonPropertyName("svcgrp_id")]
         public long SvcGroupId { get; set; }
 
         [JsonProperty("access"), JsonPropertyName("access")]

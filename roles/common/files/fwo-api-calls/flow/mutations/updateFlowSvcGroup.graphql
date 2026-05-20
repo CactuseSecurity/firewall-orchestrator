@@ -4,13 +4,13 @@ mutation updateFlowSvcGroup(
   $showInRequestModule: Boolean!
 ) {
   update_flow_svcgroup_by_pk(
-    pk_columns: { svcgroup_id: $svcgroupId }
+    pk_columns: { svcgrp_id: $svcgroupId }
     _set: {
       name: $name
       show_in_request_module: $showInRequestModule
     }
   ) {
-    svcgroup_id
+    svcgrp_id
     name
     svcgrp_hash
     state

@@ -1,12 +1,8 @@
-mutation updateImportControlForFlowSync($controlId: bigint!, $flowSyncDone: Boolean!) {
+mutation updateImportControlForFlowSync($controlId: bigint!, $mgmId: Int!, $flowSyncDone: Boolean!) {
   update_import_control(
-    where: { control_id: { _eq: $controlId } }
+    where: { control_id: { _lte: $controlId }, mgm_id: { _eq: $mgmId } }
     _set: { flow_sync_done: $flowSyncDone }
   ) {
     affected_rows
-    returning {
-      control_id
-      flow_sync_done
-    }
   }
 }

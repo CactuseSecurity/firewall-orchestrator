@@ -594,7 +594,6 @@ else
         private int connectionCount;
         private int implementedConnectionCount;
         private int runningCount;
-        private int implementedCount;
         private int rejectedCount;
 
         public bool HasRequestableChanges { get; set; }
@@ -636,10 +635,6 @@ else
             if (monitorStatus == ModIntegrationStateStatus.RequestRunning)
             {
                 runningCount++;
-            }
-            if (monitorStatus == ModIntegrationStateStatus.Implemented)
-            {
-                implementedCount++;
             }
             if (monitorStatus == ModIntegrationStateStatus.Rejected)
             {

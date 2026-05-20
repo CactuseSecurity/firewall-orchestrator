@@ -3,6 +3,7 @@ mutation insertFlowNwObject(
   $ipStart: inet
   $ipEnd: inet
   $nwobjHash: String!
+  $state: String!
   $showInRequestModule: Boolean!
 ) {
   insert_flow_nwobject(
@@ -11,6 +12,7 @@ mutation insertFlowNwObject(
       ip_start: $ipStart
       ip_end: $ipEnd
       nwobj_hash: $nwobjHash
+      state: $state
       show_in_request_module: $showInRequestModule
     }
   ) {

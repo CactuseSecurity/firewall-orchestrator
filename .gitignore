@@ -71,3 +71,4 @@ cov.xml
 .dotnet
 **/.codex/
 FWO.local.runsettings
+**/*.lscache

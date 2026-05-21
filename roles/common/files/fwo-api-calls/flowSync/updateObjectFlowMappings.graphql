@@ -1,0 +1,5 @@
+mutation updateObjectFlowMappings($updates: [object_updates!]!) {
+  update_object_many(updates: $updates) {
+    affected_rows
+  }
+}

@@ -1,0 +1,34 @@
+fragment ruleFlowSyncDetails on rule {
+  rule_id
+  rule_uid
+  mgm_id
+  dev_id
+  rule_action
+  rule_num_numeric
+  rule_name
+  rule_froms(where: { removed: { _is_null: true } }) {
+    object {
+      ...networkObjectFlowSyncDetails
+    }
+  }
+  rule_tos(where: { removed: { _is_null: true } }) {
+    object {
+      ...networkObjectFlowSyncDetails
+    }
+  }
+  rule_services(where: { removed: { _is_null: true } }) {
+    service {
+      ...networkServiceFlowSyncDetails
+    }
+  }
+  rule_times(where: { removed: { _is_null: true } }) {
+    rule_time_id
+    rule_id
+    time_obj_id
+    created
+    removed
+    time_object {
+      ...timeObjectFlowSyncDetails
+    }
+  }
+}

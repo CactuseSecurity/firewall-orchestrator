@@ -3,9 +3,10 @@ using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Services;
 using Quartz;
 
-namespace FWO.Services
+namespace FWO.Middleware.Server.Jobs
 {
     /// <summary>
     /// Quartz job for synchronizing public flow mappings with flow schema tables.

@@ -55,7 +55,6 @@ namespace FWO.Test
                 {
                     "rule_id": 2001,
                     "flow_access_id": 3001,
-                    "flow_active": true,
                     "flow_access": {
                         "access_id": 3001
                     }

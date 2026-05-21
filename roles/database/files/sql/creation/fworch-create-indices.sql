@@ -135,7 +135,6 @@ Create index idx_flow_nwgroup_member_nwobj on flow.nwgroup_member (nwobj_id);
 
 Create index idx_flow_svcgroup_member_svcobj on flow.svcgroup_member (svcobj_id);
 
-Create unique index if not exists rule_flow_access_id_active_only_one_per_mgm on rule (mgm_id, flow_access_id) where flow_active = true;
 Create unique index if not exists service_flow_svcobj_id_active_only_one_per_mgm on service (mgm_id, flow_svcobj_id) where flow_active = true;
 Create unique index if not exists service_flow_svcgrp_id_active_only_one_per_mgm on service (mgm_id, flow_svcgrp_id) where flow_active = true;
 Create unique index if not exists time_object_flow_timeobj_id_active_only_one_per_mgm on time_object (mgm_id, flow_timeobj_id) where flow_active = true;

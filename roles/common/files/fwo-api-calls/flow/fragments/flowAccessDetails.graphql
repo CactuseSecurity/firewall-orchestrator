@@ -1,0 +1,105 @@
+fragment flowAccessDetails on flow_access {
+  access_id
+  access_hash
+  requester_id
+  owner_id
+  state
+  removed_date
+  access_sources(order_by: { nwobj_id: asc }) {
+    access_id
+    nwobj_id
+    nwobject {
+      nwobj_id
+      name
+      ip_start
+      ip_end
+      nwobj_hash
+      state
+      removed_date
+      show_in_request_module
+    }
+  }
+  access_source_grps(order_by: { nwgrp_id: asc }) {
+    access_id
+    nwgrp_id
+    nwgroup {
+      nwgrp_id
+      name
+      nwgrp_hash
+      state
+      removed_date
+      show_in_request_module
+    }
+  }
+  access_destinations(order_by: { nwobj_id: asc }) {
+    access_id
+    nwobj_id
+    nwobject {
+      nwobj_id
+      name
+      ip_start
+      ip_end
+      nwobj_hash
+      state
+      removed_date
+      show_in_request_module
+    }
+  }
+  access_destination_grps(order_by: { nwgrp_id: asc }) {
+    access_id
+    nwgrp_id
+    nwgroup {
+      nwgrp_id
+      name
+      nwgrp_hash
+      state
+      removed_date
+      show_in_request_module
+    }
+  }
+  access_services(order_by: { svcobj_id: asc }) {
+    access_id
+    svcobj_id
+    svcobject {
+      svcobj_id
+      name
+      port_start
+      port_end
+      ip_proto_id
+      svcobj_hash
+      state
+      removed_date
+      show_in_request_module
+    }
+  }
+  access_service_grps(order_by: { svcgrp_id: asc }) {
+    access_id
+    svcgrp_id
+    svcgroup {
+      svcgrp_id
+      name
+      svcgrp_hash
+      state
+      removed_date
+      show_in_request_module
+    }
+  }
+  access_timeobjects(order_by: { timeobj_id: asc }) {
+    access_id
+    timeobj_id
+    timeobject {
+      timeobj_id
+      name
+      start_time
+      end_time
+      timeobj_hash
+      state
+      removed_date
+      show_in_request_module
+    }
+  }
+  rules(order_by: { rule_id: asc }) {
+    rule_id
+    flow_access_id
+  }
+}

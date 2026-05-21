@@ -1,0 +1,20 @@
+fragment flowTimeObjectDetails on flow_timeobject {
+  timeobj_id
+  name
+  start_time
+  end_time
+  timeobj_hash
+  state
+  removed_date
+  show_in_request_module
+  time_objects(order_by: { time_obj_name: asc }) {
+    time_obj_id
+    time_obj_name
+    time_obj_uid
+    start_time
+    end_time
+    removed
+    flow_timeobj_id
+    flow_active
+  }
+}

@@ -45,6 +45,7 @@ Create table "rule"
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"rulebase_id" Integer NOT NULL,
 	"removed" BIGINT,
+	"flow_access_id" BIGINT,
 	primary key ("rule_id")
 );
 

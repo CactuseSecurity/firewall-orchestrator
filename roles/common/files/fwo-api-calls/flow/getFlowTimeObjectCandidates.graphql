@@ -1,0 +1,33 @@
+query getFlowTimeObjectCandidates (
+  $management_id: [Int!]
+){
+  management(
+    where: {
+      mgm_id: { _in: $management_id }
+      hide_in_gui: { _eq: false }
+      stm_dev_typ: {
+        dev_typ_is_multi_mgmt: { _eq: false }
+        is_pure_routing_device: { _eq: false }
+      }
+    }
+    order_by: { mgm_name: asc }
+  ) {
+    id: mgm_id
+    name: mgm_name
+    time_objects(
+      where: {
+        removed: { _is_null: true }
+      }
+      order_by: [{ time_obj_name: asc }, { time_obj_id: asc }]
+    ) {
+      time_obj_id
+      time_obj_name
+      time_obj_uid
+      start_time
+      end_time
+      removed
+      flow_timeobj_id
+      flow_active
+    }
+  }
+}

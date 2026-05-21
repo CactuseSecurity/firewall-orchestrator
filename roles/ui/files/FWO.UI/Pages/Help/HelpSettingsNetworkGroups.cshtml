@@ -1,0 +1,18 @@
+@page "/help/settings/flows/networkgroups"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("network_groups")</h3>
+    <p>This page lists the flow network group catalog and lets an admin keep the database names and request-module flag in sync.</p>
+    <p>Use the duplicate resolver to pick the active management-side object for each group when several mappings point to the same flow entry.</p>
+</div>

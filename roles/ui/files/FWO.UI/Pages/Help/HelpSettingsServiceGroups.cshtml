@@ -1,0 +1,18 @@
+@page "/help/settings/flows/servicegroups"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("service_groups")</h3>
+    <p>This page lists the flow service group catalog and exposes the rename and request-module flag controls for each entry.</p>
+    <p>Use the duplicate resolver when a service group has more than one linked management-side service and none of them is currently active.</p>
+</div>

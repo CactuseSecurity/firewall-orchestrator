@@ -1,0 +1,32 @@
+query getFlowSvcGroupCandidates (
+  $management_id: [Int!]
+){
+  management(
+    where: {
+      mgm_id: { _in: $management_id }
+      hide_in_gui: { _eq: false }
+      stm_dev_typ: {
+        dev_typ_is_multi_mgmt: { _eq: false }
+        is_pure_routing_device: { _eq: false }
+      }
+    }
+    order_by: { mgm_name: asc }
+  ) {
+    id: mgm_id
+    name: mgm_name
+    services(
+      where: {
+        removed: { _is_null: true }
+      }
+      order_by: [{ svc_name: asc }, { svc_id: asc }]
+    ) {
+      svc_id
+      svc_name
+      svc_uid
+      active
+      removed
+      flow_svcgrp_id
+      flow_active
+    }
+  }
+}

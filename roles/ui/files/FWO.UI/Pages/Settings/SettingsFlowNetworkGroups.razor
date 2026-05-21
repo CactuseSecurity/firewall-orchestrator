@@ -1,0 +1,448 @@
+@page "/settings/flows/networkgroups"
+
+@using FWO.Api.Client.Queries
+@using FWO.Config.Api
+@using FWO.Data
+@using FWO.Data.Flow
+@using FWO.Middleware.Client
+@using Microsoft.AspNetCore.Components.Authorization
+
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("network_groups"))</h3>
+    <HelpLink Page="settings/flows/networkgroups"/>
+</div>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <div class="input-group input-group-sm cwidth-400">
+        <span class="input-group-text">@(userConfig.GetText("search_name"))</span>
+        <input type="text" class="form-control" @bind="groupSearchText" @bind:event="oninput" />
+        @if (!string.IsNullOrWhiteSpace(groupSearchText))
+        {
+            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearGroupSearch">
+                @(userConfig.GetText("cancel"))
+            </button>
+        }
+    </div>
+</div>
+
+<hr class="my-4" />
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <h4 class="mb-0">@(userConfig.GetText("duplicate_objects"))</h4>
+</div>
+<div class="text-muted small mb-2">
+    @($"{DuplicateGroups.Count}")
+</div>
+
+@if (DuplicateGroups.Count > 0)
+{
+    <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+           TableItem="FlowNwGroupDuplicateGroup"
+           Items="DuplicateGroups"
+           PageSize="10"
+           ColumnReorder="true">
+        <Column TableItem="FlowNwGroupDuplicateGroup" Title="@(userConfig.GetText("network_groups"))" Field="@(group => group.FlowNwGroupName)" Sortable="true" Filterable="true" Context="group">
+            <Template>
+                @($"{group.FlowNwGroupName} (#{group.FlowNwGroupId})")
+            </Template>
+        </Column>
+        <Column TableItem="FlowNwGroupDuplicateGroup" Title="@(userConfig.GetText("members"))" Field="@(group => GetObjectCount(group))" Sortable="true" Filterable="false" Context="group">
+            <Template>
+                @BuildObjectSummary(group.Objects)
+            </Template>
+        </Column>
+        <Column TableItem="FlowNwGroupDuplicateGroup" Title="@(userConfig.GetText("actions"))" Field="@(group => group.ManagementId)" Sortable="false" Filterable="false" Context="group">
+            <Template>
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => OpenDuplicateResolver(group)">
+                    @(userConfig.GetText("select"))
+                </button>
+            </Template>
+        </Column>
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </Table>
+}
+else
+{
+    <div class="text-muted small mb-3">@(userConfig.GetText("no_duplicate_conflicts"))</div>
+}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
+    <h4 class="mb-0">@(userConfig.GetText("objects"))</h4>
+</div>
+
+<div class="text-muted small mb-2">
+    @($"{FilteredFlowNwGroups.Count} / {nwGroups.Count}")
+</div>
+
+<Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+       TableItem="FlowNwGroup"
+       Items="FilteredFlowNwGroups"
+       PageSize="25"
+       ColumnReorder="true">
+    <Column TableItem="FlowNwGroup" Title="@(userConfig.GetText("actions"))" Field="@(nwGroup => nwGroup.Id)" Sortable="false" Filterable="false" Context="nwGroup">
+        <Template>
+            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditNwGroup(nwGroup)">
+                @(userConfig.GetText("edit"))
+            </button>
+        </Template>
+    </Column>
+    <Column TableItem="FlowNwGroup" Title="@(userConfig.GetText("id"))" Field="@(nwGroup => nwGroup.Id)" Sortable="true" Filterable="true" />
+    <Column TableItem="FlowNwGroup" Title="@(userConfig.GetText("name"))" Field="@(nwGroup => nwGroup.Name)" Sortable="true" Filterable="true" />
+    <Column TableItem="FlowNwGroup" Title="@(userConfig.GetText("state"))" Field="@(nwGroup => nwGroup.State)" Sortable="true" Filterable="true" />
+    <Column TableItem="FlowNwGroup" Title="@(userConfig.GetText("show_in_request_module"))" Field="@(nwGroup => nwGroup.ShowInRequestModule)" Sortable="true" Context="nwGroup">
+        <Template>
+            @nwGroup.ShowInRequestModule.ShowAsHtml()
+        </Template>
+    </Column>
+    <Column TableItem="FlowNwGroup" Title="@(userConfig.GetText("members"))" Field="@(nwGroup => GetFlowObjectCount(nwGroup))" Sortable="true" Filterable="false" Context="nwGroup">
+        <Template>
+            @BuildObjectSummary(nwGroup.Objects)
+        </Template>
+    </Column>
+    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+</Table>
+
+<PopUp Title="@(userConfig.GetText("edit_flow_object"))" Show="@EditMode" Size=PopupSize.Small OnClose="CloseEditor">
+    <Body>
+        @if (EditMode)
+        {
+            <form onsubmit="return false">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8 col-form-label col-form-label-sm">@EditFlowNwGroup.Id</label>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="EditFlowNwGroup.Name" />
+                    </div>
+                </div>
+                <div class="form-check form-check-inline mt-3">
+                    <input class="form-check-input" id="nwGroupShowInRequestModule" type="checkbox" @bind="EditFlowNwGroup.ShowInRequestModule">
+                    <label class="form-check-label" for="nwGroupShowInRequestModule"><small>@(userConfig.GetText("show_in_request_module"))</small></label>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveNwGroup">@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseEditor">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("duplicate_objects"))" Show="@ResolveDuplicateMode" Size=PopupSize.Auto OnClose="CloseDuplicateResolver">
+    <Body>
+        @if (SelectedDuplicateGroup != null)
+        {
+            <div class="mb-2">
+                <div><span class="fw-bold">@(userConfig.GetText("network_groups")):</span> @SelectedDuplicateGroup.FlowNwGroupName (#@SelectedDuplicateGroup.FlowNwGroupId)</div>
+                <div><span class="fw-bold">@(userConfig.GetText("management")):</span> @SelectedDuplicateGroup.ManagementName</div>
+            </div>
+            <Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
+                   TableItem="NetworkObject"
+                   Items="SelectedDuplicateGroup.Objects"
+                   PageSize="10"
+                   ColumnReorder="true">
+                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("id"))" Field="@(nwObject => nwObject.Id)" Sortable="true" Filterable="true" />
+                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(nwObject => nwObject.Name)" Sortable="true" Filterable="true" Context="nwObject">
+                    <Template>
+                        <span class="d-inline-block rounded px-2 py-1 @(nwObject == SelectedDuplicateObject ? "bg-warning-subtle fw-bold" : "")">
+                            @nwObject.Name
+                        </span>
+                    </Template>
+                </Column>
+                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("state"))" Field="@(nwObject => nwObject.FlowActive)" Sortable="true" Filterable="true" Context="nwObject">
+                    <Template>
+                        @nwObject.FlowActive.ShowAsHtml()
+                    </Template>
+                </Column>
+                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
+                    <Template>
+                        <button type="button" class="btn btn-sm @(nwObject == SelectedDuplicateObject ? "btn-success" : "btn-outline-primary")" @onclick="() => SelectDuplicateObject(nwObject)">
+                            @(userConfig.GetText("select"))
+                        </button>
+                    </Template>
+                </Column>
+                <Pager ShowPageNumber="true" ShowTotalCount="true" />
+            </Table>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-warning" disabled="@(SelectedDuplicateObject == null)" @onclick="ResolveDuplicateMapping">
+                @(userConfig.GetText("save"))
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseDuplicateResolver">
+                @(userConfig.GetText("cancel"))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+<InProgress Display="workInProgress"/>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private List<FlowNwGroup> nwGroups = [];
+    private List<Management> selectableManagements = [];
+    private List<Management> candidateManagements = [];
+    private FlowNwGroupDuplicateGroup? SelectedDuplicateGroup;
+    private NetworkObject? SelectedDuplicateObject;
+    private FlowNwGroup EditFlowNwGroup = new();
+    private bool workInProgress;
+    private bool EditMode;
+    private bool ResolveDuplicateMode;
+    private string groupSearchText = "";
+    private FlowObjectCatalog? catalog;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            workInProgress = true;
+            StateHasChanged();
+
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin]);
+            selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
+            catalog = await apiConnection.SendQueryAsync<FlowObjectCatalog>(FlowQueries.getFlowObjectCatalog);
+            nwGroups = catalog?.NwGroups ?? [];
+
+            List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
+            candidateManagements = managementIds.Count == 0
+                ? []
+                : await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowNwGroupCandidates, new
+                {
+                    management_id = managementIds
+                });
+
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("network_groups"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private List<FlowNwGroup> FilteredFlowNwGroups =>
+        string.IsNullOrWhiteSpace(groupSearchText)
+            ? nwGroups
+            : [.. nwGroups.Where(nwGroup =>
+                BuildSearchText(nwGroup).Contains(groupSearchText.Trim(), StringComparison.OrdinalIgnoreCase))];
+
+    private List<FlowNwGroupDuplicateGroup> DuplicateGroups =>
+        BuildDuplicateGroups();
+
+    private void ClearGroupSearch()
+    {
+        groupSearchText = "";
+    }
+
+    private void EditNwGroup(FlowNwGroup nwGroup)
+    {
+        EditFlowNwGroup = new FlowNwGroup
+        {
+            Id = nwGroup.Id,
+            Name = nwGroup.Name,
+            Hash = nwGroup.Hash,
+            State = nwGroup.State,
+            RemovedDate = nwGroup.RemovedDate,
+            ShowInRequestModule = nwGroup.ShowInRequestModule
+        };
+        EditMode = true;
+    }
+
+    private void CloseEditor()
+    {
+        EditMode = false;
+    }
+
+    private void OpenDuplicateResolver(FlowNwGroupDuplicateGroup group)
+    {
+        SelectedDuplicateGroup = group;
+        SelectedDuplicateObject = group.Objects.FirstOrDefault();
+        ResolveDuplicateMode = true;
+    }
+
+    private void CloseDuplicateResolver()
+    {
+        ResolveDuplicateMode = false;
+        SelectedDuplicateGroup = null;
+        SelectedDuplicateObject = null;
+    }
+
+    private void SelectDuplicateObject(NetworkObject nwObject)
+    {
+        SelectedDuplicateObject = nwObject;
+    }
+
+    private async Task ResolveDuplicateMapping()
+    {
+        try
+        {
+            if (SelectedDuplicateGroup == null || SelectedDuplicateObject == null)
+            {
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            List<object> updates = [];
+            foreach (NetworkObject candidate in SelectedDuplicateGroup.Objects)
+            {
+                updates.Add(new
+                {
+                    where = new { obj_id = new { _eq = candidate.Id } },
+                    _set = new
+                    {
+                        flow_nwgrp_id = SelectedDuplicateGroup.FlowNwGroupId,
+                        flow_active = candidate.Id == SelectedDuplicateObject.Id
+                    }
+                });
+            }
+
+            await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateObjectFlowMappings, new
+            {
+                updates
+            });
+
+            await Refresh();
+            CloseDuplicateResolver();
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("duplicate_objects"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SaveNwGroup()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(EditFlowNwGroup.Name))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_flow_object"), userConfig.GetText("E5102"), true);
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            FlowNwGroup updatedObject = await apiConnection.SendQueryAsync<FlowNwGroup>(FlowMutations.updateFlowNwGroup, new
+            {
+                nwgroupId = EditFlowNwGroup.Id,
+                name = EditFlowNwGroup.Name.Trim(),
+                showInRequestModule = EditFlowNwGroup.ShowInRequestModule
+            });
+
+            int objectIndex = nwGroups.FindIndex(flowGroup => flowGroup.Id == updatedObject.Id);
+            if (objectIndex >= 0)
+            {
+                nwGroups[objectIndex] = updatedObject;
+            }
+
+            EditMode = false;
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("edit_flow_object"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private List<FlowNwGroupDuplicateGroup> BuildDuplicateGroups()
+    {
+        List<FlowNwGroupDuplicateGroup> duplicateGroups = [];
+
+        foreach (FlowNwGroup flowGroup in nwGroups)
+        {
+            foreach (Management management in candidateManagements)
+            {
+                List<NetworkObject> linkedObjects = [.. management.Objects.Where(nwObject => nwObject.FlowNetworkGroupId == flowGroup.Id)];
+                if (linkedObjects.Count <= 1 || linkedObjects.Any(nwObject => nwObject.FlowActive))
+                {
+                    continue;
+                }
+
+                duplicateGroups.Add(new FlowNwGroupDuplicateGroup
+                {
+                    FlowNwGroupId = flowGroup.Id,
+                    FlowNwGroupName = flowGroup.Name,
+                    ManagementId = management.Id,
+                    ManagementName = management.Name,
+                    Objects = [.. linkedObjects
+                        .OrderBy(nwObject => nwObject.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(nwObject => nwObject.Id)]
+                });
+            }
+        }
+
+        return [.. duplicateGroups
+            .OrderBy(group => group.FlowNwGroupName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(group => group.ManagementName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(group => group.FlowNwGroupId)
+            .ThenBy(group => group.ManagementId)];
+    }
+
+    private static string BuildSearchText(FlowNwGroup nwGroup)
+    {
+        return string.Join(' ', [
+            nwGroup.Id.ToString(),
+            nwGroup.Name,
+            nwGroup.State,
+            nwGroup.ShowInRequestModule.ToString(),
+            nwGroup.Objects?.Count.ToString() ?? "0"
+        ]);
+    }
+
+    private static string BuildObjectSummary(IEnumerable<NetworkObject>? objects)
+    {
+        return string.Join(", ", (objects ?? []).Select(nwObject => nwObject.Name ?? $"#{nwObject.Id}"));
+    }
+
+    private static int GetFlowObjectCount(FlowNwGroup nwGroup)
+    {
+        return nwGroup.Objects?.Count ?? 0;
+    }
+
+    private static int GetObjectCount(FlowNwGroupDuplicateGroup group)
+    {
+        return group.Objects.Count;
+    }
+
+    private sealed class FlowNwGroupDuplicateGroup
+    {
+        public long FlowNwGroupId { get; set; }
+        public string FlowNwGroupName { get; set; } = "";
+        public int ManagementId { get; set; }
+        public string ManagementName { get; set; } = "";
+        public List<NetworkObject> Objects { get; set; } = [];
+    }
+}

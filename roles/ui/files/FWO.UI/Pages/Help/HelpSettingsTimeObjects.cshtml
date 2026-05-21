@@ -1,0 +1,18 @@
+@page "/help/settings/flows/timeobjects"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("time_objects")</h3>
+    <p>This page lists the flow time object catalog and lets an admin update names and request-module visibility.</p>
+    <p>The duplicate resolver helps when more than one time object on a management points to the same flow entry.</p>
+</div>

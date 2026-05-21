@@ -1,0 +1,44 @@
+query getFlowCustomServiceCandidates (
+  $management_id: [Int!]
+){
+  management(
+    where: {
+      mgm_id: { _in: $management_id }
+      hide_in_gui: { _eq: false }
+      stm_dev_typ: {
+        dev_typ_is_multi_mgmt: { _eq: false }
+        is_pure_routing_device: { _eq: false }
+      }
+    }
+    order_by: { mgm_name: asc }
+  ) {
+    id: mgm_id
+    name: mgm_name
+    services(
+      where: {
+        removed: { _is_null: true }
+      }
+      order_by: [{ svc_name: asc }, { svc_id: asc }]
+    ) {
+      svc_id
+      svc_name
+      svc_uid
+      svc_port
+      svc_port_end
+      svc_source_port
+      svc_source_port_end
+      svc_code
+      active
+      removed
+      flow_svcobj_id
+      flow_active
+      service_type {
+        name
+      }
+      protocol_name {
+        id
+        name
+      }
+    }
+  }
+}

@@ -413,5 +413,9 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 # 9.0.24 - 27.04.2026 DEVELOP
 - introduce new modelling integration mode WorkflowNotifications
 
-# 9.1.2 - 19.05.2026 DEVELOP
+# 9.1.0 - 20.05.2026 DEVELOP
+- JWT refresh token
+- introduce flow schema
+
+# 9.1.1 - 21.05.2026 DEVELOP
 - Workflow: add configurable execution order for actions assigned to states.

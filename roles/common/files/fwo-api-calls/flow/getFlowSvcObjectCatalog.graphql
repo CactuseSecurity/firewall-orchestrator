@@ -1,0 +1,5 @@
+query getFlowSvcObjectCatalog {
+  svcobjects: flow_svcobject(order_by: [{ name: asc }, { svcobj_id: asc }]) {
+    ...flowSvcObjectDetails
+  }
+}

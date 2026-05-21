@@ -32,13 +32,6 @@ query getFlowSvcObjectCandidates (
       removed
       flow_svcobj_id
       flow_active
-      service_type {
-        name
-      }
-      protocol_name {
-        id
-        name
-      }
     }
   }
 }

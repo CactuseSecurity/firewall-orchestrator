@@ -34,6 +34,10 @@ namespace FWO.Data.Flow
 
         [JsonProperty("objects"), JsonPropertyName("objects")]
         public List<NetworkObject>? Objects { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
+        public int ObjectCount => Objects?.Count ?? 0;
     }
 
     public class FlowSvcGroup : FlowGroup
@@ -49,6 +53,10 @@ namespace FWO.Data.Flow
 
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<NetworkService>? Services { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
+        public int ServiceCount => Services?.Count ?? 0;
     }
 
     public class FlowNwGroupMember

@@ -13,9 +13,13 @@ namespace FWO.Api.Client.Queries
         public static readonly string getFlowAccessCatalog;
         public static readonly string getFlowCustomObjectCandidates;
         public static readonly string getFlowNwGroupCandidates;
+        public static readonly string getFlowNwGroupCatalog;
         public static readonly string getFlowSvcObjectCandidates;
+        public static readonly string getFlowSvcObjectCatalog;
         public static readonly string getFlowSvcGroupCandidates;
+        public static readonly string getFlowSvcGroupCatalog;
         public static readonly string getFlowTimeObjectCandidates;
+        public static readonly string getFlowTimeObjectCatalog;
         public static readonly string getFlowCustomServiceCandidates;
         public static readonly string getFlowNwObjectCatalog;
         public static readonly string getFlowObjectCatalog;
@@ -70,14 +74,30 @@ namespace FWO.Api.Client.Queries
                 getFlowNwGroupCandidates =
                     GetQueryText("flow/getFlowNwGroupCandidates.graphql");
 
+                getFlowNwGroupCatalog =
+                    flowNwGroupDetailsFragment +
+                    GetQueryText("flow/getFlowNwGroupCatalog.graphql");
+
                 getFlowSvcObjectCandidates =
                     GetQueryText("flow/getFlowSvcObjectCandidates.graphql");
+
+                getFlowSvcObjectCatalog =
+                    flowSvcObjectDetailsFragment +
+                    GetQueryText("flow/getFlowSvcObjectCatalog.graphql");
 
                 getFlowSvcGroupCandidates =
                     GetQueryText("flow/getFlowSvcGroupCandidates.graphql");
 
+                getFlowSvcGroupCatalog =
+                    flowSvcGroupDetailsFragment +
+                    GetQueryText("flow/getFlowSvcGroupCatalog.graphql");
+
                 getFlowTimeObjectCandidates =
                     GetQueryText("flow/getFlowTimeObjectCandidates.graphql");
+
+                getFlowTimeObjectCatalog =
+                    flowTimeObjectDetailsFragment +
+                    GetQueryText("flow/getFlowTimeObjectCatalog.graphql");
 
                 getFlowCustomServiceCandidates =
                     GetQueryText("flow/getFlowCustomServiceCandidates.graphql");

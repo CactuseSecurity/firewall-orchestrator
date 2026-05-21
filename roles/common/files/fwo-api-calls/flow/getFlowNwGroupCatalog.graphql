@@ -1,0 +1,5 @@
+query getFlowNwGroupCatalog {
+  nwgroups: flow_nwgroup(order_by: [{ name: asc }, { nwgrp_id: asc }]) {
+    ...flowNwGroupDetails
+  }
+}

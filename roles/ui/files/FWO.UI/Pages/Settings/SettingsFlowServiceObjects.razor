@@ -50,7 +50,7 @@
                 @($"{group.FlowSvcObjectName} (#{group.FlowSvcObjectId})")
             </Template>
         </Column>
-        <Column TableItem="FlowSvcObjectDuplicateGroup" Title="@(userConfig.GetText("services"))" Field="@(group => group.Services.Count)" Sortable="true" Filterable="false" Context="group">
+        <Column TableItem="FlowSvcObjectDuplicateGroup" Title="@(userConfig.GetText("services"))" Field="@(group => group.ServiceCount)" Sortable="true" Filterable="false" Context="group">
             <Template>
                 @BuildServiceSummary(group.Services)
             </Template>
@@ -101,12 +101,12 @@ else
             @svcObject.ShowInRequestModule.ShowAsHtml()
         </Template>
     </Column>
-    <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("services"))" Field="@(svcObject => GetServiceCount(svcObject))" Sortable="true" Filterable="false" Context="svcObject">
+    <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("services"))" Field="@(svcObject => svcObject.ServiceCount)" Sortable="true" Filterable="false" Context="svcObject">
         <Template>
             @BuildServiceSummary(svcObject.Services)
         </Template>
     </Column>
-    <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("port"))" Field="@(svcObject => svcObject.PortStart ?? 0)" Sortable="true" Filterable="true" Context="svcObject">
+    <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("port"))" Field="@(svcObject => svcObject.PortStartValue)" Sortable="true" Filterable="true" Context="svcObject">
         <Template>
             @(svcObject.PortStart.HasValue ? $"{svcObject.PortStart}{(svcObject.PortEnd.HasValue && svcObject.PortEnd != svcObject.PortStart ? $" - {svcObject.PortEnd}" : "")}" : "-")
         </Template>
@@ -287,7 +287,6 @@ else
     private List<FlowSvcObject> svcObjects = [];
     private List<Management> selectableManagements = [];
     private List<Management> candidateManagements = [];
-    private FlowObjectCatalog? catalog;
     private string objectSearchText = "";
     private bool workInProgress;
     private bool EditMode;
@@ -313,8 +312,7 @@ else
 
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin]);
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
-            catalog = await apiConnection.SendQueryAsync<FlowObjectCatalog>(FlowQueries.getFlowObjectCatalog);
-            svcObjects = catalog?.SvcObjects ?? [];
+            svcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSvcObjectCatalog);
 
             List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
             candidateManagements = managementIds.Count == 0
@@ -649,11 +647,6 @@ else
         return selection.SelectedService?.Id == svcObject.Id ? "table-warning" : "";
     }
 
-    private static int GetServiceCount(FlowSvcObject svcObject)
-    {
-        return svcObject.Services?.Count ?? 0;
-    }
-
     private void ClearCustomServiceSearch(CustomServiceManagementSelection selection)
     {
         selection.SearchText = "";
@@ -671,6 +664,7 @@ else
         public int ManagementId { get; set; }
         public string ManagementName { get; set; } = "";
         public List<NetworkService> Services { get; set; } = [];
+        public int ServiceCount => Services.Count;
     }
 
     private sealed class CustomServiceManagementSelection

@@ -50,7 +50,7 @@
                 @($"{group.FlowSvcGroupName} (#{group.FlowSvcGroupId})")
             </Template>
         </Column>
-        <Column TableItem="FlowSvcGroupDuplicateGroup" Title="@(userConfig.GetText("services"))" Field="@(group => group.Services.Count)" Sortable="true" Filterable="false" Context="group">
+        <Column TableItem="FlowSvcGroupDuplicateGroup" Title="@(userConfig.GetText("services"))" Field="@(group => group.ServiceCount)" Sortable="true" Filterable="false" Context="group">
             <Template>
                 @BuildServiceSummary(group.Services)
             </Template>
@@ -98,7 +98,7 @@ else
             @svcGroup.ShowInRequestModule.ShowAsHtml()
         </Template>
     </Column>
-    <Column TableItem="FlowSvcGroup" Title="@(userConfig.GetText("members"))" Field="@(svcGroup => GetServiceCount(svcGroup))" Sortable="true" Filterable="false" Context="svcGroup">
+    <Column TableItem="FlowSvcGroup" Title="@(userConfig.GetText("members"))" Field="@(svcGroup => svcGroup.ServiceCount)" Sortable="true" Filterable="false" Context="svcGroup">
         <Template>
             @BuildServiceSummary(svcGroup.Services)
         </Template>
@@ -198,7 +198,6 @@ else
     private List<FlowSvcGroup> svcGroups = [];
     private List<Management> selectableManagements = [];
     private List<Management> candidateManagements = [];
-    private FlowObjectCatalog? catalog;
     private string groupSearchText = "";
     private bool workInProgress;
     private bool EditMode;
@@ -221,8 +220,7 @@ else
 
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin]);
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
-            catalog = await apiConnection.SendQueryAsync<FlowObjectCatalog>(FlowQueries.getFlowObjectCatalog);
-            svcGroups = catalog?.SvcGroups ?? [];
+            svcGroups = await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowSvcGroupCatalog);
 
             List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
             candidateManagements = managementIds.Count == 0
@@ -427,11 +425,6 @@ else
         return string.Join(", ", (services ?? []).Select(service => DisplayBase.DisplayService(service, false).ToString()));
     }
 
-    private static int GetServiceCount(FlowSvcGroup svcGroup)
-    {
-        return svcGroup.Services?.Count ?? 0;
-    }
-
     private sealed class FlowSvcGroupDuplicateGroup
     {
         public long FlowSvcGroupId { get; set; }
@@ -439,5 +432,6 @@ else
         public int ManagementId { get; set; }
         public string ManagementName { get; set; } = "";
         public List<NetworkService> Services { get; set; } = [];
+        public int ServiceCount => Services.Count;
     }
 }

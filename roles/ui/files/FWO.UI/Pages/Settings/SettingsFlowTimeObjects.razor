@@ -50,7 +50,7 @@
                 @($"{group.FlowTimeObjectName} (#{group.FlowTimeObjectId})")
             </Template>
         </Column>
-        <Column TableItem="FlowTimeObjectDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.TimeObjects.Count)" Sortable="true" Filterable="false" Context="group">
+        <Column TableItem="FlowTimeObjectDuplicateGroup" Title="@(userConfig.GetText("objects"))" Field="@(group => group.TimeObjectCount)" Sortable="true" Filterable="false" Context="group">
             <Template>
                 @BuildTimeObjectSummary(group.TimeObjects)
             </Template>
@@ -98,7 +98,7 @@ else
             @timeObject.ShowInRequestModule.ShowAsHtml()
         </Template>
     </Column>
-    <Column TableItem="FlowTimeObject" Title="@(userConfig.GetText("time_interval"))" Field="@(timeObject => timeObject.StartTime)" Sortable="true" Filterable="false" Context="timeObject">
+    <Column TableItem="FlowTimeObject" Title="@(userConfig.GetText("time_interval"))" Field="@(timeObject => timeObject.TimeObjectCount)" Sortable="true" Filterable="false" Context="timeObject">
         <Template>
             @BuildTimeRange(timeObject)
         </Template>
@@ -198,7 +198,6 @@ else
     private List<FlowTimeObject> timeObjects = [];
     private List<Management> selectableManagements = [];
     private List<Management> candidateManagements = [];
-    private FlowObjectCatalog? catalog;
     private string objectSearchText = "";
     private bool workInProgress;
     private bool EditMode;
@@ -221,8 +220,7 @@ else
 
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin]);
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
-            catalog = await apiConnection.SendQueryAsync<FlowObjectCatalog>(FlowQueries.getFlowObjectCatalog);
-            timeObjects = catalog?.TimeObjects ?? [];
+            timeObjects = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowTimeObjectCatalog);
 
             List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
             candidateManagements = managementIds.Count == 0
@@ -426,12 +424,12 @@ else
         ]);
     }
 
-    private static string BuildTimeRange(FlowTimeObject timeObject)
+    private static string BuildTimeRange(TimeObject timeObject)
     {
         return $"{timeObject.StartTime:O}{(timeObject.EndTime.HasValue ? $" - {timeObject.EndTime:O}" : "")}";
     }
 
-    private static string BuildTimeRange(TimeObject timeObject)
+    private static string BuildTimeRange(FlowTimeObject timeObject)
     {
         return $"{timeObject.StartTime:O}{(timeObject.EndTime.HasValue ? $" - {timeObject.EndTime:O}" : "")}";
     }
@@ -448,5 +446,6 @@ else
         public int ManagementId { get; set; }
         public string ManagementName { get; set; } = "";
         public List<TimeObject> TimeObjects { get; set; } = [];
+        public int TimeObjectCount => TimeObjects.Count;
     }
 }

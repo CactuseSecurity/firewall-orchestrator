@@ -34,6 +34,14 @@ namespace FWO.Data.Flow
 
         [JsonProperty("services"), JsonPropertyName("services")]
         public List<NetworkService>? Services { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
+        public int ServiceCount => Services?.Count ?? 0;
+
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
+        public int PortStartValue => PortStart ?? 0;
     }
 
     public class FlowSvcObjectInsertResult

@@ -31,6 +31,10 @@ namespace FWO.Data.Flow
 
         [JsonProperty("time_objects"), JsonPropertyName("time_objects")]
         public List<TimeObject>? TimeObjects { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
+        public int TimeObjectCount => TimeObjects?.Count ?? 0;
     }
 
     public class FlowTimeObjectInsertResult

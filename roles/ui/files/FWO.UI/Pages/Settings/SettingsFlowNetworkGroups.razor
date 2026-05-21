@@ -50,7 +50,7 @@
                 @($"{group.FlowNwGroupName} (#{group.FlowNwGroupId})")
             </Template>
         </Column>
-        <Column TableItem="FlowNwGroupDuplicateGroup" Title="@(userConfig.GetText("members"))" Field="@(group => GetObjectCount(group))" Sortable="true" Filterable="false" Context="group">
+        <Column TableItem="FlowNwGroupDuplicateGroup" Title="@(userConfig.GetText("members"))" Field="@(group => group.ObjectCount)" Sortable="true" Filterable="false" Context="group">
             <Template>
                 @BuildObjectSummary(group.Objects)
             </Template>
@@ -98,7 +98,7 @@ else
             @nwGroup.ShowInRequestModule.ShowAsHtml()
         </Template>
     </Column>
-    <Column TableItem="FlowNwGroup" Title="@(userConfig.GetText("members"))" Field="@(nwGroup => GetFlowObjectCount(nwGroup))" Sortable="true" Filterable="false" Context="nwGroup">
+    <Column TableItem="FlowNwGroup" Title="@(userConfig.GetText("members"))" Field="@(nwGroup => nwGroup.ObjectCount)" Sortable="true" Filterable="false" Context="nwGroup">
         <Template>
             @BuildObjectSummary(nwGroup.Objects)
         </Template>
@@ -205,7 +205,6 @@ else
     private bool EditMode;
     private bool ResolveDuplicateMode;
     private string groupSearchText = "";
-    private FlowObjectCatalog? catalog;
 
     protected override async Task OnInitializedAsync()
     {
@@ -221,8 +220,7 @@ else
 
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin]);
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
-            catalog = await apiConnection.SendQueryAsync<FlowObjectCatalog>(FlowQueries.getFlowObjectCatalog);
-            nwGroups = catalog?.NwGroups ?? [];
+            nwGroups = await apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowNwGroupCatalog);
 
             List<int> managementIds = [.. selectableManagements.Select(management => management.Id)];
             candidateManagements = managementIds.Count == 0
@@ -427,16 +425,6 @@ else
         return string.Join(", ", (objects ?? []).Select(nwObject => nwObject.Name ?? $"#{nwObject.Id}"));
     }
 
-    private static int GetFlowObjectCount(FlowNwGroup nwGroup)
-    {
-        return nwGroup.Objects?.Count ?? 0;
-    }
-
-    private static int GetObjectCount(FlowNwGroupDuplicateGroup group)
-    {
-        return group.Objects.Count;
-    }
-
     private sealed class FlowNwGroupDuplicateGroup
     {
         public long FlowNwGroupId { get; set; }
@@ -444,5 +432,6 @@ else
         public int ManagementId { get; set; }
         public string ManagementName { get; set; } = "";
         public List<NetworkObject> Objects { get; set; } = [];
+        public int ObjectCount => Objects.Count;
     }
 }

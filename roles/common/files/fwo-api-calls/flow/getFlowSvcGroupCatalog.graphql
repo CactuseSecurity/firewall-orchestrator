@@ -1,0 +1,5 @@
+query getFlowSvcGroupCatalog {
+  svcgroups: flow_svcgroup(order_by: [{ name: asc }, { svcgrp_id: asc }]) {
+    ...flowSvcGroupDetails
+  }
+}

@@ -1,0 +1,23 @@
+mutation upsertFlowNwObjectMapping(
+  $objId: bigint!
+  $flowNwobjId: bigint!
+  $activeOnMgm: Boolean!
+) {
+  update_object_by_pk(
+    pk_columns: { obj_id: $objId }
+    _set: {
+      flow_nwobj_id: $flowNwobjId
+      flow_active: $activeOnMgm
+    }
+  ) {
+    obj_id
+    obj_name
+    obj_ip
+    obj_ip_end
+    obj_uid
+    active
+    removed
+    flow_nwobj_id
+    flow_active
+  }
+}

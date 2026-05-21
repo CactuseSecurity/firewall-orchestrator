@@ -1,0 +1,5 @@
+mutation updateServiceFlowMappings($updates: [service_updates!]!) {
+  update_service_many(updates: $updates) {
+    affected_rows
+  }
+}

@@ -48,10 +48,10 @@ If this is not the case, install a newer ansible. One possible way is to run the
         cd firewall-orchestrator
         source scripts/install-ansible-from-venv.sh
 
-If you use `ansible-core` instead of the full `ansible` package, also install the required collections:
+Install the required Ansible collections before running the playbook. This is required when using `ansible-core`, including the package commonly available on RedHat-like systems:
 
 ```console
-ansible-galaxy collection install -r collections/requirements.yml
+ansible-galaxy collection install -r collections/requirements.yml -p collections --force
 ```
 
 If using RedHat-like systems and `collections/requirements.txt` exists in your checkout, install those Python dependencies as well:

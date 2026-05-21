@@ -1,6 +1,12 @@
 ---
 collections:
   - name: ansible.posix
+    version: 1.5.4
   - name: community.crypto
+    version: 2.14.0
   - name: community.general
+    version: 6.6.2
   - name: community.postgresql
+    version: 2.4.2
+  - name: containers.podman
+    version: 1.10.2

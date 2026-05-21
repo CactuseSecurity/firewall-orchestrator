@@ -39,4 +39,4 @@ if [ -f collections/requirements.txt ]; then
     pip install -r collections/requirements.txt
 fi
 pip install ansible
-ansible-galaxy collection install -r collections/requirements.yml
+ansible-galaxy collection install -r collections/requirements.yml -p collections --force

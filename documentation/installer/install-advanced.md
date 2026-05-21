@@ -126,6 +126,7 @@ remove any local pip config and install manually:
     pip install -r requirements.txt
     if [ -f collections/requirements.txt ]; then pip install -r collections/requirements.txt; fi
     pip install ansible
+    ansible-galaxy collection install -r collections/requirements.yml -p collections --force
 
 ### Parameter "api_no_metadata" to prevent meta data import
 

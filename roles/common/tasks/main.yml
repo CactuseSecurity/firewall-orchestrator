@@ -306,7 +306,7 @@
         mode: "0775"
 
     - name: copy fworch scripts directory
-      synchronize:
+      ansible.posix.synchronize:
         src: scripts
         dest: "{{ fworch_home }}"
         rsync_opts:

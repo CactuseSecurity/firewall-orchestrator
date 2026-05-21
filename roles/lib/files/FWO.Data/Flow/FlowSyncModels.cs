@@ -24,6 +24,24 @@ namespace FWO.Data.Flow
         public List<Rule> Rules { get; set; } = [];
     }
 
+    public class FlowObjectCatalog
+    {
+        [JsonProperty("nwobjects"), JsonPropertyName("nwobjects")]
+        public List<FlowNwObject> NwObjects { get; set; } = [];
+
+        [JsonProperty("nwgroups"), JsonPropertyName("nwgroups")]
+        public List<FlowNwGroup> NwGroups { get; set; } = [];
+
+        [JsonProperty("svcobjects"), JsonPropertyName("svcobjects")]
+        public List<FlowSvcObject> SvcObjects { get; set; } = [];
+
+        [JsonProperty("svcgroups"), JsonPropertyName("svcgroups")]
+        public List<FlowSvcGroup> SvcGroups { get; set; } = [];
+
+        [JsonProperty("timeobjects"), JsonPropertyName("timeobjects")]
+        public List<FlowTimeObject> TimeObjects { get; set; } = [];
+    }
+
     // Insert DTOs used when creating missing flow entries via GraphQL mutations.
 
     public class FlowSvcObjectInsert

@@ -71,6 +71,46 @@ namespace FWO.Data.Flow
                 .OrderBy(candidate => candidate.Name ?? "", StringComparer.OrdinalIgnoreCase)
                 .ThenBy(candidate => candidate.Id)];
         }
+
+        /// <summary>
+        /// Builds a searchable text blob for a custom flow service object candidate.
+        /// </summary>
+        public static string BuildCustomServiceSearchText(NetworkService candidate)
+        {
+            return string.Join(' ', [
+                candidate.Id.ToString(),
+                candidate.Name ?? "",
+                candidate.Uid ?? "",
+                candidate.DestinationPort?.ToString() ?? "",
+                candidate.DestinationPortEnd?.ToString() ?? "",
+                candidate.SourcePort?.ToString() ?? "",
+                candidate.SourcePortEnd?.ToString() ?? "",
+                candidate.Code ?? "",
+                candidate.Protocol?.Name ?? "",
+                candidate.Type?.Name ?? "",
+                candidate.Active ? "active" : "inactive",
+                candidate.FlowActive ? "flow-active" : "flow-inactive"
+            ]).ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// Filters custom flow service object candidates by a case-insensitive search string.
+        /// </summary>
+        public static List<NetworkService> FilterCustomServiceCandidates(IEnumerable<NetworkService>? candidates, string? searchText)
+        {
+            IEnumerable<NetworkService> filteredCandidates = candidates ?? [];
+
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                string normalizedSearchText = searchText.Trim();
+                filteredCandidates = filteredCandidates.Where(candidate =>
+                    BuildCustomServiceSearchText(candidate).Contains(normalizedSearchText, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return [.. filteredCandidates
+                .OrderBy(candidate => candidate.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                .ThenBy(candidate => candidate.Id)];
+        }
     }
 
     public class FlowNwObjectDuplicateGroup

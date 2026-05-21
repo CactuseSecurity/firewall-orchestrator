@@ -115,5 +115,54 @@ namespace FWO.Test
             Assert.That(byType, Has.Count.EqualTo(1));
             Assert.That(byType[0].Id, Is.EqualTo(10));
         }
+
+        [Test]
+        public void FilterCustomServiceCandidates_FindsMatchesAcrossRelevantFields()
+        {
+            List<NetworkService> candidates =
+            [
+                new NetworkService
+                {
+                    Id = 10,
+                    Name = "svc-alpha",
+                    Uid = "uid-10",
+                    DestinationPort = 443,
+                    DestinationPortEnd = 443,
+                    SourcePort = 0,
+                    SourcePortEnd = 0,
+                    Code = "alpha",
+                    Type = new NetworkServiceType { Name = "service" },
+                    Protocol = new NetworkProtocol { Id = 6, Name = "tcp" },
+                    Active = true,
+                    FlowActive = false
+                },
+                new NetworkService
+                {
+                    Id = 20,
+                    Name = "svc-beta",
+                    Uid = "uid-20",
+                    DestinationPort = 53,
+                    DestinationPortEnd = 53,
+                    SourcePort = 0,
+                    SourcePortEnd = 0,
+                    Code = "beta",
+                    Type = new NetworkServiceType { Name = "service" },
+                    Protocol = new NetworkProtocol { Id = 17, Name = "udp" },
+                    Active = false,
+                    FlowActive = true
+                }
+            ];
+
+            List<NetworkService> byName = FlowAdminHelper.FilterCustomServiceCandidates(candidates, "alpha");
+            List<NetworkService> byPort = FlowAdminHelper.FilterCustomServiceCandidates(candidates, "443");
+            List<NetworkService> byProto = FlowAdminHelper.FilterCustomServiceCandidates(candidates, "udp");
+
+            Assert.That(byName, Has.Count.EqualTo(1));
+            Assert.That(byName[0].Id, Is.EqualTo(10));
+            Assert.That(byPort, Has.Count.EqualTo(1));
+            Assert.That(byPort[0].Id, Is.EqualTo(10));
+            Assert.That(byProto, Has.Count.EqualTo(1));
+            Assert.That(byProto[0].Id, Is.EqualTo(20));
+        }
     }
 }

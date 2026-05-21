@@ -28,6 +28,16 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FlowQueries_LoadFlowObjectCandidateQueries()
+        {
+            Assert.That(FlowQueries.getFlowNwGroupCandidates, Does.Contain("query getFlowNwGroupCandidates"));
+            Assert.That(FlowQueries.getFlowSvcObjectCandidates, Does.Contain("query getFlowSvcObjectCandidates"));
+            Assert.That(FlowQueries.getFlowSvcGroupCandidates, Does.Contain("query getFlowSvcGroupCandidates"));
+            Assert.That(FlowQueries.getFlowTimeObjectCandidates, Does.Contain("query getFlowTimeObjectCandidates"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("query getFlowCustomServiceCandidates"));
+        }
+
+        [Test]
         public void FlowQueries_LoadNwObjectCatalogQuery()
         {
             Assert.That(FlowQueries.getFlowNwObjectCatalog, Does.Contain("query getFlowNwObjectCatalog"));

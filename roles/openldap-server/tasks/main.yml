@@ -11,7 +11,7 @@
 - block:
       ### OS basics
       - name: Add the OS specific varibles
-        include_vars: "{{ ansible_os_family }}.yml"
+        include_vars: "{{ ansible_facts['os_family'] }}.yml"
 
       - name: Install the openldap and required Packages
         package:
@@ -127,6 +127,12 @@
         file:
             path: /etc/systemd/system/slapd.service.d
             recurse: true
+        when: ansible_facts['distribution'] != "Debian"
+
+      - name: Read slapd systemd unit type
+        command: systemctl show -p Type --value slapd.service
+        register: slapd_unit_type
+        changed_when: false
         when: ansible_facts['distribution'] != "Debian"
 
       - name: Enable TLS for slapd service

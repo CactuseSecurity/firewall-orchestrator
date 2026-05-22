@@ -6,7 +6,7 @@
         path: "{{ fworch_home }}/database"
 
     - name: include os specific database preparation
-      include_tasks: "os/{{ ansible_os_family }}.yml"
+      include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
 
     - name: find out installed postgres version
       script: get_pg_version.sh
@@ -21,7 +21,7 @@
       when: pg_version|int >= 10
 
     - name: include os specific postgresql path setup
-      include_tasks: "os/{{ ansible_os_family }}-paths.yml"
+      include_tasks: "os/{{ ansible_facts['os_family'] }}-paths.yml"
 
     - name: edit {{ postgresql_config_file }} settings
       lineinfile:

@@ -1,5 +1,5 @@
 - name: include puppeteer dependency tasks for current OS family
-  include_tasks: "os/install_puppeteer.{{ ansible_os_family }}.yml"
+  include_tasks: "os/install_puppeteer.{{ ansible_facts['os_family'] }}.yml"
 
 # get google chrome for pdf generation
 - name: get last known good versions (primary)

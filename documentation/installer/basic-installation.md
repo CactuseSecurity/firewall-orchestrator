@@ -67,10 +67,11 @@ Note that if your server is behind a proxy, you will have to set the proxy for p
 4) Firewall Orchestrator installation
 
 ```console
-cd firewall-orchestrator; ansible-playbook site.yml -K
+cd firewall-orchestrator
+./scripts/run-playbook-with-sudo.sh site.yml
 ```
 
-Enter sudo password when prompted "BECOME or SUDO password:"
+Enter your sudo password when prompted. Full sudoers rights are still required. If sudo already works without a password, the wrapper runs `ansible-playbook` directly; otherwise it creates a temporary passwordless sudoers entry for the current user and removes the entry again when the playbook exits. This avoids the sudo 1.9.16+ password prompt change on Ubuntu 26.04, where `ansible-playbook site.yml -K` can time out before Ansible sends the become password.
 
 That's it. Firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:
 ```

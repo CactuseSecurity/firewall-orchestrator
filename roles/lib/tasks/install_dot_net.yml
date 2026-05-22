@@ -1,2 +1,2 @@
 - name: include dotnet install tasks for current OS family
-  include_tasks: "os/install_dot_net.{{ ansible_os_family }}.yml"
+  include_tasks: "os/install_dot_net.{{ ansible_facts['os_family'] }}.yml"

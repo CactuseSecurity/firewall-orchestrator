@@ -7,7 +7,7 @@
 
     - name: set api server name
       set_fact:
-        api_server_name: "{{ ansible_hostname }}"
+        api_server_name: "{{ ansible_facts['hostname'] }}"
 
     - name: create apache certificates
       include_role:

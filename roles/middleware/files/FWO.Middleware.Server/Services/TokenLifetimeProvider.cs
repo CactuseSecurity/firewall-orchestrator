@@ -10,7 +10,6 @@ namespace FWO.Middleware.Server.Services
     {
         private static readonly TimeSpan kAnonymousTokenLifetime = TimeSpan.FromMinutes(15);
         private static readonly TimeSpan kInternalServiceTokenLifetime = TimeSpan.FromMinutes(15);
-        //private static readonly TimeSpan kDelegatedUserTokenLifetime = TimeSpan.FromHours(1);
 
         /// <summary>
         /// Gets the configured access-token lifetime for interactive users.

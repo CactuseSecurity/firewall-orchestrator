@@ -26,16 +26,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CapDelegatedUserTokenLifetime_WhenLifetimeExceedsMaximum_ReturnsMaximum()
-        {
-            TokenLifetimeProvider provider = new();
-
-            TimeSpan cappedLifetime = provider.CapDelegatedUserTokenLifetime(TimeSpan.FromHours(6));
-
-            Assert.That(cappedLifetime, Is.EqualTo(TimeSpan.FromHours(1)));
-        }
-
-        [Test]
         public async Task GetUserAccessTokenLifetimeAsync_WhenDatabaseReturnsValue_ConvertsHoursToTimeSpan()
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();

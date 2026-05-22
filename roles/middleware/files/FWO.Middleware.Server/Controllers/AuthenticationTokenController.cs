@@ -117,8 +117,7 @@ namespace FWO.Middleware.Server.Controllers
                 UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
                     ?? throw new AuthenticationException("Provided target user credentials are invalid.");
 
-                TimeSpan delegatedLifetime = tokenLifetimeProvider.CapDelegatedUserTokenLifetime(parameters.Lifetime);
-                TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedTargetUser, delegatedLifetime);
+                TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedTargetUser, parameters.Lifetime);
                 WriteTokenPairAudit("IssueDelegatedTokenPair", tokenPair, authenticatedAdminUser,
                     $"Issued delegated token pair for target user \"{authenticatedTargetUser.Name}\".");
 
@@ -220,10 +219,12 @@ namespace FWO.Middleware.Server.Controllers
                     UiUser targetUser = new() { Name = targetUserName, Dn = targetUserDn };
                     UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
                         ?? throw new AuthenticationException("Provided target user credentials are invalid.");
-                    TimeSpan delegatedLifetime = tokenLifetimeProvider.CapDelegatedUserTokenLifetime(lifetime);
-                    string jwt = jwtWriter.CreateJWT(authenticatedTargetUser, delegatedLifetime);
+
+                    string jwt = jwtWriter.CreateJWT(authenticatedTargetUser, parameters.Lifetime);
+
                     WriteJwtAudit("IssueDelegatedAccessToken", jwt, adminUser,
                         $"Issued delegated access token for target user \"{authenticatedTargetUser.Name}\".");
+
                     return Ok(jwt);
                 }
                 catch (Exception e)

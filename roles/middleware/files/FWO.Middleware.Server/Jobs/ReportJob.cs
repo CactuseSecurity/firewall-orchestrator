@@ -162,7 +162,7 @@ namespace FWO.Middleware.Server.Jobs
         {
             List<Ldap> connectedLdaps = await apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler, tokenLifetimeProvider);
-            string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false, tokenLifetimeProvider.GetDelegatedUserTokenLifetime());
+            string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false);
             ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
             UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, reportSchedule.ScheduleOwningUser.DbId);

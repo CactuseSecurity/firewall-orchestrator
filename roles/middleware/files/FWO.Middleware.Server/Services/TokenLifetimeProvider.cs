@@ -10,7 +10,7 @@ namespace FWO.Middleware.Server.Services
     {
         private static readonly TimeSpan kAnonymousTokenLifetime = TimeSpan.FromMinutes(15);
         private static readonly TimeSpan kInternalServiceTokenLifetime = TimeSpan.FromMinutes(15);
-        private static readonly TimeSpan kDelegatedUserTokenLifetime = TimeSpan.FromHours(1);
+        //private static readonly TimeSpan kDelegatedUserTokenLifetime = TimeSpan.FromHours(1);
 
         /// <summary>
         /// Gets the configured access-token lifetime for interactive users.
@@ -44,28 +44,6 @@ namespace FWO.Middleware.Server.Services
         public virtual TimeSpan GetInternalServiceTokenLifetime()
         {
             return kInternalServiceTokenLifetime;
-        }
-
-        /// <summary>
-        /// Gets the maximum lifetime for delegated user tokens.
-        /// </summary>
-        public virtual TimeSpan GetDelegatedUserTokenLifetime()
-        {
-            return kDelegatedUserTokenLifetime;
-        }
-
-        /// <summary>
-        /// Caps a requested delegated user-token lifetime to the configured maximum.
-        /// </summary>
-        public virtual TimeSpan CapDelegatedUserTokenLifetime(TimeSpan? requestedLifetime)
-        {
-            TimeSpan maxLifetime = GetDelegatedUserTokenLifetime();
-            if (requestedLifetime == null || requestedLifetime.Value <= TimeSpan.Zero)
-            {
-                return maxLifetime;
-            }
-
-            return requestedLifetime.Value <= maxLifetime ? requestedLifetime.Value : maxLifetime;
         }
     }
 }

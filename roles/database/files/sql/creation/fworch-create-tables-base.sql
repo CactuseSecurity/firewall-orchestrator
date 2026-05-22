@@ -118,6 +118,9 @@ Create table "object"
 	"obj_create" BIGINT NOT NULL,
 	"obj_last_seen" BIGINT NOT NULL,
 	"removed" BIGINT,
+	"flow_nwobj_id" BIGINT,
+	"flow_nwgrp_id" BIGINT,
+	"flow_active" BOOLEAN NOT NULL Default FALSE,
  primary key ("obj_id")
 );
 
@@ -169,6 +172,9 @@ Create table "service"
 	"svc_create" BIGINT NOT NULL,
 	"svc_last_seen" BIGINT NOT NULL,
 	"removed" BIGINT,
+	"flow_svcobj_id" BIGINT,
+	"flow_svcgrp_id" BIGINT,
+	"flow_active" BOOLEAN NOT NULL Default FALSE,
  primary key ("svc_id")
 );
 
@@ -350,6 +356,7 @@ Create table "import_control"
 	"notification_done" Boolean NOT NULL Default FALSE,
 	"rule_owner_mapping_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
+	"flow_sync_done" Boolean NOT NULL Default FALSE,
  primary key ("control_id")
 );
 
@@ -523,5 +530,7 @@ create table time_object
     start_time TIMESTAMP WITH TIME ZONE,
     end_time TIMESTAMP WITH TIME ZONE,
     created BIGINT,
-    removed BIGINT
+    removed BIGINT,
+	flow_timeobj_id BIGINT,
+	flow_active BOOLEAN NOT NULL Default FALSE
 );

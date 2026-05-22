@@ -47,5 +47,83 @@ namespace FWO.Test
             Assert.That(timeObject.Id, Is.EqualTo(55));
             Assert.That(timeObject.Name, Is.EqualTo("Office Hours"));
         }
+
+        [Test]
+        public void FlowLinkFields_AreDeserialized()
+        {
+            const string serialized = """
+                {
+                    "rule_id": 2001,
+                    "flow_access_id": 3001,
+                    "flow_access": {
+                        "access_id": 3001
+                    }
+                }
+                """;
+
+            Rule? rule = JsonConvert.DeserializeObject<Rule>(serialized);
+
+            Assert.That(rule, Is.Not.Null);
+            Assert.That(rule!.FlowAccessId, Is.EqualTo(3001));
+            Assert.That(rule.FlowAccess, Is.Not.Null);
+            Assert.That(rule.FlowAccess!.Id, Is.EqualTo(3001));
+        }
+
+        [Test]
+        public void PublicEntities_FlowLinkFields_AreDeserialized()
+        {
+            const string serializedNetworkObject = """
+                {
+                    "obj_id": 4001,
+                    "flow_nwobj_id": 5001,
+                    "flow_active": true,
+                    "flow_nwobject": {
+                        "nwobj_id": 5001
+                    }
+                }
+                """;
+            const string serializedNetworkService = """
+                {
+                    "svc_id": 4002,
+                    "flow_svcobj_id": 5002,
+                    "flow_active": false,
+                    "flow_svcobject": {
+                        "svcobj_id": 5002
+                    }
+                }
+                """;
+            const string serializedTimeObject = """
+                {
+                    "time_obj_id": 4003,
+                    "flow_timeobj_id": 5003,
+                    "flow_active": true,
+                    "flow_timeobj": {
+                        "timeobj_id": 5003
+                    }
+                }
+                """;
+
+            NetworkObject? networkObject = JsonConvert.DeserializeObject<NetworkObject>(serializedNetworkObject);
+            NetworkService? networkService = JsonConvert.DeserializeObject<NetworkService>(serializedNetworkService);
+            TimeObject? timeObject = JsonConvert.DeserializeObject<TimeObject>(serializedTimeObject);
+
+            Assert.That(networkObject, Is.Not.Null);
+            Assert.That(networkObject!.FlowNetworkObjectId, Is.EqualTo(5001));
+            Assert.That(networkObject.FlowActive, Is.True);
+            Assert.That(networkObject.FlowNwObject, Is.Not.Null);
+            Assert.That(networkObject.FlowNwObject!.Id, Is.EqualTo(5001));
+
+            Assert.That(networkService, Is.Not.Null);
+            Assert.That(networkService!.FlowServiceObjectId, Is.EqualTo(5002));
+            Assert.That(networkService.FlowActive, Is.False);
+            Assert.That(networkService.FlowSvcObject, Is.Not.Null);
+            Assert.That(networkService.FlowSvcObject!.Id, Is.EqualTo(5002));
+
+            Assert.That(timeObject, Is.Not.Null);
+            Assert.That(timeObject!.FlowTimeObjectId, Is.EqualTo(5003));
+            Assert.That(timeObject.FlowActive, Is.True);
+            Assert.That(timeObject.FlowTimeObject, Is.Not.Null);
+            Assert.That(timeObject.FlowTimeObject!.Id, Is.EqualTo(5003));
+        }
     }
 }

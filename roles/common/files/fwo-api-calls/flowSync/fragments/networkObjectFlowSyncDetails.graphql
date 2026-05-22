@@ -1,0 +1,26 @@
+fragment networkObjectFlowSyncDetails on object {
+  obj_id
+  obj_name
+  obj_ip
+  obj_ip_end
+  obj_uid
+  removed
+  type: stm_obj_typ {
+    name: obj_typ_name
+  }
+  objgrp_flats(
+    where: {
+      removed: { _is_null: true }
+    }
+  ) {
+    id_flat: objgrp_flat_id
+    byFlatId: objectByObjgrpFlatMemberId {
+      obj_id
+      obj_ip
+      obj_ip_end
+      type: stm_obj_typ {
+        name: obj_typ_name
+      }
+    }
+  }
+}

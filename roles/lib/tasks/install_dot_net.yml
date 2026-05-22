@@ -163,7 +163,7 @@
       when:
         - ansible_facts['distribution']|lower == 'ubuntu'
         - ansible_facts['distribution_major_version'] is version('22', '>=')
-        - ansible_architecture == "x86_64"
+        - ansible_facts['architecture'] == "x86_64"
         - not use_dotnet_install_script
 
     - name: Install dotnet-sdk-{{ dotnet_version }} on distro defaults
@@ -171,7 +171,7 @@
         name: "{{ dotnet_package_name }}"
         state: present
       when:
-        - ansible_architecture == "x86_64"
+        - ansible_facts['architecture'] == "x86_64"
         - not use_dotnet_install_script
         - ansible_facts['distribution']|lower != 'ubuntu' or
           (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
@@ -204,13 +204,13 @@
           changed_when: false
           failed_when: dotnet_version not in dotnet_sdks_after_script_install_debian.stdout
       when:
-        - ansible_architecture == "x86_64"
+        - ansible_facts['architecture'] == "x86_64"
         - use_dotnet_install_script
 
     - debug: 
         msg:
           - "NOTE: you need to install dotnet yourself for architectures other than x86_64 before running FWO installer"
-      when: ansible_architecture != "x86_64"
+      when: ansible_facts['architecture'] != "x86_64"
 
   become: true
   environment: "{{ proxy_env }}"

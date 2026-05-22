@@ -2,8 +2,8 @@
 - block:
     - set_fact:
         ansible_user: "{{ lookup('env','USER') }}"
-        os_codename: "{{ ansible_lsb.codename | lower }}"
-        docker_repo_distribution: "{{ ansible_distribution | lower }}"
+        os_codename: "{{ ansible_facts['lsb']['codename'] | lower }}"
+        docker_repo_distribution: "{{ ansible_facts['distribution'] | lower }}"
 
     # for trixie there is no docker image yet
     - set_fact:

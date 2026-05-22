@@ -247,7 +247,7 @@
       failed_when: false
       become: true
       when:
-        - ansible_service_mgr == "systemd"
+        - ansible_facts['service_mgr'] == "systemd"
         - loginctl_binary.stat.exists
 
     - name: global apache config

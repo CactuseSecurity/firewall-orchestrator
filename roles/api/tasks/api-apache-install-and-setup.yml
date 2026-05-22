@@ -11,7 +11,7 @@
       apache2_module: state=present name={{ item }}
       loop: "{{ apache2_required_modules }}"
 
-    - set_fact: api_server_name="{{ ansible_hostname }}"          #  this only works for importer = backend
+    - set_fact: api_server_name="{{ ansible_facts['hostname'] }}"          #  this only works for importer = backend
 
     - name: create apache certificates
       include_role:

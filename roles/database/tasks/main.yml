@@ -7,7 +7,7 @@
 
     - name: include redhat db install parts
       include_tasks: redhat_preps.yml
-      when: installation_mode == "new" and ansible_os_family == "RedHat"
+      when: installation_mode == "new" and ansible_facts['os_family'] == "RedHat"
 
     - name: install package postgresql packages for redhat
       package:
@@ -16,7 +16,7 @@
       loop:
         - postgresql-server
         - python3-psycopg2
-      when: ansible_os_family == "RedHat"
+      when: ansible_facts['os_family'] == "RedHat"
       # todo: check if we need and if true, how to install libpq-dev(el)
 
     - name: install package postgresql packages for debian n ubuntu
@@ -28,12 +28,12 @@
         - python3-psycopg2
         - libpq-dev
         - postgresql-client
-      when: ansible_os_family == "Debian"
+      when: ansible_facts['os_family'] == "Debian"
 
     - name: initdb as extra step for redhat
       shell: "LC_ALL=C.UTF-8 /usr/bin/postgresql-setup --initdb"
       become: true
-      when: ansible_os_family == "RedHat"
+      when: ansible_facts['os_family'] == "RedHat"
 
     - name: find out installed postgres version
       script: get_pg_version.sh
@@ -51,13 +51,13 @@
       set_fact:
         postgresql_config_file: /etc/postgresql/{{ pg_version }}/main/postgresql.conf
         postgresql_hba_file: /etc/postgresql/{{ pg_version }}/main/pg_hba.conf
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts['os_family'] == 'Debian'
 
     - name: set postgresql config path for RedHat
       set_fact:
         postgresql_config_file: /var/lib/pgsql/data/postgresql.conf
         postgresql_hba_file: /var/lib/pgsql/data/pg_hba.conf
-      when: ansible_os_family == 'RedHat'
+      when: ansible_facts['os_family'] == 'RedHat'
 
     - name: edit {{ postgresql_config_file }} settings
       lineinfile:

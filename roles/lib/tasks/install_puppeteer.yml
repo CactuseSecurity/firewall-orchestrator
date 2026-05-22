@@ -32,7 +32,7 @@
       when: >
         ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04
         or ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] | float >= 13
-        or ansible_facts['distribution'] == "Debian" and ansible_lsb.codename == "trixie"
+        or ansible_facts['distribution'] == "Debian" and ansible_facts['lsb']['codename'] == "trixie"
 
     - block: # only use apparmor for ubuntu 24.04ff
         - name: Ensure the /etc/apparmor.d directory exists

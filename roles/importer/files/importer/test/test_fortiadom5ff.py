@@ -1,9 +1,16 @@
+import json
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
-from fw_modules.fortiadom5ff.fmgr_rule import rule_parse_last_hit
+from fw_modules.fortiadom5ff.fmgr_rule import (
+    extract_nat_config_fields,
+    parse_nat_rules_in_rulebase,
+    rule_parse_last_hit,
+)
 from fw_modules.fortiadom5ff.fwcommon import to_time_object
 from fwo_exceptions import ImportInterruptionError
+from models.rulebase import Rulebase
 from models.time_object import TimeObject
 from pytest_mock import MockerFixture
 
@@ -152,3 +159,85 @@ def test_rule_parse_last_hit_returns_offset_aware_iso_timestamp():
     parsed_time = datetime.fromisoformat(parsed)
     assert parsed_time.tzinfo is not None
     assert int(parsed_time.timestamp()) == epoch_seconds
+
+
+def test_extract_nat_config_fields_serializes_poolname_and_fixedport():
+    nat_config_fields = extract_nat_config_fields(
+        {
+            "nat": 1,
+            "ippool": 1,
+            "poolname": ["pool-a", "pool-b"],
+            "fixedport": 1,
+        }
+    )
+
+    assert json.loads(nat_config_fields) == {
+        "fixedport": 1,
+        "ippool": 1,
+        "nat_type": "nat",
+        "poolname": ["pool-a", "pool-b"],
+    }
+
+
+def test_parse_nat_rules_in_rulebase_keeps_translation_metadata_on_translated_rule():
+    normalized_config_adom = {
+        "network_objects": [
+            {"obj_name": "src-net", "obj_uid": "src-net-uid", "obj_ip": "10.0.0.0/24"},
+            {"obj_name": "dst-net", "obj_uid": "dst-net-uid", "obj_ip": "10.0.1.0/24"},
+            {"obj_name": "pool-a", "obj_uid": "pool-a-uid", "obj_ip": "10.0.2.1/32"},
+        ],
+        "zone_objects": [{"zone_name": "inside"}, {"zone_name": "outside"}],
+        "policies": [],
+        "rules": [],
+    }
+    normalized_config_global: dict[str, list[Any]] = {
+        "network_objects": [],
+        "zone_objects": [],
+        "policies": [],
+        "rules": [],
+    }
+    native_rulebase = {
+        "data": [
+            {
+                "uuid": "nat-rule-uid",
+                "name": "nat-rule",
+                "nat": 1,
+                "status": 1,
+                "srcaddr": ["src-net"],
+                "dstaddr": ["dst-net"],
+                "service": ["ALL"],
+                "srcintf": ["inside"],
+                "dstintf": ["outside"],
+                "ippool": 1,
+                "poolname": ["pool-a"],
+                "fixedport": 1,
+            }
+        ]
+    }
+    normalized_nat_rulebase = Rulebase(uid="nat-rulebase-test", name="NAT", mgm_uid="mgm", rules={})
+
+    parse_nat_rules_in_rulebase(
+        normalized_config_adom,
+        normalized_config_global,
+        native_rulebase,
+        normalized_nat_rulebase,
+    )
+
+    assert set(normalized_nat_rulebase.rules) == {"nat-rule-uid-original", "nat-rule-uid-translated"}
+
+    original_rule = normalized_nat_rulebase.rules["nat-rule-uid-original"]
+    assert original_rule.rule_custom_fields is None
+
+    translated_rule = normalized_nat_rulebase.rules["nat-rule-uid-translated"]
+    assert translated_rule.rule_src == "pool-a"
+    assert translated_rule.rule_src_refs == "pool-a-uid"
+    assert translated_rule.rule_dst == "dst-net"
+    assert translated_rule.rule_dst_refs == "dst-net-uid"
+    assert translated_rule.rule_src_zone == "inside"
+    assert translated_rule.rule_dst_zone == "outside"
+    assert json.loads(translated_rule.rule_custom_fields or "{}") == {
+        "fixedport": 1,
+        "ippool": 1,
+        "nat_type": "nat",
+        "poolname": ["pool-a"],
+    }

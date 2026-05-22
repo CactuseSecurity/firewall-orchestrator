@@ -47,5 +47,44 @@ namespace FWO.Test
             Assert.That(timeObject.Id, Is.EqualTo(55));
             Assert.That(timeObject.Name, Is.EqualTo("Office Hours"));
         }
+
+        [Test]
+        public void NormalizedRule_FromRule_PreservesNatAndTranslationFlags()
+        {
+            Rule rule = new()
+            {
+                NatRule = true,
+                AccessRule = false,
+                XlateRule = "1366",
+                TranslatedRule = new Rule { Uid = "translated-rule" },
+                RuleOrderNumber = 7,
+                OrderNumber = 7.0,
+                Disabled = false,
+                SourceNegated = false,
+                Source = "any",
+                SourceRefs = "",
+                DestinationNegated = false,
+                Destination = "any",
+                DestinationRefs = "",
+                ServiceNegated = false,
+                Service = "any",
+                ServiceRefs = "",
+                Action = "accept",
+                Track = "none",
+                Implied = false,
+                Metadata = new RuleMetadata()
+            };
+
+            NormalizedRule normalizedRule = NormalizedRule.FromRule(rule);
+
+            Assert.That(normalizedRule.NatRule, Is.True);
+            Assert.That(normalizedRule.AccessRule, Is.False);
+            Assert.That(normalizedRule.XlateRule, Is.EqualTo("translated-rule"));
+
+            string serialized = JsonConvert.SerializeObject(normalizedRule);
+            Assert.That(serialized, Does.Contain("\"nat_rule\":true"));
+            Assert.That(serialized, Does.Contain("\"access_rule\":false"));
+            Assert.That(serialized, Does.Contain("\"xlate_rule_uid\":\"translated-rule\""));
+        }
     }
 }

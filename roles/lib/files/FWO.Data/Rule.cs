@@ -118,6 +118,9 @@ namespace FWO.Data
         [JsonProperty("nat_rule"), JsonPropertyName("nat_rule")]
         public bool NatRule { get; set; }
 
+        [JsonProperty("access_rule"), JsonPropertyName("access_rule")]
+        public bool AccessRule { get; set; } = true;
+
         [JsonProperty("rulebase_id"), JsonPropertyName("rulebase_id")]
         public int RulebaseId { get; set; }
 
@@ -148,8 +151,14 @@ namespace FWO.Data
         [JsonProperty("rule"), JsonPropertyName("rule")]
         public Rule? ParentRule { get; set; }
 
+        [JsonProperty("ruleByXlateRule"), JsonPropertyName("ruleByXlateRule")]
+        public Rule? TranslatedRule { get; set; }
+
         [JsonProperty("rule_owners"), JsonPropertyName("rule_owners")]
         public RuleOwner?[] RuleOwner { get; set; } = [];
+
+        [JsonProperty("xlate_rule"), JsonPropertyName("xlate_rule")]
+        public string? XlateRule { get; set; }
 
         public string ChangeID { get; set; } = "";
         public string AdoITID { get; set; } = "";
@@ -210,6 +219,7 @@ namespace FWO.Data
             CustomFields = rule.CustomFields;
             Implied = rule.Implied;
             NatRule = rule.NatRule;
+            AccessRule = rule.AccessRule;
             RulebaseId = rule.RulebaseId;
             RuleOrderNumber = rule.RuleOrderNumber;
             EnforcingGateways = rule.EnforcingGateways;
@@ -220,6 +230,7 @@ namespace FWO.Data
             Rulebase = rule.Rulebase;
             LastChangeAdmin = rule.LastChangeAdmin;
             ParentRule = rule.ParentRule;
+            TranslatedRule = rule.TranslatedRule;
             DisplayOrderNumberString = rule.DisplayOrderNumberString;
             DisplayOrderNumber = rule.DisplayOrderNumber;
             Certified = rule.Certified;
@@ -236,6 +247,7 @@ namespace FWO.Data
             Detailed = rule.Detailed;
             UnusedSpecialUserObjects = rule.UnusedSpecialUserObjects;
             UnusedUpdatableObjects = rule.UnusedUpdatableObjects;
+            XlateRule = rule.XlateRule;
         }
 
         public bool IsDropRule()

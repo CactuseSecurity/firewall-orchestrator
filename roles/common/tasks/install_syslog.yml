@@ -6,7 +6,7 @@
   become: true
 
 - name: include syslog log-directory tasks for current OS family
-  include_tasks: "os/install_syslog.{{ ansible_os_family }}.yml"
+  include_tasks: "os/install_syslog.{{ ansible_facts['os_family'] }}.yml"
 
 - name: change rsyslog config to receive logs
   blockinfile:

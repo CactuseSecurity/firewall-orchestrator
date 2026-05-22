@@ -117,7 +117,7 @@
   when:
     - "installation_mode == 'upgrade'"
     - "'frontends' in group_names"
-    - "ansible_os_family == 'Debian'"
+    - "ansible_facts['os_family'] == 'Debian'"
 
 - name: restart apache without maintenance site
   service:

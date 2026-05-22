@@ -45,4 +45,4 @@
     group: "{{ openssl_user }}"
 
 - name: include certificate trust-store tasks for current OS family
-  include_tasks: "os/{{ ansible_os_family }}.yml"
+  include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"

@@ -25,7 +25,7 @@
   ignore_errors: true
 
 - name: include uninstall tasks for current OS family
-  include_tasks: "os/uninstall.{{ ansible_os_family }}.yml"
+  include_tasks: "os/uninstall.{{ ansible_facts['os_family'] }}.yml"
 
 - name: find out installed postgres version
   script: "scripts/get_pg_version.sh"

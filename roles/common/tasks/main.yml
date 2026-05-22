@@ -38,7 +38,7 @@
       when: not already_installed and installation_mode == "upgrade"
 
     - name: include OS specific preparation tasks
-      include_tasks: "os/{{ ansible_os_family }}.yml"
+      include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
 
       # when upgrading check if we are not attempting a downgrade
     - block:

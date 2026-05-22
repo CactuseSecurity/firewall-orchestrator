@@ -1,1 +1,1 @@
-- include_tasks: "apache/{{ ansible_facts[os_family] }}.yml"
+- include_tasks: "apache/{{ ansible_facts['os_family'] }}.yml"

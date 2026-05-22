@@ -82,7 +82,7 @@ namespace FWO.Api.Client
         /// <summary>
         /// Sends an API call and returns the deserialized result or throws on errors.
         /// </summary>
-        public abstract Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null);
+        public abstract Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null);
 
         /// <summary>
         /// Sends an API call and returns a non-throwing response wrapper containing data or errors.

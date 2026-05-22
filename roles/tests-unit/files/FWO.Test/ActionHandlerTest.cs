@@ -62,7 +62,7 @@ namespace FWO.Test
                 ]
             };
 
-            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null)
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 Queries.Add(query);
                 Variables.Add(variables);

@@ -150,7 +150,7 @@ namespace FWO.Test
             public List<FwoOwner> PermittedOwners { get; set; } = [];
             public ModellingConnection? ConnectionById { get; set; }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 Type responseType = typeof(QueryResponseType);
                 if (query == ModellingQueries.addPermittedOwner)

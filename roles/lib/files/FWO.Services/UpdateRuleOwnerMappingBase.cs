@@ -225,25 +225,30 @@ namespace FWO.Services
             {
                 if (!ruleOwnersToSetRemoved.Any()) return;
 
-                foreach (RuleOwner[] batch in ruleOwnersToSetRemoved.Chunk(RuleOwnerRemovalBatchSize))
+
+
+                var listRuleOwnersToRemove = ruleOwnersToSetRemoved
+                .Select(r => new
                 {
+                    rule_id = new { _eq = r.RuleId },
+                    owner_id = new { _eq = r.OwnerId },
+                    created = new { _eq = r.Created }
+                })
+                .ToList();
 
-                    var listRuleOwnersToRemove = batch
-                    .Select(r => new
+                await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.setAffectedRuleOwnersRemoved,
+                    new
                     {
-                        rule_id = new { _eq = r.RuleId },
-                        owner_id = new { _eq = r.OwnerId },
-                        created = new { _eq = r.Created }
-                    })
-                    .ToList();
+                        objects = listRuleOwnersToRemove,
+                        removed = importControlId
+                    },
+                    chunkingOptions: new QueryChunkingOptions
+                    {
+                        Enabled = true,
+                        ChunkVariableName = "objects",
+                        ChunkSize = RuleOwnerRemovalBatchSize
+                    });
 
-                    await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.setAffectedRuleOwnersRemoved,
-                        new
-                        {
-                            objects = listRuleOwnersToRemove,
-                            removed = importControlId
-                        });
-                }
             }
             catch (Exception ex)
             {
@@ -263,10 +268,15 @@ namespace FWO.Services
 
             try
             {
-                foreach (RuleOwner[] batch in ruleOwners.Chunk(RuleOwnerInsertBatchSize))
+
+                await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.insertRuleOwners, new { objects = ruleOwners.ToList() },
+                chunkingOptions: new QueryChunkingOptions
                 {
-                    await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.insertRuleOwners, new { objects = batch.ToList() });
-                }
+                    Enabled = true,
+                    ChunkVariableName = "objects",
+                    ChunkSize = RuleOwnerInsertBatchSize
+                });
+
                 Log.WriteInfo(LogMessageTitle, $"{ruleOwners.Count} rule owners inserted successfully.");
             }
             catch (Exception ex)

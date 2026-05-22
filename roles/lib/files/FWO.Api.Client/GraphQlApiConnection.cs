@@ -186,11 +186,72 @@ namespace FWO.Api.Client
         /// <param name="query"></param>
         /// <param name="variables"></param>
         /// <param name="operationName"></param>
+        /// <param name="chunkingOptions"></param>
         /// <returns><typeparamref name="QueryResponseType"/></returns>
-        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             try
             {
+                if (chunkingOptions != null && chunkingOptions.Enabled)
+                {
+                    if (variables == null)
+                    {
+                        throw new ArgumentNullException(nameof(variables), "Chunking requires variables.");
+                    }
+
+                    if (string.IsNullOrWhiteSpace(chunkingOptions.ChunkVariableName))
+                    {
+                        throw new ArgumentException("ChunkVariableName is required when chunking is enabled.", nameof(chunkingOptions));
+                    }
+
+                    if (chunkingOptions.ChunkSize <= 0)
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(chunkingOptions), "ChunkSize must be greater than zero.");
+                    }
+
+                    List<object?> items = ExtractListFromVariables(variables, chunkingOptions.ChunkVariableName);
+                    JObject? mergedResponse = null;
+
+                    foreach (object?[] batch in items.Chunk(chunkingOptions.ChunkSize))
+                    {
+                        object chunkedVariables = ReplaceChunkVariable(variables!, chunkingOptions.ChunkVariableName, batch.ToList());
+                        GraphQLResponse<dynamic> chunkResponse = await graphQlClient.SendQueryAsync<dynamic>(query, chunkedVariables, operationName);
+
+                        if (chunkResponse.Errors != null)
+                        {
+                            string errorMessage = "";
+
+                            foreach (GraphQLError error in chunkResponse.Errors)
+                            {
+                                Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
+                                errorMessage += $"{error.Message}\n";
+                            }
+
+                            throw new InvalidOperationException(errorMessage);
+                        }
+
+                        if (ApiConstants.UseSystemTextJsonSerializer)
+                        {
+                            throw new NotImplementedException("System.Text.Json is not supported anymore.");
+                        }
+
+                        JObject chunkData = (JObject)chunkResponse.Data;
+                        mergedResponse = MergeChunkedResponse(mergedResponse, chunkData);
+                    }
+
+                    if (mergedResponse == null)
+                    {
+                        throw new InvalidOperationException("Chunked query produced no response.");
+                    }
+
+                    if (items.Count == 0)
+                    {
+                        return await SendQueryAsync<QueryResponseType>(query, variables, operationName, null);
+                    }
+
+                    return ConvertMergedResponse<QueryResponseType>(mergedResponse);
+                }
+
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
@@ -298,6 +359,83 @@ namespace FWO.Api.Client
                 Log.WriteError(LogCategory, "Error while creating subscription to GraphQL API.", exception);
                 throw;
             }
+        }
+
+        private static List<object?> ExtractListFromVariables(object? variables, string propertyName)
+        {
+            if (variables == null)
+            {
+                throw new ArgumentNullException(nameof(variables), "Chunking requires variables.");
+            }
+
+            object? value = variables.GetType().GetProperty(propertyName)?.GetValue(variables);
+
+            if (value is string || value is not System.Collections.IEnumerable enumerable)
+            {
+                throw new InvalidOperationException($"Chunk variable '{propertyName}' is not an enumerable.");
+            }
+
+            List<object?> items = [];
+            foreach (object? item in enumerable)
+            {
+                items.Add(item);
+            }
+
+            return items;
+        }
+
+        private static object ReplaceChunkVariable(object variables, string propertyName, List<object?> batch)
+        {
+            Dictionary<string, object?> values = new(StringComparer.Ordinal);
+
+            foreach (var property in variables.GetType().GetProperties())
+            {
+                values[property.Name] = property.Name == propertyName
+                    ? batch
+                    : property.GetValue(variables);
+            }
+
+            return values;
+        }
+
+        private static JObject MergeChunkedResponse(JObject? mergedResponse, JObject chunkData)
+        {
+            if (mergedResponse == null)
+            {
+                return chunkData;
+            }
+
+            JProperty mergedProp = (JProperty)(mergedResponse.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {mergedResponse}"));
+            JProperty chunkProp = (JProperty)(chunkData.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {chunkData}"));
+
+            if (mergedProp.Value is JObject mergedObject && chunkProp.Value is JObject chunkObject)
+            {
+                if (mergedObject["affected_rows"] != null && chunkObject["affected_rows"] != null)
+                {
+                    mergedObject["affected_rows"] = mergedObject["affected_rows"]!.Value<long>() + chunkObject["affected_rows"]!.Value<long>();
+                }
+
+                if (mergedObject["returning"] is JArray mergedReturning && chunkObject["returning"] is JArray chunkReturning)
+                {
+                    foreach (JToken item in chunkReturning)
+                    {
+                        mergedReturning.Add(item.DeepClone());
+                    }
+                }
+            }
+
+            return mergedResponse;
+        }
+
+        private static QueryResponseType ConvertMergedResponse<QueryResponseType>(JObject mergedResponse)
+        {
+            JProperty prop = (JProperty)(mergedResponse.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {mergedResponse}"));
+            JToken result = prop.Value;
+
+            QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
+                throw new InvalidOperationException($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {mergedResponse}");
+
+            return returnValue;
         }
 
         protected override void Dispose(bool disposing)

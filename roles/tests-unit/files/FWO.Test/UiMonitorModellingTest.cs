@@ -137,7 +137,7 @@ namespace FWO.Test
         public List<NwGroupRemoval> NwGroupRemovals { get; } = [];
         public List<ServiceGroupRemoval> ServiceGroupRemovals { get; } = [];
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             if (typeof(QueryResponseType) == typeof(List<FwoOwner>))
             {

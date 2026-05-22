@@ -1,5 +1,7 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -58,7 +60,10 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
             if (request.Query.OwnerId is not null)
             {
-                rules = await FetchRulesByOwnerId(request.Query.OwnerId ?? -1, userConfig);
+                rules = await FetchRulesByOwnerId(
+                    request.Query.OwnerId ?? -1,
+                    userConfig,
+                    request.Query.FieldSourceMapping);
             }
             else if (!string.IsNullOrWhiteSpace(request.Query.IpAddress))
             {
@@ -92,7 +97,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     queryFilter.Action,
                     queryFilter.MinPrefixLength,
                     queryFilter.InField,
-                    userConfig
+                    userConfig,
+                    request.Query.FieldSourceMapping
                 );
             }
             else
@@ -143,13 +149,15 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     }
 
     private async Task<List<RuleDetail>> FetchRulesByOwnerId(int ownerId,
-        UserConfig userConfig)
+        UserConfig userConfig,
+        FieldSourceMapping? fieldSourceMapping)
     {
         var ruleIDs = await GetRuleIdsByOwnerId(ownerId);
-        return await GetRulesByIdsAsync(ruleIDs, userConfig);
+        return await GetRulesByIdsAsync(ruleIDs, userConfig, fieldSourceMapping);
     }
 
-    private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, UserConfig userConfig)
+    private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, UserConfig userConfig,
+        FieldSourceMapping? fieldSourceMapping)
     {
         if (ruleIds.Count == 0)
             return new List<RuleDetail>();
@@ -162,7 +170,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         };
 
         var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
-        return ConvertRuleList(result, userConfig);
+        return ConvertRuleList(result, userConfig, fieldSourceMapping);
     }
 
     private async Task<List<int>> GetRuleIdsByOwnerId(int ownerId)
@@ -183,7 +191,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     }
 
     private async Task<List<RuleDetail>> FilterRules(IPAddress ipAddress, string action, int minPrefix,
-        string inField, UserConfig userConfig)
+        string inField, UserConfig userConfig, FieldSourceMapping? fieldSourceMapping)
     {
         IpFilterHelper ipHelper = new IpFilterHelper();
 
@@ -216,12 +224,17 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             }
         }
 
-        return ConvertRuleList(ruleItems, userConfig);
+        return ConvertRuleList(ruleItems, userConfig, fieldSourceMapping);
     }
 
-    private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig)
+    private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig,
+        FieldSourceMapping? fieldSourceMapping)
     {
         const string notFound = "Not Found in Database";
+        FieldSource ownerInformationSource = RuleFieldSourceResolver.ResolveOwnerInformationSource(fieldSourceMapping);
+        FieldSource changeIdSource = RuleFieldSourceResolver.ResolveChangeIdSource(fieldSourceMapping);
+        string ownerCustomFieldKey = userConfig.GlobalConfig?.CustomFieldOwnerKey ?? "";
+        string changeIdCustomFieldKey = userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "";
 
         return inputList.Select(item => new RuleDetail
         {
@@ -254,12 +267,12 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 })
                 .ToList(),
             ServiceShort = DisplayServicesPlain(item, userConfig),
-            ChangeID = CustomFieldResolver.ExtractCustomFieldValue<string>(item, userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "", out _) ?? notFound,
+            ChangeID = RuleFieldSourceResolver.ResolveChangeId(item, changeIdSource, changeIdCustomFieldKey, notFound),
             Name = item.Name ?? notFound,
             CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
             LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
             Action = item.Action,
-            OwnerInformation = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound,
+            OwnerInformation = RuleFieldSourceResolver.ResolveOwnerInformation(item, ownerInformationSource, ownerCustomFieldKey, notFound),
             Comment = item.Comment ?? notFound,
             Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
         }).ToList();
@@ -400,6 +413,7 @@ public class RulesByFilterQuery
     public string? IpAddress { get; set; }
 
     public RuleFilter? Filter { get; set; }
+    public FieldSourceMapping? FieldSourceMapping { get; set; }
 }
 
 public class RulesByFilterResponse
@@ -413,6 +427,56 @@ public class RuleFilter
     public int MinPrefixLength { get; set; }
     public string InField { get; set; } = "";
     public string Action { get; set; } = "";
+}
+
+public class FieldSourceMapping
+{
+    public FieldSource OwnerInformation { get; set; } = FieldSource.Database;
+    public FieldSource ChangeId { get; set; } = FieldSource.CustomField;
+}
+
+[System.Text.Json.Serialization.JsonConverter(typeof(FieldSourceJsonConverter))]
+public enum FieldSource
+{
+    Database,
+    CustomField
+}
+
+public sealed class FieldSourceJsonConverter : System.Text.Json.Serialization.JsonConverter<FieldSource>
+{
+    /// <summary>
+    /// Reads a field source value from JSON.
+    /// </summary>
+    public override FieldSource Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.String)
+        {
+            throw new System.Text.Json.JsonException(
+                $"Field source values must be strings with one of: {nameof(FieldSource.Database)}, {nameof(FieldSource.CustomField)}.");
+        }
+
+        string? value = reader.GetString();
+        if (string.Equals(value, nameof(FieldSource.Database), StringComparison.OrdinalIgnoreCase))
+        {
+            return FieldSource.Database;
+        }
+
+        if (string.Equals(value, nameof(FieldSource.CustomField), StringComparison.OrdinalIgnoreCase))
+        {
+            return FieldSource.CustomField;
+        }
+
+        throw new System.Text.Json.JsonException(
+            $"Invalid field source value '{value}'. Allowed values are {nameof(FieldSource.Database)} and {nameof(FieldSource.CustomField)}.");
+    }
+
+    /// <summary>
+    /// Writes a field source value to JSON.
+    /// </summary>
+    public override void Write(Utf8JsonWriter writer, FieldSource value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.ToString());
+    }
 }
 
 public class RuleResult

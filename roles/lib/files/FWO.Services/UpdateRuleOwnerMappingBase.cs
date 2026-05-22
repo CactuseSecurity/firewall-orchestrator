@@ -12,6 +12,9 @@ namespace FWO.Services
     public abstract class UpdateRuleOwnerMappingBase : IUpdateRuleOwnerMapping
     {
         protected const int MaxPendingImportsBeforeFullReinit = 3;
+        protected const int RuleOwnerRemovalBatchSize = 500;
+        protected const int RuleOwnerInsertBatchSize = 500;
+
         protected const string LogMessageTitle = "Update rule_owner Notifier";
         protected readonly ApiConnection apiConnection;
         protected readonly GlobalConfig globalConfig;
@@ -222,21 +225,25 @@ namespace FWO.Services
             {
                 if (!ruleOwnersToSetRemoved.Any()) return;
 
-                var listRuleOwnersToRemove = ruleOwnersToSetRemoved
-                .Select(r => new
+                foreach (RuleOwner[] batch in ruleOwnersToSetRemoved.Chunk(RuleOwnerRemovalBatchSize))
                 {
-                    rule_id = new { _eq = r.RuleId },
-                    owner_id = new { _eq = r.OwnerId },
-                    created = new { _eq = r.Created }
-                })
-                .ToList();
 
-                await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.setAffectedRuleOwnersRemoved,
-                    new
+                    var listRuleOwnersToRemove = batch
+                    .Select(r => new
                     {
-                        objects = listRuleOwnersToRemove,
-                        removed = importControlId
-                    });
+                        rule_id = new { _eq = r.RuleId },
+                        owner_id = new { _eq = r.OwnerId },
+                        created = new { _eq = r.Created }
+                    })
+                    .ToList();
+
+                    await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.setAffectedRuleOwnersRemoved,
+                        new
+                        {
+                            objects = listRuleOwnersToRemove,
+                            removed = importControlId
+                        });
+                }
             }
             catch (Exception ex)
             {
@@ -245,7 +252,6 @@ namespace FWO.Services
                 throw;
             }
         }
-
 
         protected async Task InsertNewRuleOwners(List<RuleOwner> ruleOwners)
         {
@@ -257,7 +263,10 @@ namespace FWO.Services
 
             try
             {
-                await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.insertRuleOwners, new { objects = ruleOwners });
+                foreach (RuleOwner[] batch in ruleOwners.Chunk(RuleOwnerInsertBatchSize))
+                {
+                    await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.insertRuleOwners, new { objects = batch.ToList() });
+                }
                 Log.WriteInfo(LogMessageTitle, $"{ruleOwners.Count} rule owners inserted successfully.");
             }
             catch (Exception ex)

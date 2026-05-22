@@ -480,6 +480,44 @@ namespace FWO.Test
             Assert.DoesNotThrowAsync(async () => await service.RunAsync(), "Incremental mapping should remove the active pair before re-inserting it.");
         }
 
+        [Test]
+        public async Task RunAsyncCustomField_ShouldBatchRemovedRuleOwners_WhenRemovalCountExceedsBatchSize()
+        {
+            const int totalRuleOwners = 1200;
+
+            RuleOwnerBatchingCustomFieldApiConnection apiConnection = new(totalRuleOwners);
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, new GlobalConfig { CustomFieldOwnerKey = @"[""owner""]" });
+
+            bool result = await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(apiConnection.SetAffectedRuleOwnersRemovedCalls, Is.EqualTo(3));
+                Assert.That(apiConnection.RemovedBatchSizes, Is.EqualTo(new[] { 500, 500, 200 }));
+                Assert.That(apiConnection.CompletedImports, Is.EquivalentTo(new long[] { 1 }));
+            });
+        }
+
+        [Test]
+        public async Task RunAsyncCustomField_ShouldBatchInsertedRuleOwners_WhenInsertCountExceedsBatchSize()
+        {
+            const int totalRuleOwners = 1200;
+
+            RuleOwnerBatchingCustomFieldApiConnection apiConnection = new(totalRuleOwners);
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, new GlobalConfig { CustomFieldOwnerKey = @"[""owner""]" });
+
+            bool result = await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(apiConnection.InsertRuleOwnersCalls, Is.EqualTo(3));
+                Assert.That(apiConnection.InsertBatchSizes, Is.EqualTo(new[] { 500, 500, 200 }));
+                Assert.That(apiConnection.CompletedImports, Is.EquivalentTo(new long[] { 1 }));
+            });
+        }
+
         #region Test Data Builders
         private static Rule BuildRule(
             int id = 1,
@@ -1547,6 +1585,157 @@ namespace FWO.Test
                     int intValue => intValue,
                     _ => throw new InvalidOperationException($"Missing nested _eq value for '{propertyName}'.")
                 };
+            }
+        }
+
+        private sealed class RuleOwnerBatchingCustomFieldApiConnection : SimulatedApiConnection
+        {
+            private readonly List<ImportControl> pendingImports =
+            [
+                new() { ControlId = 1, ImportTypeId = FWO.Basics.ImportType.RULE }
+            ];
+
+            private readonly List<RuleChange> ruleChanges;
+            private readonly List<FwoOwner> owners;
+            private readonly List<RuleOwner> ruleOwnersToRemove;
+            private readonly List<long> completedImports = [];
+
+            public int SetAffectedRuleOwnersRemovedCalls { get; private set; }
+            public int InsertRuleOwnersCalls { get; private set; }
+            public List<int> RemovedBatchSizes { get; } = [];
+            public List<int> InsertBatchSizes { get; } = [];
+            public List<long> CompletedImports => completedImports;
+
+            public RuleOwnerBatchingCustomFieldApiConnection(int totalRuleOwners)
+            {
+                ruleChanges = Enumerable.Range(1, totalRuleOwners)
+                    .Select(id => new RuleChange
+                    {
+                        ChangeAction = FWO.Basics.ChangelogActionType.CHANGE,
+                        OldRule = BuildRule(
+                            id: id,
+                            customFields: "{'owner':'OldOwner'}",
+                            metadataId: 100000 + id),
+                        NewRule = BuildRule(
+                            id: id,
+                            customFields: "{'owner':'BatchOwner'}",
+                            metadataId: 200000 + id)
+                    })
+                    .ToList();
+
+                owners =
+                [
+                    BuildOwner(id: 1, extAppId: "BatchOwner")
+                ];
+
+                ruleOwnersToRemove = Enumerable.Range(1, totalRuleOwners)
+                    .Select(id => new RuleOwner
+                    {
+                        RuleId = id,
+                        OwnerId = 999,
+                        Created = 12345,
+                        RuleMetadataId = 300000 + id,
+                        OwnerMappingSourceId = (int)FWO.Basics.OwnerMappingSourceStm.CustomField
+                    })
+                    .ToList();
+            }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            {
+                if (query == FWO.Api.Client.Queries.ImportQueries.getPendingRuleOwnerImports)
+                {
+                    return Task.FromResult((QueryResponseType)(object)pendingImports.Where(import => !completedImports.Contains(import.ControlId)).ToList());
+                }
+
+                if (query == FWO.Api.Client.Queries.RuleQueries.getChangedRulesForRuleOwnerMappingCustomField)
+                {
+                    return Task.FromResult((QueryResponseType)(object)ruleChanges);
+                }
+
+                if (query == FWO.Api.Client.Queries.OwnerQueries.getOwnersForRuleOwnerCustomField)
+                {
+                    return Task.FromResult((QueryResponseType)(object)owners);
+                }
+
+                if (query == FWO.Api.Client.Queries.OwnerQueries.getRuleOwnerToRemoveByRule)
+                {
+                    List<long> requestedRuleIds = ReadLongList(variables, "ruleIds");
+                    List<RuleOwner> matchingRuleOwners = ruleOwnersToRemove
+                        .Where(ruleOwner => requestedRuleIds.Contains(ruleOwner.RuleId))
+                        .Select(CloneRuleOwner)
+                        .ToList();
+
+                    return Task.FromResult((QueryResponseType)(object)matchingRuleOwners);
+                }
+
+                if (query == FWO.Api.Client.Queries.OwnerQueries.setAffectedRuleOwnersRemoved)
+                {
+                    SetAffectedRuleOwnersRemovedCalls++;
+                    RemovedBatchSizes.Add(ReadEnumerableCount(variables, "objects"));
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
+                if (query == FWO.Api.Client.Queries.OwnerQueries.insertRuleOwners)
+                {
+                    InsertRuleOwnersCalls++;
+                    InsertBatchSizes.Add(ReadEnumerableCount(variables, "objects"));
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
+                if (query == FWO.Api.Client.Queries.ImportQueries.updateImportControlForRuleOwnerInc)
+                {
+                    completedImports.Add(ReadLong(variables, "controlId"));
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
+                throw new InvalidOperationException($"Unexpected query: {query}");
+            }
+
+            private static RuleOwner CloneRuleOwner(RuleOwner source)
+            {
+                return new RuleOwner
+                {
+                    RuleId = source.RuleId,
+                    OwnerId = source.OwnerId,
+                    Created = source.Created,
+                    RuleMetadataId = source.RuleMetadataId,
+                    OwnerMappingSourceId = source.OwnerMappingSourceId,
+                    MatchedObjects = source.MatchedObjects
+                };
+            }
+
+            private static int ReadEnumerableCount(object? variables, string propertyName)
+            {
+                object? value = variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
+                if (value is not System.Collections.IEnumerable enumerable)
+                {
+                    return 0;
+                }
+
+                int count = 0;
+                foreach (object? _ in enumerable)
+                {
+                    count++;
+                }
+
+                return count;
+            }
+
+            private static long ReadLong(object? variables, string propertyName)
+            {
+                object? value = variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
+                return value switch
+                {
+                    long longValue => longValue,
+                    int intValue => intValue,
+                    _ => throw new InvalidOperationException($"Missing long property '{propertyName}'.")
+                };
+            }
+
+            private static List<long> ReadLongList(object? variables, string propertyName)
+            {
+                object? value = variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
+                return value as List<long> ?? [];
             }
         }
         #endregion

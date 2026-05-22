@@ -194,63 +194,9 @@ namespace FWO.Api.Client
             {
                 if (chunkingOptions != null && chunkingOptions.Enabled)
                 {
-                    if (variables == null)
-                    {
-                        throw new ArgumentNullException(nameof(variables), "Chunking requires variables.");
-                    }
-
-                    if (string.IsNullOrWhiteSpace(chunkingOptions.ChunkVariableName))
-                    {
-                        throw new ArgumentException("ChunkVariableName is required when chunking is enabled.", nameof(chunkingOptions));
-                    }
-
-                    if (chunkingOptions.ChunkSize <= 0)
-                    {
-                        throw new ArgumentOutOfRangeException(nameof(chunkingOptions), "ChunkSize must be greater than zero.");
-                    }
-
-                    List<object?> items = ExtractListFromVariables(variables, chunkingOptions.ChunkVariableName);
-                    JObject? mergedResponse = null;
-
-                    foreach (object?[] batch in items.Chunk(chunkingOptions.ChunkSize))
-                    {
-                        object chunkedVariables = ReplaceChunkVariable(variables!, chunkingOptions.ChunkVariableName, batch.ToList());
-                        GraphQLResponse<dynamic> chunkResponse = await graphQlClient.SendQueryAsync<dynamic>(query, chunkedVariables, operationName);
-
-                        if (chunkResponse.Errors != null)
-                        {
-                            string errorMessage = "";
-
-                            foreach (GraphQLError error in chunkResponse.Errors)
-                            {
-                                Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
-                                errorMessage += $"{error.Message}\n";
-                            }
-
-                            throw new InvalidOperationException(errorMessage);
-                        }
-
-                        if (ApiConstants.UseSystemTextJsonSerializer)
-                        {
-                            throw new NotImplementedException("System.Text.Json is not supported anymore.");
-                        }
-
-                        JObject chunkData = (JObject)chunkResponse.Data;
-                        mergedResponse = MergeChunkedResponse(mergedResponse, chunkData);
-                    }
-
-                    if (mergedResponse == null)
-                    {
-                        throw new InvalidOperationException("Chunked query produced no response.");
-                    }
-
-                    if (items.Count == 0)
-                    {
-                        return await SendQueryAsync<QueryResponseType>(query, variables, operationName, null);
-                    }
-
-                    return ConvertMergedResponse<QueryResponseType>(mergedResponse);
+                    return await SendChunkedQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
                 }
+
 
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
@@ -341,6 +287,66 @@ namespace FWO.Api.Client
                 Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Query: {query}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
                 return new ApiResponse<QueryResponseType>(exception.Message);
             }
+        }
+
+        private async Task<QueryResponseType> SendChunkedQueryAsync<QueryResponseType>(string query, object? variables, string? operationName, QueryChunkingOptions chunkingOptions)
+        {
+            if (variables == null)
+            {
+                throw new ArgumentNullException(nameof(variables), "Chunking requires variables.");
+            }
+
+            if (string.IsNullOrWhiteSpace(chunkingOptions.ChunkVariableName))
+            {
+                throw new ArgumentException("ChunkVariableName is required when chunking is enabled.", nameof(chunkingOptions));
+            }
+
+            if (chunkingOptions.ChunkSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(chunkingOptions), "ChunkSize must be greater than zero.");
+            }
+
+            List<object?> items = ExtractListFromVariables(variables, chunkingOptions.ChunkVariableName);
+            if (items.Count == 0)
+            {
+                return await SendQueryAsync<QueryResponseType>(query, variables, operationName, null);
+            }
+
+            JObject? mergedResponse = null;
+
+            foreach (object?[] batch in items.Chunk(chunkingOptions.ChunkSize))
+            {
+                object chunkedVariables = ReplaceChunkVariable(variables, chunkingOptions.ChunkVariableName, batch.ToList());
+                GraphQLResponse<dynamic> chunkResponse = await graphQlClient.SendQueryAsync<dynamic>(query, chunkedVariables, operationName);
+
+                if (chunkResponse.Errors != null)
+                {
+                    string errorMessage = "";
+
+                    foreach (GraphQLError error in chunkResponse.Errors)
+                    {
+                        Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
+                        errorMessage += $"{error.Message}\n";
+                    }
+
+                    throw new InvalidOperationException(errorMessage);
+                }
+
+                if (ApiConstants.UseSystemTextJsonSerializer)
+                {
+                    throw new NotImplementedException("System.Text.Json is not supported anymore.");
+                }
+
+                JObject chunkData = (JObject)chunkResponse.Data;
+                mergedResponse = MergeChunkedResponse(mergedResponse, chunkData);
+            }
+
+            if (mergedResponse == null)
+            {
+                throw new InvalidOperationException("Chunked query produced no response.");
+            }
+
+            return ConvertMergedResponse<QueryResponseType>(mergedResponse);
         }
 
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)

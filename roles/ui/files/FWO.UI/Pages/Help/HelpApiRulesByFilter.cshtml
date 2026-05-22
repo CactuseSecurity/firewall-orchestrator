@@ -1,0 +1,67 @@
+@page "/help/API/rulesbyfilter"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+
+@section sidebar {
+    @{
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml");
+    }
+}
+
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("rule_filters")</h3>
+    @(Html.Raw(userConfig.GetText("H6931")))
+
+    <br>
+    <h4>@userConfig.GetText("examples")</h4>
+
+    <small class="small-helptext">
+        @(Html.Raw(userConfig.GetText("H6932")))
+    </small>
+
+    <pre class="code-block" data-lang="json">
+<code>
+{
+    "RequestContext": {
+        "UserName": "debug",
+        "UserID": "debug"
+    },
+    "Query": {
+        "IpAddress": "10.1.2.3",
+        "Filter": {
+            "Action": "any",
+            "MinPrefixLength": 16,
+            "InField": "source"
+        }
+    }
+}
+</code>
+    </pre>
+
+    <small class="small-helptext">
+        @(Html.Raw(userConfig.GetText("H6933")))
+    </small>
+
+    <pre class="code-block" data-lang="json">
+<code>
+{
+    "RequestContext": {
+        "UserName": "debug",
+        "UserID": "debug"
+    },
+    "Query": {
+        "OwnerId": 42,
+        "FieldSourceMapping": {
+            "OwnerInformation": "CustomField",
+            "ChangeId": "CustomField"
+        }
+    }
+}
+</code>
+    </pre>
+</div>

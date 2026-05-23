@@ -259,7 +259,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
             LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
             Action = item.Action,
-            AdoIT = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound,
+            OwnerInformation = item.RuleOwner.FirstOrDefault()?.OwnerId.ToString() ?? notFound,
             Comment = item.Comment ?? notFound,
             Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
         }).ToList();
@@ -432,7 +432,7 @@ public class RuleDetail
     public List<ServiceObject> Service { get; set; } = new();
     public string ServiceShort { get; set; } = "";
     public string ChangeID { get; set; } = "";
-    public string AdoIT { get; set; } = "";
+    public string OwnerInformation { get; set; } = "";
     public string Name { get; set; } = "";
     public List<string> Time { get; set; } = [];
     public string Comment { get; set; } = "";

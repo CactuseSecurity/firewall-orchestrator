@@ -1,18 +1,13 @@
 using FWO.Api.Client;
-using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
-using FWO.Config.Api.Data;
-using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using Newtonsoft.Json;
-using Org.BouncyCastle.Crypto;
+using Newtonsoft.Json.Linq;
 using System.Text;
-using System.Text.Json;
-using System.Xml.Linq;
 
 namespace FWO.Report
 {
@@ -502,88 +497,93 @@ namespace FWO.Report
         private string ExportResolvedChangesToJson()
         {
             RuleChangeDisplayJson ruleChangeDisplayJson = new(userConfig);
-            StringBuilder report = new("{");
-            report.Append(DisplayReportHeaderJson());
-            report.AppendLine("\"managements\": [");
-
-
+            JObject report = ParseJsonObjectFragment(DisplayReportHeaderJson());
+            JArray managements = new();
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
-                report.AppendLine($"{{\"{management.Name}\":");
-
-                report.Append($"{{\n\"rule changes\": [");
-                AppendRuleChangeRowsJson(report, management, ruleChangeDisplayJson);
-                report.Append("],");
-
+                JObject managementReport = new()
+                {
+                    ["rule changes"] = BuildRuleChangeArrayJson(management, ruleChangeDisplayJson)
+                };
 
                 if (IncludeObjects)
                 {
-                    AppendObjectChangeRowsJson(report, management, ruleChangeDisplayJson);
-
-                    AppendServiceChangeRowsJson(report, management, ruleChangeDisplayJson);
-
-                    AppendUserChangeRowsJson(report, management, ruleChangeDisplayJson);
-
+                    AddOptionalArray(managementReport, "Network Object changes", BuildObjectChangeArrayJson(management, ruleChangeDisplayJson));
+                    AddOptionalArray(managementReport, "Service Object changes", BuildServiceChangeArrayJson(management, ruleChangeDisplayJson));
+                    AddOptionalArray(managementReport, "User Object changes", BuildUserChangeArrayJson(management, ruleChangeDisplayJson));
                 }
-                report.Append("}},");
+                managements.Add(new JObject
+                {
+                    [management.Name] = managementReport
+                });
             }
 
-            RuleDisplayBase.RemoveLastChars(report, 1); // letztes Komma bei Managements entfernen
-            report.Append("]}");
-
-            dynamic? json = JsonConvert.DeserializeObject(report.ToString());
-            return JsonConvert.SerializeObject(json, new JsonSerializerSettings
-            {
-                Formatting = Formatting.Indented
-            });
+            report["managements"] = managements;
+            return report.ToString(Formatting.Indented);
         }
 
-        private void AppendRuleChangeRowsJson(StringBuilder report, ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        private static void AddOptionalArray(JObject target, string propertyName, JArray values)
         {
-            if (management.RuleChanges != null && management.RuleChanges?.Any() == true)
+            if (values.Count > 0)
             {
-                var items = management.RuleChanges!.ToList();
-
-                foreach (var ruleChange in items)
-                {
-                    var sb = new StringBuilder("{");
-                    sb.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplayChangeAction(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplayName(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplaySourceZones(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplaySourceNegated(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplaySource(ruleChange, ReportType));
-                    sb.Append(ruleChangeDisplayJson.DisplayDestinationZones(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplayDestinationNegated(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
-                    sb.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplayServices(ruleChange, ReportType));
-                    sb.Append(ruleChangeDisplayJson.DisplayAction(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplayTrack(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplayEnforcingGateways(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplayUid(ruleChange));
-                    sb.Append(ruleChangeDisplayJson.DisplayComment(ruleChange));
-                    RuleDisplayBase.RemoveLastChars(sb, 1); // letztes Komma entfernen
-                    sb.Append("},");
-                    report.Append(sb.ToString());
-                }
-                RuleDisplayBase.RemoveLastChars(report, 1); // letztes Komma bei Items entfernen
-
+                target[propertyName] = values;
             }
         }
-        private static void AppendObjectChangeRowsJson(StringBuilder report, ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
-        {
-            if (management.ObjectChanges != null && management.ObjectChanges?.Any() == true)
-            {
-                report.Append($"\n\"Network Object changes\": [");
 
-                var nwos = management.ObjectChanges!.ToList();
-                if (nwos.Any())
+        private JObject BuildJsonObject(Action<StringBuilder> appendProperties)
+        {
+            StringBuilder properties = new();
+            appendProperties(properties);
+            return ParseJsonObjectFragment(properties.ToString());
+        }
+
+        private static JObject ParseJsonObjectFragment(string jsonFragment)
+        {
+            string trimmedFragment = jsonFragment.Trim().TrimEnd(',');
+            return string.IsNullOrEmpty(trimmedFragment) ? new JObject() : JObject.Parse($"{{{trimmedFragment}}}");
+        }
+
+        private JArray BuildRuleChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        {
+            JArray changes = new();
+            if (management.RuleChanges != null && management.RuleChanges.Any())
+            {
+                foreach (var ruleChange in management.RuleChanges)
                 {
-                    foreach (var objectChange in nwos)
+                    changes.Add(BuildJsonObject(sb =>
                     {
-                        var sb = new StringBuilder("{");
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeAction(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayName(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplaySourceZones(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplaySourceNegated(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplaySource(ruleChange, ReportType));
+                        sb.Append(ruleChangeDisplayJson.DisplayDestinationZones(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayDestinationNegated(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
+                        sb.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayServices(ruleChange, ReportType));
+                        sb.Append(ruleChangeDisplayJson.DisplayAction(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayTrack(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayEnforcingGateways(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayUid(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayComment(ruleChange));
+                    }));
+                }
+            }
+            return changes;
+        }
+
+        private JArray BuildObjectChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        {
+            JArray changes = new();
+            if (management.ObjectChanges != null && management.ObjectChanges.Any())
+            {
+                foreach (var objectChange in management.ObjectChanges)
+                {
+                    changes.Add(BuildJsonObject(sb =>
+                    {
                         sb.Append(ruleChangeDisplayJson.DisplayChangeTime(objectChange));
                         sb.Append(ruleChangeDisplayJson.DisplayChangeAction(objectChange));
                         sb.Append(ruleChangeDisplayJson.DisplayName(objectChange));
@@ -592,27 +592,21 @@ namespace FWO.Report
                         sb.Append(ruleChangeDisplayJson.DisplayObjectMemberNames(objectChange));
                         sb.Append(ruleChangeDisplayJson.DisplayUid(objectChange));
                         sb.Append(ruleChangeDisplayJson.DisplayComment(objectChange));
-                        RuleDisplayBase.RemoveLastChars(sb, 1); // letztes Komma entfernen
-                        sb.Append("},");
-                        report.Append(sb.ToString());
-                    }
-                    RuleDisplayBase.RemoveLastChars(report, 1); // letztes Komma bei Items entfernen
+                    }));
                 }
-                report.Append("],");
             }
+            return changes;
         }
-        private static void AppendServiceChangeRowsJson(StringBuilder report, ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
-        {
-            if (management.ServiceChanges != null && management.ServiceChanges?.Any() == true)
-            {
-                report.Append($"\n\"Service Object changes\": [");
 
-                var svcs = management.ServiceChanges!.ToList();
-                if (svcs.Any())
+        private JArray BuildServiceChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        {
+            JArray changes = new();
+            if (management.ServiceChanges != null && management.ServiceChanges.Any())
+            {
+                foreach (var serviceChange in management.ServiceChanges)
                 {
-                    foreach (var serviceChange in svcs)
+                    changes.Add(BuildJsonObject(sb =>
                     {
-                        var sb = new StringBuilder("{");
                         sb.Append(ruleChangeDisplayJson.DisplayChangeTime(serviceChange));
                         sb.Append(ruleChangeDisplayJson.DisplayChangeAction(serviceChange));
                         sb.Append(ruleChangeDisplayJson.DisplayName(serviceChange));
@@ -622,39 +616,29 @@ namespace FWO.Report
                         sb.Append(ruleChangeDisplayJson.DisplayObjectMemberNames(serviceChange));
                         sb.Append(ruleChangeDisplayJson.DisplayUid(serviceChange));
                         sb.Append(ruleChangeDisplayJson.DisplayComment(serviceChange));
-                        RuleDisplayBase.RemoveLastChars(sb, 1); // letztes Komma entfernen
-                        sb.Append("},");
-                        report.Append(sb.ToString());
-                    }
-                    RuleDisplayBase.RemoveLastChars(report, 1); // letztes Komma bei Items entfernen
+                    }));
                 }
-                report.Append("]");
             }
+            return changes;
         }
-        private static void AppendUserChangeRowsJson(StringBuilder report, ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
-        {
-            if (management.UserChanges != null && management.UserChanges?.Any() == true)
-            {
-                report.Append($"\n\"User Object changes\": [");
 
-                var userc = management.UserChanges!.ToList();
-                if (userc.Any())
+        private JArray BuildUserChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        {
+            JArray changes = new();
+            if (management.UserChanges != null && management.UserChanges.Any())
+            {
+                foreach (var userChange in management.UserChanges)
                 {
-                    foreach (var serviceChange in userc)
+                    changes.Add(BuildJsonObject(sb =>
                     {
-                        var sb = new StringBuilder("{");
-                        sb.Append(ruleChangeDisplayJson.DisplayChangeTime(serviceChange));
-                        sb.Append(ruleChangeDisplayJson.DisplayChangeAction(serviceChange));
-                        sb.Append(ruleChangeDisplayJson.DisplayName(serviceChange));
-                        sb.Append(ruleChangeDisplayJson.DisplayComment(serviceChange));
-                        RuleDisplayBase.RemoveLastChars(sb, 1); // letztes Komma entfernen
-                        sb.Append("},");
-                        report.Append(sb.ToString());
-                    }
-                    RuleDisplayBase.RemoveLastChars(report, 1); // letztes Komma bei Items entfernen
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeTime(userChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayChangeAction(userChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayName(userChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayComment(userChange));
+                    }));
                 }
-                report.Append("],");
             }
+            return changes;
         }
     }
 }

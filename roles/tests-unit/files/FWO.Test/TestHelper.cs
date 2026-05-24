@@ -25,13 +25,13 @@ namespace FWO.Test
                 }
                 return default!;
             }
-            else if (!rawResult.GetType().IsSubclassOf(typeof(ReturnType)))
+            else if (rawResult is not ReturnType typedResult)
             {
-                throw new Exception($"Result of method is of type {rawResult.GetType} but was expected to be \"{typeof(ReturnType)}\".");
+                throw new Exception($"Result of method is of type {rawResult.GetType()} but was expected to be \"{typeof(ReturnType)}\".");
             }
             else
             {
-                return (ReturnType)rawResult;
+                return typedResult;
             }
         }
     }

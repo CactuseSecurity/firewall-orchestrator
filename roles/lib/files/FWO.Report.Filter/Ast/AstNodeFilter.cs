@@ -35,7 +35,7 @@ namespace FWO.Report.Filter.Ast
             };
         }
 
-        protected static string AddVariable<Type>(DynGraphqlQuery query, string name, TokenKind op, Type value)
+        protected static string AddVariable<TValue>(DynGraphqlQuery query, string name, TokenKind op, TValue value)
         {
             string queryVarName = name + query.parameterCounter++;
             string queryVarType;
@@ -76,7 +76,7 @@ namespace FWO.Report.Filter.Ast
                     break;
 
                 default:
-                    throw new NotSupportedException($"Type \"{typeof(Type)}\" is not supported in GraphQL Query");
+                    throw new NotSupportedException($"Type \"{typeof(TValue)}\" is not supported in GraphQL Query");
             }
 
             query.QueryParameters.Add($"${queryVarName}: {queryVarType}! ");

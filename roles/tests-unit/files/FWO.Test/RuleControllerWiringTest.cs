@@ -60,6 +60,28 @@ namespace FWO.Test
             ClassicAssert.AreEqual(RuleFieldSourceResolver.NotFoundValue, rules[0].ChangeID);
         }
 
+        [Test]
+        public void ConvertRuleList_ShouldFlattenServiceObjectsAndRemoveDuplicates()
+        {
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [CreateRuleWithDuplicateNetworkAndServiceObjects()],
+                fieldSourceMapping: null);
+
+            ClassicAssert.AreEqual(1, rules.Count);
+
+            RuleDetail rule = rules[0];
+            ClassicAssert.AreEqual(2, rule.Source.Count);
+            ClassicAssert.AreEqual("Source Group", rule.Source[0].Name);
+            ClassicAssert.AreEqual("Shared Source", rule.Source[1].Name);
+
+            ClassicAssert.AreEqual(2, rule.Destination.Count);
+            ClassicAssert.AreEqual("Destination Group", rule.Destination[0].Name);
+            ClassicAssert.AreEqual("Shared Destination", rule.Destination[1].Name);
+
+            ClassicAssert.AreEqual(1, rule.Service.Count);
+            ClassicAssert.AreEqual("Shared Service", rule.Service[0].Name);
+        }
+
         private static List<RuleDetail> InvokeConvertRuleList(List<Rule> rules, FieldSourceMapping? fieldSourceMapping)
         {
             UserConfig userConfig = CreateUserConfig();
@@ -84,6 +106,83 @@ namespace FWO.Test
             {
                 RuleOwner = [new RuleOwner { OwnerId = ownerId }],
                 CustomFields = customFields
+            };
+        }
+
+        private static Rule CreateRuleWithDuplicateNetworkAndServiceObjects()
+        {
+            NetworkObject sharedSource = CreateNetworkObject(101, "Shared Source", "10.0.0.1", "10.0.0.1");
+            NetworkObject sharedDestination = CreateNetworkObject(201, "Shared Destination", "10.0.0.2", "10.0.0.2");
+            NetworkService sharedService = CreateServiceObject(301, "Shared Service", 443, "TCP");
+
+            return new Rule
+            {
+                Froms =
+                [
+                    CreateNetworkLocation("source-group-user", CreateNetworkObjectGroup(100, "Source Group", sharedSource)),
+                    CreateNetworkLocation("source-member-user", sharedSource)
+                ],
+                Tos =
+                [
+                    CreateNetworkLocation("destination-group-user", CreateNetworkObjectGroup(200, "Destination Group", sharedDestination)),
+                    CreateNetworkLocation("destination-member-user", sharedDestination)
+                ],
+                Services =
+                [
+                    new ServiceWrapper { Content = CreateServiceGroup(300, "Service Group", sharedService) },
+                    new ServiceWrapper { Content = sharedService }
+                ]
+            };
+        }
+
+        private static NetworkLocation CreateNetworkLocation(string userName, NetworkObject networkObject)
+        {
+            return new NetworkLocation(new NetworkUser { Name = userName }, networkObject);
+        }
+
+        private static NetworkObject CreateNetworkObject(long id, string name, string ip, string ipEnd)
+        {
+            return new NetworkObject
+            {
+                Id = id,
+                Name = name,
+                IP = ip,
+                IpEnd = ipEnd,
+                Type = new NetworkObjectType { Name = "host" }
+            };
+        }
+
+        private static NetworkObject CreateNetworkObjectGroup(long id, string name, NetworkObject member)
+        {
+            return new NetworkObject
+            {
+                Id = id,
+                Name = name,
+                Type = new NetworkObjectType { Name = ObjectType.Group },
+                ObjectGroupFlats = [new GroupFlat<NetworkObject> { Id = member.Id, Object = member }]
+            };
+        }
+
+        private static NetworkService CreateServiceObject(long id, string name, int port, string protocol)
+        {
+            return new NetworkService
+            {
+                Id = id,
+                Name = name,
+                SourcePort = port,
+                Protocol = new NetworkProtocol { Name = protocol },
+                Type = new NetworkServiceType { Name = "tcp" }
+            };
+        }
+
+        private static NetworkService CreateServiceGroup(long id, string name, NetworkService member)
+        {
+            return new NetworkService
+            {
+                Id = id,
+                Name = name,
+                Type = new NetworkServiceType { Name = ServiceType.Group },
+                ServiceGroupFlats = [new GroupFlat<NetworkService> { Id = member.Id, Object = member }]
             };
         }
     }

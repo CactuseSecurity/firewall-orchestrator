@@ -258,12 +258,12 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 })
                 .ToList(),
             DestinationShort = DisplaySourceOrDestinationPlain(item, isSource: false, userConfig),
-            Service = item.Services
+            Service = FlattenRuleServices(item.Services.Select(s => s.Content).ToList())
                 .Select(s => new ServiceObject
                 {
-                    Name = s.Content.Name,
-                    Protocol = s.Content.Protocol?.Name ?? notFound,
-                    Port = s.Content.SourcePort ?? -1
+                    Name = s.Name,
+                    Protocol = s.Protocol?.Name ?? notFound,
+                    Port = s.SourcePort ?? -1
                 })
                 .ToList(),
             ServiceShort = DisplayServicesPlain(item, userConfig),
@@ -357,13 +357,12 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
     private static List<NetworkObject> FlattenRuleNetworkObjects(List<NetworkObject> list)
     {
-        return list
-            .SelectMany(obj =>
-                new[] { obj }
-                    .Concat(obj.ObjectGroupFlats
-                        .Select(g => g.Object)
-                    )
-            ).OfType<NetworkObject>().ToList();
+        return NetworkObject.FlattenRuleNetworkObjects(list).Distinct().ToList();
+    }
+
+    private static List<NetworkService> FlattenRuleServices(List<NetworkService> list)
+    {
+        return NetworkService.FlattenRuleServices(list).Distinct().ToList();
     }
 
     private static string? SanitizeRuleAction(string action)

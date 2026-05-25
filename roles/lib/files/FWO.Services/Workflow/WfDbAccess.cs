@@ -321,7 +321,8 @@ namespace FWO.Services.Workflow
                 ["reason"] = reqtask.Reason,
                 ["additionalInfo"] = reqtask.AdditionalInfo,
                 ["freeText"] = reqtask.FreeText,
-                ["managementId"] = reqtask.ManagementId
+                ["managementId"] = reqtask.ManagementId,
+                ["flowAccessId"] = reqtask.FlowAccessId
             };
         }
 
@@ -419,6 +420,10 @@ namespace FWO.Services.Workflow
             variables["requestAction"] = element.RequestAction;
             variables["taskId"] = element.TaskId;
             variables["deviceId"] = element.DeviceId;
+            variables["flowNwObjId"] = element.FlowNetworkObjectId;
+            variables["flowNwGrpId"] = element.FlowNetworkGroupId;
+            variables["flowSvcObjId"] = element.FlowServiceObjectId;
+            variables["flowSvcGrpId"] = element.FlowServiceGroupId;
             return variables;
         }
 

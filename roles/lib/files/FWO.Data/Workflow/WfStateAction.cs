@@ -17,8 +17,11 @@ namespace FWO.Data.Workflow
         UpdateConnectionRelease = 22,
         DisplayConnection = 23,
         UpdateConnectionReject = 24,
-        UpdateModelling = 25
+        UpdateModelling = 25,
         // CreateReport = 30
+
+        CreateFlow = 31,
+        BundleTasks = 32
     }
 
     public enum StateActionEvents
@@ -35,6 +38,11 @@ namespace FWO.Data.Workflow
     public enum ToBeCalled
     {
         PolicyCheck = 1
+    }
+
+    public enum BundleTaskType
+    {
+        TwoOutOfThree = 1
     }
 
     public class WfStateAction
@@ -143,6 +151,41 @@ namespace FWO.Data.Workflow
 
         [JsonProperty("if_not_compliant_state"), JsonPropertyName("if_not_compliant_state")]
         public int IfNotCompliantState { get; set; }
+    }
+
+    public class ActionResultStateParams
+    {
+        [JsonProperty("success_state"), JsonPropertyName("success_state")]
+        public int? SuccessState { get; set; }
+
+        [JsonProperty("error_state"), JsonPropertyName("error_state")]
+        public int? ErrorState { get; set; }
+    }
+
+    public class BundleTasksActionParams
+    {
+        [JsonPropertyName("bundle_type")]
+        public BundleTaskType BundleType { get; set; } = BundleTaskType.TwoOutOfThree;
+
+        private static readonly System.Text.Json.JsonSerializerOptions SerializerOptions = new()
+        {
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        public static BundleTasksActionParams FromExternalParams(string externalParams)
+        {
+            if (string.IsNullOrWhiteSpace(externalParams))
+            {
+                return new();
+            }
+
+            return System.Text.Json.JsonSerializer.Deserialize<BundleTasksActionParams>(externalParams, SerializerOptions) ?? new();
+        }
+
+        public string ToExternalParams()
+        {
+            return System.Text.Json.JsonSerializer.Serialize(this, SerializerOptions);
+        }
     }
 
     public class WfStateActionDataHelper

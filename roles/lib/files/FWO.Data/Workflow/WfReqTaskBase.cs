@@ -22,6 +22,7 @@ namespace FWO.Data.Workflow
         public const string ExtIcketId = "ExtIcketId";
         public const string AppRoleId = "AppRoleId";
         public const string SvcGrpId = "SvcGrpId";
+        public const string FlowBundleId = "FlowBundleId";
     }
 
     public class WfReqTaskBase : WfTaskBase
@@ -42,6 +43,9 @@ namespace FWO.Data.Workflow
 
         [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
         public int? ManagementId { get; set; }
+
+        [JsonProperty("flow_access_id"), JsonPropertyName("flow_access_id")]
+        public long? FlowAccessId { get; set; }
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public string SelectedDevices
@@ -70,6 +74,7 @@ namespace FWO.Data.Workflow
             LastRecertDate = reqtask.LastRecertDate;
             SelectedDevices = reqtask.SelectedDevices;
             ManagementId = reqtask.ManagementId;
+            FlowAccessId = reqtask.FlowAccessId;
         }
 
         public virtual List<int> GetDeviceList()
@@ -153,6 +158,16 @@ namespace FWO.Data.Workflow
                 }
             }
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
+        }
+
+        public void RemoveAddInfo(string key)
+        {
+            Dictionary<string, string>? addInfo = GetAddInfos();
+            if (addInfo == null || !addInfo.Remove(key))
+            {
+                return;
+            }
+            AdditionalInfo = addInfo.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(addInfo) : null;
         }
 
         private Dictionary<string, string>? GetAddInfos()

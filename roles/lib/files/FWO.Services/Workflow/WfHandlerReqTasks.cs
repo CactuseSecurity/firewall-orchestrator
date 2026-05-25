@@ -326,7 +326,23 @@ namespace FWO.Services.Workflow
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("promote_task"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText("update_task"), "", true);
+            }
+        }
+
+        public async Task RemoveAddInfoInReqTask(WfReqTask reqTask, string key)
+        {
+            try
+            {
+                reqTask.RemoveAddInfo(key);
+                if (dbAcc != null)
+                {
+                    await dbAcc.UpdateReqTaskAdditionalInfo(reqTask);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("update_task"), "", true);
             }
         }
 

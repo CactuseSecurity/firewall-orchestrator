@@ -27,7 +27,7 @@
         {
             <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.OverviewConnHandler" OverviewMode="true"/>
             <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetConnectionsToRequest()"
-                RefreshParent="SubscribeAndSetStatusFromTicket" ChangeStatus="@ChangeStatus" LastRequestDate="@LastRequestDate"/>
+                RefreshParent="RefreshAfterRequestCreated" ChangeStatus="@ChangeStatus" LastRequestDate="@LastRequestDate"/>
             <RequestRecertPopup @bind-Display="showRecert" AppHandler="@appHandler" RefreshParent="UpdateRecertStatus" CanRecertify="IsRecertificationAllowedForSelectedApp()"/>
         }
         <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
@@ -517,12 +517,25 @@ else
             try
             {
                 workInProgress = true;
-                await appHandler.AnalyseStatus(appHandler.Connections);
-                workInProgress = false;
+                if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+                {
+                    await appHandler.ReInit();
+                    await SetChangeStatus();
+                    await InitConn();
+                }
+                else
+                {
+                    await appHandler.AnalyseStatus(appHandler.Connections);
+                }
+                await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("refresh_state"), "", true);
+            }
+            finally
+            {
+                workInProgress = false;
             }
         }
     }
@@ -554,6 +567,17 @@ else
     {
         await SetStatusFromTicket(intTicket);
         actTicketSubscription = apiConnection.GetSubscription<List<WfTicket>>(HandleSubscriptionError, OnTicketUpdate, RequestQueries.subscribeTicketStateChanges, new {intTicket.Id});
+    }
+
+    private async Task RefreshAfterRequestCreated(WfTicket intTicket)
+    {
+        await SubscribeAndSetStatusFromTicket(intTicket);
+        if (appHandler != null && userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+        {
+            await appHandler.ReInit();
+            await InitConn();
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task SetStatusFromTicket(WfTicket intTicket)

@@ -32,7 +32,7 @@ namespace FWO.Services
                 return notificationBody.Replace(Placeholder.CONTENT, resolvedContent);
             }
 
-            return string.IsNullOrEmpty(resolvedContent) ? notificationBody : resolvedContent;
+            return string.IsNullOrEmpty(resolvedContent) ? notificationBody : $"{notificationBody}{resolvedContent}";
         }
 
         public static string BuildBody(FwoNotification notification, NotificationEmailLayoutContent? content)

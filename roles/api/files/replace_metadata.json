@@ -2707,6 +2707,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "comment",
                       "is_deleted"
                     ],
                     "filter": {},
@@ -3592,6 +3593,17 @@
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "comment"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "modeller",
                   "permission": {
@@ -29906,6 +29918,28 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -30223,6 +30257,34 @@
                     "filter": {},
                     "check": null
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "approval_date",
+                      "approver",
+                      "assigned_group",
+                      "state_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "approval_date",
+                      "approver",
+                      "assigned_group",
+                      "state_id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",
@@ -34105,6 +34167,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34115,6 +34178,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34125,6 +34189,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34135,6 +34200,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34145,6 +34211,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34156,6 +34223,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34167,6 +34235,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34177,6 +34246,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34188,6 +34258,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34199,6 +34270,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34209,6 +34281,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}

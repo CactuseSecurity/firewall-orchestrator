@@ -6,17 +6,6 @@ using Newtonsoft.Json;
 
 namespace FWO.Services.Workflow
 {
-    public enum WorkflowPhases
-    {
-        request = 0,
-        approval = 1,
-        planning = 2,
-        verification = 3,
-        implementation = 4,
-        review = 5,
-        recertification = 6
-    }
-
     public class StateMatrix
     {
         [JsonProperty("matrix"), JsonPropertyName("matrix")]
@@ -226,12 +215,14 @@ namespace FWO.Services.Workflow
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
         {
-            Matrices = [];
+            Dictionary<string, StateMatrix> matrices = [];
             foreach (WfTaskType taskType in Enum.GetValues(typeof(WfTaskType)))
             {
-                Matrices.Add(taskType.ToString(), new StateMatrix());
-                await Matrices[taskType.ToString()].Init(phase, apiConnection, taskType);
+                StateMatrix stateMatrix = new();
+                matrices.Add(taskType.ToString(), stateMatrix);
+                await stateMatrix.Init(phase, apiConnection, taskType);
             }
+            Matrices = matrices;
         }
     }
 }

@@ -157,7 +157,7 @@
         return $"<div class=\"row\"><div class=\"col-sm-2 text-truncate\">{mgt?.Name}</div><div class=\"col-sm-2 text-truncate\">{rulebase?.Name}</div><div class=\"col-sm-8\">{DisplayRuleDetails(rule)}</div></div>";
     }
 
-    private string? DisplayRuleDetails(Rule rule)
+    private string DisplayRuleDetails(Rule rule)
     {
         return rule.Uid + (string.IsNullOrEmpty(rule.Name) ? "" : " (" + rule.Name + ")");
     }

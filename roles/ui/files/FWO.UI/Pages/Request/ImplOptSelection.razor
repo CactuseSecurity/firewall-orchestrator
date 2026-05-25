@@ -13,7 +13,7 @@
         }
         else
         {
-            <Dropdown ElementType="Device" SelectedElement="selectedDeviceOpt" SelectedElementChanged="DeviceSelectionChanged" ElementToString="@(d => d.Name)" Elements="deviceOptions">
+            <Dropdown ElementType="Device" SelectedElement="selectedDeviceOpt" SelectedElementChanged="DeviceSelectionChanged" ElementToString="@(d => d.Name ?? string.Empty)" Elements="deviceOptions">
                 <ElementTemplate Context="device">
                     @device.Name
                 </ElementTemplate>

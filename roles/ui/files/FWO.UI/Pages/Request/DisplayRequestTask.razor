@@ -112,7 +112,7 @@
                                 <div class="col-sm-8">
                                     @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Gateways))
                                     {
-                                        <Dropdown ElementType="Device" SelectedElementsChanged="SetDevices" SelectedElementChanged="SetDevice" SelectedElements="selectedDevices" ElementToString="@(d => d.Name)" Elements="selectableDevices" Multiselect="true">
+                                        <Dropdown ElementType="Device" SelectedElementsChanged="SetDevices" SelectedElementChanged="SetDevice" SelectedElements="selectedDevices" ElementToString="@(d => d.Name ?? string.Empty)" Elements="selectableDevices" Multiselect="true">
                                             <ElementTemplate Context="device">
                                                 @device.Name
                                             </ElementTemplate>
@@ -134,7 +134,7 @@
                                 <div class="col-sm-8">
                                     @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Gateway))
                                     {
-                                        <Dropdown ElementType="Device" @bind-SelectedElement="actRuleDevice" ElementToString="@(d => d.Name)" Elements="WfHandler.Devices" Nullable="true">
+                                        <Dropdown ElementType="Device" @bind-SelectedElement="actRuleDevice" ElementToString="@(d => d.Name ?? string.Empty)" Elements="WfHandler.Devices" Nullable="true">
                                             <ElementTemplate Context="device">
                                                 @device.Name
                                             </ElementTemplate>

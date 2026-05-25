@@ -3,30 +3,39 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Report;
 using FWO.Report.Filter;
+using Newtonsoft.Json;
+using System.Globalization;
 using System.Text;
 
 namespace FWO.Ui.Display
 {
     public class RuleChangeDisplayJson : RuleDisplayJson
     {
+        private const string ChangeTimeFormat = "dd.MM.yyyy HH:mm:ss";
+
         public RuleChangeDisplayJson(UserConfig userConfig) : base(userConfig)
         { }
 
         public string DisplayChangeTime(RuleChange ruleChange)
         {
-            return DisplayJsonString("change time", ruleChange.ChangeImport.Time.ToString());
+            return DisplayJsonString("change time", FormatChangeTime(ruleChange.ChangeImport.Time));
         }
         public string DisplayChangeTime(ObjectChange objectChange)
         {
-            return DisplayJsonString("change time", objectChange.ChangeImport.Time.ToString());
+            return DisplayJsonString("change time", FormatChangeTime(objectChange.ChangeImport.Time));
         }
         public string DisplayChangeTime(ServiceChange serviceChange)
         {
-            return DisplayJsonString("change time", serviceChange.ChangeImport.Time.ToString());
+            return DisplayJsonString("change time", FormatChangeTime(serviceChange.ChangeImport.Time));
         }
         public string DisplayChangeTime(UserChange userChange)
         {
-            return DisplayJsonString("change time", userChange.ChangeImport.Time.ToString());
+            return DisplayJsonString("change time", FormatChangeTime(userChange.ChangeImport.Time));
+        }
+
+        private static string FormatChangeTime(DateTime changeTime)
+        {
+            return changeTime.ToString(ChangeTimeFormat, CultureInfo.InvariantCulture);
         }
 
         public string DisplayChangeAction(RuleChange ruleChange)
@@ -438,9 +447,9 @@ namespace FWO.Ui.Display
                 newElement = newElement.Replace("\"", "");
                 AnalyzeElements(oldElement, newElement, ref unchanged, ref deleted, ref added);
 
-                return string.Join(",", Array.ConvertAll(unchanged.ToArray(), elem => Quote(elem))) + (unchanged.Count > 0 && (deleted.Count > 0 || added.Count > 0) ? "," : "")
-                    + (deleted.Count > 0 ? string.Join(",", Array.ConvertAll(deleted.ToArray(), elem => Quote($"{userConfig.GetText("deleted")}: {elem}"))) : "") + (deleted.Count > 0 && added.Count > 0 ? "," : "")
-                    + (added.Count > 0 ? string.Join(",", Array.ConvertAll(added.ToArray(), elem => Quote($"{userConfig.GetText("added")}: {elem}"))) : "");
+                return string.Join(",", Array.ConvertAll(unchanged.ToArray(), elem => JsonConvert.ToString(elem))) + (unchanged.Count > 0 && (deleted.Count > 0 || added.Count > 0) ? "," : "")
+                    + (deleted.Count > 0 ? string.Join(",", Array.ConvertAll(deleted.ToArray(), elem => JsonConvert.ToString($"{userConfig.GetText("deleted")}: {elem}"))) : "") + (deleted.Count > 0 && added.Count > 0 ? "," : "")
+                    + (added.Count > 0 ? string.Join(",", Array.ConvertAll(added.ToArray(), elem => JsonConvert.ToString($"{userConfig.GetText("added")}: {elem}"))) : "");
             }
         }
     }

@@ -84,12 +84,6 @@
     - frontend
     - ui
 
-- hosts: testservers
-  roles:
-    - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall' }
-  tags:
-    - test
-
 - hosts: all
   roles:
     - { role: finalize, when: "not installation_mode == 'uninstall'" }

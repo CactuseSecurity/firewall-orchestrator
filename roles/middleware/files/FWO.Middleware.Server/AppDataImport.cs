@@ -64,11 +64,17 @@ namespace FWO.Middleware.Server
 
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
-                if (!RunImportScript(importfilePathAndName + ".py", globalConfig.ImportAppDataScriptArgs))
+                string importSourcePath = FWO.Basics.ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
+                List<string> validatedImportFiles = ValidateConfiguredImportSource(importSourcePath);
+                string scriptPath = importSourcePath + ".py";
+                if (validatedImportFiles.Contains(scriptPath))
                 {
-                    Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
+                    if (!RunImportScript(scriptPath, globalConfig.ImportAppDataScriptArgs))
+                    {
+                        Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
+                    }
                 }
-                await ImportSingleSource(importfilePathAndName + ".json", failedImports, ownerChangeTracker);
+                await ImportSingleSource(importSourcePath + ".json", failedImports, ownerChangeTracker);
             }
 
             await ownerChangeTracker.CompleteImport(failedImports.Count == 0);

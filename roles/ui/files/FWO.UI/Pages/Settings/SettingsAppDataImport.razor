@@ -2,7 +2,9 @@
 @page "/settings/owners/appdataimport"
 
 @using System.Text.Json
+@using FWO.Basics
 @using FWO.Data.Middleware
+@using FWO.Logging
 @using FWO.Middleware.Client
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
@@ -48,8 +50,14 @@
                     </Display>
                 </EditList>
                 <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="actPath" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPath"
+                    <select class="col-sm-10" @bind="actPath">
+                        <option value="">@(userConfig.GetText("select_file"))</option>
+                        @foreach (string importPath in allowedImportPaths)
+                        {
+                            <option value="@importPath">@importPath</option>
+                        }
+                    </select>
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(actPath))" @onclick="AddPath"
                             @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
@@ -106,8 +114,14 @@
                     </Display>
                 </EditList>
                 <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="SubnetActPath" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPathSubnet"
+                    <select class="col-sm-10" @bind="SubnetActPath">
+                        <option value="">@(userConfig.GetText("select_file"))</option>
+                        @foreach (string importPath in allowedImportPaths)
+                        {
+                            <option value="@importPath">@importPath</option>
+                        }
+                    </select>
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(SubnetActPath))" @onclick="AddPathSubnet"
                             @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
@@ -200,6 +214,7 @@ else
     private List<string> PathsToDelete = [];
     private List<string> PathsToAddSubnet = [];
     private List<string> PathsToDeleteSubnet = [];
+    private List<string> allowedImportPaths = [];
     private string actPath = "";
     private string SubnetActPath = "";
     private DateTime appDataDate = DateTime.Today;
@@ -251,6 +266,7 @@ else
             appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? [];
             RolesToSetByType = ParseRolesWithImport(configData.RolesWithAppDataImport);
             SubnetDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportSubnetDataPath) ?? [];
+            allowedImportPaths = ImportPathPolicy.GetAllowedImportFileStems();
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
 
@@ -300,8 +316,12 @@ OnCSVAppServerImportEvent(_.EventArgs));
         {
             if (configData != null)
             {
+                string oldAppDataPath = globalConfig.ImportAppDataPath;
+                string oldSubnetDataPath = globalConfig.ImportSubnetDataPath;
+                string oldScriptArgs = globalConfig.ImportAppDataScriptArgs;
                 PrepareConfigData();
                 await globalConfig.WriteToDatabase(configData, apiConnection);
+                WriteImporterSettingsAudit(oldAppDataPath, oldSubnetDataPath, oldScriptArgs);
 
                 PathsToDelete = [];
                 PathsToAdd = [];
@@ -325,6 +345,8 @@ OnCSVAppServerImportEvent(_.EventArgs));
         PrepareAppDataPaths();
         PrepareRoles();
         PrepareSubnetDataPaths();
+        ValidateImportPaths(appDataPaths);
+        ValidateImportPaths(SubnetDataPaths);
         configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
     }
@@ -408,7 +430,7 @@ OnCSVAppServerImportEvent(_.EventArgs));
         }
         foreach (var path in PathsToAdd)
         {
-            appDataPaths.Add(path);
+            appDataPaths.Add(ImportPathPolicy.RemoveAllowedExtension(path));
         }
         configData!.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
     }
@@ -421,9 +443,44 @@ OnCSVAppServerImportEvent(_.EventArgs));
         }
         foreach (string path in PathsToAddSubnet)
         {
-            SubnetDataPaths.Add(path);
+            SubnetDataPaths.Add(ImportPathPolicy.RemoveAllowedExtension(path));
         }
         configData!.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
+    }
+
+    private static void ValidateImportPaths(List<string> importPaths)
+    {
+        foreach (string importPath in importPaths)
+        {
+            ImportPathPolicy.GetValidatedExistingImportFiles(importPath);
+        }
+    }
+
+    private void WriteImporterSettingsAudit(string oldAppDataPath, string oldSubnetDataPath, string oldScriptArgs)
+    {
+        List<string> changes = [];
+        AddSettingChange(changes, nameof(ConfigData.ImportAppDataPath), oldAppDataPath, configData!.ImportAppDataPath);
+        AddSettingChange(changes, nameof(ConfigData.ImportSubnetDataPath), oldSubnetDataPath, configData.ImportSubnetDataPath);
+        AddSettingChange(changes, nameof(ConfigData.ImportAppDataScriptArgs), oldScriptArgs, configData.ImportAppDataScriptArgs);
+
+        if (changes.Count == 0)
+        {
+            return;
+        }
+
+        Log.WriteAudit(
+            Title: "Importer Settings",
+            Text: $"Importer settings changed at {DateTimeOffset.Now:O}: {string.Join("; ", changes)}",
+            UserName: userConfig.User.Name,
+            UserDN: userConfig.User.Dn);
+    }
+
+    private static void AddSettingChange(List<string> changes, string settingName, string oldValue, string newValue)
+    {
+        if (oldValue != newValue)
+        {
+            changes.Add($"{settingName}: '{oldValue}' -> '{newValue}'");
+        }
     }
 
     private string GetResponsibleTypeDisplayName(OwnerResponsibleType type)

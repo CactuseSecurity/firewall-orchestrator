@@ -4,10 +4,10 @@
 
 @if (tenantList.Count > 1)
 {
-    <div class="p-3">
+        <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
         <Dropdown ElementType="Tenant" SelectedElement="SelectedTenant" SelectedElementChanged="SelectedTenantChanged"
-                ElementToString="@(t => t.Name)" Nullable="true" Elements="tenantList">
+                ElementToString="@(t => t.Name ?? string.Empty)" Nullable="true" Elements="tenantList">
             <ElementTemplate Context="tenant">
                 @tenant.Name
             </ElementTemplate>
@@ -28,10 +28,10 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
-    public Tenant SelectedTenant { get; set; } = new();
+    public Tenant? SelectedTenant { get; set; }
 
     [Parameter]
-    public EventCallback<Tenant> SelectedTenantChanged { get; set; }
+    public EventCallback<Tenant?> SelectedTenantChanged { get; set; }
 
     [Parameter]
     public bool TenantFilteringAllowed { get; set; } = false;

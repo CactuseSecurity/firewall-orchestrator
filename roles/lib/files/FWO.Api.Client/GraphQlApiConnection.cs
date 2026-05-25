@@ -230,31 +230,18 @@ namespace FWO.Api.Client
 
                     throw new InvalidOperationException(errorMessage);
                 }
-                else
-                {
-                    // DEBUG
-                    // // string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { });
-                    // string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
-                    // Log.WriteDebug("API Response", $"API response: { JsonResponse }");
 
-                    if (ApiConstants.UseSystemTextJsonSerializer)
-                    {
-                        // JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
-                        // responseObjectEnumerator.MoveNext();
-                        // QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
-                        // throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
-                        // return returnValue;
-                    }
-                    else
-                    {
-                        JObject data = (JObject)response.Data;
-                        JProperty prop = (JProperty)(data.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
-                        JToken result = prop.Value;
-                        QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
-                            throw new InvalidOperationException($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
-                        return returnValue;
-                    }
+                if (ApiConstants.UseSystemTextJsonSerializer)
+                {
+                    throw new NotImplementedException("System.Text.Json is not supported anymore.");
                 }
+
+                JObject data = (JObject)response.Data;
+                JProperty prop = (JProperty)(data.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                JToken result = prop.Value;
+                QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
+                    throw new InvalidOperationException($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
+                return returnValue;
             }
 
             catch (Exception exception)

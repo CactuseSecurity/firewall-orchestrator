@@ -3,6 +3,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Report;
 using FWO.Report.Filter;
+using Newtonsoft.Json;
 using System.Text;
 
 namespace FWO.Ui.Display
@@ -16,7 +17,7 @@ namespace FWO.Ui.Display
 
         protected string DisplayJsonString(string tag, string? value)
         {
-            return (value != null ? $"\"{tag}\": \"{value}\"," : "");
+            return (value != null ? $"\"{tag}\": {JsonConvert.ToString(value)}," : "");
         }
 
         protected string DisplayJsonArray(string tag, string? value)
@@ -187,7 +188,7 @@ namespace FWO.Ui.Display
                 List<string> displayedLocations = new List<string>();
                 foreach (NetworkLocation networkLocation in GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos))
                 {
-                    displayedLocations.Add(Quote(DisplayNetworkLocation(networkLocation, reportType).ToString()));
+                    displayedLocations.Add(JsonConvert.ToString(DisplayNetworkLocation(networkLocation, reportType).ToString()));
                 }
                 return string.Join(",", displayedLocations);
             }
@@ -201,7 +202,7 @@ namespace FWO.Ui.Display
                 List<string> displayedServices = new List<string>();
                 foreach (NetworkService service in GetNetworkServices(rule.Services))
                 {
-                    displayedServices.Add(Quote(DisplayService(service, reportType).ToString()));
+                    displayedServices.Add(JsonConvert.ToString(DisplayService(service, reportType).ToString()));
                 }
                 return (string.Join(",", displayedServices));
             }
@@ -213,7 +214,7 @@ namespace FWO.Ui.Display
             return string.Join(",",
                     gateways
                         .Where(gw => gw?.Content?.Name != null)
-                        .Select(gw => Quote(gw.Content.Name))
+                        .Select(gw => JsonConvert.ToString(gw.Content.Name))
                 );
         }
 
@@ -222,7 +223,7 @@ namespace FWO.Ui.Display
             List<string> displayedZones = new List<string>();
             foreach (NetworkZone networkZone in networkZones)
             {
-                displayedZones.Add(Quote(networkZone.Name));
+                displayedZones.Add(JsonConvert.ToString(networkZone.Name));
             }
             return string.Join(",", displayedZones);
         }

@@ -6013,18 +6013,24 @@
                   "role": "modeller",
                   "permission": {
                     "check": {
-                      "_or": [
-                        {
-                          "config_user": {
-                            "_eq": "X-Hasura-User-Id"
-                          }
-                        },
-                        {
-                          "config_user": {
-                            "_eq": 0
-                          }
-                        }
-                      ]
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
+                    },
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ]
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {
+                      "config_user": {
+                        "_eq": 0
+                      }
                     },
                     "columns": [
                       "config_key",
@@ -6052,18 +6058,9 @@
                   "role": "recertifier",
                   "permission": {
                     "check": {
-                      "_or": [
-                        {
-                          "config_user": {
-                            "_eq": "X-Hasura-User-Id"
-                          }
-                        },
-                        {
-                          "config_user": {
-                            "_eq": 0
-                          }
-                        }
-                      ]
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
                     },
                     "columns": [
                       "config_key",
@@ -6443,8 +6440,6 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "config_user",
-                      "config_key",
                       "config_value"
                     ],
                     "filter": {
@@ -6484,26 +6479,29 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "config_value"
+                    ],
+                    "filter": {
+                      "config_user": {
+                        "_eq": 0
+                      }
+                    },
+                    "check": null
+                  }
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "config_key",
-                      "config_value",
-                      "config_user"
+                      "config_value"
                     ],
                     "filter": {
-                      "_or": [
-                        {
-                          "config_user": {
-                            "_eq": "X-Hasura-User-Id"
-                          }
-                        },
-                        {
-                          "config_user": {
-                            "_eq": 0
-                          }
-                        }
-                      ]
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
                     },
                     "check": null
                   }
@@ -6526,23 +6524,12 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "config_key",
-                      "config_value",
-                      "config_user"
+                      "config_value"
                     ],
                     "filter": {
-                      "_or": [
-                        {
-                          "config_user": {
-                            "_eq": "X-Hasura-User-Id"
-                          }
-                        },
-                        {
-                          "config_user": {
-                            "_eq": 0
-                          }
-                        }
-                      ]
+                      "config_user": {
+                        "_eq": "X-Hasura-User-Id"
+                      }
                     },
                     "check": null
                   }

@@ -14,10 +14,12 @@
     src: "{{ dbadmin_password_file }}"
   register: api_user_password
   become: true
+  no_log: true
 
 - name: decode dbadmin pwd
   set_fact:
     api_user_password: "{{ api_user_password['content'] | b64decode | trim }}"
+  no_log: true
 
 - name: read jwt public key from file as JWT secret
   slurp:
@@ -49,6 +51,7 @@
     src: "{{ fworch_secrets_dir }}/hasura_admin_pwd"
   register: existing_hasura_admin_secret
   become: true
+  no_log: true
   when:
     - installation_mode == "upgrade"
     - hasura_admin_secret_file.stat.exists
@@ -56,6 +59,7 @@
 - name: cache existing hasura admin secret during upgrade
   set_fact:
     api_existing_hasura_admin_secret: "{{ existing_hasura_admin_secret['content'] | b64decode | trim }}"
+  no_log: true
   when:
     - installation_mode == "upgrade"
     - hasura_admin_secret_file.stat.exists
@@ -63,6 +67,7 @@
 - name: set hasura admin secret from existing file
   set_fact:
     api_hasura_admin_secret: "{{ api_existing_hasura_admin_secret }}"
+  no_log: true
   when:
     - installation_mode == "upgrade"
     - api_use_existing_hasura_on_upgrade | default(false) | bool
@@ -71,6 +76,7 @@
 - name: set static hasura admin pwd for test purposes only
   set_fact:
     api_hasura_admin_secret: "{{ api_hasura_admin_test_password }}"
+  no_log: true
   when:
     - api_hasura_admin_secret is not defined
     - testkeys is defined
@@ -79,6 +85,7 @@
 - name: set random hasura admin password
   set_fact:
     api_hasura_admin_secret: "{{ randomly_generated_pwd }}"
+  no_log: true
   when:
     - api_hasura_admin_secret is not defined
 
@@ -249,12 +256,13 @@
     - hasura_cli_asset_id is not defined
 
 - name: initialize hasura cli directory
-  command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_local_listening_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_local_listening_ip_address }}:{{ api_port }}"
   args:
     chdir: "{{ api_home }}"
   become: true
   become_user: "{{ fworch_user }}"
-  environment: "{{ proxy_env }}"
+  no_log: true
+  environment: "{{ proxy_env | combine({'HASURA_GRAPHQL_ADMIN_SECRET': api_hasura_admin_secret}) }}"
   when:
     - not api_cli_check.stat.exists
     - not api_use_existing_hasura_on_upgrade | default(false) | bool
@@ -319,6 +327,7 @@
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   become: true
+  no_log: true
   when:
     - installation_mode != "upgrade" or not (api_use_existing_hasura_on_upgrade | default(false) | bool) or not hasura_admin_secret_file.stat.exists
 
@@ -344,11 +353,13 @@
       https_proxy: "{{ https_proxy }}"
       no_proxy: "{{ no_proxy }}"
       NO_PROXY: "{{ no_proxy }}"
+  no_log: true
 
 - name: show hasura env for debugging
   debug:
     var: hasura_env
   when: debug_level > '1'
+  no_log: true
 
 - name: write Hasura env file for Podman
   copy:
@@ -361,6 +372,7 @@
       {{ item.0 }}={{ item.1 }}
       {% endfor %}
   become: true
+  no_log: true
 
 - name: stop Hasura service before container recreation
   ansible.builtin.systemd:
@@ -482,3 +494,4 @@
   environment:
     http_proxy: ""
     https_proxy: ""
+  no_log: true

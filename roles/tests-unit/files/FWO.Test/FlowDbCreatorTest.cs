@@ -21,6 +21,7 @@ namespace FWO.Test
             public List<RequestElementFlowUpdate> UpdatedRequestElements { get; } = [];
             public FlowAccessInsert? InsertedAccess { get; private set; }
             public List<FlowNwGroup> InsertedNetworkGroups { get; } = [];
+            public List<FlowSvcGroup> InsertedServiceGroups { get; } = [];
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null)
             {
@@ -97,6 +98,26 @@ namespace FWO.Test
                         ShowInRequestModule = insert.ShowInRequestModule
                     };
                     return Task.FromResult((T)(object)new FlowSvcObjectInsertResult { Returning = [inserted] });
+                }
+                if (query == FlowQueries.insertFlowSvcGroups)
+                {
+                    FlowSvcGroupInsert insert = GetObjects<FlowSvcGroupInsert>(variables).Single();
+                    FlowSvcGroup inserted = new()
+                    {
+                        Id = ++nextServiceObjectId,
+                        Name = insert.Name ?? "",
+                        Hash = insert.SvcGrpHash ?? "",
+                        State = insert.State ?? "",
+                        RemovedDate = insert.RemovedDate,
+                        ShowInRequestModule = insert.ShowInRequestModule,
+                        SvcGroupMembers = insert.SvcGroupMembers?.Data.Select(member => new FlowSvcGroupMember
+                            {
+                                SvcGroupId = nextServiceObjectId,
+                                SvcObjectId = member.SvcObjId
+                            }).ToList() ?? []
+                    };
+                    InsertedServiceGroups.Add(inserted);
+                    return Task.FromResult((T)(object)new FlowSvcGroupInsertResult { Returning = [inserted] });
                 }
                 if (query == FlowQueries.insertFlowAccesses)
                 {
@@ -256,6 +277,40 @@ namespace FWO.Test
             Assert.That(apiConn.InsertedNetworkGroups, Is.Empty);
         }
 
+        [Test]
+        public async Task CreateFlowInFlowDb_SkipsNetworkGroupWithPartiallyResolvedMembers()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask groupTask = CreateNetworkGroupTask(20, "AR-Test", "10.0.0.1");
+            groupTask.Elements.Add(CreateNetworkElement(202, groupTask.Id, ElemFieldType.source, ""));
+            groupTask.Elements[1].FlowNetworkObjectId = 999;
+            groupTask.Elements[1].GroupName = "AR-Test";
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, groupTask, WfObjectScopes.RequestTask, null, groupTask.TicketId);
+
+            Assert.That(result, Is.False);
+            Assert.That(apiConn.InsertedNetworkGroups, Is.Empty);
+            Assert.That(apiConn.UpdatedRequestElements, Is.Empty);
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_SkipsServiceGroupWithPartiallyResolvedMembers()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask groupTask = CreateServiceGroupTask(20, "SG-Test", 443);
+            groupTask.Elements.Add(CreateServiceElement(202, groupTask.Id, 8443));
+            groupTask.Elements[1].FlowServiceObjectId = 999;
+            groupTask.Elements[1].GroupName = "SG-Test";
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, groupTask, WfObjectScopes.RequestTask, null, groupTask.TicketId);
+
+            Assert.That(result, Is.False);
+            Assert.That(apiConn.InsertedServiceGroups, Is.Empty);
+            Assert.That(apiConn.UpdatedRequestElements, Is.Empty);
+        }
+
         private static WfReqTask CreateAccessTask(long taskId, string sourceIp, string destinationIp, int port)
         {
             return new()
@@ -288,6 +343,25 @@ namespace FWO.Test
                 Elements =
                 [
                     CreateNetworkElement(taskId * 10 + 1, taskId, ElemFieldType.source, memberIp)
+                ]
+            };
+            task.Elements[0].GroupName = groupName;
+            task.SetAddInfo(AdditionalInfoKeys.GrpName, groupName);
+            return task;
+        }
+
+        private static WfReqTask CreateServiceGroupTask(long taskId, string groupName, int port)
+        {
+            WfReqTask task = new()
+            {
+                Id = taskId,
+                TicketId = 7,
+                TaskType = WfTaskType.group_create.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                ManagementId = 2,
+                Elements =
+                [
+                    CreateServiceElement(taskId * 10 + 1, taskId, port)
                 ]
             };
             task.Elements[0].GroupName = groupName;

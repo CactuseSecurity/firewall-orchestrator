@@ -245,6 +245,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public void LoadActionExternalParams_LoadsEmptyCreateFlowParamsAsDefaults()
+        {
+            SettingsActions component = new();
+            WfStateAction action = new()
+            {
+                ActionType = StateActionTypes.CreateFlow.ToString(),
+                ExternalParams = ""
+            };
+            SetMember(component, "actActionResultStateParams", new ActionResultStateParams { SuccessState = 21, ErrorState = 22 });
+
+            GetPrivateMethod("LoadActionExternalParams").Invoke(component, [action]);
+
+            ActionResultStateParams parameters = GetMember<ActionResultStateParams>(component, "actActionResultStateParams");
+            Assert.That(parameters.SuccessState, Is.Null);
+            Assert.That(parameters.ErrorState, Is.Null);
+            Assert.That(GetMember<WfState?>(component, "selectedSuccessState"), Is.Null);
+            Assert.That(GetMember<WfState?>(component, "selectedErrorState"), Is.Null);
+        }
+
+        [Test]
         public void ActionTypeChanged_ClearsExternalParamsAndResetsSpecificState()
         {
             SettingsActions component = new();

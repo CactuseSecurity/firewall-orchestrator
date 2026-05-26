@@ -589,8 +589,12 @@ else
 
     private void LoadActionExternalParams(WfStateAction action)
     {
-        if (action.ExternalParams == "" || action.ExternalParams == "{}")
+        if (string.IsNullOrWhiteSpace(action.ExternalParams) || action.ExternalParams == "{}")
         {
+            if (action.ActionType == nameof(StateActionTypes.CreateFlow))
+            {
+                LoadCreateFlowParams(action.ExternalParams);
+            }
             return;
         }
 
@@ -661,6 +665,12 @@ else
 
     private void LoadCreateFlowParams(string externalParams)
     {
+        if (string.IsNullOrWhiteSpace(externalParams))
+        {
+            actActionResultStateParams = new();
+            return;
+        }
+
         actActionResultStateParams = JsonSerializer.Deserialize<ActionResultStateParams>(externalParams) ?? throw new JsonException("Extparams could not be parsed.");
     }
 

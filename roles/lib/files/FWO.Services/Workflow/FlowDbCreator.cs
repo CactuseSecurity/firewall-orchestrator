@@ -172,7 +172,8 @@ namespace FWO.Services.Workflow
             string groupName = GetPayloadGroupName(payload);
             List<FlowObjectSnapshot> memberSnapshots = [.. payload.Sources.Concat(payload.Destinations).Where(IsActiveGroupMember)];
             List<FlowNetworkReference> members = await ResolveNetworkReferences(memberSnapshots, context, groupMaps, allowGroupNameReference: false);
-            if (string.IsNullOrWhiteSpace(groupName) || members.Count == 0 || members.Any(member => !member.ObjectId.HasValue))
+            if (string.IsNullOrWhiteSpace(groupName) || members.Count == 0 || members.Count != memberSnapshots.Count
+                || members.Any(member => !member.ObjectId.HasValue))
             {
                 Log.WriteWarning(LogMessageTitle, $"Skipping network group Flow DB payload for requestTaskIds={string.Join(",", payload.OriginRequestTaskIds)} because group name or member flow data is incomplete.");
                 return false;
@@ -216,7 +217,8 @@ namespace FWO.Services.Workflow
             string groupName = GetPayloadGroupName(payload);
             List<FlowServiceSnapshot> memberSnapshots = [.. payload.Services.Where(IsActiveGroupMember)];
             List<FlowServiceReference> members = await ResolveServiceReferences(memberSnapshots, context, groupMaps, allowGroupNameReference: false);
-            if (string.IsNullOrWhiteSpace(groupName) || members.Count == 0 || members.Any(member => !member.ObjectId.HasValue))
+            if (string.IsNullOrWhiteSpace(groupName) || members.Count == 0 || members.Count != memberSnapshots.Count
+                || members.Any(member => !member.ObjectId.HasValue))
             {
                 Log.WriteWarning(LogMessageTitle, $"Skipping service group Flow DB payload for requestTaskIds={string.Join(",", payload.OriginRequestTaskIds)} because group name or member flow data is incomplete.");
                 return false;

@@ -25,8 +25,18 @@ namespace FWO.Services
         /// </summary>
         public static string ReplaceWorkflowPlaceholders(string text, WfStatefulObject statefulObject, FwoOwner? owner)
         {
-            return ReplaceOwnerPlaceholders(text, owner)
+            return ReplaceOwnerPlaceholders(text, owner ?? GetWorkflowOwner(statefulObject))
                 .Replace(Placeholder.REQUESTER, GetRequesterName(statefulObject));
+        }
+
+        private static FwoOwner? GetWorkflowOwner(WfStatefulObject statefulObject)
+        {
+            return statefulObject switch
+            {
+                WfTicket ticket => ticket.Tasks.SelectMany(task => task.Owners).FirstOrDefault()?.Owner,
+                WfReqTask reqTask => reqTask.Owners.FirstOrDefault()?.Owner,
+                _ => null
+            };
         }
 
         private static string GetRequesterName(WfStatefulObject statefulObject)

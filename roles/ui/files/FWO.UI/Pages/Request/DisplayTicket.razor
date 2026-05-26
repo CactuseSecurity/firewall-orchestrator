@@ -270,11 +270,18 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        if(WfHandler.ActionHandler != null)
+        try
         {
-            await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+            if(WfHandler.ActionHandler != null)
+            {
+                await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+            }
+            await ResetParent();
         }
-        await ResetParent();
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
+        }
     }
 
     private bool CheckPromoteTicket()

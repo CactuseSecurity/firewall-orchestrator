@@ -5,6 +5,7 @@ using MailKit.Security;
 using MimeKit;
 using Microsoft.AspNetCore.Http;
 using FWO.Encryption;
+using FWO.Logging;
 
 namespace FWO.Mail
 {
@@ -94,8 +95,9 @@ namespace FWO.Mail
 
                 return true;
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+                Log.WriteError("Send Email", $"MailKit could not send email via {emailConn.ServerAddress}:{emailConn.Port}.", exception);
                 return false;
             }
         }

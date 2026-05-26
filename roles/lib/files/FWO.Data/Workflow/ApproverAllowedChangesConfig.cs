@@ -183,7 +183,8 @@ namespace FWO.Data.Workflow
         public static bool CanSaveTaskChanges(ApproverAllowedChangesConfig config, TaskFieldEditContext context)
         {
             return context.EditReqTaskMode || context.IsApprovalPhase && context.ApproveReqTaskMode && !context.ReadOnlyMode
-                && config.HasTaskFieldChanges(context.TaskType);
+                && config.TaskTypeFields.TryGetValue(context.TaskType.ToString(), out List<string>? fields)
+                && fields.Any(fieldKey => !context.HasImplementationTasks || !IsCopiedToImplementationTask(context.TaskType, fieldKey));
         }
     }
 

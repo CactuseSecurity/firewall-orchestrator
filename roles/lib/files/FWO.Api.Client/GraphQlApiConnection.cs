@@ -7,6 +7,7 @@ using GraphQL.Client.Abstractions;
 using Newtonsoft.Json.Linq;
 using FWO.Logging;
 using System.Security.Claims;
+using System.Security.Authentication;
 
 namespace FWO.Api.Client
 {
@@ -18,7 +19,7 @@ namespace FWO.Api.Client
 
         private GraphQLHttpClient graphQlClient = null!;
 
-        private string prevRole = "";
+        private readonly Stack<string> previousRoles = new();
 
         private void Initialize(string ApiServerUri)
         {
@@ -63,9 +64,17 @@ namespace FWO.Api.Client
 
         public override void SetRole(string role)
         {
-            prevRole = GetActRole();
+            previousRoles.Push(GetActRole());
+            SetRoleHeader(role);
+        }
+
+        private void SetRoleHeader(string role)
+        {
             graphQlClient.HttpClient.DefaultRequestHeaders.Remove("x-hasura-role");
-            graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
+            if (role != "")
+            {
+                graphQlClient.HttpClient.DefaultRequestHeaders.Add("x-hasura-role", role);
+            }
         }
 
         public bool IsActRole(string role)
@@ -88,35 +97,48 @@ namespace FWO.Api.Client
 
         public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
-            prevRole = GetActRole();
-            foreach (string role in targetRoleList)
+            previousRoles.Push(GetActRole());
+            if (!SetFirstAllowedRole(user, targetRoleList))
             {
-                if (HasAllowedRole(user, role))
-                {
-                    SetRole(role);
-                    return;
-                }
+                throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
             }
         }
 
         public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
-            prevRole = GetActRole();
+            string actRole = GetActRole();
+            previousRoles.Push(actRole);
 
             // first look if user is already in one of the target roles 
-            if (targetRoleList.Contains(prevRole))
+            if (targetRoleList.Contains(actRole))
             {
                 return;
             }
             // now look if user has a target role as allowed role
-            SetBestRole(user, targetRoleList);
+            if (!SetFirstAllowedRole(user, targetRoleList))
+            {
+                throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
+            }
+        }
+
+        private bool SetFirstAllowedRole(ClaimsPrincipal user, List<string> targetRoleList)
+        {
+            foreach (string role in targetRoleList)
+            {
+                if (HasAllowedRole(user, role))
+                {
+                    SetRoleHeader(role);
+                    return true;
+                }
+            }
+            return false;
         }
 
         public override void SwitchBack()
         {
-            if (prevRole != "")
+            if (previousRoles.TryPop(out string? previousRole))
             {
-                SetRole(prevRole);
+                SetRoleHeader(previousRole);
             }
         }
 

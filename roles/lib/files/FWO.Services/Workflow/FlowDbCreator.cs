@@ -137,7 +137,7 @@ namespace FWO.Services.Workflow
             }
 
             Log.WriteInfo(LogMessageTitle, $"Persisted {persistedPayloads} of {payloads.Count} prepared Flow DB payloads.");
-            return persistedPayloads > 0;
+            return persistedPayloads == payloads.Count;
         }
 
         private async Task<FlowSyncFlowData> LoadFlowSyncData(IEnumerable<FlowCreationPayload> payloads)

@@ -74,6 +74,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ResolveChangeId_ShouldUseJsonArrayCustomFieldKeys()
+        {
+            Rule rule = CreateRule(
+                ownerId: 123,
+                customFields: "{'change_key':'chg-4711','fallback_key':'chg-0001'}");
+
+            string value = RuleFieldSourceResolver.ResolveChangeId(
+                rule,
+                FieldSource.CustomField,
+                @"[""missing_key"", ""change_key""]",
+                RuleFieldSourceResolver.NotFoundValue);
+
+            ClassicAssert.AreEqual("chg-4711", value);
+        }
+
+        [Test]
+        public void ResolveOwnerInformation_ShouldUseJsonArrayCustomFieldKeys()
+        {
+            Rule rule = CreateRule(
+                ownerId: 123,
+                customFields: "{'owner_key':'owner-from-custom'}");
+
+            string value = RuleFieldSourceResolver.ResolveOwnerInformation(
+                rule,
+                FieldSource.CustomField,
+                @"[""missing_key"", ""owner_key""]",
+                RuleFieldSourceResolver.NotFoundValue);
+
+            ClassicAssert.AreEqual("owner-from-custom", value);
+        }
+
+        [Test]
         public void ResolveChangeId_ShouldReturnNotFoundForDatabase()
         {
             Rule rule = CreateRule(

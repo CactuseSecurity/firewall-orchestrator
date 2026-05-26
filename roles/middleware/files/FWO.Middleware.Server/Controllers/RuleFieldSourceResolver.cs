@@ -57,13 +57,61 @@ namespace FWO.Middleware.Server.Controllers
 
         private static string? ExtractCustomFieldValue(Rule rule, string customFieldKey)
         {
+            string? keysJson = NormalizeCustomFieldKeys(customFieldKey);
+            if (string.IsNullOrWhiteSpace(keysJson))
+            {
+                return null;
+            }
+
+            return CustomFieldResolver.ExtractCustomFieldValue<string>(rule, keysJson, out _);
+        }
+
+        private static string? NormalizeCustomFieldKeys(string customFieldKey)
+        {
             if (string.IsNullOrWhiteSpace(customFieldKey))
             {
                 return null;
             }
 
-            string keysJson = JsonSerializer.Serialize(new[] { customFieldKey });
-            return CustomFieldResolver.ExtractCustomFieldValue<string>(rule, keysJson, out _);
+            string trimmed = customFieldKey.Trim();
+
+            try
+            {
+                string[]? keyArray = JsonSerializer.Deserialize<string[]>(trimmed);
+                if (keyArray is not null)
+                {
+                    List<string> cleanedKeys = keyArray
+                        .Where(key => !string.IsNullOrWhiteSpace(key))
+                        .Select(key => key.Trim())
+                        .ToList();
+
+                    if (cleanedKeys.Count > 0)
+                    {
+                        return JsonSerializer.Serialize(cleanedKeys);
+                    }
+
+                    return null;
+                }
+            }
+            catch (JsonException)
+            {
+                // Fall back to treating the value as a single raw key.
+            }
+
+            try
+            {
+                string? singleKey = JsonSerializer.Deserialize<string>(trimmed);
+                if (!string.IsNullOrWhiteSpace(singleKey))
+                {
+                    return JsonSerializer.Serialize(new[] { singleKey.Trim() });
+                }
+            }
+            catch (JsonException)
+            {
+                // Fall back to treating the value as a single raw key.
+            }
+
+            return JsonSerializer.Serialize(new[] { trimmed });
         }
     }
 }

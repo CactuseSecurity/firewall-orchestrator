@@ -80,6 +80,34 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, rule.Service.Count);
             ClassicAssert.AreEqual("Shared Service", rule.Service[0].Name);
+            ClassicAssert.AreEqual("Shared Service (443/TCP)", rule.ServiceShort);
+        }
+
+        [Test]
+        public void ConvertRuleList_ShouldFlattenNestedServiceGroups()
+        {
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [CreateRuleWithNestedServiceGroups()],
+                fieldSourceMapping: null);
+
+            ClassicAssert.AreEqual(1, rules.Count);
+            ClassicAssert.AreEqual(1, rules[0].Service.Count);
+            ClassicAssert.AreEqual("Nested Service", rules[0].Service[0].Name);
+            ClassicAssert.AreEqual("Nested Service (8443/TCP)", rules[0].ServiceShort);
+        }
+
+        [Test]
+        public void ConvertRuleList_ShouldExposeDestinationPortAndProtocolForServices()
+        {
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [CreateRuleWithPortAndProtocolService()],
+                fieldSourceMapping: null);
+
+            ClassicAssert.AreEqual(1, rules.Count);
+            ClassicAssert.AreEqual(1, rules[0].Service.Count);
+            ClassicAssert.AreEqual(443, rules[0].Service[0].Port);
+            ClassicAssert.AreEqual("TCP", rules[0].Service[0].Protocol);
+            ClassicAssert.AreEqual("Ported Service (443/TCP)", rules[0].ServiceShort);
         }
 
         private static List<RuleDetail> InvokeConvertRuleList(List<Rule> rules, FieldSourceMapping? fieldSourceMapping)
@@ -94,8 +122,8 @@ namespace FWO.Test
             GlobalConfig globalConfig = new();
             globalConfig.LangDict[GlobalConst.kEnglish] = new Dictionary<string, string>();
             globalConfig.OverDict[GlobalConst.kEnglish] = new Dictionary<string, string>();
-            globalConfig.CustomFieldOwnerKey = "owner_key";
-            globalConfig.CustomFieldChangeIdKey = "change_key";
+            globalConfig.CustomFieldOwnerKey = @"[""owner_key""]";
+            globalConfig.CustomFieldChangeIdKey = @"[""change_key""]";
 
             return new UserConfig(globalConfig, registerOnChangeHandler: false);
         }
@@ -113,7 +141,7 @@ namespace FWO.Test
         {
             NetworkObject sharedSource = CreateNetworkObject(101, "Shared Source", "10.0.0.1", "10.0.0.1");
             NetworkObject sharedDestination = CreateNetworkObject(201, "Shared Destination", "10.0.0.2", "10.0.0.2");
-            NetworkService sharedService = CreateServiceObject(301, "Shared Service", 443, "TCP");
+            NetworkService sharedService = CreateServiceObject(301, "Shared Service", 443, 6, "TCP");
 
             return new Rule
             {
@@ -131,6 +159,21 @@ namespace FWO.Test
                 [
                     new ServiceWrapper { Content = CreateServiceGroup(300, "Service Group", sharedService) },
                     new ServiceWrapper { Content = sharedService }
+                ]
+            };
+        }
+
+        private static Rule CreateRuleWithNestedServiceGroups()
+        {
+            NetworkService nestedService = CreateServiceObject(401, "Nested Service", 8443, 6, "TCP");
+            NetworkService innerServiceGroup = CreateServiceGroup(400, "Inner Service Group", nestedService);
+            NetworkService outerServiceGroup = CreateServiceGroup(300, "Outer Service Group", innerServiceGroup);
+
+            return new Rule
+            {
+                Services =
+                [
+                    new ServiceWrapper { Content = outerServiceGroup }
                 ]
             };
         }
@@ -163,14 +206,28 @@ namespace FWO.Test
             };
         }
 
-        private static NetworkService CreateServiceObject(long id, string name, int port, string protocol)
+        private static Rule CreateRuleWithPortAndProtocolService()
+        {
+            return new Rule
+            {
+                Services =
+                [
+                    new ServiceWrapper
+                    {
+                        Content = CreateServiceObject(401, "Ported Service", 443, 6, "TCP")
+                    }
+                ]
+            };
+        }
+
+        private static NetworkService CreateServiceObject(long id, string name, int destinationPort, int protocolId, string protocol)
         {
             return new NetworkService
             {
                 Id = id,
                 Name = name,
-                SourcePort = port,
-                Protocol = new NetworkProtocol { Name = protocol },
+                DestinationPort = destinationPort,
+                Protocol = new NetworkProtocol { Id = protocolId, Name = protocol },
                 Type = new NetworkServiceType { Name = "tcp" }
             };
         }

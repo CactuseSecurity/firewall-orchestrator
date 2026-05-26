@@ -149,16 +149,50 @@ namespace FWO.Data
             return Id.GetHashCode();
         }
 
+        /// <summary>
+        /// Flattens service groups into their leaf services and removes duplicate service entries.
+        /// </summary>
         public static List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
         {
-            return services
-                .SelectMany(service =>
-                    service.Type.Name == ServiceType.Group
-                        ? service.ServiceGroupFlats.Select(groupFlat => groupFlat.Object)
-                        : new[] { service })
-                .OfType<NetworkService>()
-                .Where(service => service.Type.Name != ServiceType.Group)
-                .ToList();
+            List<NetworkService> flattenedServices = [];
+            HashSet<long> flattenedServiceIds = [];
+            HashSet<long> visitedGroupIds = [];
+
+            foreach (NetworkService service in services)
+            {
+                FlattenRuleService(service, flattenedServices, flattenedServiceIds, visitedGroupIds);
+            }
+
+            return flattenedServices;
+        }
+
+        private static void FlattenRuleService(NetworkService? service, List<NetworkService> flattenedServices,
+            HashSet<long> flattenedServiceIds, HashSet<long> visitedGroupIds)
+        {
+            if (service is null)
+            {
+                return;
+            }
+
+            if (string.Equals(service.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!visitedGroupIds.Add(service.Id))
+                {
+                    return;
+                }
+
+                foreach (GroupFlat<NetworkService> groupFlat in service.ServiceGroupFlats ?? [])
+                {
+                    FlattenRuleService(groupFlat.Object, flattenedServices, flattenedServiceIds, visitedGroupIds);
+                }
+
+                return;
+            }
+
+            if (flattenedServiceIds.Add(service.Id))
+            {
+                flattenedServices.Add(service);
+            }
         }
     }
 }

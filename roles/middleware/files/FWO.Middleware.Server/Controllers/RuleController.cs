@@ -236,45 +236,50 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         string ownerCustomFieldKey = userConfig.GlobalConfig?.CustomFieldOwnerKey ?? "";
         string changeIdCustomFieldKey = userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? "";
 
-        return inputList.Select(item => new RuleDetail
+        return inputList.Select(item =>
         {
-            Uid = item.Uid ?? notFound,
-            Manager = item.MgmtId.ToString(),
-            Source = FlattenRuleNetworkObjects(item.Froms.Select(r => r.Object).ToList())
-                .Select(s => new NetworkObjectCopy
-                {
-                    Name = s.Name,
-                    Type = s.Type.Name,
-                    Ip = DisplayBase.DisplayIp(s.IP, s.IpEnd)
-                })
-                .ToList(),
-            SourceShort = DisplaySourceOrDestinationPlain(item, isSource: true, userConfig),
-            Destination = FlattenRuleNetworkObjects(item.Tos.Select(r => r.Object).ToList())
-                .Select(d => new NetworkObjectCopy
-                {
-                    Name = d.Name,
-                    Type = d.Type.Name,
-                    Ip = DisplayBase.DisplayIp(d.IP, d.IpEnd)
-                })
-                .ToList(),
-            DestinationShort = DisplaySourceOrDestinationPlain(item, isSource: false, userConfig),
-            Service = FlattenRuleServices(item.Services.Select(s => s.Content).ToList())
-                .Select(s => new ServiceObject
-                {
-                    Name = s.Name,
-                    Protocol = s.Protocol?.Name ?? notFound,
-                    Port = s.SourcePort ?? -1
-                })
-                .ToList(),
-            ServiceShort = DisplayServicesPlain(item, userConfig),
-            ChangeID = RuleFieldSourceResolver.ResolveChangeId(item, changeIdSource, changeIdCustomFieldKey, notFound),
-            Name = item.Name ?? notFound,
-            CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
-            LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
-            Action = item.Action,
-            OwnerInformation = RuleFieldSourceResolver.ResolveOwnerInformation(item, ownerInformationSource, ownerCustomFieldKey, notFound),
-            Comment = item.Comment ?? notFound,
-            Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
+            List<NetworkService> flattenedServices = FlattenRuleServices(item.Services.Select(s => s.Content).ToList());
+
+            return new RuleDetail
+            {
+                Uid = item.Uid ?? notFound,
+                Manager = item.MgmtId.ToString(),
+                Source = FlattenRuleNetworkObjects(item.Froms.Select(r => r.Object).ToList())
+                    .Select(s => new NetworkObjectCopy
+                    {
+                        Name = s.Name,
+                        Type = s.Type.Name,
+                        Ip = DisplayBase.DisplayIp(s.IP, s.IpEnd)
+                    })
+                    .ToList(),
+                SourceShort = DisplaySourceOrDestinationPlain(item, isSource: true, userConfig),
+                Destination = FlattenRuleNetworkObjects(item.Tos.Select(r => r.Object).ToList())
+                    .Select(d => new NetworkObjectCopy
+                    {
+                        Name = d.Name,
+                        Type = d.Type.Name,
+                        Ip = DisplayBase.DisplayIp(d.IP, d.IpEnd)
+                    })
+                    .ToList(),
+                DestinationShort = DisplaySourceOrDestinationPlain(item, isSource: false, userConfig),
+                Service = flattenedServices
+                    .Select(s => new ServiceObject
+                    {
+                        Name = s.Name,
+                        Protocol = s.Protocol?.Name ?? notFound,
+                        Port = s.DestinationPort ?? -1
+                    })
+                    .ToList(),
+                ServiceShort = DisplayServicesPlain(flattenedServices, item.ServiceNegated, userConfig),
+                ChangeID = RuleFieldSourceResolver.ResolveChangeId(item, changeIdSource, changeIdCustomFieldKey, notFound),
+                Name = item.Name ?? notFound,
+                CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
+                LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
+                Action = item.Action,
+                OwnerInformation = RuleFieldSourceResolver.ResolveOwnerInformation(item, ownerInformationSource, ownerCustomFieldKey, notFound),
+                Comment = item.Comment ?? notFound,
+                Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
+            };
         }).ToList();
     }
 
@@ -339,17 +344,16 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         return result;
     }
 
-    private static string DisplayServicesPlain(Rule rule, UserConfig userConfig)
+    private static string DisplayServicesPlain(IEnumerable<NetworkService> services, bool serviceNegated, UserConfig userConfig)
     {
         StringBuilder result = new();
-        if (rule.ServiceNegated)
+        if (serviceNegated)
         {
             result.AppendLine(userConfig.GetText("negated") + "<br>");
         }
 
         string joined = string.Join(Environment.NewLine,
-            Array.ConvertAll(rule.Services,
-                service => DisplayBase.DisplayService(service.Content, false, service.Content.Name).ToString()));
+            services.Select(service => DisplayBase.DisplayService(service, false, service.Name).ToString()));
         result.Append(joined);
 
         return result.ToString();

@@ -3,7 +3,6 @@
 # run import loop every x seconds (adjust sleep time per management depending on the change frequency )
 
 import argparse
-import json
 import sys
 import time
 import traceback
@@ -119,13 +118,13 @@ def main_loop(
 
 def main(
     debug_level: int,
-    verify_certificates: bool | None = None,
+    verify_certificates_default: bool | None = None,
     suppress_certificate_warnings: bool | None = None,
     clear: bool = False,
     force: bool = False,
 ):
     FWOLogger(debug_level)
-
+    verify_certificates = verify_certificates_default or False
     fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
     if suppress_certificate_warnings:
         urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
@@ -193,7 +192,7 @@ if __name__ == "__main__":
 
     main(
         debug_level=int(args.debug),
-        verify_certificates=args.verify_certificates,
+        verify_certificates_default=args.verify_certificates,
         suppress_certificate_warnings=args.suppress_certificate_warnings,
         clear=args.clear,
         force=args.force,

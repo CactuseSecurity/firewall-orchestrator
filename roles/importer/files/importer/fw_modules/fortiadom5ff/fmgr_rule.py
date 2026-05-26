@@ -77,25 +77,16 @@ def normalize_rulebases_for_each_link_destination(
 ):
     # Iterate over a snapshot because we may append NAT links while processing.
     for rulebase_link in list(gateway["rulebase_links"]):
-        link_type = rulebase_link.get("link_type", rulebase_link.get("type", "ordered"))
-        if link_type == "nat":
-            # NAT links are generated during normalization and do not exist in native rulebases.
-            continue
-
-        if not (
-            rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["to_rulebase_uid"] != ""
-        ):
+        if _should_skip_rulebase_link(rulebase_link, fetched_rulebase_uids):
             normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global)
             continue
 
-        rulebase_to_parse = find_rulebase_to_parse(native_config["rulebases"], rulebase_link["to_rulebase_uid"])
-        # search in global rulebase
-        found_rulebase_in_global = False
-        if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global != {}:
-            rulebase_to_parse = find_rulebase_to_parse(
-                native_config_global["rulebases"], rulebase_link["to_rulebase_uid"]
-            )
-            found_rulebase_in_global = True
+        rulebase_to_parse, found_rulebase_in_global = _find_rulebase_to_parse_for_link(
+            rulebase_link,
+            native_config,
+            native_config_global,
+            is_global_loop_iteration,
+        )
         if rulebase_to_parse == {}:
             FWOLogger.warning("found to_rulebase link without rulebase in nativeConfig: " + str(rulebase_link))
             continue
@@ -109,44 +100,95 @@ def normalize_rulebases_for_each_link_destination(
             found_rulebase_in_global,
         )
         fetched_rulebase_uids.append(rulebase_link["to_rulebase_uid"])
-
-        if found_rulebase_in_global:
-            normalized_config_global["policies"].append(normalized_rulebase)
-        else:
-            normalized_config_adom["policies"].append(normalized_rulebase)
-
-        # Process NAT rules from the same rulebase
-        has_nat_rules = any(
-            any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
-            for native_rule in rulebase_to_parse.get("data", [])
+        _append_normalized_rulebase(
+            normalized_config_adom,
+            normalized_config_global,
+            normalized_rulebase,
+            found_rulebase_in_global,
         )
 
-        if has_nat_rules:
-            # Create NAT rulebase and link
-            normalized_nat_rulebase = insert_parent_nat_rulebase(
-                normalized_config_adom,
-                normalized_config_global,
-                normalized_rulebase.uid,
-                normalized_rulebase.mgm_uid,
-            )
-
-            # Create RulebaseLink from access rulebase to NAT rulebase
-            insert_nat_rulebase_link(
-                from_rulebase_uid=normalized_rulebase.uid,
-                to_rulebase_uid=normalized_nat_rulebase.uid,
-                gateway=gateway,
-            )
-
-            # Parse NAT rules into the NAT rulebase
-            parse_nat_rules_in_rulebase(
-                normalized_config_adom,
-                normalized_config_global,
-                rulebase_to_parse,
-                normalized_nat_rulebase,
-            )
+        _process_nat_rules_for_rulebase(
+            gateway,
+            normalized_config_adom,
+            normalized_config_global,
+            rulebase_to_parse,
+            normalized_rulebase,
+        )
 
         # normalizing nat rulebases is work in progress
         normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global)
+
+
+def _should_skip_rulebase_link(rulebase_link: dict[str, Any], fetched_rulebase_uids: list[str]) -> bool:
+    link_type = rulebase_link.get("link_type", rulebase_link.get("type", "ordered"))
+    if link_type == "nat":
+        # NAT links are generated during normalization and do not exist in native rulebases.
+        return True
+    return not (
+        rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["to_rulebase_uid"] != ""
+    )
+
+
+def _find_rulebase_to_parse_for_link(
+    rulebase_link: dict[str, Any],
+    native_config: dict[str, Any],
+    native_config_global: dict[str, Any],
+    is_global_loop_iteration: bool,
+) -> tuple[dict[str, Any], bool]:
+    rulebase_to_parse = find_rulebase_to_parse(native_config["rulebases"], rulebase_link["to_rulebase_uid"])
+    found_rulebase_in_global = False
+    if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global != {}:
+        rulebase_to_parse = find_rulebase_to_parse(native_config_global["rulebases"], rulebase_link["to_rulebase_uid"])
+        found_rulebase_in_global = True
+    return rulebase_to_parse, found_rulebase_in_global
+
+
+def _append_normalized_rulebase(
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+    normalized_rulebase: Rulebase,
+    found_rulebase_in_global: bool,
+) -> None:
+    if found_rulebase_in_global:
+        normalized_config_global["policies"].append(normalized_rulebase)
+    else:
+        normalized_config_adom["policies"].append(normalized_rulebase)
+
+
+def _process_nat_rules_for_rulebase(
+    gateway: dict[str, Any],
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+    rulebase_to_parse: dict[str, Any],
+    normalized_rulebase: Rulebase,
+) -> None:
+    has_nat_rules = any(
+        any(key in native_rule and native_rule[key] == 1 for key in ["nat", "nat46", "nat64"])
+        for native_rule in rulebase_to_parse.get("data", [])
+    )
+
+    if not has_nat_rules:
+        return
+
+    normalized_nat_rulebase = insert_parent_nat_rulebase(
+        normalized_config_adom,
+        normalized_config_global,
+        normalized_rulebase.uid,
+        normalized_rulebase.mgm_uid,
+    )
+
+    insert_nat_rulebase_link(
+        from_rulebase_uid=normalized_rulebase.uid,
+        to_rulebase_uid=normalized_nat_rulebase.uid,
+        gateway=gateway,
+    )
+
+    parse_nat_rules_in_rulebase(
+        normalized_config_adom,
+        normalized_config_global,
+        rulebase_to_parse,
+        normalized_nat_rulebase,
+    )
 
 
 def normalize_nat_rulebase(

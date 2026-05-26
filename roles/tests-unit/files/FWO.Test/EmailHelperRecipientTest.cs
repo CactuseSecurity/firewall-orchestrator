@@ -11,18 +11,19 @@ namespace FWO.Test
     [TestFixture]
     public class EmailHelperRecipientTest
     {
-        private static EmailHelper CreateEmailHelper(List<UserGroup>? ownerGroups = null, bool useDummyEmailAddress = true)
+        private static EmailHelper CreateEmailHelper(List<UserGroup>? ownerGroups = null, bool useDummyEmailAddress = true,
+            IWorkflowRecipientResolver? recipientResolver = null)
         {
             SimulatedUserConfig userConfig = new()
             {
                 UseDummyEmailAddress = useDummyEmailAddress,
                 DummyEmailAddress = "dummy@example.test"
             };
-            return new EmailHelper(new SimulatedApiConnection(), null, userConfig, DefaultInit.DoNothing, ownerGroups);
+            return new EmailHelper(new SimulatedApiConnection(), null, userConfig, DefaultInit.DoNothing, ownerGroups, recipientResolver: recipientResolver);
         }
 
         [Test]
-        public async Task GetRecipientsReturnsOwnerGroupAndMainForFallbackSelection()
+        public async Task GetRecipientsReturnsDummyForFallbackSelection()
         {
             EmailHelper helper = CreateEmailHelper();
             FwoOwner owner = new();
@@ -36,14 +37,27 @@ namespace FWO.Test
                 null,
                 null);
 
-            Assert.That(recipients, Has.Count.EqualTo(2));
-            Assert.That(recipients, Is.All.EqualTo("dummy@example.test"));
+            Assert.That(recipients, Is.EqualTo(new[] { "dummy@example.test" }));
         }
 
         [Test]
-        public async Task GetRecipientsReturnsOtherAddressesForOtherAddressesOption()
+        public async Task GetRecipientsReturnsDummyForOtherAddressesOption()
         {
             EmailHelper helper = CreateEmailHelper();
+            List<string> recipients = await helper.GetRecipients(
+                EmailRecipientOption.OtherAddresses,
+                null,
+                null,
+                null,
+                ["a@test", "b@test"]);
+
+            Assert.That(recipients, Is.EqualTo(new[] { "dummy@example.test" }));
+        }
+
+        [Test]
+        public async Task GetRecipientsReturnsOtherAddressesWhenDummyIsDisabled()
+        {
+            EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
             List<string> recipients = await helper.GetRecipients(
                 EmailRecipientOption.OtherAddresses,
                 null,
@@ -55,7 +69,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task GetRecipientsReturnsJsonOtherAddressList()
+        public async Task GetRecipientsReturnsDummyForJsonOtherAddressList()
         {
             EmailHelper helper = CreateEmailHelper();
             EmailRecipientSelection selection = new()
@@ -67,11 +81,11 @@ namespace FWO.Test
 
             List<string> recipients = await helper.GetRecipients(selection, null, ["legacy@test"]);
 
-            Assert.That(recipients, Is.EquivalentTo(new[] { "json-a@test", "json-b@test", "legacy@test" }));
+            Assert.That(recipients, Is.EqualTo(new[] { "dummy@example.test" }));
         }
 
         [Test]
-        public async Task GetRecipientsReturnsJsonOtherAddressListFromConfigStringWithoutLegacyAddresses()
+        public async Task GetRecipientsReturnsDummyForJsonOtherAddressListFromConfigString()
         {
             EmailHelper helper = CreateEmailHelper();
             EmailRecipientSelection selection = new()
@@ -83,7 +97,7 @@ namespace FWO.Test
 
             List<string> recipients = await helper.GetRecipients(selection.ToConfigValue(), null, []);
 
-            Assert.That(recipients, Is.EquivalentTo(new[] { "json-a@test", "json-b@test" }));
+            Assert.That(recipients, Is.EqualTo(new[] { "dummy@example.test" }));
         }
 
         [Test]
@@ -101,8 +115,7 @@ namespace FWO.Test
 
             List<string> recipients = await helper.GetRecipients(selection, owner, null);
 
-            Assert.That(recipients, Has.Count.EqualTo(1));
-            Assert.That(recipients[0], Is.EqualTo("dummy@example.test"));
+            Assert.That(recipients, Is.EqualTo(new[] { "dummy@example.test" }));
         }
 
         [Test]
@@ -120,6 +133,21 @@ namespace FWO.Test
 
             Assert.That(currentRecipients, Is.EqualTo(new[] { "dummy@example.test" }));
             Assert.That(recentRecipients, Is.EqualTo(new[] { "dummy@example.test" }));
+        }
+
+        [Test]
+        public async Task GetRecipientsUsesResolverForCurrentHandler()
+        {
+            EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false, recipientResolver: new TestWorkflowRecipientResolver(
+                new() { Dn = "cn=current,dc=external", Email = "current@example.test" }));
+            WfStatefulObject statefulObject = new()
+            {
+                CurrentHandler = new() { Dn = "cn=current,dc=external" }
+            };
+
+            List<string> recipients = await helper.GetRecipients(EmailRecipientOption.CurrentHandler, statefulObject, null, null, null);
+
+            Assert.That(recipients, Is.EqualTo(new[] { "current@example.test" }));
         }
 
         [Test]
@@ -142,8 +170,7 @@ namespace FWO.Test
 
             List<string> recipients = await helper.GetRecipients(EmailRecipientOption.AssignedGroup, statefulObject, null, null, null);
 
-            Assert.That(recipients, Has.Count.EqualTo(2));
-            Assert.That(recipients, Is.All.EqualTo("dummy@example.test"));
+            Assert.That(recipients, Is.EqualTo(new[] { "dummy@example.test" }));
         }
 
         [Test]
@@ -239,6 +266,26 @@ namespace FWO.Test
             using Stream stream = formFile.OpenReadStream();
             using StreamReader reader = new(stream);
             return await reader.ReadToEndAsync();
+        }
+
+        private class TestWorkflowRecipientResolver : IWorkflowRecipientResolver
+        {
+            private readonly UiUser user;
+
+            public TestWorkflowRecipientResolver(UiUser user)
+            {
+                this.user = user;
+            }
+
+            public Task<List<string>> ResolveUserDns(IEnumerable<string> dns)
+            {
+                return Task.FromResult(dns.Contains(user.Dn, StringComparer.OrdinalIgnoreCase) ? new List<string> { user.Dn } : []);
+            }
+
+            public Task<List<UiUser>> ResolveUsers(IEnumerable<string> dns)
+            {
+                return Task.FromResult(dns.Contains(user.Dn, StringComparer.OrdinalIgnoreCase) ? new List<UiUser> { user } : []);
+            }
         }
     }
 }

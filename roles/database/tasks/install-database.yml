@@ -94,6 +94,7 @@
       - fworch-create-tables-report.sql
       - fworch-create-tables-modelling.sql
       - fworch-create-tables-request.sql
+      - fworch-create-tables-flow.sql
       - fworch-create-tables-compliance.sql
       - fworch-create-constraints.sql
       - fworch-create-foreign-keys.sql
@@ -101,6 +102,7 @@
       - fworch-create-triggers.sql
       - fworch-fill-stm.sql
       - fworch-views-materialized.sql
+      - fworch-create-tables-jwt-refresh.sql
     when: installation_mode == "new"
 
   - name: add colors to the database
@@ -152,4 +154,3 @@
 - name: create ro db user {{ fwo_db_ro_user }}
   import_tasks: create-ro-user.yml
   when: installation_mode == "new"
-  

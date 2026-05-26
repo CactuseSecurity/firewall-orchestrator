@@ -52,6 +52,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateAction;
         public static readonly string deleteAction;
         public static readonly string addStateAction;
+        public static readonly string updateStateActionSortOrder;
         public static readonly string removeStateAction;
         public static readonly string newComment;
         public static readonly string addCommentToReqTask;
@@ -114,6 +115,7 @@ namespace FWO.Api.Client.Queries
                 updateAction = GetQueryText("request/updateAction.graphql");
                 deleteAction = GetQueryText("request/deleteAction.graphql");
                 addStateAction = GetQueryText("request/addStateAction.graphql");
+                updateStateActionSortOrder = GetQueryText("request/updateStateActionSortOrder.graphql");
                 removeStateAction = GetQueryText("request/removeStateAction.graphql");
                 newComment = GetQueryText("request/newComment.graphql");
                 addCommentToReqTask = GetQueryText("request/addCommentToReqTask.graphql");

@@ -47,6 +47,17 @@ namespace FWO.Services.Workflow
             ActStateMatrix = stateMatrixDict.Matrices[implTask.TaskType];
         }
 
+        public bool TrySetImplTaskEnv(WfImplTask implTask)
+        {
+            if (!stateMatrixDict.Matrices.ContainsKey(implTask.TaskType))
+            {
+                return false;
+            }
+
+            SetImplTaskEnv(implTask);
+            return true;
+        }
+
         public void SetImplTaskOpt(ObjAction action)
         {
             ResetImplTaskActions();
@@ -159,7 +170,7 @@ namespace FWO.Services.Workflow
             if (ActionHandler != null)
             {
                 await UpdateActImplTaskState();
-                await ActionHandler.DoOnAssignmentActions(statefulObject, ActImplTask.AssignedGroup);
+                await ActionHandler.DoOnAssignmentActions(statefulObject, WfObjectScopes.ImplementationTask, ActImplTask.AssignedGroup);
             }
             DisplayAssignImplTaskMode = false;
         }
@@ -171,7 +182,7 @@ namespace FWO.Services.Workflow
             await UpdateActImplTaskState();
             if (ActionHandler != null)
             {
-                await ActionHandler.DoOnAssignmentActions(ActImplTask, ActImplTask.AssignedGroup);
+                await ActionHandler.DoOnAssignmentActions(ActImplTask, WfObjectScopes.ImplementationTask, ActImplTask.AssignedGroup);
             }
             DisplayAssignImplTaskMode = false;
         }
@@ -261,7 +272,7 @@ namespace FWO.Services.Workflow
                 {
                     // Todo: further analysis how many impl tasks currently have to be there and create or update where needed
                     if (reqTask.ImplementationTasks.Count == 0
-                        && reqTask.StateId >= stateMatrixDict.Matrices[reqTask.TaskType].MinImplTasksNeeded)
+                        && RequestTaskNeedsInitialImplTasks(reqTask))
                     {
                         await AutoCreateImplTasks(reqTask);
                     }
@@ -271,6 +282,13 @@ namespace FWO.Services.Workflow
                     }
                 }
             }
+        }
+
+        private bool RequestTaskNeedsInitialImplTasks(WfReqTask reqTask)
+        {
+            return stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
+                && reqTask.StateId >= matrix.MinImplTasksNeeded
+                && reqTask.StateId < matrix.MinTicketCompleted;
         }
 
         private async Task AutoCreateImplTasks(WfReqTask reqTask)
@@ -321,17 +339,11 @@ namespace FWO.Services.Workflow
         private async Task CreateImplTasksForCombinedOrSelectedDevices(WfReqTask reqTask)
         {
             List<int> deviceIds = reqTask.GetDeviceList();
-            if (deviceIds.Count == 0)
-            {
-                return;
-            }
-
-            if (reqTask.HasAllDevicesSelected())
+            if (deviceIds.Count == 0 || reqTask.HasAllDevicesSelected())
             {
                 await CreateAccessImplTask(reqTask, null, false);
                 return;
             }
-
             await CreateImplTasksForDevices(reqTask, deviceIds);
         }
 

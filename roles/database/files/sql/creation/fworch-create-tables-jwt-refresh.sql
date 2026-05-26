@@ -1,0 +1,8 @@
+CREATE TABLE refresh_token (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES uiuser(uiuser_id) ON DELETE CASCADE,
+    token_hash VARCHAR(88) UNIQUE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    revoked_at TIMESTAMP WITH TIME ZONE NULL
+);

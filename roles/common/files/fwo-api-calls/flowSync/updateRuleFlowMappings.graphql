@@ -1,0 +1,5 @@
+mutation updateRuleFlowMappings($updates: [rule_updates!]!) {
+  update_rule_many(updates: $updates) {
+    affected_rows
+  }
+}

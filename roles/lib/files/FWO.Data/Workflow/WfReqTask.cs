@@ -114,6 +114,7 @@ namespace FWO.Data.Workflow
                         ProtoId = reqElem.ProtoId ?? 0,
                         ServiceId = reqElem.ServiceId,
                         Name = reqElem.Name,
+                        GroupName = reqElem.GroupName,
                         RequestAction = reqElem.RequestAction
                     });
                 }

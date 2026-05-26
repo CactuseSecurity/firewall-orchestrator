@@ -1,4 +1,5 @@
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
@@ -83,7 +84,7 @@ namespace FWO.Ui.Services
                 conn.SyncState(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
             }
 
-            if (userConfig.VarianceAnalysisSync)
+            if (userConfig.VarianceAnalysisSync && userConfig.ModIntegrationMode != ModIntegrationMode.WorkflowNotifications)
             {
                 await AnalyseStatus(connections);
             }
@@ -181,9 +182,12 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetConnectionsToRequest()
         {
-            return [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(dummyAppRoleId,
-                userConfig.ModRolloutRemovedAppServers, userConfig.ModRequestOnlyOwnObjects))
-                .OrderByDescending(y => y.IsCommonService)];
+            if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+            {
+                return ModellingRequestConnectionSelector.ForWorkflowNotifications(Connections, userConfig, dummyAppRoleId);
+            }
+
+            return ModellingRequestConnectionSelector.ForRegularRequests(Connections, userConfig, dummyAppRoleId);
         }
 
         public bool HasModellingIssues(ModellingConnection conn)

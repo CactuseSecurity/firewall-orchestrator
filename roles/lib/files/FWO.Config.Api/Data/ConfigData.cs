@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Mail;
 using FWO.Basics.Enums;
@@ -359,6 +360,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modReqInterfaceName"), JsonPropertyName("modReqInterfaceName")]
         public string ModReqInterfaceName { get; set; } = "";
 
+        [JsonProperty("flowNamingSourceManagementId"), JsonPropertyName("flowNamingSourceManagementId")]
+        public int? FlowNamingSourceManagementId { get; set; }
+
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
         public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 
@@ -403,6 +407,15 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modDecommEmailBody"), JsonPropertyName("modDecommEmailBody")]
         public string ModDecommEmailBody { get; set; } = "";
+
+        [JsonProperty("modIntegrationMode"), JsonPropertyName("modIntegrationMode")]
+        public ModIntegrationMode ModIntegrationMode { get; set; } = ModIntegrationMode.FullyIntegrated;
+
+        [JsonProperty("modIntegrationStates"), JsonPropertyName("modIntegrationStates")]
+        public string ModIntegrationStates { get; set; } = "[]";
+
+        [JsonProperty("modIntegrationStateMarker"), JsonPropertyName("modIntegrationStateMarker")]
+        public string ModIntegrationStateMarker { get; set; } = ModIntegrationStateConfig.DefaultMarker;
 
         [JsonProperty("modRolloutActive"), JsonPropertyName("modRolloutActive")]
         public bool ModRolloutActive { get; set; } = true;
@@ -576,6 +589,11 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importedMatrixReadOnly"), JsonPropertyName("importedMatrixReadOnly")]
         public bool ImportedMatrixReadOnly { get; set; } = true;
 
+        [JsonProperty("accessTokenLifetimeHours"), JsonPropertyName("accessTokenLifetimeHours")]
+        public int AccessTokenLifetimeHours { get; set; } = 7;
+
+        [JsonProperty("refreshTokenLifetimeDays"), JsonPropertyName("refreshTokenLifetimeDays")]
+        public int RefreshTokenLifetimeDays { get; set; } = 7;
         [JsonProperty("complianceCheckElementsPerFetch"), JsonPropertyName("complianceCheckElementsPerFetch")]
         public int ComplianceCheckElementsPerFetch { get; set; } = 500;
 

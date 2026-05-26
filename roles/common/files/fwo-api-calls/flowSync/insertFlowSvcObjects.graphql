@@ -1,0 +1,9 @@
+mutation insertFlowSvcObjects($objects: [flow_svcobject_insert_input!]!) {
+  insert_flow_svcobject(objects: $objects) {
+    affected_rows
+    returning {
+      svcobj_id
+      svcobj_hash
+    }
+  }
+}

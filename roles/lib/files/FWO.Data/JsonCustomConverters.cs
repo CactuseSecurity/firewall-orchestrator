@@ -6,7 +6,7 @@ using System.Net;
 
 namespace FWO.Data
 {
-    public class WrapperConverter<ValueType> : JsonConverter
+    public class WrapperConverter<TValue> : JsonConverter
     {
         private readonly string wrappedObjectName = "";
 
@@ -15,7 +15,7 @@ namespace FWO.Data
             this.wrappedObjectName = wrappedObjectName;
         }
 
-        public override bool CanConvert(Type objectType) => typeof(ValueType).IsAssignableFrom(objectType);
+        public override bool CanConvert(Type objectType) => typeof(TValue).IsAssignableFrom(objectType);
 
         public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
@@ -26,11 +26,11 @@ namespace FWO.Data
             if (jsonObject.TryGetValue(wrappedObjectName, out JToken? wrappedObjectToken))
             {
                 // Deserialize the wrapped object
-                return wrappedObjectToken.ToObject<ValueType>(serializer);
+                return wrappedObjectToken.ToObject<TValue>(serializer);
             }
 
             // Deserialize the wrapper object otherwise
-            return jsonObject.ToObject<ValueType>(serializer);
+            return jsonObject.ToObject<TValue>(serializer);
         }
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)

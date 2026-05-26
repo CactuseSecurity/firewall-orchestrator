@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using NUnit.Framework;
 
@@ -101,6 +102,105 @@ namespace FWO.Test
             Assert.That(ConfigQueries.subscribeDailyCheckConfigChanges, Does.Contain("notificationLanguage"));
             Assert.That(ConfigQueries.subscribeDailyCheckConfigChanges, Does.Contain("ownerActiveRuleEmailBody"));
             Assert.That(ConfigQueries.subscribeDailyCheckConfigChanges, Does.Contain("ruleExpiryEmailBody"));
+        }
+
+        [Test]
+        public void ConfigData_DefaultsModIntegrationModeToFullyIntegrated()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ModIntegrationMode, Is.EqualTo(ModIntegrationMode.FullyIntegrated));
+        }
+
+        [Test]
+        public void ConfigData_DefaultsModIntegrationStatesToEmptyList()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ModIntegrationStates, Is.EqualTo("[]"));
+            Assert.That(ModIntegrationStateConfig.Parse(configData.ModIntegrationStates), Is.Empty);
+        }
+
+        [Test]
+        public void ConfigData_DefaultsModIntegrationStateMarker()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ModIntegrationStateMarker, Is.EqualTo(ModIntegrationStateConfig.DefaultMarker));
+        }
+
+        [Test]
+        public void ModIntegrationStateConfig_TrimsAndSerializesNamedStates()
+        {
+            string configValue = ModIntegrationStateConfig.ToConfigValue(
+            [
+                new() { Name = " Requested ", IncludeIntoRequest = true },
+                new() { Name = "", IncludeIntoRequest = true }
+            ]);
+
+            List<ModIntegrationState> states = ModIntegrationStateConfig.Parse(configValue);
+
+            Assert.That(states, Has.Count.EqualTo(1));
+            Assert.That(states[0].Name, Is.EqualTo("Requested"));
+            Assert.That(states[0].IncludeIntoRequest, Is.True);
+            Assert.That(states[0].MonitorStatus, Is.EqualTo(ModIntegrationStateStatus.None));
+        }
+
+        [Test]
+        public void ModIntegrationStateConfig_SerializesConfiguredMonitorStatus()
+        {
+            string configValue = ModIntegrationStateConfig.ToConfigValue(
+            [
+                new() { Name = " Done ", MonitorStatus = ModIntegrationStateStatus.Implemented },
+                new() { Name = "Broken", MonitorStatus = "unknown" }
+            ]);
+
+            List<ModIntegrationState> states = ModIntegrationStateConfig.Parse(configValue);
+            Dictionary<string, string> monitorStatusByName = ModIntegrationStateConfig.MonitorStatusByStateName(configValue);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(states[0].Name, Is.EqualTo("Done"));
+                Assert.That(states[0].MonitorStatus, Is.EqualTo(ModIntegrationStateStatus.Implemented));
+                Assert.That(states[1].MonitorStatus, Is.EqualTo(ModIntegrationStateStatus.None));
+                Assert.That(monitorStatusByName["Done"], Is.EqualTo(ModIntegrationStateStatus.Implemented));
+                Assert.That(ModIntegrationStateConfig.MonitorStatusTextKey(ModIntegrationStateStatus.Implemented), Is.EqualTo("monitor_status_implemented"));
+            });
+        }
+
+        [Test]
+        public void ModIntegrationStateConfig_ReadsMarkerFromSameLineComment()
+        {
+            string comment = "manual note ImplementationState: Retry | 2026-05-08T10:00:00.0000000Z still manual";
+
+            Assert.That(ModIntegrationStateConfig.GetMarkedCommentValue(comment, "ImplementationState"), Is.EqualTo("Retry"));
+            Assert.That(ModIntegrationStateConfig.GetMarkedCommentTimestamp(comment, "ImplementationState"), Is.EqualTo(DateTime.Parse("2026-05-08T10:00:00.0000000Z").ToUniversalTime()));
+        }
+
+        [Test]
+        public void ModIntegrationStateConfig_ReplacesOnlyMarkerSegmentInSameLineComment()
+        {
+            string comment = "manual before ImplementationState: Old | 2026-05-08T10:00:00.0000000Z manual after";
+
+            string updatedComment = ModIntegrationStateConfig.ReplaceMarkedComment(comment, "ImplementationState",
+                "ImplementationState: Implemented | 2026-05-08T11:00:00.0000000Z");
+
+            Assert.That(updatedComment, Is.EqualTo("manual before ImplementationState: Implemented | 2026-05-08T11:00:00.0000000Z manual after"));
+        }
+
+        [Test]
+        public void Update_ParsesModIntegrationMode()
+        {
+            SimulatedUserConfig userConfig = new();
+
+            InvokeUpdate(userConfig,
+            [
+                new() { Key = "modIntegrationMode", Value = nameof(ModIntegrationMode.WorkflowNotifications), User = 0 },
+                new() { Key = "modIntegrationStateMarker", Value = "ticketState", User = 0 }
+            ]);
+
+            Assert.That(userConfig.ModIntegrationMode, Is.EqualTo(ModIntegrationMode.WorkflowNotifications));
+            Assert.That(userConfig.ModIntegrationStateMarker, Is.EqualTo("ticketState"));
         }
 
         private static void InvokeUpdate(FWO.Config.Api.Config config, ConfigItem[] configItems)

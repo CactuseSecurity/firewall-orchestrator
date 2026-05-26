@@ -9,6 +9,7 @@ namespace FWO.Data.Workflow
         public int ProtoId { get; set; }
         public long? ServiceId { get; set; }
         public string? Name { get; set; }
+        public string? GroupName { get; set; }
         public string RequestAction { get; set; } = Workflow.RequestAction.create.ToString();
 
         public WfReqElement ToReqElement()
@@ -23,6 +24,7 @@ namespace FWO.Data.Workflow
                 ProtoId = ProtoId,
                 ServiceId = ServiceId,
                 Name = Name,
+                GroupName = GroupName,
                 RequestAction = RequestAction
             };
             return element;
@@ -39,7 +41,8 @@ namespace FWO.Data.Workflow
                 PortEnd = PortEnd,
                 ProtoId = ProtoId,
                 ServiceId = ServiceId,
-                Name = Name
+                Name = Name,
+                GroupName = GroupName
             };
             return element;
         }

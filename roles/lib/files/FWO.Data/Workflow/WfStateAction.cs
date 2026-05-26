@@ -16,7 +16,8 @@ namespace FWO.Data.Workflow
         UpdateConnectionOwner = 21,
         UpdateConnectionRelease = 22,
         DisplayConnection = 23,
-        UpdateConnectionReject = 24
+        UpdateConnectionReject = 24,
+        UpdateModelling = 25
         // CreateReport = 30
     }
 
@@ -146,6 +147,9 @@ namespace FWO.Data.Workflow
 
     public class WfStateActionDataHelper
     {
+        [JsonProperty("sort_order"), JsonPropertyName("sort_order")]
+        public int SortOrder { get; set; }
+
         [JsonProperty("action"), JsonPropertyName("action")]
         public WfStateAction Action { get; set; } = new WfStateAction();
     }

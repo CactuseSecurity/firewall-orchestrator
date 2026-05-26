@@ -1,0 +1,11 @@
+
+dn: uid={{ integration_test_user_name }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectclass: inetorgperson
+cn: {{ integration_test_user_name }}
+givenName: integration_test_user
+sn: TestUser
+userPassword: {{ integration_test_user_pw }}
+{%- endif %}

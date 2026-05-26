@@ -70,6 +70,8 @@ cov.xml
 .DS_Store
 .dotnet
 **/.codex/
+FWO.local.runsettings
+**/*.lscache
 
 .agents
 *.csproj.lscache

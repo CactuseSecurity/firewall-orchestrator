@@ -1,0 +1,181 @@
+@using FWO.Basics
+@using FWO.Api.Client
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
+@using FWO.Data.Modelling
+@using FWO.Ui.Services
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("modIntegrationStates"))" Show="@Display" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <form onsubmit="return false">
+                <div class="form-group row mb-3">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("modIntegrationStateMarker")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="form-control form-control-sm" @bind="stateMarker" />
+                    </div>
+                </div>
+                <div class="row fw-bold border-bottom pb-1">
+                    <div class="col-sm-5">@(userConfig.GetText("name"))</div>
+                    <div class="col-sm-3">@(userConfig.GetText("monitor_status"))</div>
+                    <div class="col-sm-2">@(userConfig.GetText("include_into_request"))</div>
+                    <div class="col-sm-2"></div>
+                </div>
+                @foreach (ModIntegrationState state in states)
+                {
+                    <div class="row align-items-center mt-1">
+                        <div class="col-sm-5">
+                            <input type="text" class="form-control form-control-sm" @bind="state.Name" />
+                        </div>
+                        <div class="col-sm-3">
+                            <Dropdown ElementType="string" @bind-SelectedElement="state.MonitorStatus"
+                                      ElementToString="DisplayMonitorStatus" Elements="ModIntegrationStateStatus.All" />
+                        </div>
+                        <div class="col-sm-2">
+                            <input type="checkbox" class="form-check-input" @bind="state.IncludeIntoRequest" />
+                        </div>
+                        <div class="col-sm-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveState(state)" title="@(userConfig.GetText("delete"))">
+                                @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                            </button>
+                        </div>
+                    </div>
+                }
+                <div class="row align-items-center mt-3">
+                    <div class="col-sm-5">
+                        <input type="text" class="form-control form-control-sm" @bind="newState.Name" />
+                    </div>
+                    <div class="col-sm-3">
+                        <Dropdown ElementType="string" @bind-SelectedElement="newState.MonitorStatus"
+                                  ElementToString="DisplayMonitorStatus" Elements="ModIntegrationStateStatus.All" />
+                    </div>
+                    <div class="col-sm-2">
+                        <input type="checkbox" class="form-check-input" @bind="newState.IncludeIntoRequest" />
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="AddState" title="@(userConfig.GetText("add"))">
+                            @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                        </button>
+                    </div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </NotAuthorized>
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public string ConfigValue { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ConfigValueChanged { get; set; }
+
+    [Parameter]
+    public string ConfigMarker { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ConfigMarkerChanged { get; set; }
+
+    private List<ModIntegrationState> states = [];
+    private ModIntegrationState newState = new();
+    private string stateMarker = ModIntegrationStateConfig.DefaultMarker;
+    private bool loadedDisplay;
+    private string loadedConfigValue = "";
+    private string loadedConfigMarker = "";
+
+    protected override void OnParametersSet()
+    {
+        if (Display && (!loadedDisplay || loadedConfigValue != ConfigValue || loadedConfigMarker != ConfigMarker))
+        {
+            states = ModIntegrationStateConfig.Parse(ConfigValue);
+            stateMarker = string.IsNullOrWhiteSpace(ConfigMarker) ? ModIntegrationStateConfig.DefaultMarker : ConfigMarker;
+            newState = new();
+            loadedConfigValue = ConfigValue;
+            loadedConfigMarker = ConfigMarker;
+        }
+        loadedDisplay = Display;
+    }
+
+    private void AddState()
+    {
+        if (string.IsNullOrWhiteSpace(newState.Name))
+        {
+            return;
+        }
+        states.Add(new()
+        {
+            Name = newState.Name,
+            IncludeIntoRequest = newState.IncludeIntoRequest,
+            MonitorStatus = newState.MonitorStatus
+        });
+        newState = new();
+    }
+
+    private void RemoveState(ModIntegrationState state)
+    {
+        states.Remove(state);
+    }
+
+    private string DisplayMonitorStatus(string status)
+    {
+        return userConfig.GetText(ModIntegrationStateConfig.MonitorStatusTextKey(status));
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            string configValue = ModIntegrationStateConfig.ToConfigValue(states);
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ModIntegrationStates = configValue;
+            editableConfig.ModIntegrationStateMarker = string.IsNullOrWhiteSpace(stateMarker)
+                ? ModIntegrationStateConfig.DefaultMarker
+                : stateMarker.Trim();
+            await globalConfig.WriteToDatabase(editableConfig, apiConnection);
+            await ConfigValueChanged.InvokeAsync(configValue);
+            await ConfigMarkerChanged.InvokeAsync(editableConfig.ModIntegrationStateMarker);
+            loadedConfigValue = configValue;
+            loadedConfigMarker = editableConfig.ModIntegrationStateMarker;
+            DisplayMessageInUi(null, userConfig.GetText("modIntegrationStates"), userConfig.GetText("U5301"), false);
+            Close();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("modIntegrationStates"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

@@ -29,6 +29,14 @@ namespace FWO.Services.Workflow
                     foreach (var ticket in tickets)
                     {
                         ticket.UpdateCidrsInTaskElements();
+                        ticket.ResetStateChangeTracking();
+                    }
+                }
+                else
+                {
+                    foreach (var ticket in tickets)
+                    {
+                        ticket.ResetStateChangeTracking();
                     }
                 }
             }
@@ -79,6 +87,7 @@ namespace FWO.Services.Workflow
                 var Variables = new { id };
                 ticket = await ApiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, Variables);
                 ticket.UpdateCidrsInTaskElements();
+                ticket.ResetStateChangeTracking();
             }
             catch (Exception exception)
             {
@@ -126,8 +135,11 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    int newStateId = ticket.StateId;
                     ticket = await GetTicket(returnIds[0].NewIdLong);
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
+                    ticket.MarkCreatedStateChanged(newStateId);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
+                    await DoCreatedRequestTaskActions(ticket);
                 }
             }
             catch (Exception exception)
@@ -135,6 +147,16 @@ namespace FWO.Services.Workflow
                 DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
             }
             return ticket;
+        }
+
+        private async Task DoCreatedRequestTaskActions(WfTicket ticket)
+        {
+            foreach (WfReqTask reqTask in ticket.Tasks)
+            {
+                int newStateId = reqTask.StateId;
+                reqTask.MarkCreatedStateChanged(newStateId);
+                await ActionHandler.DoStateChangeActions(reqTask, WfObjectScopes.RequestTask, reqTask.Owners.Count > 0 ? reqTask.Owners.First().Owner : null, reqTask.TicketId);
+            }
         }
 
         public async Task<WfTicket> UpdateTicketInDb(WfTicket ticket)
@@ -150,7 +172,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
                 }
             }
             catch (Exception exception)
@@ -842,7 +864,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
+                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
                 }
             }
             catch (Exception exception)
@@ -879,6 +901,11 @@ namespace FWO.Services.Workflow
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
             }
+        }
+
+        private static string? GetRequesterDn(WfTicket ticket)
+        {
+            return !string.IsNullOrWhiteSpace(ticket.Requester?.Dn) ? ticket.Requester.Dn : ticket.RequesterDn;
         }
 
         public async Task UpdateImplTaskStateInDb(WfImplTask impltask)

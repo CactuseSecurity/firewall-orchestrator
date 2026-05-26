@@ -4,10 +4,22 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Services
 {
+    public enum EmailAttachedContent
+    {
+        None = 0,
+        RequestedConnections = 1
+    }
+
     public class EmailActionParams
     {
         [JsonProperty("notification_ids"), JsonPropertyName("notification_ids")]
         public List<int> NotificationIds { get; set; } = [];
+
+        [JsonProperty("attached_content"), JsonPropertyName("attached_content")]
+        public EmailAttachedContent AttachedContent { get; set; } = EmailAttachedContent.None;
+
+        [JsonProperty("confirm_sent_mail"), JsonPropertyName("confirm_sent_mail")]
+        public bool ConfirmSentMail { get; set; }
 
         [JsonProperty("to"), JsonPropertyName("to")]
         public EmailRecipientOption RecipientTo { get; set; } = EmailRecipientOption.None;

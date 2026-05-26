@@ -1,0 +1,5 @@
+query getNwGroupsForApp ($appId: Int!){
+  modelling_nwgroup (where: { app_id: { _eq: $appId }, is_deleted: { _eq: false } } order_by: { name: asc }){
+    ...appRoleDetails
+  }
+}

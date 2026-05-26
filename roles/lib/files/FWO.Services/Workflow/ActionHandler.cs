@@ -2,39 +2,45 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
-using FWO.Data.Modelling;
+using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
-using FWO.Services.Modelling;
+using RestSharp;
 using System.Text.Json;
 
 
 namespace FWO.Services.Workflow
 {
-    public class ActionHandler
+    public partial class ActionHandler
     {
         private List<WfState> states = [];
         private readonly ApiConnection apiConnection;
         private readonly WfHandler wfHandler;
         private readonly bool useInMwServer = false;
         private readonly IRequestedRulePolicyChecker? requestedRulePolicyChecker;
+        private readonly IWorkflowRecipientResolver? workflowRecipientResolver;
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
         private string? ScopedUserBcc { get; set; } = "";
-        public bool DisplayConnectionMode = false;
-        public ModellingConnectionHandler? ConnHandler { get; set; }
+        private string? ScopedUserEmailTo { get; set; } = "";
+        private string? ScopedUserEmailCc { get; set; } = "";
+        private string? ScopedUserEmailBcc { get; set; } = "";
         private readonly List<UserGroup>? UserGroups = [];
         private readonly string NoAuthUser = "No Auth User";
+        private static readonly object MiddlewareDelegationLock = new();
+        private static readonly Dictionary<string, DateTime> MiddlewareDelegations = [];
+        private static readonly TimeSpan MiddlewareDelegationDeduplicationWindow = TimeSpan.FromSeconds(5);
 
 
         public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false,
-            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null)
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, IWorkflowRecipientResolver? workflowRecipientResolver = null)
         {
             this.apiConnection = apiConnection;
             this.wfHandler = wfHandler;
             this.useInMwServer = useInMwServer;
             UserGroups = userGroups;
             this.requestedRulePolicyChecker = requestedRulePolicyChecker ?? wfHandler.RequestedRulePolicyChecker;
+            this.workflowRecipientResolver = workflowRecipientResolver ?? wfHandler.WorkflowRecipientResolver;
         }
 
         public async Task Init()
@@ -58,26 +64,52 @@ namespace FWO.Services.Workflow
 
         public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
         {
-            if (statefulObject.StateChanged())
+            if (!statefulObject.StateChanged())
             {
-                List<WfStateAction> stateActions = GetRelevantActions(statefulObject, scope);
-                foreach (var action in stateActions.Where(x => x.Event == StateActionEvents.OnSet.ToString()))
-                {
-                    if (action.Phase == "" || action.Phase == wfHandler.Phase.ToString())
-                    {
-                        await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
-                    }
-                }
-                List<WfStateAction> fromStateActions = GetRelevantActions(statefulObject, scope, false);
-                foreach (var action in fromStateActions.Where(x => x.Event == StateActionEvents.OnLeave.ToString()))
-                {
-                    if (action.Phase == "" || action.Phase == wfHandler.Phase.ToString())
-                    {
-                        await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
-                    }
-                }
-                statefulObject.ResetStateChanged();
+                return;
             }
+
+            Log.WriteDebug("DoStateChangeActions", $"State changed for {scope} from {statefulObject.ChangedFrom()} to {statefulObject.StateId}.");
+            if (!useInMwServer && wfHandler.MiddlewareClient != null)
+            {
+                try
+                {
+                    await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId));
+                }
+                finally
+                {
+                    statefulObject.ResetStateChanged();
+                }
+                return;
+            }
+
+            List<WfStateAction> onSetActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnSet, true);
+            List<WfStateAction> onLeaveActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnLeave, false);
+            statefulObject.ResetStateChanged();
+
+            await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, owner, ticketId, userGrpDn);
+            await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, owner, ticketId, userGrpDn);
+        }
+
+        private List<WfStateAction> StateActionsForEvent(WfStatefulObject statefulObject, WfObjectScopes scope, StateActionEvents actionEvent, bool currentState)
+        {
+            return [.. GetRelevantActions(statefulObject, scope, currentState).Where(action => action.Event == actionEvent.ToString())];
+        }
+
+        private async Task PerformStateActions(List<WfStateAction> actions, StateActionEvents actionEvent, WfStatefulObject statefulObject,
+            WfObjectScopes scope, FwoOwner? owner, long? ticketId, string? userGrpDn)
+        {
+            foreach (var action in actions.Where(IsActionInCurrentPhase))
+            {
+                string stateText = actionEvent == StateActionEvents.OnLeave ? statefulObject.ChangedFrom().ToString() : statefulObject.StateId.ToString();
+                Log.WriteDebug("DoStateChangeActions", $"Perform {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText}.");
+                await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+            }
+        }
+
+        private bool IsActionInCurrentPhase(WfStateAction action)
+        {
+            return action.Phase == "" || action.Phase == wfHandler.Phase.ToString();
         }
 
         public async Task DoOwnerChangeActions(WfStatefulObject statefulObject, FwoOwner? owner, long ticketId)
@@ -89,18 +121,37 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task DoOnAssignmentActions(WfStatefulObject statefulObject, string? userGrpDn)
+        public async Task DoOnAssignmentActions(WfStatefulObject statefulObject, WfObjectScopes scope, string? userGrpDn)
         {
-            List<WfStateAction> assignmentActions = GetRelevantActions(statefulObject, WfObjectScopes.None);
+            List<WfStateAction> assignmentActions = GetAssignmentActions(statefulObject, scope);
             foreach (var action in assignmentActions.Where(x => x.Event == StateActionEvents.OnAssignment.ToString()))
             {
-                await PerformAction(action, statefulObject, WfObjectScopes.None, null, null, userGrpDn);
+                await PerformAction(action, statefulObject, scope, null, null, userGrpDn);
             }
+        }
+
+        private List<WfStateAction> GetAssignmentActions(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            List<WfStateAction> actions = GetRelevantActions(statefulObject, scope);
+            actions.AddRange(GetRelevantActions(statefulObject, WfObjectScopes.None).Where(action => actions.All(existing => !IsSamePersistedAction(existing, action))));
+            return actions;
+        }
+
+        private static bool IsSamePersistedAction(WfStateAction firstAction, WfStateAction secondAction)
+        {
+            return firstAction.Id > 0 && firstAction.Id == secondAction.Id;
         }
 
         public async Task PerformAction(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
             FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
         {
+            if (scope != WfObjectScopes.None && !useInMwServer && wfHandler.MiddlewareClient != null && !WfStateAction.IsReadonlyType(action.ActionType))
+            {
+                Log.WriteDebug("PerformAction", $"Delegating action '{action.Name}' ({action.ActionType}) to middleware.");
+                await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId, action.Id));
+                return;
+            }
+
             switch (action.ActionType)
             {
                 case nameof(StateActionTypes.AutoPromote):
@@ -139,9 +190,154 @@ namespace FWO.Services.Workflow
                 case nameof(StateActionTypes.DisplayConnection):
                     await DisplayConnection(statefulObject, scope);
                     break;
+                case nameof(StateActionTypes.UpdateModelling):
+                    await SetScope(statefulObject, scope);
+                    UpdateModellingActionParams updateModellingParams = UpdateModellingActionParams.FromExternalParams(action.ExternalParams);
+                    int updatedModellingObjects = await UpdateModelling(updateModellingParams.ModellingState, statefulObject, scope, ticketId);
+                    if (updateModellingParams.ConfirmUiMessage)
+                    {
+                        wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("UpdateModelling"), $"{updatedModellingObjects}{wfHandler.userConfig.GetText("modelling_objects_updated")}", false);
+                    }
+                    break;
                 default:
                     break;
             }
+        }
+
+        public async Task<bool> PerformActionById(int actionId, WfStatefulObject statefulObject, WfObjectScopes scope,
+            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+        {
+            WfStateAction? action = GetOfferedActions(statefulObject, scope, wfHandler.Phase).FirstOrDefault(action => action.Id == actionId);
+            if (action == null)
+            {
+                Log.WriteError("Workflow Actions", $"Action id {actionId} is not offered for {scope} in state {statefulObject.StateId} and phase {wfHandler.Phase}.");
+                return false;
+            }
+            await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+            return true;
+        }
+
+        private WorkflowActionParameters BuildWorkflowActionParameters(WfStatefulObject statefulObject, WfObjectScopes scope, long? ticketId, int actionId = 0)
+        {
+            return new()
+            {
+                Scope = scope.ToString(),
+                ActionId = actionId,
+                ObjectId = GetStatefulObjectId(statefulObject, scope),
+                TicketId = GetTicketId(statefulObject, scope, ticketId),
+                OldStateId = statefulObject.StateChanged() ? statefulObject.ChangedFrom() : statefulObject.StateId,
+                NewStateId = statefulObject.StateId,
+                StateChangedByCreation = statefulObject.StateChangedByCreation(),
+                Phase = wfHandler.Phase.ToString()
+            };
+        }
+
+        private async Task ExecuteInMiddleware(WorkflowActionParameters parameters)
+        {
+            string delegationKey = BuildMiddlewareDelegationKey(parameters);
+            if (!TryRegisterMiddlewareDelegation(delegationKey))
+            {
+                Log.WriteDebug("Workflow Actions", $"Skipping duplicate middleware action execution. Scope: {parameters.Scope}, ActionId: {parameters.ActionId}, ObjectId: {parameters.ObjectId}, TicketId: {parameters.TicketId}, State: {parameters.OldStateId}->{parameters.NewStateId}, Phase: {parameters.Phase}.");
+                return;
+            }
+
+            Log.WriteDebug("Workflow Actions", $"Delegating action execution to middleware. Scope: {parameters.Scope}, ActionId: {parameters.ActionId}, ObjectId: {parameters.ObjectId}, TicketId: {parameters.TicketId}, State: {parameters.OldStateId}->{parameters.NewStateId}, Phase: {parameters.Phase}.");
+            try
+            {
+                RestResponse<WorkflowActionResult> response = await wfHandler.MiddlewareClient!.ExecuteWorkflowActions(parameters);
+                DisplayWorkflowActionMessages(response.Data?.Messages);
+                if (!response.IsSuccessful || response.Data?.Success != true)
+                {
+                    string details = response.Data?.ErrorMessage ?? response.ErrorMessage ?? response.Content ?? "";
+                    string message = $"Middleware execution failed. Status: {(int)response.StatusCode} {response.StatusDescription}. {details}";
+                    Log.WriteError("Workflow Actions", message);
+                    throw new InvalidOperationException(message);
+                }
+            }
+            finally
+            {
+                MarkMiddlewareDelegationDone(delegationKey);
+            }
+        }
+
+        private void DisplayWorkflowActionMessages(List<WorkflowActionMessage>? messages)
+        {
+            foreach (WorkflowActionMessage message in messages ?? [])
+            {
+                wfHandler.DisplayMessage(null, message.Title, message.Message, message.ErrorFlag);
+            }
+        }
+
+        private string BuildMiddlewareDelegationKey(WorkflowActionParameters parameters)
+        {
+            return $"{GetMiddlewareDelegationUserKey()}|{parameters.Scope}|{parameters.ActionId}|{parameters.ObjectId}|{parameters.TicketId}|{parameters.OldStateId}|{parameters.NewStateId}|{parameters.Phase}";
+        }
+
+        private string GetMiddlewareDelegationUserKey()
+        {
+            return wfHandler.AuthUser?.FindFirst("x-hasura-uuid")?.Value
+                ?? wfHandler.AuthUser?.Identity?.Name
+                ?? NoAuthUser;
+        }
+
+        private static bool TryRegisterMiddlewareDelegation(string delegationKey)
+        {
+            lock (MiddlewareDelegationLock)
+            {
+                DateTime now = DateTime.UtcNow;
+                foreach (string expiredKey in MiddlewareDelegations
+                    .Where(entry => now - entry.Value > MiddlewareDelegationDeduplicationWindow)
+                    .Select(entry => entry.Key)
+                    .ToList())
+                {
+                    MiddlewareDelegations.Remove(expiredKey);
+                }
+
+                if (MiddlewareDelegations.ContainsKey(delegationKey))
+                {
+                    return false;
+                }
+
+                MiddlewareDelegations[delegationKey] = now;
+                return true;
+            }
+        }
+
+        private static void MarkMiddlewareDelegationDone(string delegationKey)
+        {
+            lock (MiddlewareDelegationLock)
+            {
+                MiddlewareDelegations[delegationKey] = DateTime.UtcNow;
+            }
+        }
+
+        private long GetStatefulObjectId(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            return scope switch
+            {
+                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => ticket.Id,
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => reqTask.Id,
+                WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => implTask.Id,
+                WfObjectScopes.Approval when statefulObject is WfApproval approval => approval.Id,
+                _ => 0
+            };
+        }
+
+        private long GetTicketId(WfStatefulObject statefulObject, WfObjectScopes scope, long? ticketId)
+        {
+            if (ticketId != null)
+            {
+                return (long)ticketId;
+            }
+
+            return scope switch
+            {
+                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => ticket.Id,
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => reqTask.TicketId,
+                WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => implTask.TicketId,
+                WfObjectScopes.Approval => wfHandler.ActTicket.Id,
+                _ => 0
+            };
         }
 
         public async Task CallExternal(WfStateAction action)
@@ -152,28 +348,71 @@ namespace FWO.Services.Workflow
         public async Task SendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
         {
             Log.WriteDebug("SendEmail", "Perform Action");
+            EmailActionParams? emailActionParams = null;
             try
             {
-                EmailActionParams emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
+                emailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
                 List<FwoNotification> actionNotifications = await ResolveActionNotifications(emailActionParams);
+                int sentEmailCount = 0;
+                List<int> sentNotificationIds = [];
                 foreach (FwoNotification actionNotification in actionNotifications)
                 {
                     await SetScope(statefulObject, scope, actionNotification);
-                    EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, DefaultInit.DoNothing, UserGroups, useInMwServer);
-                    await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc);
-                    if (owner != null)
+                    WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams.AttachedContent, statefulObject, scope);
+                    EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, wfHandler.DisplayMessage, UserGroups, useInMwServer, workflowRecipientResolver);
+                    await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc);
+                    WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
+                    if (await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, userGrpDn, workflowContent, placeholderObject))
                     {
-                        await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner);
-                    }
-                    else if (userGrpDn != null)
-                    {
-                        await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, null, userGrpDn);
+                        ++sentEmailCount;
+                        if (actionNotification.Id > 0)
+                        {
+                            sentNotificationIds.Add(actionNotification.Id);
+                        }
                     }
                 }
+                await UpdateSentNotificationTimestamps(sentNotificationIds);
+                Log.WriteInfo("SendEmail", $"Sent {sentEmailCount} workflow action email(s).");
+                DisplaySentEmailConfirmation(emailActionParams, sentEmailCount);
             }
             catch (Exception exc)
             {
                 Log.WriteError("Send Email", $"Could not send email: ", exc);
+                if (emailActionParams?.ConfirmSentMail ?? false)
+                {
+                    wfHandler.DisplayMessage(exc, wfHandler.userConfig.GetText("send_email"), "", true);
+                }
+            }
+        }
+
+        private void DisplaySentEmailConfirmation(EmailActionParams emailActionParams, int sentEmailCount)
+        {
+            if (emailActionParams.ConfirmSentMail && sentEmailCount > 0)
+            {
+                wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("send_email"), $"{sentEmailCount}{wfHandler.userConfig.GetText("emails_sent")}", false);
+            }
+        }
+
+        private async Task UpdateSentNotificationTimestamps(List<int> notificationIds)
+        {
+            List<int> distinctNotificationIds = [.. notificationIds.Where(id => id > 0).Distinct()];
+            if (distinctNotificationIds.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationsLastSent,
+                    new { ids = distinctNotificationIds, lastSent = DateTime.Now })).AffectedRows;
+                if (affectedRows != distinctNotificationIds.Count)
+                {
+                    Log.WriteWarning("SendEmail", $"Updated last_sent for {affectedRows} of {distinctNotificationIds.Count} workflow action notification(s).");
+                }
+            }
+            catch (Exception exc)
+            {
+                Log.WriteWarning("SendEmail", $"Could not update last_sent for workflow action notification(s): {exc.Message}");
             }
         }
 
@@ -196,177 +435,46 @@ namespace FWO.Services.Workflow
             return [emailActionParams.ToNotification()];
         }
 
-        public async Task UpdateConnectionOwner(FwoOwner? owner, long? ticketId)
+        private async Task<WorkflowEmailContent?> CreateWorkflowEmailContent(EmailAttachedContent attachedContent, WfStatefulObject statefulObject, WfObjectScopes scope)
         {
-            Log.WriteDebug("UpdateConnectionOwner", "Perform Action");
-            try
+            if (attachedContent != EmailAttachedContent.RequestedConnections)
             {
-                if (owner != null && ticketId != null) // todo: role check
-                {
-                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
-                    {
-                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
-                        foreach (var conn in Connections)
-                        {
-                            if (conn.IsRequested)
-                            {
-                                var Variables = new
-                                {
-                                    id = conn.Id,
-                                    propAppId = owner.Id
-                                };
-                                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateProposedConnectionOwner, Variables);
-                                await ModellingHandlerBase.LogChange(new LogChangeRequest
-                                {
-                                    ChangeType = ModellingTypes.ChangeType.Update,
-                                    ObjectType = ModellingTypes.ModObjectType.Connection,
-                                    ObjectId = conn.Id,
-                                    Text = $"Updated {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
-                                    ApiConnection = apiConnection,
-                                    UserConfig = wfHandler.userConfig,
-                                    ApplicationId = owner.Id,
-                                    DisplayMessageInUi = DefaultInit.DoNothing
-                                });
-                            }
-                        }
-                    });
-                }
+                return null;
             }
-            catch (Exception exc)
-            {
-                Log.WriteError("Update Connection Owner", $"Could not change owner: ", exc);
-            }
-        }
 
-        public async Task UpdateConnectionPublish(FwoOwner? owner, long? ticketId)
-        {
-            Log.WriteDebug("UpdateConnectionPublish", "Perform Action");
-            try
+            return scope switch
             {
-                if (owner != null && ticketId != null) // todo: role check
-                {
-                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
-                    {
-                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
-                        foreach (var conn in Connections)
-                        {
-                            if (conn.IsRequested && !conn.IsPublished)
-                            {
-                                await PublishInterface(conn, owner);
-                            }
-                        }
-                    });
-                }
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Update Connection Publish", $"Could not publish connection: ", exc);
-            }
-        }
-
-        private async Task PublishInterface(ModellingConnection conn, FwoOwner owner)
-        {
-            if (conn.AppId == null && conn.ProposedAppId != null)
-            {
-                conn.AppId = conn.ProposedAppId;
-                conn.ProposedAppId = null;
-            }
-            var Variables = new
-            {
-                id = conn.Id,
-                isRequested = false,
-                isPublished = true,
-                appId = conn.AppId,
-                proposedAppId = conn.ProposedAppId
+                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => WorkflowEmailContent.FromRequestTasks((await GetTicketForEmailContent(ticket)).Tasks, wfHandler.userConfig),
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => WorkflowEmailContent.FromRequestTasks([reqTask], wfHandler.userConfig),
+                WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => WorkflowEmailContent.FromImplementationTasks([implTask], wfHandler.userConfig),
+                WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => WorkflowEmailContent.FromRequestTasks([wfHandler.ActReqTask], wfHandler.userConfig),
+                _ => null
             };
-            await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionPublish, Variables);
-            await ModellingHandlerBase.LogChange(new LogChangeRequest
-            {
-                ChangeType = ModellingTypes.ChangeType.Publish,
-                ObjectType = ModellingTypes.ModObjectType.Connection,
-                ObjectId = conn.Id,
-                Text = $"Published {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
-                ApiConnection = apiConnection,
-                UserConfig = wfHandler.userConfig,
-                ApplicationId = owner.Id,
-                DisplayMessageInUi = DefaultInit.DoNothing
-            });
         }
 
-        public async Task UpdateConnectionReject(FwoOwner? owner, long? ticketId)
+        private async Task<WfTicket> GetTicketForEmailContent(WfTicket ticket)
         {
-            Log.WriteDebug("UpdateConnectionReject", "Perform Action");
+            if (ticket.Id <= 0)
+            {
+                return ticket;
+            }
+
             try
             {
-                if (owner != null && ticketId != null)
-                {
-                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
-                    {
-                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
-                        foreach (var conn in Connections)
-                        {
-                            if (conn.IsRequested)
-                            {
-                                conn.AddProperty(ConState.Rejected.ToString());
-                                var Variables = new
-                                {
-                                    id = conn.Id,
-                                    connProp = conn.Properties
-                                };
-                                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, Variables);
-                                await ModellingHandlerBase.LogChange(new LogChangeRequest
-                                {
-                                    ChangeType = ModellingTypes.ChangeType.Reject,
-                                    ObjectType = ModellingTypes.ModObjectType.Connection,
-                                    ObjectId = conn.Id,
-                                    Text = $"Rejected {(conn.IsInterface ? "Interface" : "Connection")}: {conn.Name}",
-                                    ApiConnection = apiConnection,
-                                    UserConfig = wfHandler.userConfig,
-                                    ApplicationId = owner.Id,
-                                    DisplayMessageInUi = DefaultInit.DoNothing
-                                });
-                            }
-                        }
-                    });
-                }
+                WfTicket fullTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticket.Id });
+                fullTicket.UpdateCidrsInTaskElements();
+                return fullTicket.Id > 0 ? fullTicket : ticket;
             }
             catch (Exception exc)
             {
-                Log.WriteError("Reject Connection", $"Could not change state: ", exc);
+                Log.WriteWarning("SendEmail", $"Could not load full ticket {ticket.Id} for workflow email content. Falling back to current ticket data. {exc.Message}");
+                return ticket;
             }
         }
 
-        public async Task DisplayConnection(WfStatefulObject statefulObject, WfObjectScopes scope)
+        private WfStatefulObject WorkflowPlaceholderObject(WfStatefulObject statefulObject)
         {
-            try
-            {
-                Log.WriteDebug("DisplayConnection", "Perform Action");
-                await SetScope(statefulObject, scope);
-                WfReqTask? reqTask = wfHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
-                if (reqTask != null)
-                {
-                    wfHandler.SetReqTaskEnv(reqTask);
-                }
-                FwoOwner? owner = wfHandler.ActReqTask.Owners?.FirstOrDefault()?.Owner;
-                if (owner != null && wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
-                {
-                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin, Roles.Auditor], async () =>
-                    {
-                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner.Id });
-                        ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
-                        if (conn != null)
-                        {
-                            ConnHandler = new ModellingConnectionHandler(apiConnection, wfHandler.userConfig, owner, Connections, conn, false, true, DefaultInit.DoNothing, DefaultInit.DoNothing, false);
-                            await ConnHandler.Init();
-                            DisplayConnectionMode = true;
-                        }
-                    });
-                }
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Display Connection", $"Could not display: ", exc);
-            }
+            return wfHandler.ActTicket.Id > 0 ? wfHandler.ActTicket : statefulObject;
         }
 
         public async Task SetAlert(string? description)
@@ -521,27 +629,33 @@ namespace FWO.Services.Workflow
             ScopedUserTo = null;
             ScopedUserCc = null;
             ScopedUserBcc = null;
+            ScopedUserEmailTo = null;
+            ScopedUserEmailCc = null;
+            ScopedUserEmailBcc = null;
             switch (scope)
             {
                 case WfObjectScopes.Ticket:
                     wfHandler.SetTicketEnv((WfTicket)statefulObject);
                     SetCommenter(notification, wfHandler.ActTicket.Comments);
-                    SetScopedRecipients(notification, EmailRecipientOption.Requester, wfHandler.ActTicket.Requester?.Dn);
+                    SetScopedRecipients(notification, EmailRecipientOption.Requester, GetRequesterDn(), GetRequesterEmail());
                     break;
                 case WfObjectScopes.RequestTask:
                     wfHandler.SetReqTaskEnv((WfReqTask)statefulObject);
                     SetCommenter(notification, wfHandler.ActReqTask.Comments);
+                    SetScopedRecipients(notification, EmailRecipientOption.Requester, GetRequesterDn(), GetRequesterEmail());
                     break;
                 case WfObjectScopes.ImplementationTask:
                     wfHandler.SetImplTaskEnv((WfImplTask)statefulObject);
                     SetCommenter(notification, wfHandler.ActImplTask.Comments);
+                    SetScopedRecipients(notification, EmailRecipientOption.Requester, GetRequesterDn(), GetRequesterEmail());
                     break;
                 case WfObjectScopes.Approval:
                     if (wfHandler.SetReqTaskEnv(((WfApproval)statefulObject).TaskId))
                     {
                         await wfHandler.SetApprovalEnv(null, false);
                         SetCommenter(notification, wfHandler.ActApproval.Comments);
-                        SetScopedRecipients(notification, EmailRecipientOption.Approver, wfHandler.ActApproval.ApproverDn);
+                        SetScopedRecipients(notification, EmailRecipientOption.Approver, wfHandler.ActApproval.ApproverDn, null);
+                        SetScopedRecipients(notification, EmailRecipientOption.Requester, GetRequesterDn(), GetRequesterEmail());
                     }
                     break;
                 default:
@@ -549,28 +663,46 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private void SetScopedRecipients(FwoNotification? notification, EmailRecipientOption recipientOption, string? userDn)
+        private string? GetRequesterDn()
+        {
+            return !string.IsNullOrWhiteSpace(wfHandler.ActTicket.Requester?.Dn) ? wfHandler.ActTicket.Requester.Dn : wfHandler.ActTicket.RequesterDn;
+        }
+
+        private string? GetRequesterEmail()
+        {
+            return wfHandler.ActTicket.Requester?.Email;
+        }
+
+        private void SetScopedRecipients(FwoNotification? notification, EmailRecipientOption recipientOption, string? userDn, string? userEmail)
         {
             if (notification?.RecipientTo == recipientOption)
             {
                 ScopedUserTo = userDn;
+                ScopedUserEmailTo = userEmail;
             }
             if (notification?.RecipientCc == recipientOption)
             {
                 ScopedUserCc = userDn;
+                ScopedUserEmailCc = userEmail;
             }
             if (notification?.RecipientBcc == recipientOption)
             {
                 ScopedUserBcc = userDn;
+                ScopedUserEmailBcc = userEmail;
             }
         }
 
         private void SetCommenter(FwoNotification? notification, List<WfCommentDataHelper> comments)
         {
-            string? lastCommenterDn = comments.Count > 0 ? comments.Last().Comment.Creator.Dn : null;
+            UiUser? lastCommenter = comments.Count > 0 ? comments.Last().Comment.Creator : null;
+            string? lastCommenterDn = lastCommenter?.Dn;
+            string? lastCommenterEmail = lastCommenter?.Email;
             ScopedUserTo = notification?.RecipientTo == EmailRecipientOption.LastCommenter ? lastCommenterDn : null;
             ScopedUserCc = notification?.RecipientCc == EmailRecipientOption.LastCommenter ? lastCommenterDn : null;
             ScopedUserBcc = notification?.RecipientBcc == EmailRecipientOption.LastCommenter ? lastCommenterDn : null;
+            ScopedUserEmailTo = notification?.RecipientTo == EmailRecipientOption.LastCommenter ? lastCommenterEmail : null;
+            ScopedUserEmailCc = notification?.RecipientCc == EmailRecipientOption.LastCommenter ? lastCommenterEmail : null;
+            ScopedUserEmailBcc = notification?.RecipientBcc == EmailRecipientOption.LastCommenter ? lastCommenterEmail : null;
         }
     }
 }

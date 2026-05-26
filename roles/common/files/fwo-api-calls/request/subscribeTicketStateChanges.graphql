@@ -4,9 +4,12 @@ subscription subscribeTicketStateChanges ($id: bigint!){
     date_created
     date_completed
     state_id
-    requester: uiuser {
-      uiuser_id
-      uiuser_username
-    }
+  requester: uiuser {
+    uiuser_id
+    uuid
+    uiuser_username
+    uiuser_email
+  }
+  requester_dn
   }
 }

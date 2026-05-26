@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -49,8 +50,8 @@ namespace FWO.Data.Workflow
             {
                 foreach (WfReqElement elem in reqtask.Elements)
                 {
-                    elem.IpString = elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString : null;
-                    elem.IpEnd = elem.CidrEnd != null && elem.CidrEnd.Valid ? elem.CidrEnd.CidrString : null;
+                    elem.IpString = elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString.StripOffUnnecessaryNetmask() : null;
+                    elem.IpEnd = elem.CidrEnd != null && elem.CidrEnd.Valid ? elem.CidrEnd.CidrString.StripOffUnnecessaryNetmask() : null;
                 }
             }
         }
@@ -71,6 +72,23 @@ namespace FWO.Data.Workflow
                     }
                 }
                 UpdateCidrsInImplTaskElements(reqtask.ImplementationTasks);
+            }
+        }
+
+        public void ResetStateChangeTracking()
+        {
+            ResetStateChanged();
+            foreach (WfReqTask reqTask in Tasks)
+            {
+                reqTask.ResetStateChanged();
+                foreach (WfApproval approval in reqTask.Approvals)
+                {
+                    approval.ResetStateChanged();
+                }
+                foreach (WfImplTask implTask in reqTask.ImplementationTasks)
+                {
+                    implTask.ResetStateChanged();
+                }
             }
         }
 

@@ -59,6 +59,23 @@ namespace FWO.Test
             {"change_type","Change Type"},
             {"number","No."},
             {"name","Name"},
+            {"modIntegrationStates","Integration States"},
+            {"modIntegrationStateMarker","State Marker"},
+            {"monitor_status","Monitor status"},
+            {"monitor_status_none","None"},
+            {"monitor_status_request_running","Request running"},
+            {"monitor_status_implemented","Implemented"},
+            {"monitor_status_rejected","Rejected"},
+            {"include_into_request","Include into request"},
+            {"request_fw_change","Request firewall changes"},
+            {"request_running","Request running"},
+            {"changes_not_requested","Changes not requested"},
+            {"all_implemented","All implemented"},
+            {"rejections","Rejections"},
+            {"last_requested","Last Requested"},
+            {"UpdateModelling","Update Modelling"},
+            {"none","None"},
+            {"H5529","Update Modelling"},
             {"source_zone","Source Zone"},
             {"source","Source"},
             {"destination_zone","Destination Zone"},
@@ -72,6 +89,8 @@ namespace FWO.Test
             {"type","Type"},
             {"ip_address","IP Address"},
             {"members","Members"},
+            {"requested_connections","Requested Connections"},
+            {"group_requests","Group Requests"},
             {"network_objects","Network Objects"},
             {"network_services","Network Services"},
             {"protocol","Protocol"},
@@ -98,6 +117,7 @@ namespace FWO.Test
             {"is_in_use","Is in use"},
             {"devices","Devices"},
             {"owners","Owners"},
+            {"requests","Requests"},
             {"filter","Filter"},
             {"statistics","Statistics"},
             {"id","Id"},
@@ -208,6 +228,10 @@ namespace FWO.Test
             {"requested_ext_app_id","Requested Ext App Id" },
             {"requested_interface","Requested Interface" },
             {"display_ticket","Display Ticket" },
+            {"ext_ticket_number","External ticket number" },
+            {"group_create","Create Group" },
+            {"group_modify","Modify Group" },
+            {"group_delete","Delete Group" },
             {"creation_date","Creation Date" },
             {"reason","Reason" },
             {"all_open","All Open" },
@@ -253,6 +277,12 @@ namespace FWO.Test
             {"E9021","Interface permission required" },
             {"decomm_interface","Decommission Interface" },
             {"send_email","Send Email"},
+            {"confirm_sent_mail","Confirm sent email via UI message"},
+            {"confirm_modelling_update","Confirm modelling update via UI message"},
+            {"modelling_objects_updated"," modelling objects updated"},
+            {"H5530","Confirm sent email via UI message: After successful sending, the action shows a UI message with the number of sent emails."},
+            {"H5534","Confirm modelling update via UI message: After a successful update, the action shows a UI message with the number of updated modelling objects."},
+            {"emails_sent"," emails sent"},
             {"U9033","Emails sent to @@OK_NUMBER@@ owners."},
             {"E9019","Email could not be sent to @@FAIL_NUMBER@@ owners."},
             {"notification","Notification" },
@@ -305,6 +335,7 @@ namespace FWO.Test
             {"confirm","Confirm"},
             {"delete","Delete"},
             {"remove","Remove"},
+            {"close","Close"},
             {"PagerPagesize","Page size"},
             {"PagerSubmit","Apply"},
             {"loading","Loading"},
@@ -412,12 +443,14 @@ namespace FWO.Test
             {"H1520","Show full ticket tooltip"},
             {"H1521","Phase tooltip"},
             {"H1524","Detailed view tooltip"},
-            {"detailed_view","Detailed View"}
+            {"detailed_view","Detailed View"},
+            {"task","Task"},
+            {"U9026","Nothing to request!"}
         };
 
         public override string GetText(string key)
         {
-            return DummyTranslate[key];
+            return DummyTranslate.TryGetValue(key, out string? value) ? value : key;
         }
 
         public static ConfigItem[] GetAsConfigs()

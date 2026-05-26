@@ -178,7 +178,7 @@
 </PopUp>
 
 <PromoteObject @bind-Promote="WfHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.SaveTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.PromoteTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="PromoteTicketForPhase" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
 
 
 @code
@@ -270,11 +270,18 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        if(WfHandler.ActionHandler != null)
+        try
         {
-            await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+            if(WfHandler.ActionHandler != null)
+            {
+                await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+            }
+            await ResetParent();
         }
-        await ResetParent();
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
+        }
     }
 
     private bool CheckPromoteTicket()
@@ -311,6 +318,18 @@
     private void InitPromoteTicket()
     {
         WfHandler.SetTicketPopUpOpt(ObjAction.displayPromote);
+    }
+
+    private async Task PromoteTicketForPhase(WfStatefulObject ticket)
+    {
+        if (Phase == WorkflowPhases.request)
+        {
+            await WfHandler.PromoteTicketAndTasks(ticket);
+        }
+        else
+        {
+            await WfHandler.PromoteTicket(ticket);
+        }
     }
 
     private async Task InitSaveTicket()

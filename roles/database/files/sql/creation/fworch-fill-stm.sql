@@ -104,6 +104,9 @@ insert into config (config_key, config_value, config_user) VALUES ('modDecommEma
 insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailOtherAddresses', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailSubject', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailBody', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modIntegrationMode', 'FullyIntegrated', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modIntegrationStates', '[]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modIntegrationStateMarker', 'ImplementationState', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutActive', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutResolveServiceGroups', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutBundleTasks', 'false', 0);

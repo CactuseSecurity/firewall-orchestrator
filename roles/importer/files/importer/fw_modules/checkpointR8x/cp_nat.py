@@ -97,15 +97,20 @@ def insert_parent_nat_rulebase(
     import_state: ImportState,
     normalized_config: dict[str, Any],
 ) -> Rulebase:
+    nat_rulebase_uid = "nat-rulebase-" + gateway["uid"]
+    existing_nat_rulebase = next((rb for rb in normalized_config["policies"] if rb.uid == nat_rulebase_uid), None)
+
+    if existing_nat_rulebase is not None:
+        return existing_nat_rulebase
+
     normalized_nat_rulebase = Rulebase(
-        uid="nat-rulebase-" + gateway["uid"],
+        uid=nat_rulebase_uid,
         mgm_uid=import_state.mgm_details.uid,
         name="NAT",
         rules={},
     )
 
-    if not any(rb for rb in normalized_config["policies"] if rb.uid == normalized_nat_rulebase.uid):
-        normalized_config["policies"].append(normalized_nat_rulebase)
+    normalized_config["policies"].append(normalized_nat_rulebase)
 
     return normalized_nat_rulebase
 
@@ -231,7 +236,7 @@ def parse_nat_rule_transform(nat_rule: dict[str, Any]) -> tuple[dict[str, Any], 
         "destination-negate": False,
         "service-negate": False,
         "install-on": nat_rule["install-on"],
-        "time": "",
+        "time": nat_rule.get("time", ""),
         "enabled": nat_rule["enabled"],
         "comments": nat_rule["comments"],
         "nat_rule": True,

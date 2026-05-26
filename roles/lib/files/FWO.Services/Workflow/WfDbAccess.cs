@@ -321,8 +321,7 @@ namespace FWO.Services.Workflow
                 ["reason"] = reqtask.Reason,
                 ["additionalInfo"] = reqtask.AdditionalInfo,
                 ["freeText"] = reqtask.FreeText,
-                ["managementId"] = reqtask.ManagementId,
-                ["flowAccessId"] = reqtask.FlowAccessId
+                ["managementId"] = reqtask.ManagementId
             };
         }
 

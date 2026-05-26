@@ -13,7 +13,6 @@ mutation updateRequestTask(
   $freeText: String
   $devices: String
   $managementId: Int
-  $flowAccessId: bigint
   ) {
   update_request_reqtask_by_pk(
     pk_columns: { id: $id }
@@ -31,7 +30,6 @@ mutation updateRequestTask(
     free_text: $freeText
     devices: $devices
     mgm_id: $managementId
-    flow_access_id: $flowAccessId
   }) {
     UpdatedIdLong: id
   }

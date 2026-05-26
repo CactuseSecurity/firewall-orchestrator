@@ -308,6 +308,12 @@ namespace FWO.Services.Workflow
             {
                 return TryBuildNetworkGroupReference(snapshot.FlowNetworkGroupId.Value, context);
             }
+            if (snapshot.OriginalNetworkObjectId.HasValue
+                && context.NwObjectHashes.TryGetValue(snapshot.OriginalNetworkObjectId.Value, out string? originalObjectHash)
+                && context.NwObjects.TryGetValue(originalObjectHash, out FlowNwObject? originalFlowObject))
+            {
+                return FlowNetworkReference.FromObject(originalFlowObject!);
+            }
             if (allowGroupNameReference && IsNetworkGroupReference(snapshot) && groupMaps.NetworkGroups.TryGetValue(snapshot.GroupName!, out FlowNetworkReference? mappedGroup))
             {
                 return mappedGroup;
@@ -387,6 +393,12 @@ namespace FWO.Services.Workflow
             if (snapshot.FlowServiceGroupId.HasValue)
             {
                 return TryBuildServiceGroupReference(snapshot.FlowServiceGroupId.Value, context);
+            }
+            if (snapshot.OriginalServiceId.HasValue
+                && context.SvcObjectHashes.TryGetValue(snapshot.OriginalServiceId.Value, out string? originalServiceHash)
+                && context.SvcObjects.TryGetValue(originalServiceHash, out FlowSvcObject? originalFlowObject))
+            {
+                return FlowServiceReference.FromObject(originalFlowObject!);
             }
             if (allowGroupNameReference && IsServiceGroupReference(snapshot) && groupMaps.ServiceGroups.TryGetValue(snapshot.GroupName!, out FlowServiceReference? mappedGroup))
             {

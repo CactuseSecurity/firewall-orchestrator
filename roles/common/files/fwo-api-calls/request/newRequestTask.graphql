@@ -13,7 +13,6 @@ mutation newRequestTask(
   $additionalInfo: String
   $freeText: String
   $managementId: Int
-  $flowAccessId: bigint
   ) {
   insert_request_reqtask(objects: {
     title: $title
@@ -30,7 +29,6 @@ mutation newRequestTask(
     additional_info: $additionalInfo
     free_text: $freeText
     mgm_id: $managementId
-    flow_access_id: $flowAccessId
   }) {
     returning {
       newIdLong: id

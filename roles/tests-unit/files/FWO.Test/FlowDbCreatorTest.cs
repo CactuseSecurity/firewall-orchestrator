@@ -497,6 +497,43 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateFlowInFlowDb_ResolvesSelectedObjectsAndServicesThroughFlowSyncMappings()
+        {
+            const string sourceHash = "source-hash";
+            const string destinationHash = "destination-hash";
+            const string serviceHash = "service-hash";
+            FlowDbCreatorTestApiConn apiConn = new();
+            apiConn.ExistingNetworkObjects.Add(new FlowNwObject { Id = 10, Hash = sourceHash, Objects = [new NetworkObject { Id = 501 }] });
+            apiConn.ExistingNetworkObjects.Add(new FlowNwObject { Id = 11, Hash = destinationHash, Objects = [new NetworkObject { Id = 502 }] });
+            apiConn.ExistingServiceObjects.Add(new FlowSvcObject { Id = 20, Hash = serviceHash, Services = [new NetworkService { Id = 601 }] });
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            WfReqElement source = task.Elements.Single(element => element.Field == ElemFieldType.source.ToString());
+            source.NetworkId = 501;
+            source.IpString = "";
+            source.IpEnd = "";
+            WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.NetworkId = 502;
+            destination.IpString = "";
+            destination.IpEnd = "";
+            WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            service.ServiceId = 601;
+            service.ProtoId = null;
+            service.Port = null;
+            service.PortEnd = null;
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedNetworkObjects, Is.Empty);
+            Assert.That(apiConn.InsertedServiceObjects, Is.Empty);
+            Assert.That(((NwRef)apiConn.InsertedAccess!.AccessSources!.Data.Single()).NwObjId, Is.EqualTo(10));
+            Assert.That(((NwRef)apiConn.InsertedAccess.AccessDestinations!.Data.Single()).NwObjId, Is.EqualTo(11));
+            Assert.That(((SvcRef)apiConn.InsertedAccess.AccessServices!.Data.Single()).SvcObjId, Is.EqualTo(20));
+            Assert.That(apiConn.UpdatedRequestTaskIds, Is.EqualTo(new List<long> { 11 }));
+        }
+
+        [Test]
         public async Task CreateFlowInFlowDb_UsesFallbackNamesForInsertedObjects()
         {
             FlowDbCreatorTestApiConn apiConn = new();

@@ -32644,7 +32644,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ]
                   },
                   "comment": ""
@@ -32670,7 +32674,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ]
                   },
                   "comment": ""
@@ -32696,7 +32704,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ]
                   }
                 }
@@ -33047,7 +33059,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {},
                     "check": null
@@ -33087,7 +33103,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {},
                     "check": null

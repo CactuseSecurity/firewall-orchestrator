@@ -1,10 +1,12 @@
 mutation addStateAction(
   $stateId: Int!
   $actionId: Int!
+  $sortOrder: Int
   ) {
   insert_request_state_action(objects: {
     state_id: $stateId
     action_id: $actionId
+    sort_order: $sortOrder
   }) {
     returning {
       newId: action_id

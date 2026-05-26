@@ -1,0 +1,14 @@
+
+query getLatestOwnerTickets {
+  owner_ticket (distinct_on: owner_id, order_by: [{ owner_id: asc }, { ticket_id: desc }]){
+    owner: owner {
+      id
+      name
+      app_id_external
+      common_service_possible
+    }
+    ticket: ticket {
+      ...ticketOverview
+    }
+  }
+}

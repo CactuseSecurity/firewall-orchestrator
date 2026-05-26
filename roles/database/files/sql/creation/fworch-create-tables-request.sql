@@ -160,7 +160,8 @@ create table request.action
 create table request.state_action
 (
     state_id int,
-    action_id int
+    action_id int,
+    sort_order int default 0
 );
 
 create table request.implelement

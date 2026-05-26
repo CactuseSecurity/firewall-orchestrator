@@ -19,11 +19,13 @@ fragment implTaskDetails on request_impltask {
     uiuser_id
     uuid
     uiuser_username
+    uiuser_email
   }
   recent_handler: uiuser {
     uiuser_id
     uuid
     uiuser_username
+    uiuser_email
   }
   target_begin_date
   target_end_date

@@ -13,7 +13,7 @@
         <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
         @if(ownerList.Count == 1)
         {
-            <label class="col-form-label mb-3 text-white">@((MarkupString)ModellingFilter.SelectedOwner.Display(userConfig.GetText("common_service")))</label>
+            <label class="col-form-label mb-3 text-white">@((MarkupString)(ModellingFilter.SelectedOwner.Display(userConfig.GetText("common_service")) ?? string.Empty))</label>
         }
         else
         {
@@ -47,10 +47,10 @@
         }
         else
         {
-            <Dropdown ElementType="OwnerRecertification" ElementToString="@(o => o.RecertDate?.ToString("yyyy-MM-dd HH:mm:ss"))" Nullable="true" 
+            <Dropdown ElementType="OwnerRecertification" ElementToString="@(o => o.RecertDate?.ToString("yyyy-MM-dd HH:mm:ss") ?? string.Empty)" Nullable="true" 
                     SelectedElement="selectedOwnerRecert" SelectedElementChanged="OwnerRecertChanged" Elements="ownerRecerts">
                 <ElementTemplate Context="rec">
-                    @(rec.RecertDate?.ToString("yyyy-MM-dd HH:mm:ss"))
+                    @(rec.RecertDate?.ToString("yyyy-MM-dd HH:mm:ss") ?? string.Empty)
                 </ElementTemplate>
             </Dropdown>
         }

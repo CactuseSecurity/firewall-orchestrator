@@ -44,6 +44,7 @@ namespace FWO.Data.Workflow
         private int stateId;
         private int oldStateId;
         private bool stateChanged = false;
+        private bool stateChangedByCreation = false;
         private string? optComment;
 
         public string? OptComment()
@@ -66,10 +67,24 @@ namespace FWO.Data.Workflow
             return oldStateId;
         }
 
+        public bool StateChangedByCreation()
+        {
+            return stateChangedByCreation;
+        }
+
+        public void MarkCreatedStateChanged(int newStateId)
+        {
+            StateId = 0;
+            ResetStateChanged();
+            StateId = newStateId;
+            stateChangedByCreation = true;
+        }
+
         public void ResetStateChanged()
         {
             oldStateId = stateId;
             stateChanged = false;
+            stateChangedByCreation = false;
         }
 
         public WfStatefulObject()
@@ -80,6 +95,7 @@ namespace FWO.Data.Workflow
             stateId = obj.stateId;
             oldStateId = obj.oldStateId;
             stateChanged = obj.stateChanged;
+            stateChangedByCreation = obj.stateChangedByCreation;
             optComment = obj.optComment;
             CurrentHandler = obj.CurrentHandler;
             RecentHandler = obj.RecentHandler;

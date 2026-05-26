@@ -5,8 +5,13 @@ fragment ticketOverview on request_ticket {
   date_completed
   state_id
   requester: uiuser {
+    uiuser_id
+    uuid
     uiuser_username
+    uiuser_email
   }
+  requester_dn
+  requester_group
   reason
   external_ticket_id
   external_ticket_source

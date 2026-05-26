@@ -613,3 +613,6 @@ A complete 80K lines rework of FWO, including
 - fixes time zone issues with checkpoint time objects
 - fixes python tests failing on python 3.10
 - fixes owner import from custom file
+
+### 9.1.2 - 26.05.2026
+- database: fix flow foreign key duplication on fresh install plus upgrade path

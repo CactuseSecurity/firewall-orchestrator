@@ -21,8 +21,8 @@ class TestGetFwoJwt:
         mocker: MockerFixture,
     ):
         # Arrange
-        expected_value = "mocked_value"
-        mock_login(mocker, return_value=expected_value)
+        expected_value = "not-a-real-token-for-tests"
+        mock_login(mocker, return_value={"AccessToken": expected_value})
 
         # Act
         api = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api", "")

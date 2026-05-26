@@ -55,12 +55,9 @@ namespace FWO.Middleware.Server
             string importSourcePath = ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
             List<string> validatedImportFiles = ValidateConfiguredImportSource(importSourcePath);
             string scriptPath = importSourcePath + ".py";
-            if (validatedImportFiles.Contains(scriptPath))
+            if (validatedImportFiles.Contains(scriptPath) && !RunImportScript(scriptPath, null))
             {
-                if (!RunImportScript(scriptPath, null))
-                {
-                    Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
-                }
+                Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
             }
 
             try

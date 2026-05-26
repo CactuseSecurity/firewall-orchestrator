@@ -377,7 +377,7 @@ namespace FWO.Services.Workflow
             }
 
             BundleTasksActionParams bundleParams = BundleTasksActionParams.FromExternalParams(action.ExternalParams);
-            Dictionary<long, string> bundleAssignments = new RequestTaskBundler().BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType, owner);
+            Dictionary<long, string> bundleAssignments = new RequestTaskBundler().BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType);
             foreach (WfReqTask reqTask in ticket.Tasks.Where(task => task.Id > 0))
             {
                 string currentBundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);

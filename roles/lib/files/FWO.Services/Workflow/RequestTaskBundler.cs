@@ -1,4 +1,3 @@
-using FWO.Data;
 using FWO.Data.Workflow;
 
 namespace FWO.Services.Workflow
@@ -7,19 +6,19 @@ namespace FWO.Services.Workflow
     {
         private const string BundleIdPrefix = "bundle-";
 
-        public Dictionary<long, string> BuildBundleAssignments(IEnumerable<WfReqTask> requestTasks, BundleTaskType bundleType, FwoOwner? owner = null)
+        public Dictionary<long, string> BuildBundleAssignments(IEnumerable<WfReqTask> requestTasks, BundleTaskType bundleType)
         {
             return bundleType switch
             {
-                BundleTaskType.TwoOutOfThree => BuildTwoOutOfThreeAssignments(requestTasks, owner),
+                BundleTaskType.TwoOutOfThree => BuildTwoOutOfThreeAssignments(requestTasks),
                 _ => []
             };
         }
 
-        private Dictionary<long, string> BuildTwoOutOfThreeAssignments(IEnumerable<WfReqTask> requestTasks, FwoOwner? owner = null)
+        private Dictionary<long, string> BuildTwoOutOfThreeAssignments(IEnumerable<WfReqTask> requestTasks)
         {
             Dictionary<long, string> assignments = [];
-            foreach (RequestTaskBundleSignature signature in BundleTwoOutOfThree(requestTasks.Select(task => RequestTaskBundleSignature.FromTask(task, owner?.Id)))
+            foreach (RequestTaskBundleSignature signature in BundleTwoOutOfThree(requestTasks.Select(RequestTaskBundleSignature.FromTask))
                 .Where(signature => signature.RequestTaskIds.Count > 1))
             {
                 List<long> taskIds = [.. signature.RequestTaskIds.Distinct().Order()];
@@ -64,7 +63,10 @@ namespace FWO.Services.Workflow
 
         private static bool CanBundle(RequestTaskBundleSignature first, RequestTaskBundleSignature second)
         {
-            return first.SameBaseContext(second) && first.CountEqualDimensions(second) >= 2;
+            return first.IsTwoOutOfThreeCandidate()
+                && second.IsTwoOutOfThreeCandidate()
+                && first.SameBaseContext(second)
+                && first.CountEqualDimensions(second) >= 2;
         }
 
         private sealed class RequestTaskBundleSignature
@@ -80,12 +82,12 @@ namespace FWO.Services.Workflow
             public HashSet<string> DestinationKeys { get; private set; } = [];
             public HashSet<string> ServiceKeys { get; private set; } = [];
 
-            public static RequestTaskBundleSignature FromTask(WfReqTask task, int? ownerId)
+            public static RequestTaskBundleSignature FromTask(WfReqTask task)
             {
                 return new RequestTaskBundleSignature
                 {
                     TicketId = task.TicketId,
-                    OwnerId = ownerId ?? task.Owners.FirstOrDefault()?.Owner.Id,
+                    OwnerId = task.Owners.FirstOrDefault()?.Owner.Id,
                     TaskType = task.TaskType,
                     TaskAction = task.RequestAction,
                     RuleActionId = task.RuleAction,
@@ -124,6 +126,14 @@ namespace FWO.Services.Workflow
                     && ManagementId == other.ManagementId;
             }
 
+            public bool IsTwoOutOfThreeCandidate()
+            {
+                return TaskType == WfTaskType.access.ToString()
+                    && SourceKeys.Count > 0
+                    && DestinationKeys.Count > 0
+                    && ServiceKeys.Count > 0;
+            }
+
             public int CountEqualDimensions(RequestTaskBundleSignature other)
             {
                 int equalDimensions = 0;
@@ -135,7 +145,26 @@ namespace FWO.Services.Workflow
 
             private static HashSet<string> ElementKeys(IEnumerable<WfReqElement> elements, ElemFieldType field)
             {
-                return [.. elements.Where(element => element.Field == field.ToString()).Select(ElementKey)];
+                return [.. elements.Where(element => element.Field == field.ToString() && IsMeaningfulElement(element)).Select(ElementKey)];
+            }
+
+            private static bool IsMeaningfulElement(WfReqElement element)
+            {
+                return element.NetworkId.HasValue
+                    || element.ServiceId.HasValue
+                    || element.FlowNetworkObjectId.HasValue
+                    || element.FlowNetworkGroupId.HasValue
+                    || element.FlowServiceObjectId.HasValue
+                    || element.FlowServiceGroupId.HasValue
+                    || !string.IsNullOrWhiteSpace(element.IpString)
+                    || !string.IsNullOrWhiteSpace(element.Cidr?.CidrString)
+                    || !string.IsNullOrWhiteSpace(element.IpEnd)
+                    || !string.IsNullOrWhiteSpace(element.CidrEnd?.CidrString)
+                    || element.ProtoId.HasValue
+                    || element.Port.HasValue
+                    || element.PortEnd.HasValue
+                    || !string.IsNullOrWhiteSpace(element.Name)
+                    || !string.IsNullOrWhiteSpace(element.GroupName);
             }
 
             private static string ElementKey(WfReqElement element)

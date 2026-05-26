@@ -1,3 +1,4 @@
+using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NUnit.Framework;
@@ -30,7 +31,41 @@ namespace FWO.Test
             Assert.That(assignments, Is.Empty);
         }
 
-        private static WfReqTask CreateTask(long taskId, string sourceIp, string destinationIp, int port)
+        [Test]
+        public void BuildBundleAssignments_KeepsTasksSeparateForDifferentOwners()
+        {
+            WfReqTask first = CreateTask(1, "10.0.0.1", "10.0.1.1", 443, ownerId: 5);
+            WfReqTask second = CreateTask(2, "10.0.0.1", "10.0.1.2", 443, ownerId: 6);
+
+            Dictionary<long, string> assignments = new RequestTaskBundler().BuildBundleAssignments([first, second], BundleTaskType.TwoOutOfThree);
+
+            Assert.That(assignments, Is.Empty);
+        }
+
+        [Test]
+        public void BuildBundleAssignments_IgnoresNonAccessTasks()
+        {
+            WfReqTask first = CreateGroupTask(1, "AR-First", "10.0.0.1");
+            WfReqTask second = CreateGroupTask(2, "AR-Second", "10.0.0.2");
+
+            Dictionary<long, string> assignments = new RequestTaskBundler().BuildBundleAssignments([first, second], BundleTaskType.TwoOutOfThree);
+
+            Assert.That(assignments, Is.Empty);
+        }
+
+        [Test]
+        public void BuildBundleAssignments_IgnoresAccessTasksWithMissingDimensions()
+        {
+            WfReqTask first = CreateTask(1, "10.0.0.1", "10.0.1.1", 443);
+            WfReqTask second = CreateTask(2, "10.0.0.1", "10.0.1.2", 443);
+            first.Elements.RemoveAll(element => element.Field == ElemFieldType.service.ToString());
+
+            Dictionary<long, string> assignments = new RequestTaskBundler().BuildBundleAssignments([first, second], BundleTaskType.TwoOutOfThree);
+
+            Assert.That(assignments, Is.Empty);
+        }
+
+        private static WfReqTask CreateTask(long taskId, string sourceIp, string destinationIp, int port, int ownerId = 5)
         {
             return new()
             {
@@ -40,6 +75,7 @@ namespace FWO.Test
                 RequestAction = RequestAction.create.ToString(),
                 RuleAction = 1,
                 ManagementId = 2,
+                Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = ownerId } }],
                 Elements =
                 [
                     CreateNetworkElement(taskId, ElemFieldType.source, sourceIp),
@@ -55,6 +91,27 @@ namespace FWO.Test
                     }
                 ]
             };
+        }
+
+        private static WfReqTask CreateGroupTask(long taskId, string groupName, string memberIp)
+        {
+            WfReqTask task = new()
+            {
+                Id = taskId,
+                TicketId = 7,
+                TaskType = WfTaskType.group_create.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                RuleAction = 1,
+                ManagementId = 2,
+                Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 5 } }],
+                Elements =
+                [
+                    CreateNetworkElement(taskId, ElemFieldType.source, memberIp)
+                ]
+            };
+            task.Elements[0].GroupName = groupName;
+            task.SetAddInfo(AdditionalInfoKeys.GrpName, groupName);
+            return task;
         }
 
         private static WfReqElement CreateNetworkElement(long taskId, ElemFieldType field, string ip)

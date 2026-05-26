@@ -33,7 +33,7 @@ class FwoApi:
         fwo_user_mgmt_api_uri: str,
     ):
         self.fwo_api_url = api_uri
-        self.fwo_jwt = self.login(importer_user_name, importer_password, importer_mgm_uri)
+        self.fwo_jwt = self.login(importer_user_name, importer_password, importer_mgm_uri)["AccessToken"]
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
         self.fwo_user_mgmt_api_uri = fwo_user_mgmt_api_uri
@@ -112,7 +112,7 @@ class FwoApi:
         password: str | None,
         user_management_api_base_url: str | None,
         method: str = "api/AuthenticationToken/GetTokenPair",
-    ):
+    ) -> dict[str, Any]:
         payload: dict[str, str | None] = {"Username": user, "Password": password}
 
         if user_management_api_base_url is None:
@@ -133,7 +133,7 @@ class FwoApi:
                 ) from None
 
             if response.status_code == 200:  # noqa: PLR2004
-                return response.text
+                return json.loads(response.text)
             error_txt = (
                 "fwo_api: ERROR: did not receive a JWT during login"
                 ", api_url: "

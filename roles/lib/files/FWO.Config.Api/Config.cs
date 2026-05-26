@@ -170,6 +170,7 @@ namespace FWO.Config.Api
             ThrowIfDisposed();
             await semaphoreSlim.WaitAsync();
             List<ConfigItem> configItemChanges = [];
+            List<PropertyInfo> changedProperties = [];
             try
             {
                 foreach (PropertyInfo property in GetType().GetProperties())
@@ -190,6 +191,7 @@ namespace FWO.Config.Api
                                                 ?? throw new ArgumentException($"Config value (with key: {key}) is not convertible to {property.PropertyType}.");
                                 // Add config item to the list of changed config items
                                 configItemChanges.Add(new ConfigItem { Key = key, Value = stringValue, User = UserId });
+                                changedProperties.Add(property);
                             }
                             catch (Exception exception)
                             {
@@ -200,6 +202,11 @@ namespace FWO.Config.Api
                 }
                 // Update or insert all config item
                 await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
+
+                foreach (PropertyInfo property in changedProperties)
+                {
+                    property.SetValue(this, property.GetValue(editedData));
+                }
             }
             finally { semaphoreSlim.Release(); }
         }

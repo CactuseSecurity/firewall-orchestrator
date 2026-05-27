@@ -52,7 +52,7 @@ jobs:
             dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
 
       - name: Run Ansible integration tests with cleanup
-        if: ${{ always() }}
+        if: ${{ success() }}
         run: |
           cd /home/runner/work/firewall-orchestrator/firewall-orchestrator
           ansible-playbook -e force_install=true site.yml -K --tags integrationtests

@@ -7,13 +7,31 @@
       daemon_reload: true
   become: true
 
+- name: ensure middleware reverse proxy is running
+  ansible.builtin.service:
+      name: "{{ webserver_package_name }}"
+      state: restarted
+  become: true
+
 - name: wait for middleware port to become available
   ansible.builtin.wait_for:
       port: "{{ middleware_web_listener_port }}"
       host: "{{ middleware_hostname }}"
       connect_timeout: 1
       delay: 10
-      timeout: 90
+      timeout: 120
+
+- name: wait for middleware web server to become available
+  ansible.builtin.uri:
+      url: "{{ middleware_uri }}/swagger/"
+      method: GET
+      validate_certs: false
+      return_content: false
+  register: middleware_web_result
+  changed_when: false
+  until: middleware_web_result.status == 200
+  retries: 12
+  delay: 5
 
 - name: middleware test get jwt valid creds
   ansible.builtin.uri:

@@ -25,6 +25,7 @@
   loop:
     - integration_testuser_jwt_parent_level_0
     - integration_testuser_jwt_parent_user
+    - integration_testuser_jwt_parent_group
     - integration_testuser_jwt_parent_operator
     - integration_testuser_jwt_parent_tenant0
   register: ldap_parent_result

@@ -33,7 +33,7 @@
                 @if(ProposeAlternative)
                 {
                     <div class="col-sm-8">
-                        <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="ProposedInterface" ElementToString="@(i => i.Name)" 
+                        <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="ProposedInterface" ElementToString="@(i => i.Name ?? string.Empty)" 
                             Elements="PossibleInterfaces.Where(i => i.Id != ConnHandler.ActConn.Id && i.IsPublished && i.InterfacePermission != InterfacePermissions.Private.ToString())">
                             <ElementTemplate Context="interf">
                                 @(interf.Name)

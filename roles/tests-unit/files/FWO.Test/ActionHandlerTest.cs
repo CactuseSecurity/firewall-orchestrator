@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
@@ -82,11 +83,13 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)FullTicket);
                 }
-                if (query == ModellingQueries.getConnectionsByTicketId)
+                if (query == ModellingQueries.getConnectionsByTicketId
+                    || query == ModellingQueries.getWorkflowConnectionsByTicketId)
                 {
                     return Task.FromResult((T)(object)ConnectionsByTicket);
                 }
-                if (query == ModellingQueries.getConnectionById)
+                if (query == ModellingQueries.getConnectionById
+                    || query == ModellingQueries.getWorkflowConnectionById)
                 {
                     int id = GetVariable<int>(variables, "id");
                     return Task.FromResult((T)(object)(ConnectionsById.TryGetValue(id, out ModellingConnection? connection)
@@ -337,6 +340,63 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplaySentEmailConfirmation_SuppressesZeroSentEmails()
+        {
+            List<(string Title, string Message, bool ErrorFlag)> messages = [];
+            WfHandler wfHandler = new(new SimulatedUserConfig(), new ActionHandlerTestApiConn(), WorkflowPhases.request, null,
+                displayMessage: (_, title, message, errorFlag) => messages.Add((title, message, errorFlag)));
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
+            EmailActionParams actionParams = new()
+            {
+                ConfirmSentMail = true
+            };
+
+            GetPrivateMethod("DisplaySentEmailConfirmation").Invoke(handler, [actionParams, 0]);
+
+            Assert.That(messages, Is.Empty);
+        }
+
+        [Test]
+        public void DisplaySentEmailConfirmation_ShowsPositiveSentEmails()
+        {
+            List<(string Title, string Message, bool ErrorFlag)> messages = [];
+            WfHandler wfHandler = new(new SimulatedUserConfig(), new ActionHandlerTestApiConn(), WorkflowPhases.request, null,
+                displayMessage: (_, title, message, errorFlag) => messages.Add((title, message, errorFlag)));
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
+            EmailActionParams actionParams = new()
+            {
+                ConfirmSentMail = true
+            };
+
+            GetPrivateMethod("DisplaySentEmailConfirmation").Invoke(handler, [actionParams, 2]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo("Send Email"));
+                Assert.That(messages[0].Message, Is.EqualTo("2 emails sent"));
+                Assert.That(messages[0].ErrorFlag, Is.False);
+            });
+        }
+
+        [Test]
+        public void DisplaySentEmailConfirmation_SuppressesConfirmationWhenDisabled()
+        {
+            List<(string Title, string Message, bool ErrorFlag)> messages = [];
+            WfHandler wfHandler = new(new SimulatedUserConfig(), new ActionHandlerTestApiConn(), WorkflowPhases.request, null,
+                displayMessage: (_, title, message, errorFlag) => messages.Add((title, message, errorFlag)));
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
+            EmailActionParams actionParams = new()
+            {
+                ConfirmSentMail = false
+            };
+
+            GetPrivateMethod("DisplaySentEmailConfirmation").Invoke(handler, [actionParams, 2]);
+
+            Assert.That(messages, Is.Empty);
+        }
+
+        [Test]
         public async Task SetScope_SetsRequesterForToCcAndBcc()
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
@@ -426,6 +486,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildWorkflowActionParameters_IncludesCreationStateChangeFlag()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
+            WfTicket ticket = new() { Id = 42 };
+            ticket.MarkCreatedStateChanged(1);
+
+            WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
+                .Invoke(handler, [ticket, WfObjectScopes.Ticket, null, 0])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parameters.OldStateId, Is.EqualTo(0));
+                Assert.That(parameters.NewStateId, Is.EqualTo(1));
+                Assert.That(parameters.StateChangedByCreation, Is.True);
+            });
+        }
+
+        [Test]
         public async Task DoOwnerChangeActions_ExecutesOwnerChangeActions()
         {
             ActionHandlerTestApiConn apiConn = new();
@@ -451,7 +529,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DoOnAssignmentActions_ExecutesAssignmentActions()
+        public async Task DoOnAssignmentActions_ExecutesScopedAndLegacyAssignmentActions()
         {
             ActionHandlerTestApiConn apiConn = new();
             apiConn.States =
@@ -461,6 +539,7 @@ namespace FWO.Test
                     Id = 1,
                     Actions =
                     [
+                        CreateAction(StateActionEvents.OnAssignment.ToString(), StateActionTypes.SetAlert.ToString(), WfObjectScopes.RequestTask.ToString()),
                         CreateAction(StateActionEvents.OnAssignment.ToString(), StateActionTypes.SetAlert.ToString(), WfObjectScopes.None.ToString())
                     ]
                 }
@@ -468,11 +547,11 @@ namespace FWO.Test
             WfHandler wfHandler = new();
             ActionHandler handler = new(apiConn, wfHandler);
             await handler.Init();
-            WfTicket ticket = new() { StateId = 1 };
+            WfReqTask task = new() { StateId = 1 };
 
-            await handler.DoOnAssignmentActions(ticket, "dn=test");
+            await handler.DoOnAssignmentActions(task, WfObjectScopes.RequestTask, "dn=test");
 
-            Assert.That(apiConn.Queries.Count(q => q == MonitorQueries.addAlert), Is.EqualTo(1));
+            Assert.That(apiConn.Queries.Count(q => q == MonitorQueries.addAlert), Is.EqualTo(2));
         }
 
         [Test]
@@ -488,7 +567,7 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = true };
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(11));
             WfStateAction action = new()
@@ -517,7 +596,7 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = false };
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(12));
             WfStateAction action = new()
@@ -540,7 +619,7 @@ namespace FWO.Test
             apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, new ActionHandlerTestPolicyChecker() { Result = true });
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(13));
             WfStateAction action = new()
@@ -562,7 +641,7 @@ namespace FWO.Test
             apiConn.States = [new WfState { Id = 1 }, new WfState { Id = 2 }, new WfState { Id = 3 }];
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, new ActionHandlerTestPolicyChecker() { Result = true });
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfTicket ticket = CreateTicket(CreateEligibleRequestTask(14));
             WfStateAction action = new()
@@ -584,7 +663,7 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = true };
             WfHandler wfHandler = new((_, _, _, _) => { }, new UserConfig(globalConfig, false), new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request, policyChecker);
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             await handler.Init();
             WfReqTask eligibleTask = CreateEligibleRequestTask(15);
             WfReqTask ineligibleTask = new()
@@ -657,7 +736,7 @@ namespace FWO.Test
             WfHandler wfHandler = new((_, title, message, error) => uiMessages.Add((title, message, error)), new SimulatedUserConfig(),
                 new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
             SetMatrix(wfHandler, WfTaskType.access.ToString());
-            ActionHandler handler = new(apiConn, wfHandler);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
             WfReqTask accessTask = new() { Id = 1, TaskType = WfTaskType.access.ToString() };
             accessTask.SetAddInfo(AdditionalInfoKeys.ConnId, "41");
             WfReqTask ignoredConnectionTask = new() { Id = 2, TaskType = WfTaskType.new_interface.ToString() };
@@ -677,7 +756,7 @@ namespace FWO.Test
 
             await handler.PerformAction(action, ticket, WfObjectScopes.Ticket, ticketId: 77);
 
-            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getConnectionsByTicketId), Is.EqualTo(1));
+            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getWorkflowConnectionsByTicketId), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateConnectionProperties), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getAppRoleById), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getServiceGroupById), Is.EqualTo(1));
@@ -701,6 +780,29 @@ namespace FWO.Test
             Assert.That(uiMessages, Has.Count.EqualTo(1));
             Assert.That(uiMessages[0].Title, Is.EqualTo("Update Modelling"));
             Assert.That(uiMessages[0].Message, Is.EqualTo("3 modelling objects updated"));
+            Assert.That(uiMessages[0].Error, Is.False);
+        }
+
+        [Test]
+        public async Task PerformAction_UpdateModellingWithConfirmation_DisplaysMessageWhenNothingUpdated()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            List<(string Title, string Message, bool Error)> uiMessages = [];
+            WfHandler wfHandler = new((_, title, message, error) => uiMessages.Add((title, message, error)), new SimulatedUserConfig(),
+                new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
+            WfTicket ticket = CreateTicket();
+            WfStateAction action = new()
+            {
+                ActionType = StateActionTypes.UpdateModelling.ToString(),
+                ExternalParams = JsonSerializer.Serialize(new UpdateModellingActionParams { ModellingState = "Implemented", ConfirmUiMessage = true })
+            };
+
+            await handler.PerformAction(action, ticket, WfObjectScopes.Ticket);
+
+            Assert.That(uiMessages, Has.Count.EqualTo(1));
+            Assert.That(uiMessages[0].Title, Is.EqualTo("Update Modelling"));
+            Assert.That(uiMessages[0].Message, Is.EqualTo("0 modelling objects updated"));
             Assert.That(uiMessages[0].Error, Is.False);
         }
 
@@ -731,7 +833,7 @@ namespace FWO.Test
 
             await handler.PerformAction(action, selectedTask, WfObjectScopes.RequestTask);
 
-            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getConnectionById), Is.EqualTo(1));
+            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getWorkflowConnectionById), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateConnectionProperties), Is.EqualTo(1));
             object? connectionVars = apiConn.Variables[apiConn.Queries.IndexOf(ModellingQueries.updateConnectionProperties)];
             Assert.That(GetVariable<int>(connectionVars, "id"), Is.EqualTo(41));
@@ -775,7 +877,7 @@ namespace FWO.Test
 
             await handler.UpdateConnectionOwner(new FwoOwner { Id = 7 }, 77);
 
-            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getConnectionsByTicketId), Is.EqualTo(1));
+            Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.getWorkflowConnectionsByTicketId), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateProposedConnectionOwner), Is.EqualTo(1));
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.addHistoryEntry), Is.EqualTo(1));
             object? updateVars = apiConn.Variables[apiConn.Queries.IndexOf(ModellingQueries.updateProposedConnectionOwner)];

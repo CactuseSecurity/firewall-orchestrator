@@ -22,9 +22,10 @@ namespace FWO.Services.Workflow
 
 
         public TicketCreator(ApiConnection apiConnection, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, MiddlewareClient middlewareClient,
-            WorkflowPhases phase = WorkflowPhases.request, IRequestedRulePolicyChecker? requestedRulePolicyChecker = null)
+            WorkflowPhases phase = WorkflowPhases.request, IRequestedRulePolicyChecker? requestedRulePolicyChecker = null,
+            Action<Exception?, string, string, bool>? displayMessage = null)
         {
-            wfHandler = new(LogMessage, userConfig, authUser, apiConnection, middlewareClient, phase, requestedRulePolicyChecker);
+            wfHandler = new(displayMessage ?? LogMessage, userConfig, authUser, apiConnection, middlewareClient, phase, requestedRulePolicyChecker);
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
         }

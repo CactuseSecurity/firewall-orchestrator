@@ -235,7 +235,7 @@ namespace FWO.Services.Workflow
                     Log.WriteDebug("UpdateRequestTasksFromTicket", $"Request task {reqtask.Id} changed by actions from synced state {newReqTaskState} to {reqtask.StateId}.");
                 }
                 if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
-                    && reqtask.StateId >= stateMatrixDict.Matrices[reqtask.TaskType].MinImplTasksNeeded)
+                    && RequestTaskNeedsInitialImplTasks(reqtask))
                 {
                     await AutoCreateImplTasks(reqtask);
                 }

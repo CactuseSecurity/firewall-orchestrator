@@ -53,8 +53,8 @@ namespace FWO.Test
 
             ticket.UpdateIpStringsFromCidrInTaskElements();
 
-            Assert.That(element.IpString, Is.EqualTo(element.Cidr?.CidrString));
-            Assert.That(element.IpEnd, Is.EqualTo(element.CidrEnd?.CidrString));
+            Assert.That(element.IpString, Is.EqualTo("10.0.0.1"));
+            Assert.That(element.IpEnd, Is.EqualTo("10.0.0.2"));
         }
 
         [Test]

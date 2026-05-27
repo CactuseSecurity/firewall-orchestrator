@@ -14,7 +14,7 @@
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    @if (Phase == WorkflowPhases.request && context.StateId < WfHandler.MasterStateMatrix.LowestEndState && !WfHandler.ReadOnlyMode)
+                    @if (CanEditTicketInPhase(context))
                     {
                         <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditTicket(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                     }
@@ -108,5 +108,12 @@
     private async Task EditTicket(WfTicket ticket)
     {
         await WfHandler.SelectTicket(ticket, ObjAction.edit, true);
+    }
+
+    private bool CanEditTicketInPhase(WfTicket ticket)
+    {
+        return !WfHandler.ReadOnlyMode
+            && ticket.StateId >= WfHandler.MasterStateMatrix.LowestInputState
+            && ticket.StateId < WfHandler.MasterStateMatrix.LowestEndState;
     }
 }

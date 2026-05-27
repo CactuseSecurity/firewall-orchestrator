@@ -1,0 +1,12 @@
+mutation updateStateActionSortOrder(
+  $stateId: Int!
+  $actionId: Int!
+  $sortOrder: Int!
+  ) {
+  update_request_state_action(
+    where: {_and: [{state_id: {_eq: $stateId}}, {action_id: {_eq: $actionId}}]}
+    _set: {sort_order: $sortOrder}
+  ) {
+    affected_rows
+  }
+}

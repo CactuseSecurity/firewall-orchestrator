@@ -1,7 +1,9 @@
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Services;
+using FWO.Services.Modelling;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
 
@@ -61,6 +63,100 @@ namespace FWO.Test
             Assert.That(NotificationEmailLayoutHelper.BuildBody(htmlNotification, content), Is.EqualTo("before <strong>html content</strong> after"));
             Assert.That(NotificationEmailLayoutHelper.BuildBody(textNotification, content), Is.EqualTo("plain content"));
             Assert.That(NotificationEmailLayoutHelper.BuildBody(attachmentNotification, content), Is.EqualTo("before  after"));
+        }
+
+        [Test]
+        public void BuildBodyAppendsContentWhenPlaceholderIsMissing()
+        {
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.SimpleText,
+                EmailBody = "header\n"
+            };
+
+            Assert.That(NotificationEmailLayoutHelper.BuildBody(notification, "details"), Is.EqualTo("header\ndetails"));
+        }
+
+        [Test]
+        public void ReplaceWorkflowPlaceholdersUsesTicketOwnerFallback()
+        {
+            WfTicket ticket = new()
+            {
+                Requester = new() { Name = "Requester" },
+                Tasks =
+                {
+                    new WfReqTask
+                    {
+                        Owners =
+                        {
+                            new() { Owner = new() { Name = "Application", ExtAppId = "APP-1" } }
+                        }
+                    }
+                }
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.REQUESTER}", ticket, null);
+
+            Assert.That(text, Is.EqualTo("Application/APP-1/Requester"));
+        }
+
+        [Test]
+        public void NotificationRequestBuilderKeepsNetworkIpsWhenTicketIsSerialized()
+        {
+            ModellingNotificationRequestBuilder builder = new(new EmailNotificationUserConfig());
+            ModellingConnection connection = new()
+            {
+                Id = 42,
+                Name = "Interface based access",
+                SourceAppServers =
+                [
+                    new() { Content = new() { Name = "Source", Ip = "10.0.0.1", IpEnd = "10.0.0.1" } }
+                ],
+                DestinationAppServers =
+                [
+                    new() { Content = new() { Name = "Destination", Ip = "10.0.0.2", IpEnd = "10.0.0.2" } }
+                ]
+            };
+
+            List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, 1);
+            WfTicket ticket = new() { Tasks = tasks };
+            ticket.UpdateCidrsInTaskElements();
+
+            WfReqTask accessTask = tasks.First(task => task.TaskType == WfTaskType.access.ToString());
+            Assert.That(accessTask.Elements.First(element => element.Field == ElemFieldType.source.ToString()).IpString, Is.EqualTo("10.0.0.1"));
+            Assert.That(accessTask.Elements.First(element => element.Field == ElemFieldType.destination.ToString()).IpString, Is.EqualTo("10.0.0.2"));
+            Assert.That(accessTask.Elements.First(element => element.Field == ElemFieldType.source.ToString()).Cidr?.CidrString, Is.EqualTo("10.0.0.1/32"));
+        }
+
+        [Test]
+        public void NotificationRequestBuilderKeepsExistingGroupsInAccessTask()
+        {
+            ModellingNotificationRequestBuilder builder = new(new EmailNotificationUserConfig());
+            ModellingConnection connection = new()
+            {
+                Id = 42,
+                Name = "Interface based access",
+                SourceAppRoles =
+                [
+                    new() { Content = new() { IdString = "AR-Source" } }
+                ],
+                DestinationAppRoles =
+                [
+                    new() { Content = new() { IdString = "AR-Destination" } }
+                ],
+                ServiceGroups =
+                [
+                    new() { Content = new() { Name = "SG-Web" } }
+                ]
+            };
+
+            List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, 1);
+            WfReqTask accessTask = tasks.First(task => task.TaskType == WfTaskType.access.ToString());
+
+            Assert.That(accessTask.Elements.Any(element => element.Field == ElemFieldType.source.ToString() && element.GroupName == "AR-Source"), Is.True);
+            Assert.That(accessTask.Elements.Any(element => element.Field == ElemFieldType.destination.ToString() && element.GroupName == "AR-Destination"), Is.True);
+            Assert.That(accessTask.Elements.Any(element => element.Field == ElemFieldType.service.ToString() && element.GroupName == "SG-Web"), Is.True);
         }
 
         [Test]

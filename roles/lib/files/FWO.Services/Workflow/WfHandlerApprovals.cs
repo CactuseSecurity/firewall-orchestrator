@@ -154,7 +154,7 @@ namespace FWO.Services.Workflow
             await UpdateActApproval();
             if (ActionHandler != null)
             {
-                await ActionHandler.DoOnAssignmentActions(statefulObject, ActApproval.AssignedGroup);
+                await ActionHandler.DoOnAssignmentActions(statefulObject, WfObjectScopes.Approval, ActApproval.AssignedGroup);
             }
             DisplayAssignApprovalMode = false;
         }

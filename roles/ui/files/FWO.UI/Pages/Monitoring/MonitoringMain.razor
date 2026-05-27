@@ -21,7 +21,7 @@
 @(userConfig.GetText("U7001"))
 <hr />
 
-<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")" Context="monitoringAuth">
     <h5>@(userConfig.GetText("open_alerts"))</h5>
     @if (InitComplete)
     {
@@ -59,7 +59,7 @@
                                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                                 }
 
-                                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")" Context="acknowledgeAuth">
                                     <Authorized Context="ctx">
                                         <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(DisplayService.DisplayButton(userConfig, "acknowledge", Icons.Acknowledge))</button>
                                     </Authorized>

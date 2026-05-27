@@ -1451,6 +1451,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task PromoteAfterActionResult_SkipsInvalidJson()
+        {
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                States = [new WfState { Id = 1 }, new WfState { Id = 2 }]
+            };
+            ActionHandler handler = new(apiConn, new WfHandler());
+            await handler.Init();
+            WfTicket ticket = new() { StateId = 1 };
+
+            await (Task)GetPrivateMethod("PromoteAfterActionResult").Invoke(handler, ["{invalid", true, ticket, WfObjectScopes.Ticket])!;
+
+            Assert.That(ticket.StateId, Is.EqualTo(1));
+        }
+
+        [Test]
         public async Task CreateFlow_SkipsWhenFlowDbIsDisabledOrScopeIsImplementationTask()
         {
             ActionHandlerTestApiConn disabledApiConn = new();

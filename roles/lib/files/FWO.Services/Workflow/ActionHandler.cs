@@ -363,8 +363,8 @@ namespace FWO.Services.Workflow
             bool? success = await flowDbCreator.CreateFlowInFlowDb(action, statefulObject, scope, owner, ticketId);
             if (success != null)
             {
-                ActionResultStateParams resultStateParams = LoadActionResultStateParams(action.ExternalParams);
-                if (resultStateParams.ConfirmUiMessage)
+                ActionResultStateParams? resultStateParams = TryLoadActionResultStateParams(action.ExternalParams);
+                if (resultStateParams?.ConfirmUiMessage == true)
                 {
                     wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("CreateFlow"),
                         wfHandler.userConfig.GetText((bool)success ? "flow_creation_succeeded" : "flow_creation_failed"), !(bool)success);
@@ -422,7 +422,11 @@ namespace FWO.Services.Workflow
                 return;
             }
 
-            ActionResultStateParams resultStateParams = LoadActionResultStateParams(externalParams);
+            ActionResultStateParams? resultStateParams = TryLoadActionResultStateParams(externalParams);
+            if (resultStateParams == null)
+            {
+                return;
+            }
             int? toState = success ? resultStateParams.SuccessState : resultStateParams.ErrorState;
             if (toState == null)
             {
@@ -438,11 +442,22 @@ namespace FWO.Services.Workflow
             await wfHandler.AutoPromote(statefulObject, scope, toState);
         }
 
-        private static ActionResultStateParams LoadActionResultStateParams(string externalParams)
+        private static ActionResultStateParams? TryLoadActionResultStateParams(string externalParams)
         {
-            return string.IsNullOrWhiteSpace(externalParams)
-                ? new()
-                : JsonSerializer.Deserialize<ActionResultStateParams>(externalParams) ?? new();
+            if (string.IsNullOrWhiteSpace(externalParams))
+            {
+                return new();
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<ActionResultStateParams>(externalParams) ?? new();
+            }
+            catch (JsonException exception)
+            {
+                Log.WriteWarning("Action result state", $"Configured action result parameters are invalid JSON. Skipping result-state promotion. {exception.Message}");
+                return null;
+            }
         }
 
         public async Task CallExternal(WfStateAction action)

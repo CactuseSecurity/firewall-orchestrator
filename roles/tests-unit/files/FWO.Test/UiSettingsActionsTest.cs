@@ -51,6 +51,14 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BundleTasksActionParams_FallsBackToDefaultForInvalidJson()
+        {
+            BundleTasksActionParams parameters = BundleTasksActionParams.FromExternalParams("{invalid");
+
+            Assert.That(parameters.BundleType, Is.EqualTo(BundleTaskType.TwoOutOfThree));
+        }
+
+        [Test]
         public async Task SaveAction_UpdatesExistingActionWithBundleTaskParams()
         {
             SettingsActions component = new();

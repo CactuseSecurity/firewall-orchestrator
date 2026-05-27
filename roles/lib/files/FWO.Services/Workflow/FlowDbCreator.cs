@@ -48,7 +48,7 @@ namespace FWO.Services.Workflow
 
         private static List<FlowCreationPayload> BuildTicketFlowPayloads(WfTicket ticket, FwoOwner? owner, long? ticketId)
         {
-            return [.. ticket.Tasks.Select(task => BuildRequestTaskFlowPayload(task, owner, ticketId ?? ticket.Id))];
+            return [.. ticket.Tasks.Where(IsFlowRelevantTask).Select(task => BuildRequestTaskFlowPayload(task, owner, ticketId ?? ticket.Id))];
         }
 
         private static FlowCreationPayload BuildRequestTaskFlowPayload(WfReqTask task, FwoOwner? owner, long? ticketId)
@@ -666,6 +666,14 @@ namespace FWO.Services.Workflow
             return payload.TaskType == WfTaskType.group_create.ToString()
                 || payload.TaskType == WfTaskType.group_modify.ToString()
                 || payload.TaskType == WfTaskType.group_delete.ToString();
+        }
+
+        private static bool IsFlowRelevantTask(WfReqTask task)
+        {
+            return task.TaskType == WfTaskType.access.ToString()
+                || task.TaskType == WfTaskType.group_create.ToString()
+                || task.TaskType == WfTaskType.group_modify.ToString()
+                || task.TaskType == WfTaskType.group_delete.ToString();
         }
 
         private static bool IsActiveGroupMember(FlowObjectSnapshot snapshot)

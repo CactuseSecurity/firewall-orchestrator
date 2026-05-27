@@ -212,7 +212,8 @@ namespace FWO.Test
                 Tasks =
                 [
                     CreateAccessTask(1, "10.0.0.1", "10.0.1.1", 443),
-                    CreateAccessTask(2, "10.0.0.2", "10.0.1.2", 8443)
+                    CreateAccessTask(2, "10.0.0.2", "10.0.1.2", 8443),
+                    new WfReqTask { Id = 3, TicketId = 7, TaskType = WfTaskType.new_interface.ToString() }
                 ]
             };
 
@@ -225,6 +226,28 @@ namespace FWO.Test
             Assert.That(payloads[0].Destinations, Has.Count.EqualTo(1));
             Assert.That(payloads[0].Services, Has.Count.EqualTo(1));
             Assert.That(payloads[0].OwnerId, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_IgnoresNonFlowTicketTasks()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask accessTask = CreateAccessTask(21, "10.0.0.1", "10.0.1.1", 443);
+            WfTicket ticket = new()
+            {
+                Id = 7,
+                Tasks =
+                [
+                    new WfReqTask { Id = 20, TicketId = 7, TaskType = WfTaskType.new_interface.ToString() },
+                    accessTask
+                ]
+            };
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, ticket, WfObjectScopes.Ticket, null, ticket.Id);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.UpdatedRequestTaskIds, Is.EqualTo(new List<long> { 21 }));
         }
 
         [Test]

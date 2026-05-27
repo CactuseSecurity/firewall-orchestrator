@@ -1058,6 +1058,1082 @@
             },
             {
               "table": {
+                "name": "access",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "requester_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "access_destination_grps",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "access_id",
+                      "table": {
+                        "name": "access_destination_grp",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "access_destinations",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "access_id",
+                      "table": {
+                        "name": "access_destination",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "access_service_grps",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "access_id",
+                      "table": {
+                        "name": "access_service_grp",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "access_services",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "access_id",
+                      "table": {
+                        "name": "access_service",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "access_source_grps",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "access_id",
+                      "table": {
+                        "name": "access_source_grp",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "access_sources",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "access_id",
+                      "table": {
+                        "name": "access_source",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "access_timeobjects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "access_id",
+                      "table": {
+                        "name": "access_timeobject",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rules",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_access_id",
+                      "table": {
+                        "name": "rule",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "access_id",
+                      "access_hash",
+                      "state",
+                      "owner_id",
+                      "requester_id",
+                      "removed_date"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "access_id",
+                      "access_hash",
+                      "state",
+                      "owner_id",
+                      "requester_id",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "owner_id",
+                      "removed_date",
+                      "requester_id",
+                      "state"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "access_destination",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "access",
+                  "using": {
+                    "foreign_key_constraint_on": "access_id"
+                  }
+                },
+                {
+                  "name": "nwobject",
+                  "using": {
+                    "foreign_key_constraint_on": "nwobj_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "access_id",
+                      "nwobj_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "access_id",
+                      "nwobj_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "access_destination_grp",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "access",
+                  "using": {
+                    "foreign_key_constraint_on": "access_id"
+                  }
+                },
+                {
+                  "name": "nwgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "nwgrp_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "access_id",
+                      "nwgrp_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "access_id",
+                      "nwgrp_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "access_service",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "access",
+                  "using": {
+                    "foreign_key_constraint_on": "access_id"
+                  }
+                },
+                {
+                  "name": "svcobject",
+                  "using": {
+                    "foreign_key_constraint_on": "svcobj_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "access_id",
+                      "svcobj_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "access_id",
+                      "svcobj_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "access_service_grp",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "access",
+                  "using": {
+                    "foreign_key_constraint_on": "access_id"
+                  }
+                },
+                {
+                  "name": "svcgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "svcgrp_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "access_id",
+                      "svcgrp_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "access_id",
+                      "svcgrp_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "access_source",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "access",
+                  "using": {
+                    "foreign_key_constraint_on": "access_id"
+                  }
+                },
+                {
+                  "name": "nwobject",
+                  "using": {
+                    "foreign_key_constraint_on": "nwobj_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "access_id",
+                      "nwobj_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "access_id",
+                      "nwobj_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "access_source_grp",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "access",
+                  "using": {
+                    "foreign_key_constraint_on": "access_id"
+                  }
+                },
+                {
+                  "name": "nwgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "nwgrp_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "access_id",
+                      "nwgrp_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "access_id",
+                      "nwgrp_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "access_timeobject",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "access",
+                  "using": {
+                    "foreign_key_constraint_on": "access_id"
+                  }
+                },
+                {
+                  "name": "timeobject",
+                  "using": {
+                    "foreign_key_constraint_on": "timeobj_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "access_id",
+                      "timeobj_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "access_id",
+                      "timeobj_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "nwgroup",
+                "schema": "flow"
+              },
+              "array_relationships": [
+                {
+                  "name": "access_destination_grps",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwgrp_id",
+                      "table": {
+                        "name": "access_destination_grp",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "access_source_grps",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwgrp_id",
+                      "table": {
+                        "name": "access_source_grp",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "nwgroup_members",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwgrp_id",
+                      "table": {
+                        "name": "nwgroup_member",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "objects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_nwgrp_id",
+                      "table": {
+                        "name": "object",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "nwgrp_id",
+                      "show_in_request_module",
+                      "name",
+                      "nwgrp_hash",
+                      "state",
+                      "removed_date"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "nwgrp_id",
+                      "show_in_request_module",
+                      "name",
+                      "nwgrp_hash",
+                      "state",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_date",
+                      "state"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "nwgroup_member",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "nwgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "nwgrp_id"
+                  }
+                },
+                {
+                  "name": "nwobject",
+                  "using": {
+                    "foreign_key_constraint_on": "nwobj_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "nwgrp_id",
+                      "nwobj_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "nwgrp_id",
+                      "nwobj_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "nwobject",
+                "schema": "flow"
+              },
+              "array_relationships": [
+                {
+                  "name": "access_destinations",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwobj_id",
+                      "table": {
+                        "name": "access_destination",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "access_sources",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwobj_id",
+                      "table": {
+                        "name": "access_source",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "nwgroup_members",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "nwobj_id",
+                      "table": {
+                        "name": "nwgroup_member",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "objects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_nwobj_id",
+                      "table": {
+                        "name": "object",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "nwobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "nwobj_hash",
+                      "state",
+                      "ip_end",
+                      "ip_start",
+                      "removed_date"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "nwobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "nwobj_hash",
+                      "state",
+                      "ip_end",
+                      "ip_start",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_date",
+                      "state"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "svcgroup",
+                "schema": "flow"
+              },
+              "array_relationships": [
+                {
+                  "name": "access_service_grps",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "svcgrp_id",
+                      "table": {
+                        "name": "access_service_grp",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "services",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_svcgrp_id",
+                      "table": {
+                        "name": "service",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "svcgroup_members",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "svcgrp_id",
+                      "table": {
+                        "name": "svcgroup_member",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "svcgrp_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "svcgrp_hash",
+                      "removed_date"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "svcgrp_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "svcgrp_hash",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_date",
+                      "state"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "svcgroup_member",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "svcgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "svcgrp_id"
+                  }
+                },
+                {
+                  "name": "svcobject",
+                  "using": {
+                    "foreign_key_constraint_on": "svcobj_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "svcgrp_id",
+                      "svcobj_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "svcgrp_id",
+                      "svcobj_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "svcobject",
+                "schema": "flow"
+              },
+              "object_relationships": [
+                {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "ip_proto_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "access_services",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "svcobj_id",
+                      "table": {
+                        "name": "access_service",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "services",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_svcobj_id",
+                      "table": {
+                        "name": "service",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "svcgroup_members",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "svcobj_id",
+                      "table": {
+                        "name": "svcgroup_member",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "svcobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "svcobj_hash",
+                      "ip_proto_id",
+                      "port_end",
+                      "port_start",
+                      "removed_date"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "svcobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "svcobj_hash",
+                      "ip_proto_id",
+                      "port_end",
+                      "port_start",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_date",
+                      "state"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "timeobject",
+                "schema": "flow"
+              },
+              "array_relationships": [
+                {
+                  "name": "access_timeobjects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "timeobj_id",
+                      "table": {
+                        "name": "access_timeobject",
+                        "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "time_objects",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_timeobj_id",
+                      "table": {
+                        "name": "time_object",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "timeobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "timeobj_hash",
+                      "end_time",
+                      "removed_date",
+                      "start_time"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "timeobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "timeobj_hash",
+                      "end_time",
+                      "removed_date",
+                      "start_time"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_date",
+                      "state"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "change_history",
                 "schema": "modelling"
               },
@@ -1631,6 +2707,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "comment",
                       "is_deleted"
                     ],
                     "filter": {},
@@ -2516,6 +3593,17 @@
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "comment"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "modeller",
                   "permission": {
@@ -7659,6 +8747,7 @@
                     "columns": [
                       "changes_found",
                       "control_id",
+                      "flow_sync_done",
                       "import_errors",
                       "import_type_id",
                       "is_initial_import",
@@ -7680,19 +8769,20 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "changes_found",
                       "control_id",
-                      "import_errors",
-                      "import_type_id",
+                      "changes_found",
+                      "flow_sync_done",
                       "is_initial_import",
-                      "mgm_id",
                       "notification_done",
                       "policy_changes_found",
                       "rule_owner_mapping_done",
+                      "successful_import",
+                      "import_errors",
+                      "import_type_id",
+                      "mgm_id",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time",
-                      "successful_import"
+                      "stop_time"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7705,6 +8795,7 @@
                     "columns": [
                       "changes_found",
                       "control_id",
+                      "flow_sync_done",
                       "import_errors",
                       "import_type_id",
                       "is_initial_import",
@@ -7751,6 +8842,7 @@
                     "columns": [
                       "changes_found",
                       "control_id",
+                      "flow_sync_done",
                       "import_errors",
                       "import_type_id",
                       "is_initial_import",
@@ -7826,19 +8918,20 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "changes_found",
                       "control_id",
-                      "import_errors",
-                      "import_type_id",
+                      "changes_found",
+                      "flow_sync_done",
                       "is_initial_import",
-                      "mgm_id",
                       "notification_done",
                       "policy_changes_found",
                       "rule_owner_mapping_done",
+                      "successful_import",
+                      "import_errors",
+                      "import_type_id",
+                      "mgm_id",
                       "security_relevant_changes_counter",
                       "start_time",
-                      "stop_time",
-                      "successful_import"
+                      "stop_time"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -7901,6 +8994,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "flow_sync_done",
                       "notification_done",
                       "rule_owner_mapping_done",
                       "security_relevant_changes_counter",
@@ -11362,6 +12456,18 @@
                   }
                 },
                 {
+                  "name": "flow_nwgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_nwgrp_id"
+                  }
+                },
+                {
+                  "name": "flow_nwobject",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_nwobj_id"
+                  }
+                },
+                {
                   "name": "importControlByObjLastSeen",
                   "using": {
                     "foreign_key_constraint_on": "obj_last_seen"
@@ -11568,11 +12674,14 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
                       "obj_last_seen",
                       "removed",
                       "active",
+                      "flow_active",
                       "initial_config",
                       "obj_nat",
                       "obj_comment",
@@ -11609,37 +12718,40 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
+                      "obj_create",
                       "obj_id",
-                      "last_change_admin",
-                      "zone_id",
-                      "mgm_id",
-                      "obj_name",
-                      "obj_comment",
-                      "obj_uid",
-                      "obj_typ_id",
-                      "obj_location",
-                      "obj_member_names",
-                      "obj_member_refs",
+                      "obj_last_seen",
+                      "removed",
+                      "active",
+                      "flow_active",
                       "initial_config",
-                      "obj_sw",
-                      "obj_ip",
-                      "obj_ip_end",
                       "obj_nat",
-                      "nattyp_id",
-                      "obj_nat_ip",
-                      "obj_nat_ip_end",
-                      "obj_nat_install",
-                      "obj_color_id",
-                      "obj_sys_name",
-                      "obj_sys_location",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
                       "obj_sys_contact",
-                      "obj_sys_desc",
+                      "obj_sys_location",
+                      "obj_sys_name",
                       "obj_sys_readcom",
                       "obj_sys_writecom",
-                      "active",
-                      "obj_create",
-                      "obj_last_seen",
-                      "removed"
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11649,11 +12761,14 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
                       "obj_last_seen",
                       "removed",
                       "active",
+                      "flow_active",
                       "initial_config",
                       "obj_nat",
                       "obj_comment",
@@ -11689,11 +12804,14 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
                       "obj_last_seen",
                       "removed",
                       "active",
+                      "flow_active",
                       "initial_config",
                       "obj_nat",
                       "obj_comment",
@@ -11729,37 +12847,40 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "obj_id",
+                      "active",
+                      "flow_active",
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
+                      "initial_config",
                       "last_change_admin",
-                      "zone_id",
                       "mgm_id",
-                      "obj_name",
+                      "nattyp_id",
+                      "obj_color_id",
                       "obj_comment",
-                      "obj_uid",
-                      "obj_typ_id",
+                      "obj_create",
+                      "obj_id",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_last_seen",
                       "obj_location",
                       "obj_member_names",
                       "obj_member_refs",
-                      "initial_config",
-                      "obj_sw",
-                      "obj_ip",
-                      "obj_ip_end",
+                      "obj_name",
                       "obj_nat",
-                      "nattyp_id",
+                      "obj_nat_install",
                       "obj_nat_ip",
                       "obj_nat_ip_end",
-                      "obj_nat_install",
-                      "obj_color_id",
-                      "obj_sys_name",
-                      "obj_sys_location",
+                      "obj_sw",
                       "obj_sys_contact",
                       "obj_sys_desc",
+                      "obj_sys_location",
+                      "obj_sys_name",
                       "obj_sys_readcom",
                       "obj_sys_writecom",
-                      "active",
-                      "obj_create",
-                      "obj_last_seen",
-                      "removed"
+                      "obj_typ_id",
+                      "obj_uid",
+                      "removed",
+                      "zone_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11769,37 +12890,40 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
+                      "obj_create",
                       "obj_id",
-                      "last_change_admin",
-                      "zone_id",
-                      "mgm_id",
-                      "obj_name",
-                      "obj_comment",
-                      "obj_uid",
-                      "obj_typ_id",
-                      "obj_location",
-                      "obj_member_names",
-                      "obj_member_refs",
+                      "obj_last_seen",
+                      "removed",
+                      "active",
+                      "flow_active",
                       "initial_config",
-                      "obj_sw",
-                      "obj_ip",
-                      "obj_ip_end",
                       "obj_nat",
-                      "nattyp_id",
-                      "obj_nat_ip",
-                      "obj_nat_ip_end",
-                      "obj_nat_install",
-                      "obj_color_id",
-                      "obj_sys_name",
-                      "obj_sys_location",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
                       "obj_sys_contact",
-                      "obj_sys_desc",
+                      "obj_sys_location",
+                      "obj_sys_name",
                       "obj_sys_readcom",
                       "obj_sys_writecom",
-                      "active",
-                      "obj_create",
-                      "obj_last_seen",
-                      "removed"
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -11813,37 +12937,40 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
+                      "obj_create",
                       "obj_id",
-                      "last_change_admin",
-                      "zone_id",
-                      "mgm_id",
-                      "obj_name",
-                      "obj_comment",
-                      "obj_uid",
-                      "obj_typ_id",
-                      "obj_location",
-                      "obj_member_names",
-                      "obj_member_refs",
+                      "obj_last_seen",
+                      "removed",
+                      "active",
+                      "flow_active",
                       "initial_config",
-                      "obj_sw",
-                      "obj_ip",
-                      "obj_ip_end",
                       "obj_nat",
-                      "nattyp_id",
-                      "obj_nat_ip",
-                      "obj_nat_ip_end",
-                      "obj_nat_install",
-                      "obj_color_id",
-                      "obj_sys_name",
-                      "obj_sys_location",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
                       "obj_sys_contact",
-                      "obj_sys_desc",
+                      "obj_sys_location",
+                      "obj_sys_name",
                       "obj_sys_readcom",
                       "obj_sys_writecom",
-                      "active",
-                      "obj_create",
-                      "obj_last_seen",
-                      "removed"
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -11857,37 +12984,40 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
+                      "obj_create",
                       "obj_id",
-                      "last_change_admin",
-                      "zone_id",
-                      "mgm_id",
-                      "obj_name",
-                      "obj_comment",
-                      "obj_uid",
-                      "obj_typ_id",
-                      "obj_location",
-                      "obj_member_names",
-                      "obj_member_refs",
+                      "obj_last_seen",
+                      "removed",
+                      "active",
+                      "flow_active",
                       "initial_config",
-                      "obj_sw",
-                      "obj_ip",
-                      "obj_ip_end",
                       "obj_nat",
-                      "nattyp_id",
-                      "obj_nat_ip",
-                      "obj_nat_ip_end",
-                      "obj_nat_install",
-                      "obj_color_id",
-                      "obj_sys_name",
-                      "obj_sys_location",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
                       "obj_sys_contact",
-                      "obj_sys_desc",
+                      "obj_sys_location",
+                      "obj_sys_name",
                       "obj_sys_readcom",
                       "obj_sys_writecom",
-                      "active",
-                      "obj_create",
-                      "obj_last_seen",
-                      "removed"
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -11901,37 +13031,40 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
+                      "obj_create",
                       "obj_id",
-                      "last_change_admin",
-                      "zone_id",
-                      "mgm_id",
-                      "obj_name",
-                      "obj_comment",
-                      "obj_uid",
-                      "obj_typ_id",
-                      "obj_location",
-                      "obj_member_names",
-                      "obj_member_refs",
+                      "obj_last_seen",
+                      "removed",
+                      "active",
+                      "flow_active",
                       "initial_config",
-                      "obj_sw",
-                      "obj_ip",
-                      "obj_ip_end",
                       "obj_nat",
-                      "nattyp_id",
-                      "obj_nat_ip",
-                      "obj_nat_ip_end",
-                      "obj_nat_install",
-                      "obj_color_id",
-                      "obj_sys_name",
-                      "obj_sys_location",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_name",
+                      "obj_sw",
                       "obj_sys_contact",
-                      "obj_sys_desc",
+                      "obj_sys_location",
+                      "obj_sys_name",
                       "obj_sys_readcom",
                       "obj_sys_writecom",
-                      "active",
-                      "obj_create",
-                      "obj_last_seen",
-                      "removed"
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_nat_ip",
+                      "obj_nat_ip_end",
+                      "last_change_admin",
+                      "mgm_id",
+                      "nattyp_id",
+                      "obj_color_id",
+                      "obj_nat_install",
+                      "obj_typ_id",
+                      "zone_id",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_sys_desc",
+                      "obj_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11943,11 +13076,14 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
                       "obj_create",
                       "obj_id",
                       "obj_last_seen",
                       "removed",
                       "active",
+                      "flow_active",
                       "initial_config",
                       "obj_nat",
                       "obj_comment",
@@ -11977,6 +13113,19 @@
                     ],
                     "filter": {},
                     "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "flow_active",
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id"
+                    ],
+                    "filter": {},
+                    "check": null
                   },
                   "comment": ""
                 }
@@ -14548,6 +15697,59 @@
             },
             {
               "table": {
+                "name": "refresh_token",
+                "schema": "public"
+              },
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "token_hash",
+                      "id",
+                      "user_id",
+                      "created_at",
+                      "expires_at",
+                      "revoked_at"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "token_hash",
+                      "id",
+                      "user_id",
+                      "created_at",
+                      "expires_at",
+                      "revoked_at"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "revoked_at"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "report",
                 "schema": "public"
               },
@@ -16999,6 +18201,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "flow_access",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_access_id"
+                  }
+                },
+                {
                   "name": "importControlByRuleLastSeen",
                   "using": {
                     "foreign_key_constraint_on": "rule_last_seen"
@@ -17346,48 +18554,49 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "flow_access_id",
+                      "parent_rule_id",
+                      "removed",
+                      "rule_create",
+                      "rule_id",
+                      "rule_last_seen",
+                      "xlate_rule",
                       "access_rule",
-                      "action_id",
                       "active",
-                      "dev_id",
                       "is_global",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_implied",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "rule_installon",
+                      "rule_name",
+                      "rule_ruleid",
+                      "rule_time",
+                      "action_id",
+                      "dev_id",
                       "last_change_admin",
                       "mgm_id",
-                      "nat_rule",
-                      "parent_rule_id",
+                      "rulebase_id",
+                      "rule_from_zone",
+                      "rule_num",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_custom_fields",
+                      "rule_num_numeric",
                       "parent_rule_type",
-                      "removed",
                       "rule_action",
                       "rule_comment",
-                      "rule_create",
-                      "rule_custom_fields",
-                      "rule_disabled",
                       "rule_dst",
-                      "rule_dst_neg",
                       "rule_dst_refs",
-                      "rule_from_zone",
                       "rule_head_text",
-                      "rule_id",
-                      "rule_implied",
-                      "rule_installon",
-                      "rule_last_seen",
-                      "rule_name",
-                      "rule_num",
-                      "rule_num_numeric",
-                      "rule_ruleid",
                       "rule_src",
-                      "rule_src_neg",
                       "rule_src_refs",
                       "rule_svc",
-                      "rule_svc_neg",
                       "rule_svc_refs",
-                      "rule_time",
-                      "rule_to_zone",
                       "rule_track",
-                      "rule_uid",
-                      "rulebase_id",
-                      "track_id",
-                      "xlate_rule"
+                      "rule_uid"
                     ]
                   },
                   "comment": ""
@@ -17398,6 +18607,7 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "flow_access_id",
                       "parent_rule_id",
                       "removed",
                       "rule_create",
@@ -17452,6 +18662,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "flow_access_id",
                       "parent_rule_id",
                       "removed",
                       "rule_create",
@@ -17506,6 +18717,7 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "flow_access_id",
                       "parent_rule_id",
                       "removed",
                       "rule_create",
@@ -17560,6 +18772,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "flow_access_id",
                       "parent_rule_id",
                       "removed",
                       "rule_create",
@@ -17614,6 +18827,7 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "flow_access_id",
                       "parent_rule_id",
                       "removed",
                       "rule_create",
@@ -17668,48 +18882,49 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "flow_access_id",
+                      "parent_rule_id",
+                      "removed",
+                      "rule_create",
+                      "rule_id",
+                      "rule_last_seen",
+                      "xlate_rule",
                       "access_rule",
-                      "action_id",
                       "active",
-                      "dev_id",
                       "is_global",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_implied",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "rule_installon",
+                      "rule_name",
+                      "rule_ruleid",
+                      "rule_time",
+                      "action_id",
+                      "dev_id",
                       "last_change_admin",
                       "mgm_id",
-                      "nat_rule",
-                      "parent_rule_id",
+                      "rulebase_id",
+                      "rule_from_zone",
+                      "rule_num",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_custom_fields",
+                      "rule_num_numeric",
                       "parent_rule_type",
-                      "removed",
                       "rule_action",
                       "rule_comment",
-                      "rule_create",
-                      "rule_custom_fields",
-                      "rule_disabled",
                       "rule_dst",
-                      "rule_dst_neg",
                       "rule_dst_refs",
-                      "rule_from_zone",
                       "rule_head_text",
-                      "rule_id",
-                      "rule_implied",
-                      "rule_installon",
-                      "rule_last_seen",
-                      "rule_name",
-                      "rule_num",
-                      "rule_num_numeric",
-                      "rule_ruleid",
                       "rule_src",
-                      "rule_src_neg",
                       "rule_src_refs",
                       "rule_svc",
-                      "rule_svc_neg",
                       "rule_svc_refs",
-                      "rule_time",
-                      "rule_to_zone",
                       "rule_track",
-                      "rule_uid",
-                      "rulebase_id",
-                      "track_id",
-                      "xlate_rule"
+                      "rule_uid"
                     ],
                     "computed_fields": [
                       "rule_relevant_for_tenant"
@@ -17735,6 +18950,7 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "flow_access_id",
                       "parent_rule_id",
                       "removed",
                       "rule_create",
@@ -17802,6 +19018,7 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "flow_access_id",
                       "parent_rule_id",
                       "removed",
                       "rule_create",
@@ -17879,6 +19096,17 @@
                     ],
                     "filter": {},
                     "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "flow_access_id"
+                    ],
+                    "filter": {},
+                    "check": null
                   },
                   "comment": ""
                 }
@@ -21574,6 +22802,18 @@
               },
               "object_relationships": [
                 {
+                  "name": "flow_svcgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_svcgrp_id"
+                  }
+                },
+                {
+                  "name": "flow_svcobject",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_svcobj_id"
+                  }
+                },
+                {
                   "name": "importControlBySvcLastSeen",
                   "using": {
                     "foreign_key_constraint_on": "svc_last_seen"
@@ -21768,11 +23008,14 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
                       "removed",
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
                       "active",
+                      "flow_active",
                       "initial_config",
                       "srv_keeponinstall",
                       "svc_accept_rep",
@@ -21812,40 +23055,43 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
+                      "removed",
+                      "svc_create",
                       "svc_id",
-                      "svc_uid",
-                      "svc_name",
-                      "svc_typ_id",
-                      "mgm_id",
-                      "svc_comment",
-                      "svc_prod_specific",
-                      "svc_member_names",
-                      "svc_member_refs",
-                      "svc_color_id",
-                      "ip_proto_id",
-                      "svc_port",
-                      "svc_port_end",
+                      "svc_last_seen",
+                      "active",
+                      "flow_active",
                       "initial_config",
                       "srv_keeponinstall",
-                      "svc_rpcnr",
-                      "svc_code",
-                      "svc_match",
-                      "svc_source_port",
-                      "svc_source_port_end",
-                      "svc_tcp_res",
                       "svc_accept_rep",
                       "svc_accept_rep_any",
                       "svc_mfa",
-                      "svc_timeout_std",
-                      "svc_timeout",
                       "svc_sync",
                       "svc_sync_delay",
-                      "svc_sync_delay_start",
-                      "active",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
                       "last_change_admin",
-                      "svc_create",
-                      "removed",
-                      "svc_last_seen"
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -21855,11 +23101,14 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
+                      "removed",
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
-                      "removed",
                       "active",
+                      "flow_active",
                       "initial_config",
                       "srv_keeponinstall",
                       "svc_accept_rep",
@@ -21898,11 +23147,14 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
                       "removed",
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
                       "active",
+                      "flow_active",
                       "initial_config",
                       "srv_keeponinstall",
                       "svc_accept_rep",
@@ -21941,11 +23193,14 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
+                      "removed",
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
-                      "removed",
                       "active",
+                      "flow_active",
                       "initial_config",
                       "srv_keeponinstall",
                       "svc_accept_rep",
@@ -21984,40 +23239,43 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
+                      "removed",
+                      "svc_create",
                       "svc_id",
-                      "svc_uid",
-                      "svc_name",
-                      "svc_typ_id",
-                      "mgm_id",
-                      "svc_comment",
-                      "svc_prod_specific",
-                      "svc_member_names",
-                      "svc_member_refs",
-                      "svc_color_id",
-                      "ip_proto_id",
-                      "svc_port",
-                      "svc_port_end",
+                      "svc_last_seen",
+                      "active",
+                      "flow_active",
                       "initial_config",
                       "srv_keeponinstall",
-                      "svc_rpcnr",
-                      "svc_code",
-                      "svc_match",
-                      "svc_source_port",
-                      "svc_source_port_end",
-                      "svc_tcp_res",
                       "svc_accept_rep",
                       "svc_accept_rep_any",
                       "svc_mfa",
-                      "svc_timeout_std",
-                      "svc_timeout",
                       "svc_sync",
                       "svc_sync_delay",
-                      "svc_sync_delay_start",
-                      "active",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
                       "last_change_admin",
-                      "svc_create",
-                      "svc_last_seen",
-                      "removed"
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -22031,40 +23289,43 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
+                      "removed",
+                      "svc_create",
                       "svc_id",
-                      "svc_uid",
-                      "svc_name",
-                      "svc_typ_id",
-                      "mgm_id",
-                      "svc_comment",
-                      "svc_prod_specific",
-                      "svc_member_names",
-                      "svc_member_refs",
-                      "svc_color_id",
-                      "ip_proto_id",
-                      "svc_port",
-                      "svc_port_end",
+                      "svc_last_seen",
+                      "active",
+                      "flow_active",
                       "initial_config",
                       "srv_keeponinstall",
-                      "svc_rpcnr",
-                      "svc_code",
-                      "svc_match",
-                      "svc_source_port",
-                      "svc_source_port_end",
-                      "svc_tcp_res",
                       "svc_accept_rep",
                       "svc_accept_rep_any",
                       "svc_mfa",
-                      "svc_timeout_std",
-                      "svc_timeout",
                       "svc_sync",
                       "svc_sync_delay",
-                      "svc_sync_delay_start",
-                      "active",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
                       "last_change_admin",
-                      "svc_create",
-                      "svc_last_seen",
-                      "removed"
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -22078,40 +23339,43 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
+                      "removed",
+                      "svc_create",
                       "svc_id",
-                      "svc_uid",
-                      "svc_name",
-                      "svc_typ_id",
-                      "mgm_id",
-                      "svc_comment",
-                      "svc_prod_specific",
-                      "svc_member_names",
-                      "svc_member_refs",
-                      "svc_color_id",
-                      "ip_proto_id",
-                      "svc_port",
-                      "svc_port_end",
+                      "svc_last_seen",
+                      "active",
+                      "flow_active",
                       "initial_config",
                       "srv_keeponinstall",
-                      "svc_rpcnr",
-                      "svc_code",
-                      "svc_match",
-                      "svc_source_port",
-                      "svc_source_port_end",
-                      "svc_tcp_res",
                       "svc_accept_rep",
                       "svc_accept_rep_any",
                       "svc_mfa",
-                      "svc_timeout_std",
-                      "svc_timeout",
                       "svc_sync",
                       "svc_sync_delay",
-                      "svc_sync_delay_start",
-                      "active",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
                       "last_change_admin",
-                      "svc_create",
-                      "removed",
-                      "svc_last_seen"
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -22125,40 +23389,43 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
+                      "removed",
+                      "svc_create",
                       "svc_id",
-                      "svc_uid",
-                      "svc_name",
-                      "svc_typ_id",
-                      "mgm_id",
-                      "svc_comment",
-                      "svc_prod_specific",
-                      "svc_member_names",
-                      "svc_member_refs",
-                      "svc_color_id",
-                      "ip_proto_id",
-                      "svc_port",
-                      "svc_port_end",
+                      "svc_last_seen",
+                      "active",
+                      "flow_active",
                       "initial_config",
                       "srv_keeponinstall",
-                      "svc_rpcnr",
-                      "svc_code",
-                      "svc_match",
-                      "svc_source_port",
-                      "svc_source_port_end",
-                      "svc_tcp_res",
                       "svc_accept_rep",
                       "svc_accept_rep_any",
                       "svc_mfa",
-                      "svc_timeout_std",
-                      "svc_timeout",
                       "svc_sync",
                       "svc_sync_delay",
-                      "svc_sync_delay_start",
-                      "active",
+                      "svc_tcp_res",
+                      "svc_timeout_std",
+                      "svc_code",
+                      "svc_name",
+                      "svc_rpcnr",
+                      "ip_proto_id",
                       "last_change_admin",
-                      "removed",
-                      "svc_create",
-                      "svc_last_seen"
+                      "mgm_id",
+                      "svc_color_id",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_source_port",
+                      "svc_source_port_end",
+                      "svc_sync_delay_start",
+                      "svc_timeout",
+                      "svc_typ_id",
+                      "svc_comment",
+                      "svc_match",
+                      "svc_member_names",
+                      "svc_member_refs",
+                      "svc_prod_specific",
+                      "svc_uid"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -22170,11 +23437,14 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
                       "removed",
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
                       "active",
+                      "flow_active",
                       "initial_config",
                       "srv_keeponinstall",
                       "svc_accept_rep",
@@ -22207,6 +23477,19 @@
                     ],
                     "filter": {},
                     "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "flow_active",
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id"
+                    ],
+                    "filter": {},
+                    "check": null
                   },
                   "comment": ""
                 }
@@ -25332,6 +26615,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "flow_timeobject",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_timeobj_id"
+                  }
+                },
+                {
                   "name": "import_control_created",
                   "using": {
                     "foreign_key_constraint_on": "created"
@@ -25371,8 +26660,10 @@
                     "check": {},
                     "columns": [
                       "created",
+                      "flow_timeobj_id",
                       "removed",
                       "time_obj_id",
+                      "flow_active",
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
@@ -25389,8 +26680,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "flow_timeobj_id",
                       "removed",
                       "time_obj_id",
+                      "flow_active",
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
@@ -25406,8 +26699,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "flow_timeobj_id",
                       "removed",
                       "time_obj_id",
+                      "flow_active",
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
@@ -25423,8 +26718,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "flow_timeobj_id",
                       "removed",
                       "time_obj_id",
+                      "flow_active",
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
@@ -25440,8 +26737,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "flow_timeobj_id",
                       "removed",
                       "time_obj_id",
+                      "flow_active",
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
@@ -25457,8 +26756,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "flow_timeobj_id",
                       "removed",
                       "time_obj_id",
+                      "flow_active",
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
@@ -25478,8 +26779,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "flow_timeobj_id",
                       "removed",
                       "time_obj_id",
+                      "flow_active",
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
@@ -25499,8 +26802,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "flow_timeobj_id",
                       "removed",
                       "time_obj_id",
+                      "flow_active",
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
@@ -25520,8 +26825,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "flow_timeobj_id",
                       "removed",
                       "time_obj_id",
+                      "flow_active",
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
@@ -25539,8 +26846,10 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "flow_timeobj_id",
                       "removed",
                       "time_obj_id",
+                      "flow_active",
                       "time_obj_name",
                       "time_obj_uid",
                       "mgm_id",
@@ -25549,6 +26858,18 @@
                     ],
                     "filter": {},
                     "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "flow_active",
+                      "flow_timeobj_id"
+                    ],
+                    "filter": {},
+                    "check": null
                   },
                   "comment": ""
                 }
@@ -28597,6 +29918,28 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -28914,6 +30257,34 @@
                     "filter": {},
                     "check": null
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "approval_date",
+                      "approver",
+                      "assigned_group",
+                      "state_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "approval_date",
+                      "approver",
+                      "assigned_group",
+                      "state_id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",
@@ -32796,6 +34167,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -32806,6 +34178,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -32816,6 +34189,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -32826,6 +34200,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -32836,6 +34211,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -32847,6 +34223,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -32858,6 +34235,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -32868,6 +34246,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -32879,6 +34258,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -32890,6 +34270,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -32900,6 +34281,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}

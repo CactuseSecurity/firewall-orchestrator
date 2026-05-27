@@ -22,11 +22,13 @@ fragment reqTaskDetails on request_reqtask {
     uiuser_id
     uuid
     uiuser_username
+    uiuser_email
   }
   recent_handler: uiuser {
     uiuser_id
     uuid
     uiuser_username
+    uiuser_email
   }
   assigned_group
   target_begin_date

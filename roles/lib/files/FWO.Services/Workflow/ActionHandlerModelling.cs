@@ -32,17 +32,36 @@ namespace FWO.Services.Workflow
             try
             {
                 List<WfReqTask> scopedTasks = GetScopedRequestTasks(statefulObject, scope);
-                await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
+                await RunWithModellingRole(async () =>
                 {
-                    updatedObjects += await UpdateModellingConnections(stateMarker, state, stateSetAt, ticketId, scopedTasks);
+                    updatedObjects += await UpdateModellingConnections(stateMarker, state, stateSetAt, ticketId, scopedTasks, scope);
                     updatedObjects += await UpdateModellingGroups(stateMarker, state, stateSetAt, scopedTasks);
-                });
+                }, useBestRole: true);
             }
             catch (Exception exc)
             {
                 Log.WriteError("Update Modelling", "Could not update requested modelling objects: ", exc);
             }
             return updatedObjects;
+        }
+
+        private async Task RunWithModellingRole(Func<Task> action, bool allowAuditor = false, bool useBestRole = false)
+        {
+            if (useInMwServer)
+            {
+                await apiConnection.RunWithRole(Roles.MiddlewareServer, action);
+                return;
+            }
+
+            List<string> targetRoles = allowAuditor ? [Roles.Modeller, Roles.Admin, Roles.Auditor] : [Roles.Modeller, Roles.Admin];
+            if (useBestRole)
+            {
+                await apiConnection.RunWithBestRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), targetRoles, action);
+            }
+            else
+            {
+                await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), targetRoles, action);
+            }
         }
 
         private List<WfReqTask> GetScopedRequestTasks(WfStatefulObject statefulObject, WfObjectScopes scope)
@@ -58,7 +77,7 @@ namespace FWO.Services.Workflow
             };
         }
 
-        private async Task<int> UpdateModellingConnections(string stateMarker, string state, string stateSetAt, long? ticketId, List<WfReqTask> scopedTasks)
+        private async Task<int> UpdateModellingConnections(string stateMarker, string state, string stateSetAt, long? ticketId, List<WfReqTask> scopedTasks, WfObjectScopes scope)
         {
             HashSet<int> connectionIds = [.. scopedTasks
                 .Where(task => task.TaskType == WfTaskType.access.ToString())
@@ -67,35 +86,62 @@ namespace FWO.Services.Workflow
                 .Select(id => id ?? 0)];
             if (connectionIds.Count == 0)
             {
+                if (scope == WfObjectScopes.Ticket && ticketId != null)
+                {
+                    List<ModellingConnection> ticketConnections = await LoadWorkflowConnectionsByTicketId(ticketId);
+                    Log.WriteDebug("UpdateModelling", $"No connection ids found in request task add-info. Falling back to {ticketConnections.Count} connection(s) with ticket id {ticketId}.");
+                    return await UpdateModellingConnectionProperties(ticketConnections, stateMarker, state, stateSetAt);
+                }
+                Log.WriteDebug("UpdateModelling", $"No connection ids found for scope {scope}.");
                 return 0;
             }
 
             List<ModellingConnection> connections = [];
             if (ticketId != null)
             {
-                connections = [.. (await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId }))
+                connections = [.. (await LoadWorkflowConnectionsByTicketId(ticketId))
                     .Where(connection => connectionIds.Contains(connection.Id))];
             }
 
             HashSet<int> loadedConnectionIds = [.. connections.Select(connection => connection.Id)];
             foreach (int connectionId in connectionIds.Except(loadedConnectionIds))
             {
-                List<ModellingConnection> connectionById = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new { id = connectionId });
-                ModellingConnection? connection = connectionById.FirstOrDefault();
+                ModellingConnection? connection = await LoadWorkflowConnectionById(connectionId);
                 if (connection != null)
                 {
                     connections.Add(connection);
                 }
             }
 
+            return await UpdateModellingConnectionProperties(connections, stateMarker, state, stateSetAt);
+        }
+
+        private async Task<int> UpdateModellingConnectionProperties(List<ModellingConnection> connections, string stateMarker, string state, string stateSetAt)
+        {
             foreach (ModellingConnection connection in connections.Where(connection => connection.Id > 0))
             {
+                string oldProperties = connection.Properties ?? "";
                 connection.RemoveProperty(stateMarker);
                 connection.RemoveProperty(ModIntegrationStateConfig.TimestampMarker(stateMarker));
                 connection.AddProperty(stateMarker, ModIntegrationStateConfig.BuildStateValue(state, stateSetAt));
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, new { id = connection.Id, connProp = connection.Properties });
+                Log.WriteDebug("UpdateModelling", $"Connection {connection.Id}: set marker '{stateMarker}' to state '{state}'. Old properties: {oldProperties}. New properties: {connection.Properties}.");
             }
+            Log.WriteDebug("UpdateModelling", $"Updated {connections.Count(connection => connection.Id > 0)} connection(s) with state '{state}'.");
             return connections.Count(connection => connection.Id > 0);
+        }
+
+        private async Task<List<ModellingConnection>> LoadWorkflowConnectionsByTicketId(long? ticketId)
+        {
+            return ticketId == null
+                ? []
+                : await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getWorkflowConnectionsByTicketId, new { ticketId });
+        }
+
+        private async Task<ModellingConnection?> LoadWorkflowConnectionById(int connectionId)
+        {
+            List<ModellingConnection> connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getWorkflowConnectionById, new { id = connectionId });
+            return connections.FirstOrDefault();
         }
 
         private async Task<int> UpdateModellingGroups(string stateMarker, string state, string stateSetAt, List<WfReqTask> scopedTasks)
@@ -138,9 +184,9 @@ namespace FWO.Services.Workflow
             {
                 if (owner != null && ticketId != null) // todo: role check
                 {
-                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
+                    await RunWithModellingRole(async () =>
                     {
-                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
+                        List<ModellingConnection> Connections = await LoadWorkflowConnectionsByTicketId(ticketId);
                         foreach (var conn in Connections)
                         {
                             if (conn.IsRequested)
@@ -180,9 +226,9 @@ namespace FWO.Services.Workflow
             {
                 if (owner != null && ticketId != null) // todo: role check
                 {
-                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
+                    await RunWithModellingRole(async () =>
                     {
-                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
+                        List<ModellingConnection> Connections = await LoadWorkflowConnectionsByTicketId(ticketId);
                         foreach (var conn in Connections)
                         {
                             if (conn.IsRequested && !conn.IsPublished)
@@ -235,9 +281,9 @@ namespace FWO.Services.Workflow
             {
                 if (owner != null && ticketId != null)
                 {
-                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin], async () =>
+                    await RunWithModellingRole(async () =>
                     {
-                        List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionsByTicketId, new { ticketId });
+                        List<ModellingConnection> Connections = await LoadWorkflowConnectionsByTicketId(ticketId);
                         foreach (var conn in Connections)
                         {
                             if (conn.IsRequested)
@@ -285,7 +331,7 @@ namespace FWO.Services.Workflow
                 FwoOwner? owner = wfHandler.ActReqTask.Owners?.FirstOrDefault()?.Owner;
                 if (owner != null && wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) != null)
                 {
-                    await apiConnection.RunWithProperRole(wfHandler.AuthUser ?? throw new ArgumentException(NoAuthUser), [Roles.Modeller, Roles.Admin, Roles.Auditor], async () =>
+                    await RunWithModellingRole(async () =>
                     {
                         List<ModellingConnection> Connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnections, new { appId = owner.Id });
                         ModellingConnection? conn = Connections.FirstOrDefault(c => c.Id == wfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ConnId));
@@ -295,7 +341,7 @@ namespace FWO.Services.Workflow
                             await ConnHandler.Init();
                             DisplayConnectionMode = true;
                         }
-                    });
+                    }, allowAuditor: true);
                 }
             }
             catch (Exception exc)

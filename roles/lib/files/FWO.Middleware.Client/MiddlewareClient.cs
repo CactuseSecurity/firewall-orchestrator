@@ -11,18 +11,18 @@ namespace FWO.Middleware.Client
         public MiddlewareClient(string middlewareServerUri) : base(middlewareServerUri + "api/")
         { }
 
-        public async Task<RestResponse<string>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
+        public async Task<RestResponse<TokenPair>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
         {
-            RestRequest request = new("AuthenticationToken/Get", Method.Post);
+            RestRequest request = new("AuthenticationToken/GetTokenPair", Method.Post);
             request.AddJsonBody(parameters);
-            return await restClient.ExecuteAsync<string>(request);
+            return await restClient.ExecuteAsync<TokenPair>(request);
         }
 
-        public async Task<RestResponse<string>> CreateInitialJWT()
+        public async Task<RestResponse<TokenPair>> CreateInitialJWT()
         {
-            RestRequest request = new("AuthenticationToken/Get", Method.Post);
+            RestRequest request = new("AuthenticationToken/GetTokenPair", Method.Post);
             request.AddJsonBody(new object());
-            return await restClient.ExecuteAsync<string>(request);
+            return await restClient.ExecuteAsync<TokenPair>(request);
         }
 
         public async Task<RestResponse<int>> TestConnection(LdapGetUpdateParameters parameters)
@@ -247,6 +247,13 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
+        public async Task<RestResponse<WorkflowActionResult>> ExecuteWorkflowActions(WorkflowActionParameters parameters)
+        {
+            RestRequest request = new("Workflow/Actions", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<WorkflowActionResult>(request);
+        }
+
         public async Task<RestResponse<string>> GetReport(ReportGetParameters parameters)
         {
             RestRequest request = new("Report", Method.Post);
@@ -296,6 +303,30 @@ namespace FWO.Middleware.Client
         {
             RestRequest request = new($"Compliance/ComplianceCheck/Status/{jobId}", Method.Get);
             return await restClient.ExecuteAsync<ComplianceCheckJobStatus>(request);
+        }
+
+        /// <summary>
+        /// Get a new token pair
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public virtual async Task<RestResponse<TokenPair>> RefreshToken(RefreshTokenRequest parameters)
+        {
+            RestRequest request = new("AuthenticationToken/Refresh", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<TokenPair>(request);
+        }
+
+        /// <summary>
+        /// Revoke a refresh token
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public virtual async Task<RestResponse> RevokeRefreshToken(RefreshTokenRequest parameters)
+        {
+            RestRequest request = new("AuthenticationToken/Revoke", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync(request);
         }
 
         protected virtual void Dispose(bool disposing)

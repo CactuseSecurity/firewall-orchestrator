@@ -5,26 +5,27 @@ using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Services;
+using FWO.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Quartz;
 using System.Reflection;
 
-// Implicitly call static constructor so background lock process is started
-// (static constructor is only called after class is used in any way)
-Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
-
 object changesLock = new(); // LOCK
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
 
 // Create Token Generator
+TokenLifetimeProvider tokenLifetimeProvider = new();
 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
+InternalApiTokenService internalApiTokenService = new(jwtWriter, tokenLifetimeProvider);
 
 // Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
-ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
+ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), internalApiTokenService.CreateInitialMiddlewareToken());
 
 List<Ldap> connectedLdaps = [];
 int connectionAttemptsCount = 1;
@@ -60,8 +61,12 @@ builder.Services.AddQuartzHostedService(options =>
 // Register singletons for DI
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
+builder.Services.AddSingleton<FlowSync>();
 builder.Services.AddSingleton<JobExecutionTracker>();
 builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
+builder.Services.AddSingleton(tokenLifetimeProvider);
+builder.Services.AddSingleton(internalApiTokenService);
+builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 
 // Register config listeners as singletons (activated at startup)
 builder.Services.AddSingleton<ExternalRequestSchedulerService>();
@@ -74,6 +79,7 @@ builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
 builder.Services.AddSingleton<ReportSchedulerService>();
 builder.Services.AddSingleton<ComplianceSchedulerService>();
 builder.Services.AddSingleton<UpdateRuleOwnerMappingSchedulerService>();
+builder.Services.AddSingleton<UpdateFlowsSchedulerService>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -116,6 +122,20 @@ builder.Services.AddSwaggerGen(c =>
     });
     string documentationPath = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
     c.IncludeXmlComments(documentationPath);
+
+    //! Microsoft broke the current OpenAPI "AddSecurityRequirement" so we have to use the workaround with "OpenApiSecuritySchemeReference" until they fix it
+    c.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "JWT Authorization header using the Bearer scheme."
+    });
+
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("bearer", document)] = []
+    });
 });
 
 WebApplication app = builder.Build();
@@ -155,5 +175,24 @@ app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();
 app.Services.GetRequiredService<ReportSchedulerService>();
 app.Services.GetRequiredService<ComplianceSchedulerService>();
 app.Services.GetRequiredService<UpdateRuleOwnerMappingSchedulerService>();
+app.Services.GetRequiredService<UpdateFlowsSchedulerService>();
 
 await app.RunAsync();
+
+namespace FWO.Middleware.ServerTest
+{
+    /// <summary>
+    /// Entry point for the FWO Middleware Server application to make it accessible for testing
+    /// </summary>
+    public partial class Program
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Program"/> class.
+        /// Protected constructor to allow partial class for testing.
+        /// </summary>
+        protected Program()
+        {
+
+        }
+    }
+}

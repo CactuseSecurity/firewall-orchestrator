@@ -22,9 +22,16 @@ namespace FWO.Test
             public List<FlowSvcObject> ExistingServiceObjects { get; } = [];
             public List<FlowSvcGroup> ExistingServiceGroups { get; } = [];
             public List<FlowAccess> ExistingAccesses { get; } = [];
+            public Dictionary<int, List<FlowNwObject>> ExistingNetworkObjectsByManagement { get; } = [];
+            public Dictionary<int, List<FlowNwGroup>> ExistingNetworkGroupsByManagement { get; } = [];
+            public Dictionary<int, List<FlowSvcObject>> ExistingServiceObjectsByManagement { get; } = [];
+            public Dictionary<int, List<FlowSvcGroup>> ExistingServiceGroupsByManagement { get; } = [];
+            public Dictionary<int, List<FlowAccess>> ExistingAccessesByManagement { get; } = [];
+            public List<int> QueriedManagementIds { get; } = [];
             public List<long> UpdatedRequestTaskIds { get; } = [];
             public List<RequestElementFlowUpdate> UpdatedRequestElements { get; } = [];
             public FlowAccessInsert? InsertedAccess { get; private set; }
+            public List<FlowAccessInsert> InsertedAccesses { get; } = [];
             public int InsertedAccessCount { get; private set; }
             public List<FlowNwObject> InsertedNetworkObjects { get; } = [];
             public List<FlowNwGroup> InsertedNetworkGroups { get; } = [];
@@ -35,23 +42,33 @@ namespace FWO.Test
             {
                 if (query == FlowQueries.getFlowSyncNwObjects)
                 {
-                    return Task.FromResult((T)(object)ExistingNetworkObjects);
+                    int mgmId = GetValue<int>(variables, "mgmId");
+                    QueriedManagementIds.Add(mgmId);
+                    return Task.FromResult((T)(object)GetManagementData(ExistingNetworkObjectsByManagement, ExistingNetworkObjects, mgmId));
                 }
                 if (query == FlowQueries.getFlowSyncNwGroups)
                 {
-                    return Task.FromResult((T)(object)ExistingNetworkGroups);
+                    int mgmId = GetValue<int>(variables, "mgmId");
+                    QueriedManagementIds.Add(mgmId);
+                    return Task.FromResult((T)(object)GetManagementData(ExistingNetworkGroupsByManagement, ExistingNetworkGroups, mgmId));
                 }
                 if (query == FlowQueries.getFlowSyncSvcObjects)
                 {
-                    return Task.FromResult((T)(object)ExistingServiceObjects);
+                    int mgmId = GetValue<int>(variables, "mgmId");
+                    QueriedManagementIds.Add(mgmId);
+                    return Task.FromResult((T)(object)GetManagementData(ExistingServiceObjectsByManagement, ExistingServiceObjects, mgmId));
                 }
                 if (query == FlowQueries.getFlowSyncSvcGroups)
                 {
-                    return Task.FromResult((T)(object)ExistingServiceGroups);
+                    int mgmId = GetValue<int>(variables, "mgmId");
+                    QueriedManagementIds.Add(mgmId);
+                    return Task.FromResult((T)(object)GetManagementData(ExistingServiceGroupsByManagement, ExistingServiceGroups, mgmId));
                 }
                 if (query == FlowQueries.getFlowSyncAccesses)
                 {
-                    return Task.FromResult((T)(object)ExistingAccesses);
+                    int mgmId = GetValue<int>(variables, "mgmId");
+                    QueriedManagementIds.Add(mgmId);
+                    return Task.FromResult((T)(object)GetManagementData(ExistingAccessesByManagement, ExistingAccesses, mgmId));
                 }
                 if (query == FlowQueries.insertFlowNwObjects)
                 {
@@ -133,6 +150,7 @@ namespace FWO.Test
                 {
                     InsertedAccessCount++;
                     InsertedAccess = GetObjects<FlowAccessInsert>(variables).Single();
+                    InsertedAccesses.Add(InsertedAccess);
                     FlowAccess inserted = new()
                     {
                         Id = InsertedAccessId,
@@ -161,6 +179,11 @@ namespace FWO.Test
                 }
 
                 throw new AssertionException($"Unexpected query: {query}");
+            }
+
+            private static List<TObject> GetManagementData<TObject>(Dictionary<int, List<TObject>> dataByManagement, List<TObject> fallbackData, int managementId)
+            {
+                return dataByManagement.TryGetValue(managementId, out List<TObject>? managementData) ? managementData : fallbackData;
             }
 
             private static List<TObject> GetObjects<TObject>(object? variables)
@@ -534,6 +557,53 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateFlowInFlowDb_LoadsFlowSyncDataPerManagement()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            apiConn.ExistingNetworkObjectsByManagement[2] =
+            [
+                new FlowNwObject { Id = 10, Hash = "mgm-2-source", Objects = [new NetworkObject { Id = 501 }] },
+                new FlowNwObject { Id = 11, Hash = "mgm-2-destination", Objects = [new NetworkObject { Id = 502 }] }
+            ];
+            apiConn.ExistingServiceObjectsByManagement[2] =
+            [
+                new FlowSvcObject { Id = 20, Hash = "mgm-2-service", Services = [new NetworkService { Id = 601 }] }
+            ];
+            apiConn.ExistingNetworkObjectsByManagement[3] =
+            [
+                new FlowNwObject { Id = 30, Hash = "mgm-3-source", Objects = [new NetworkObject { Id = 701 }] },
+                new FlowNwObject { Id = 31, Hash = "mgm-3-destination", Objects = [new NetworkObject { Id = 702 }] }
+            ];
+            apiConn.ExistingServiceObjectsByManagement[3] =
+            [
+                new FlowSvcObject { Id = 40, Hash = "mgm-3-service", Services = [new NetworkService { Id = 801 }] }
+            ];
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask first = CreateAccessTask(11, "", "", 443);
+            SetSelectedObjectAndServiceIds(first, 501, 502, 601);
+            WfReqTask second = CreateAccessTask(12, "", "", 8443);
+            second.ManagementId = 3;
+            SetSelectedObjectAndServiceIds(second, 701, 702, 801);
+            WfTicket ticket = new()
+            {
+                Id = 7,
+                Tasks = [first, second]
+            };
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, ticket, WfObjectScopes.Ticket, null, ticket.Id);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.QueriedManagementIds.Distinct(), Is.EquivalentTo(new[] { 2, 3 }));
+            Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(2));
+            Assert.That(((NwRef)apiConn.InsertedAccesses[0].AccessSources!.Data.Single()).NwObjId, Is.EqualTo(10));
+            Assert.That(((NwRef)apiConn.InsertedAccesses[1].AccessSources!.Data.Single()).NwObjId, Is.EqualTo(30));
+            Assert.That(((SvcRef)apiConn.InsertedAccesses[1].AccessServices!.Data.Single()).SvcObjId, Is.EqualTo(40));
+            Assert.That(apiConn.UpdatedRequestTaskIds, Is.EquivalentTo(new long[] { 11, 12 }));
+            Assert.That(apiConn.InsertedNetworkObjects, Is.Empty);
+            Assert.That(apiConn.InsertedServiceObjects, Is.Empty);
+        }
+
+        [Test]
         public async Task CreateFlowInFlowDb_UsesFallbackNamesForInsertedObjects()
         {
             FlowDbCreatorTestApiConn apiConn = new();
@@ -549,6 +619,23 @@ namespace FWO.Test
             Assert.That(result, Is.True);
             Assert.That(apiConn.InsertedNetworkObjects.First().Name, Is.EqualTo("10.0.0.1-10.0.0.9"));
             Assert.That(apiConn.InsertedServiceObjects.Single().Name, Is.EqualTo("6/443-445"));
+        }
+
+        private static void SetSelectedObjectAndServiceIds(WfReqTask task, long sourceObjectId, long destinationObjectId, long serviceId)
+        {
+            WfReqElement source = task.Elements.Single(element => element.Field == ElemFieldType.source.ToString());
+            source.NetworkId = sourceObjectId;
+            source.IpString = "";
+            source.IpEnd = "";
+            WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.NetworkId = destinationObjectId;
+            destination.IpString = "";
+            destination.IpEnd = "";
+            WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            service.ServiceId = serviceId;
+            service.ProtoId = null;
+            service.Port = null;
+            service.PortEnd = null;
         }
 
         private static WfReqTask CreateAccessTask(long taskId, string sourceIp, string destinationIp, int port)

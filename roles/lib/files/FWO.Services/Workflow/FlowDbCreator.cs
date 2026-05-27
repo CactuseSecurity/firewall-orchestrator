@@ -116,23 +116,28 @@ namespace FWO.Services.Workflow
 
         private async Task<bool?> PersistFlowCreationPayloads(List<FlowCreationPayload> payloads)
         {
-            FlowSyncFlowData context = await LoadFlowSyncData(payloads);
-            FlowGroupMaps groupMaps = BuildGroupMaps(context);
             int persistedPayloads = 0;
 
-            foreach (FlowCreationPayload payload in payloads.Where(IsGroupTask))
+            foreach (IGrouping<int, FlowCreationPayload> managementPayloads in payloads.GroupBy(GetManagementGroupId))
             {
-                if (await PersistGroupPayload(payload, context, groupMaps))
-                {
-                    persistedPayloads++;
-                }
-            }
+                List<FlowCreationPayload> groupedPayloads = [.. managementPayloads];
+                FlowSyncFlowData context = await LoadFlowSyncData(managementPayloads.Key);
+                FlowGroupMaps groupMaps = BuildGroupMaps(context);
 
-            foreach (FlowCreationPayload payload in payloads.Where(payload => !IsGroupTask(payload)))
-            {
-                if (await PersistAccessPayload(payload, context, groupMaps))
+                foreach (FlowCreationPayload payload in groupedPayloads.Where(IsGroupTask))
                 {
-                    persistedPayloads++;
+                    if (await PersistGroupPayload(payload, context, groupMaps))
+                    {
+                        persistedPayloads++;
+                    }
+                }
+
+                foreach (FlowCreationPayload payload in groupedPayloads.Where(payload => !IsGroupTask(payload)))
+                {
+                    if (await PersistAccessPayload(payload, context, groupMaps))
+                    {
+                        persistedPayloads++;
+                    }
                 }
             }
 
@@ -140,9 +145,13 @@ namespace FWO.Services.Workflow
             return persistedPayloads == payloads.Count;
         }
 
-        private async Task<FlowSyncFlowData> LoadFlowSyncData(IEnumerable<FlowCreationPayload> payloads)
+        private static int GetManagementGroupId(FlowCreationPayload payload)
         {
-            int mgmId = payloads.Select(payload => payload.ManagementId).FirstOrDefault(id => id.HasValue) ?? 0;
+            return payload.ManagementId ?? 0;
+        }
+
+        private async Task<FlowSyncFlowData> LoadFlowSyncData(int mgmId)
+        {
             List<FlowNwObject> nwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, new { mgmId }) ?? [];
             List<FlowNwGroup> nwGroups = await apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, new { mgmId }) ?? [];
             List<FlowSvcObject> svcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSyncSvcObjects, new { mgmId }) ?? [];

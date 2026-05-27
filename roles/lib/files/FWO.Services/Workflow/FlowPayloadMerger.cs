@@ -9,8 +9,8 @@ namespace FWO.Services.Workflow
             return
             [
                 .. payloads
-                    .GroupBy(payload => payload.BundleId)
-                    .SelectMany(group => string.IsNullOrWhiteSpace(group.Key)
+                    .GroupBy(payload => new { payload.BundleId, ManagementId = payload.ManagementId ?? 0 })
+                    .SelectMany(group => string.IsNullOrWhiteSpace(group.Key.BundleId)
                         ? group.Select(payload => new FlowCreationPayload(payload))
                         : [MergeGroup(group)])
             ];

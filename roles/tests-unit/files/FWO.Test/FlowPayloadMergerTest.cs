@@ -25,6 +25,22 @@ namespace FWO.Test
             Assert.That(result.Single(payload => payload.OriginRequestTaskIds.SequenceEqual([3])).Destinations, Has.Count.EqualTo(1));
         }
 
+        [Test]
+        public void MergeBundled_DoesNotMergePayloadsFromDifferentManagements()
+        {
+            FlowCreationPayload first = CreatePayload(1, "10.0.0.1", "10.0.1.1", 443);
+            FlowCreationPayload second = CreatePayload(2, "10.0.0.1", "10.0.1.2", 443);
+            first.BundleId = "flow-1-2";
+            second.BundleId = "flow-1-2";
+            second.ManagementId = 3;
+
+            List<FlowCreationPayload> result = new FlowPayloadMerger().MergeBundled([first, second]);
+
+            Assert.That(result, Has.Count.EqualTo(2));
+            Assert.That(result.Select(payload => payload.ManagementId), Is.EquivalentTo(new int?[] { 2, 3 }));
+            Assert.That(result.SelectMany(payload => payload.OriginRequestTaskIds), Is.EquivalentTo(new long[] { 1, 2 }));
+        }
+
         private static FlowCreationPayload CreatePayload(long taskId, string sourceIp, string destinationIp, int port)
         {
             return new()

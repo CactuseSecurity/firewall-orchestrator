@@ -105,8 +105,8 @@ namespace FWO.Services
             }
 
             var flowData = await GetFlowSyncDataAsync(mgmId);
-            int mgmFlowNamingSourceId = globalConfig.FlowNamingSourceManagementId ?? 0;
-            bool useManagementNamesForFlow = mgmFlowNamingSourceId == mgmId;
+            List<int> flowNamingRanking = FlowNamingHelper.ParseManagementRanking(globalConfig.FlowNamingSourceManagementRanking);
+            bool useManagementNamesForFlow = flowNamingRanking.Count > 0 && flowNamingRanking[0] == mgmId;
 
             // Process simple objects first, as they are used in groups and accesses
             await ProcessNetworkObjectsAsync(managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);

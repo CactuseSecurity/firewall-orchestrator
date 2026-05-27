@@ -30,19 +30,8 @@
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}")">
-                <hr />
-                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
-                    <h5>Flow</h5>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/flows/networkobjects">
-                        <span class="@Icons.Settings"></span> @(userConfig.GetText("network_objects"))
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-            <hr />
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")" Context="authorizationHeaderAuth">
+                <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5012"))">
                     <h5>@(userConfig.GetText("authorization"))</h5>
                 </li>
@@ -147,6 +136,15 @@
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/workflowcustomizing">
                         <span class="@Icons.Settings"></span> @(userConfig.GetText("customizing"))
+                    </NavLink>
+                </li>
+                <hr />
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
+                    <h5>@(userConfig.GetText("flow"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/flows/networkobjects">
+                        <span class="@Icons.Settings"></span> @(userConfig.GetText("network_objects"))
                     </NavLink>
                 </li>
                 <hr />

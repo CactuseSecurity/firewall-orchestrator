@@ -18,7 +18,7 @@ namespace FWO.Config.Api.Data
         public readonly bool Editable;
 
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
-        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;        
+        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;
 
         [JsonProperty("uiHostName"), JsonPropertyName("uiHostName")]
         public string UiHostName { get; set; } = "http://localhost:5000";
@@ -354,8 +354,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modReqInterfaceName"), JsonPropertyName("modReqInterfaceName")]
         public string ModReqInterfaceName { get; set; } = "";
 
-        [JsonProperty("flowNamingSourceManagementId"), JsonPropertyName("flowNamingSourceManagementId")]
-        public int? FlowNamingSourceManagementId { get; set; }
+        [JsonProperty("flowNamingSourceManagementRanking"), JsonPropertyName("flowNamingSourceManagementRanking")]
+        public string FlowNamingSourceManagementRanking { get; set; } = "[]";
 
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
         public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);

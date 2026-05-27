@@ -168,6 +168,7 @@ namespace FWO.Config.Api
         public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)
         {
             ThrowIfDisposed();
+            ConfigItem[] changedItems = [];
             await semaphoreSlim.WaitAsync();
             List<ConfigItem> configItemChanges = [];
             try
@@ -202,31 +203,25 @@ namespace FWO.Config.Api
                 if (configItemChanges.Count > 0)
                 {
                     await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
+                    changedItems = [.. configItemChanges];
+                    ApplyCommittedChanges(changedItems);
                 }
             }
             finally { semaphoreSlim.Release(); }
 
-            if (configItemChanges.Count > 0)
+            if (changedItems.Length > 0)
             {
-                await ApplyCommittedChanges(configItemChanges);
+                InvokeOnChange(this, changedItems);
             }
         }
 
         /// <summary>
-        /// Applies successfully persisted configuration values to this in-memory config instance.
+        /// Applies successfully persisted configuration values to this in-memory config instance while the caller holds the semaphore.
         /// </summary>
-        private async Task ApplyCommittedChanges(List<ConfigItem> configItemChanges)
+        private void ApplyCommittedChanges(ConfigItem[] changedItems)
         {
-            ConfigItem[] changedItems = [.. configItemChanges];
-            await semaphoreSlim.WaitAsync();
-            try
-            {
-                MergeRawConfigItems(changedItems);
-                Update(changedItems);
-            }
-            finally { semaphoreSlim.Release(); }
-
-            InvokeOnChange(this, changedItems);
+            MergeRawConfigItems(changedItems);
+            Update(changedItems);
         }
 
         /// <summary>

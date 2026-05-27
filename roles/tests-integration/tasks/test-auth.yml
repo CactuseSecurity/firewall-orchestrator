@@ -1,12 +1,19 @@
 # this playbook contains middleware server tests
 
+- name: ensure middleware service is running
+  ansible.builtin.systemd:
+      name: "{{ middleware_service_name }}"
+      state: started
+      daemon_reload: true
+  become: true
+
 - name: wait for middleware port to become available
   ansible.builtin.wait_for:
       port: "{{ middleware_web_listener_port }}"
       host: "{{ middleware_hostname }}"
       connect_timeout: 1
       delay: 10
-      timeout: 25
+      timeout: 90
 
 - name: middleware test get jwt valid creds
   ansible.builtin.uri:

@@ -18,13 +18,7 @@ namespace FWO.Config.Api.Data
         public readonly bool Editable;
 
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
-        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;
-
-        [JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout")]
-        public int SessionTimeout { get; set; } = 720;
-
-        [JsonProperty("sessionTimeoutNoticePeriod"), JsonPropertyName("sessionTimeoutNoticePeriod")]
-        public int SessionTimeoutNoticePeriod { get; set; } = 60;
+        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;        
 
         [JsonProperty("uiHostName"), JsonPropertyName("uiHostName")]
         public string UiHostName { get; set; } = "http://localhost:5000";

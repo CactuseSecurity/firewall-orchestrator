@@ -61,8 +61,8 @@ Alter table "object" add  foreign key ("obj_last_seen") references "import_contr
 Alter table "object" add  foreign key ("obj_nat_install") references "device" ("dev_id") on update restrict on delete cascade;
 Alter table "object" add  foreign key ("obj_typ_id") references "stm_obj_typ" ("obj_typ_id") on update restrict on delete cascade;
 Alter table "object" add  foreign key ("zone_id") references "zone" ("zone_id") on update restrict on delete cascade;
-Alter table "object" add  foreign key ("flow_nwobj_id") references "flow"."nwobject" ("nwobj_id") on update restrict on delete set null;
-Alter table "object" add  foreign key ("flow_nwgrp_id") references "flow"."nwgroup" ("nwgrp_id") on update restrict on delete set null;
+Alter table "object" add constraint "flow_nwobj_id_foreign_key" foreign key ("flow_nwobj_id") references "flow"."nwobject" ("nwobj_id") on update restrict on delete set null;
+Alter table "object" add constraint "flow_nwgrp_id_foreign_key" foreign key ("flow_nwgrp_id") references "flow"."nwgroup" ("nwgrp_id") on update restrict on delete set null;
 Alter table "objgrp" add  foreign key ("import_created") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "objgrp" add  foreign key ("import_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "objgrp" add  foreign key ("objgrp_id") references "object" ("obj_id") on update restrict on delete cascade;
@@ -171,8 +171,8 @@ Alter table "service" add  foreign key ("svc_color_id") references "stm_color" (
 Alter table "service" add  foreign key ("svc_create") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "service" add  foreign key ("svc_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "service" add  foreign key ("svc_typ_id") references "stm_svc_typ" ("svc_typ_id") on update restrict on delete cascade;
-Alter table "service" add  foreign key ("flow_svcobj_id") references "flow"."svcobject" ("svcobj_id") on update restrict on delete set null;
-Alter table "service" add  foreign key ("flow_svcgrp_id") references "flow"."svcgroup" ("svcgrp_id") on update restrict on delete set null;
+Alter table "service" add constraint "flow_svcobj_id_foreign_key" foreign key ("flow_svcobj_id") references "flow"."svcobject" ("svcobj_id") on update restrict on delete set null;
+Alter table "service" add constraint "flow_svcgrp_id_foreign_key" foreign key ("flow_svcgrp_id") references "flow"."svcgroup" ("svcgrp_id") on update restrict on delete set null;
 Alter table "svcgrp" add  foreign key ("import_created") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "svcgrp" add  foreign key ("import_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "svcgrp" add  foreign key ("svcgrp_id") references "service" ("svc_id") on update restrict on delete cascade;
@@ -222,7 +222,7 @@ ALTER TABLE ext_request ADD CONSTRAINT ext_request_ticket_id_foreign_key FOREIGN
 Alter table "time_object" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "time_object" add  foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "time_object" add  foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
-Alter table "time_object" add  foreign key ("flow_timeobj_id") references "flow"."timeobject" ("timeobj_id") on update restrict on delete set null;
+Alter table "time_object" add constraint "flow_timeobj_id_foreign_key" foreign key ("flow_timeobj_id") references "flow"."timeobject" ("timeobj_id") on update restrict on delete set null;
 
 Alter table "rule_time" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_time" add  foreign key ("time_obj_id") references "time_object" ("time_obj_id") on update restrict on delete cascade;

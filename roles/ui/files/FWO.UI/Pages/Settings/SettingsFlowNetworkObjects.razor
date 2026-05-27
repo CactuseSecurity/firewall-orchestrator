@@ -18,12 +18,12 @@
     <h3>@(userConfig.GetText("network_objects"))</h3>
     <HelpLink Page="settings/flows/networkobjects"/>
 </div>
-<div class="form-group row align-items-start mb-2">
-    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("flow_naming")):</label>
-    <div class="col-sm-5">
+<div class="mb-2">
+    <label class="form-label form-label-sm mb-1">@(userConfig.GetText("flow_naming")):</label>
+    <div>
         @if (namingManagementRanking.Count > 0)
         {
-            <table class="table table-sm table-bordered th-bg-secondary mb-0">
+            <table class="table table-sm table-bordered th-bg-secondary mb-0 w-auto">
                 <thead>
                     <tr>
                         <th class="text-nowrap">@(userConfig.GetText("sort_order"))</th>
@@ -35,15 +35,15 @@
                     @for (int index = 0; index < namingManagementRanking.Count; index++)
                     {
                         Management management = namingManagementRanking[index];
-                        <tr>
+                        <tr @key="management.Id">
                             <td>@(index + 1)</td>
                             <td>@management.Name</td>
                             <td>
                                 <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-secondary" disabled="@(index == 0)" @onclick="() => MoveNamingManagement(index, -1)" title="@(userConfig.GetText("move_up"))">
+                                    <button type="button" class="btn btn-sm btn-secondary" disabled="@(index == 0)" @onclick:stopPropagation="true" @onclick="() => MoveNamingManagement(management, -1)" title="@(userConfig.GetText("move_up"))">
                                         <span class="@Icons.CollapseUp"></span>
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-secondary" disabled="@(index == namingManagementRanking.Count - 1)" @onclick="() => MoveNamingManagement(index, 1)" title="@(userConfig.GetText("move_down"))">
+                                    <button type="button" class="btn btn-sm btn-secondary" disabled="@(index == namingManagementRanking.Count - 1)" @onclick:stopPropagation="true" @onclick="() => MoveNamingManagement(management, 1)" title="@(userConfig.GetText("move_down"))">
                                         <span class="@Icons.CollapseDown"></span>
                                     </button>
                                 </div>
@@ -57,16 +57,16 @@
         {
             <div class="text-muted small">-</div>
         }
-        <div class="text-muted small mt-2">
-            @($"{userConfig.GetText("current")}: {SelectedNamingManagement?.Name ?? "-"}")
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-primary" @onclick="SaveNamingSource">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                <button type="button" class="btn btn-sm btn-warning" @onclick="OpenRecalculateConfirm">@(DisplayService.DisplayButton(userConfig, "recalculate_flow_names", Icons.Refresh))</button>
+            </div>
+            <div class="text-muted small">
+                @($"{userConfig.GetText("current")}: {SelectedNamingManagement?.Name ?? "-"}")
+            </div>
         </div>
     </div>
-    <div class="col-sm-3">
-        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveNamingSource">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
-    </div>
-</div>
-<div class="btn-group mb-2">
-    <button type="button" class="btn btn-sm btn-warning" @onclick="OpenRecalculateConfirm">@(DisplayService.DisplayButton(userConfig, "recalculate_flow_names", Icons.Refresh))</button>
 </div>
 
 <hr class="my-4" />
@@ -97,7 +97,7 @@
         </Column>
         <Column TableItem="FlowNwObjectDuplicateGroup" Title="@(userConfig.GetText("actions"))" Field="@(group => group.ManagementId)" Sortable="false" Filterable="false" Context="group">
             <Template>
-                <button type="button" class="btn btn-sm btn-warning" @onclick="() => OpenDuplicateResolver(group)">
+                <button type="button" class="btn btn-sm btn-warning" @onclick:stopPropagation="true" @onclick="() => OpenDuplicateResolver(group)">
                     @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
                 </button>
             </Template>
@@ -112,7 +112,7 @@ else
 
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
     <h4 class="mb-0">@(userConfig.GetText("custom_objects"))</h4>
-    <button type="button" class="btn btn-sm btn-primary" @onclick="OpenCreateCustomObject">
+    <button type="button" class="btn btn-sm btn-primary" @onclick:stopPropagation="true" @onclick="OpenCreateCustomObject">
         @(DisplayService.DisplayButton(userConfig, "create_custom_flow_object", Icons.Add))
     </button>
 </div>
@@ -218,7 +218,7 @@ else
                    PageSize="10"
                    ColumnReorder="true">
                 <Column TableItem="NetworkObject" Title="@(userConfig.GetText("uid"))" Field="@(nwObject => nwObject.Uid)" Sortable="true" Filterable="true" />
-                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("details"))" Field="@(nwObject => FlowAdminHelper.FormatNetworkObjectTechnicalDetails(nwObject))" Sortable="true" Filterable="true" Context="nwObject">
+                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("details"))" Sortable="false" Filterable="false" Context="nwObject">
                     <Template>
                         <span class="d-inline-block rounded px-2 py-1 @(nwObject == SelectedDuplicateObject ? "bg-warning-subtle fw-bold" : "")">
                             @FlowAdminHelper.FormatNetworkObjectTechnicalDetails(nwObject)
@@ -232,7 +232,7 @@ else
                 </Column>
                 <Column TableItem="NetworkObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
                     <Template>
-                        <button type="button" class="btn btn-sm @(nwObject == SelectedDuplicateObject ? "btn-success" : "btn-outline-primary")" @onclick="() => SelectDuplicateObject(nwObject)">
+                        <button type="button" class="btn btn-sm @(nwObject == SelectedDuplicateObject ? "btn-success" : "btn-outline-primary")" @onclick:stopPropagation="true" @onclick="() => SelectDuplicateObject(nwObject)">
                             @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
                         </button>
                     </Template>
@@ -297,12 +297,16 @@ else
                                    ShowSearchBar="false"
                                    TableRowClass="@(nwObject => GetCustomObjectRowClass(selection, nwObject))">
                                 <Column TableItem="NetworkObject" Title="@(userConfig.GetText("uid"))" Field="@(nwObject => nwObject.Uid)" Sortable="true" Filterable="true" />
-                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("details"))" Field="@(nwObject => FlowAdminHelper.FormatNetworkObjectTechnicalDetails(nwObject))" Sortable="true" Filterable="true" Context="nwObject">
+                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("details"))" Sortable="false" Filterable="false" Context="nwObject">
                                     <Template>
                                         @FlowAdminHelper.FormatNetworkObjectTechnicalDetails(nwObject)
                                     </Template>
                                 </Column>
-                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("type"))" Field="@(nwObject => nwObject.Type.Name)" Sortable="true" Filterable="true" />
+                                <Column TableItem="NetworkObject" Title="@(userConfig.GetText("type"))" Sortable="false" Filterable="false" Context="nwObject">
+                                    <Template>
+                                        @(nwObject.Type?.Name ?? "")
+                                    </Template>
+                                </Column>
                                 <Column TableItem="NetworkObject" Title="@(userConfig.GetText("ip"))" Field="@(nwObject => nwObject.IP)" Sortable="true" Filterable="true" Context="nwObject">
                                     <Template>
                                         @DisplayBase.DisplayIp(nwObject.IP, nwObject.IpEnd)
@@ -315,7 +319,7 @@ else
                                 </Column>
                                 <Column TableItem="NetworkObject" Title="@(userConfig.GetText("actions"))" Field="@(nwObject => nwObject.Id)" Sortable="false" Filterable="false" Context="nwObject">
                                     <Template>
-                                        <button type="button" class="btn btn-sm @(selection.SelectedObject?.Id == nwObject.Id ? "btn-success" : "btn-outline-primary")" @onclick="() => SelectCustomObject(selection, nwObject)">
+                                        <button type="button" class="btn btn-sm @(selection.SelectedObject?.Id == nwObject.Id ? "btn-success" : "btn-outline-primary")" @onclick:stopPropagation="true" @onclick="() => SelectCustomObject(selection, nwObject)">
                                             @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
                                         </button>
                                     </Template>
@@ -476,8 +480,9 @@ else
         return [.. namingManagementRanking.Select(management => management.Id)];
     }
 
-    private void MoveNamingManagement(int index, int offset)
+    private void MoveNamingManagement(Management management, int offset)
     {
+        int index = namingManagementRanking.FindIndex(item => item.Id == management.Id);
         int targetIndex = index + offset;
         if (index < 0 || targetIndex < 0 || targetIndex >= namingManagementRanking.Count)
         {

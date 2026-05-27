@@ -3,8 +3,8 @@
         <Found Context="routeData">
             <ErrorBoundary>
                 <ChildContent>
-                    <AuthorizeView>
-                        <Authorized>
+                    <AuthorizeView Context="appAuthState">
+                        <Authorized Context="appAuthorizedState">
                             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                                 <NotAuthorized Context="permissionDeniedAuthState">
                                     <div class="row m-4 justify-content-center">
@@ -13,7 +13,7 @@
                                 </NotAuthorized>
                             </AuthorizeRouteView>
                         </Authorized>
-                        <NotAuthorized>
+                        <NotAuthorized Context="appNotAuthorizedState">
                             <Login></Login>
                         </NotAuthorized>
                     </AuthorizeView>

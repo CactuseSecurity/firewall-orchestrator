@@ -143,6 +143,29 @@ namespace FWO.Test
             Assert.That(states, Has.Count.EqualTo(1));
             Assert.That(states[0].Name, Is.EqualTo("Requested"));
             Assert.That(states[0].IncludeIntoRequest, Is.True);
+            Assert.That(states[0].MonitorStatus, Is.EqualTo(ModIntegrationStateStatus.None));
+        }
+
+        [Test]
+        public void ModIntegrationStateConfig_SerializesConfiguredMonitorStatus()
+        {
+            string configValue = ModIntegrationStateConfig.ToConfigValue(
+            [
+                new() { Name = " Done ", MonitorStatus = ModIntegrationStateStatus.Implemented },
+                new() { Name = "Broken", MonitorStatus = "unknown" }
+            ]);
+
+            List<ModIntegrationState> states = ModIntegrationStateConfig.Parse(configValue);
+            Dictionary<string, string> monitorStatusByName = ModIntegrationStateConfig.MonitorStatusByStateName(configValue);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(states[0].Name, Is.EqualTo("Done"));
+                Assert.That(states[0].MonitorStatus, Is.EqualTo(ModIntegrationStateStatus.Implemented));
+                Assert.That(states[1].MonitorStatus, Is.EqualTo(ModIntegrationStateStatus.None));
+                Assert.That(monitorStatusByName["Done"], Is.EqualTo(ModIntegrationStateStatus.Implemented));
+                Assert.That(ModIntegrationStateConfig.MonitorStatusTextKey(ModIntegrationStateStatus.Implemented), Is.EqualTo("monitor_status_implemented"));
+            });
         }
 
         [Test]

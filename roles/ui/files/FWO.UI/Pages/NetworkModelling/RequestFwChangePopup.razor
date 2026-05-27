@@ -159,11 +159,21 @@
     {
         if (Display && FirstTry)
         {
-            FirstTry = false;
-            WorkInProgress = true;
-            await states.Init(apiConnection);
-            await InitTasks();
-            WorkInProgress = false;
+            try
+            {
+                FirstTry = false;
+                WorkInProgress = true;
+                await states.Init(apiConnection);
+                await InitTasks();
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
+            }
+            finally
+            {
+                WorkInProgress = false;
+            }
         }
     }
 

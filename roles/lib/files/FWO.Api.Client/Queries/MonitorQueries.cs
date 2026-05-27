@@ -24,6 +24,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getDataImportLogEntrys;
         public static readonly string getImportStatus;
         public static readonly string getOwnerTickets;
+        public static readonly string getLatestOwnerTickets;
+        public static readonly string deleteOwnerTickets;
 
 
         static MonitorQueries()
@@ -56,6 +58,8 @@ namespace FWO.Api.Client.Queries
                 getDataImportLogEntrys = GetQueryText("monitor/getDataImportLogEntrys.graphql");
 
                 getOwnerTickets = RequestQueries.ticketOverviewFragment + GetQueryText("monitor/getOwnerTickets.graphql");
+                getLatestOwnerTickets = RequestQueries.ticketOverviewFragment + GetQueryText("monitor/getLatestOwnerTickets.graphql");
+                deleteOwnerTickets = GetQueryText("monitor/deleteOwnerTickets.graphql");
             }
             catch (Exception exception)
             {

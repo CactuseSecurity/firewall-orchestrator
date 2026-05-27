@@ -61,8 +61,17 @@ namespace FWO.Test
             {"name","Name"},
             {"modIntegrationStates","Integration States"},
             {"modIntegrationStateMarker","State Marker"},
+            {"monitor_status","Monitor status"},
+            {"monitor_status_none","None"},
+            {"monitor_status_request_running","Request running"},
+            {"monitor_status_implemented","Implemented"},
+            {"monitor_status_rejected","Rejected"},
             {"include_into_request","Include into request"},
             {"request_fw_change","Request firewall changes"},
+            {"request_running","Request running"},
+            {"changes_not_requested","Changes not requested"},
+            {"all_implemented","All implemented"},
+            {"rejections","Rejections"},
             {"last_requested","Last Requested"},
             {"UpdateModelling","Update Modelling"},
             {"none","None"},
@@ -435,12 +444,13 @@ namespace FWO.Test
             {"H1521","Phase tooltip"},
             {"H1524","Detailed view tooltip"},
             {"detailed_view","Detailed View"},
-            {"task","Task"}
+            {"task","Task"},
+            {"U9026","Nothing to request!"}
         };
 
         public override string GetText(string key)
         {
-            return DummyTranslate[key];
+            return DummyTranslate.TryGetValue(key, out string? value) ? value : key;
         }
 
         public static ConfigItem[] GetAsConfigs()

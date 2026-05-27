@@ -12,6 +12,25 @@ namespace FWO.Data.Modelling
 
         [JsonProperty("include_into_request"), JsonPropertyName("include_into_request")]
         public bool IncludeIntoRequest { get; set; }
+
+        [JsonProperty("monitor_status"), JsonPropertyName("monitor_status")]
+        public string MonitorStatus { get; set; } = ModIntegrationStateStatus.None;
+    }
+
+    public static class ModIntegrationStateStatus
+    {
+        public const string None = "none";
+        public const string RequestRunning = "request_running";
+        public const string Implemented = "implemented";
+        public const string Rejected = "rejected";
+
+        public static readonly IReadOnlyList<string> All =
+        [
+            None,
+            RequestRunning,
+            Implemented,
+            Rejected
+        ];
     }
 
     public static class ModIntegrationStateConfig
@@ -31,6 +50,25 @@ namespace FWO.Data.Modelling
                 .Where(state => state.IncludeIntoRequest)
                 .Select(state => state.Name)
                 .Where(name => !string.IsNullOrWhiteSpace(name))];
+        }
+
+        public static Dictionary<string, string> MonitorStatusByStateName(string configValue)
+        {
+            return Parse(configValue)
+                .Where(state => !string.IsNullOrWhiteSpace(state.Name))
+                .GroupBy(state => state.Name.Trim(), StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => NormalizeMonitorStatus(group.First().MonitorStatus), StringComparer.Ordinal);
+        }
+
+        public static string MonitorStatusTextKey(string status)
+        {
+            return NormalizeMonitorStatus(status) switch
+            {
+                ModIntegrationStateStatus.RequestRunning => "monitor_status_request_running",
+                ModIntegrationStateStatus.Implemented => "monitor_status_implemented",
+                ModIntegrationStateStatus.Rejected => "monitor_status_rejected",
+                _ => "monitor_status_none"
+            };
         }
 
         public static bool IsIncludedForRequest(string? stateName, HashSet<string> includedRequestStateNames)
@@ -101,6 +139,29 @@ namespace FWO.Data.Modelling
             if (!markerReplaced)
             {
                 updatedLines.Add(markedState);
+            }
+            return string.Join(Environment.NewLine, updatedLines);
+        }
+
+        public static string RemoveMarkedComment(string? existingComment, string marker)
+        {
+            if (string.IsNullOrWhiteSpace(existingComment))
+            {
+                return "";
+            }
+
+            List<string> updatedLines = [];
+            foreach (string line in existingComment.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+            {
+                string updatedLine = line;
+                if (TryFindMarkedCommentSegment(updatedLine, marker, out Match markerMatch))
+                {
+                    updatedLine = updatedLine.Remove(markerMatch.Index, markerMatch.Length).Trim();
+                }
+                if (!string.IsNullOrWhiteSpace(updatedLine))
+                {
+                    updatedLines.Add(updatedLine);
+                }
             }
             return string.Join(Environment.NewLine, updatedLines);
         }
@@ -190,10 +251,16 @@ namespace FWO.Data.Modelling
                 .Select(state => new ModIntegrationState
                 {
                     Name = state.Name.Trim(),
-                    IncludeIntoRequest = state.IncludeIntoRequest
+                    IncludeIntoRequest = state.IncludeIntoRequest,
+                    MonitorStatus = NormalizeMonitorStatus(state.MonitorStatus)
                 })
                 .DistinctBy(state => state.Name)
                 .ToList());
+        }
+
+        private static string NormalizeMonitorStatus(string? status)
+        {
+            return ModIntegrationStateStatus.All.Contains(status) ? status! : ModIntegrationStateStatus.None;
         }
     }
 }

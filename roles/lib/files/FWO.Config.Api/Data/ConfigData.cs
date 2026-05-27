@@ -18,13 +18,7 @@ namespace FWO.Config.Api.Data
         public readonly bool Editable;
 
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
-        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;
-
-        [JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout")]
-        public int SessionTimeout { get; set; } = 720;
-
-        [JsonProperty("sessionTimeoutNoticePeriod"), JsonPropertyName("sessionTimeoutNoticePeriod")]
-        public int SessionTimeoutNoticePeriod { get; set; } = 60;
+        public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;        
 
         [JsonProperty("uiHostName"), JsonPropertyName("uiHostName")]
         public string UiHostName { get; set; } = "http://localhost:5000";
@@ -360,6 +354,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modReqInterfaceName"), JsonPropertyName("modReqInterfaceName")]
         public string ModReqInterfaceName { get; set; } = "";
 
+        [JsonProperty("flowNamingSourceManagementId"), JsonPropertyName("flowNamingSourceManagementId")]
+        public int? FlowNamingSourceManagementId { get; set; }
+
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
         public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 
@@ -586,6 +583,11 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importedMatrixReadOnly"), JsonPropertyName("importedMatrixReadOnly")]
         public bool ImportedMatrixReadOnly { get; set; } = true;
 
+        [JsonProperty("accessTokenLifetimeHours"), JsonPropertyName("accessTokenLifetimeHours")]
+        public int AccessTokenLifetimeHours { get; set; } = 7;
+
+        [JsonProperty("refreshTokenLifetimeDays"), JsonPropertyName("refreshTokenLifetimeDays")]
+        public int RefreshTokenLifetimeDays { get; set; } = 7;
         [JsonProperty("complianceCheckElementsPerFetch"), JsonPropertyName("complianceCheckElementsPerFetch")]
         public int ComplianceCheckElementsPerFetch { get; set; } = 500;
 

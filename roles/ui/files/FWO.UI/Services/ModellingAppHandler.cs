@@ -84,7 +84,7 @@ namespace FWO.Ui.Services
                 conn.SyncState(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
             }
 
-            if (userConfig.VarianceAnalysisSync)
+            if (userConfig.VarianceAnalysisSync && userConfig.ModIntegrationMode != ModIntegrationMode.WorkflowNotifications)
             {
                 await AnalyseStatus(connections);
             }
@@ -184,16 +184,10 @@ namespace FWO.Ui.Services
         {
             if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
             {
-                string stateMarker = ModIntegrationStateConfig.EffectiveMarker(userConfig.ModIntegrationStateMarker);
-                HashSet<string> includedRequestStateNames = ModIntegrationStateConfig.IncludedRequestStateNames(userConfig.ModIntegrationStates);
-                return [.. Connections.Where(x => !x.IsDocumentationOnly() && x.IsRelevantForVarianceAnalysis(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers))
-                    .Where(x => x.IsIntegrationStateIncludedForRequest(stateMarker, includedRequestStateNames))
-                    .OrderByDescending(y => y.IsCommonService)];
+                return ModellingRequestConnectionSelector.ForWorkflowNotifications(Connections, userConfig, dummyAppRoleId);
             }
 
-            return [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(dummyAppRoleId,
-                userConfig.ModRolloutRemovedAppServers, userConfig.ModRequestOnlyOwnObjects))
-                .OrderByDescending(y => y.IsCommonService)];
+            return ModellingRequestConnectionSelector.ForRegularRequests(Connections, userConfig, dummyAppRoleId);
         }
 
         public bool HasModellingIssues(ModellingConnection conn)

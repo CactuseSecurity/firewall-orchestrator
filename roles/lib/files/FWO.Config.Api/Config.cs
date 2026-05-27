@@ -200,12 +200,17 @@ namespace FWO.Config.Api
                         }
                     }
                 }
+                // Capture new values before awaiting to avoid applying later mutations of editedData.
+                var changedValues = changedProperties
+                    .Select(p => (Property: p, Value: p.GetValue(editedData)))
+                    .ToList();
+
                 // Update or insert all config item
                 await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
 
-                foreach (PropertyInfo property in changedProperties)
+                foreach (var (property, value) in changedValues)
                 {
-                    property.SetValue(this, property.GetValue(editedData));
+                    property.SetValue(this, value);
                 }
             }
             finally { semaphoreSlim.Release(); }

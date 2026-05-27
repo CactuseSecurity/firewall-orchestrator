@@ -381,6 +381,14 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-sm-4">
+                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5536"))">
+                                    <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmCreateFlow">@(userConfig.GetText("confirm_flow_creation")):</label>
+                                    <div class="col-sm-2">
+                                        <input id="confirmCreateFlow" class="form-check-input mt-2" type="checkbox" @bind="actActionResultStateParams.ConfirmUiMessage" />
+                                    </div>
+                                </div>
+                            </div>
                             break;
                         case nameof(StateActionTypes.BundleTasks):
                             <div class="col-sm-4">
@@ -948,7 +956,7 @@ else
     {
         actActionResultStateParams.SuccessState = selectedSuccessState?.Id;
         actActionResultStateParams.ErrorState = selectedErrorState?.Id;
-        return actActionResultStateParams.SuccessState != null || actActionResultStateParams.ErrorState != null
+        return actActionResultStateParams.SuccessState != null || actActionResultStateParams.ErrorState != null || actActionResultStateParams.ConfirmUiMessage
             ? JsonSerializer.Serialize(actActionResultStateParams)
             : "";
     }

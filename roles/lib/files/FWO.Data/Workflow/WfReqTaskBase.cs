@@ -44,9 +44,6 @@ namespace FWO.Data.Workflow
         [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
         public int? ManagementId { get; set; }
 
-        [JsonProperty("flow_access_id"), JsonPropertyName("flow_access_id")]
-        public long? FlowAccessId { get; set; }
-
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public string SelectedDevices
         {
@@ -74,7 +71,6 @@ namespace FWO.Data.Workflow
             LastRecertDate = reqtask.LastRecertDate;
             SelectedDevices = reqtask.SelectedDevices;
             ManagementId = reqtask.ManagementId;
-            FlowAccessId = reqtask.FlowAccessId;
         }
 
         public virtual List<int> GetDeviceList()

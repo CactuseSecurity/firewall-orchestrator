@@ -363,6 +363,12 @@ namespace FWO.Services.Workflow
             bool? success = await flowDbCreator.CreateFlowInFlowDb(action, statefulObject, scope, owner, ticketId);
             if (success != null)
             {
+                ActionResultStateParams resultStateParams = LoadActionResultStateParams(action.ExternalParams);
+                if (resultStateParams.ConfirmUiMessage)
+                {
+                    wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("CreateFlow"),
+                        wfHandler.userConfig.GetText((bool)success ? "flow_creation_succeeded" : "flow_creation_failed"), !(bool)success);
+                }
                 await PromoteAfterActionResult(action.ExternalParams, (bool)success, statefulObject, scope);
             }
         }
@@ -416,7 +422,7 @@ namespace FWO.Services.Workflow
                 return;
             }
 
-            ActionResultStateParams resultStateParams = JsonSerializer.Deserialize<ActionResultStateParams>(externalParams) ?? new();
+            ActionResultStateParams resultStateParams = LoadActionResultStateParams(externalParams);
             int? toState = success ? resultStateParams.SuccessState : resultStateParams.ErrorState;
             if (toState == null)
             {
@@ -430,6 +436,13 @@ namespace FWO.Services.Workflow
             }
 
             await wfHandler.AutoPromote(statefulObject, scope, toState);
+        }
+
+        private static ActionResultStateParams LoadActionResultStateParams(string externalParams)
+        {
+            return string.IsNullOrWhiteSpace(externalParams)
+                ? new()
+                : JsonSerializer.Deserialize<ActionResultStateParams>(externalParams) ?? new();
         }
 
         public async Task CallExternal(WfStateAction action)

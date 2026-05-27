@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Flow;
 using FWO.Data.Middleware;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
@@ -160,6 +161,26 @@ namespace FWO.Test
                 {
                     int policyId = GetVariable<int>(variables, "id");
                     return Task.FromResult((T)(object)(policyId == compliantPolicy.Id ? compliantPolicy : nonCompliantPolicy));
+                }
+                if (query == FlowQueries.getFlowSyncNwObjects)
+                {
+                    return Task.FromResult((T)(object)new List<FlowNwObject>());
+                }
+                if (query == FlowQueries.getFlowSyncNwGroups)
+                {
+                    return Task.FromResult((T)(object)new List<FlowNwGroup>());
+                }
+                if (query == FlowQueries.getFlowSyncSvcObjects)
+                {
+                    return Task.FromResult((T)(object)new List<FlowSvcObject>());
+                }
+                if (query == FlowQueries.getFlowSyncSvcGroups)
+                {
+                    return Task.FromResult((T)(object)new List<FlowSvcGroup>());
+                }
+                if (query == FlowQueries.getFlowSyncAccesses)
+                {
+                    return Task.FromResult((T)(object)new List<FlowAccess>());
                 }
                 throw new AssertionException($"Unexpected query: {query}");
             }
@@ -1447,6 +1468,36 @@ namespace FWO.Test
                 Assert.That(disabledApiConn.Queries, Is.Empty);
                 Assert.That(implScopeApiConn.Queries, Is.Empty);
             });
+        }
+
+        [Test]
+        public async Task CreateFlow_WithConfirmation_DisplaysFailureMessage()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            List<(string Title, string Message, bool Error)> uiMessages = [];
+            WfHandler wfHandler = new((_, title, message, error) => uiMessages.Add((title, message, error)), new SimulatedUserConfig { ReqUseFlowDb = true },
+                new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler);
+            WfReqTask task = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                ManagementId = 2
+            };
+            WfStateAction action = new()
+            {
+                Name = "Create flow",
+                ExternalParams = JsonSerializer.Serialize(new ActionResultStateParams { ConfirmUiMessage = true })
+            };
+
+            await handler.CreateFlow(action, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(uiMessages, Has.Count.EqualTo(1));
+            Assert.That(uiMessages[0].Title, Is.EqualTo("Create flow"));
+            Assert.That(uiMessages[0].Message, Is.EqualTo("Flow DB entries could not be created. Check the workflow log for unresolved objects or services."));
+            Assert.That(uiMessages[0].Error, Is.True);
         }
 
         [Test]

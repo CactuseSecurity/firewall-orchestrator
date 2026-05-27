@@ -160,6 +160,9 @@ namespace FWO.Data.Workflow
 
         [JsonProperty("error_state"), JsonPropertyName("error_state")]
         public int? ErrorState { get; set; }
+
+        [JsonProperty("confirm_ui_message"), JsonPropertyName("confirm_ui_message")]
+        public bool ConfirmUiMessage { get; set; }
     }
 
     public class BundleTasksActionParams

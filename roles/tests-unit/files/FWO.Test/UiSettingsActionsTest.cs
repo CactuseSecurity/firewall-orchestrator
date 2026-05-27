@@ -165,6 +165,24 @@ namespace FWO.Test
             Assert.That(result, Is.True);
             Assert.That(parameters.SuccessState, Is.EqualTo(21));
             Assert.That(parameters.ErrorState, Is.EqualTo(22));
+            Assert.That(parameters.ConfirmUiMessage, Is.False);
+        }
+
+        [Test]
+        public async Task TryUpdateExternalParams_SerializesCreateFlowConfirmationWithoutStates()
+        {
+            SettingsActions component = new();
+            WfStateAction action = new() { ActionType = StateActionTypes.CreateFlow.ToString() };
+            SetMember(component, "actAction", action);
+            SetMember(component, "actActionResultStateParams", new ActionResultStateParams { ConfirmUiMessage = true });
+
+            bool result = await InvokeTryUpdateExternalParams(component);
+
+            ActionResultStateParams parameters = JsonSerializer.Deserialize<ActionResultStateParams>(action.ExternalParams)!;
+            Assert.That(result, Is.True);
+            Assert.That(parameters.SuccessState, Is.Null);
+            Assert.That(parameters.ErrorState, Is.Null);
+            Assert.That(parameters.ConfirmUiMessage, Is.True);
         }
 
         [Test]
@@ -260,6 +278,7 @@ namespace FWO.Test
             ActionResultStateParams parameters = GetMember<ActionResultStateParams>(component, "actActionResultStateParams");
             Assert.That(parameters.SuccessState, Is.Null);
             Assert.That(parameters.ErrorState, Is.Null);
+            Assert.That(parameters.ConfirmUiMessage, Is.False);
             Assert.That(GetMember<WfState?>(component, "selectedSuccessState"), Is.Null);
             Assert.That(GetMember<WfState?>(component, "selectedErrorState"), Is.Null);
         }

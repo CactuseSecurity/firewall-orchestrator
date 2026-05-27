@@ -498,9 +498,9 @@ else
                 .Select(selection => selection.SelectedService)
                 .FirstOrDefault(service => service != null);
 
-            if (referenceService == null)
+            if (referenceService == null || referenceService.ProtoId == null)
             {
-                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5102"), true);
+                DisplayMessageInUi(null, userConfig.GetText("create_custom_flow_object"), userConfig.GetText("E5113"), true);
                 return;
             }
 
@@ -512,9 +512,9 @@ else
                 Name = NewCustomFlowSvcObject.Name.Trim(),
                 PortStart = referenceService.DestinationPort,
                 PortEnd = referenceService.DestinationPortEnd,
-                IpProtoId = referenceService.ProtoId ?? 0,
+                IpProtoId = referenceService.ProtoId.Value,
                 SvcObjHash = referenceService.DestinationPort.HasValue && referenceService.DestinationPortEnd.HasValue
-                    ? FlowHashGenerator.GenerateSvcObjectHash(referenceService.ProtoId ?? 0, referenceService.DestinationPort, referenceService.DestinationPortEnd)
+                    ? FlowHashGenerator.GenerateSvcObjectHash(referenceService.ProtoId.Value, referenceService.DestinationPort, referenceService.DestinationPortEnd)
                     : FlowHashGenerator.GenerateRandomHash(),
                 State = "implemented",
                 ShowInRequestModule = NewCustomFlowSvcObject.ShowInRequestModule

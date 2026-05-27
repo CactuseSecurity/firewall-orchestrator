@@ -14,7 +14,7 @@ query getFlowNwGroupCandidates (
   ) {
     id: mgm_id
     name: mgm_name
-    objects(
+    networkObjects: objects(
       where: {
         removed: { _is_null: true }
       }

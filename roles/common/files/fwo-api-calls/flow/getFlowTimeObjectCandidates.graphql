@@ -14,7 +14,7 @@ query getFlowTimeObjectCandidates (
   ) {
     id: mgm_id
     name: mgm_name
-    time_objects(
+    timeObjects: time_objects(
       where: {
         removed: { _is_null: true }
       }

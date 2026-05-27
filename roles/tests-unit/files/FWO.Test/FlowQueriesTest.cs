@@ -31,14 +31,25 @@ namespace FWO.Test
         public void FlowQueries_LoadFlowObjectCandidateQueries()
         {
             Assert.That(FlowQueries.getFlowNwGroupCandidates, Does.Contain("query getFlowNwGroupCandidates"));
+            Assert.That(FlowQueries.getFlowNwGroupCandidates, Does.Contain("networkObjects: objects"));
             Assert.That(FlowQueries.getFlowNwGroupCatalog, Does.Contain("query getFlowNwGroupCatalog"));
             Assert.That(FlowQueries.getFlowSvcObjectCandidates, Does.Contain("query getFlowSvcObjectCandidates"));
+            Assert.That(FlowQueries.getFlowSvcObjectCandidates, Does.Contain("serviceObjects: services"));
+            Assert.That(FlowQueries.getFlowSvcObjectCandidates, Does.Contain("protocol_name: stm_ip_proto"));
+            Assert.That(FlowQueries.getFlowSvcObjectCandidates, Does.Contain("service_type: stm_svc_typ"));
             Assert.That(FlowQueries.getFlowSvcObjectCatalog, Does.Contain("query getFlowSvcObjectCatalog"));
             Assert.That(FlowQueries.getFlowSvcGroupCandidates, Does.Contain("query getFlowSvcGroupCandidates"));
+            Assert.That(FlowQueries.getFlowSvcGroupCandidates, Does.Contain("serviceObjects: services"));
+            Assert.That(FlowQueries.getFlowSvcGroupCandidates, Does.Contain("protocol_name: stm_ip_proto"));
+            Assert.That(FlowQueries.getFlowSvcGroupCandidates, Does.Contain("service_type: stm_svc_typ"));
             Assert.That(FlowQueries.getFlowSvcGroupCatalog, Does.Contain("query getFlowSvcGroupCatalog"));
             Assert.That(FlowQueries.getFlowTimeObjectCandidates, Does.Contain("query getFlowTimeObjectCandidates"));
+            Assert.That(FlowQueries.getFlowTimeObjectCandidates, Does.Contain("timeObjects: time_objects"));
             Assert.That(FlowQueries.getFlowTimeObjectCatalog, Does.Contain("query getFlowTimeObjectCatalog"));
             Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("query getFlowCustomServiceCandidates"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("serviceObjects: services"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("protocol_name: stm_ip_proto"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("service_type: stm_svc_typ"));
         }
 
         [Test]

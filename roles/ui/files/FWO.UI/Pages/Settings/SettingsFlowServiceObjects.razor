@@ -108,7 +108,7 @@ else
     </Column>
     <Column TableItem="FlowSvcObject" Title="@(userConfig.GetText("port"))" Field="@(svcObject => svcObject.PortStartValue)" Sortable="true" Filterable="true" Context="svcObject">
         <Template>
-            @(svcObject.PortStart.HasValue ? $"{svcObject.PortStart}{(svcObject.PortEnd.HasValue && svcObject.PortEnd != svcObject.PortStart ? $" - {svcObject.PortEnd}" : "")}" : "-")
+            @FormatPortRange(svcObject)
         </Template>
     </Column>
     <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -345,6 +345,23 @@ else
     private void ClearObjectSearch()
     {
         objectSearchText = "";
+    }
+
+    private static string FormatPortRange(FlowSvcObject svcObject)
+    {
+        if (!svcObject.PortStart.HasValue)
+        {
+            return "-";
+        }
+
+        string portText = $"{svcObject.PortStart}";
+
+        if (svcObject.PortEnd.HasValue && svcObject.PortEnd != svcObject.PortStart)
+        {
+            portText += $" - {svcObject.PortEnd}";
+        }
+
+        return portText;
     }
 
     private void EditSvcObject(FlowSvcObject svcObject)

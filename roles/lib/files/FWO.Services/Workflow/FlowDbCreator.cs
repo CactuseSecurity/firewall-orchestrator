@@ -280,6 +280,10 @@ namespace FWO.Services.Workflow
             }
 
             long accessId = await ResolveAccessId(payload, sources, destinations, services, context);
+            await UpdateNetworkElementFlowIds(payload.Sources, sources);
+            await UpdateNetworkElementFlowIds(payload.Destinations, destinations);
+            await UpdateServiceElementFlowIds(payload.Services, services);
+
             foreach (long requestTaskId in payload.OriginRequestTaskIds.Distinct())
             {
                 await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTaskFlowId, new { id = requestTaskId, flowAccessId = accessId });

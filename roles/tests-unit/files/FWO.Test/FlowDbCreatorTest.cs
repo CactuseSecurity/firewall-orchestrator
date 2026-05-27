@@ -290,7 +290,10 @@ namespace FWO.Test
             Assert.That(insertedAccess.OwnerId, Is.EqualTo(5));
             Assert.That(insertedAccess.State, Is.EqualTo(FlowState.Requested));
             Assert.That(apiConn.UpdatedRequestTaskIds, Is.EqualTo(new List<long> { 11 }));
-            Assert.That(apiConn.UpdatedRequestElements, Is.Empty);
+            Assert.That(apiConn.UpdatedRequestElements.Select(update => update.Id), Is.EquivalentTo(new long[] { 111, 112, 113 }));
+            Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == 111).FlowNetworkObjectId, Is.EqualTo(101));
+            Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == 112).FlowNetworkObjectId, Is.EqualTo(102));
+            Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == 113).FlowServiceObjectId, Is.EqualTo(201));
         }
 
         [Test]
@@ -312,7 +315,7 @@ namespace FWO.Test
 
             Assert.That(result, Is.True);
             Assert.That(apiConn.UpdatedRequestTaskIds, Is.EquivalentTo(new long[] { 11, 12 }));
-            Assert.That(apiConn.UpdatedRequestElements, Is.Empty);
+            Assert.That(apiConn.UpdatedRequestElements.Select(update => update.Id), Is.EquivalentTo(new long[] { 111, 112, 113, 121, 122, 123 }));
             FlowAccessInsert insertedAccess = apiConn.InsertedAccess!;
             Assert.That(insertedAccess.AccessSources!.Data, Has.Count.EqualTo(1));
             Assert.That(insertedAccess.AccessDestinations!.Data, Has.Count.EqualTo(2));
@@ -337,7 +340,7 @@ namespace FWO.Test
 
             Assert.That(result, Is.True);
             Assert.That(apiConn.InsertedNetworkGroups, Has.Count.EqualTo(1));
-            Assert.That(apiConn.UpdatedRequestElements.Select(update => update.Id), Is.EquivalentTo(new long[] { 201 }));
+            Assert.That(apiConn.UpdatedRequestElements.Select(update => update.Id), Is.EquivalentTo(new long[] { 201, 211, 212, 213 }));
             RequestElementFlowUpdate groupMemberUpdate = apiConn.UpdatedRequestElements.Single(update => update.Id == 201);
             Assert.That(groupMemberUpdate.FlowNetworkObjectId, Is.EqualTo(101));
             Assert.That(groupMemberUpdate.FlowNetworkGroupId, Is.EqualTo(401));
@@ -540,6 +543,7 @@ namespace FWO.Test
             Assert.That(result, Is.True);
             Assert.That(apiConn.InsertedAccessCount, Is.EqualTo(0));
             Assert.That(apiConn.UpdatedRequestTaskIds, Is.EqualTo(new List<long> { 11 }));
+            Assert.That(apiConn.UpdatedRequestElements.Select(update => update.Id), Is.EquivalentTo(new long[] { 111, 112, 113 }));
         }
 
         [Test]
@@ -577,6 +581,9 @@ namespace FWO.Test
             Assert.That(((NwRef)apiConn.InsertedAccess.AccessDestinations!.Data.Single()).NwObjId, Is.EqualTo(11));
             Assert.That(((SvcRef)apiConn.InsertedAccess.AccessServices!.Data.Single()).SvcObjId, Is.EqualTo(20));
             Assert.That(apiConn.UpdatedRequestTaskIds, Is.EqualTo(new List<long> { 11 }));
+            Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == 111).FlowNetworkObjectId, Is.EqualTo(10));
+            Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == 112).FlowNetworkObjectId, Is.EqualTo(11));
+            Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == 113).FlowServiceObjectId, Is.EqualTo(20));
         }
 
         [Test]

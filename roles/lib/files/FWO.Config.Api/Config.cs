@@ -199,9 +199,55 @@ namespace FWO.Config.Api
                     }
                 }
                 // Update or insert all config item
-                await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
+                if (configItemChanges.Count > 0)
+                {
+                    await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
+                }
             }
             finally { semaphoreSlim.Release(); }
+
+            if (configItemChanges.Count > 0)
+            {
+                await ApplyCommittedChanges(configItemChanges);
+            }
+        }
+
+        /// <summary>
+        /// Applies successfully persisted configuration values to this in-memory config instance.
+        /// </summary>
+        private async Task ApplyCommittedChanges(List<ConfigItem> configItemChanges)
+        {
+            ConfigItem[] changedItems = [.. configItemChanges];
+            await semaphoreSlim.WaitAsync();
+            try
+            {
+                MergeRawConfigItems(changedItems);
+                Update(changedItems);
+            }
+            finally { semaphoreSlim.Release(); }
+
+            InvokeOnChange(this, changedItems);
+        }
+
+        /// <summary>
+        /// Merges changed config items into the raw item cache while preserving existing entries.
+        /// </summary>
+        private void MergeRawConfigItems(ConfigItem[] changedItems)
+        {
+            List<ConfigItem> mergedItems = [.. RawConfigItems];
+            foreach (ConfigItem changedItem in changedItems)
+            {
+                int index = mergedItems.FindIndex(item => item.Key == changedItem.Key);
+                if (index >= 0)
+                {
+                    mergedItems[index] = changedItem;
+                }
+                else
+                {
+                    mergedItems.Add(changedItem);
+                }
+            }
+            RawConfigItems = [.. mergedItems];
         }
 
         public async Task<ConfigData> GetEditableConfig()

@@ -168,6 +168,7 @@ namespace FWO.Config.Api
         public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)
         {
             ThrowIfDisposed();
+            ConfigItem[] changedItems = [];
             await semaphoreSlim.WaitAsync();
             List<ConfigItem> configItemChanges = [];
             List<PropertyInfo> changedProperties = [];
@@ -206,14 +207,53 @@ namespace FWO.Config.Api
                     .ToList();
 
                 // Update or insert all config item
-                await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
-
+                if (configItemChanges.Count > 0)
+                {
+                    await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
+                    changedItems = [.. configItemChanges];
+                    ApplyCommittedChanges(changedItems);
+                }
                 foreach (var (property, value) in changedValues)
                 {
                     property.SetValue(this, value);
                 }
             }
             finally { semaphoreSlim.Release(); }
+
+            if (changedItems.Length > 0)
+            {
+                InvokeOnChange(this, changedItems);
+            }
+        }
+
+        /// <summary>
+        /// Applies successfully persisted configuration values to this in-memory config instance while the caller holds the semaphore.
+        /// </summary>
+        private void ApplyCommittedChanges(ConfigItem[] changedItems)
+        {
+            MergeRawConfigItems(changedItems);
+            Update(changedItems);
+        }
+
+        /// <summary>
+        /// Merges changed config items into the raw item cache while preserving existing entries.
+        /// </summary>
+        private void MergeRawConfigItems(ConfigItem[] changedItems)
+        {
+            List<ConfigItem> mergedItems = [.. RawConfigItems];
+            foreach (ConfigItem changedItem in changedItems)
+            {
+                int index = mergedItems.FindIndex(item => item.Key == changedItem.Key);
+                if (index >= 0)
+                {
+                    mergedItems[index] = changedItem;
+                }
+                else
+                {
+                    mergedItems.Add(changedItem);
+                }
+            }
+            RawConfigItems = [.. mergedItems];
         }
 
         public async Task<ConfigData> GetEditableConfig()

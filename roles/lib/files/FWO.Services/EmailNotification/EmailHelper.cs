@@ -22,15 +22,20 @@ namespace FWO.Services
         private readonly UserConfig userConfig;
         private readonly Action<Exception?, string, string, bool> displayMessageInUi;
         private readonly bool useInMwServer = false;
+        private readonly IWorkflowRecipientResolver? recipientResolver;
         private List<UserGroup> ownerGroups = [];
         private List<OwnerResponsibleType> ownerResponsibleTypes = [];
         private List<UiUser> uiUsers = [];
         private string? ScopedUserTo;
         private string? ScopedUserCc;
         private string? ScopedUserBcc;
+        private string? ScopedUserEmailTo;
+        private string? ScopedUserEmailCc;
+        private string? ScopedUserEmailBcc;
 
 
-        public EmailHelper(ApiConnection apiConnection, MiddlewareClient? middlewareClient, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, List<UserGroup>? ownerGroups = null, bool useInMwServer = false)
+        public EmailHelper(ApiConnection apiConnection, MiddlewareClient? middlewareClient, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi,
+            List<UserGroup>? ownerGroups = null, bool useInMwServer = false, IWorkflowRecipientResolver? recipientResolver = null)
         {
             this.apiConnection = apiConnection;
             this.middlewareClient = middlewareClient;
@@ -38,9 +43,11 @@ namespace FWO.Services
             this.displayMessageInUi = displayMessageInUi;
             this.useInMwServer = useInMwServer;
             this.ownerGroups = ownerGroups ?? [];
+            this.recipientResolver = recipientResolver;
         }
 
-        public virtual async Task Init(string? scopedUserTo = null, string? scopedUserCc = null, string? scopedUserBcc = null)
+        public virtual async Task Init(string? scopedUserTo = null, string? scopedUserCc = null, string? scopedUserBcc = null,
+            string? scopedUserEmailTo = null, string? scopedUserEmailCc = null, string? scopedUserEmailBcc = null)
         {
             if (!useInMwServer && middlewareClient != null)
             {
@@ -58,6 +65,9 @@ namespace FWO.Services
             ScopedUserTo = scopedUserTo;
             ScopedUserCc = scopedUserCc;
             ScopedUserBcc = scopedUserBcc;
+            ScopedUserEmailTo = scopedUserEmailTo;
+            ScopedUserEmailCc = scopedUserEmailCc;
+            ScopedUserEmailBcc = scopedUserEmailBcc;
         }
 
         public virtual async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
@@ -79,15 +89,13 @@ namespace FWO.Services
         public async Task<bool> SendWorkflowActionEmail(FwoNotification notification, WfStatefulObject statefulObject, FwoOwner? owner, string? userGrpDn = null,
             WorkflowEmailContent? workflowContent = null, WfStatefulObject? placeholderObject = null)
         {
-            List<string> tos = userGrpDn != null
-                ? await CollectEmailAddressesFromUserOrGroup(userGrpDn)
-                : await GetWorkflowActionRecipients(notification.RecipientTo, notification.EmailAddressTo, statefulObject, owner, ScopedUserTo);
+            List<string> tos = await GetWorkflowActionRecipients(notification.RecipientTo, notification.EmailAddressTo, statefulObject, owner, ScopedUserTo, ScopedUserEmailTo, userGrpDn);
             List<string>? ccs = notification.RecipientCc == EmailRecipientOption.None
                 ? null
-                : await GetWorkflowActionRecipients(notification.RecipientCc, notification.EmailAddressCc, statefulObject, owner, ScopedUserCc);
+                : await GetWorkflowActionRecipients(notification.RecipientCc, notification.EmailAddressCc, statefulObject, owner, ScopedUserCc, ScopedUserEmailCc, userGrpDn);
             List<string>? bccs = notification.RecipientBcc == EmailRecipientOption.None
                 ? null
-                : await GetWorkflowActionRecipients(notification.RecipientBcc, notification.EmailAddressBcc, statefulObject, owner, ScopedUserBcc);
+                : await GetWorkflowActionRecipients(notification.RecipientBcc, notification.EmailAddressBcc, statefulObject, owner, ScopedUserBcc, ScopedUserEmailBcc, userGrpDn);
             WfStatefulObject placeholderContext = placeholderObject ?? statefulObject;
             string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(notification.EmailSubject, placeholderContext, owner);
             string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, workflowContent), placeholderContext, owner);
@@ -101,9 +109,26 @@ namespace FWO.Services
             string addressList,
             WfStatefulObject statefulObject,
             FwoOwner? owner,
-            string? scopedUser)
+            string? scopedUser,
+            string? scopedUserEmail,
+            string? assignedGroupDn = null)
         {
-            return await GetRecipients(recipientOption, statefulObject, owner, scopedUser, SplitAddresses(addressList));
+            WfStatefulObject recipientContext = AssignedGroupRecipientContext(recipientOption, statefulObject, assignedGroupDn);
+            List<string> recipients = await GetRecipients(recipientOption, recipientContext, owner, scopedUser, SplitAddresses(addressList), scopedUserEmail);
+            if (recipients.Count == 0 && recipientOption != EmailRecipientOption.None)
+            {
+                Log.WriteWarning("Workflow Email", $"No recipients resolved for option '{recipientOption}'. Scoped DN: '{scopedUser ?? ""}', stateful object: '{statefulObject.GetType().Name}'.");
+            }
+            return recipients;
+        }
+
+        private static WfStatefulObject AssignedGroupRecipientContext(EmailRecipientOption recipientOption, WfStatefulObject statefulObject, string? assignedGroupDn)
+        {
+            if (recipientOption != EmailRecipientOption.AssignedGroup || string.IsNullOrWhiteSpace(assignedGroupDn))
+            {
+                return statefulObject;
+            }
+            return new WfStatefulObject(statefulObject) { AssignedGroup = assignedGroupDn };
         }
 
         private async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
@@ -111,9 +136,11 @@ namespace FWO.Services
         {
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
+            ApplyDummyRecipientOverride(ref tos, ref ccs, ref bccs);
             tos = [.. tos.Where(t => t != "")];
             if (tos.Count == 0)
             {
+                Log.WriteWarning("SendEmail", $"No email sent because no To recipients could be resolved. Subject: '{subject}'.");
                 return false;
             }
             ccs = ccs?.Where(c => c != "").ToList();
@@ -123,12 +150,23 @@ namespace FWO.Services
             {
                 mailData.Attachments = new FormFileCollection() { attachment };
             }
-            return await MailKitMailer.SendAsync(mailData, emailConnection, mailFormatHtml, new CancellationToken());
+            Log.WriteInfo("SendEmail", $"Sending workflow email to {tos.Count} recipient(s), cc {mailData.Cc.Count}, bcc {mailData.Bcc.Count}. Subject: '{subject}'.");
+            bool sent = await MailKitMailer.SendAsync(mailData, emailConnection, mailFormatHtml, new CancellationToken());
+            if (!sent)
+            {
+                Log.WriteWarning("SendEmail", $"MailKit returned false while sending workflow email. To recipients: {tos.Count}, subject: '{subject}'.");
+            }
+            return sent;
         }
 
-        public async Task<List<string>> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser, List<string>? otherAddresses)
+        public async Task<List<string>> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser,
+            List<string>? otherAddresses, string? scopedUserEmail = null)
         {
-            Dictionary<EmailRecipientOption, Func<Task<List<string>>>> handlers = BuildRecipientHandlers(statefulObject, owner, scopedUser, otherAddresses);
+            if (userConfig.UseDummyEmailAddress && recipientOption != EmailRecipientOption.None)
+            {
+                return DummyRecipients();
+            }
+            Dictionary<EmailRecipientOption, Func<Task<List<string>>>> handlers = BuildRecipientHandlers(statefulObject, owner, scopedUser, otherAddresses, scopedUserEmail);
             if (handlers.TryGetValue(recipientOption, out Func<Task<List<string>>>? handler))
             {
                 return await handler();
@@ -140,13 +178,14 @@ namespace FWO.Services
             WfStatefulObject? statefulObject,
             FwoOwner? owner,
             string? scopedUser,
-            List<string>? otherAddresses)
+            List<string>? otherAddresses,
+            string? scopedUserEmail)
         {
-            Func<Task<List<string>>> scopedUserHandler = () => Task.FromResult(ListWithSingleRecipient(scopedUser));
+            Func<Task<List<string>>> scopedUserHandler = () => CollectEmailAddressesFromScopedUser(scopedUser, scopedUserEmail);
             return new Dictionary<EmailRecipientOption, Func<Task<List<string>>>>
             {
-                { EmailRecipientOption.CurrentHandler, () => Task.FromResult(ListWithSingleRecipient(statefulObject?.CurrentHandler?.Dn)) },
-                { EmailRecipientOption.RecentHandler, () => Task.FromResult(ListWithSingleRecipient(statefulObject?.RecentHandler?.Dn)) },
+                { EmailRecipientOption.CurrentHandler, () => CollectEmailAddressesFromUser(statefulObject?.CurrentHandler) },
+                { EmailRecipientOption.RecentHandler, () => CollectEmailAddressesFromUser(statefulObject?.RecentHandler) },
                 { EmailRecipientOption.AssignedGroup, () => CollectEmailAddressesFromUserOrGroup(statefulObject?.AssignedGroup) },
                 { EmailRecipientOption.OwnerMainResponsible, () => CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeMain) },
                 { EmailRecipientOption.AllOwnerResponsibles, () => CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles()) },
@@ -158,11 +197,6 @@ namespace FWO.Services
                 { EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, () => GetOwnerGroupOrMainResponsibleRecipients(owner) },
                 { EmailRecipientOption.OtherAddresses, () => Task.FromResult(GetOtherAddresses(otherAddresses)) }
             };
-        }
-
-        private List<string> ListWithSingleRecipient(string? dn)
-        {
-            return [GetEmailAddress(dn)];
         }
 
         private async Task<List<string>> CollectOwnerAddressesByType(FwoOwner? owner, int responsibleType)
@@ -198,6 +232,10 @@ namespace FWO.Services
             if (!selection.HasAnyRecipientOption())
             {
                 return [];
+            }
+            if (userConfig.UseDummyEmailAddress)
+            {
+                return DummyRecipients();
             }
 
             HashSet<string> recipients = new(StringComparer.OrdinalIgnoreCase);
@@ -285,6 +323,23 @@ namespace FWO.Services
                 .ToList();
         }
 
+        private void ApplyDummyRecipientOverride(ref List<string> tos, ref List<string>? ccs, ref List<string>? bccs)
+        {
+            if (!userConfig.UseDummyEmailAddress)
+            {
+                return;
+            }
+
+            tos = DummyRecipients();
+            ccs = [];
+            bccs = [];
+        }
+
+        private List<string> DummyRecipients()
+        {
+            return string.IsNullOrWhiteSpace(userConfig.DummyEmailAddress) ? [] : [userConfig.DummyEmailAddress];
+        }
+
         public List<string> GetOwnerMainResponsibleRecipients(List<UserGroup> owners)
         {
             List<string> recipients = [];
@@ -321,15 +376,99 @@ namespace FWO.Services
             return await CollectEmailAddressesFromDns(dn == null ? null : [dn]);
         }
 
+        private async Task<List<string>> CollectEmailAddressesFromScopedUser(string? dn, string? email)
+        {
+            if (userConfig.UseDummyEmailAddress)
+            {
+                return [userConfig.DummyEmailAddress];
+            }
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                return [email];
+            }
+            return await CollectEmailAddressesFromUserOrGroup(dn);
+        }
+
+        private async Task<List<string>> CollectEmailAddressesFromUser(UiUser? user)
+        {
+            if (user == null || string.IsNullOrWhiteSpace(user.Dn))
+            {
+                return [];
+            }
+            if (userConfig.UseDummyEmailAddress)
+            {
+                return [userConfig.DummyEmailAddress];
+            }
+            if (!string.IsNullOrWhiteSpace(user.Email))
+            {
+                return [user.Email];
+            }
+            return await CollectEmailAddressesFromUserOrGroup(user.Dn);
+        }
+
         private async Task<List<string>> CollectEmailAddressesFromDns(IEnumerable<string>? dns)
         {
+            List<string> dnsList = dns?.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+            if (dnsList.Count == 0)
+            {
+                Log.WriteWarning("Workflow Email", "No DNs supplied for recipient resolution.");
+                return [];
+            }
+
+            List<string> resolverRecipients = await CollectEmailAddressesFromResolver(dnsList);
+            if (resolverRecipients.Count > 0)
+            {
+                return resolverRecipients;
+            }
+
             List<string> tos = [];
-            List<string> resolvedDns = await ResolveUserDns(dns);
+            List<string> resolvedDns = await ResolveUserDns(dnsList);
             foreach (string dn in resolvedDns)
             {
                 tos.Add(GetEmailAddress(dn));
             }
+            if (tos.All(string.IsNullOrWhiteSpace))
+            {
+                Log.WriteWarning("Workflow Email", $"Resolved DNs but found no email addresses: {string.Join(", ", resolvedDns)}.");
+            }
             return tos;
+        }
+
+        private async Task<List<string>> CollectEmailAddressesFromResolver(IEnumerable<string>? dns)
+        {
+            List<string> dnsList = dns?.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+            if (recipientResolver == null || dnsList.Count == 0)
+            {
+                return [];
+            }
+
+            List<UiUser> resolvedUsers = await recipientResolver.ResolveUsers(dnsList);
+            foreach (UiUser resolvedUser in resolvedUsers)
+            {
+                UpsertResolvedUiUser(resolvedUser);
+            }
+
+            return [.. resolvedUsers.Select(user => GetEmailAddress(user.Dn)).Where(email => email != "")];
+        }
+
+        private void UpsertResolvedUiUser(UiUser resolvedUser)
+        {
+            if (string.IsNullOrWhiteSpace(resolvedUser.Dn))
+            {
+                return;
+            }
+
+            UiUser? existingUser = uiUsers.FirstOrDefault(user => user.Dn.Equals(resolvedUser.Dn, StringComparison.OrdinalIgnoreCase));
+            if (existingUser == null)
+            {
+                uiUsers.Add(resolvedUser);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(resolvedUser.Email))
+            {
+                existingUser.Email = resolvedUser.Email;
+            }
         }
 
         private async Task<List<string>> ResolveUserDns(IEnumerable<string>? dns)
@@ -340,24 +479,47 @@ namespace FWO.Services
                 return [];
             }
 
-            if (middlewareClient != null)
+            List<string> resolvedDns = await ResolveUserDnsFromWorkflowResolver(dnsList);
+            if (resolvedDns.Count > 0)
             {
-                try
-                {
-                    var response = await middlewareClient.ResolveGroupMembers(new GroupResolveParameters { Dns = dnsList });
-                    if (response.IsSuccessful && response.Data != null)
-                    {
-                        return response.Data.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                    }
-
-                    displayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-                }
-                catch (Exception exception)
-                {
-                    displayMessageInUi(exception, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-                }
+                return resolvedDns;
             }
 
+            resolvedDns = await ResolveUserDnsFromMiddleware(dnsList);
+            return resolvedDns.Count > 0 ? resolvedDns : ResolveUserDnsFromOwnerGroups(dnsList);
+        }
+
+        private async Task<List<string>> ResolveUserDnsFromWorkflowResolver(List<string> dnsList)
+        {
+            return recipientResolver == null ? [] : await recipientResolver.ResolveUserDns(dnsList);
+        }
+
+        private async Task<List<string>> ResolveUserDnsFromMiddleware(List<string> dnsList)
+        {
+            if (middlewareClient == null)
+            {
+                return [];
+            }
+
+            try
+            {
+                var response = await middlewareClient.ResolveGroupMembers(new GroupResolveParameters { Dns = dnsList });
+                if (response.IsSuccessful && response.Data != null)
+                {
+                    return [.. response.Data.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase)];
+                }
+
+                DisplayResolveGroupMembersError(null);
+            }
+            catch (Exception exception)
+            {
+                DisplayResolveGroupMembersError(exception);
+            }
+            return [];
+        }
+
+        private List<string> ResolveUserDnsFromOwnerGroups(List<string> dnsList)
+        {
             HashSet<string> resolved = new(StringComparer.OrdinalIgnoreCase);
             foreach (string dn in dnsList)
             {
@@ -375,6 +537,11 @@ namespace FWO.Services
                 }
             }
             return resolved.ToList();
+        }
+
+        private void DisplayResolveGroupMembersError(Exception? exception)
+        {
+            displayMessageInUi(exception, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
         }
 
         private string GetEmailAddress(string? dn)

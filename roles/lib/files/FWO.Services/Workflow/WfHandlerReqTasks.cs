@@ -1,5 +1,4 @@
 using FWO.Basics;
-using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
 using System.Text.Json;
@@ -20,23 +19,37 @@ namespace FWO.Services.Workflow
 
         // Request Tasks
 
-        public async Task<List<WfReqTask>> LoadRequestTasks(IEnumerable<long> reqTaskIds)
+        public async Task<bool> ReloadActReqTask()
         {
-            if (apiConnection == null)
+            try
             {
-                return [];
+                if (ActReqTask.Id <= 0 || ActReqTask.TicketId <= 0 || dbAcc == null)
+                {
+                    return false;
+                }
+
+                WfTicket? refreshedTicket = await dbAcc.FetchTicket(ActReqTask.TicketId, userConfig.ReqOwnerBased ? AllOwners.ConvertAll(owner => owner.Id) : null);
+                WfReqTask? refreshedTask = refreshedTicket?.Tasks.FirstOrDefault(task => task.Id == ActReqTask.Id);
+                if (refreshedTask == null)
+                {
+                    return false;
+                }
+
+                int ticketIndex = TicketList.FindIndex(ticket => ticket.Id == refreshedTicket!.Id);
+                if (ticketIndex >= 0)
+                {
+                    TicketList[ticketIndex] = refreshedTicket!;
+                }
+
+                SetTicketEnv(refreshedTicket!);
+                SetReqTaskEnv(refreshedTask);
+                return true;
             }
-
-            List<long> taskIds = reqTaskIds.Where(id => id > 0).Distinct().ToList();
-
-            if (taskIds.Count == 0)
+            catch (Exception exception)
             {
-                return [];
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
+                return false;
             }
-
-            List<WfReqTask> requestTasks = await apiConnection.SendQueryAsync<List<WfReqTask>>(RequestQueries.getRequestTasksByIds, new { task_ids = taskIds });
-            new WfTicket() { Tasks = requestTasks }.UpdateCidrsInTaskElements();
-            return requestTasks;
         }
 
         public void SelectReqTask(WfReqTask reqTask, ObjAction action)
@@ -45,10 +58,53 @@ namespace FWO.Services.Workflow
             SetReqTaskMode(action);
         }
 
+        public async Task SelectReqTask(WfReqTask reqTask, ObjAction action, bool reload)
+        {
+            SetReqTaskEnv(await LoadReqTaskDetails(reqTask, reload));
+            SetReqTaskMode(action);
+        }
+
         public void SelectReqTaskPopUp(WfReqTask reqTask, ObjAction action)
         {
             SetReqTaskEnv(reqTask);
             SetReqTaskPopUpOpt(action);
+        }
+
+        public async Task SelectReqTaskPopUp(WfReqTask reqTask, ObjAction action, bool reload)
+        {
+            SetReqTaskEnv(await LoadReqTaskDetails(reqTask, reload));
+            SetReqTaskPopUpOpt(action);
+        }
+
+        private async Task<WfReqTask> LoadReqTaskDetails(WfReqTask reqTask, bool reload)
+        {
+            if (!reload || reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
+            {
+                return reqTask;
+            }
+
+            try
+            {
+                WfTicket? ticket = await dbAcc.FetchTicket(reqTask.TicketId, userConfig.ReqOwnerBased ? AllOwners.ConvertAll(owner => owner.Id) : null);
+                WfReqTask? fullReqTask = ticket?.Tasks.FirstOrDefault(task => task.Id == reqTask.Id);
+                if (ticket == null || fullReqTask == null)
+                {
+                    return reqTask;
+                }
+
+                int ticketIndex = TicketList.FindIndex(existingTicket => existingTicket.Id == ticket.Id);
+                if (ticketIndex >= 0)
+                {
+                    TicketList[ticketIndex] = ticket;
+                }
+                SetTicketEnv(ticket);
+                return fullReqTask;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
+                return reqTask;
+            }
         }
 
         public bool SetReqTaskEnv(long reqTaskId)
@@ -75,6 +131,17 @@ namespace FWO.Services.Workflow
                 ActTicket = tick;
             }
             ActStateMatrix = stateMatrixDict.Matrices[reqTask.TaskType];
+        }
+
+        public bool TrySetReqTaskEnv(WfReqTask reqTask)
+        {
+            if (!stateMatrixDict.Matrices.ContainsKey(reqTask.TaskType))
+            {
+                return false;
+            }
+
+            SetReqTaskEnv(reqTask);
+            return true;
         }
 
         public void SetReqTaskMode(ObjAction action)
@@ -117,7 +184,7 @@ namespace FWO.Services.Workflow
 
         public async Task StartWorkOnReqTask(WfReqTask reqTask, ObjAction action)
         {
-            SetReqTaskEnv(reqTask);
+            SetReqTaskEnv(await LoadReqTaskDetails(reqTask, true));
             ActReqTask.CurrentHandler = userConfig.User;
             List<int> actPossibleStates = ActStateMatrix.getAllowedTransitions(ActReqTask.StateId);
             if (actPossibleStates.Count == 1 && actPossibleStates[0] >= ActStateMatrix.LowestStartedState && actPossibleStates[0] < ActStateMatrix.LowestEndState)
@@ -141,7 +208,7 @@ namespace FWO.Services.Workflow
 
         public async Task ContinuePhase(WfReqTask reqTask)
         {
-            SelectReqTask(reqTask, contOption);
+            await SelectReqTask(reqTask, contOption, true);
             if (ActReqTask.CurrentHandler != userConfig.User)
             {
                 ActReqTask.CurrentHandler = userConfig.User;
@@ -156,7 +223,7 @@ namespace FWO.Services.Workflow
             if (ActionHandler != null)
             {
                 await UpdateActReqTaskState();
-                await ActionHandler.DoOnAssignmentActions(statefulObject, ActReqTask.AssignedGroup);
+                await ActionHandler.DoOnAssignmentActions(statefulObject, WfObjectScopes.RequestTask, ActReqTask.AssignedGroup);
             }
             DisplayAssignReqTaskMode = false;
         }
@@ -168,7 +235,7 @@ namespace FWO.Services.Workflow
             await UpdateActReqTaskState();
             if (ActionHandler != null)
             {
-                await ActionHandler.DoOnAssignmentActions(ActReqTask, ActReqTask.AssignedGroup);
+                await ActionHandler.DoOnAssignmentActions(ActReqTask, WfObjectScopes.RequestTask, ActReqTask.AssignedGroup);
             }
             DisplayAssignReqTaskMode = false;
         }

@@ -345,6 +345,85 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task UpdateRequestTasksFromTicket_DoesNotCreateImplTasksForClosedStateAboveImplementationEntry()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices }
+            };
+            StateMatrix matrix = new()
+            {
+                LowestInputState = 0,
+                LowestStartedState = 1,
+                LowestEndState = 49,
+                ApprovalLowestEndState = 49,
+                PhaseActive = new() { { WorkflowPhases.planning, false } },
+                MinImplTasksNeeded = 49,
+                MinTicketCompleted = 620
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+            handler.ActTicket = new WfTicket { Id = 1, StateId = 630 };
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 1,
+                Title = "Access"
+            };
+            handler.ActTicket.Tasks.Add(reqTask);
+
+            MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
+            await (Task)(method?.Invoke(handler, [true]) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reqTask.StateId, Is.EqualTo(630));
+                Assert.That(reqTask.ImplementationTasks, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task UpdateRequestTasksFromTicket_CreatesImplTasksForImplementationRangeWhenEntryStateIsSkipped()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices }
+            };
+            StateMatrix matrix = new()
+            {
+                LowestInputState = 0,
+                LowestStartedState = 1,
+                LowestEndState = 49,
+                ApprovalLowestEndState = 49,
+                PhaseActive = new() { { WorkflowPhases.planning, false } },
+                MinImplTasksNeeded = 49,
+                MinTicketCompleted = 620
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+            handler.ActTicket = new WfTicket { Id = 1, StateId = 60 };
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 1,
+                Title = "Access"
+            };
+            handler.ActTicket.Tasks.Add(reqTask);
+
+            MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
+            await (Task)(method?.Invoke(handler, [true]) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reqTask.StateId, Is.EqualTo(60));
+                Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+                Assert.That(reqTask.ImplementationTasks[0].DeviceId, Is.Null);
+            });
+        }
+
+        [Test]
         public async Task UpdateActTicketStateFromReqTasks_CanDowngradeTicketFromRequestTasks()
         {
             WfHandler handler = new();

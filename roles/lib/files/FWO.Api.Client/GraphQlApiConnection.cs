@@ -382,7 +382,7 @@ namespace FWO.Api.Client
 
         private static bool TryGetVariableValue(object variables, string variableName, out object? value)
         {
-            value = null; 
+            value = null;
 
             if (variables is IDictionary<string, object?> nullableDict && nullableDict.TryGetValue(variableName, out object? nullableValue))
             {
@@ -418,39 +418,15 @@ namespace FWO.Api.Client
 
             if (variables is IDictionary<string, object?> nullableDict)
             {
-                foreach (var entry in nullableDict)
-                {
-                    values[entry.Key] = entry.Key == propertyName ? batch : entry.Value;
-                }
-
-                if (!values.ContainsKey(propertyName))
-                {
-                    throw new InvalidOperationException($"Chunk variable '{propertyName}' was not found in variables.");
-                }
-
-                return values;
+                CopyDictionaryValues(values, nullableDict, propertyName, batch);
             }
-
-            if (variables is IDictionary<string, object> dict)
+            else if (variables is IDictionary<string, object> dict)
             {
-                foreach (var entry in dict)
-                {
-                    values[entry.Key] = entry.Key == propertyName ? batch : entry.Value;
-                }
-
-                if (!values.ContainsKey(propertyName))
-                {
-                    throw new InvalidOperationException($"Chunk variable '{propertyName}' was not found in variables.");
-                }
-
-                return values;
+                CopyDictionaryValues(values, dict!, propertyName, batch);
             }
-
-            foreach (var property in variables.GetType().GetProperties())
+            else
             {
-                values[property.Name] = property.Name == propertyName
-                    ? batch
-                    : property.GetValue(variables);
+                CopyPropertyValues(values, variables, propertyName, batch);
             }
 
             if (!values.ContainsKey(propertyName))
@@ -460,6 +436,25 @@ namespace FWO.Api.Client
 
             return values;
         }
+
+        private static void CopyDictionaryValues(Dictionary<string, object?> target, IEnumerable<KeyValuePair<string, object?>> source, string propertyName, List<object?> batch)
+        {
+            foreach (KeyValuePair<string, object?> entry in source)
+            {
+                target[entry.Key] = entry.Key == propertyName ? batch : entry.Value;
+            }
+        }
+
+        private static void CopyPropertyValues(Dictionary<string, object?> target, object variables, string propertyName, List<object?> batch)
+        {
+            foreach (var property in variables.GetType().GetProperties())
+            {
+                target[property.Name] = property.Name == propertyName
+                    ? batch
+                    : property.GetValue(variables);
+            }
+        }
+
         private async Task<JObject> SendSingleChunkAsync(string query, object variables, string? operationName, QueryChunkingOptions chunkingOptions, object?[] batch)
         {
             object chunkedVariables = ReplaceChunkVariable(variables!, chunkingOptions.ChunkVariableName, batch.ToList());

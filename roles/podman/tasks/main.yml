@@ -5,6 +5,20 @@
     state: present
   become: true
 
+- name: disable rootless Podman user socket globally
+  ansible.builtin.systemd:
+    name: podman.socket
+    scope: global
+    enabled: false
+  become: true
+
+- name: mask rootless Podman user socket globally
+  ansible.builtin.systemd:
+    name: podman.socket
+    scope: global
+    masked: true
+  become: true
+
 - name: warn that docker_network is ignored with Podman host networking
   debug:
     msg: "Ignoring docker_network={{ docker_network }} because the Hasura container now runs with Podman host networking."

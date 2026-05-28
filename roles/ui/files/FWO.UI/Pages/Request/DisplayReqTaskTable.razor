@@ -6,7 +6,7 @@
 
 @if(WfHandler.InitDone)
 {
-    @if (WfHandler.EditTicketMode)
+    @if (CanChangeReqTaskStructure())
     {
         <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddReqTask">@(DisplayService.DisplayButton(userConfig, "add_task", Icons.Add))</button>
     }
@@ -17,18 +17,18 @@
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
                         <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">
+                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => await ShowReqTask(context)">
                                     @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             @if(WfHandler.StateMatrix(context.TaskType).PhaseActive[WorkflowPhases.approval])
                             {
-                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">
+                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => await ShowApprovals(context)">
                                     @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                             }
                             @if(IsEditable(context))
                             {
                                 @if (CanEditReqTaskInPhase(context))
                                 {
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await EditReqTask(context)">
                                         @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">
                                         @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
@@ -53,7 +53,7 @@
                                             @(userConfig.GetText("continue_" + Phase.ToString()))</button>
                                         @if(Phase == WorkflowPhases.planning)
                                         {
-                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await AssignTask(context)">
                                                 @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                         }
                                     }
@@ -110,7 +110,6 @@
 <DisplayRequestTask Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" StartImplPhase="StartImplPhase"/>
 <AssignObject @bind-Display="WfHandler.DisplayAssignReqTaskMode" ResetParent="Reset" StatefulObject="WfHandler.ActReqTask" Assign="WfHandler.AssignReqTaskGroup" AssignBack="WfHandler.AssignReqTaskBack" ObjectName="@WfHandler.ActReqTask.Title" RoleList="validRoles"/>
 <DeleteObject @bind-Display="WfHandler.DisplayDeleteReqTaskMode" ResetParent="Reset" Delete="WfHandler.ConfDeleteReqTask" ObjectName="@WfHandler.ActReqTask.Title"/>
-<DisplayApprovals @bind-Display="WfHandler.DisplayApprovalReqMode" WfHandler="WfHandler" ResetParent="Reset" Approvals="WfHandler.ActReqTask.Approvals" States="States"/>
 
 
 @code
@@ -146,9 +145,9 @@
         StateHasChanged();
     }
 
-    private void ShowReqTask(WfReqTask reqTask)
+    private async Task ShowReqTask(WfReqTask reqTask)
     {
-        WfHandler.SelectReqTask(reqTask, ObjAction.display);
+        await WfHandler.SelectReqTask(reqTask, ObjAction.display, true);
     }
 
     private void AddReqTask()
@@ -156,9 +155,9 @@
         WfHandler.SelectReqTask(new WfReqTask(){ RuleAction = 1, Tracking = 1, ManagementId = -1 }, ObjAction.add);
     }
 
-    private void EditReqTask(WfReqTask reqTask)
+    private async Task EditReqTask(WfReqTask reqTask)
     {
-        WfHandler.SelectReqTask(reqTask, ObjAction.edit);
+        await WfHandler.SelectReqTask(reqTask, ObjAction.edit, true);
     }
 
     private void DeleteReqTask(WfReqTask reqTask)
@@ -166,14 +165,14 @@
         WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayDelete);
     }
 
-    private void ShowApprovals(WfReqTask reqTask)
+    private async Task ShowApprovals(WfReqTask reqTask)
     {
-        WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayApprovals);
+        await WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayApprovals, true);
     }
 
-    private void AssignTask(WfReqTask reqTask)
+    private async Task AssignTask(WfReqTask reqTask)
     {
-        WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayAssign);
+        await WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayAssign, true);
     }
 
     private async Task ContinuePhase(WfReqTask reqTask)
@@ -192,13 +191,17 @@
 
     private bool CanEditReqTaskInPhase(WfReqTask reqTask)
     {
-        if (!WfHandler.EditTicketMode)
+        if (!CanChangeReqTaskStructure())
         {
             return false;
         }
 
         StateMatrix taskStateMatrix = WfHandler.StateMatrix(reqTask.TaskType);
-        int editLimit = Phase == WorkflowPhases.request ? taskStateMatrix.LowestEndState : taskStateMatrix.LowestStartedState;
-        return reqTask.StateId < editLimit;
+        return reqTask.StateId < taskStateMatrix.LowestEndState;
+    }
+
+    private bool CanChangeReqTaskStructure()
+    {
+        return WfHandler.EditTicketMode && Phase == WorkflowPhases.request;
     }
 }

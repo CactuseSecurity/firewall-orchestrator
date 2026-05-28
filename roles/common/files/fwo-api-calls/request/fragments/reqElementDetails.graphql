@@ -16,4 +16,8 @@ fragment reqElementDetails on request_reqelement {
   rule_uid
   group_name
   name
+  flow_nwobj_id
+  flow_nwgrp_id
+  flow_svcobj_id
+  flow_svcgrp_id
 }

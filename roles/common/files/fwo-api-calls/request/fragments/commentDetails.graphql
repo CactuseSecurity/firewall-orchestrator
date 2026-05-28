@@ -5,7 +5,9 @@ fragment commentDetails on request_comment {
   creation_date
   creator: uiuser {
     uiuser_id
+    uuid
     uiuser_username
+    uiuser_email
   }
   comment_text
 }

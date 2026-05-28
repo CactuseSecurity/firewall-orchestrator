@@ -20,12 +20,6 @@ namespace FWO.Config.Api.Data
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
         public virtual string DefaultLanguage { get; set; } = GlobalConst.kEnglish;
 
-        [JsonProperty("sessionTimeout"), JsonPropertyName("sessionTimeout")]
-        public int SessionTimeout { get; set; } = 720;
-
-        [JsonProperty("sessionTimeoutNoticePeriod"), JsonPropertyName("sessionTimeoutNoticePeriod")]
-        public int SessionTimeoutNoticePeriod { get; set; } = 60;
-
         [JsonProperty("uiHostName"), JsonPropertyName("uiHostName")]
         public string UiHostName { get; set; } = "http://localhost:5000";
 
@@ -257,6 +251,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqAllowObjectSearch"), JsonPropertyName("reqAllowObjectSearch")]
         public bool ReqAllowObjectSearch { get; set; } = false;
+
+        [JsonProperty("reqUseFlowDb"), JsonPropertyName("reqUseFlowDb")]
+        public bool ReqUseFlowDb { get; set; } = false;
 
         [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
         public bool AllowManualOwnerAdmin { get; set; } = false;

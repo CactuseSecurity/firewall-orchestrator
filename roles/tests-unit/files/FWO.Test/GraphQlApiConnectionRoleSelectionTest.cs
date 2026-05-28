@@ -48,5 +48,49 @@ namespace FWO.Test
 
             Assert.That(connection.GetActRole(), Is.EqualTo("modeller"));
         }
+
+        [Test]
+        public void RunWithBestRoleRestoresRoleAfterException()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = new(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.Role, "admin")
+            ], "test", ClaimTypes.Name, ClaimTypes.Role));
+            connection.SetRole("modeller");
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await connection.RunWithBestRole(user, ["admin"], async () =>
+            {
+                Assert.That(connection.GetActRole(), Is.EqualTo("admin"));
+                await Task.CompletedTask;
+                throw new InvalidOperationException("test");
+            }));
+
+            Assert.That(connection.GetActRole(), Is.EqualTo("modeller"));
+        }
+
+        [Test]
+        public async Task NestedRoleSwitchesRestoreInOrder()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = new(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.Role, "admin")
+            ], "test", ClaimTypes.Name, ClaimTypes.Role));
+            connection.SetRole("auditor");
+
+            await connection.RunWithRole("modeller", async () =>
+            {
+                Assert.That(connection.GetActRole(), Is.EqualTo("modeller"));
+                await connection.RunWithBestRole(user, ["admin"], async () =>
+                {
+                    Assert.That(connection.GetActRole(), Is.EqualTo("admin"));
+                    await Task.CompletedTask;
+                });
+                Assert.That(connection.GetActRole(), Is.EqualTo("modeller"));
+            });
+
+            Assert.That(connection.GetActRole(), Is.EqualTo("auditor"));
+        }
     }
 }

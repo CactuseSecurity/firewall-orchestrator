@@ -25,6 +25,7 @@ query getTicketsByParameters($cutOffDate: timestamp, $taskType: String, $fromSta
       uuid
       uiuser_email
     }
+    requester_dn
     reqtasks: reqtasks {
       id
       task_number

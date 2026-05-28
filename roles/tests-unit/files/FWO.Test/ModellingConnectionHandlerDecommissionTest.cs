@@ -118,7 +118,8 @@ namespace FWO.Test
             {
             }
 
-            public override Task Init(string? scopedUserTo = null, string? scopedUserCc = null, string? scopedUserBcc = null)
+            public override Task Init(string? scopedUserTo = null, string? scopedUserCc = null, string? scopedUserBcc = null,
+                string? scopedUserEmailTo = null, string? scopedUserEmailCc = null, string? scopedUserEmailBcc = null)
             {
                 InitCalled = true;
                 return Task.CompletedTask;

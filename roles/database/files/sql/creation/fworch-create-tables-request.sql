@@ -34,7 +34,8 @@ create table request.reqtask
 	target_end_date Timestamp,
 	devices varchar,
 	additional_info varchar,
-	mgm_id int
+	mgm_id int,
+	flow_access_id bigint
 );
 
 create table request.reqelement 
@@ -55,7 +56,11 @@ create table request.reqelement
 	device_id int,
 	rule_uid varchar,
 	group_name varchar,
-	name varchar
+	name varchar,
+	flow_nwobj_id bigint,
+	flow_nwgrp_id bigint,
+	flow_svcobj_id bigint,
+	flow_svcgrp_id bigint
 );
 
 create table request.approval 
@@ -160,7 +165,8 @@ create table request.action
 create table request.state_action
 (
     state_id int,
-    action_id int
+    action_id int,
+    sort_order int default 0
 );
 
 create table request.implelement

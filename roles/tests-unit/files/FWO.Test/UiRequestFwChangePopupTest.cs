@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -110,6 +111,23 @@ namespace FWO.Test
             Assert.That(component.FindAll("button.btn-primary").All(button => button.HasAttribute("disabled")), Is.True);
         }
 
+        [Test]
+        public void DisplayedWhenStateLoadingFails_HandlesErrorAndStopsProgress()
+        {
+            RequestFwChangePopupTestApiConn apiConn = new() { ThrowOnGetStates = true };
+            SimulatedUserConfig userConfig = CreateUserConfig();
+
+            using Bunit.TestContext context = new();
+            IRenderedComponent<RequestFwChangePopup> component = RenderPopup(context, apiConn, userConfig, new() { Id = 7, Name = "App" }, [CreateConnection(41)]);
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(apiConn.Queries, Does.Contain(RequestQueries.getStates));
+                Assert.That(GetPrivateField<bool>(component.Instance, "WorkInProgress"), Is.False);
+                Assert.That(GetPrivateField<List<WfReqTask>>(component.Instance, "TaskList"), Is.Empty);
+            });
+        }
+
         private static SimulatedUserConfig CreateUserConfig()
         {
             return new()
@@ -162,6 +180,7 @@ namespace FWO.Test
         public const int kInitializedStateId = 23;
         public const int kInProgressStateId = 24;
         public WfTicket? LatestTicket { get; set; }
+        public bool ThrowOnGetStates { get; set; }
         public List<string> Queries { get; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
@@ -177,6 +196,10 @@ namespace FWO.Test
             }
             if (query == RequestQueries.getStates)
             {
+                if (ThrowOnGetStates)
+                {
+                    throw new HttpRequestException("state loading failed");
+                }
                 return Task.FromResult((QueryResponseType)(object)new List<WfState>
                 {
                     new() { Id = kInitializedStateId, Name = "Initialized" },

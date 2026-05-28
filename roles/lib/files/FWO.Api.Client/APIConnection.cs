@@ -79,6 +79,32 @@ namespace FWO.Api.Client
             }
         }
 
+        public async Task RunWithBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList, Func<Task> action)
+        {
+            SetBestRole(user, targetRoleList);
+            try
+            {
+                await action();
+            }
+            finally
+            {
+                SwitchBack();
+            }
+        }
+
+        public async Task<TResult> RunWithBestRole<TResult>(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList, Func<Task<TResult>> action)
+        {
+            SetBestRole(user, targetRoleList);
+            try
+            {
+                return await action();
+            }
+            finally
+            {
+                SwitchBack();
+            }
+        }
+
         /// <summary>
         /// Sends an API call and returns the deserialized result or throws on errors.
         /// </summary>

@@ -128,7 +128,7 @@
             <ReportExport ReportToExport="currentReport" />
             <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate());}">@(DisplayService.DisplayButton(userConfig, "save_as_template", Icons.Template))</button>
             @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0
-                    && (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)))
+                    && userConfig.CanUseAnyRole(Roles.Admin, Roles.Requester, Roles.Auditor))
             {
                 <button type="button" class="btn btn-sm btn-danger" @onclick="() => { ShowCreateTicketDialog = true; }">@(DisplayService.DisplayButton(userConfig, "create_delete_ticket", Icons.Workflow))</button>
             }
@@ -302,9 +302,8 @@
 
     private bool resetToEmptyDevFilter = false;
 
-    private bool tenantFilteringAllowed => authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-        || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
-    private ReportVisibility reportVisibility => RoleGroups.GetReportVisibility(authenticationStateTask!.Result.User);
+    private bool tenantFilteringAllowed => userConfig.CanUseAnyRole(Roles.ReporterViewAll, Roles.Admin, Roles.FwAdmin, Roles.Auditor);
+    private ReportVisibility reportVisibility => userConfig.GetReportVisibility();
 
     private bool _showAnyRulesInComplianceReport = true;
 
@@ -362,27 +361,33 @@
         {
             availableReportTypes = ReportTypeGroups.CustomSortReportType(
                 [.. (JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
-                ?? throw new JsonException("Config data could not be parsed.")).Where(reportType => !reportType.IsArchiveOnlyReport())],
+                ?? throw new JsonException("Config data could not be parsed.")).Where(IsSelectableReportType)],
                 reportVisibility);
-            SetProperRoleForReport();
-            actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-            if(int.TryParse(AppId, out int appId))
+            int? parsedAppId = int.TryParse(AppId, out int appId) ? appId : null;
+            if(parsedAppId != null)
             {
                 actReportFilters.Init(userConfig, false);
-                injectedAppId = appId;
-                if(reportVisibility.ModellingRelated)
-                {
-                    owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = appId });
-                    if(owners.Count > 0)
-                    {
-                        actReportFilters.ModellingFilter.SelectedOwner = owners.First();
-                        autoGenerateReport = true;
-                    }
-                }
+                injectedAppId = parsedAppId;
             }
             else
             {
                 actReportFilters.Init(userConfig, reportVisibility.RuleRelated);
+            }
+            if(!SelectAvailableReportType())
+            {
+                InitDone = true;
+                return;
+            }
+            SetProperRoleForReport();
+            actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+            if(parsedAppId != null && reportVisibility.ModellingRelated)
+            {
+                owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = parsedAppId.Value });
+                if(owners.Count > 0)
+                {
+                    actReportFilters.ModellingFilter.SelectedOwner = owners.First();
+                    autoGenerateReport = true;
+                }
             }
             InitDone = true;
             await InvokeAsync(StateHasChanged);
@@ -441,18 +446,47 @@
 
     private void SetProperRoleForReport()
     {
-        if(actReportFilters.ReportType.IsComplianceReport())
+        ReportType reportType = actReportFilters.ReportType;
+        if(reportType == ReportType.Owners)
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
         }
-        else if(actReportFilters.ReportType.IsModellingReport())
+        else if(reportType.IsComplianceReport())
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+        }
+        else if(reportType.IsModellingReport())
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor]);
         }
-        else
+        else if(reportType.IsWorkflowReport())
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Recertifier, Roles.Modeller, Roles.Auditor]);
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester,
+                Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer]);
         }
+        else if(reportType.IsDeviceRelatedReport())
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
+                Roles.Recertifier, Roles.Auditor]);
+        }
+    }
+
+    private bool SelectAvailableReportType()
+    {
+        if(availableReportTypes.Count == 0)
+        {
+            return false;
+        }
+        if(!availableReportTypes.Contains(actReportFilters.ReportType))
+        {
+            actReportFilters.ReportType = availableReportTypes.First();
+        }
+        return true;
+    }
+
+    private bool IsSelectableReportType(ReportType reportType)
+    {
+        return userConfig.CanUseReportType(reportType);
     }
 
     private void AdjustDeviceSelection()

@@ -66,7 +66,7 @@
             <button type="button" class="btn btn-sm btn-primary" @onclick="SaveOwnerMappingSourceConfig">
                 @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
             </button>
-            <AuthorizeView Roles="@Roles.Admin">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     @if (!OwnerMappingCalcInProgress)
                     {
@@ -84,7 +84,7 @@
                         @(DisplayService.DisplayButton(userConfig, "H5913", Icons.Refresh))
                     </button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">
                 @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
             </button>

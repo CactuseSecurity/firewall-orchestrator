@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 
 @page "/settings/statedefinitions"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -106,14 +106,14 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@Roles.Admin">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="SaveState">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>
@@ -136,7 +136,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@Roles.Admin">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         @if(selectedAction != null)
                         {
@@ -150,7 +150,7 @@
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelSelect">@(userConfig.GetText("cancel"))</button>
             </div>
         </Footer>

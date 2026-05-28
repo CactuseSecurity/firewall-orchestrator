@@ -37,7 +37,7 @@
                                 {
                                     @if (context.StateId >= WfHandler.StateMatrix(context.TaskType).LowestInputState && context.StateId < WfHandler.StateMatrix(context.TaskType).LowestStartedState)
                                     {
-                                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                                             <Authorized Context="ctx">
                                                 <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartPhase(context)">
                                                     @(userConfig.GetText("start_" + Phase.ToString()))</button>
@@ -45,7 +45,7 @@
                                             <NotAuthorized Context="ctx">
                                                 <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
                                             </NotAuthorized> 
-                                        </AuthorizeView>
+                                        </ExecutionModeAuthorizeView>
                                     }
                                     else if (context.StateId < WfHandler.StateMatrix(context.TaskType).LowestEndState)
                                     {

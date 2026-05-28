@@ -119,36 +119,36 @@
         <div class="btn-group">
             @if(WfHandler.EditTicketMode)
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             else if (CanSaveTicketChanges())
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             else if (CheckPromoteTicket())
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}")">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteTicket">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                     </NotAuthorized> 
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             @if(WfHandler.EditTicketMode || CanSaveTicketChanges() || CheckPromoteTicket())
             {

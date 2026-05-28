@@ -20,6 +20,7 @@ namespace FWO.Api.Client
         private GraphQLHttpClient graphQlClient = null!;
 
         private readonly Stack<string> previousRoles = new();
+        private string forcedExecutionMode = "";
 
         private void Initialize(string ApiServerUri)
         {
@@ -65,7 +66,30 @@ namespace FWO.Api.Client
         public override void SetRole(string role)
         {
             previousRoles.Push(GetActRole());
+            SetRoleHeader(IsForcedExecutionMode(forcedExecutionMode) ? forcedExecutionMode : role);
+        }
+
+        private void ApplyExecutionMode(string role)
+        {
+            forcedExecutionMode = IsForcedExecutionMode(role) ? role : "";
             SetRoleHeader(role);
+        }
+
+        public override void SetExecutionMode(ClaimsPrincipal user, string role)
+        {
+            string normalizedRole = role.Equals(ExecutionModeHelper.UserRolesSelection, StringComparison.OrdinalIgnoreCase) ? "" : role;
+            if (IsForcedExecutionMode(normalizedRole) && !HasAllowedRole(user, normalizedRole))
+            {
+                throw new AuthenticationException($"User is not allowed to use execution mode: {normalizedRole}");
+            }
+
+            ApplyExecutionMode(normalizedRole);
+            InvokeOnExecutionModeChanged(this, GetExecutionMode());
+        }
+
+        public override string GetExecutionMode()
+        {
+            return forcedExecutionMode == "" ? ExecutionModeHelper.UserRolesSelection : forcedExecutionMode;
         }
 
         private void SetRoleHeader(string role)
@@ -97,41 +121,70 @@ namespace FWO.Api.Client
 
         public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
-            previousRoles.Push(GetActRole());
-            if (!SetFirstAllowedRole(user, targetRoleList))
-            {
-                throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
-            }
+            string actRole = GetActRole();
+            bool includeElevatedRoles = !HasSelectableUserRole(user);
+            string targetRole = IsForcedExecutionMode(user)
+                ? forcedExecutionMode
+                : GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles)
+                    ?? throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
+            previousRoles.Push(actRole);
+            SetRoleHeader(targetRole);
         }
 
         public override void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
         {
             string actRole = GetActRole();
-            previousRoles.Push(actRole);
+            string? targetRole = null;
+            bool includeElevatedRoles = !HasSelectableUserRole(user);
 
-            // first look if user is already in one of the target roles 
-            if (targetRoleList.Contains(actRole))
+            if (IsForcedExecutionMode(user))
             {
-                return;
+                targetRole = forcedExecutionMode;
             }
-            // now look if user has a target role as allowed role
-            if (!SetFirstAllowedRole(user, targetRoleList))
+            else if ((includeElevatedRoles || !IsForcedExecutionMode(actRole)) && targetRoleList.Contains(actRole))
+            {
+                targetRole = actRole;
+            }
+            else
+            {
+                targetRole = GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles);
+            }
+
+            if (targetRole == null)
             {
                 throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
             }
+
+            previousRoles.Push(actRole);
+            SetRoleHeader(targetRole);
         }
 
-        private bool SetFirstAllowedRole(ClaimsPrincipal user, List<string> targetRoleList)
+        private static string? GetFirstAllowedRole(ClaimsPrincipal user, List<string> targetRoleList, bool includeElevatedRoles)
         {
             foreach (string role in targetRoleList)
             {
-                if (HasAllowedRole(user, role))
+                if ((includeElevatedRoles || !IsForcedExecutionMode(role)) && HasAllowedRole(user, role))
                 {
-                    SetRoleHeader(role);
-                    return true;
+                    return role;
                 }
             }
-            return false;
+            return null;
+        }
+
+        private bool IsForcedExecutionMode(ClaimsPrincipal user)
+        {
+            return IsForcedExecutionMode(forcedExecutionMode) && HasAllowedRole(user, forcedExecutionMode);
+        }
+
+        private static bool IsForcedExecutionMode(string role)
+        {
+            return role.Equals(FWO.Basics.Roles.Admin, StringComparison.OrdinalIgnoreCase)
+                || role.Equals(FWO.Basics.Roles.Auditor, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool HasSelectableUserRole(ClaimsPrincipal user)
+        {
+            return GetAllowedRoles(user).Any(role => !IsForcedExecutionMode(role) && !FWO.Basics.RoleGroups.IsTechnicalOrAnonymous(role));
         }
 
         public override void SwitchBack()
@@ -144,26 +197,34 @@ namespace FWO.Api.Client
 
         private static bool HasAllowedRole(ClaimsPrincipal user, string role)
         {
-            if (user.IsInRole(role))
-            {
-                return true;
-            }
+            return GetAllowedRoles(user).Contains(role, StringComparer.OrdinalIgnoreCase);
+        }
 
+        private static List<string> GetAllowedRoles(ClaimsPrincipal user)
+        {
+            List<string> roles = [];
+            foreach (ClaimsIdentity identity in user.Identities)
+            {
+                roles.AddRange(identity.Claims
+                    .Where(claim => claim.Type.Equals(identity.RoleClaimType, StringComparison.OrdinalIgnoreCase))
+                    .Select(claim => claim.Value));
+            }
             foreach (Claim claim in user.Claims.Where(currentClaim => IsHasuraAllowedRolesClaim(currentClaim.Type)))
             {
-                if (claim.Value == role)
-                {
-                    return true;
-                }
-
                 if (TryParseAllowedRoles(claim.Value, out List<string> parsedRoles)
-                    && parsedRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
+                    && parsedRoles.Count > 0)
                 {
-                    return true;
+                    roles.AddRange(parsedRoles);
+                }
+                else
+                {
+                    roles.Add(claim.Value);
                 }
             }
-
-            return false;
+            return roles
+                .Where(role => !string.IsNullOrWhiteSpace(role))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private static bool IsHasuraAllowedRolesClaim(string claimType)

@@ -63,25 +63,25 @@
                 {
                     <div class="btn-group" role="group">
                         <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ToggleEditMode(false)">@userConfig.GetText("cancel")</button>
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" disabled class="btn btn-sm btn-primary">@userConfig.GetText("commit_changes")</button>
                             </NotAuthorized>
-                        </AuthorizeView>
+                        </ExecutionModeAuthorizeView>
                     </div>
                 }
                 else
                 {
-                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
 
                         <div data-toggle="tooltip" title="@(userConfig.PureLine(readonlyMode ? "H5838" : "H5837"))">
                             <button type="button" class="btn btn-sm btn-warning" disabled="@readonlyMode" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
                         </div>
 
-                    </AuthorizeView>
+                    </ExecutionModeAuthorizeView>
                 }
                 </div>
             </div>
@@ -129,6 +129,13 @@
     {
         try
         {
+            if (!userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
+                Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor))
+            {
+                matrixLoaded = true;
+                return;
+            }
+
             apiConnection.SetProperRole(authenticationStateTask!.Result.User,
                 [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
                 Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor ]);

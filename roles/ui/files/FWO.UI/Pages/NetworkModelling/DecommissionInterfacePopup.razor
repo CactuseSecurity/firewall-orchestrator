@@ -1,4 +1,4 @@
-﻿@using FWO.Middleware.Client
+@using FWO.Middleware.Client
 @using FWO.Data
 
 @inject UserConfig userConfig
@@ -45,7 +45,7 @@
         }
     </Body>
     <Footer>
-        <AuthorizeView Roles="@Roles.Modeller">
+        <ExecutionModeAuthorizeView Roles="@Roles.Modeller">
             <Authorized>
                 @if(!WorkInProgress)
                 {
@@ -59,7 +59,7 @@
             <NotAuthorized>
                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "decommission", Icons.Delete))</button>
             </NotAuthorized> 
-        </AuthorizeView>
+        </ExecutionModeAuthorizeView>
         <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
 </PopUp>

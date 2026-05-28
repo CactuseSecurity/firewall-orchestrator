@@ -22,6 +22,7 @@ namespace FWO.Config.Api
         public Dictionary<string, string> Overwrite { get; set; } = [];
 
         public UiUser User { private set; get; }
+        public string ExecutionMode { get; private set; } = ExecutionModeHelper.UserRolesSelection;
 
         public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId, bool owningApiConnection = false)
         {
@@ -133,6 +134,39 @@ namespace FWO.Config.Api
                 Translate = langDict;
                 Overwrite = globalConfig.OverDict[User.Language];
             }
+        }
+
+        public void SetExecutionMode(string executionMode)
+        {
+            ExecutionMode = string.IsNullOrWhiteSpace(executionMode) ? ExecutionModeHelper.UserRolesSelection : executionMode;
+            InvokeOnChange(this, []);
+        }
+
+        public bool CanUseAnyRole(params string[] targetRoles)
+        {
+            return CanUseAnyRole((IEnumerable<string>)targetRoles);
+        }
+
+        public bool CanUseAnyRole(IEnumerable<string> targetRoles)
+        {
+            return ExecutionModeHelper.HasAnyRoleInExecutionMode(User.Roles, ExecutionMode, targetRoles);
+        }
+
+        public ReportVisibility GetReportVisibility()
+        {
+            return new ReportVisibility(
+                RuleRelated: CanUseAnyRole(Roles.Reporter, Roles.ReporterViewAll, Roles.FwAdmin, Roles.Admin, Roles.Auditor, Roles.Recertifier),
+                ModellingRelated: CanUseAnyRole(Roles.Modeller, Roles.Admin, Roles.Auditor, Roles.Recertifier),
+                ComplianceRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor),
+                OwnerRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor),
+                WorkflowRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester, Roles.Approver,
+                    Roles.Planner, Roles.Implementer, Roles.Reviewer));
+        }
+
+        public bool CanUseReportType(ReportType reportType, bool modellingOwnerAllowed = true)
+        {
+            return reportType == ReportType.Undefined
+                || reportType.IsVisibleTemplateType(GetReportVisibility(), modellingOwnerAllowed);
         }
 
         public override string GetText(string key)

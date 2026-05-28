@@ -1,13 +1,16 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Ui.Pages.Monitoring;
+using Microsoft.AspNetCore.Components.Authorization;
 using NUnit.Framework;
 using System.Collections;
 using System.Reflection;
+using System.Security.Claims;
 
 namespace FWO.Test
 {
@@ -76,6 +79,18 @@ namespace FWO.Test
                 throw new MissingMemberException(typeof(MonitorModellingRequests).FullName, "userConfig");
             }
             prop.SetValue(component, userConfig);
+        }
+
+        private static void SetAuthenticationState(MonitorModellingRequests component, params string[] roles)
+        {
+            PropertyInfo? prop = typeof(MonitorModellingRequests).GetProperty("authenticationStateTask", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (prop == null)
+            {
+                throw new MissingMemberException(typeof(MonitorModellingRequests).FullName, "authenticationStateTask");
+            }
+
+            ClaimsIdentity identity = new(roles.Select(role => new Claim(ClaimTypes.Role, role)), "test", ClaimTypes.Name, ClaimTypes.Role);
+            prop.SetValue(component, Task.FromResult(new AuthenticationState(new ClaimsPrincipal(identity))));
         }
 
         private static object CreateRequestStatusRow(FwoOwner owner, long ticketId, string status, int stateId = 0)
@@ -865,6 +880,7 @@ namespace FWO.Test
             SetPrivateField(component, "States", new FWO.Services.Workflow.WfStateDict { Name = { [8] = "Closed" } });
             SetPrivateField(component, "ChangeTicketStateRow", row);
             SetPrivateField(component, "SelectedTicketStateId", 8);
+            SetAuthenticationState(component, Roles.Admin);
 
             Task task = (Task)GetPrivateMethod("SetTicketState").Invoke(component, null)!;
             await task;

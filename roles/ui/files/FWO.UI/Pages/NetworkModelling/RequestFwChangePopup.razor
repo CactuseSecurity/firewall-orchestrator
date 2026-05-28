@@ -75,7 +75,7 @@
         }
     </Body>
     <Footer>
-        <AuthorizeView Roles="@Roles.Modeller">
+        <ExecutionModeAuthorizeView Roles="@Roles.Modeller">
             <Authorized>
                 @if (SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess && TaskList.Count > 0 && userConfig.User.Ownerships.Contains(SelectedApp.Id))
                 {
@@ -89,7 +89,7 @@
             <NotAuthorized>
                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "request_fw_change", Icons.RequestFwChange))</button>
             </NotAuthorized>
-        </AuthorizeView>
+        </ExecutionModeAuthorizeView>
         <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "close", Icons.Close))</button>
     </Footer>
 </PopUp>

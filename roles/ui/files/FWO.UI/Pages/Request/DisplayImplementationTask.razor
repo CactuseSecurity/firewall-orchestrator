@@ -302,25 +302,25 @@
                 <div class="btn-group">
                     @if (WfHandler.EditImplTaskMode)
                     {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </NotAuthorized>
-                        </AuthorizeView>
+                        </ExecutionModeAuthorizeView>
                     }
                     else if ((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !newOwnerAssigned)
                     {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.Save))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </NotAuthorized>
-                        </AuthorizeView>
+                        </ExecutionModeAuthorizeView>
                     }
                     @if((WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !newOwnerAssigned)
                     {

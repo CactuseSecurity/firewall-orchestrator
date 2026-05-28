@@ -43,14 +43,14 @@
                         }
                         @if(request.Locked)
                         {
-                            <AuthorizeView Roles="@($"{Roles.Admin}")">
+                            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await Unlock(request);}">@(DisplayService.DisplayButton(userConfig, "unlock", Icons.Unlocked))</button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "unlock", Icons.Unlocked))</button>
                                 </NotAuthorized>
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         }
                     </div>
                 </Template>
@@ -170,14 +170,14 @@ else
     <Footer>
         <div class="btn-group">
             <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ChangeStateMode = false">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
-            <AuthorizeView Roles="@($"{Roles.Admin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="PatchState">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
         </div>
     </Footer>
 </PopUp>

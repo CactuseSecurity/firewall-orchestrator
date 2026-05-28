@@ -1,4 +1,4 @@
-﻿@using NetTools;
+@using NetTools;
 @using System.Diagnostics;
 @using FWO.Services
 
@@ -144,14 +144,14 @@
 		</Body>
 		<Footer>
 			<div class="btn-group">
-				<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+				<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
 					<Authorized>
 						<button type="button" class="btn btn-primary" @onclick="ExecuteNetworkZoneModifications">@(userConfig.GetText("ok"))</button>
 					</Authorized>
 					<NotAuthorized>
 						<button type="button" disabled class="btn btn-primary" @onclick="ExecuteNetworkZoneModifications">@(userConfig.GetText("ok"))</button>
 					</NotAuthorized> 
-				</AuthorizeView>
+				</ExecutionModeAuthorizeView>
 				<button type="button" class="btn btn-secondary" @onclick="CancelModifications">@(userConfig.GetText("cancel"))</button>
 			</div>
 		</Footer>

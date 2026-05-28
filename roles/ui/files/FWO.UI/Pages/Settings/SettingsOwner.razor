@@ -51,14 +51,14 @@
                         <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditOwner(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                         @if(!context.IsDefault)
                         {
-                            <AuthorizeView Roles="@Roles.Admin" Context="ctx">
-                                <Authorized>
+                            <ExecutionModeAuthorizeView Roles="@Roles.Admin" Context="ctx">
+                                <Authorized Context="authState">
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 </Authorized>
-                                <NotAuthorized>
+                                <NotAuthorized Context="authState">
                                     <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 </NotAuthorized>
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         }
                     }
                     </div>

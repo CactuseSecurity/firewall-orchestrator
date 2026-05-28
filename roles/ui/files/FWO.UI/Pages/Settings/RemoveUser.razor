@@ -1,4 +1,4 @@
-﻿@inject UserConfig userConfig
+@inject UserConfig userConfig
 
 <PopUp Title="@Title" Show="@Display" Size=PopupSize.Medium OnClose="Close">
     <Body>
@@ -20,14 +20,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@Roles.Admin">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await Remove(selectedUser); Close(); }" @onclick:preventDefault>@(userConfig.GetText("remove"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>

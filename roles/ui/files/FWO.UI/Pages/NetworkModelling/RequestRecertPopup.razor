@@ -111,7 +111,7 @@
         <Footer>
             @if (!WorkInProgress && RecertPossible)
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
                     <Authorized>
                         @if (CanRecertify)
                         {
@@ -125,7 +125,7 @@
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </Footer>
@@ -318,8 +318,7 @@
 
     private bool HasRecertWriteAccess()
     {
-        return authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-            || authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
+        return userConfig.CanUseAnyRole(Roles.Admin, Roles.Recertifier);
     }
 
     private async Task GenerateAndSaveReport(FwoOwner owner)

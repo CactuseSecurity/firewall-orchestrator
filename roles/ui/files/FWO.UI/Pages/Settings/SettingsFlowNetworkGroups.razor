@@ -314,7 +314,9 @@ else
                     _set = new
                     {
                         flow_nwgrp_id = SelectedDuplicateGroup.FlowNwGroupId,
-                        flow_active = candidate.Id == SelectedDuplicateObject.Id
+                        flow_active = candidate.FlowNetworkObjectId.HasValue
+                            ? candidate.FlowActive
+                            : candidate.Id == SelectedDuplicateObject.Id
                     }
                 });
             }

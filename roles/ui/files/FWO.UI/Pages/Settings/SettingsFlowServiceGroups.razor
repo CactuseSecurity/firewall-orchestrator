@@ -314,7 +314,9 @@ else
                     _set = new
                     {
                         flow_svcgrp_id = SelectedDuplicateGroup.FlowSvcGroupId,
-                        flow_active = candidate.Id == SelectedDuplicateService.Id
+                        flow_active = candidate.FlowServiceObjectId.HasValue
+                            ? candidate.FlowActive
+                            : candidate.Id == SelectedDuplicateService.Id
                     }
                 });
             }

@@ -9,6 +9,7 @@ from typing import Any
 import fwo_globals
 import requests
 from fwo_api_call import FwoApiCall
+from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT
 from fwo_exceptions import ConfigFileNotFoundError, FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import (
@@ -84,12 +85,13 @@ def read_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> dict[str, 
         if import_state.import_file_name.startswith("http://") or import_state.import_file_name.startswith(
             "https://"
         ):  # get conf file via http(s)
-            session = requests.Session()
-            session.headers = {"Content-Type": "application/json"}
-            session.verify = fwo_globals.verify_certs
-            r = session.get(
-                import_state.import_file_name,
-            )
+            with requests.Session() as session:
+                session.headers.update({"Content-Type": "application/json"})
+                session.verify = bool(fwo_globals.verify_certs)
+                r = session.get(
+                    import_state.import_file_name,
+                    timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT),
+                )
             if r.ok:
                 return json.loads(r.text)
             r.raise_for_status()

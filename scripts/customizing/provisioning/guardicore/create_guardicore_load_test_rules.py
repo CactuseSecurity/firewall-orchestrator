@@ -85,7 +85,7 @@ def post_guardicore_json(
         apply_ssl_settings(session, config.verify_ssl)
         session.headers.update(headers)
         try:
-            response = session.post(endpoint, json=payload, timeout=config.timeout_seconds)
+            response = session.post(endpoint, json=cast("Any", payload), timeout=config.timeout_seconds)
             response.raise_for_status()
         except requests.exceptions.RequestException as exc:
             raise GuardicoreLoadTestError(f"{error_message}: {exc}") from exc

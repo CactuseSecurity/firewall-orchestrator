@@ -1,3 +1,4 @@
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Flow;
@@ -38,7 +39,7 @@ namespace FWO.Test
             public List<FlowSvcObject> InsertedServiceObjects { get; } = [];
             public List<FlowSvcGroup> InsertedServiceGroups { get; } = [];
 
-            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null)
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == FlowQueries.getFlowSyncNwObjects)
                 {

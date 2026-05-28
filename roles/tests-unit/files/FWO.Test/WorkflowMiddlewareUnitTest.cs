@@ -22,7 +22,7 @@ namespace FWO.Test
             public List<string> Queries { get; } = [];
             public List<UiUser> Users { get; set; } = [];
 
-            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null)
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 Queries.Add(query);
                 if (query == AuthQueries.getUserEmails)

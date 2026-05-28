@@ -244,8 +244,7 @@ namespace FWO.Services
                     {
                         Enabled = true,
                         ChunkVariableName = "objects",
-                        //ChunkSize = RuleOwnerRemovalBatchSize,
-                        ChunkSize = 2,
+                        ChunkSize = RuleOwnerRemovalBatchSize,
                         MergeMode = ChunkMergeMode.MutationAffectedRowsOnly
                     });
 
@@ -274,8 +273,7 @@ namespace FWO.Services
                 {
                     Enabled = true,
                     ChunkVariableName = "objects",
-                    //ChunkSize = RuleOwnerInsertBatchSize,
-                    ChunkSize = 2,
+                    ChunkSize = RuleOwnerInsertBatchSize,
                     MergeMode = ChunkMergeMode.MutationAffectedRowsAndReturning
                 });
 

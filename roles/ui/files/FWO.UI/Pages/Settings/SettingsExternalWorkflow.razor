@@ -2,6 +2,7 @@
 @using FWO.Logging
 @using FWO.Middleware.Client
 @using FWO.Recert
+@using FWO.ExternalSystems
 @using FWO.ExternalSystems.Tufin.SecureChange
 @using FWO.Ui.Pages.NetworkModelling
 @using RestSharp
@@ -62,10 +63,10 @@
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_type")):</label>
                 <div class="col-sm-4">
                     <Dropdown ElementType="ExternalTicketSystemTypeDefinition" SelectedElement="selectedType"
-                              SelectedElementChanged="OnTypeChanged" ElementToString="@(type => type.Name)"
+                              SelectedElementChanged="OnTypeChanged" ElementToString="@(type => string.IsNullOrWhiteSpace(type.Version) ? type.Name : $"{type.Name} {type.Version}")"
                               Elements="availableTypes">
                         <ElementTemplate Context="type">
-                            @type.Name
+                            @(string.IsNullOrWhiteSpace(type.Version) ? type.Name : $"{type.Name} {type.Version}")
                         </ElementTemplate>
                     </Dropdown>
                 </div>
@@ -76,12 +77,30 @@
                     <input type="text" class="col-sm-8" @bind="extTicketingSystemUrl" />
                 </div>
             </div>
-            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5594"))">
-                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_auth")):</label>
-                <div class="col-sm-8">
-                    <input type="text" class="col-sm-8" @bind="extTicketingSystemAuth" />
+            @if (selectedType.IsBuiltIn)
+            {
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5594"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_auth")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="col-sm-8" @bind="extTicketingSystemAuth" />
+                    </div>
                 </div>
-            </div>
+            }
+            @if (!selectedType.IsBuiltIn)
+            {
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("username")):</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="col-sm-8" @bind="extTicketingSystemUserName" />
+                    </div>
+                </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("password")):</label>
+                    <div class="col-sm-8">
+                        <input type="password" class="col-sm-8" @bind="extTicketingSystemPassword" />
+                    </div>
+                </div>
+            }
             <div class="form-group row mt-2">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("response_timeout")):</label>
                 <div class="col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5593a"))">
@@ -160,6 +179,8 @@ else
     private int extTicketingSystemMaxAttempts = 3;
     private int extTicketingSystemCyclesBetweenAttempts = 5;
     private string extTicketingSystemAuth = "";
+    private string extTicketingSystemUserName = "";
+    private string extTicketingSystemPassword = "";
     private bool extTicketingSystemLookup = false;
     private List<ExternalTicketSystem> extTicketSystems = [];
     private List<ExternalTicketTemplate> extTicketingSystemTemplates = [];
@@ -167,7 +188,7 @@ else
     private DateTime extReqStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private ExternalTicketTemplate newTemplate = new();
     private List<string> actTaskTypes = [];
-    private IReadOnlyList<ExternalTicketSystemTypeDefinition> availableTypes = BuiltInExternalTicketSystemTypes.AllBuildInTicketTypes;
+    private List<ExternalTicketSystemTypeDefinition> availableTypes = BuiltInExternalTicketSystemTypes.AllBuildInTicketTypes.ToList();
     private ExternalTicketSystemTypeDefinition selectedType = BuiltInExternalTicketSystemTypes.GetById(BuiltInExternalTicketSystemTypes.GenericId);
 
     protected override async Task OnInitializedAsync()
@@ -179,6 +200,25 @@ else
             extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems) ? new List<ExternalTicketSystem>()
                                                         : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
                                                         ?? new List<ExternalTicketSystem>();
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getUsedMgmDeviceTypes);
+            foreach (Management management in managements)
+            {
+                DeviceType dbType = management.DeviceType;
+                if (dbType == null || dbType.Id <= 0 || string.IsNullOrWhiteSpace(dbType.Name))
+                {
+                    continue;
+                }
+                if (availableTypes.All(type => type.Id != dbType.Id))
+                {
+                    availableTypes.Add(new ExternalTicketSystemTypeDefinition
+                    {
+                        Id = dbType.Id,
+                        Name = dbType.Name,
+                        Version = dbType.Version,
+                        IsBuiltIn = false
+                    });
+                }
+            }
 
             ExternalTicketSystem? systemToEdit = null;
 
@@ -192,13 +232,15 @@ else
                 // Edit-Mode
                 extTicketingSystemName = systemToEdit.Name;
                 actExtTicketSystemTypeId = systemToEdit.TypeId;
-                selectedType = BuiltInExternalTicketSystemTypes.GetById(actExtTicketSystemTypeId);
+                selectedType = ResolveSelectedType(actExtTicketSystemTypeId);
                 InitTaskTypeList(actExtTicketSystemTypeId);
                 extTicketingSystemUrl = systemToEdit.Url;
                 extTicketingSystemTimeout = systemToEdit.ResponseTimeout;
                 extTicketingSystemMaxAttempts = systemToEdit.MaxAttempts;
                 extTicketingSystemCyclesBetweenAttempts = systemToEdit.CyclesBetweenAttempts;
                 extTicketingSystemAuth = systemToEdit.Authorization;
+                extTicketingSystemUserName = systemToEdit.UserName;
+                extTicketingSystemPassword = systemToEdit.Password;
                 extTicketingSystemLookup = systemToEdit.LookupRequesterId;
                 extTicketingSystemTemplates = systemToEdit.Templates;
             }
@@ -206,8 +248,10 @@ else
             {
                 // Create-Mode
                 extTicketingSystemName = "";
+                extTicketingSystemUserName = "";
+                extTicketingSystemPassword = "";
                 actExtTicketSystemTypeId = BuiltInExternalTicketSystemTypes.GenericId;
-                selectedType = BuiltInExternalTicketSystemTypes.GetById(actExtTicketSystemTypeId);
+                selectedType = ResolveSelectedType(actExtTicketSystemTypeId);
                 InitTaskTypeList(actExtTicketSystemTypeId);
                 extTicketingSystemTemplates = new();
             }
@@ -224,16 +268,19 @@ else
         switch (extTicketSystemTypeId)
         {
             case BuiltInExternalTicketSystemTypes.GenericId:
-                actTaskTypes = [];
+                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
                 break;
             case BuiltInExternalTicketSystemTypes.TufinSecureChangeId:
                 actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
                 break;
             case BuiltInExternalTicketSystemTypes.AlgoSecId:
-                actTaskTypes = [];
+                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
                 break;
             case BuiltInExternalTicketSystemTypes.ServiceNowId:
-                actTaskTypes = [];
+                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
+                break;
+            default:
+                actTaskTypes = Enum.GetNames(typeof(SCTaskType)).ToList();
                 break;
         }
         newTemplate.TaskType = actTaskTypes.Count > 0 ? actTaskTypes.First() : "";
@@ -243,6 +290,17 @@ else
     {
         selectedType = type;
         InitTaskTypeList(type.Id);
+    }
+
+    private ExternalTicketSystemTypeDefinition ResolveSelectedType(int typeId)
+    {
+        return availableTypes.FirstOrDefault(type => type.Id == typeId)
+            ?? new ExternalTicketSystemTypeDefinition
+            {
+                Id = typeId,
+                Name = typeId.ToString(),
+                IsBuiltIn = false
+            };
     }
 
     private async Task Save()
@@ -278,7 +336,9 @@ else
                 system.ResponseTimeout = extTicketingSystemTimeout;
                 system.MaxAttempts = extTicketingSystemMaxAttempts;
                 system.CyclesBetweenAttempts = extTicketingSystemCyclesBetweenAttempts;
-                system.Authorization = extTicketingSystemAuth;
+                system.Authorization = selectedType.IsBuiltIn ? extTicketingSystemAuth : "";
+                system.UserName = extTicketingSystemUserName;
+                system.Password = extTicketingSystemPassword;
                 system.LookupRequesterId = extTicketingSystemLookup;
                 system.Templates = extTicketingSystemTemplates;
                 system.Sanitize();
@@ -295,7 +355,9 @@ else
                     ResponseTimeout = extTicketingSystemTimeout,
                     MaxAttempts = extTicketingSystemMaxAttempts,
                     CyclesBetweenAttempts = extTicketingSystemCyclesBetweenAttempts,
-                    Authorization = extTicketingSystemAuth,
+                    Authorization = selectedType.IsBuiltIn ? extTicketingSystemAuth : "",
+                    UserName = extTicketingSystemUserName,
+                    Password = extTicketingSystemPassword,
                     LookupRequesterId = extTicketingSystemLookup,
                     Templates = extTicketingSystemTemplates
                 };

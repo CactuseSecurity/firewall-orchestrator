@@ -3,6 +3,7 @@ using NUnit.Framework.Legacy;
 using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Middleware.Server;
+using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 
 namespace FWO.Test
@@ -92,7 +93,91 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, apiConnection.UpdateExtRequestProcess.Count);
             ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestProcess[0].Contains("id = 4"));
             ClassicAssert.AreEqual(true, apiConnection.UpdateExtRequestProcess[1].Contains("id = 5"));
-            ClassicAssert.AreEqual(3, apiConnection.TriedToGetLdapsForHandleStateChange);
+            ClassicAssert.AreEqual(5, apiConnection.TriedToGetLdapsForHandleStateChange);
+        }
+
+        [Test]
+        public async Task TestExternalRequestSenderRejectsUnsupportedCustomSystems()
+        {
+            ExtRequestSenderTestApiConn localApiConnection = new()
+            {
+                ManualRequestsOnly = true
+            };
+            ExternalRequestSender externalRequestSender = new(localApiConnection, globalConfig);
+
+            List<string> FailedRequests = await externalRequestSender.Run();
+
+            ClassicAssert.AreEqual(1, FailedRequests.Count);
+            ClassicAssert.AreEqual(true, FailedRequests[0].Contains("Request Id: 6"));
+            ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestCreation.Count);
+            ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestProcess.Count);
+            ClassicAssert.AreEqual(0, localApiConnection.TriedToGetLdapsForHandleStateChange);
+        }
+
+        [Test]
+        public async Task TestExternalRequestSenderHandlesCheckPointAutomatically()
+        {
+            ExtRequestSenderTestApiConn localApiConnection = new()
+            {
+                CheckPointRequestsOnly = true
+            };
+            ExternalTicketSystem checkPointSystem = new()
+            {
+                Id = 3,
+                TypeId = 9,
+                Authorization = "X-chkp-sid: xyz",
+                Name = "CheckPoint",
+                Url = "https://checkpoint-test.xxx.de/web_api/"
+            };
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem);
+            checkPointClient.EnqueueResponse("add-access-rule", new(new()) { StatusCode = System.Net.HttpStatusCode.OK, Content = "{\"uid\":\"rule-1\"}" });
+            checkPointClient.EnqueueResponse("publish", new(new()) { StatusCode = System.Net.HttpStatusCode.OK, Content = "{\"task-id\":\"publish-task\"}" });
+            checkPointClient.EnqueueResponse("install-policy", new(new()) { StatusCode = System.Net.HttpStatusCode.OK, Content = "{\"task-id\":\"install-task\"}" });
+            ExternalRequestSender externalRequestSender = new(localApiConnection, globalConfig, null);
+
+            List<string> FailedRequests = await externalRequestSender.Run();
+
+            ClassicAssert.AreEqual(0, FailedRequests.Count);
+            ClassicAssert.AreEqual(new List<string> { "add-access-rule", "publish", "install-policy" }, checkPointClient.CalledEndpoints);
+            ClassicAssert.AreEqual(1, localApiConnection.UpdateExtRequestCreation.Count);
+            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("id = 7"));
+            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("extTicketId = install-task"));
+            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("extRequestState = ExtReqRequested"));
+            ClassicAssert.AreEqual(false, localApiConnection.UpdateExtRequestCreation[0].Contains("manual processing"));
+            ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestProcess.Count);
+            ClassicAssert.AreEqual(1, localApiConnection.TriedToGetLdapsForHandleStateChange);
+        }
+
+        [Test]
+        public async Task TestExternalRequestSenderRetriesTransientHttpErrors()
+        {
+            ExtRequestSenderTestApiConn localApiConnection = new()
+            {
+                CheckPointRequestsOnly = true
+            };
+            ExternalTicketSystem checkPointSystem = new()
+            {
+                Id = 3,
+                TypeId = 9,
+                Authorization = "X-chkp-sid: xyz",
+                Name = "CheckPoint",
+                Url = "https://checkpoint-test.xxx.de/web_api/",
+                CyclesBetweenAttempts = 5
+            };
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem);
+            checkPointClient.EnqueueResponse("add-access-rule", new(new()) { StatusCode = System.Net.HttpStatusCode.BadGateway, Content = "temporary upstream problem" });
+            ExternalRequestSender externalRequestSender = new(localApiConnection, globalConfig, null);
+
+            List<string> FailedRequests = await externalRequestSender.Run();
+
+            ClassicAssert.AreEqual(0, FailedRequests.Count);
+            ClassicAssert.AreEqual(new List<string> { "add-access-rule" }, checkPointClient.CalledEndpoints);
+            ClassicAssert.AreEqual(1, localApiConnection.UpdateExtRequestCreation.Count);
+            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("id = 7"));
+            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("extRequestState = ExtReqFailed"));
+            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("waitCycles = 5"));
+            ClassicAssert.AreEqual(true, localApiConnection.UpdateExtRequestCreation[0].Contains("attempts = 1"));
+            ClassicAssert.AreEqual(1, localApiConnection.TriedToGetLdapsForHandleStateChange);
         }
     }
 }

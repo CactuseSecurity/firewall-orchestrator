@@ -192,15 +192,7 @@ else
 
     private static List<string> AvailableChanges { get; } = new()
     {
-        "Object Changes",
-        "Rule Changes"
+        ManagementFwConfigChangeCategories.ObjectChanges,
+        ManagementFwConfigChangeCategories.RuleChanges
     };
-
-    private class ManagementFwConfigChangeState
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = "";
-        public bool Enabled { get; set; } = false;
-        public Dictionary<string, string> SelectedChanges { get; set; } = new();
-    }
 }

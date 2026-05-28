@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Services;
+using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using GraphQL;
 
@@ -14,6 +15,8 @@ namespace FWO.Test
         public List<string> UpdateExtRequestCreation = [];
         public List<string> UpdateExtRequestProcess = [];
         public int TriedToGetLdapsForHandleStateChange = 0;
+        public bool ManualRequestsOnly = false;
+        public bool CheckPointRequestsOnly = false;
 
         readonly ExternalTicketSystem ticketSystem = new()
         {
@@ -44,6 +47,30 @@ namespace FWO.Test
                 }
             ]
         };
+        readonly ExternalTicketSystem manualTicketSystem = new()
+        {
+            Id = 2,
+            TypeId = 99,
+            Authorization = "xyz",
+            Name = "Custom",
+            Url = "https://custom-ticket-system.example/api/"
+        };
+        readonly ExternalTicketSystem checkPointTicketSystem = new()
+        {
+            Id = 3,
+            TypeId = 9,
+            Authorization = "X-chkp-sid: xyz",
+            Name = "CheckPoint",
+            Url = "https://checkpoint-test.xxx.de/web_api/",
+            Templates =
+            [
+                new()
+                {
+                    TaskType = CheckPointTaskTypes.Publish,
+                    TicketTemplate = "{}"
+                }
+            ]
+        };
 
         private readonly string TicketContent = "{ \"ticketText\": \"\" }";
         // private readonly string TicketContent = "{\"ticketText\": \"{ \"ticket\": { \"subject\": \"tick2\"} }\" }";
@@ -70,6 +97,41 @@ namespace FWO.Test
             else if (responseType == typeof(ExternalRequestDataHelper))
             {
                 string serializedTicketSystem = System.Text.Json.JsonSerializer.Serialize(ticketSystem);
+                if (ManualRequestsOnly)
+                {
+                    string serializedManualTicketSystem = System.Text.Json.JsonSerializer.Serialize(manualTicketSystem);
+                    ExternalRequestDataHelper manualRequests = new()
+                    {
+                        ExternalRequests =
+                        [
+                            new(){ Id = 6, TicketId = 6, ExtTicketSystem = serializedManualTicketSystem, ExtRequestState = ExtStates.ExtReqInitialized.ToString(),
+                                ExtRequestContent = TicketContent }
+                        ]
+                    };
+                    GraphQLResponse<dynamic> manualResponse = new() { Data = manualRequests };
+                    return manualResponse.Data;
+                }
+                if (CheckPointRequestsOnly)
+                {
+                    string serializedCheckPointTicketSystem = System.Text.Json.JsonSerializer.Serialize(checkPointTicketSystem);
+                    ExternalRequestDataHelper checkPointRequests = new()
+                    {
+                        ExternalRequests =
+                        [
+                            new(){ Id = 7, TicketId = 7, ExtTicketSystem = serializedCheckPointTicketSystem, ExtRequestState = ExtStates.ExtReqInitialized.ToString(),
+                                ExtRequestType = WfTaskType.access.ToString(), ExtRequestContent = "{\"source\":[\"src-group\"]}",
+                                ExtQueryVariables = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object>
+                                {
+                                    [ExternalVarKeys.CheckPointInstallPolicyTargets] = new List<CheckPointInstallPolicyTarget>
+                                    {
+                                        new() { PolicyPackage = "Standard", Targets = ["gw1"] }
+                                    }
+                                }) }
+                        ]
+                    };
+                    GraphQLResponse<dynamic> checkPointResponse = new() { Data = checkPointRequests };
+                    return checkPointResponse.Data;
+                }
                 ExternalRequestDataHelper openRequests = new()
                 {
                     ExternalRequests =

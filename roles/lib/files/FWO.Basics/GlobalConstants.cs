@@ -209,4 +209,11 @@ namespace FWO.Basics
         public const string Reject = "reject";
         public const string Drop = "drop";
     }
+
+    public struct CheckPointTaskTypes
+    {
+        public const string GroupCreate = "group_create";
+        public const string GroupModify = "group_modify";
+        public const string Publish = "publish";
+    }
 }

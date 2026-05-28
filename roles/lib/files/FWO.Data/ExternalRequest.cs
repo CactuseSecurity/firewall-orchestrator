@@ -7,6 +7,7 @@ namespace FWO.Data
     public struct ExternalVarKeys
     {
         public const string BundledTasks = "BundledTasks";
+        public const string CheckPointInstallPolicyTargets = "CheckPointInstallPolicyTargets";
     }
 
     public class ExternalRequest

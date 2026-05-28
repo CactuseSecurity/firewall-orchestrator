@@ -4,6 +4,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
+using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Middleware.Server;
 
@@ -39,6 +40,38 @@ namespace FWO.Test
                     NwObjGroupTemplate = "{\"@type\": \"Object\", \"object_name\": \"@@GROUPNAME@@\", \"management_name\": \"@@MANAGEMENT_NAME@@\"}",
                     ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"@@PROTOCOLNAME@@\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"}",
                     IcmpTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"ICMP\", \"type\": 8, \"name\": \"@@SERVICENAME@@\"}"
+                }
+            ]
+        };
+        readonly static ExternalTicketSystem customTicketSystem = new()
+        {
+            Id = 2,
+            TypeId = 99,
+            Authorization = "xyz",
+            Name = "Custom",
+            Url = "https://custom-ticket-system.example/api/",
+            Templates = ticketSystem.Templates
+        };
+        readonly static ExternalTicketSystem checkPointTicketSystem = new()
+        {
+            Id = 3,
+            TypeId = 9,
+            Authorization = "X-chkp-sid: xyz",
+            Name = "CheckPoint",
+            Url = "https://checkpoint-test.xxx.de/web_api/",
+            Templates =
+            [
+                new()
+                {
+                    TaskType = SCTaskType.NetworkObjectModify.ToString(),
+                    TicketTemplate = "@@TASKS@@",
+                    TasksTemplate = "{\"members\":@@MEMBERS@@,\"comment\":\"@@REASON@@\"}"
+                },
+                new()
+                {
+                    TaskType = SCTaskType.AccessRequest.ToString(),
+                    TicketTemplate = "@@TASKS@@",
+                    TasksTemplate = "{\"source\":@@SOURCES@@,\"destination\":@@DESTINATIONS@@,\"service\":@@SERVICES@@,\"action\":\"@@ACTION@@\"}"
                 }
             ]
         };
@@ -146,6 +179,124 @@ namespace FWO.Test
             string extQueryVars = "{\"BundledTasks\":[1,2,3]}";
 
             ClassicAssert.AreEqual(3, ExternalRequestHandler.GetLastTaskNumber(extQueryVars, 0));
+        }
+
+        [Test]
+        public async Task SendFirstRequestUsesFirstConfiguredExternalTicketSystem()
+        {
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ExternalRequestWaitCycles = 3,
+                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { ticketSystem, customTicketSystem }),
+                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
+                {
+                    new()
+                    {
+                        Id = 1,
+                        Name = "Checkpoint",
+                        Enabled = true,
+                        SelectedChanges = new()
+                        {
+                            [ManagementFwConfigChangeCategories.ObjectChanges] = customTicketSystem.Id.ToString(),
+                            [ManagementFwConfigChangeCategories.RuleChanges] = ticketSystem.Id.ToString()
+                        }
+                    }
+                }),
+                ReqPriorities = reqPrios,
+                ModNamingConvention = namingConvention,
+                ModRolloutBundleTasks = true
+            };
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+
+            using ExternalRequestHandler externalRequestHandler = new(localUserConfig, localApiConnection, null);
+            bool created = await externalRequestHandler.SendFirstRequest(123);
+
+            ClassicAssert.AreEqual(true, created);
+            ClassicAssert.AreEqual(true, localApiConnection.AddedExtTicketSystem?.Contains("\"Name\":\"Tufin"), localApiConnection.AddedExtTicketSystem ?? "");
+            ClassicAssert.AreEqual(true, localApiConnection.AddedExtTicketSystem?.Contains("\"TypeId\":2"), localApiConnection.AddedExtTicketSystem ?? "");
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("extRequestState = ExtReqInitialized"));
+        }
+
+        [Test]
+        public async Task SendFirstRequestInitializesCheckPointExternalTicketSystem()
+        {
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ExternalRequestWaitCycles = 3,
+                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { checkPointTicketSystem, ticketSystem }),
+                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
+                {
+                    new()
+                    {
+                        Id = 1,
+                        Name = "Checkpoint",
+                        Enabled = true,
+                        SelectedChanges = new()
+                        {
+                            [ManagementFwConfigChangeCategories.ObjectChanges] = checkPointTicketSystem.Id.ToString(),
+                            [ManagementFwConfigChangeCategories.RuleChanges] = ticketSystem.Id.ToString()
+                        }
+                    }
+                }),
+                ReqPriorities = reqPrios,
+                ModNamingConvention = namingConvention,
+                ModRolloutBundleTasks = true
+            };
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+
+            using ExternalRequestHandler externalRequestHandler = new(localUserConfig, localApiConnection, null);
+            bool created = await externalRequestHandler.SendFirstRequest(123);
+
+            ClassicAssert.AreEqual(true, created);
+            ClassicAssert.AreEqual(true, localApiConnection.AddedExtTicketSystem?.Contains("\"Name\":\"CheckPoint"), localApiConnection.AddedExtTicketSystem ?? "");
+            ClassicAssert.AreEqual(true, localApiConnection.AddedExtTicketSystem?.Contains("\"TypeId\":9"), localApiConnection.AddedExtTicketSystem ?? "");
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("extTaskType = group_create"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("extRequestState = ExtReqInitialized"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("ARxx12345-100"));
+        }
+
+        [Test]
+        public async Task HandleStateChangeAddsCheckPointInstallTargetsFromImplementationTasks()
+        {
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ExternalRequestWaitCycles = 3,
+                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { checkPointTicketSystem, ticketSystem }),
+                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
+                {
+                    new()
+                    {
+                        Id = 1,
+                        Name = "Checkpoint",
+                        Enabled = true,
+                        SelectedChanges = new()
+                        {
+                            [ManagementFwConfigChangeCategories.ObjectChanges] = ticketSystem.Id.ToString(),
+                            [ManagementFwConfigChangeCategories.RuleChanges] = checkPointTicketSystem.Id.ToString()
+                        }
+                    }
+                }),
+                ReqPriorities = reqPrios,
+                ModNamingConvention = namingConvention,
+                ModRolloutBundleTasks = true
+            };
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+            ExternalRequest finishedRequest = new()
+            {
+                Id = 42,
+                TicketId = 123,
+                TaskNumber = 3,
+                ExtRequestState = ExtStates.ExtReqDone.ToString()
+            };
+
+            using ExternalRequestHandler externalRequestHandler = new(localUserConfig, localApiConnection, null);
+            await externalRequestHandler.HandleStateChange(finishedRequest);
+
+            ClassicAssert.AreEqual(true, localApiConnection.AddedExtTicketSystem?.Contains("\"Name\":\"CheckPoint"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddExtRequestVars?.Contains("taskNumber = 4"));
+            ClassicAssert.AreEqual(true, localApiConnection.AddedExtQueryVariables?.Contains(ExternalVarKeys.CheckPointInstallPolicyTargets));
+            ClassicAssert.AreEqual(true, localApiConnection.AddedExtQueryVariables?.Contains("TestGw1"));
+            ClassicAssert.AreEqual(false, localApiConnection.AddedExtQueryVariables?.Contains("TestGw2"));
         }
 
         [Test]

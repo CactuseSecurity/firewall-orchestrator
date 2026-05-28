@@ -176,20 +176,16 @@ namespace FWO.Middleware.Server
 
         private ExternalTicket ConstructTicket(ExternalRequest request)
         {
-            ExternalTicket ticket;
+            if (ExtTicketSystem == null)
+            {
+                throw new InvalidOperationException("No external ticket system loaded.");
+            }
 
-            if (ExtTicketSystem?.TypeId == BuiltInExternalTicketSystemTypes.TufinSecureChangeId)
-            {
-                ticket = new SCTicket(ExtTicketSystem, InjScClient)
-                {
-                    TicketSystem = ExtTicketSystem,
-                    TicketText = request.ExtRequestContent
-                };
-            }
-            else
-            {
-                throw new NotSupportedException("Ticket system not supported yet");
-            }
+            ExternalTicket ticket = ExternalTicketFactory.Create(ExtTicketSystem, InjScClient);     //ToDo warum nochmal actSystem und text zuweisen?
+
+            ticket.TicketSystem = ExtTicketSystem;
+            ticket.TicketText = request.ExtRequestContent;
+
             return ticket;
         }
 
@@ -255,18 +251,18 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                ExternalTicket ticket;
-                if (ExtTicketSystem?.TypeId == BuiltInExternalTicketSystemTypes.TufinSecureChangeId)
+                if (ExtTicketSystem == null)
                 {
-                    ticket = new SCTicket(ExtTicketSystem, InjScClient)
-                    {
-                        TicketId = request.ExtTicketId
-                    };
+                    throw new InvalidOperationException("No external ticket system loaded.");
                 }
-                else
-                {
-                    throw new NotSupportedException("Ticket system not supported yet");
-                }
+
+                ExternalTicket ticket = ExternalTicketFactory.Create(
+                    ExtTicketSystem,
+                    InjScClient
+                );
+
+                ticket.TicketId = request.ExtTicketId;
+
                 return await ticket.GetNewState(request.ExtRequestState);
             }
             catch (Exception exc)

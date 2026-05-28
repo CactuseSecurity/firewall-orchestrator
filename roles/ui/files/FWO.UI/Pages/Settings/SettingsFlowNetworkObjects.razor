@@ -168,7 +168,9 @@ else
     </Column>
     <Column TableItem="FlowNwObject" Title="@(userConfig.GetText("ip"))" Field="@(nwObject => nwObject.IpStart)" Sortable="true" Filterable="true" Context="nwObject">
         <Template>
-            @DisplayBase.DisplayIp(nwObject.IpStart ?? "", nwObject.IpEnd ?? "")
+            @(string.IsNullOrWhiteSpace(nwObject.IpStart) && string.IsNullOrWhiteSpace(nwObject.IpEnd)
+                ? "-"
+                : DisplayBase.DisplayIp(nwObject.IpStart ?? "", nwObject.IpEnd ?? ""))
         </Template>
     </Column>
     <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -912,12 +914,14 @@ else
             workInProgress = true;
             StateHasChanged();
 
-            foreach (FlowNwObject nwObject in targets.Where(nwObject => nwObject.ShowInRequestModule != showInRequestModule))
+            foreach (FlowNwObject nwObject in targets.Where(nwObject =>
+                         nwObject.ShowInRequestModule != showInRequestModule &&
+                         !string.IsNullOrWhiteSpace(nwObject.Name)))
             {
                 FlowNwObject updatedObject = await apiConnection.SendQueryAsync<FlowNwObject>(FlowMutations.updateFlowNwObject, new
                 {
                     nwobjId = nwObject.Id,
-                    name = nwObject.Name ?? "",
+                    name = nwObject.Name!.Trim(),
                     showInRequestModule
                 });
 

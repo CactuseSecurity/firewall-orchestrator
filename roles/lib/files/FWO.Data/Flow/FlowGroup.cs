@@ -9,7 +9,7 @@ namespace FWO.Data.Flow
         public string Name { get; set; } = "";
 
         [JsonProperty("state"), JsonPropertyName("state")]
-        public string State { get; set; } = "requested";
+        public string State { get; set; } = FlowState.Requested;
 
         [JsonProperty("removed_date"), JsonPropertyName("removed_date")]
         public DateTime? RemovedDate { get; set; }

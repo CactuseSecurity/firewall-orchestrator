@@ -419,3 +419,6 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 
 # 9.1.1 - 21.05.2026 DEVELOP
 - Workflow: add configurable execution order for actions assigned to states.
+
+# 9.1.3 - 27.05.2026 DEVELOP
+- add optional workflow flow merging for Flow DB creation

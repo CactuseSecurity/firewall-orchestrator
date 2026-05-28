@@ -37,6 +37,7 @@ namespace FWO.Test
             {
                 Id = 10,
                 TicketId = 20,
+                FlowAccessId = 30,
                 OnManagement = new Management { Id = 3 }
             };
             original.Elements.Add(new WfReqElement { Id = 1 });
@@ -52,6 +53,7 @@ namespace FWO.Test
 
             Assert.That(copy.Id, Is.EqualTo(original.Id));
             Assert.That(copy.TicketId, Is.EqualTo(original.TicketId));
+            Assert.That(copy.FlowAccessId, Is.EqualTo(original.FlowAccessId));
             Assert.That(copy.OnManagement, Is.EqualTo(original.OnManagement));
             Assert.That(copy.Elements, Is.EqualTo(original.Elements));
             Assert.That(copy.ImplementationTasks, Is.EqualTo(original.ImplementationTasks));

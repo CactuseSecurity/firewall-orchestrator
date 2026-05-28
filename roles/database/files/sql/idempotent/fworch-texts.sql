@@ -105,6 +105,14 @@ INSERT INTO txt VALUES ('SendEmail',	        'German', 	'Email verschicken');
 INSERT INTO txt VALUES ('SendEmail',		    'English', 	'Send email');
 INSERT INTO txt VALUES ('WfAction',	            'German', 	'Workflow-Aktion');
 INSERT INTO txt VALUES ('WfAction',		        'English', 	'Workflow action');
+INSERT INTO txt VALUES ('CreateFlow',	        'German', 	'Flow erzeugen');
+INSERT INTO txt VALUES ('CreateFlow',		    'English', 	'Create flow');
+INSERT INTO txt VALUES ('BundleTasks',	        'German', 	'Aufgaben bündeln');
+INSERT INTO txt VALUES ('BundleTasks',		    'English', 	'Bundle tasks');
+INSERT INTO txt VALUES ('bundle_type',	        'German', 	'Bündelungstyp');
+INSERT INTO txt VALUES ('bundle_type',		    'English', 	'Bundle type');
+INSERT INTO txt VALUES ('TwoOutOfThree',	    'German', 	'2 von 3');
+INSERT INTO txt VALUES ('TwoOutOfThree',		'English', 	'2 out of 3');
 INSERT INTO txt VALUES ('UpdateConnectionOwner','German', 	'Verbindungseigent&uuml;mer &auml;ndern');
 INSERT INTO txt VALUES ('UpdateConnectionOwner','English', 	'Update Connection Owner');
 INSERT INTO txt VALUES ('UpdateConnectionRelease','German', 'Verbindung ver&ouml;ffentlichen');
@@ -1064,6 +1072,8 @@ INSERT INTO txt VALUES ('save_task',            'German', 	'Aufgabe speichern');
 INSERT INTO txt VALUES ('save_task',            'English', 	'Save task');
 INSERT INTO txt VALUES ('delete_task',          'German', 	'Aufgabe l&ouml;schen');
 INSERT INTO txt VALUES ('delete_task',          'English', 	'Delete task');
+INSERT INTO txt VALUES ('update_task',          'German', 	'Aufgabe &auml;ndern');
+INSERT INTO txt VALUES ('update_task',          'English', 	'Update task');
 INSERT INTO txt VALUES ('elements',             'German', 	'Elemente');
 INSERT INTO txt VALUES ('elements',             'English', 	'Elements');
 INSERT INTO txt VALUES ('add_element',          'German', 	'Element hinzuf&uuml;gen');
@@ -1226,6 +1236,10 @@ INSERT INTO txt VALUES ('ifCompliantState',     'German',   'Falls konform Statu
 INSERT INTO txt VALUES ('ifCompliantState',     'English',  'If compliant state');
 INSERT INTO txt VALUES ('ifNotCompliantState',  'German',   'Falls nicht konform Status');
 INSERT INTO txt VALUES ('ifNotCompliantState',  'English',  'If not compliant state');
+INSERT INTO txt VALUES ('successState',         'German',   'Status bei Erfolg');
+INSERT INTO txt VALUES ('successState',         'English',  'Success state');
+INSERT INTO txt VALUES ('errorState',           'German',   'Status bei Fehler');
+INSERT INTO txt VALUES ('errorState',           'English',  'Error state');
 INSERT INTO txt VALUES ('checkResultLabel',     'German',   'Pr&uuml;fergebnis-Label');
 INSERT INTO txt VALUES ('checkResultLabel',     'English',  'Check result label');
 INSERT INTO txt VALUES ('PolicyCheck',          'German',   'Policy-Pr&uuml;fung');
@@ -2556,6 +2570,8 @@ INSERT INTO txt VALUES ('reqReducedView',       'German', 	'Eingeschr&auml;nkte 
 INSERT INTO txt VALUES ('reqReducedView',       'English', 	'Reduced view');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'German', 	'Objektsuche erlauben');
 INSERT INTO txt VALUES ('reqAllowObjectSearch', 'English', 	'Allow object search');
+INSERT INTO txt VALUES ('reqUseFlowDb',         'German', 	'Flow DB verwenden');
+INSERT INTO txt VALUES ('reqUseFlowDb',         'English', 	'Use Flow DB');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','English','Allow manual owner administration');
 INSERT INTO txt VALUES ('ruleOwnershipMode',    'German',   'Regel-Eigent&uuml;merschaftsmodus');
@@ -2984,6 +3000,12 @@ INSERT INTO txt VALUES ('confirm_sent_mail',    'German',   'Versand per UI-Meld
 INSERT INTO txt VALUES ('confirm_sent_mail',    'English',  'Confirm sent email via UI message');
 INSERT INTO txt VALUES ('confirm_modelling_update', 'German',   'Aktualisierung per UI-Meldung best&auml;tigen');
 INSERT INTO txt VALUES ('confirm_modelling_update', 'English',  'Confirm modelling update via UI message');
+INSERT INTO txt VALUES ('confirm_flow_creation',    'German',   'Flow-Erzeugung per UI-Meldung best&auml;tigen');
+INSERT INTO txt VALUES ('confirm_flow_creation',    'English',  'Confirm flow creation via UI message');
+INSERT INTO txt VALUES ('flow_creation_succeeded',  'German',   'Flow-DB-Eintr&auml;ge wurden erzeugt.');
+INSERT INTO txt VALUES ('flow_creation_succeeded',  'English',  'Flow DB entries were created.');
+INSERT INTO txt VALUES ('flow_creation_failed',     'German',   'Flow-DB-Eintr&auml;ge konnten nicht erzeugt werden. Pr&uuml;fen Sie das Workflow-Log auf nicht aufl&ouml;sbare Objekte oder Dienste.');
+INSERT INTO txt VALUES ('flow_creation_failed',     'English',  'Flow DB entries could not be created. Check the workflow log for unresolved objects or services.');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'German',   ' Modellierungsobjekte aktualisiert');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'English',  ' modelling objects updated');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
@@ -6103,8 +6125,6 @@ INSERT INTO txt VALUES ('H5529', 'German',  'Modellierung aktualisieren: Hier ka
 INSERT INTO txt VALUES ('H5529', 'English', 'Update Modelling: Select one of the integration states defined in the modelling settings. The value "None" means that no modelling state is set.');
 INSERT INTO txt VALUES ('H5530', 'German',  'Versand per UI-Meldung best&auml;tigen: Nach erfolgreichem Versand zeigt die Aktion eine UI-Meldung mit der Anzahl versendeter Emails an.');
 INSERT INTO txt VALUES ('H5530', 'English', 'Confirm sent email via UI message: After successful sending, the action shows a UI message with the number of sent emails.');
-INSERT INTO txt VALUES ('H5534', 'German',  'Aktualisierung per UI-Meldung best&auml;tigen: Nach erfolgreicher Aktualisierung zeigt die Aktion eine UI-Meldung mit der Anzahl aktualisierter Modellierungsobjekte an.');
-INSERT INTO txt VALUES ('H5534', 'English', 'Confirm modelling update via UI message: After a successful update, the action shows a UI message with the number of updated modelling objects.');
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nnen beliebig viele neue Status angelegt bzw. vorhandene Status umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Status sind weitgehend frei w&auml;hlbar.
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.
     Da intern ausschliesslich die Nummern verarbeitet werden, sind auch doppelt vergebene Status-Namen (technisch) m&ouml;glich.
@@ -6117,6 +6137,12 @@ INSERT INTO txt VALUES ('H5531', 'English', 'An arbitrary number of states can b
 ');
 INSERT INTO txt VALUES ('H5532', 'German',  'Externe Status: Um interne Status &uuml;ber Aktionen ansprechen zu k&ouml;nnen, m&uuml;ssen sie vordefinierten, nach aussen sichtbaren Status zugeordnet werden.');
 INSERT INTO txt VALUES ('H5532', 'English', 'External States: To be used by actions, internal states have to be assigned to predefined externally visible states.');
+INSERT INTO txt VALUES ('H5534', 'German',  'Aktualisierung per UI-Meldung best&auml;tigen: Nach erfolgreicher Aktualisierung zeigt die Aktion eine UI-Meldung mit der Anzahl aktualisierter Modellierungsobjekte an.');
+INSERT INTO txt VALUES ('H5534', 'English', 'Confirm modelling update via UI message: After a successful update, the action shows a UI message with the number of updated modelling objects.');
+INSERT INTO txt VALUES ('H5535', 'German',  'Aufgaben b&uuml;ndeln: Der Typ "2 von 3" vergleicht die drei Teile eines Zugriffs-Auftrags: Quellen, Ziele und Dienste. Stimmen zwei dieser drei Teile bei mehreren fachlichen Auftr&auml;gen &uuml;berein, erhalten diese Auftr&auml;ge dieselbe B&uuml;ndel-ID in den AdditionalInfo und k&ouml;nnen anschliessend gemeinsam verarbeitet werden.');
+INSERT INTO txt VALUES ('H5535', 'English', 'Bundle tasks: The type "2 out of 3" compares the three parts of an access request task: sources, destinations, and services. If two of these three parts match across several request tasks, the tasks receive the same bundle id in AdditionalInfo and can be processed together afterwards.');
+INSERT INTO txt VALUES ('H5536', 'German',  'Flow-Erzeugung per UI-Meldung best&auml;tigen: Nach der Flow-Erzeugung zeigt die Aktion eine UI-Meldung an. Bei Fehlern verweist die Meldung auf das Workflow-Log mit Details zu nicht aufl&ouml;sbaren Objekten oder Diensten.');
+INSERT INTO txt VALUES ('H5536', 'English', 'Confirm flow creation via UI message: After flow creation, the action shows a UI message. For failures, the message points to the workflow log with details about unresolved objects or services.');
 INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Status pro Phase und Tasktyp festgelegt.
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
     In der Installation sind diese Matrizen bereits vorbelegt, sie k&ouml;nnen aber nahezu beliebig &uuml;berschrieben werden.
@@ -6185,6 +6211,8 @@ INSERT INTO txt VALUES ('H5563', 'English', 'Priorities and Deadlines: The 5 ini
 ');
 INSERT INTO txt VALUES ('H5564', 'German',  'Objektsuche erlauben: Beim Definieren der Ip-Adressen oder Dienste wird das Durchsuchen und Ausw&auml;hlen bereits vorhandener Objekte unterst&uuml;tzt (noch nicht implementiert).');
 INSERT INTO txt VALUES ('H5564', 'English', 'Allow object search: During definition of IP addresses or services the search of already existing objects is supported (not implemented yet).');
+INSERT INTO txt VALUES ('H5564a', 'German', 'Flow DB verwenden: Aktiviert die Nutzung der Flow DB im Workflow-Modul, sobald die zugeh&ouml;rige Funktionalit&auml;t implementiert ist.');
+INSERT INTO txt VALUES ('H5564a', 'English','Use Flow DB: Enables use of the Flow DB in the workflow module once the corresponding functionality is implemented.');
 INSERT INTO txt VALUES ('H5565', 'German',  'Manuelle Eigent&uuml;merverwaltung erlauben: Es wird das manuelle Anlegen und Verwalten von Eigent&uuml;mern durch den Administrator gestattet.');
 INSERT INTO txt VALUES ('H5565', 'English', 'Allow manual owner administration: The manual creation and administration of owners can be permitted.');
 INSERT INTO txt VALUES ('H5566', 'German',  'Autom. Erzeugen von Implementierungs-Auftr&auml;gen: Ist die Planungs-Phase nicht aktiviert, so m&uuml;ssen aus den vorhandenen fachlichen Auftr&auml;gen automatisch jeweils ein oder mehrere Implementierungs-Auftr&auml;ge erzeugt werden.
@@ -7468,6 +7496,8 @@ INSERT INTO txt VALUES ('H8520', 'German',  'Verbindung darstellen: Darstellen e
 INSERT INTO txt VALUES ('H8520', 'English', 'Display Connection: Display a connection/interface of the Modelling module in workflow context (read only).');
 INSERT INTO txt VALUES ('H8521', 'German',  'Schnittstelle ablehnen: Ablehnen einer beantragten Schnittstelle im Modellierungsmodul.');
 INSERT INTO txt VALUES ('H8521', 'English', 'Reject Interface: Reject a requested interface of the Modelling module.');
+INSERT INTO txt VALUES ('H8522', 'German',  'Aufgaben b&uuml;ndeln: Diese Aktion gruppiert fachliche Auftr&auml;ge eines Tickets f&uuml;r eine sp&auml;tere gemeinsame Verarbeitung. Beim Typ "2 von 3" werden Zugriffs-Auftr&auml;ge geb&uuml;ndelt, wenn zwei der drei Bereiche Quellen, Ziele und Dienste identisch sind.');
+INSERT INTO txt VALUES ('H8522', 'English', 'Bundle tasks: This action groups request tasks of a ticket for later joint processing. With type "2 out of 3", access request tasks are bundled if two of the three areas sources, destinations, and services are identical.');
 INSERT INTO txt VALUES ('H8601', 'German',  'Zum Aufsetzen eines Workflows empfiehlt es sich, in folgenden Schritten vorzugehen:
     <ul>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Auswahl der zu verwendenden Tasktypen</li>

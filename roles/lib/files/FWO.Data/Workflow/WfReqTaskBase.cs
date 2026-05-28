@@ -22,6 +22,7 @@ namespace FWO.Data.Workflow
         public const string ExtIcketId = "ExtIcketId";
         public const string AppRoleId = "AppRoleId";
         public const string SvcGrpId = "SvcGrpId";
+        public const string FlowBundleId = "FlowBundleId";
     }
 
     public class WfReqTaskBase : WfTaskBase
@@ -153,6 +154,16 @@ namespace FWO.Data.Workflow
                 }
             }
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
+        }
+
+        public void RemoveAddInfo(string key)
+        {
+            Dictionary<string, string>? addInfo = GetAddInfos();
+            if (addInfo == null || !addInfo.Remove(key))
+            {
+                return;
+            }
+            AdditionalInfo = addInfo.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(addInfo) : null;
         }
 
         private Dictionary<string, string>? GetAddInfos()

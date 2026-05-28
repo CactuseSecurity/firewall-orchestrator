@@ -6,12 +6,19 @@ namespace FWO.Api.Client.Queries
 {
     public class Queries
     {
-        protected static readonly string QueryPath = GlobalConst.kFwoBaseDir + "/fwo-api-calls/";
+        protected static string QueryPath => Path.Combine(GetQueryBasePath(), "fwo-api-calls") + Path.DirectorySeparatorChar;
 
         protected static string GetQueryText(string relativeQueryFileName)
         {
             return Compact(" " + File.ReadAllText(QueryPath + relativeQueryFileName) + " ");
         }
+
+        private static string GetQueryBasePath()
+        {
+            string? queryBasePath = Environment.GetEnvironmentVariable("FWO_BASE_DIR");
+            return string.IsNullOrEmpty(queryBasePath) ? GlobalConst.kFwoBaseDir : queryBasePath;
+        }
+
         public static string Compact(string raw_query)
         {
             // Split the input into lines

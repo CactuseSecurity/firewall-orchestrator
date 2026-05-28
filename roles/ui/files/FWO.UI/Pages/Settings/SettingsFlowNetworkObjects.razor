@@ -532,7 +532,9 @@ else
                 {
                     objId = candidate.Id,
                     flowNwobjId = SelectedDuplicateGroup.FlowNwObjectId,
-                    activeOnMgm = candidate.Id == SelectedDuplicateObject.Id
+                    activeOnMgm = candidate.FlowNetworkGroupId.HasValue
+                        ? candidate.FlowActive
+                        : candidate.Id == SelectedDuplicateObject.Id
                 });
                 UpdateCustomObjectInCatalog(updatedObject);
             }

@@ -18,5 +18,16 @@ mutation updateFlowNwObject(
     state
     removed_date
     show_in_request_module
+    objects(order_by: { obj_name: asc }) {
+      obj_id
+      obj_name
+      obj_ip
+      obj_ip_end
+      obj_uid
+      active
+      removed
+      flow_nwobj_id
+      flow_active
+    }
   }
 }

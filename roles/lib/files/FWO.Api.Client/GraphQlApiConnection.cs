@@ -382,7 +382,7 @@ namespace FWO.Api.Client
 
         private static bool TryGetVariableValue(object variables, string variableName, out object? value)
         {
-            value = null;
+            value = null; 
 
             if (variables is IDictionary<string, object?> nullableDict && nullableDict.TryGetValue(variableName, out object? nullableValue))
             {

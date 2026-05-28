@@ -7,6 +7,14 @@ We provide a customizing script `get_owner_data_from_normalized_csvs.py` that re
 
 ### Preparation
 
+#### Installation
+
+Make sure to install the required Python packages from the top-level `requirements.txt` (GitPython is required to fetch the CSV files from Git):
+
+```bash
+pip install -r requirements.txt
+```
+
 #### Files
 
 Copy the configuration file `customizingConfig.json` from the `$FWORCH/scripts/customizing/modelling` directory to the `/etc/fworch/secrets` directory and ensure only the fworch user can read it (`chmod 600`).

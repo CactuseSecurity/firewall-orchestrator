@@ -209,4 +209,12 @@ namespace FWO.Basics
         public const string Reject = "reject";
         public const string Drop = "drop";
     }
+
+    public enum ChunkMergeMode
+    {
+        None = 0,
+        MutationAffectedRowsAndReturning = 1,
+        TopLevelArrayConcat = 2,
+        MutationAffectedRowsOnly = 3
+    }
 }

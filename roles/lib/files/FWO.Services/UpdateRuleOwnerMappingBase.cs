@@ -225,8 +225,6 @@ namespace FWO.Services
             {
                 if (!ruleOwnersToSetRemoved.Any()) return;
 
-
-
                 var listRuleOwnersToRemove = ruleOwnersToSetRemoved
                 .Select(r => new
                 {
@@ -246,7 +244,9 @@ namespace FWO.Services
                     {
                         Enabled = true,
                         ChunkVariableName = "objects",
-                        ChunkSize = RuleOwnerRemovalBatchSize
+                        //ChunkSize = RuleOwnerRemovalBatchSize,
+                        ChunkSize = 2,
+                        MergeMode = ChunkMergeMode.MutationAffectedRowsOnly
                     });
 
             }
@@ -274,7 +274,9 @@ namespace FWO.Services
                 {
                     Enabled = true,
                     ChunkVariableName = "objects",
-                    ChunkSize = RuleOwnerInsertBatchSize
+                    //ChunkSize = RuleOwnerInsertBatchSize,
+                    ChunkSize = 2,
+                    MergeMode = ChunkMergeMode.MutationAffectedRowsAndReturning
                 });
 
                 Log.WriteInfo(LogMessageTitle, $"{ruleOwners.Count} rule owners inserted successfully.");

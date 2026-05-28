@@ -7,6 +7,7 @@ using GraphQL.Client.Abstractions;
 using Newtonsoft.Json.Linq;
 using FWO.Logging;
 using System.Security.Claims;
+using FWO.Basics;
 
 namespace FWO.Api.Client
 {
@@ -197,7 +198,6 @@ namespace FWO.Api.Client
                     return await SendChunkedQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
                 }
 
-
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
@@ -306,10 +306,17 @@ namespace FWO.Api.Client
                 throw new ArgumentOutOfRangeException(nameof(chunkingOptions), "ChunkSize must be greater than zero.");
             }
 
-            List<object?> items = ExtractListFromVariables(variables, chunkingOptions.ChunkVariableName);
+            List<object?> items = ExtractChunkItems(variables, chunkingOptions.ChunkVariableName);
             if (items.Count == 0)
             {
                 return await SendQueryAsync<QueryResponseType>(query, variables, operationName, null);
+            }
+
+            int chunkCount = (int)Math.Ceiling((double)items.Count / chunkingOptions.ChunkSize);
+            if (chunkCount > 1 && chunkingOptions.MergeMode == ChunkMergeMode.None)
+            {
+                throw new InvalidOperationException(
+                    $"Chunking for variable '{chunkingOptions.ChunkVariableName}' produced {chunkCount} chunks, but MergeMode is None.");
             }
 
             JObject? mergedResponse = null;
@@ -338,7 +345,7 @@ namespace FWO.Api.Client
                 }
 
                 JObject chunkData = (JObject)chunkResponse.Data;
-                mergedResponse = MergeChunkedResponse(mergedResponse, chunkData);
+                mergedResponse = MergeChunkedResponse(mergedResponse, chunkData, chunkingOptions);
             }
 
             if (mergedResponse == null)
@@ -346,7 +353,7 @@ namespace FWO.Api.Client
                 throw new InvalidOperationException("Chunked query produced no response.");
             }
 
-            return ConvertMergedResponse<QueryResponseType>(mergedResponse);
+            return ConvertChunkResponse<QueryResponseType>(mergedResponse);
         }
 
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
@@ -367,18 +374,26 @@ namespace FWO.Api.Client
             }
         }
 
-        private static List<object?> ExtractListFromVariables(object? variables, string propertyName)
+        private static List<object?> ExtractChunkItems(object variables, string variableName)
         {
-            if (variables == null)
+            if (!TryGetVariableValue(variables, variableName, out object? value))
             {
-                throw new ArgumentNullException(nameof(variables), "Chunking requires variables.");
+                throw new InvalidOperationException($"Chunk variable '{variableName}' was not found in variables.");
             }
 
-            object? value = variables.GetType().GetProperty(propertyName)?.GetValue(variables);
-
-            if (value is string || value is not System.Collections.IEnumerable enumerable)
+            if (value == null)
             {
-                throw new InvalidOperationException($"Chunk variable '{propertyName}' is not an enumerable.");
+                throw new InvalidOperationException($"Chunk variable '{variableName}' is null.");
+            }
+
+            if (value is string)
+            {
+                throw new InvalidOperationException($"Chunk variable '{variableName}' must be a non-string enumerable.");
+            }
+
+            if (value is not System.Collections.IEnumerable enumerable)
+            {
+                throw new InvalidOperationException($"Chunk variable '{variableName}' must be a non-string enumerable.");
             }
 
             List<object?> items = [];
@@ -390,9 +405,71 @@ namespace FWO.Api.Client
             return items;
         }
 
+        private static bool TryGetVariableValue(object variables, string variableName, out object? value)
+        {
+            value = null;
+
+            if (variables is IDictionary<string, object?> nullableDict && nullableDict.TryGetValue(variableName, out object? nullableValue))
+            {
+                value = nullableValue;
+                return true;
+            }
+
+            if (variables is IDictionary<string, object> dict && dict.TryGetValue(variableName, out object? dictValue))
+            {
+                value = dictValue;
+                return true;
+            }
+
+            if (variables is System.Collections.IDictionary nonGenericDict && nonGenericDict.Contains(variableName))
+            {
+                value = nonGenericDict[variableName];
+                return true;
+            }
+
+            var property = variables.GetType().GetProperty(variableName);
+            if (property == null)
+            {
+                return false;
+            }
+
+            value = property.GetValue(variables);
+            return true;
+        }
+
         private static object ReplaceChunkVariable(object variables, string propertyName, List<object?> batch)
         {
             Dictionary<string, object?> values = new(StringComparer.Ordinal);
+
+            if (variables is IDictionary<string, object?> nullableDict)
+            {
+                foreach (var entry in nullableDict)
+                {
+                    values[entry.Key] = entry.Key == propertyName ? batch : entry.Value;
+                }
+
+                if (!values.ContainsKey(propertyName))
+                {
+                    throw new InvalidOperationException($"Chunk variable '{propertyName}' was not found in variables.");
+                }
+
+                return values;
+            }
+
+            if (variables is IDictionary<string, object> dict)
+            {
+                foreach (var entry in dict)
+                {
+                    values[entry.Key] = entry.Key == propertyName ? batch : entry.Value;
+                }
+
+                if (!values.ContainsKey(propertyName))
+                {
+                    throw new InvalidOperationException($"Chunk variable '{propertyName}' was not found in variables.");
+                }
+
+                return values;
+            }
 
             foreach (var property in variables.GetType().GetProperties())
             {
@@ -401,45 +478,165 @@ namespace FWO.Api.Client
                     : property.GetValue(variables);
             }
 
+            if (!values.ContainsKey(propertyName))
+            {
+                throw new InvalidOperationException($"Chunk variable '{propertyName}' was not found in variables.");
+            }
+
             return values;
         }
 
-        private static JObject MergeChunkedResponse(JObject? mergedResponse, JObject chunkData)
+        private static JObject MergeChunkedResponse(JObject? mergedResponse, JObject chunkData, QueryChunkingOptions chunkingOptions)
         {
             if (mergedResponse == null)
             {
-                return chunkData;
+                return (JObject)chunkData.DeepClone();
             }
 
-            JProperty mergedProp = (JProperty)(mergedResponse.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {mergedResponse}"));
-            JProperty chunkProp = (JProperty)(chunkData.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {chunkData}"));
+            JProperty mergedProp = GetSingleTopLevelProperty(mergedResponse, "merged response");
+            JProperty chunkProp = GetSingleTopLevelProperty(chunkData, "chunk response");
+            ValidateSingleTopLevelFieldMatch(mergedProp, chunkProp);
 
-            if (mergedProp.Value is JObject mergedObject && chunkProp.Value is JObject chunkObject)
-            {
-                if (mergedObject["affected_rows"] != null && chunkObject["affected_rows"] != null)
-                {
-                    mergedObject["affected_rows"] = mergedObject["affected_rows"]!.Value<long>() + chunkObject["affected_rows"]!.Value<long>();
-                }
-
-                if (mergedObject["returning"] is JArray mergedReturning && chunkObject["returning"] is JArray chunkReturning)
-                {
-                    foreach (JToken item in chunkReturning)
-                    {
-                        mergedReturning.Add(item.DeepClone());
-                    }
-                }
-            }
-
-            return mergedResponse;
+            return MergeSingleTopLevelField(mergedProp, chunkProp, chunkingOptions.MergeMode);
         }
 
-        private static QueryResponseType ConvertMergedResponse<QueryResponseType>(JObject mergedResponse)
+        private static JProperty GetSingleTopLevelProperty(JObject responseData, string context)
         {
-            JProperty prop = (JProperty)(mergedResponse.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {mergedResponse}"));
+            List<JProperty> properties = responseData.Properties().ToList();
+            if (properties.Count != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Chunked {context} must contain exactly one top-level field. Json: {responseData}");
+            }
+
+            return properties[0];
+        }
+
+        private static void ValidateSingleTopLevelFieldMatch(JProperty mergedProp, JProperty chunkProp)
+        {
+            if (!string.Equals(mergedProp.Name, chunkProp.Name, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Chunked responses returned different top-level fields: '{mergedProp.Name}' and '{chunkProp.Name}'.");
+            }
+        }
+
+        private static JObject MergeSingleTopLevelField(JProperty mergedProp, JProperty chunkProp, ChunkMergeMode mergeMode)
+        {
+            return mergeMode switch
+            {
+                ChunkMergeMode.MutationAffectedRowsOnly => new JObject(
+                    new JProperty(
+                        mergedProp.Name,
+                        MergeMutationAffectedRowsOnly(
+                            mergedProp.Value as JObject
+                                ?? throw new InvalidOperationException($"Field '{mergedProp.Name}' must be an object."),
+                            chunkProp.Value as JObject
+                                ?? throw new InvalidOperationException($"Field '{chunkProp.Name}' must be an object."),
+                            mergedProp.Name))),
+
+                ChunkMergeMode.TopLevelArrayConcat => new JObject(
+                    new JProperty(
+                        mergedProp.Name,
+                        MergeTopLevelArrays(mergedProp.Value, chunkProp.Value, mergedProp.Name))),
+
+                ChunkMergeMode.MutationAffectedRowsAndReturning => new JObject(
+                    new JProperty(
+                        mergedProp.Name,
+                        MergeMutationAffectedRowsAndReturning(
+                            mergedProp.Value as JObject
+                                ?? throw new InvalidOperationException($"Field '{mergedProp.Name}' must be an object."),
+                            chunkProp.Value as JObject
+                                ?? throw new InvalidOperationException($"Field '{chunkProp.Name}' must be an object."),
+                            mergedProp.Name))),
+
+                _ => throw new InvalidOperationException($"Unsupported chunk merge mode '{mergeMode}'.")
+            };
+        }
+
+        private static JObject MergeMutationAffectedRowsOnly(JObject mergedObject, JObject chunkObject, string fieldName)
+        {
+            JToken? mergedAffectedRows = mergedObject["affected_rows"];
+            JToken? chunkAffectedRows = chunkObject["affected_rows"];
+
+            if (mergedAffectedRows == null || chunkAffectedRows == null)
+            {
+                throw new InvalidOperationException(
+                    $"Chunk merge mode MutationAffectedRowsOnly requires field '{fieldName}' to contain 'affected_rows'.");
+            }
+
+            return new JObject
+            {
+                ["affected_rows"] = mergedAffectedRows.Value<long>() + chunkAffectedRows.Value<long>()
+            };
+        }
+
+        private static JArray MergeTopLevelArrays(JToken mergedToken, JToken chunkToken, string fieldName)
+        {
+            if (mergedToken is not JArray mergedArray || chunkToken is not JArray chunkArray)
+            {
+                throw new InvalidOperationException(
+                    $"Chunk merge mode TopLevelArrayConcat requires top-level field '{fieldName}' to be an array in every chunk.");
+            }
+
+            JArray result = [];
+            foreach (JToken item in mergedArray)
+            {
+                result.Add(item.DeepClone());
+            }
+
+            foreach (JToken item in chunkArray)
+            {
+                result.Add(item.DeepClone());
+            }
+
+            return result;
+        }
+
+        private static JObject MergeMutationAffectedRowsAndReturning(JObject mergedObject, JObject chunkObject, string fieldName)
+        {
+            JToken? mergedAffectedRows = mergedObject["affected_rows"];
+            JToken? chunkAffectedRows = chunkObject["affected_rows"];
+            JToken? mergedReturning = mergedObject["returning"];
+            JToken? chunkReturning = chunkObject["returning"];
+
+            if (mergedAffectedRows == null || chunkAffectedRows == null || mergedReturning == null || chunkReturning == null)
+            {
+                throw new InvalidOperationException(
+                    $"Chunk merge mode MutationAffectedRowsAndReturning requires field '{fieldName}' to contain 'affected_rows' and 'returning'.");
+            }
+
+            if (mergedReturning is not JArray mergedReturningArray || chunkReturning is not JArray chunkReturningArray)
+            {
+                throw new InvalidOperationException(
+                    $"Chunk merge mode MutationAffectedRowsAndReturning requires field '{fieldName}.returning' to be an array.");
+            }
+
+            JArray mergedReturningResult = [];
+            foreach (JToken item in mergedReturningArray)
+            {
+                mergedReturningResult.Add(item.DeepClone());
+            }
+
+            foreach (JToken item in chunkReturningArray)
+            {
+                mergedReturningResult.Add(item.DeepClone());
+            }
+
+            return new JObject
+            {
+                ["affected_rows"] = mergedAffectedRows.Value<long>() + chunkAffectedRows.Value<long>(),
+                ["returning"] = mergedReturningResult
+            };
+        }
+
+        private static QueryResponseType ConvertChunkResponse<QueryResponseType>(JObject mergedResponse)
+        {
+            JProperty prop = GetSingleTopLevelProperty(mergedResponse, "merged response");
             JToken result = prop.Value;
 
             QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
-                throw new InvalidOperationException($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {mergedResponse}");
+                throw new InvalidOperationException($"Could not convert merged chunk response to {typeof(QueryResponseType)}.\nJson: {mergedResponse}");
 
             return returnValue;
         }

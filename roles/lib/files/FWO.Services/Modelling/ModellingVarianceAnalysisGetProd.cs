@@ -223,15 +223,15 @@ namespace FWO.Services.Modelling
             List<NetworkObject>? objByMgt = await GetObjects(mgtId, [1, 3, 12]);
             if (objByMgt != null)
             {
-                if (!allExistingAppServersHashes.TryGetValue(mgtId, out Dictionary<int, long>? appServerHashes))
+                if (!allExistingAppServers.TryGetValue(mgtId, out Dictionary<ModellingAppServer, long>? appServers))
                 {
-                    appServerHashes = [];
-                    allExistingAppServersHashes.Add(mgtId, appServerHashes);
+                    appServers = new(appServerComparer);
+                    allExistingAppServers.Add(mgtId, appServers);
                 }
                 foreach (NetworkObject obj in objByMgt)
                 {
                     ModellingAppServer appServer = new(obj);
-                    appServerHashes.TryAdd(appServerComparer.GetHashCode(appServer), appServer.Id);
+                    appServers.TryAdd(appServer, appServer.Id);
                     aSCount++;
                 }
             }

@@ -46,6 +46,21 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SettingsUser_ShowsOnlyElevatedModesForAdminAndAuditor()
+        {
+            await using Bunit.TestContext context = CreateContext([Roles.Admin, Roles.Auditor], out _, out _);
+
+            IRenderedComponent<SettingsUser> component = RenderSettingsUser(context);
+
+            component.WaitForAssertion(() =>
+            {
+                IRenderedComponent<Dropdown<string>> dropdown = component.FindComponent<Dropdown<string>>();
+                Assert.That(dropdown.Instance.SelectedElement, Is.EqualTo(Roles.Admin));
+                Assert.That(dropdown.Instance.Elements, Is.EqualTo(new[] { Roles.Admin, Roles.Auditor }));
+            });
+        }
+
+        [Test]
         public async Task SettingsUser_SelectingAdminUpdatesApiConnectionAndUserConfig()
         {
             await using Bunit.TestContext context = CreateContext([Roles.Admin, Roles.Modeller], out SettingsUserTestApiConnection apiConnection, out SimulatedUserConfig userConfig);

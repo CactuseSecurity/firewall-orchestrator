@@ -337,7 +337,7 @@ namespace FWO.Test
 
             connection.SetExecutionMode(user, Roles.Admin.ToUpperInvariant());
 
-            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Admin.ToUpperInvariant()));
+            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Admin));
         }
 
         [Test]
@@ -424,6 +424,42 @@ namespace FWO.Test
             connection.SetRole(Roles.Modeller);
 
             Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Modeller));
+        }
+
+        [Test]
+        public void SetRoleRejectsElevatedRoleInUserRolesModeForMixedUser()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = new(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.Role, Roles.Admin),
+                new Claim(ClaimTypes.Role, Roles.Modeller)
+            ], "test", ClaimTypes.Name, ClaimTypes.Role));
+
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+
+            Assert.Throws<System.Security.Authentication.AuthenticationException>(() =>
+                connection.SetRole(Roles.Admin));
+
+            connection.SwitchBack();
+
+            Assert.That(connection.GetActRole(), Is.EqualTo(""));
+        }
+
+        [Test]
+        public void SetRoleAllowsElevatedRoleForUserWithoutUserRoleSelection()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = new(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.Role, Roles.Admin),
+                new Claim(ClaimTypes.Role, Roles.Auditor)
+            ], "test", ClaimTypes.Name, ClaimTypes.Role));
+
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+            connection.SetRole(Roles.Auditor);
+
+            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Admin));
         }
 
         [Test]

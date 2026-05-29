@@ -41,6 +41,14 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ShouldShowExecutionModeSelectionForAdminAndAuditorWithoutUserRoles()
+        {
+            bool result = ExecutionModeHelper.ShouldShowExecutionModeSelection([Roles.Admin, Roles.Auditor]);
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
         public void GetSelectableRolesFiltersTechnicalAndDuplicateRoles()
         {
             List<string> result = ExecutionModeHelper.GetSelectableRoles(
@@ -70,6 +78,14 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetSelectableExecutionModesOmitsUserRolesWhenNoUserRoleExists()
+        {
+            List<string> result = ExecutionModeHelper.GetSelectableExecutionModes([Roles.Admin, Roles.Auditor]);
+
+            Assert.That(result, Is.EqualTo(new[] { Roles.Admin, Roles.Auditor }));
+        }
+
+        [Test]
         public void GetSelectedExecutionModeKeepsCurrentElevatedRole()
         {
             string result = ExecutionModeHelper.GetSelectedExecutionMode([Roles.Admin, Roles.Auditor], Roles.Auditor);
@@ -86,12 +102,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetSelectedExecutionModeFallsBackToFirstElevatedModeWithoutUserRoles()
+        {
+            string result = ExecutionModeHelper.GetSelectedExecutionMode([Roles.Admin, Roles.Auditor], "");
+
+            Assert.That(result, Is.EqualTo(Roles.Admin));
+        }
+
+        [Test]
         public void NormalizeExecutionModeFallsBackToUserRolesForEmptyOrInvalidMode()
         {
             Assert.Multiple(() =>
             {
                 Assert.That(ExecutionModeHelper.NormalizeExecutionMode([Roles.Admin, Roles.Modeller], ""), Is.EqualTo(GlobalConst.kUserRolesSelection));
                 Assert.That(ExecutionModeHelper.NormalizeExecutionMode([Roles.Admin, Roles.Modeller], "invalid"), Is.EqualTo(GlobalConst.kUserRolesSelection));
+            });
+        }
+
+        [Test]
+        public void NormalizeExecutionModeFallsBackToFirstElevatedModeWithoutUserRoles()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(ExecutionModeHelper.NormalizeExecutionMode([Roles.Admin, Roles.Auditor], ""), Is.EqualTo(Roles.Admin));
+                Assert.That(ExecutionModeHelper.NormalizeExecutionMode([Roles.Admin, Roles.Auditor], "invalid"), Is.EqualTo(Roles.Admin));
             });
         }
 

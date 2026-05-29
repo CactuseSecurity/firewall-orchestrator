@@ -22,6 +22,7 @@ namespace FWO.Api.Client
 
         private readonly Stack<string> previousRoles = new();
         private string forcedExecutionMode = "";
+        private bool restrictElevatedRoleSwitches = false;
 
         private void Initialize(string ApiServerUri)
         {
@@ -66,25 +67,33 @@ namespace FWO.Api.Client
 
         public override void SetRole(string role)
         {
+            if (restrictElevatedRoleSwitches && IsForcedExecutionMode(role))
+            {
+                throw new AuthenticationException($"Execution mode '{GlobalConst.kUserRolesSelection}' does not allow switching to role: {role}");
+            }
+
             previousRoles.Push(GetActRole());
             SetRoleHeader(IsForcedExecutionMode(forcedExecutionMode) ? forcedExecutionMode : role);
         }
 
-        private void ApplyExecutionMode(string role)
+        private void ApplyExecutionMode(string role, bool restrictElevatedRoles)
         {
             forcedExecutionMode = IsForcedExecutionMode(role) ? role : "";
+            restrictElevatedRoleSwitches = restrictElevatedRoles;
             SetRoleHeader(role);
         }
 
         public override void SetExecutionMode(ClaimsPrincipal user, string role)
         {
-            string normalizedRole = role.Equals(GlobalConst.kUserRolesSelection, StringComparison.OrdinalIgnoreCase) ? "" : role;
-            if (IsForcedExecutionMode(normalizedRole) && !HasAllowedRole(user, normalizedRole))
+            if (IsForcedExecutionMode(role) && !HasAllowedRole(user, role))
             {
-                throw new AuthenticationException($"User is not allowed to use execution mode: {normalizedRole}");
+                throw new AuthenticationException($"User is not allowed to use execution mode: {role}");
             }
 
-            ApplyExecutionMode(normalizedRole);
+            List<string> userRoles = ExecutionModeHelper.GetUserRoles(user);
+            string selectedExecutionMode = ExecutionModeHelper.NormalizeExecutionMode(userRoles, role);
+            string normalizedRole = selectedExecutionMode.Equals(GlobalConst.kUserRolesSelection, StringComparison.OrdinalIgnoreCase) ? "" : selectedExecutionMode;
+            ApplyExecutionMode(normalizedRole, normalizedRole == "" && HasSelectableUserRole(user));
             InvokeOnExecutionModeChanged(this, GetExecutionMode());
         }
 

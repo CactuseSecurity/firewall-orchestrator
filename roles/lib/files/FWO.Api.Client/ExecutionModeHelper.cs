@@ -58,7 +58,8 @@ namespace FWO.Api.Client
         public static List<string> GetSelectableExecutionModes(IEnumerable<string> roles)
         {
             List<string> selectableRoles = GetSelectableRoles(roles);
-            List<string> selectableModes = [GlobalConst.kUserRolesSelection];
+            bool hasUserRoleSelection = HasUserRoleSelection(selectableRoles);
+            List<string> selectableModes = hasUserRoleSelection ? [GlobalConst.kUserRolesSelection] : [];
 
             if (selectableRoles.Contains(Roles.Admin, StringComparer.OrdinalIgnoreCase))
             {
@@ -77,10 +78,7 @@ namespace FWO.Api.Client
         /// </summary>
         public static bool ShouldShowExecutionModeSelection(IEnumerable<string> roles)
         {
-            List<string> selectableRoles = GetSelectableRoles(roles);
-            return selectableRoles.Count > 1
-                && (selectableRoles.Contains(Roles.Admin, StringComparer.OrdinalIgnoreCase)
-                    || selectableRoles.Contains(Roles.Auditor, StringComparer.OrdinalIgnoreCase));
+            return GetSelectableExecutionModes(roles).Count > 1;
         }
 
         /// <summary>
@@ -122,7 +120,7 @@ namespace FWO.Api.Client
                 return selectableModes.First(mode => mode.Equals(executionMode, StringComparison.OrdinalIgnoreCase));
             }
 
-            return GlobalConst.kUserRolesSelection;
+            return selectableModes.FirstOrDefault() ?? GlobalConst.kUserRolesSelection;
         }
 
         /// <summary>
@@ -145,7 +143,12 @@ namespace FWO.Api.Client
             {
                 return selectableModes.First(role => role.Equals(currentRole, StringComparison.OrdinalIgnoreCase));
             }
-            return GlobalConst.kUserRolesSelection;
+            return selectableModes.FirstOrDefault() ?? GlobalConst.kUserRolesSelection;
+        }
+
+        private static bool HasUserRoleSelection(IEnumerable<string> selectableRoles)
+        {
+            return selectableRoles.Any(role => !IsElevatedExecutionMode(role));
         }
 
         private static bool IsElevatedExecutionMode(string executionMode)

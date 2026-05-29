@@ -24,7 +24,7 @@ set_pip_config_if_compatible() {
         echo "Please adjust the existing pip configuration manually and rerun this script." >&2
         exit_script 1
     fi
-    exit_script 0    
+    return 0
 }
 
 if [[ ! -f /etc/os-release ]]; then

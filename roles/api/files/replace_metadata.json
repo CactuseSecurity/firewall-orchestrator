@@ -1161,6 +1161,18 @@
                   }
                 },
                 {
+                  "name": "reqtasks",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_access_id",
+                      "table": {
+                        "name": "reqtask",
+                        "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -1599,6 +1611,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "reqelements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_nwgrp_id",
+                      "table": {
+                        "name": "reqelement",
+                        "schema": "request"
+                      }
+                    }
+                  }
                 }
               ],
               "insert_permissions": [
@@ -1749,6 +1773,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "reqelements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_nwobj_id",
+                      "table": {
+                        "name": "reqelement",
+                        "schema": "request"
+                      }
+                    }
+                  }
                 }
               ],
               "insert_permissions": [
@@ -1818,6 +1854,18 @@
                       "table": {
                         "name": "access_service_grp",
                         "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "reqelements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_svcgrp_id",
+                      "table": {
+                        "name": "reqelement",
+                        "schema": "request"
                       }
                     }
                   }
@@ -1964,6 +2012,18 @@
                       "table": {
                         "name": "access_service",
                         "schema": "flow"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "reqelements",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_svcobj_id",
+                      "table": {
+                        "name": "reqelement",
+                        "schema": "request"
                       }
                     }
                   }
@@ -2707,6 +2767,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "comment",
                       "is_deleted"
                     ],
                     "filter": {},
@@ -3592,6 +3653,17 @@
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "comment"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "modeller",
                   "permission": {
@@ -29924,6 +29996,28 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "task_id",
+                      "initial_approval",
+                      "approver",
+                      "approver_group",
+                      "assigned_group",
+                      "current_handler",
+                      "recent_handler",
+                      "state_id",
+                      "tenant_id",
+                      "approval_date",
+                      "approval_deadline",
+                      "date_opened"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -30241,6 +30335,34 @@
                     "filter": {},
                     "check": null
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "approval_date",
+                      "approver",
+                      "assigned_group",
+                      "state_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "approval_date",
+                      "approver",
+                      "assigned_group",
+                      "state_id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",
@@ -32444,6 +32566,30 @@
                   }
                 },
                 {
+                  "name": "flow_nwgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_nwgrp_id"
+                  }
+                },
+                {
+                  "name": "flow_nwobject",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_nwobj_id"
+                  }
+                },
+                {
+                  "name": "flow_svcgroup",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_svcgrp_id"
+                  }
+                },
+                {
+                  "name": "flow_svcobject",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_svcobj_id"
+                  }
+                },
+                {
                   "name": "object",
                   "using": {
                     "foreign_key_constraint_on": "network_object_id"
@@ -32516,7 +32662,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ]
                   },
                   "comment": ""
@@ -32542,7 +32692,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ]
                   },
                   "comment": ""
@@ -32568,7 +32722,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ]
                   }
                 }
@@ -32594,7 +32752,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   }
@@ -32619,7 +32781,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   }
@@ -32644,7 +32810,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   }
@@ -32669,7 +32839,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   }
@@ -32694,7 +32868,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   },
@@ -32720,7 +32898,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   },
@@ -32746,7 +32928,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   }
@@ -32771,7 +32957,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   },
@@ -32797,7 +32987,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   },
@@ -32823,7 +33017,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   }
@@ -32848,7 +33046,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {}
                   }
@@ -32875,11 +33077,29 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {},
                     "check": null
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "requester",
@@ -32901,7 +33121,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "flow_nwobj_id",
+                      "flow_nwgrp_id",
+                      "flow_svcobj_id",
+                      "flow_svcgrp_id"
                     ],
                     "filter": {},
                     "check": null
@@ -32936,6 +33160,12 @@
                 "schema": "request"
               },
               "object_relationships": [
+                {
+                  "name": "flow_access",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_access_id"
+                  }
+                },
                 {
                   "name": "management",
                   "using": {
@@ -33157,7 +33387,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   }
@@ -33190,7 +33421,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   }
@@ -33223,7 +33455,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   }
@@ -33256,7 +33489,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   }
@@ -33289,7 +33523,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   },
@@ -33323,7 +33558,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   },
@@ -33357,7 +33593,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   }
@@ -33390,7 +33627,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   },
@@ -33424,7 +33662,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   },
@@ -33458,7 +33697,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   }
@@ -33491,7 +33731,8 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "request_action"
+                      "request_action",
+                      "flow_access_id"
                     ],
                     "filter": {}
                   }
@@ -33566,7 +33807,8 @@
                       "recent_handler",
                       "start",
                       "state_id",
-                      "stop"
+                      "stop",
+                      "flow_access_id"
                     ],
                     "filter": {},
                     "check": null
@@ -34123,6 +34365,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34133,6 +34376,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34143,6 +34387,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34153,6 +34398,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34163,6 +34409,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34174,6 +34421,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34185,6 +34433,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34195,6 +34444,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34206,6 +34456,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34217,6 +34468,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}
@@ -34227,6 +34479,7 @@
                   "permission": {
                     "columns": [
                       "action_id",
+                      "sort_order",
                       "state_id"
                     ],
                     "filter": {}

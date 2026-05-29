@@ -81,6 +81,12 @@
                 <input id="cbx_allow_object_search" type="checkbox" @bind="configData!.ReqAllowObjectSearch">
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5564a"))">
+            <label for="cbx_use_flow_db" class="col-form-label col-sm-3">@(userConfig.GetText("reqUseFlowDb")):</label>
+            <div class="col-sm-2">
+                <input id="cbx_use_flow_db" type="checkbox" @bind="configData!.ReqUseFlowDb">
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5567"))">
             <label for="cbx_activate_path_analysis" class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
             <div class="col-sm-2">

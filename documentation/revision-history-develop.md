@@ -413,3 +413,13 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
 # 9.0.24 - 27.04.2026 DEVELOP
 - introduce new modelling integration mode WorkflowNotifications
 - backfill rule source and destination zone text fields from rule zone links
+
+# 9.1.0 - 20.05.2026 DEVELOP
+- JWT refresh token
+- introduce flow schema
+
+# 9.1.1 - 21.05.2026 DEVELOP
+- Workflow: add configurable execution order for actions assigned to states.
+
+# 9.1.3 - 27.05.2026 DEVELOP
+- add optional workflow flow merging for Flow DB creation

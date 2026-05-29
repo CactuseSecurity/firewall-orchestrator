@@ -4,7 +4,8 @@ query getStates {
     id
     name
     automatic_only
-    actions: state_actions {
+    actions: state_actions(order_by: [{ sort_order: asc }, { action_id: asc }]) {
+      sort_order
       action: action {
         id
         name

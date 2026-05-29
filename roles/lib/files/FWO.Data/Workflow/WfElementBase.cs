@@ -37,6 +37,18 @@ namespace FWO.Data.Workflow
         [JsonProperty("service_id"), JsonPropertyName("service_id")]
         public long? ServiceId { get; set; }
 
+        [JsonProperty("flow_nwobj_id"), JsonPropertyName("flow_nwobj_id")]
+        public long? FlowNetworkObjectId { get; set; }
+
+        [JsonProperty("flow_nwgrp_id"), JsonPropertyName("flow_nwgrp_id")]
+        public long? FlowNetworkGroupId { get; set; }
+
+        [JsonProperty("flow_svcobj_id"), JsonPropertyName("flow_svcobj_id")]
+        public long? FlowServiceObjectId { get; set; }
+
+        [JsonProperty("flow_svcgrp_id"), JsonPropertyName("flow_svcgrp_id")]
+        public long? FlowServiceGroupId { get; set; }
+
         [JsonProperty("field"), JsonPropertyName("field")]
         public string Field { get; set; } = ElemFieldType.source.ToString();
 
@@ -68,6 +80,10 @@ namespace FWO.Data.Workflow
             ProtoId = element.ProtoId;
             NetworkId = element.NetworkId;
             ServiceId = element.ServiceId;
+            FlowNetworkObjectId = element.FlowNetworkObjectId;
+            FlowNetworkGroupId = element.FlowNetworkGroupId;
+            FlowServiceObjectId = element.FlowServiceObjectId;
+            FlowServiceGroupId = element.FlowServiceGroupId;
             Field = element.Field;
             UserId = element.UserId;
             OriginalNatId = element.OriginalNatId;

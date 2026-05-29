@@ -38,6 +38,11 @@ namespace FWO.Services.Workflow
             return extStates.FirstOrDefault(e => e.Name == extState)?.StateId;
         }
 
+        public string? GetExternalStateName(int stateId)
+        {
+            return extStates.FirstOrDefault(e => e.StateId == stateId)?.Name;
+        }
+
         public bool IsInProgress(int stateId)
         {
             int doneStateId = GetInternalStateId(ExtStates.ExtReqDone) ?? 999;

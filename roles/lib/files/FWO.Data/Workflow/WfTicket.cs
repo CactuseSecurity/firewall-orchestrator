@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -49,8 +50,8 @@ namespace FWO.Data.Workflow
             {
                 foreach (WfReqElement elem in reqtask.Elements)
                 {
-                    elem.IpString = elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString : null;
-                    elem.IpEnd = elem.CidrEnd != null && elem.CidrEnd.Valid ? elem.CidrEnd.CidrString : null;
+                    elem.IpString = elem.Cidr != null && elem.Cidr.Valid ? elem.Cidr.CidrString.StripOffUnnecessaryNetmask() : null;
+                    elem.IpEnd = elem.CidrEnd != null && elem.CidrEnd.Valid ? elem.CidrEnd.CidrString.StripOffUnnecessaryNetmask() : null;
                 }
             }
         }

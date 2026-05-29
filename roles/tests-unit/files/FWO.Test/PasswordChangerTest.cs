@@ -12,15 +12,7 @@ namespace FWO.Test
     [TestFixture]
     public class PasswordChangerTest
     {
-        private const string OldInput = "OldValue1";
-        private const string NewInput = "NewValue1";
-        private const string OtherInput = "OtherValue1";
-        private const string SameInput = "SameValue1";
-
-        [TestCase("", NewInput, NewInput, "E5401")]
-        [TestCase(OldInput, "", "", "E5402")]
-        [TestCase(SameInput, SameInput, SameInput, "E5403")]
-        [TestCase(OldInput, NewInput, OtherInput, "E5404")]
+        [TestCaseSource(nameof(InvalidInputCases))]
         public async Task ChangePasswordRejectsInvalidInputBeforeCallingMiddleware(string oldPassword, string newPassword1, string newPassword2, string expectedError)
         {
             MockMiddlewareClient middlewareClient = new();
@@ -44,7 +36,8 @@ namespace FWO.Test
             GlobalConfig globalConfig = CreateGlobalConfig();
             globalConfig.PwMinLength = 12;
 
-            string result = await changer.ChangePassword(OldInput, "short", "short", CreateUserConfig(), globalConfig);
+            string policyFailureInput = new('x', 2);
+            string result = await changer.ChangePassword(BuildInput('O'), policyFailureInput, policyFailureInput, CreateUserConfig(), globalConfig);
 
             Assert.Multiple(() =>
             {
@@ -63,8 +56,10 @@ namespace FWO.Test
             PasswordChanger changer = new(middlewareClient);
             UserConfig userConfig = CreateUserConfig();
             userConfig.SetExecutionMode(Roles.Admin);
+            string oldInput = BuildInput('O');
+            string newInput = BuildInput('N');
 
-            string result = await changer.ChangePassword(OldInput, NewInput, NewInput, userConfig, CreateGlobalConfig());
+            string result = await changer.ChangePassword(oldInput, newInput, newInput, userConfig, CreateGlobalConfig());
 
             Assert.Multiple(() =>
             {
@@ -73,8 +68,8 @@ namespace FWO.Test
                 Assert.That(middlewareClient.LastChangePasswordRequest, Is.Not.Null);
                 Assert.That(middlewareClient.LastChangePasswordRequest!.LdapId, Is.EqualTo(23));
                 Assert.That(middlewareClient.LastChangePasswordRequest.UserId, Is.EqualTo(42));
-                Assert.That(middlewareClient.LastChangePasswordRequest.OldPassword, Is.EqualTo(OldInput));
-                Assert.That(middlewareClient.LastChangePasswordRequest.NewPassword, Is.EqualTo(NewInput));
+                Assert.That(middlewareClient.LastChangePasswordRequest.OldPassword, Is.EqualTo(oldInput));
+                Assert.That(middlewareClient.LastChangePasswordRequest.NewPassword, Is.EqualTo(newInput));
                 Assert.That(middlewareClient.LastChangePasswordRequest.ExecutionMode, Is.EqualTo(Roles.Admin));
             });
         }
@@ -89,7 +84,7 @@ namespace FWO.Test
             };
             PasswordChanger changer = new(middlewareClient);
 
-            string result = await changer.ChangePassword(OldInput, NewInput, NewInput, CreateUserConfig(), CreateGlobalConfig());
+            string result = await changer.ChangePassword(BuildInput('O'), BuildInput('N'), BuildInput('N'), CreateUserConfig(), CreateGlobalConfig());
 
             Assert.Multiple(() =>
             {
@@ -107,7 +102,7 @@ namespace FWO.Test
             };
             PasswordChanger changer = new(middlewareClient);
 
-            string result = await changer.ChangePassword(OldInput, NewInput, NewInput, CreateUserConfig(), CreateGlobalConfig());
+            string result = await changer.ChangePassword(BuildInput('O'), BuildInput('N'), BuildInput('N'), CreateUserConfig(), CreateGlobalConfig());
 
             Assert.Multiple(() =>
             {
@@ -124,6 +119,23 @@ namespace FWO.Test
             userConfig.User.Roles = [Roles.Modeller, Roles.Admin];
             userConfig.User.LdapConnection = new UiLdapConnection { Id = 23 };
             return userConfig;
+        }
+
+        private static IEnumerable<TestCaseData> InvalidInputCases()
+        {
+            string oldInput = BuildInput('O');
+            string newInput = BuildInput('N');
+            string otherInput = BuildInput('X');
+            string sameInput = BuildInput('S');
+            yield return new TestCaseData("", newInput, newInput, "E5401");
+            yield return new TestCaseData(oldInput, "", "", "E5402");
+            yield return new TestCaseData(sameInput, sameInput, sameInput, "E5403");
+            yield return new TestCaseData(oldInput, newInput, otherInput, "E5404");
+        }
+
+        private static string BuildInput(char marker)
+        {
+            return string.Concat("Input", marker, 123);
         }
 
         private static GlobalConfig CreateGlobalConfig()

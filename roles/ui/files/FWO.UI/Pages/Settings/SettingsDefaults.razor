@@ -4,8 +4,9 @@
 @implements IDisposable
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
-@using FWO.Ui.Data
 @using System.Text.Json
+@using FWO.Ui.Data.Extensions
+@using FWO.Data.Enums;
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -186,19 +187,31 @@
     <hr />
     <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("accesstoken_lifetime"))">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("accesstoken_lifetime")):</label>
-        <div class="col-sm">
-            <input type="number" min="1" max="720" @bind="configData!.AccessTokenLifetimeHours" />
+        <div class="col-sm-8 d-inline-flex">
+            <input class="me-3 form-control" style="max-width: 90px;" type="number" min="1" @bind="accessTokenLifetimeValue" />
+            <select style="max-width: 130px;" @bind="accessTokenLifetimeUnit" class="form-select">
+                @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
+                {
+                    <option value="@unit">@unit.ToString(userConfig)</option>
+                }
+            </select>
         </div>
     </div>
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("refreshtoken_lifetime"))">
+    <div class="pt-2 form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("refreshtoken_lifetime"))">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("refreshtoken_lifetime")):</label>
-        <div class="col-sm">
-            <input type="number" min="1" max="30" @bind="configData!.RefreshTokenLifetimeDays" />
+        <div class="col-sm-8 d-inline-flex">
+            <input class="me-3 form-control" style="max-width: 90px;" type="number" min="1" @bind="refreshTokenLifetimeValue" />
+            <select style="max-width: 130px;" @bind="refreshTokenLifetimeUnit" class="form-select">
+                @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
+                {
+                    <option value="@unit">@unit.ToString(userConfig)</option>
+                }
+            </select>
         </div>
     </div>
     @if (!IsTokenLifetimeValid())
     {
-        <div class="form-group row">
+        <div class="pt-3 form-group row">
             <div class="col-sm-8 offset-sm-4">
                 <span class="text-danger"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U9037"))</span>
             </div>
@@ -237,6 +250,10 @@ else
     private List<DailyCheckModule> dailyCheckModules { get; set; } = [];
     private Dictionary<Module, bool> modulesVisibleDict = [];
     private Dictionary<DailyCheckModule, bool> dailyCheckModulesVisibleDict = [];
+    private int accessTokenLifetimeValue = 1;
+    private int refreshTokenLifetimeValue = 1;
+    private TokenLifetimeUnit accessTokenLifetimeUnit = TokenLifetimeUnit.Hours;
+    private TokenLifetimeUnit refreshTokenLifetimeUnit = TokenLifetimeUnit.Days;
     private bool InitComplete = false;
 
     protected override async Task OnInitializedAsync()
@@ -258,10 +275,17 @@ else
                 modulesVisibleDict.Add(module, availableModules.Contains(module));
             }
             dailyCheckModulesVisibleDict = [];
-            foreach(DailyCheckModule module in Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>())
+            foreach (DailyCheckModule module in Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>())
             {
                 dailyCheckModulesVisibleDict.Add(module, dailyCheckModules.Contains(module));
             }
+
+            accessTokenLifetimeValue = configData.AccessTokenLifetime;
+            accessTokenLifetimeUnit = configData.AccessTokenLifetimeUnit;
+
+            refreshTokenLifetimeValue = configData.RefreshTokenLifetime;
+            refreshTokenLifetimeUnit = configData.RefreshTokenLifetimeUnit;
+
             InitComplete = true;
         }
         catch (Exception exception)
@@ -277,8 +301,7 @@ else
             return false;
         }
 
-        int refreshTokenLifetimeHours = configData.RefreshTokenLifetimeDays * 24;
-        return configData.AccessTokenLifetimeHours <= refreshTokenLifetimeHours;
+        return true;
     }
 
     private async Task Save()
@@ -292,6 +315,12 @@ else
                     DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U9037"), true);
                     return;
                 }
+
+                configData.AccessTokenLifetime = accessTokenLifetimeValue;
+                configData.AccessTokenLifetimeUnit = accessTokenLifetimeUnit;
+
+                configData.RefreshTokenLifetime = refreshTokenLifetimeValue;
+                configData.RefreshTokenLifetimeUnit = refreshTokenLifetimeUnit;
 
                 configData.DefaultLanguage = selectedLanguage.Name;
                 configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);

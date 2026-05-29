@@ -81,8 +81,8 @@ namespace FWO.Middleware.Server
             // if no value is set in DB, take the default from config file and if that is not set, take the hardcoded constant
             return lifetimeKey switch
             {
-                nameof(ConfigData.AccessTokenLifetimeHours) => defaultConfigValue.AccessTokenLifetimeHours > 0 ? defaultConfigValue.AccessTokenLifetimeHours : expirationTime,
-                nameof(ConfigData.RefreshTokenLifetimeDays) => defaultConfigValue.RefreshTokenLifetimeDays > 0 ? defaultConfigValue.RefreshTokenLifetimeDays : expirationTime,
+                nameof(ConfigData.AccessTokenLifetime) => defaultConfigValue.AccessTokenLifetime > 0 ? defaultConfigValue.AccessTokenLifetime : expirationTime,
+                nameof(ConfigData.RefreshTokenLifetime) => defaultConfigValue.RefreshTokenLifetime > 0 ? defaultConfigValue.RefreshTokenLifetime : expirationTime,
                 _ => expirationTime,
             };
         }

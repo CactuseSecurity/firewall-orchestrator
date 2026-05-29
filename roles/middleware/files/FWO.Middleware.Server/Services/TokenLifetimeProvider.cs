@@ -16,7 +16,7 @@ namespace FWO.Middleware.Server.Services
         /// </summary>
         public virtual async Task<TimeSpan> GetUserAccessTokenLifetimeAsync(ApiConnection apiConnection)
         {
-            int lifetimeHours = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours));
+            int lifetimeHours = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetime));
             return TimeSpan.FromHours(Math.Max(1, lifetimeHours));
         }
 
@@ -25,7 +25,7 @@ namespace FWO.Middleware.Server.Services
         /// </summary>
         public virtual async Task<TimeSpan> GetRefreshTokenLifetimeAsync(ApiConnection apiConnection)
         {
-            int lifetimeDays = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetimeDays));
+            int lifetimeDays = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetime));
             return TimeSpan.FromDays(Math.Max(1, lifetimeDays));
         }
 

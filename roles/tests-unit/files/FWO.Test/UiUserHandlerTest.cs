@@ -17,7 +17,7 @@ namespace FWO.Test
             apiConnection.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, Arg.Any<object?>(), Arg.Any<string?>())
                 .Returns(new List<ConfExpirationTime> { new() { ExpirationValue = 11 } });
 
-            int expirationTime = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetimeHours));
+            int expirationTime = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetime));
 
             Assert.That(expirationTime, Is.EqualTo(11));
         }
@@ -29,7 +29,7 @@ namespace FWO.Test
             apiConnection.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, Arg.Any<object?>(), Arg.Any<string?>())
                 .Returns(new List<ConfExpirationTime>());
 
-            int expirationTime = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetimeDays));
+            int expirationTime = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetime));
 
             Assert.That(expirationTime, Is.EqualTo(7));
         }

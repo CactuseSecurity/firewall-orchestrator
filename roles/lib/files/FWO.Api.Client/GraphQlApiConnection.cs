@@ -1,4 +1,3 @@
-using System.Text.Json;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
@@ -8,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using FWO.Logging;
 using System.Security.Claims;
 using System.Security.Authentication;
+using System.Text.Json;
 
 namespace FWO.Api.Client
 {
@@ -184,7 +184,7 @@ namespace FWO.Api.Client
 
         private static bool HasSelectableUserRole(ClaimsPrincipal user)
         {
-            return GetAllowedRoles(user).Any(role => !IsForcedExecutionMode(role) && !FWO.Basics.RoleGroups.IsTechnicalOrAnonymous(role));
+            return ExecutionModeHelper.GetUserRoles(user).Any(role => !IsForcedExecutionMode(role) && !FWO.Basics.RoleGroups.IsTechnicalOrAnonymous(role));
         }
 
         public override void SwitchBack()
@@ -197,68 +197,7 @@ namespace FWO.Api.Client
 
         private static bool HasAllowedRole(ClaimsPrincipal user, string role)
         {
-            return GetAllowedRoles(user).Contains(role, StringComparer.OrdinalIgnoreCase);
-        }
-
-        private static List<string> GetAllowedRoles(ClaimsPrincipal user)
-        {
-            List<string> roles = [];
-            foreach (ClaimsIdentity identity in user.Identities)
-            {
-                roles.AddRange(identity.Claims
-                    .Where(claim => claim.Type.Equals(identity.RoleClaimType, StringComparison.OrdinalIgnoreCase))
-                    .Select(claim => claim.Value));
-            }
-            foreach (Claim claim in user.Claims.Where(currentClaim => IsHasuraAllowedRolesClaim(currentClaim.Type)))
-            {
-                if (TryParseAllowedRoles(claim.Value, out List<string> parsedRoles)
-                    && parsedRoles.Count > 0)
-                {
-                    roles.AddRange(parsedRoles);
-                }
-                else
-                {
-                    roles.Add(claim.Value);
-                }
-            }
-            return roles
-                .Where(role => !string.IsNullOrWhiteSpace(role))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-        }
-
-        private static bool IsHasuraAllowedRolesClaim(string claimType)
-        {
-            if (claimType.Equals("x-hasura-allowed-roles", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return claimType.EndsWith("/x-hasura-allowed-roles", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool TryParseAllowedRoles(string claimValue, out List<string> parsedRoles)
-        {
-            parsedRoles = [];
-            if (string.IsNullOrWhiteSpace(claimValue))
-            {
-                return false;
-            }
-
-            try
-            {
-                string[]? roleArray = JsonSerializer.Deserialize<string[]>(claimValue);
-                if (roleArray == null)
-                {
-                    return false;
-                }
-                parsedRoles = roleArray.Where(role => !string.IsNullOrWhiteSpace(role)).ToList();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            return ExecutionModeHelper.GetUserRoles(user).Contains(role, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>

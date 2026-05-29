@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Basics;
 using NUnit.Framework;
+using System.Security.Claims;
 
 namespace FWO.Test
 {
@@ -82,6 +83,59 @@ namespace FWO.Test
             string result = ExecutionModeHelper.GetSelectedExecutionMode([Roles.Modeller, Roles.Admin], "");
 
             Assert.That(result, Is.EqualTo(ExecutionModeHelper.UserRolesSelection));
+        }
+
+        [Test]
+        public void NormalizeExecutionModeFallsBackToUserRolesForEmptyOrInvalidMode()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(ExecutionModeHelper.NormalizeExecutionMode([Roles.Admin, Roles.Modeller], ""), Is.EqualTo(ExecutionModeHelper.UserRolesSelection));
+                Assert.That(ExecutionModeHelper.NormalizeExecutionMode([Roles.Admin, Roles.Modeller], "invalid"), Is.EqualTo(ExecutionModeHelper.UserRolesSelection));
+            });
+        }
+
+        [Test]
+        public void EmptyExecutionModeDoesNotActivateAdminForMixedRoleUsers()
+        {
+            bool result = ExecutionModeHelper.HasAnyRoleInExecutionMode([Roles.Admin, Roles.Modeller], "", [Roles.Admin]);
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public void AuditorExecutionModeDoesNotActivateWorkflowRoles()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(ExecutionModeHelper.HasAnyRoleInExecutionMode([Roles.Auditor, Roles.Approver], Roles.Auditor, [Roles.Auditor]), Is.True);
+                Assert.That(ExecutionModeHelper.HasAnyRoleInExecutionMode([Roles.Auditor, Roles.Approver], Roles.Auditor, [Roles.Approver]), Is.False);
+            });
+        }
+
+        [Test]
+        public void AdminExecutionModeDoesNotActivateUserRoles()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(ExecutionModeHelper.HasAnyRoleInExecutionMode([Roles.Admin, Roles.Requester], Roles.Admin, [Roles.Admin]), Is.True);
+                Assert.That(ExecutionModeHelper.HasAnyRoleInExecutionMode([Roles.Admin, Roles.Requester], Roles.Admin, [Roles.Requester]), Is.False);
+            });
+        }
+
+        [Test]
+        public void GetUserRolesExtractsRoleAndHasuraAllowedRolesClaims()
+        {
+            ClaimsIdentity identity = new(
+                [
+                    new Claim(ClaimTypes.Role, Roles.Modeller),
+                    new Claim("x-hasura-allowed-roles", $"[\"{Roles.Admin}\",\"{Roles.Modeller}\"]")
+                ], "test");
+            ClaimsPrincipal user = new(identity);
+
+            List<string> roles = ExecutionModeHelper.GetUserRoles(user);
+
+            Assert.That(roles, Is.EquivalentTo(new[] { Roles.Admin, Roles.Modeller }));
         }
     }
 }

@@ -490,11 +490,10 @@ namespace FWO.Services.Modelling
             List<FwoOwner> apps = [];
             try
             {
-                if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-                    || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)
-                    || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll))
+                if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.ReporterViewAll))
                 {
-                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+                    string query = withConn ? OwnerQueries.getOwnersWithConn : OwnerQueries.getOwners;
+                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(query);
                 }
                 else
                 {

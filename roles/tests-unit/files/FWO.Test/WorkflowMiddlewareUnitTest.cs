@@ -121,10 +121,17 @@ namespace FWO.Test
         {
             Assert.Multiple(() =>
             {
-                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Requester), WorkflowPhases.request), Is.True);
-                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Requester), WorkflowPhases.approval), Is.False);
-                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Modeller), WorkflowPhases.request), Is.False);
-                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Admin), WorkflowPhases.review), Is.True);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Requester), "", WorkflowPhases.request), Is.True);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Requester), "", WorkflowPhases.approval), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Modeller), "", WorkflowPhases.request), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Admin), "", WorkflowPhases.review), Is.True);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Admin, Roles.Requester), "", WorkflowPhases.review), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase",
+                    PrincipalWithRoles(Roles.Admin, Roles.Requester), Roles.Admin, WorkflowPhases.review), Is.True);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase",
+                    PrincipalWithRoles(Roles.Admin, Roles.Requester), ExecutionModeHelper.UserRolesSelection, WorkflowPhases.review), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase",
+                    PrincipalWithRoles(Roles.Auditor, Roles.Approver), Roles.Auditor, WorkflowPhases.approval), Is.False);
             });
         }
 
@@ -311,9 +318,9 @@ namespace FWO.Test
             };
 
             bool ownerAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
-                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-editable-owners", "{7}")), userConfig, ticket);
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-editable-owners", "{7}")), "", userConfig, ticket);
             bool otherOwnerRejected = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
-                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-editable-owners", "{8}")), userConfig, ticket);
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-editable-owners", "{8}")), "", userConfig, ticket);
 
             Assert.Multiple(() =>
             {

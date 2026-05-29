@@ -4,6 +4,7 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject ExecutionModeStorage executionModeStorage
 
 @page "/settings/user"
 
@@ -67,13 +68,14 @@
         showExecutionModeSelection = ExecutionModeHelper.ShouldShowExecutionModeSelection(userConfig.User.Roles);
     }
 
-    private void SelectExecutionMode(string newExecutionMode)
+    private async Task SelectExecutionMode(string newExecutionMode)
     {
         if (selectableExecutionModes.Contains(newExecutionMode, StringComparer.OrdinalIgnoreCase))
         {
             selectedExecutionMode = selectableExecutionModes.First(mode => mode.Equals(newExecutionMode, StringComparison.OrdinalIgnoreCase));
             apiConnection.SetExecutionMode(authenticationStateTask!.Result.User, selectedExecutionMode);
             userConfig.SetExecutionMode(selectedExecutionMode);
+            await executionModeStorage.SetExecutionMode(selectedExecutionMode);
         }
     }
 

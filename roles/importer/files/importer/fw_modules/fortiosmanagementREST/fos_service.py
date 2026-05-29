@@ -99,6 +99,57 @@ def get_svcobjs_from_portrange(
         )
 
 
+def _get_port_range_protocols(svc_obj: SvcObjCustom) -> list[tuple[str, str | None, int]]:
+    return [
+        ("tcp", svc_obj.tcp_portrange, 6),
+        ("udp", svc_obj.udp_portrange, 17),
+        ("sctp", svc_obj.sctp_portrange, 132),
+    ]
+
+
+def _get_non_port_protocol_service_object(svc_obj: SvcObjCustom) -> ServiceObject | None:
+    if svc_obj.protocol == "IP":
+        return ServiceObject(  # TODO: check if ports really not available in this case
+            svc_name=svc_obj.name,
+            svc_uid=svc_obj.name,
+            svc_typ="simple",
+            ip_proto=svc_obj.protocol_number,
+            svc_color=fwo_const.DEFAULT_COLOR,
+            svc_comment=svc_obj.comment,
+        )
+    if svc_obj.protocol in {"ICMP", "ICMP6"}:
+        return ServiceObject(
+            svc_name=svc_obj.name,
+            svc_uid=svc_obj.name,
+            svc_typ="simple",
+            ip_proto=1 if svc_obj.protocol == "ICMP" else 58,
+            svc_color=fwo_const.DEFAULT_COLOR,
+            svc_comment=svc_obj.comment,
+        )
+    if svc_obj.protocol == "ALL":
+        return ServiceObject(
+            svc_name=svc_obj.name,
+            svc_uid=svc_obj.name,
+            svc_typ="simple",
+            ip_proto=0,
+            svc_color=fwo_const.DEFAULT_COLOR,
+            svc_comment=svc_obj.comment,
+        )
+    return None
+
+
+def _get_custom_service_group_object(svc_obj: SvcObjCustom, members: list[str]) -> ServiceObject:
+    return ServiceObject(
+        svc_name=svc_obj.name,
+        svc_uid=svc_obj.name,
+        svc_typ="group",
+        svc_member_names=fwo_const.LIST_DELIMITER.join(members),
+        svc_member_refs=fwo_const.LIST_DELIMITER.join(members),
+        svc_color=fwo_const.DEFAULT_COLOR,
+        svc_comment=svc_obj.comment,
+    )
+
+
 def normalize_single_custom_service_object(svc_obj: SvcObjCustom) -> Generator[ServiceObject]:
     """
     Normalize a single custom service object from the native FortiOS configuration.
@@ -111,62 +162,25 @@ def normalize_single_custom_service_object(svc_obj: SvcObjCustom) -> Generator[S
 
     """
     # determine if multiple port ranges are defined
-    split = (
-        sum(1 for port_range in [svc_obj.tcp_portrange, svc_obj.udp_portrange, svc_obj.sctp_portrange] if port_range)
-        >= 2  # noqa: PLR2004
-    )
+    port_range_protocols = _get_port_range_protocols(svc_obj)
+    split = sum(1 for _, port_range, _ in port_range_protocols if port_range) >= 2  # noqa: PLR2004
     members: list[str] = []
     # only assign comment to parent group object
     comment = svc_obj.comment if svc_obj.comment and not split else None
-    if svc_obj.tcp_portrange:
-        base_name = f"{svc_obj.name}_tcp" if split else svc_obj.name
-        yield from get_svcobjs_from_portrange(svc_obj.tcp_portrange, base_name, comment, ip_proto=6, members=members)
-    if svc_obj.udp_portrange:
-        base_name = f"{svc_obj.name}_udp" if split else svc_obj.name
-        yield from get_svcobjs_from_portrange(svc_obj.udp_portrange, base_name, comment, ip_proto=17, members=members)
-    if svc_obj.sctp_portrange:
-        base_name = f"{svc_obj.name}_sctp" if split else svc_obj.name
-        yield from get_svcobjs_from_portrange(svc_obj.sctp_portrange, base_name, comment, ip_proto=132, members=members)
+
+    for protocol_name, port_range, ip_proto in port_range_protocols:
+        if port_range:
+            base_name = f"{svc_obj.name}_{protocol_name}" if split else svc_obj.name
+            yield from get_svcobjs_from_portrange(port_range, base_name, comment, ip_proto=ip_proto, members=members)
 
     if svc_obj.protocol == "TCP/UDP/SCTP" and len(members) > 1:
         # create parent group object
-        yield ServiceObject(
-            svc_name=svc_obj.name,
-            svc_uid=svc_obj.name,
-            svc_typ="group",
-            svc_member_names=fwo_const.LIST_DELIMITER.join(members),
-            svc_member_refs=fwo_const.LIST_DELIMITER.join(members),
-            svc_color=fwo_const.DEFAULT_COLOR,
-            svc_comment=svc_obj.comment,
-        )
-    elif svc_obj.protocol == "IP":
-        # IP protocol service object
-        yield ServiceObject(  # TODO: check if ports really not available in this case
-            svc_name=svc_obj.name,
-            svc_uid=svc_obj.name,
-            svc_typ="simple",
-            ip_proto=svc_obj.protocol_number,
-            svc_color=fwo_const.DEFAULT_COLOR,
-            svc_comment=svc_obj.comment,
-        )
-    elif svc_obj.protocol in {"ICMP", "ICMP6"}:
-        yield ServiceObject(
-            svc_name=svc_obj.name,
-            svc_uid=svc_obj.name,
-            svc_typ="simple",
-            ip_proto=1 if svc_obj.protocol == "ICMP" else 58,
-            svc_color=fwo_const.DEFAULT_COLOR,
-            svc_comment=svc_obj.comment,
-        )
-    elif svc_obj.protocol == "ALL":
-        yield ServiceObject(
-            svc_name=svc_obj.name,
-            svc_uid=svc_obj.name,
-            svc_typ="simple",
-            ip_proto=0,
-            svc_color=fwo_const.DEFAULT_COLOR,
-            svc_comment=svc_obj.comment,
-        )
+        yield _get_custom_service_group_object(svc_obj, members)
+        return
+
+    protocol_service_object = _get_non_port_protocol_service_object(svc_obj)
+    if protocol_service_object:
+        yield protocol_service_object
 
 
 def normalize_custom_service_objects(native_config: FortiOSConfig) -> Generator[ServiceObject]:

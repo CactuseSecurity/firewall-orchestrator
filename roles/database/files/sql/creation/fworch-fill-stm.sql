@@ -75,6 +75,7 @@ insert into config (config_key, config_value, config_user) VALUES ('reqPrioritie
 insert into config (config_key, config_value, config_user) VALUES ('reqAutoCreateImplTasks', 'enterInReqTask', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqOwnerBased', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqAllowObjectSearch', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqUseFlowDb', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqAllowManualOwnerAdmin', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqActivatePathAnalysis', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqShowCompliance', 'False', 0);

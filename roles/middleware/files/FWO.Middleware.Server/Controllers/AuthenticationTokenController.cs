@@ -383,10 +383,10 @@ namespace FWO.Middleware.Server.Controllers
         private static string BuildTokenPairAuditText(TokenPair tokenPair, string actionText)
         {
             JwtSecurityToken accessToken = ReadJwt(tokenPair.AccessToken);
-            string auditText = $"{actionText} access_jti={accessToken.Id}, access_expires={accessToken.ValidTo:O}";
+            string auditText = $"{actionText} access_jti={accessToken.Id}, access_expires={accessToken.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz}";
             if (tokenPair.RefreshTokenExpires != DateTime.MinValue)
             {
-                auditText += $", refresh_expires={tokenPair.RefreshTokenExpires:O}";
+                auditText += $", refresh_expires={tokenPair.RefreshTokenExpires.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz}";
             }
 
             return auditText;
@@ -413,7 +413,7 @@ namespace FWO.Middleware.Server.Controllers
         private static string BuildJwtAuditText(string jwt, string actionText)
         {
             JwtSecurityToken accessToken = ReadJwt(jwt);
-            return $"{actionText} access_jti={accessToken.Id}, access_expires={accessToken.ValidTo:O}";
+            return $"{actionText} access_jti={accessToken.Id}, access_expires={accessToken.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz}";
         }
 
         /// <summary>

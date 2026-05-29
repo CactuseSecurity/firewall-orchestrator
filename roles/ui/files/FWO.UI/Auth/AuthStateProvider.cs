@@ -50,7 +50,7 @@ namespace FWO.Ui.Auth
 
                 await ApplyTokenPair(tokenPair, apiConnection, middlewareClient, userConfig, circuitHandler);
 
-                Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
+                Log.WriteAudit("AuthenticateUser", $"User \"{username}\" with DN: \"{userConfig.User.Dn}\" successfully authenticated.");
             }
 
             return apiAuthResponse;

@@ -57,9 +57,9 @@ namespace FWO.Middleware.Server
 
             string GeneratedToken = tokenHandler.WriteToken(token);
             if (user != null)
-                Log.WriteDebug("Jwt generation", $"Generated JWT for user {user.Name}. Valid until: {TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local)}.");
+                Log.WriteDebug("Jwt generation", $"Generated JWT for user {user.Name}. Valid until: {token.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz)}.");
             else
-                Log.WriteDebug("Jwt generation", $"Generated anonymous JWT. Valid until: {TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local)}.");
+                Log.WriteDebug("Jwt generation", $"Generated anonymous JWT. Valid until: {token.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz)}.");
             return GeneratedToken;
         }
 

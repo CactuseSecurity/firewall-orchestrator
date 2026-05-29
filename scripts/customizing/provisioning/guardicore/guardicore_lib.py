@@ -68,7 +68,7 @@ def login_fwo(
     timeout: int,
     error_cls: type[Exception],
 ) -> str:
-    payload: dict[str, str] = {"Username": user, "Password": password}
+    payload: dict[str, Any] = {"Username": user, "Password": password}
     headers: dict[str, str] = {"Content-Type": HTTP_CONTENT_TYPE_JSON}
     endpoint = middleware_url.rstrip("/") + "/api/AuthenticationToken/Get"
 
@@ -92,7 +92,7 @@ def login_guardicore(
     timeout: int,
     error_cls: type[Exception],
 ) -> str:
-    payload: dict[str, str] = {"username": user, "password": password}
+    payload: dict[str, Any] = {"username": user, "password": password}
     headers: dict[str, str] = {"Content-Type": HTTP_CONTENT_TYPE_JSON}
     endpoint = base_url.rstrip("/") + DEFAULT_GUARDICORE_AUTH_ENDPOINT
 

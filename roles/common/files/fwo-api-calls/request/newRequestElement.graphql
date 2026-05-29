@@ -15,6 +15,10 @@ mutation newRequestElement(
   $ruleUid: String
   $groupName: String
   $name: String
+  $flowNwObjId: bigint
+  $flowNwGrpId: bigint
+  $flowSvcObjId: bigint
+  $flowSvcGrpId: bigint
   ) {
   insert_request_reqelement(objects: {
     request_action: $requestAction
@@ -33,6 +37,10 @@ mutation newRequestElement(
     rule_uid: $ruleUid
     group_name: $groupName
     name: $name
+    flow_nwobj_id: $flowNwObjId
+    flow_nwgrp_id: $flowNwGrpId
+    flow_svcobj_id: $flowSvcObjId
+    flow_svcgrp_id: $flowSvcGrpId
   }) {
     returning {
       newIdLong: id

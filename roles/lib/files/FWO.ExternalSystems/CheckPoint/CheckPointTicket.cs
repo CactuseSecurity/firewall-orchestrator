@@ -209,6 +209,20 @@ namespace FWO.ExternalSystems.CheckPoint
             {
                 EnsureExecutionPlanLoaded();
 
+                if (IsRuleChangeTaskType(renderedTasks[0].TaskType))    // Workaround - set task done and skip if rule change task
+                {
+                    Log.WriteInfo("CheckPoint", $"Skipping rule change task temporarily. First rendered task type: {renderedTasks[0].TaskType}");
+
+
+                    return new RestResponse<int>(new RestRequest())
+                    {
+                        StatusCode = HttpStatusCode.OK,
+                        ResponseStatus = ResponseStatus.Completed,
+                        Content = "Skipped Check Point rule change temporarily.",
+                        Data = 1
+                    };
+                }
+
                 RestResponse<int>? lastResponse = null;
 
                 foreach (RenderedTask task in renderedTasks)
@@ -269,7 +283,7 @@ namespace FWO.ExternalSystems.CheckPoint
 
             try
             {
-                CheckPointExecutionPlan? plan = JsonSerializer.Deserialize<CheckPointExecutionPlan>(TicketText);    // Prüfen wie Plan funktioniert, 
+                CheckPointExecutionPlan? plan = JsonSerializer.Deserialize<CheckPointExecutionPlan>(TicketText);    // prove plan
 
                 if (plan?.Steps == null || plan.Steps.Count == 0)
                 {
@@ -326,7 +340,7 @@ namespace FWO.ExternalSystems.CheckPoint
             RestResponse response = await checkPointClient.RestCall(request, endpoint);
 
 
-            if (task.TaskType == CheckPointTaskTypes.HostCreate && IsMultipleIpAddressError(response))
+            if (task.TaskType == CheckPointTaskTypes.HostCreate && IsResponseError(response, "same IP address", "err_validation_failed"))
             {
                 JsonObject retryBody = JsonNode.Parse(task.Body.ToJsonString())?.AsObject() ?? new JsonObject();
                 retryBody["ignore-warnings"] = true;
@@ -785,7 +799,7 @@ namespace FWO.ExternalSystems.CheckPoint
             }
         }
 
-        private static bool IsMultipleIpAddressError(RestResponse response)
+        private static bool IsResponseError(RestResponse response, string expectedMessageFragment, string? expectedCode = null)
         {
             if (response.StatusCode != HttpStatusCode.BadRequest || string.IsNullOrWhiteSpace(response.Content))
             {
@@ -796,34 +810,79 @@ namespace FWO.ExternalSystems.CheckPoint
             {
                 using JsonDocument document = JsonDocument.Parse(response.Content);
 
-                if (document.RootElement.TryGetProperty("message", out JsonElement messageElement))
+                if (!string.IsNullOrWhiteSpace(expectedCode) && !HasMatchingCode(document.RootElement, expectedCode))
                 {
-                    string? message = messageElement.GetString();
-
-                    if (!string.IsNullOrWhiteSpace(message) && message.Contains("multiple IP", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
+                    return false;
                 }
 
-                if (document.RootElement.TryGetProperty("code", out JsonElement codeElement))
-                {
-                    string? code = codeElement.GetString();
+                return HasMatchingMessage(document.RootElement, expectedMessageFragment);
+            }
+            catch (JsonException)
+            {
+                return response.Content.Contains(expectedMessageFragment, StringComparison.OrdinalIgnoreCase);
+            }
+        }
 
-                    if (string.Equals(code, "generic_err_multiple_ip_addresses", StringComparison.OrdinalIgnoreCase))
+        private static bool HasMatchingCode(JsonElement element, string expectedCode)
+        {
+            if (element.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            if (!element.TryGetProperty("code", out JsonElement codeElement))
+            {
+                return false;
+            }
+
+            string? code = codeElement.GetString();
+            return string.Equals(code, expectedCode, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool HasMatchingMessage(JsonElement element, string expectedMessageFragment)
+        {
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                foreach (JsonProperty property in element.EnumerateObject())
+                {
+                    if (property.NameEquals("message"))
+                    {
+                        string? message = property.Value.GetString();
+
+                        if (!string.IsNullOrWhiteSpace(message)
+                            && message.Contains(expectedMessageFragment, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+                    }
+
+                    if (HasMatchingMessage(property.Value, expectedMessageFragment))
                     {
                         return true;
                     }
                 }
             }
-            catch (JsonException)
+
+            if (element.ValueKind == JsonValueKind.Array)
             {
-                return response.Content.Contains("multiple IP", StringComparison.OrdinalIgnoreCase);
+                foreach (JsonElement child in element.EnumerateArray())
+                {
+                    if (HasMatchingMessage(child, expectedMessageFragment))
+                    {
+                        return true;
+                    }
+                }
             }
 
             return false;
         }
 
+        private static bool IsRuleChangeTaskType(string? taskType)
+        {
+            return taskType == nameof(WfTaskType.access)
+                || taskType == nameof(WfTaskType.rule_modify)
+                || taskType == nameof(WfTaskType.rule_delete);
+        }
 
         #endregion
     }

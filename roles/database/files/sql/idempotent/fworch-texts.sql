@@ -2982,6 +2982,8 @@ INSERT INTO txt VALUES ('fwconfigchangegeneral','German', 	'Allgemein');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','English', 	'General');
 INSERT INTO txt VALUES ('ext_ticketing',        'German', 	'Externes Ticket-System');
 INSERT INTO txt VALUES ('ext_ticketing',        'English', 	'External ticket tool');
+INSERT INTO txt VALUES ('ext_ticket_templates', 'German', 	'Externe Ticket-Vorlagen');
+INSERT INTO txt VALUES ('ext_ticket_templates', 'English', 	'External ticket templates');
 INSERT INTO txt VALUES ('ext_ticket_settings',  'German', 	'Einstellungen externes Ticket-System');
 INSERT INTO txt VALUES ('ext_ticket_settings',  'English', 	'Settings external ticket tool');
 INSERT INTO txt VALUES ('modIconify',           'German', 	'Nutzung von Piktogrammen');

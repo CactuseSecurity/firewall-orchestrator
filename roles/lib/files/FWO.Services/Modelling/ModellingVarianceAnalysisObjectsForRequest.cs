@@ -294,7 +294,7 @@ namespace FWO.Services.Modelling
         {
             Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
 
-            if (allExistingAppServersHashes[mgt.Id].TryGetValue(appServerComparer.GetHashCode(appServer), out long existingAppServerId))
+            if (allExistingAppServers[mgt.Id].TryGetValue(appServer, out long existingAppServerId))
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
                 return (existingAppServerId, true);

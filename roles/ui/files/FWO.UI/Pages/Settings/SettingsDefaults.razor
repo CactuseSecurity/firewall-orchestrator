@@ -301,7 +301,10 @@ else
             return false;
         }
 
-        return true;
+        int accessTokenLifetimeInMinutes = ConvertTokenLifetimeToMinutes(accessTokenLifetimeValue, accessTokenLifetimeUnit);
+        int refreshTokenLifetimeInMinutes = ConvertTokenLifetimeToMinutes(refreshTokenLifetimeValue, refreshTokenLifetimeUnit);
+
+        return refreshTokenLifetimeInMinutes > accessTokenLifetimeInMinutes;
     }
 
     private async Task Save()
@@ -384,5 +387,18 @@ else
     {
         EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
         EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ImportCustomLogo));
+    }
+
+    private static int ConvertTokenLifetimeToMinutes(int lifetimeValue, TokenLifetimeUnit lifetimeUnit)
+    {
+        int safeLifetimeValue = Math.Max(1, lifetimeValue);
+
+        return lifetimeUnit switch
+        {
+            TokenLifetimeUnit.Minutes => safeLifetimeValue,
+            TokenLifetimeUnit.Hours => safeLifetimeValue * 60,
+            TokenLifetimeUnit.Days => safeLifetimeValue * 60 * 24,
+            _ => safeLifetimeValue
+        };
     }
 }

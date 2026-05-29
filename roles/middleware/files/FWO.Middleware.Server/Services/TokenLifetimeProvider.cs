@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Config.Api.Data;
+using FWO.Data.Enums;
 
 namespace FWO.Middleware.Server.Services
 {
@@ -16,8 +17,9 @@ namespace FWO.Middleware.Server.Services
         /// </summary>
         public virtual async Task<TimeSpan> GetUserAccessTokenLifetimeAsync(ApiConnection apiConnection)
         {
-            int lifetimeHours = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetime));
-            return TimeSpan.FromHours(Math.Max(1, lifetimeHours));
+            int lifetimeValue = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetime));
+            TokenLifetimeUnit lifetimeUnit = await UiUserHandler.GetExpirationUnit(apiConnection, nameof(ConfigData.AccessTokenLifetimeUnit));
+            return ConvertToTimeSpan(lifetimeValue, lifetimeUnit);
         }
 
         /// <summary>
@@ -25,8 +27,9 @@ namespace FWO.Middleware.Server.Services
         /// </summary>
         public virtual async Task<TimeSpan> GetRefreshTokenLifetimeAsync(ApiConnection apiConnection)
         {
-            int lifetimeDays = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetime));
-            return TimeSpan.FromDays(Math.Max(1, lifetimeDays));
+            int lifetimeValue = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetime));
+            TokenLifetimeUnit lifetimeUnit = await UiUserHandler.GetExpirationUnit(apiConnection, nameof(ConfigData.RefreshTokenLifetimeUnit));
+            return ConvertToTimeSpan(lifetimeValue, lifetimeUnit);
         }
 
         /// <summary>
@@ -43,6 +46,19 @@ namespace FWO.Middleware.Server.Services
         public virtual TimeSpan GetInternalServiceTokenLifetime()
         {
             return kInternalServiceTokenLifetime;
+        }
+
+        private static TimeSpan ConvertToTimeSpan(int value, TokenLifetimeUnit unit)
+        {
+            int safeValue = Math.Max(1, value);
+
+            return unit switch
+            {
+                TokenLifetimeUnit.Minutes => TimeSpan.FromMinutes(safeValue),
+                TokenLifetimeUnit.Hours => TimeSpan.FromHours(safeValue),
+                TokenLifetimeUnit.Days => TimeSpan.FromDays(safeValue),
+                _ => TimeSpan.FromHours(safeValue)
+            };
         }
     }
 }

@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Enums;
 using FWO.Logging;
 using Newtonsoft.Json;
 using System.Reflection;
@@ -63,6 +64,46 @@ namespace FWO.Middleware.Server
             return expirationTime;
         }
 
+        /// <summary>
+        /// Get configured unit for token lifetimes.
+        /// </summary>
+        public static async Task<TokenLifetimeUnit> GetExpirationUnit(ApiConnection apiConnection, string lifetimeUnitKey)
+        {
+            TokenLifetimeUnit defaultUnit = TokenLifetimeUnit.Hours;
+            PropertyInfo? property = typeof(ConfigData).GetProperty(lifetimeUnitKey);
+            string? lifetimeUnitKeyDbName = GetLifetimeKeyDbName(property);
+            if (string.IsNullOrEmpty(lifetimeUnitKeyDbName))
+            {
+                return defaultUnit;
+            }
+
+            try
+            {
+                List<ConfigItem> resultList = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey, new { key = lifetimeUnitKeyDbName });
+                if (resultList.Count > 0 && !string.IsNullOrWhiteSpace(resultList[0].Value))
+                {
+                    string value = resultList[0].Value!;
+                    if (Enum.TryParse(value, true, out TokenLifetimeUnit parsedUnit))
+                    {
+                        return parsedUnit;
+                    }
+
+                    if (int.TryParse(value, out int parsedIndex) && Enum.IsDefined(typeof(TokenLifetimeUnit), parsedIndex))
+                    {
+                        return (TokenLifetimeUnit)parsedIndex;
+                    }
+                }
+
+                return GetDefaultExpirationUnit(property, defaultUnit);
+            }
+            catch (Exception exeption)
+            {
+                Log.WriteError("Get ExpirationUnit Error", "Error while trying to find config value in database. Taking default value", exeption);
+            }
+
+            return GetDefaultExpirationUnit(property, defaultUnit);
+        }
+
         private static string? GetLifetimeKeyDbName(PropertyInfo? property)
         {
             return property?.GetCustomAttribute<JsonPropertyAttribute>()?.PropertyName;
@@ -85,6 +126,18 @@ namespace FWO.Middleware.Server
                 nameof(ConfigData.RefreshTokenLifetime) => defaultConfigValue.RefreshTokenLifetime > 0 ? defaultConfigValue.RefreshTokenLifetime : expirationTime,
                 _ => expirationTime,
             };
+        }
+
+        private static TokenLifetimeUnit GetDefaultExpirationUnit(PropertyInfo? property, TokenLifetimeUnit fallbackUnit)
+        {
+            ConfigData defaultConfigValue = new();
+            object? propertyValue = property?.GetValue(defaultConfigValue);
+            if (propertyValue is TokenLifetimeUnit tokenLifetimeUnit)
+            {
+                return tokenLifetimeUnit;
+            }
+
+            return fallbackUnit;
         }
 
         /// <summary>

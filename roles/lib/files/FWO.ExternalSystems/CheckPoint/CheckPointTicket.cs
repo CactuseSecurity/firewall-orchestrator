@@ -318,7 +318,6 @@ namespace FWO.ExternalSystems.CheckPoint
 
             // Normal
             RestRequest request = new(endpoint, Method.Post);
-
             request.AddStringBody(task.Body.ToJsonString(), ContentType.Json);
 
             Log.WriteInfo("CheckPoint REQUEST", endpoint);
@@ -329,13 +328,12 @@ namespace FWO.ExternalSystems.CheckPoint
 
             if (task.TaskType == CheckPointTaskTypes.HostCreate && IsMultipleIpAddressError(response))
             {
-                string? ipAddress = task.Body?["ip-address"]?.GetValue<string>() ?? "";
+                JsonObject retryBody = JsonNode.Parse(task.Body.ToJsonString())?.AsObject() ?? new JsonObject();
+                retryBody["ignore-warnings"] = true;
 
-                if(!string.IsNullOrEmpty(ipAddress))
-                {
-                    RestResponse lookupResponse = await FindExistingHostByIpAsync(ipAddress);
-
-                }
+                RestRequest retryRequest = new(endpoint, Method.Post);
+                retryRequest.AddStringBody(retryBody.ToJsonString(), ContentType.Json);
+                response = await checkPointClient.RestCall(retryRequest, endpoint);
             }
 
             return new RestResponse<int>(request)
@@ -415,18 +413,7 @@ namespace FWO.ExternalSystems.CheckPoint
             return false;
         }
 
-        private async Task<RestResponse> FindExistingHostByIpAsync(string ipAddress)
-        {
-            RestRequest request = new("show-objects", Method.Post);
 
-            request.AddJsonBody(new
-            {
-                type = "host",
-                filter = ipAddress
-            });
-
-            return await checkPointClient.RestCall(request, "show-objects");
-        }
 
 
 

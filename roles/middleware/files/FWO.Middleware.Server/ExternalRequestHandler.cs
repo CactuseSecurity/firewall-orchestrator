@@ -365,7 +365,6 @@ namespace FWO.Middleware.Server
 
             extSystemType = system.TypeId;
             actSystem = system;
-
         }
 
         private async Task<string> ConstructContent(List<WfReqTask> reqTasks, UiUser? requester)

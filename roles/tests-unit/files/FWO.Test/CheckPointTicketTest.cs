@@ -2,10 +2,8 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.ExternalSystems.CheckPoint;
-using FWO.ExternalSystems.Tufin.SecureChange;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
-using RestSharp;
 using System.Net;
 using System.Text.Json;
 
@@ -26,201 +24,111 @@ namespace FWO.Test
             [
                 new()
                 {
-                    TaskType = SCTaskType.AccessRequest.ToString(),
+                    TaskType = WfTaskType.group_create.ToString(),
                     TicketTemplate = "@@TASKS@@",
-                    TasksTemplate = "{\"source\":@@SOURCES@@,\"destination\":@@DESTINATIONS@@,\"service\":@@SERVICES@@,\"action\":\"@@ACTION@@\"}"
+                    TasksTemplate = "{\"name\":\"@@GROUPNAME@@\",\"members\":@@MEMBERS@@}"
                 },
                 new()
                 {
                     TaskType = CheckPointTaskTypes.Publish,
                     TicketTemplate = "{}"
-                },
-                new()
-                {
-                    TaskType = SCTaskType.NetworkServiceCreate.ToString(),
-                    TicketTemplate = "@@TASKS@@",
-                    TasksTemplate = "{\"name\":\"@@GROUPNAME@@\",\"members\":@@SERVICES@@}"
                 }
             ]
         };
 
         [Test]
-        public async Task CreateRequestStringUsesSecureChangeStyleTemplates()
+        public async Task CreateRequestStringForGroupCreateBuildsHostAndGroupExecutionPlan()
         {
             CheckPointTicket ticket = new(checkPointSystem);
 
-            await ticket.CreateRequestString([CreateAccessTask()], [new() { Id = 6, Name = "tcp" }], new ModellingNamingConvention());
+            await ticket.CreateRequestString([CreateGroupCreateTaskWithNewHostMember()], [], new ModellingNamingConvention());
 
-            ClassicAssert.AreEqual(WfTaskType.access.ToString(), ticket.GetTaskTypeAsString(CreateAccessTask()));
-            ClassicAssert.AreEqual("{\"source\":[\"src-group\"],\"destination\":[\"dst-group\"],\"service\":[\"https\"],\"action\":\"accept\"}", ticket.TicketText);
+            using JsonDocument document = JsonDocument.Parse(ticket.TicketText);
+            JsonElement.ArrayEnumerator steps = document.RootElement.GetProperty("Steps").EnumerateArray();
+            List<JsonElement> planSteps = [.. steps];
+
+            ClassicAssert.AreEqual(4, planSteps.Count);
+            ClassicAssert.AreEqual(CheckPointTaskTypes.HostCreate, planSteps[0].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[1].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), planSteps[2].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[3].GetProperty("TaskType").GetString());
+
+            JsonElement memberBody = planSteps[0].GetProperty("Body");
+            ClassicAssert.AreEqual("member-host", memberBody.GetProperty("name").GetString());
+            ClassicAssert.AreEqual("10.0.0.1", memberBody.GetProperty("ip-address").GetString());
+
+            JsonElement groupBody = planSteps[2].GetProperty("Body");
+            ClassicAssert.AreEqual("cp-group", groupBody.GetProperty("name").GetString());
+            ClassicAssert.AreEqual(1, groupBody.GetProperty("members").GetArrayLength());
+            ClassicAssert.AreEqual("member-host", groupBody.GetProperty("members")[0].GetString());
         }
 
         [Test]
-        public async Task CreateRequestStringMapsServiceGroupCreateToServiceTemplate()
-        {
-            CheckPointTicket ticket = new(checkPointSystem);
-            WfReqTask serviceTask = CreateServiceGroupTask();
-
-            await ticket.CreateRequestString([serviceTask], [new() { Id = 6, Name = "tcp" }], new ModellingNamingConvention());
-
-            ClassicAssert.AreEqual(SCTaskType.NetworkServiceCreate.ToString(), ticket.GetTaskTypeAsString(serviceTask));
-            ClassicAssert.AreEqual("{\"name\":\"svc-group\",\"members\":[\"https\"]}", ticket.TicketText);
-        }
-
-        [Test]
-        public async Task CreateExternalTicketSendsServiceGroupCreateToServiceGroupEndpoint()
+        public async Task CreateExternalTicketForGroupCreateExecutesAddHostAndAddGroupInOrder()
         {
             SimulatedCheckPointClient checkPointClient = new(checkPointSystem);
-            checkPointClient.EnqueueResponse("add-service-group", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"uid\":\"svc-group\"}" });
-            checkPointClient.EnqueueResponse("publish", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"task-id\":\"publish-task\"}" });
-            CheckPointTicket ticket = new(checkPointSystem, checkPointClient)
-            {
-                TicketText = "{\"name\":\"svc-group\",\"members\":[\"https\"]}",
-                RequestTaskType = SCTaskType.NetworkServiceCreate.ToString()
-            };
+            checkPointClient.EnqueueResponse("add-host", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"uid\":\"host-1\"}" });
+            checkPointClient.EnqueueResponse("publish", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{}" });
+            checkPointClient.EnqueueResponse("add-group", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"uid\":\"group-1\"}" });
+            checkPointClient.EnqueueResponse("publish", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{}" });
+
+            CheckPointTicket ticket = new(checkPointSystem, checkPointClient);
+            await ticket.CreateRequestString([CreateGroupCreateTaskWithNewHostMember()], [], new ModellingNamingConvention());
 
             await ticket.CreateExternalTicket();
 
-            ClassicAssert.AreEqual(new List<string> { "add-service-group", "publish" }, checkPointClient.CalledEndpoints);
+            ClassicAssert.AreEqual(new List<string> { "add-host", "publish", "add-group", "publish" }, checkPointClient.CalledEndpoints);
+            ClassicAssert.AreEqual(4, checkPointClient.RequestBodies.Count);
+            ClassicAssert.AreEqual("{\"name\":\"member-host\",\"ip-address\":\"10.0.0.1\"}", checkPointClient.RequestBodies[0]);
+            ClassicAssert.AreEqual("{}", checkPointClient.RequestBodies[1]);
+            ClassicAssert.AreEqual("{\"name\":\"cp-group\",\"members\":[\"member-host\"]}", checkPointClient.RequestBodies[2]);
+            ClassicAssert.AreEqual("{}", checkPointClient.RequestBodies[3]);
+            ClassicAssert.AreEqual(1, checkPointClient.LogoutCalls);
         }
 
         [Test]
-        public async Task CreateExternalTicketSendsPublishAndInstallPolicyForTaskDevices()
+        public async Task CreateExternalTicketRetriesHostCreateWithIgnoreWarningsForMultipleIpResponse()
         {
             SimulatedCheckPointClient checkPointClient = new(checkPointSystem);
-            checkPointClient.EnqueueResponse("add-access-rule", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"uid\":\"rule-1\"}" });
-            checkPointClient.EnqueueResponse("publish", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"task-id\":\"publish-task\"}" });
-            checkPointClient.EnqueueResponse("install-policy", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"task-id\":\"install-task\"}" });
-            CheckPointTicket ticket = new(checkPointSystem, checkPointClient)
+            checkPointClient.EnqueueResponse("add-host", new(new())
             {
-                TicketText = "{\"source\":[\"src-group\"]}",
-                RequestTaskType = WfTaskType.access.ToString(),
-                ExtQueryVariables = JsonSerializer.Serialize(new Dictionary<string, object>
-                {
-                    [ExternalVarKeys.CheckPointInstallPolicyTargets] = new List<CheckPointInstallPolicyTarget>
-                    {
-                        new() { PolicyPackage = "Standard", Targets = ["gw1"] }
-                    }
-                })
-            };
+                StatusCode = HttpStatusCode.BadRequest,
+                Content = "{\"message\":\"multiple IP addresses are allowed only for DNS domains\"}"
+            });
+            checkPointClient.EnqueueResponse("add-host", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"uid\":\"host-1\"}" });
+            checkPointClient.EnqueueResponse("publish", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{}" });
+            checkPointClient.EnqueueResponse("add-group", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"uid\":\"group-1\"}" });
+            checkPointClient.EnqueueResponse("publish", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{}" });
 
-            RestResponse<int> response = await ticket.CreateExternalTicket();
+            CheckPointTicket ticket = new(checkPointSystem, checkPointClient);
+            await ticket.CreateRequestString([CreateGroupCreateTaskWithNewHostMember()], [], new ModellingNamingConvention());
 
-            ClassicAssert.AreEqual(new List<string> { "add-access-rule", "publish", "install-policy" }, checkPointClient.CalledEndpoints);
-            ClassicAssert.IsTrue(checkPointClient.RequestBodies.Last().Contains("\"policy-package\":\"Standard\""));
-            ClassicAssert.IsTrue(checkPointClient.RequestBodies.Last().Contains("\"gw1\""));
-            ClassicAssert.AreEqual(1, checkPointClient.LogoutCalls);
-            ClassicAssert.AreEqual("install-task", ticket.GetExternalTicketId(response));
-        }
+            await ticket.CreateExternalTicket();
 
-        [Test]
-        public async Task CreateExternalTicketPublishesWithoutPublishTemplate()
-        {
-            ExternalTicketSystem checkPointSystemWithoutSystemTemplates = new()
-            {
-                Id = 2,
-                TypeId = 9,
-                Authorization = "X-chkp-sid: xyz",
-                Name = "CheckPoint",
-                Url = "https://checkpoint-test.xxx.de/web_api/"
-            };
-            SimulatedCheckPointClient checkPointClient = new(checkPointSystemWithoutSystemTemplates);
-            checkPointClient.EnqueueResponse("add-access-rule", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"uid\":\"rule-1\"}" });
-            checkPointClient.EnqueueResponse("publish", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"task-id\":\"publish-task\"}" });
-            CheckPointTicket ticket = new(checkPointSystemWithoutSystemTemplates, checkPointClient)
-            {
-                TicketText = "{\"source\":[\"src-group\"]}",
-                RequestTaskType = WfTaskType.access.ToString()
-            };
-
-            RestResponse<int> response = await ticket.CreateExternalTicket();
-
-            ClassicAssert.AreEqual(new List<string> { "add-access-rule", "publish" }, checkPointClient.CalledEndpoints);
-            ClassicAssert.AreEqual(1, checkPointClient.LogoutCalls);
-            ClassicAssert.AreEqual("publish-task", ticket.GetExternalTicketId(response));
-        }
-
-        [Test]
-        public async Task CreateExternalTicketAcceptsAlreadyExistsAsDone()
-        {
-            SimulatedCheckPointClient checkPointClient = new(checkPointSystem);
-            checkPointClient.EnqueueResponse("add-access-rule", new(new()) { StatusCode = HttpStatusCode.BadRequest, Content = "{\"message\":\"Object already exists\"}" });
-            CheckPointTicket ticket = new(checkPointSystem, checkPointClient)
-            {
-                TicketText = "{\"source\":[\"src-group\"]}",
-                RequestTaskType = WfTaskType.access.ToString()
-            };
-
-            RestResponse<int> response = await ticket.CreateExternalTicket();
-
-            ClassicAssert.AreEqual(new List<string> { "add-access-rule" }, checkPointClient.CalledEndpoints);
-            ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            ClassicAssert.AreEqual(new List<string> { "add-host", "add-host", "publish", "add-group", "publish" }, checkPointClient.CalledEndpoints);
+            ClassicAssert.AreEqual("{\"name\":\"member-host\",\"ip-address\":\"10.0.0.1\"}", checkPointClient.RequestBodies[0]);
+            StringAssert.Contains("\"ignore-warnings\":true", checkPointClient.RequestBodies[1]);
+            StringAssert.Contains("\"name\":\"member-host\"", checkPointClient.RequestBodies[1]);
+            StringAssert.Contains("\"ip-address\":\"10.0.0.1\"", checkPointClient.RequestBodies[1]);
             ClassicAssert.AreEqual(1, checkPointClient.LogoutCalls);
         }
 
-        [Test]
-        public async Task GetNewStateMapsSucceededCheckPointTaskToDone()
-        {
-            SimulatedCheckPointClient checkPointClient = new(checkPointSystem);
-            checkPointClient.EnqueueResponse("show-task", new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"tasks\":[{\"status\":\"succeeded\"}]}" });
-            CheckPointTicket ticket = new(checkPointSystem, checkPointClient)
-            {
-                TicketId = "install-task"
-            };
-
-            (string state, string? message) = await ticket.GetNewState(ExtStates.ExtReqRequested.ToString());
-
-            ClassicAssert.AreEqual(ExtStates.ExtReqDone.ToString(), state);
-            ClassicAssert.IsTrue(message?.Contains("succeeded"));
-            ClassicAssert.AreEqual(1, checkPointClient.LogoutCalls);
-        }
-
-        private static WfReqTask CreateAccessTask()
+        private static WfReqTask CreateGroupCreateTaskWithNewHostMember()
         {
             return new()
             {
                 Id = 1,
                 TaskNumber = 1,
-                TaskType = WfTaskType.access.ToString(),
-                Elements =
-                [
-                    new()
-                    {
-                        GroupName = "src-group",
-                        Field = ElemFieldType.source.ToString()
-                    },
-                    new()
-                    {
-                        GroupName = "dst-group",
-                        Field = ElemFieldType.destination.ToString()
-                    },
-                    new()
-                    {
-                        Name = "https",
-                        ProtoId = 6,
-                        Port = 443,
-                        Field = ElemFieldType.service.ToString()
-                    }
-                ]
-            };
-        }
-
-        private static WfReqTask CreateServiceGroupTask()
-        {
-            return new()
-            {
-                Id = 2,
-                TaskNumber = 2,
                 TaskType = WfTaskType.group_create.ToString(),
-                AdditionalInfo = "{\"GrpName\":\"svc-group\"}",
+                AdditionalInfo = "{\"GrpName\":\"cp-group\"}",
                 Elements =
                 [
                     new()
                     {
-                        Name = "https",
-                        ProtoId = 6,
-                        Port = 443,
-                        Field = ElemFieldType.service.ToString()
+                        Name = "member-host",
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "10.0.0.1/32",
+                        RequestAction = RequestAction.create.ToString()
                     }
                 ]
             };

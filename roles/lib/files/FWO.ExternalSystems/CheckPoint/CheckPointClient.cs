@@ -39,7 +39,7 @@ namespace FWO.ExternalSystems.CheckPoint
             await Login();
         }
 
-        public async Task Logout()
+        public virtual async Task Logout()
         {
             if (string.IsNullOrWhiteSpace(SessionId))
             {
@@ -72,7 +72,7 @@ namespace FWO.ExternalSystems.CheckPoint
             }
         }
 
-        public async Task<RestResponse> RestCall(RestRequest request, string restEndPoint)
+        public virtual async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
         {
             request.AddHeader("Content-Type", "application/json");
             request.AddHeader("Accept", "application/json");
@@ -83,7 +83,7 @@ namespace FWO.ExternalSystems.CheckPoint
 
             Log.WriteDebug("API", DebugApiCallText(request, restClient, restEndPoint));
 
-            RestResponse response = await restClient.ExecuteAsync(request);
+            RestResponse<int> response = await restClient.ExecuteAsync<int>(request);
             return response;
         }
 

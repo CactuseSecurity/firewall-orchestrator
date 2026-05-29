@@ -183,7 +183,7 @@ namespace FWO.Middleware.Server.Controllers
         /// TargetUserDn OR TargetUserName (required) - Example: "uid=demo_user,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal" OR "demo_user" 
         /// </remarks>
         /// <param name="parameters">Admin credentials and target user identity.</param>
-        /// <returns>User jwt, if credentials are vaild.</returns>
+        /// <returns>User jwt, if credentials are valid.</returns>
         [HttpPost("GetForUser")]
         public async Task<ActionResult<string>> GetAsyncForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
         {

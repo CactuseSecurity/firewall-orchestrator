@@ -248,8 +248,8 @@ namespace FWO.Ui.Auth
         private async Task RestoreExecutionMode(ApiConnection apiConnection, UserConfig userConfig)
         {
             string storedExecutionMode = executionModeStorage != null
-                ? await executionModeStorage.GetExecutionMode() ?? ExecutionModeHelper.UserRolesSelection
-                : ExecutionModeHelper.UserRolesSelection;
+                ? await executionModeStorage.GetExecutionMode() ?? GlobalConst.kUserRolesSelection
+                : GlobalConst.kUserRolesSelection;
             string executionMode = ExecutionModeHelper.NormalizeExecutionMode(userConfig.User.Roles, storedExecutionMode);
 
             apiConnection.SetExecutionMode(user, executionMode);

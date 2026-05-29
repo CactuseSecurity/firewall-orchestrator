@@ -66,7 +66,7 @@ namespace FWO.Test
                 Roles.Modeller
             ]);
 
-            Assert.That(result, Is.EqualTo(new[] { ExecutionModeHelper.UserRolesSelection, Roles.Admin, Roles.Auditor }));
+            Assert.That(result, Is.EqualTo(new[] { GlobalConst.kUserRolesSelection, Roles.Admin, Roles.Auditor }));
         }
 
         [Test]
@@ -82,7 +82,7 @@ namespace FWO.Test
         {
             string result = ExecutionModeHelper.GetSelectedExecutionMode([Roles.Modeller, Roles.Admin], "");
 
-            Assert.That(result, Is.EqualTo(ExecutionModeHelper.UserRolesSelection));
+            Assert.That(result, Is.EqualTo(GlobalConst.kUserRolesSelection));
         }
 
         [Test]
@@ -90,8 +90,8 @@ namespace FWO.Test
         {
             Assert.Multiple(() =>
             {
-                Assert.That(ExecutionModeHelper.NormalizeExecutionMode([Roles.Admin, Roles.Modeller], ""), Is.EqualTo(ExecutionModeHelper.UserRolesSelection));
-                Assert.That(ExecutionModeHelper.NormalizeExecutionMode([Roles.Admin, Roles.Modeller], "invalid"), Is.EqualTo(ExecutionModeHelper.UserRolesSelection));
+                Assert.That(ExecutionModeHelper.NormalizeExecutionMode([Roles.Admin, Roles.Modeller], ""), Is.EqualTo(GlobalConst.kUserRolesSelection));
+                Assert.That(ExecutionModeHelper.NormalizeExecutionMode([Roles.Admin, Roles.Modeller], "invalid"), Is.EqualTo(GlobalConst.kUserRolesSelection));
             });
         }
 

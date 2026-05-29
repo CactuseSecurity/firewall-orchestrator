@@ -4,6 +4,7 @@ using GraphQL.Client.Serializer.SystemTextJson;
 using GraphQL.Client.Serializer.Newtonsoft;
 using GraphQL.Client.Abstractions;
 using Newtonsoft.Json.Linq;
+using FWO.Basics;
 using FWO.Logging;
 using System.Security.Claims;
 using System.Security.Authentication;
@@ -77,7 +78,7 @@ namespace FWO.Api.Client
 
         public override void SetExecutionMode(ClaimsPrincipal user, string role)
         {
-            string normalizedRole = role.Equals(ExecutionModeHelper.UserRolesSelection, StringComparison.OrdinalIgnoreCase) ? "" : role;
+            string normalizedRole = role.Equals(GlobalConst.kUserRolesSelection, StringComparison.OrdinalIgnoreCase) ? "" : role;
             if (IsForcedExecutionMode(normalizedRole) && !HasAllowedRole(user, normalizedRole))
             {
                 throw new AuthenticationException($"User is not allowed to use execution mode: {normalizedRole}");
@@ -89,7 +90,7 @@ namespace FWO.Api.Client
 
         public override string GetExecutionMode()
         {
-            return forcedExecutionMode == "" ? ExecutionModeHelper.UserRolesSelection : forcedExecutionMode;
+            return forcedExecutionMode == "" ? GlobalConst.kUserRolesSelection : forcedExecutionMode;
         }
 
         private void SetRoleHeader(string role)

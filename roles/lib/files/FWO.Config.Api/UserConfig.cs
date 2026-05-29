@@ -22,7 +22,7 @@ namespace FWO.Config.Api
         public Dictionary<string, string> Overwrite { get; set; } = [];
 
         public UiUser User { private set; get; }
-        public string ExecutionMode { get; private set; } = ExecutionModeHelper.UserRolesSelection;
+        public string ExecutionMode { get; private set; } = GlobalConst.kUserRolesSelection;
 
         public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId, bool owningApiConnection = false)
         {
@@ -138,7 +138,7 @@ namespace FWO.Config.Api
 
         public void SetExecutionMode(string executionMode)
         {
-            ExecutionMode = string.IsNullOrWhiteSpace(executionMode) ? ExecutionModeHelper.UserRolesSelection : executionMode;
+            ExecutionMode = string.IsNullOrWhiteSpace(executionMode) ? GlobalConst.kUserRolesSelection : executionMode;
             InvokeOnChange(this, []);
         }
 

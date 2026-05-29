@@ -147,7 +147,7 @@
     private StateMatrix stateMatrix = new();
     private List<Module> availableModules { get; set; } = [];
     private bool InitComplete = false;
-    private string displayedExecutionMode = ExecutionModeHelper.UserRolesSelection;
+    private string displayedExecutionMode = GlobalConst.kUserRolesSelection;
 
 
     protected override async Task OnInitializedAsync()
@@ -262,7 +262,7 @@
 
     private string GetExecutionModeText(string executionMode)
     {
-        return executionMode == ExecutionModeHelper.UserRolesSelection ? userConfig.GetText("user_roles") : executionMode;
+        return executionMode == GlobalConst.kUserRolesSelection ? userConfig.GetText("user_roles") : executionMode;
     }
 
 	public void Dispose()

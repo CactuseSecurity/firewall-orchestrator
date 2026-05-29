@@ -40,8 +40,8 @@ namespace FWO.Test
             component.WaitForAssertion(() =>
             {
                 IRenderedComponent<Dropdown<string>> dropdown = component.FindComponent<Dropdown<string>>();
-                Assert.That(dropdown.Instance.SelectedElement, Is.EqualTo(ExecutionModeHelper.UserRolesSelection));
-                Assert.That(dropdown.Instance.Elements, Is.EqualTo(new[] { ExecutionModeHelper.UserRolesSelection, Roles.Admin }));
+                Assert.That(dropdown.Instance.SelectedElement, Is.EqualTo(GlobalConst.kUserRolesSelection));
+                Assert.That(dropdown.Instance.Elements, Is.EqualTo(new[] { GlobalConst.kUserRolesSelection, Roles.Admin }));
             });
         }
 

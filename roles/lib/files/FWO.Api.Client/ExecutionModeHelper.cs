@@ -9,8 +9,6 @@ namespace FWO.Api.Client
     /// </summary>
     public static class ExecutionModeHelper
     {
-        public const string UserRolesSelection = "user_roles";
-
         /// <summary>
         /// Extracts application roles from role claims and Hasura allowed-role claims.
         /// </summary>
@@ -60,7 +58,7 @@ namespace FWO.Api.Client
         public static List<string> GetSelectableExecutionModes(IEnumerable<string> roles)
         {
             List<string> selectableRoles = GetSelectableRoles(roles);
-            List<string> selectableModes = [UserRolesSelection];
+            List<string> selectableModes = [GlobalConst.kUserRolesSelection];
 
             if (selectableRoles.Contains(Roles.Admin, StringComparer.OrdinalIgnoreCase))
             {
@@ -124,7 +122,7 @@ namespace FWO.Api.Client
                 return selectableModes.First(mode => mode.Equals(executionMode, StringComparison.OrdinalIgnoreCase));
             }
 
-            return UserRolesSelection;
+            return GlobalConst.kUserRolesSelection;
         }
 
         /// <summary>
@@ -147,7 +145,7 @@ namespace FWO.Api.Client
             {
                 return selectableModes.First(role => role.Equals(currentRole, StringComparison.OrdinalIgnoreCase));
             }
-            return UserRolesSelection;
+            return GlobalConst.kUserRolesSelection;
         }
 
         private static bool IsElevatedExecutionMode(string executionMode)

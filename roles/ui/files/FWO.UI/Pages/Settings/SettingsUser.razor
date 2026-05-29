@@ -81,6 +81,6 @@
 
     private string GetExecutionModeText(string executionMode)
     {
-        return executionMode == ExecutionModeHelper.UserRolesSelection ? userConfig.GetText("user_roles") : executionMode;
+        return executionMode == GlobalConst.kUserRolesSelection ? userConfig.GetText("user_roles") : executionMode;
     }
 }

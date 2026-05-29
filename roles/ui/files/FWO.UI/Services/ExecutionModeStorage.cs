@@ -1,4 +1,4 @@
-using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Logging;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
@@ -25,7 +25,7 @@ namespace FWO.Ui.Services
 
         public async Task SetExecutionMode(string executionMode)
         {
-            string modeToStore = string.IsNullOrWhiteSpace(executionMode) ? ExecutionModeHelper.UserRolesSelection : executionMode;
+            string modeToStore = string.IsNullOrWhiteSpace(executionMode) ? GlobalConst.kUserRolesSelection : executionMode;
             await sessionStorage.SetAsync(ExecutionModeKey, modeToStore);
         }
 

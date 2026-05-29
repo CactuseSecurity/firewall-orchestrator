@@ -27,22 +27,19 @@ else if (InitComplete && accessAllowed)
         <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerRequestStatus" Items="Rows" ColumnReorder="true">
             <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("actions"))" Field="@(x => x.TicketId)" Sortable="false" Filterable="false">
                 <Template Context="row">
-                    @if (row.TicketId > 0)
+                    @if (row.TicketId > 0 && userConfig.CanUseAnyRole(Roles.Admin))
                     {
-                        @if (userConfig.CanUseAnyRole(Roles.Admin))
-                        {
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-warning" disabled="@(ConfiguredImplementationStatuses.Count == 0)" @onclick="() => RequestImplementationStatusChange(row)">
-                                    @(DisplayService.DisplayButton(userConfig, "modIntegrationStates", Icons.ChangeState))
-                                </button>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestTicketStateChange(row)">
-                                    @(DisplayService.DisplayButton(userConfig, "ticket_status", Icons.ChangeState))
-                                </button>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestReset(row)">
-                                    @(DisplayService.DisplayButton(userConfig, "reset", Icons.Undo))
-                                </button>
-                            </div>
-                        }
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-warning" disabled="@(ConfiguredImplementationStatuses.Count == 0)" @onclick="() => RequestImplementationStatusChange(row)">
+                                @(DisplayService.DisplayButton(userConfig, "modIntegrationStates", Icons.ChangeState))
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestTicketStateChange(row)">
+                                @(DisplayService.DisplayButton(userConfig, "ticket_status", Icons.ChangeState))
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestReset(row)">
+                                @(DisplayService.DisplayButton(userConfig, "reset", Icons.Undo))
+                            </button>
+                        </div>
                     }
                 </Template>
             </Column>

@@ -447,11 +447,7 @@
     private void SetProperRoleForReport()
     {
         ReportType reportType = actReportFilters.ReportType;
-        if(reportType == ReportType.Owners)
-        {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
-        }
-        else if(reportType.IsComplianceReport())
+        if(reportType == ReportType.Owners || reportType.IsComplianceReport())
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
         }

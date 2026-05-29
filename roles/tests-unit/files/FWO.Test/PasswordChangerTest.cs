@@ -12,10 +12,15 @@ namespace FWO.Test
     [TestFixture]
     public class PasswordChangerTest
     {
-        [TestCase("", "NewPassword1", "NewPassword1", "E5401")]
-        [TestCase("OldPassword1", "", "", "E5402")]
-        [TestCase("SamePassword1", "SamePassword1", "SamePassword1", "E5403")]
-        [TestCase("OldPassword1", "NewPassword1", "OtherPassword1", "E5404")]
+        private const string OldInput = "OldValue1";
+        private const string NewInput = "NewValue1";
+        private const string OtherInput = "OtherValue1";
+        private const string SameInput = "SameValue1";
+
+        [TestCase("", NewInput, NewInput, "E5401")]
+        [TestCase(OldInput, "", "", "E5402")]
+        [TestCase(SameInput, SameInput, SameInput, "E5403")]
+        [TestCase(OldInput, NewInput, OtherInput, "E5404")]
         public async Task ChangePasswordRejectsInvalidInputBeforeCallingMiddleware(string oldPassword, string newPassword1, string newPassword2, string expectedError)
         {
             MockMiddlewareClient middlewareClient = new();
@@ -39,7 +44,7 @@ namespace FWO.Test
             GlobalConfig globalConfig = CreateGlobalConfig();
             globalConfig.PwMinLength = 12;
 
-            string result = await changer.ChangePassword("OldPassword1", "short", "short", CreateUserConfig(), globalConfig);
+            string result = await changer.ChangePassword(OldInput, "short", "short", CreateUserConfig(), globalConfig);
 
             Assert.Multiple(() =>
             {
@@ -59,7 +64,7 @@ namespace FWO.Test
             UserConfig userConfig = CreateUserConfig();
             userConfig.SetExecutionMode(Roles.Admin);
 
-            string result = await changer.ChangePassword("OldPassword1", "NewPassword1", "NewPassword1", userConfig, CreateGlobalConfig());
+            string result = await changer.ChangePassword(OldInput, NewInput, NewInput, userConfig, CreateGlobalConfig());
 
             Assert.Multiple(() =>
             {
@@ -68,8 +73,8 @@ namespace FWO.Test
                 Assert.That(middlewareClient.LastChangePasswordRequest, Is.Not.Null);
                 Assert.That(middlewareClient.LastChangePasswordRequest!.LdapId, Is.EqualTo(23));
                 Assert.That(middlewareClient.LastChangePasswordRequest.UserId, Is.EqualTo(42));
-                Assert.That(middlewareClient.LastChangePasswordRequest.OldPassword, Is.EqualTo("OldPassword1"));
-                Assert.That(middlewareClient.LastChangePasswordRequest.NewPassword, Is.EqualTo("NewPassword1"));
+                Assert.That(middlewareClient.LastChangePasswordRequest.OldPassword, Is.EqualTo(OldInput));
+                Assert.That(middlewareClient.LastChangePasswordRequest.NewPassword, Is.EqualTo(NewInput));
                 Assert.That(middlewareClient.LastChangePasswordRequest.ExecutionMode, Is.EqualTo(Roles.Admin));
             });
         }
@@ -84,7 +89,7 @@ namespace FWO.Test
             };
             PasswordChanger changer = new(middlewareClient);
 
-            string result = await changer.ChangePassword("OldPassword1", "NewPassword1", "NewPassword1", CreateUserConfig(), CreateGlobalConfig());
+            string result = await changer.ChangePassword(OldInput, NewInput, NewInput, CreateUserConfig(), CreateGlobalConfig());
 
             Assert.Multiple(() =>
             {
@@ -102,7 +107,7 @@ namespace FWO.Test
             };
             PasswordChanger changer = new(middlewareClient);
 
-            string result = await changer.ChangePassword("OldPassword1", "NewPassword1", "NewPassword1", CreateUserConfig(), CreateGlobalConfig());
+            string result = await changer.ChangePassword(OldInput, NewInput, NewInput, CreateUserConfig(), CreateGlobalConfig());
 
             Assert.Multiple(() =>
             {

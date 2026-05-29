@@ -75,13 +75,9 @@ else
         {
             wfHandler.ReadOnlyMode = true;
             await wfHandler.Init(true, OwnerIds, true);
-            if(!userConfig.ReqOwnerBased)
+            if(!userConfig.ReqOwnerBased && userConfig.CanUseAnyRole(Roles.Requester) && !userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin))
             {
-                // Todo: put filtering into graphql query
-                if(userConfig.CanUseAnyRole(Roles.Requester) && !userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin))
-                {
-                    wfHandler.FilterForRequester();
-                }
+                wfHandler.FilterForRequester();
             }
         }
         catch (Exception exception)

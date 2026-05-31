@@ -616,3 +616,25 @@ A complete 80K lines rework of FWO, including
 
 ### 9.1.2 - 26.05.2026
 - database: fix flow foreign key duplication on fresh install plus upgrade path
+
+### 9.2.0 - 01.06.2026
+- adding more platform support, making FWO compatible with the following operating systems:
+  - Ubuntu 22.04 and 24.04
+  - Debian 11 & 12
+  - Red Hat 9 (new)
+  - Rocky 9 (new)
+  - Ubuntu 26.04 (new)
+  - Debian 13 (new)
+  Not supported any longer are:
+  - Ubuntu <  22.04
+  - Debian <  11
+
+- Breaking Changes: 
+  - Installer invocation changes, The documented and expected way to run installations/upgrades changes to 
+   `./scripts/run-playbook-with-sudo.sh site.yml`
+  - Ansible collections become a hard dependency: The installer now requires explicit installation of several Ansible collections:
+```bash
+ansible-galaxy collection install -r collections/requirements.yml -p collections --force
+```
+    
+    Environments that previously relied on globally installed collections or did not install collections at all may fail until the collections are installed in the expected location.  
